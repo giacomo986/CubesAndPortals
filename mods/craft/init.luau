@@ -46,7 +46,7 @@ core.log(`craft: 'craft:brick' at {BRICK}, three recipes -- two shaped, one not`
 -- grids, because what is half-arranged in one belongs to whoever arranged it.
 local TABLE = core.register_node("craft:table", 150, 105, 55, true, 4, "upright")
 
--- Drawn as a Blender model, table.gltf (~/kart_assets/chest_furnace.blend,
+-- Drawn as a Blender model, table.gltf (assets/blender/chest_furnace.blend,
 -- collection CraftTable): a workbench on four legs with a shelf, a 3x3 grid
 -- inlaid in its top, and a saw and a hammer hung on its front, which faces
 -- whoever put it down. A full cell of box under it, so it is walked into and

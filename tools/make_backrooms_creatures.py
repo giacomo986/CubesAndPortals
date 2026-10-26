@@ -15,7 +15,7 @@
 #             shuts and it sinks to the floor, turning away.
 #
 # Clips: idle, walk, run, attack, death (docs/MODDING.md, Creature). Leaves
-# the work in ~/kart_assets/backrooms.blend.
+# the work in assets/blender/backrooms.blend.
 import importlib.util
 import math
 import os
@@ -30,7 +30,7 @@ sys.modules["make_pet_models"] = pets
 _spec.loader.exec_module(pets)
 
 OUT = os.path.join(HERE, "..", "games", "backrooms", "mods", "backrooms")
-BLEND = os.path.expanduser("~/kart_assets/backrooms.blend")
+BLEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "backrooms.blend")
 
 
 def material(name, rgb, glow=0.0):

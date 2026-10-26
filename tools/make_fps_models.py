@@ -4,7 +4,7 @@
 #   flatpak run org.blender.Blender --background --python tools/make_fps_models.py
 #   (or blender --background --python ..., or inside Blender)
 #
-# Starts from an empty file and leaves the work in ~/kart_assets/fps.blend.
+# Starts from an empty file and leaves the work in assets/blender/fps.blend.
 #
 #   robot_arms   (into yafps_core, beside the robot) the arms seen in first person, holding the four guns: a bone
 #                tool_<gun> each, shown only while that gun is in the hand
@@ -33,7 +33,7 @@ from mathutils import Matrix, Vector
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 OUT = os.path.join(ROOT, "games", "yafps", "mods", "yafps_game")
 ARMS_OUT = os.path.join(ROOT, "games", "yafps", "mods", "yafps_core")   # beside the robot they belong to
-BLEND = os.path.expanduser("~/kart_assets/fps.blend")
+BLEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "fps.blend")
 FPS = 30   # the chaingun's shot, a twelfth of a second, is three frames; and a model is at most 1 MB
 
 

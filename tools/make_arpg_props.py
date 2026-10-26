@@ -9,7 +9,7 @@
 # shrinking to nothing in a second, under the 1.2 s the client fades a dead
 # creature in). arpg_core registers them as workers, arpg_game puts them about
 # the zones; exported as games/arpg/mods/arpg_core/prop_<kind>.gltf. Z up,
-# metres, the floor at z 0. Leaves the work in ~/kart_assets/arpg_props.blend.
+# metres, the floor at z 0. Leaves the work in assets/blender/arpg_props.blend.
 import math
 import os
 import random
@@ -273,7 +273,7 @@ def make(kind, pieces):
                               use_selection=True, export_animations=True, export_animation_mode="NLA_TRACKS",
                               export_yup=True, export_skins=True)
     print(f"PROP {kind}: {len(centres)} pieces, {len(me.polygons)} faces")
-    bpy.ops.wm.save_as_mainfile(filepath=os.path.expanduser(f"~/kart_assets/arpg_prop_{kind}.blend"))
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", f"arpg_prop_{kind}.blend"))
 
 
 for kind, maker in PROPS.items():

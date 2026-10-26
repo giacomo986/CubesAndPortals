@@ -1,6 +1,6 @@
 # Exports the chest, furnace and crafting table block models from their Blender file.
 #
-#   blender ~/kart_assets/chest_furnace.blend --background --python tools/export_block_models.py
+#   blender assets/blender/chest_furnace.blend --background --python tools/export_block_models.py
 #
 # One collection per model in the .blend: Chest, ChestDouble, Hidden, Furnace,
 # CraftTable.

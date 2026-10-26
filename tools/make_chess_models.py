@@ -18,7 +18,7 @@
 #   flatpak run org.blender.Blender --background --python "$PWD/tools/make_chess_models.py"
 #
 # Also renders a preview of all of them to ~/kart_assets/chess.png, and leaves
-# the work in ~/kart_assets/chess.blend. Blender is Z up: glTF (x, y, z) is
+# the work in assets/blender/chess.blend. Blender is Z up: glTF (x, y, z) is
 # Blender (x, -z, y).
 import math
 import os
@@ -29,7 +29,7 @@ from mathutils import Matrix, Vector
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 MOD = os.path.join(ROOT, "mods", "chess")
-BLEND = os.path.expanduser("~/kart_assets/chess.blend")
+BLEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "chess.blend")
 PREVIEW = os.path.expanduser("~/kart_assets/chess.png")
 
 SQ = 0.1      # a square, in nodes

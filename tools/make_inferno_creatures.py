@@ -15,7 +15,7 @@
 #           rods fall out of the air and scatter and the head drops after them.
 #
 # Clips: idle, walk, run, shoot, death (docs/MODDING.md, Creature). Leaves the
-# work in ~/kart_assets/inferno.blend.
+# work in assets/blender/inferno.blend.
 import importlib.util
 import math
 import os
@@ -30,7 +30,7 @@ sys.modules["make_pet_models"] = pets
 _spec.loader.exec_module(pets)
 
 OUT = os.path.join(HERE, "..", "games", "inferno", "mods", "inferno")
-BLEND = os.path.expanduser("~/kart_assets/inferno.blend")
+BLEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "inferno.blend")
 TAU = 2 * math.pi
 
 

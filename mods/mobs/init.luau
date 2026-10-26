@@ -1,5 +1,5 @@
 --!strict
--- mobs: the creatures. Made in ~/kart_assets/mobs.blend and exported by
+-- mobs: the creatures. Made in assets/blender/mobs.blend and exported by
 -- tools/export_mob_models.py.
 --
 -- Both stand on the robot's skeleton -- the same bones, 1.8 tall, facing the

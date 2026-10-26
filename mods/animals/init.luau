@@ -1,6 +1,6 @@
 --!strict
 -- animals: a pig, a cow, a sheep and a chicken, in the manner of the classic block game's.
--- Made in ~/kart_assets/animals.blend by tools/make_animal_models.py, boxes
+-- Made in assets/blender/animals.blend by tools/make_animal_models.py, boxes
 -- measured in its pixels, with the clips idle, walk and run.
 --
 -- Wild, and never tamed: pets with nothing that tames them (core/ecs/mob.h,

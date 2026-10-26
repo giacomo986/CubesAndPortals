@@ -1,5 +1,5 @@
 # Builds the conveyor belt's block models (mods/conveyor) and leaves the work in
-# ~/kart_assets/conveyor.blend.
+# assets/blender/conveyor.blend.
 #
 #   flatpak run org.blender.Blender --background --python tools/make_conveyor.py [-- PREVIEW_DIR]
 #
@@ -33,7 +33,7 @@ from mathutils import Matrix, Vector
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 OUT = os.path.join(ROOT, "mods", "conveyor")
-BLEND = os.path.expanduser("~/kart_assets/conveyor.blend")
+BLEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "conveyor.blend")
 
 BELT_TOP = 5.0   # the stacks ride here; core.node_box and core.node_conveyor in the mod say the same
 LOOP = 0.5       # seconds a loop

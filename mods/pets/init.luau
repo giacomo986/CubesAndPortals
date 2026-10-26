@@ -1,6 +1,6 @@
 --!strict
 -- pets: a dog and a cat, in the manner of the classic block game's wolf and cat. Made in
--- ~/kart_assets/pets.blend by tools/make_pet_models.py, each twice: wild, and
+-- assets/blender/pets.blend by tools/make_pet_models.py, each twice: wild, and
 -- tame with a red collar.
 --
 -- They come out by day on sunlit grass, up to two near each player, stroll

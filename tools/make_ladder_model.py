@@ -2,7 +2,7 @@
 #
 #   flatpak run org.blender.Blender --background --python tools/make_ladder_model.py
 #
-# Saves the work as ~/kart_assets/ladder.blend and exports mods/timber/rungs.gltf,
+# Saves the work as assets/blender/ladder.blend and exports mods/timber/rungs.gltf,
 # the same ladder held in the hand (rungs_held.gltf: tools/make_held_models.py's
 # way round, flat in XY facing +Z, 0.3 tall about the fist) and its picture in
 # the bag (assets/textures/timber_rungs.png, rendered and outlined as that
@@ -26,7 +26,7 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 OUT = os.path.join(ROOT, "mods", "timber", "rungs.gltf")
 HELD = os.path.join(ROOT, "mods", "timber", "rungs_held.gltf")
 ICON = os.path.join(ROOT, "assets", "textures", "timber_rungs.png")
-BLEND = os.path.expanduser("~/kart_assets/ladder.blend")
+BLEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "ladder.blend")
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 

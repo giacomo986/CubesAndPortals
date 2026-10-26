@@ -25,7 +25,7 @@
 #
 # pack_tool_L / pack_tool_R are where each claw holds its tool: the tool is
 # drawn there the way a held one is drawn at the hand, as the robot holds it
-# at rest. Leaves the work in ~/kart_assets/armpack.blend and armpack_arms.blend, with a pick and a
+# at rest. Leaves the work in assets/blender/armpack.blend and armpack_arms.blend, with a pick and a
 # sword taken from the robot's own tools in the claws (not exported), and
 # stills of each clip in /tmp/armpack_*.png. Shapes are in world space at
 # rest, metres, Z up and the robot facing +Y.
@@ -415,7 +415,7 @@ def make(view):
         stills(rig, acts)
     for ob in preview:
         ob.hide_render = False
-    bpy.ops.wm.save_as_mainfile(filepath=os.path.expanduser(f"~/kart_assets/{out}.blend"))
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", f"{out}.blend"))
 
 
 make("eye")

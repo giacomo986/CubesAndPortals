@@ -61,8 +61,8 @@ di cubetti arancioni dalle mani al punto d'aggancio.
   mapgen (`parkour:course`) colonna per colonna, tagliata ai bordi di ognuna;
   niente terreno del motore (`core.mapgen_core(false)`).
 - Texture: `tools/make_parkour_textures.py`. La rope gun in mano e la sua icona:
-  `tools/make_rope_gun.py` (Blender, ~/kart_assets/rope_gun.blend).
+  `tools/make_rope_gun.py` (Blender, assets/blender/rope_gun.blend).
 - Le clip del robot (corsa sul muro a destra e a sinistra, salto dal muro,
   scivolata, capriola, oscillazione sulla corda) sono in
-  ~/kart_assets/robot18.blend e aggiunte a `mods/robot/robot.gltf` con
+  assets/blender/robot18.blend e aggiunte a `mods/robot/robot.gltf` con
   `tools/gltf_add_clips.py`.

@@ -102,7 +102,8 @@ Il progetto è aperto a tutti. Si può contribuire in molti modi:
   si aspettava, sistema operativo e versione (in basso a destra nel menù), e se possibile il log;
 - **tradurre**: una lingua nuova è un file nuovo in `assets/lang/` (vedi `it.txt`);
 - **fare mod, mondi e texture pack**: [`docs/MODDING.md`](docs/MODDING.md),
-  [`docs/API.md`](docs/API.md) e [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.md);
+  [`docs/API.md`](docs/API.md) e [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.md); i sorgenti
+  Blender dei modelli sono in [`assets/blender/`](assets/blender/README.md);
 - **sistemare l'engine**: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) spiega come è fatto il
   codice e dove va una feature nuova; [`TODO.md`](TODO.md) elenca quello che manca.
 

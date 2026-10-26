@@ -1,11 +1,11 @@
 # The sandbox's inhabitants and the little robots that help, built in Blender
 # on the robot's own skeleton and exported for mods/villagers and mods/helpers.
 #
-#   flatpak run org.blender.Blender --background ~/kart_assets/robot18.blend \
+#   flatpak run org.blender.Blender --background assets/blender/robot18.blend \
 #       --python tools/make_villager_models.py
 #
 # Opens the robot's file read-only and saves the work as
-# ~/kart_assets/villagers.blend. Each creature is a copy of Robot_Rig -- the
+# assets/blender/villagers.blend. Each creature is a copy of Robot_Rig -- the
 # same bones, the same 1.8 (the helper at 0.7 of it) -- with a mesh of its own
 # made of boxes, each weighted whole to one bone, so every clip the robot has
 # plays on it: idle, walk, run, jump_loop, swim, swim_idle, climb, climb_idle,
@@ -43,7 +43,7 @@ import bpy
 from mathutils import Euler, Matrix, Vector
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-BLEND = os.path.expanduser("~/kart_assets/villagers.blend")
+BLEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "villagers.blend")
 FPS = 30
 
 _spec = importlib.util.spec_from_file_location(

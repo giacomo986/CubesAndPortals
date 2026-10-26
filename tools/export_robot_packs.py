@@ -1,6 +1,6 @@
 # Exports the two things worn on the robot's back from the robot's Blender file.
 #
-#   blender ~/kart_assets/robot18.blend --background --python tools/export_robot_packs.py
+#   blender assets/blender/robot18.blend --background --python tools/export_robot_packs.py
 #
 # Collections Jetpack (the flight pack, which used to be part of Robot_Mesh)
 # and Backpack, each one mesh on Robot_Rig: the jetpack bound to "chest" with

@@ -11,7 +11,7 @@
 # the fist, +Y the way the gun points, +Z the side seen in first person; sizes
 # in metres of the robot, scaled by its forearm. Also writes each gun's 32x32
 # picture into games/chambers/textures, and leaves the work in
-# ~/kart_assets/portal_gun.blend.
+# assets/blender/portal_gun.blend.
 import math
 import os
 import sys
@@ -24,7 +24,7 @@ from mathutils import Euler, Matrix, Vector
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 MOD = os.path.join(ROOT, "games", "chambers", "mods", "chambers_game")
 TEXTURES = os.path.join(ROOT, "games", "chambers", "textures")
-BLEND = os.path.expanduser("~/kart_assets/portal_gun.blend")
+BLEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "portal_gun.blend")
 
 
 def material(name, rgb, metal=0.0, rough=0.6, glow=0.0):

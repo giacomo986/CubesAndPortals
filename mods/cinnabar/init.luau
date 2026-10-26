@@ -124,7 +124,7 @@ core.node_drop(OBSERVER_ON, OBSERVER)
 -- put against, so down off a floor and sideways into a wall. Never up: put
 -- under a ceiling it points down. Locked while powered.
 --
--- Two Blender models (~/kart_assets/hopper.blend): the bowl always open to the
+-- Two Blender models (assets/blender/hopper.blend): the bowl always open to the
 -- sky, the spout down or out of one side. One model turned by the cell would
 -- tip the bowl over for a side, so a side hopper is a block of its own, which
 -- core:placed swaps in -- the same item, the same drop.

@@ -148,7 +148,7 @@ def main(body):
                               export_yup=True, export_skins=True, export_materials="NONE")
     only_turns(out)
     if body == "robot":
-        bpy.ops.wm.save_as_mainfile(filepath=os.path.expanduser("~/kart_assets/arpg_clips.blend"))
+        bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "arpg_clips.blend"))
 
 
 def only_turns(path):

@@ -22,7 +22,7 @@ local FURNACE = core.register_node("furnace:furnace", 112, 106, 100, true, 0, "u
 local LIT     = core.register_node("furnace:lit", 150, 112, 84, true, 13, "upright", 0, 3.0,
                                    "stone")
 
--- Drawn as Blender models (~/kart_assets/chest_furnace.blend): a brick oven
+-- Drawn as Blender models (assets/blender/chest_furnace.blend): a brick oven
 -- with an iron-framed firebox, and, lit, the same oven with fire in it -- five
 -- flames on bones whose clip "loop" plays round and round, and embers that give
 -- their own light (an emissive material is drawn unshaded). A full cell of

@@ -708,6 +708,21 @@ front, on the ground in the valley and 12 down where the causeway was in the
 chasm (before: 22 off to the east in the magma). Measured: heat 56, pace 0.96
 from the bot gunners early on; seen in Xephyr right behind a jeep.
 
+**The Blender files are in the repository (2026-10-26).** Asked: import every
+Blender model and publish it. The 36 .blend of ~/kart_assets are in
+assets/blender/ (23 MB), and the make_*.py scripts save there. Cleaned on the
+way in: render paths (old names and scratch folders left in the fixed buffer),
+and the datablocks and action slots of inferno.blend and held_items.blend still
+named after the old creatures and items. Same objects, meshes and actions as
+before, file by file. Open: make_kart_parts.py imports the unsplit kart glTF
+from ~/kart_assets/kart_unsplit, which is not in the repository.
+
+**The plaza is quiet (2026-10-26).** Asked: hide the cubes that come and go
+on the spawn plaza, too much noise. They were the spike's lamp blinking on its
+tower (44 28 44, twice a second) and the beacon walking along beacons' pillars
+(50..54 24 42); both gone, the cells cleared at load for saved worlds, the
+beacons still light on a guard alarm. Checked headless: both mods load.
+
 **Translations, and the account is per server (2026-10-26).** Asked: a way to
 translate, Italian and English for now; the multiplayer account per server, not
 before choosing it. client/ui/lang: assets/lang/<code>.txt, "text = traduzione"

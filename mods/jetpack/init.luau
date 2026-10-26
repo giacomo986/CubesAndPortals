@@ -3,7 +3,7 @@
 -- longer has it) and worn on its own in the back square of the bag.
 --
 -- jetpack.gltf is the pack as it was on the robot -- the box, its panel, the
--- two nozzles and the two flames -- Jetpack_Mesh in ~/kart_assets/robot18.blend
+-- two nozzles and the two flames -- Jetpack_Mesh in assets/blender/robot18.blend
 -- (tools/export_robot_packs.py), on the robot's own skeleton, so it is
 -- posed bone by bone with its wearer: the flames hang on "jet_flame", which
 -- the robot's fly and fly_hover clips grow and every other clip keeps at

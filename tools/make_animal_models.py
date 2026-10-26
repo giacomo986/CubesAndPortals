@@ -5,7 +5,7 @@
 #   blender --background --python tools/make_animal_models.py
 #   (or run inside Blender, the Text editor or the MCP bridge)
 #
-# Starts from an empty file, saves it as ~/kart_assets/animals.blend and
+# Starts from an empty file, saves it as assets/blender/animals.blend and
 # writes pig.gltf, cow.gltf, sheep.gltf, sheep_shorn.gltf and chicken.gltf,
 # a young one of each at half the size with a bigger head (pig_baby.gltf and
 # so on), and hearts.gltf, worn over one in love. Built the way
@@ -25,7 +25,7 @@ pets = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(pets)
 
 OUT = os.path.join(HERE, "..", "mods", "animals")
-BLEND = os.path.expanduser("~/kart_assets/animals.blend")
+BLEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "animals.blend")
 
 # A pixel, and what a model's names end in: the young ones are the same boxes
 # at half the size, named pig_baby and so on.

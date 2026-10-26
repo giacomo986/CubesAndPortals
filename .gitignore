@@ -44,3 +44,6 @@ assets/packs/
 # What ctest and Python leave behind.
 Testing/
 __pycache__/
+
+# The backups Blender leaves beside a .blend it saves.
+*.blend1

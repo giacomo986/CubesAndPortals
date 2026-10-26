@@ -16,7 +16,7 @@
 -- never in the world and never out of reach, one column along per number.
 -- Saved with the world like a chest.
 --
--- backpack.gltf is made in ~/kart_assets/robot18.blend (collection Backpack)
+-- backpack.gltf is made in assets/blender/robot18.blend (collection Backpack)
 -- on the robot's own rig, the way mods/armor's pieces are: bound to "chest",
 -- posed with the wearer.
 --

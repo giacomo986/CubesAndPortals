@@ -5,7 +5,7 @@
 -- LOOKS like from its neighbours.
 --
 -- Eight blocks, one item (models from tools/make_conveyor.py,
--- ~/kart_assets/conveyor.blend, their ribs and arrows moving on the clock):
+-- assets/blender/conveyor.blend, their ribs and arrows moving on the clock):
 --   * straight, with a drum at each end that does not meet another belt, so
 --     cells in a line draw as one belt;
 --   * a quarter turn, when nothing feeds a cell from behind and a belt at its

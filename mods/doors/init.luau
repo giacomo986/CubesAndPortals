@@ -3,7 +3,7 @@
 --
 -- Four blocks, because a model and a shape are per block: the bottom and the
 -- top, each shut and open. The bottom wears the whole door (door.gltf, two
--- cells tall, made in ~/kart_assets/chest_furnace.blend and exported by
+-- cells tall, made in assets/blender/chest_furnace.blend and exported by
 -- tools/export_block_models.py); the top wears a triangle hidden inside it, and
 -- is there so the upper cell is a wall a body is stopped by and a pick breaks.
 --

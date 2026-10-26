@@ -4,7 +4,7 @@
 #   blender --background --python tools/make_pet_models.py
 #   (or run inside Blender, the Text editor or the MCP bridge)
 #
-# Starts from an empty file, saves it as ~/kart_assets/pets.blend and writes
+# Starts from an empty file, saves it as assets/blender/pets.blend and writes
 # dog.gltf, dog_tame.gltf, cat.gltf and cat_tame.gltf: the tame ones are the
 # same body with a red collar round the neck, which is how a player tells
 # their own pet from a wild one. And bobber.gltf and bobber_bite.gltf, the
@@ -23,7 +23,7 @@ from mathutils import Matrix
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 OUT = os.path.join(ROOT, "mods", "pets")
-BLEND = os.path.expanduser("~/kart_assets/pets.blend")
+BLEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "pets.blend")
 FPS = 24
 
 

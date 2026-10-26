@@ -18,7 +18,7 @@
 #
 # The items with no picture get one: rendered here from their model, flat-lit,
 # shrunk to 32x32 and outlined, like the rest of assets/textures. Leaves the
-# work in ~/kart_assets/held_items.blend.
+# work in assets/blender/held_items.blend.
 import math
 import os
 import random
@@ -30,7 +30,7 @@ import numpy as np
 from mathutils import Euler, Matrix, Vector
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-BLEND = os.path.expanduser("~/kart_assets/held_items.blend")
+BLEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "held_items.blend")
 TEXTURES = os.path.join(ROOT, "assets", "textures")
 INFERNO_TEXTURES = os.path.join(ROOT, "games", "inferno", "textures")
 LAB_TEXTURES = os.path.join(ROOT, "games", "lab", "textures")
@@ -410,7 +410,7 @@ def gem(r, top, bottom, segs, mat):
 
 def hopper():
     """The placed hopper (mods/cinnabar/hopper.gltf) at a held block's 0.16: bowl
-    up the screen, spout down, the same 16ths as ~/kart_assets/hopper.blend."""
+    up the screen, spout down, the same 16ths as assets/blender/hopper.blend."""
     s = 0.16 / 16
 
     def part(lo, hi, mat):   # (x, depth, up) in 16ths of the cell

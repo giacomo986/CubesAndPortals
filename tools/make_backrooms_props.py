@@ -24,7 +24,7 @@
 # A block's model is authored in its cell, 0..1 each way with its feet at 0
 # (glTF's x, y up, z); Blender is Z up: glTF (x, y, z) is Blender (x, -z, y),
 # so the cell is x 0..1, y -1..0 here, and glTF's +z is Blender's -y.
-# Leaves the work in ~/kart_assets/backrooms_props.blend.
+# Leaves the work in assets/blender/backrooms_props.blend.
 import math
 import os
 
@@ -33,7 +33,7 @@ import bpy
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 OUT = os.path.join(ROOT, "games", "backrooms", "mods", "backrooms")
-BLEND = os.path.expanduser("~/kart_assets/backrooms_props.blend")
+BLEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "backrooms_props.blend")
 
 
 def material(name, rgb, metal=0.0, rough=0.5):

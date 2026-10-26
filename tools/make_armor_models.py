@@ -6,7 +6,7 @@
 # makes each piece of bevelled boxes around the robot at rest, every box bound
 # whole to one bone. The client draws a worn item as the model of the same name
 # with the wearer's pose, matched bone by bone by name (draw_worn). Leaves the
-# work in ~/kart_assets/armor.blend. Shapes are in the rig's world space, metres.
+# work in assets/blender/armor.blend. Shapes are in the rig's world space, metres.
 import os
 
 import bmesh
@@ -137,7 +137,7 @@ def main():
                 use_selection=True, export_animations=False, export_skins=True,
                 export_apply=True, export_yup=True)
 
-    bpy.ops.wm.save_as_mainfile(filepath=os.path.expanduser("~/kart_assets/armor.blend"))
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "armor.blend"))
 
 
 main()

@@ -32,7 +32,7 @@
 # A block's model is authored in its cell, 0..1 each way with its feet at 0
 # (glTF's x, y up, z); a creature's about its middle, its feet at 0. Blender is
 # Z up: glTF (x, y, z) is Blender (x, -z, y). Leaves the work in
-# ~/kart_assets/chambers.blend.
+# assets/blender/chambers.blend.
 import json
 import math
 import os
@@ -44,7 +44,7 @@ from mathutils import Euler, Matrix, Vector
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 CORE = os.path.join(ROOT, "games", "chambers", "mods", "chambers_core")
 GAME = os.path.join(ROOT, "games", "chambers", "mods", "chambers_game")
-BLEND = os.path.expanduser("~/kart_assets/chambers.blend")
+BLEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "chambers.blend")
 
 
 def material(name, rgb, metal=0.0, rough=0.6, glow=0.0):

@@ -8,7 +8,7 @@
 # holds its guns: the origin is the middle of the fist, +Y the way the gun
 # points, +Z the side seen in first person. Writes rope_gun_held.gltf into the
 # mod, its 32x32 picture into games/parkour/textures, and leaves the work in
-# ~/kart_assets/rope_gun.blend.
+# assets/blender/rope_gun.blend.
 import math
 import os
 
@@ -20,7 +20,7 @@ from mathutils import Euler, Matrix, Vector
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 MOD = os.path.join(ROOT, "games", "parkour", "mods", "parkour")
 TEXTURES = os.path.join(ROOT, "games", "parkour", "textures")
-BLEND = os.path.expanduser("~/kart_assets/rope_gun.blend")
+BLEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "rope_gun.blend")
 
 
 def material(name, rgb, metal=0.0, rough=0.6, glow=0.0):

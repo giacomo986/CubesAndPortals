@@ -15,7 +15,7 @@
 # Shapes are in world space at rest, metres, Z up, the robot facing +Y. A
 # weapon is held in the right fist at GRIP and points along +Y, as the robot's
 # own sword does (its clips swing it so); a bow, an orb in the left fist; a
-# shield on the left forearm. Leaves the work in ~/kart_assets/arpg_gear.blend.
+# shield on the left forearm. Leaves the work in assets/blender/arpg_gear.blend.
 import math
 import os
 
@@ -480,7 +480,7 @@ def main():
         ob.hide_set(True)
         print(f"GEAR {key}: {len(ob.data.polygons)} faces")
 
-    bpy.ops.wm.save_as_mainfile(filepath=os.path.expanduser("~/kart_assets/arpg_gear.blend"))
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "arpg_gear.blend"))
 
 
 main()

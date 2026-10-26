@@ -22,7 +22,7 @@
 local CHEST = core.register_node("chest:box", 150, 110, 60, true, 4, "upright")
 
 -- What it looks like is a Blender model, chest.gltf (made in
--- ~/kart_assets/chest_furnace.blend): planks, corner posts, iron straps and a
+-- assets/blender/chest_furnace.blend): planks, corner posts, iron straps and a
 -- latch, and a lid on a hinge bone whose clip is called "open". The renderer
 -- holds that clip at however far open the cell is, so the lid swings the way
 -- the boxes' lid always did.

@@ -1,6 +1,6 @@
 # Exports the creatures from their Blender file.
 #
-#   run inside ~/kart_assets/mobs.blend (Text editor, or the MCP bridge)
+#   run inside assets/blender/mobs.blend (Text editor, or the MCP bridge)
 #
 # One armature and one mesh per creature: Zombie_Rig/Zombie_Mesh and
 # Skeleton_Rig/Skeleton_Mesh, on the robot's skeleton (same bones, same 1.8
@@ -12,7 +12,7 @@
 # Each gets its "death" clip here, before it is exported (tip_over in
 # tools/make_pet_models.py, over onto its side), and the file is saved with it.
 #
-#   blender ~/kart_assets/mobs.blend --background --python tools/export_mob_models.py
+#   blender assets/blender/mobs.blend --background --python tools/export_mob_models.py
 import importlib.util
 import os
 import sys

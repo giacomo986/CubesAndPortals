@@ -4,7 +4,7 @@
 #   flatpak run org.blender.Blender --background --python "$PWD/tools/make_kart_parts.py"
 #
 # Imports the kart as it was made (~/kart_assets/kart_unsplit/track_core_kart.gltf,
-# the export of ~/kart_assets/kart.blend) and gives its rig a
+# the export of assets/blender/kart.blend) and gives its rig a
 # bone for each part that can be replaced -- `nose` (the nose cone and the
 # front bumper), `pods` (the side pods), `pipes` (the exhaust) -- with that
 # part's vertices bound to it, and a `flame_1` joint at the end of the pipe,
@@ -21,7 +21,7 @@
 # joints of its own (the pipes) burns there instead of at the kart's.
 #
 # Shapes are the robot extras' (tools/make_robot_extras.py): metres, Z up, the
-# kart facing +Y, the road at z = 0. Leaves the work in ~/kart_assets/kart_parts.blend.
+# kart facing +Y, the road at z = 0. Leaves the work in assets/blender/kart_parts.blend.
 import math
 import os
 import sys
@@ -308,7 +308,7 @@ def main():
         export(rig, ob, f"kart_{name}")
         ob.hide_set(True)
 
-    bpy.ops.wm.save_as_mainfile(filepath=os.path.expanduser("~/kart_assets/kart_parts.blend"))
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "kart_parts.blend"))
 
 
 main()

@@ -598,7 +598,7 @@ def main():
         body = sculpt(rig, name, parts)
         mesh.name = name + "_tools"
         export(rig, body + [mesh], os.path.join(OUT, name + ".gltf"), True)
-        bpy.ops.wm.save_as_mainfile(filepath=os.path.expanduser(f"~/kart_assets/{name}.blend"))
+        bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", f"{name}.blend"))
 
         # The arms seen in first person, on robot_arms.gltf's rig and clips.
         rig, mesh = fresh(os.path.join(OUT, "robot_arms.gltf"))

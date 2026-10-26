@@ -168,18 +168,18 @@ delle creature li suona il motore per nome (`<creatura>_say`, `_hurt`,
   `textures/backrooms_*.png`.
 - **Creature:** `tools/make_backrooms_creatures.py`, scatole in Blender con
   armatura e clip, esportate in `mods/backrooms/{bacteria,smiler}.gltf` e
-  salvate in `~/kart_assets/backrooms.blend`. Da terminale:
+  salvate in `assets/blender/backrooms.blend`. Da terminale:
   `flatpak run org.blender.Blender --background --python "$PWD/tools/make_backrooms_creatures.py"`
   (il percorso assoluto: il flatpak non parte dalla cartella del progetto).
   Nel Blender aperto, attraverso il server MCP: eseguire lo script senza
   `__main__` e chiamare `bacteria()` e `smiler()` dopo aver svuotato la scena
   a mano (`read_homefile` nella finestra aperta perde il contesto).
 - **Scivolo e scaletta:** `tools/make_backrooms_props.py`, in
-  `mods/backrooms/{slide,ladder}.gltf` e `~/kart_assets/backrooms_props.blend`.
+  `mods/backrooms/{slide,ladder}.gltf` e `assets/blender/backrooms_props.blend`.
   La scaletta non è metallica: senza nulla da riflettere il motore la
   disegnava nera.
 - **Giocatore:** il robot del sandbox, link a `mods/robot`. La clip `slide`
-  è in `~/kart_assets/robot18.blend` (azione `slide`, dalla posa di
+  è in `assets/blender/robot18.blend` (azione `slide`, dalla posa di
   `drive_idle`), esportata da sola e aggiunta a `mods/robot/robot.gltf` con
   `tools/gltf_add_clips.py`. Il client la sceglie quando il corpo è dentro uno
   scivolo (`slides` in `src/client/main.cpp`, con `chute_at`), per sé e per

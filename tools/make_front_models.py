@@ -3,7 +3,7 @@
 #
 #   flatpak run org.blender.Blender --background --python tools/make_front_models.py
 #
-# Starts from an empty file and leaves the work in ~/kart_assets/front.blend.
+# Starts from an empty file and leaves the work in assets/blender/front.blend.
 #
 #   robot_arms   (into front_core, beside the robot) the arms in first person
 #                holding the front's guns, a bone tool_<gun> each: pistol,
@@ -27,7 +27,7 @@ import make_fps_models as d  # noqa: E402
 
 ROOT = d.ROOT
 OUT = os.path.join(ROOT, "games", "front", "mods", "front_game")
-BLEND = os.path.expanduser("~/kart_assets/front.blend")
+BLEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "front.blend")
 HIDDEN = d.HIDDEN
 
 

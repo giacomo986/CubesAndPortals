@@ -40,7 +40,7 @@ import make_fps_models as d  # noqa: E402
 import make_front_models as fm  # noqa: E402
 
 OUT = os.path.join(d.ROOT, "games", "assault", "mods", "assault_game")
-BLEND = os.path.expanduser("~/kart_assets/assault.blend")
+BLEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "assault.blend")
 
 
 def basoalth(name, k, clips, x):

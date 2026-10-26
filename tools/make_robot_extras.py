@@ -14,7 +14,7 @@
 # Bones the robot has not got are added here: one named sway_* hangs from its
 # parent and the client swings it about where it is bound (the scarf's ends,
 # the medal), so an extra moves a little of its own. Leaves the work in
-# ~/kart_assets/robot_extras.blend. Shapes are in world space at rest, metres,
+# assets/blender/robot_extras.blend. Shapes are in world space at rest, metres,
 # Z up and the robot facing +Y.
 import math
 import os
@@ -258,7 +258,7 @@ def main():
             use_selection=True, export_animations=False, export_skins=True,
             export_apply=True, export_yup=True)
 
-    bpy.ops.wm.save_as_mainfile(filepath=os.path.expanduser("~/kart_assets/robot_extras.blend"))
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "robot_extras.blend"))
 
 
 if __name__ == "__main__":   # tools/make_species.py borrows the shapes
