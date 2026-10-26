@@ -2,6 +2,29 @@
 
 *[Leggi in italiano](README.it.md)*
 
+**Contents**
+
+- [Status](#status)
+- [Platforms](#platforms)
+- [Download](#download)
+- [Building from source](#building-from-source)
+- [Contributing](#contributing)
+- [Use of AI](#use-of-ai)
+- [The game](#the-game)
+  - [The plaza and its worlds](#the-plaza-and-its-worlds)
+  - [The sandbox](#the-sandbox)
+  - [The engine](#the-engine)
+- [Playing and testing: reference](#playing-and-testing-reference)
+  - [Controls](#controls)
+  - [The title menu](#the-title-menu)
+  - [Client (cnp_client)](#client-cnp_client)
+  - [Server (cnp_server)](#server-cnp_server)
+  - [Tools](#tools)
+  - [Tests](#tests)
+- [Technology](#technology)
+- [Documentation](#documentation)
+- [License](#license)
+
 A voxel sandbox written from scratch, where **portals are part of the engine**: a portal shows
 another world, even one running on another server, and you walk through it without a loading
 screen. From the spawn plaza, portals lead to worlds that are whole other games: a kart track, an

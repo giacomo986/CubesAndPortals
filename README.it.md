@@ -2,6 +2,29 @@
 
 *[Read in English](README.md)*
 
+**Indice**
+
+- [Stato](#stato)
+- [Piattaforme](#piattaforme)
+- [Scaricare il gioco](#scaricare-il-gioco)
+- [Compilare dal sorgente](#compilare-dal-sorgente)
+- [Contribuire](#contribuire)
+- [Uso dell'intelligenza artificiale](#uso-dellintelligenza-artificiale)
+- [Il gioco](#il-gioco)
+  - [La piazza e i suoi mondi](#la-piazza-e-i-suoi-mondi)
+  - [Il sandbox](#il-sandbox)
+  - [L'engine](#lengine)
+- [Giocare e testare: riferimento](#giocare-e-testare-riferimento)
+  - [Comandi](#comandi)
+  - [Il menù del titolo](#il-menù-del-titolo)
+  - [Client (cnp_client)](#client-cnp_client)
+  - [Server (cnp_server)](#server-cnp_server)
+  - [Strumenti](#strumenti)
+  - [Test](#test)
+- [Tecnologia](#tecnologia)
+- [Documentazione](#documentazione)
+- [Licenza](#licenza)
+
 Un sandbox voxel scritto da zero, in cui **i portali fanno parte dell'engine**: un portale
 mostra un altro mondo, anche uno che gira su un altro server, e lo si attraversa senza schermata
 di caricamento. Dalla piazza dello spawn i portali portano a mondi che sono altri giochi: una
