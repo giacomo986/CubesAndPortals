@@ -12,4 +12,7 @@ cartelle dei mod e vengono esportati da qui con gli script di `tools/`.
   `tools/export_*.py` e `make_*.py` aprono o leggono; il commento in testa a ogni script dice
   quale file vuole.
 
+`kart_unsplit/` è il kart intero com'era prima di essere diviso in pezzi, esportato da
+`kart.blend`: è il punto di partenza di `tools/make_kart_parts.py`.
+
 Aperti con Blender 5.2. I `.blend1` (i backup che Blender lascia salvando) non vanno committati.

@@ -19,6 +19,6 @@ namespace cnp {
 // "Versioni"): N goes up with each alpha handed out, MINOR when an alpha
 // breaks saved worlds or the protocol. The packages take their file names
 // from this line and a release is tagged v<this>.
-inline constexpr const char *kEngineVersion = "0.9.0-alpha.1";
+inline constexpr const char *kEngineVersion = "0.9.0-alpha.2";
 
 } // namespace cnp

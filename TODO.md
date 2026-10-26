@@ -714,8 +714,8 @@ assets/blender/ (23 MB), and the make_*.py scripts save there. Cleaned on the
 way in: render paths (old names and scratch folders left in the fixed buffer),
 and the datablocks and action slots of inferno.blend and held_items.blend still
 named after the old creatures and items. Same objects, meshes and actions as
-before, file by file. Open: make_kart_parts.py imports the unsplit kart glTF
-from ~/kart_assets/kart_unsplit, which is not in the repository.
+before, file by file. The unsplit kart glTF make_kart_parts.py starts from is
+in assets/blender/kart_unsplit/ too. Released as 0.9.0-alpha.2.
 
 **The plaza is quiet (2026-10-26).** Asked: hide the cubes that come and go
 on the spawn plaza, too much noise. They were the spike's lamp blinking on its

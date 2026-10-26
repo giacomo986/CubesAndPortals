@@ -3,6 +3,20 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.md](docs/BUILDING.md#versioni).
 
+## 0.9.0-alpha.2 — 2026-10-26
+
+Protocollo 109, come la 0.9.0-alpha.1: gioca con i suoi server e legge i suoi mondi.
+
+- Il gioco parla italiano e inglese: Options, Language sceglie la lingua (all'inizio quella del
+  sistema). Una lingua nuova è un file in `assets/lang/`.
+- In Multiplayer l'account è del server: si sceglie il server, poi nome e password per quello.
+- Nella fuga dell'assalto i bot a bordo sparano alle trappole al momento giusto.
+- La piazza dello spawn è silenziosa: niente più lampada che lampeggia né fari che si
+  accendono a turno.
+- I pacchetti non contengono più modelli di terzi, e si costruiscono da un clone del
+  repository; il codice è pubblico, con licenza MIT, e i sorgenti Blender dei modelli sono in
+  `assets/blender/`.
+
 ## 0.9.0-alpha.1 — 2026-10-25
 
 Protocollo 109: non gioca con i server della 0.8.0-alpha.1. Legge i suoi mondi.

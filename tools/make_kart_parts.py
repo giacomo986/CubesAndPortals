@@ -3,7 +3,7 @@
 #
 #   flatpak run org.blender.Blender --background --python "$PWD/tools/make_kart_parts.py"
 #
-# Imports the kart as it was made (~/kart_assets/kart_unsplit/track_core_kart.gltf,
+# Imports the kart as it was made (assets/blender/kart_unsplit/track_core_kart.gltf,
 # the export of assets/blender/kart.blend) and gives its rig a
 # bone for each part that can be replaced -- `nose` (the nose cone and the
 # front bumper), `pods` (the side pods), `pipes` (the exhaust) -- with that
@@ -288,7 +288,7 @@ def export(rig, ob, name):
 
 def main():
     bpy.ops.wm.read_homefile(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=os.path.expanduser("~/kart_assets/kart_unsplit/track_core_kart.gltf"))
+    bpy.ops.import_scene.gltf(filepath=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "kart_unsplit", "track_core_kart.gltf"))
     rig = next(o for o in bpy.data.objects if o.type == "ARMATURE")
     kart = next(o for o in bpy.data.objects if o.type == "MESH" and o.parent == rig)
     rig.data.pose_position = "REST"
