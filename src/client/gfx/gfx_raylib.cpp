@@ -275,6 +275,7 @@ void gfx_end_frame(void)
 }
 
 void gfx_set_present(bool enabled) { g.present = enabled; }
+void gfx_open_url(const char *url) { OpenURL(url); }
 
 void gfx_finish(void) { glFinish(); }
 

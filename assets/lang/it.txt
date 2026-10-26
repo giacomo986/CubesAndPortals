@@ -344,3 +344,6 @@ blocks placed from here: {} = blocchi messi da qui: {}
 place a blue block = metti un blocco blu
 take them away = toglili
 close this panel = chiudi questo pannello
+Updates: on = Aggiornamenti: sì
+Updates: off = Aggiornamenti: no
+New version {}: download = Nuova versione {}: scarica

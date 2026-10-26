@@ -13,6 +13,7 @@ add_executable(cnp_client
     render/selection.cpp
     ui/hud.cpp
     ui/lang.cpp
+    update_check.cpp
 )
 
 target_include_directories(cnp_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)

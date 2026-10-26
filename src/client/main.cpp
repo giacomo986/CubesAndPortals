@@ -30,6 +30,7 @@
 #include "client/render/selection.h"
 #include "client/ui/hud.h"
 #include "client/ui/lang.h"
+#include "client/update_check.h"
 #include "client/render/world_render.h"
 #include "core/math/mat4.h"
 #include "core/media/media_set.h"
@@ -496,6 +497,8 @@ float g_volume = 1.0f;   // the whole game's, 0..1 (snd_set_volume)
 int   g_shadow_size = 2048;   // the sun's shadow map, texels a side; 0 is no shadows
 bool  g_classic_light = false;   // the light as it was before the rework (WorldRenderer::set_classic)
 bool  g_fullscreen    = false;   // borderless over the monitor; F11 or the options
+bool  g_update_check  = true;    // ask GitHub for a newer release on the title screen
+bool  g_no_update_flag = false;  // --no-update-check: not this run, whatever the options say
 
 std::string options_path()
 {
@@ -523,6 +526,7 @@ void load_options(bool &debug)
         else if (key == "debug") debug = value != 0.0f;
         else if (key == "classic_light") g_classic_light = value != 0.0f;
         else if (key == "fullscreen") g_fullscreen = value != 0.0f;
+        else if (key == "update_check") g_update_check = value != 0.0f;
         // Under 2^24, so a float holds it whole.
         else if (key == "livery" && value >= 0.0f && value < (float)net::kLiveryMax)
             net::g_client_livery = (uint32_t)value;
@@ -541,7 +545,8 @@ void save_options(bool debug)
     std::ofstream out(path);
     out << "look_scale " << g_look_scale << "\nvolume " << g_volume << "\ndebug " << (debug ? 1 : 0)
         << "\nshadows " << g_shadow_size << "\nclassic_light " << (g_classic_light ? 1 : 0)
-        << "\nfullscreen " << (g_fullscreen ? 1 : 0) << "\nlivery " << net::g_client_livery
+        << "\nfullscreen " << (g_fullscreen ? 1 : 0) << "\nupdate_check " << (g_update_check ? 1 : 0)
+        << "\nlivery " << net::g_client_livery
         << "\nlang " << lang::current() << "\n";
     if (!out) std::fprintf(stderr, "could not save the options to %s\n", path.c_str());
 }
@@ -8516,6 +8521,9 @@ ui::Panel options_panel(bool debug, const Session *world)
     p.w = 9.0f;
     p.h = world ? 9.2f : 7.9f;
     panel_label(p, "Options", 0.5f, 0.0f);
+    // Back up here, beside the title, so the panel is no taller than before
+    // the updates had a button and stays clear of the game's name.
+    panel_button(p, "back", "Back", 4.6f, 0.0f, 3.9f);
     panel_label(p, sens, 0.5f, 1.2f);
     panel_button(p, "slower", "-", 5.8f, 1.2f, 1.2f);
     panel_button(p, "faster", "+", 7.3f, 1.2f, 1.2f);
@@ -8543,7 +8551,7 @@ ui::Panel options_panel(bool debug, const Session *world)
     for (const auto &[code, name] : lang::available(g_lang_dir))
         if (code == lang::current()) language = name;
     panel_button(p, "language", "Language: " + language, 0.5f, y, 3.9f);
-    panel_button(p, "back", "Back", 4.6f, y, 3.9f);
+    panel_button(p, "updates", g_update_check ? "Updates: on" : "Updates: off", 4.6f, y, 3.9f);
     return p;
 }
 
@@ -8782,6 +8790,10 @@ bool options_click(const std::string &id, bool &debug)
     else if (id == "debug") debug = !debug;
     else if (id == "lighting") g_classic_light = !g_classic_light;
     else if (id == "fullscreen") g_fullscreen = !g_fullscreen;
+    else if (id == "updates") {
+        g_update_check = !g_update_check;
+        if (g_update_check && !g_no_update_flag) update::start();
+    }
     else if (id == "shadows") g_shadow_size = g_shadow_size >= 2048 ? 1024 : g_shadow_size > 0 ? 0 : 2048;
     else if (id == "language") {
         const auto all = lang::available(g_lang_dir);
@@ -9265,6 +9277,11 @@ ui::Panel title_panel(const TitleMenu &m, bool debug)
         panel_button(p, "options", "Options", 0.5f, 4.9f, 3.4f);
         panel_button(p, "look", "Character", 4.1f, 4.9f, 3.4f);
         panel_button(p, "quit", "Quit", 0.5f, 6.2f, 7.0f);
+        // A newer release on GitHub, once the question has an answer.
+        if (const std::string tag = update::newer(); g_update_check && !tag.empty()) {
+            panel_button(p, "update", "New version " + tag + ": download", 0.5f, 7.5f, 7.0f);
+            p.h += 1.3f;
+        }
         break;
 
     case MenuPage::Player:
@@ -9661,6 +9678,8 @@ MenuChoice title_menu(Scene &s, TitleMenu &m, bool &debug)
             m.page = MenuPage::Options;
         } else if (id == "quit") {
             return MenuChoice::Quit;
+        } else if (id == "update") {
+            gfx_open_url(kReleasesPage);
         } else if (id == "look") {
             m.page = MenuPage::Look;
         } else if (m.page == MenuPage::Look && look_click(id)) {
@@ -18906,6 +18925,7 @@ int client_main(int argc, char **argv)
         if (std::strcmp(argv[i], "--no-textures") == 0) textures_off = true;
         if (std::strcmp(argv[i], "--models") == 0 && i + 1 < argc) g_models_dir = argv[++i];
         if (std::strcmp(argv[i], "--no-models") == 0) g_models_dir.clear();
+        if (std::strcmp(argv[i], "--no-update-check") == 0) g_no_update_flag = true;
         if (std::strcmp(argv[i], "--media-cache") == 0 && i + 1 < argc)
             g_media_dir = argv[++i];
         if (std::strcmp(argv[i], "--no-media-cache") == 0)
@@ -19082,6 +19102,7 @@ int client_main(int argc, char **argv)
         std::filesystem::create_directories(user_data_dir(), data_ec);
 
         load_options(menu_debug);
+        if (g_update_check && !g_no_update_flag) update::start();
         menu.player = saved_player_name();
         take_identity(menu);
         g_from_title = true;

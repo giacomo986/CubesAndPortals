@@ -708,6 +708,18 @@ front, on the ground in the valley and 12 down where the causeway was in the
 chasm (before: 22 off to the east in the magma). Measured: heat 56, pace 0.96
 from the bot gunners early on; seen in Xephyr right behind a jeep.
 
+**The client asks GitHub for a newer release (2026-10-26).** Asked: the builds
+point at this repository to look for updates. client/update_check: on the
+title screen, once, a thread runs curl on the releases API (kReleasesApi in
+core/version.h, newest first, pre-releases included) and compares the first
+tag with kEngineVersion; a newer one is a "New version vX: download" button
+that opens kReleasesPage. Options, Updates turns it off (update_check in the
+options file), --no-update-check for one run. Seen in Xephyr pointed at
+another repository's releases: the button under Quit, Options with Back moved
+beside the title so the panel keeps its height. Against the real repository
+0.9.0-alpha.2 finds nothing newer. Open: on Windows curl through _popen may
+flash a console (WinHTTP if it does); no curl, no check, silently.
+
 **The Blender files are in the repository (2026-10-26).** Asked: import every
 Blender model and publish it. The 36 .blend of ~/kart_assets are in
 assets/blender/ (23 MB), and the make_*.py scripts save there. Cleaned on the

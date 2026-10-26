@@ -21,4 +21,10 @@ namespace cnp {
 // from this line and a release is tagged v<this>.
 inline constexpr const char *kEngineVersion = "0.9.0-alpha.2";
 
+// Where the releases are: the client asks the second once on the title screen
+// whether there is a newer one (client/update_check.h) and opens the first to
+// download it. A fork changes these two lines.
+inline constexpr const char *kReleasesPage = "https://github.com/giacomo986/CubesAndPortals/releases";
+inline constexpr const char *kReleasesApi  = "https://api.github.com/repos/giacomo986/CubesAndPortals/releases?per_page=1";
+
 } // namespace cnp

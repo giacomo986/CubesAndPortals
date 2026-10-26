@@ -56,6 +56,9 @@ void gfx_end_frame(void);
 // it swamps any percentile it lands in.
 void gfx_set_present(bool enabled);
 
+// Opens a web address in the system's browser.
+void gfx_open_url(const char *url);
+
 // Blocks until the GPU has finished the commands already submitted. Needed to
 // time a frame honestly: without it the timer stops when the driver accepts the
 // work, not when the work is done.
