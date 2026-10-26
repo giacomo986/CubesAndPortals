@@ -1,7 +1,7 @@
 # Compilare e distribuire
 
 Come si passa dal sorgente agli eseguibili, e da lì ai pacchetti per chi gioca. Come si gioca
-e si prova una volta compilato è nel [README](../README.md#giocare-e-testare-riferimento).
+e si prova una volta compilato è nel [README](../README.it.md#giocare-e-testare-riferimento).
 
 ## Cosa serve
 
