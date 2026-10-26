@@ -1,6 +1,6 @@
 --!strict
 -- Second mod, second VM. Everything here is deliberately named the same as
--- something in spike/init.luau -- COPPER, elapsed, on_step, build -- because two
+-- something in spike/init.luau -- COPPER, build -- because two
 -- mods sharing one environment would collide on exactly these names, and the
 -- test for isolation is that nothing here disturbs the tower spike builds.
 
@@ -23,15 +23,16 @@ local BASE_Z = 42
 local HEIGHT = 4
 local COUNT = 3
 
-local elapsed: number = 0.0
-local lit: number = -1
-
 local function build()
     for i = 0, COUNT - 1 do
         local x = BASE_X + i * 2
         for h = 0, HEIGHT - 1 do
             core.set_block(x, BASE_Y + h, BASE_Z, PILLAR)
         end
+        -- Dark at the start. A beacon used to walk along the row, lit and put
+        -- out one and a half times a second, and on the spawn plaza that was a
+        -- place and a break sound without end; now they light only on an alarm.
+        core.set_block(x, BASE_Y + HEIGHT, BASE_Z, 0)
     end
     core.log(`beacons: pillar={PILLAR} beacon={BEACON}, {COUNT} pillars up, `
         .. `os.clock at load {string.format("%.3f", started)}s (spike:copper is {COPPER})`)
@@ -46,24 +47,5 @@ core.event.on("guard:alarm", function(ev)
     for i = 0, COUNT - 1 do
         core.set_block(BASE_X + i * 2, BASE_Y + HEIGHT, BASE_Z, BEACON)
     end
-    lit = -1
     core.log(`alarm from guard at {ev.x} {ev.y} {ev.z}: all beacons lit`)
 end)
-
--- One beacon alight at a time, walking along the row. Cheap, visible, and it
--- proves the mod keeps stepping while another mod in another VM is being
--- disabled for misbehaving.
-function on_step(dt: number)
-    elapsed += dt
-
-    local want = math.floor(elapsed * 1.5) % COUNT
-    if want == lit then
-        return
-    end
-
-    if lit >= 0 then
-        core.set_block(BASE_X + lit * 2, BASE_Y + HEIGHT, BASE_Z, 0)
-    end
-    core.set_block(BASE_X + want * 2, BASE_Y + HEIGHT, BASE_Z, BEACON)
-    lit = want
-end

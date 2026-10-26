@@ -56,6 +56,8 @@ local function build_tower()
             placed += 1
         end
     end
+    -- The blinking lamp's cell, which a world saved before it stopped may hold.
+    core.set_block(BASE_X, BASE_Y + 8, BASE_Z, 0)
     core.log(`spike mod: registered copper={COPPER} slate={SLATE} lamp={LAMP}, `
         .. `placed {placed} blocks (core:stone is {STONE}, core:frame is {FRAME})`)
 end
@@ -78,14 +80,13 @@ function on_step(dt: number)
     core.set_portal(PORTAL_INDEX, PORTAL_X, PORTAL_Y, PORTAL_Z + offset)
 
     -- A little steady work so the per-frame cost is not measuring an empty
-    -- function call: read a column and toggle a marker block on top of it.
+    -- function call: read a column. It used to toggle a lamp on top of it
+    -- twice a second too, which on the spawn plaza was a place and a break
+    -- sound without end.
     local probe = 0
     for h = 0, 7 do
         if core.get_block(BASE_X, BASE_Y + h, BASE_Z) ~= 0 then
             probe += 1
         end
     end
-
-    local blink = (math.floor(elapsed * 2.0) % 2) == 0
-    core.set_block(BASE_X, BASE_Y + 8, BASE_Z, if blink then LAMP else 0)
 end
