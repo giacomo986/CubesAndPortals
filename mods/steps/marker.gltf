@@ -1,0 +1,95 @@
+{
+ "asset": {
+  "version": "2.0",
+  "generator": "cubes-and-portals tools/make_marker_gltf.py"
+ },
+ "scene": 0,
+ "scenes": [
+  {
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "name": "marker",
+   "mesh": 0
+  }
+ ],
+ "meshes": [
+  {
+   "name": "marker",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1,
+      "TEXCOORD_0": 2
+     },
+     "indices": 3
+    }
+   ]
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 612,
+   "uri": "data:application/octet-stream;base64,mpkZPgAAAACamRk+AAAAAE1/lj3QTn+/AAAAAAAAAAAAAAA/MzNzP65HYT4AAAAATX+WPdBOf78AAAAAAAAAAJqZWT8AAAAAmpkZPgAAAABNf5Y90E5/vwAAAAAAAAAAmplZPwAAAACamRk+QTdwP0sAsT4AAACAAAAAAAAAAAAAAAA/MzNzP65HYT5BN3A/SwCxPgAAAIAAAAAAAAAAAJqZWT8AAAAAmplZP0E3cD9LALE+AAAAgAAAAAAAAAAAmplZPwAAAACamVk/AAAAAA18DT+JWVU/AAAAAAAAAAAAAAA/MzNzP65HYT4AAAAADXwNP4lZVT8AAAAAAAAAAJqZGT4AAAAAmplZPwAAAAANfA0/iVlVPwAAAAAAAAAAmpkZPgAAAACamVk/QTdwv0sAsT4AAAAAAAAAAAAAAAAAAAA/MzNzP65HYT5BN3C/SwCxPgAAAAAAAAAAAAAAAJqZGT4AAAAAmpkZPkE3cL9LALE+AAAAAAAAAAAAAAAAmpkZPgAAAACamRk+AAAAAAAAgL8AAAAAAAAAAAAAAACamVk/AAAAAJqZGT4AAAAAAACAvwAAAAAAAAAAAAAAAJqZWT8AAAAAmplZPwAAAAAAAIC/AAAAAAAAAAAAAAAAmpkZPgAAAACamRk+AAAAAAAAgL8AAAAAAAAAAAAAAACamVk/AAAAAJqZWT8AAAAAAACAvwAAAAAAAAAAAAAAAJqZGT4AAAAAmplZPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAABAAIAAwAEAAUABgAHAAgACQAKAAsADAANAA4ADwAQABEA"
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 576,
+   "byteStride": 32,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 576,
+   "byteLength": 36,
+   "target": 34963
+  }
+ ],
+ "accessors": [
+  {
+   "bufferView": 0,
+   "byteOffset": 0,
+   "componentType": 5126,
+   "count": 18,
+   "type": "VEC3",
+   "min": [
+    0.15,
+    0.0,
+    0.15
+   ],
+   "max": [
+    0.85,
+    0.95,
+    0.85
+   ]
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 12,
+   "componentType": 5126,
+   "count": 18,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 24,
+   "componentType": 5126,
+   "count": 18,
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5123,
+   "count": 18,
+   "type": "SCALAR"
+  }
+ ]
+}

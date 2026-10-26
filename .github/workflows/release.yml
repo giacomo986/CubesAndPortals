@@ -1,0 +1,80 @@
+# The alpha packages (OPEN-40), built by the tools/dist scripts on a tag or by
+# hand from the Actions tab. macOS is the reason this exists: its client needs
+# Apple's SDK, so it is built on a Mac runner; the other three are built the
+# same way here as on a Linux workstation.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libx11-dev libxrandr-dev libxinerama-dev \
+              libxcursor-dev libxi-dev libgl-dev flatpak
+          curl -sSLo appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.freedesktop.Platform//25.08
+      - run: cmake -G Ninja -B build-dist -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCNP_PORTABLE=ON
+      - run: cmake --build build-dist --target cnp_client cnp_server cnp_modpack
+      - run: tools/dist/package-linux.sh build-dist
+      - run: APPIMAGETOOL=$PWD/appimagetool APPIMAGE_EXTRACT_AND_RUN=1 tools/dist/package-appimage.sh build-dist
+      - run: tools/dist/package-flatpak.sh build-dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            build-dist/dist/*.tar.gz
+            build-dist/dist/*.AppImage
+            build-dist/dist/*.flatpak
+
+  windows:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - uses: mlugg/setup-zig@v2
+        with: {version: 0.16.0}
+      - run: sudo apt-get install -y ninja-build
+      - run: tools/dist/package-windows.sh
+      - uses: actions/upload-artifact@v4
+        with: {name: windows, path: build-win/dist/*.zip}
+
+  macos:
+    runs-on: macos-15   # Apple silicon
+    steps:
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+      - run: brew install ninja
+      - run: tools/dist/package-macos.sh
+      - uses: actions/upload-artifact@v4
+        with: {name: macos, path: build-mac/dist/*.dmg}
+
+  # On a tag only: the tag must be the version the code says it is
+  # (src/core/version.h), and the packages become a GitHub Release, marked
+  # pre-release while the version is an alpha.
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [linux, windows, macos]
+    runs-on: ubuntu-24.04
+    permissions: {contents: write}
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          v="$(sed -n 's/.*kEngineVersion = "\([^"]*\)".*/\1/p' src/core/version.h)"
+          [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME, code says v$v"; exit 1; }
+      - uses: actions/download-artifact@v4
+        with: {path: packages, merge-multiple: true}
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: packages/*
+          prerelease: ${{ contains(github.ref_name, '-alpha') }}
+          body_path: CHANGELOG.md

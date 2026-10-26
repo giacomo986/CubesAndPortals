@@ -1,0 +1,346 @@
+# Italian. One line a string: the text as the game writes it = the same in
+# Italian. {} is any text and goes where the translation puts its {}.
+# A string missing here is shown as it is (client/ui/lang.h).
+@name = Italiano
+
+# --- Title screen ---
+Play = Gioca
+Multiplayer = Multigiocatore
+Host a server = Ospita un server
+Options = Opzioni
+Character = Personaggio
+Quit = Esci
+Name = Nome
+Password = Password
+Continue = Continua
+Back = Indietro
++ Create a new world = + Crea un nuovo mondo
+No saved world yet. = Nessun mondo salvato.
+Or host a saved world: = Oppure ospita un mondo salvato:
+Or play a saved world: = Oppure gioca un mondo salvato:
+Edit = Modifica
+Port = Porta
+Create a new world = Crea un nuovo mondo
+Seed (none for a random one) = Seme (vuoto per uno casuale)
+Create = Crea
+Rename = Rinomina
+Delete = Elimina
+Delete it for good? Click again = Eliminarlo per sempre? Clicca ancora
+Servers = Server
+No server yet: type an address below. = Nessun server: scrivi un indirizzo qui sotto.
+Add = Aggiungi
+{}   as {} = {}   come {}
+Starting {} ... = Avvio di {} ...
+Others join at {} = Gli altri entrano da {}
+Hosting at {} = Ospitato su {}
+your account on the server you host = il tuo account sul server che ospiti
+your account on {} = il tuo account su {}
+type a name = scrivi un nome
+a password of at least 6 characters = una password di almeno 6 caratteri
+making your identity ... = creo la tua identità ...
+not enough memory to make an identity = memoria insufficiente per creare l'identità
+a server is running on it: stop that first = un server lo sta usando: fermalo prima
+type an address, like 192.168.1.2 or 192.168.1.2:25301 = scrivi un indirizzo, come 192.168.1.2 o 192.168.1.2:25301
+no cnp_server beside this program = nessun cnp_server accanto a questo programma
+the world's server stopped; see {} = il server del mondo si è fermato; vedi {}
+its key changed: x it and add it again to trust it = la sua chiave è cambiata: toglilo con x e aggiungilo di nuovo per fidarti
+client is too old for this server = il client è troppo vecchio per questo server
+server is too old for this client = il server è troppo vecchio per questo client
+unusable player name = nome giocatore non valido
+server is full = il server è pieno
+the player's identity was not proven = l'identità del giocatore non è stata dimostrata
+
+# --- Options and pause ---
+Mouse sensitivity {}% = Sensibilità mouse {}%
+Volume {}% = Volume {}%
+Third person: on = Terza persona: sì
+Third person: off = Terza persona: no
+Light: classic = Luce: classica
+Light: new = Luce: nuova
+Shadows: high = Ombre: alte
+Shadows: low = Ombre: basse
+Shadows: off = Ombre: no
+Full screen: on = Schermo intero: sì
+Full screen: off = Schermo intero: no
+Debug info: on = Info debug: sì
+Debug info: off = Info debug: no
+Language: {} = Lingua: {}
+Paused = In pausa
+Resume = Riprendi
+Quit to title = Torna al titolo
+You = Tu
+Species: {} = Specie: {}
+Style = Stile
+Head = Testa
+Neck = Collo
+Primary = Primario
+Secondary = Secondario
+Accent = Accento
+search = cerca
+
+# --- What the server says about an edit ---
+there is nothing there = lì non c'è niente
+that block does not break = quel blocco non si rompe
+there is something there = lì c'è già qualcosa
+that block is {} nodes away, further than {} = quel blocco è a {} blocchi, più di {}
+the server does not know where you are yet = il server non sa ancora dove sei
+the other opening is already there = l'altra apertura è già lì
+a portal needs something to sit in, and that block is not solid = un portale va su qualcosa di solido, e quel blocco non lo è
+there is no room in front of that face for an opening = non c'è spazio davanti a quella faccia per un'apertura
+that is not a pet = non è un animale domestico
+that is not what it wants = non è quello che vuole
+it is somebody else's = è di qualcun altro
+
+# --- Chambers ---
+The portal gun: left is blue, right is orange. = La pistola dei portali: sinistro è blu, destro è arancione.
+The portal gun: left shoots blue, on white panels. = La pistola dei portali: il sinistro spara il blu, sui pannelli bianchi.
+
+# --- Whisper ---
+/me <action> = /me <azione>
+/msg <player> <text> = /msg <giocatore> <testo>
+{} whispers to you: {} = {} ti sussurra: {}
+you whisper to {}: {} = sussurri a {}: {}
+nobody called {} in this world = nessuno di nome {} in questo mondo
+
+# --- Fishing, signs, mending ---
+A bite! = Abbocca!
+A fish! = Un pesce!
+What does the sign say? (Enter) = Cosa dice il cartello? (Invio)
+An iron ingot mends it = Un lingotto di ferro lo ripara
+Nothing to mend = Niente da riparare
+Mended = Riparato
+Delay {} = Ritardo {}
+Subtract = Sottrai
+Compare = Confronta
+
+# --- Portal frames ---
+lying = sdraiato
+standing = in piedi
+click the name to change it = clicca il nome per cambiarlo
+leads to {}, at {} = porta a {}, a {}
+leads nowhere: link it to another frame below = non porta da nessuna parte: collegalo a un'altra cornice qui sotto
+turn the front round = gira il davanti
+turn a quarter = ruota di un quarto
+close the portal = chiudi il portale
+no other frame is open to link it to = nessun'altra cornice aperta a cui collegarlo
+link it to: = collegalo a:
+the frame is whole, but all of this world's openings are in use = la cornice è completa, ma tutte le aperture di questo mondo sono in uso
+{} is open and leads to {} -- right click its frame  = {} è aperto e porta a {} -- clic destro sulla cornice
+to set it up = per impostarlo
+{} is open -- build another frame for its other end = {} è aperto -- costruisci un'altra cornice per l'altra estremità
+{} closed: {} = {} chiuso: {}
+there is already a frame called {} = c'è già una cornice di nome {}
+{} is now called {} = {} ora si chiama {}
+
+# --- Cards ---
+Not hungry = Non ha fame
+
+# --- Enchanting ---
+Level L costs L lapis and L levels = Il livello L costa L lapislazzuli e L livelli
+Hold what you want enchanted = Tieni in mano ciò che vuoi incantare
+A clue of what each gives: = Un indizio di ciò che dà ognuno:
+It takes 1 level of experience = Serve 1 livello di esperienza
+It takes {} levels of experience = Servono {} livelli di esperienza
+That gives nothing it does not have; nothing spent = Non dà niente che non abbia già; nulla speso
+It takes {} lapis = Servono {} lapislazzuli
+Only one thing at a time can be enchanted = Si può incantare una cosa alla volta
+
+# --- Track (karts) ---
+garage -- your kart = garage -- il tuo kart
+Start line taken away, and the track with it = Linea di partenza tolta, e la pista con lei
+Checkpoint {} taken away = Checkpoint {} tolto
+A line goes across a road: click the road = Una linea va di traverso a una strada: clicca la strada
+Put the start line down first = Metti prima la linea di partenza
+Start line down, {} wide = Linea di partenza messa, larga {}
+Checkpoint {} down, {} wide = Checkpoint {} messo, largo {}
+Off-road area taken away = Zona fuoristrada tolta
+First corner of an off-road area: now click the opposite one = Primo angolo di una zona fuoristrada: ora clicca quello opposto
+An off-road area is at most {} a side: start again = Una zona fuoristrada è al massimo {} per lato: ricomincia
+Off-road area {} by {}: a kart on a lap may drive there = Zona fuoristrada {} per {}: un kart in giro può guidarci
+No item boxes in this world = Nessuna scatola oggetti in questo mondo
+Item box taken away = Scatola oggetti tolta
+An item box goes on a road: click the road = Una scatola oggetti va su una strada: clicca la strada
+Item box down = Scatola oggetti messa
+CLICK A PIECE  TRY IT    W  KEEP IT    A / D  ANOTHER ONE THAT FITS    S  UNDO    F  CLOSE CIRCUIT    B  BACK = CLICCA UN PEZZO  PROVALO    W  TIENILO    A / D  UN ALTRO CHE CI STA    S  ANNULLA    F  CHIUDI CIRCUITO    B  INDIETRO
+{}  (does not fit here) = {}  (qui non ci sta)
+CHECKPOINT {} / {} = CHECKPOINT {} / {}
+CTRL  DRIFT    R  BACK TO THE LAST CHECKPOINT    F  GET OUT = CTRL  DERAPATA    R  TORNA ALL'ULTIMO CHECKPOINT    F  SCENDI
+RIGHT CLICK A KART TO GET IN = CLIC DESTRO SU UN KART PER SALIRE
+CROSS THE LINE TO START = PASSA LA LINEA PER PARTIRE
+CTRL  DRIFT    F  GET OUT = CTRL  DERAPATA    F  SCENDI
+LAST {} = ULTIMO {}
+BEST {} = MIGLIORE {}
+FASTEST = PIÙ VELOCE
+LEFT CLICK  (S: BEHIND) = CLIC SINISTRO  (S: DIETRO)
+NO ITEM = NESSUN OGGETTO
+SLOWED = RALLENTATO
+next piece -- {} fit, {} put down here = pezzo successivo -- {} ci stanno, {} messi qui
+close circuit = chiudi circuito
+pick from afar = scegli da lontano
+close panel = chiudi pannello
+No track here = Nessuna pista qui
+The track editor goes on a track piece: right click one = L'editor di piste va su un pezzo di pista: clic destro su uno
+Close circuit needs flat, unbanked road at both ends = Chiudere il circuito richiede strada piana e non inclinata a entrambi i capi
+Looking for a way back to the start... = Cerco una strada per tornare alla partenza...
+No way back to the start within {} pieces = Nessuna strada per la partenza entro {} pezzi
+Closed up to piece {} of {}: something is in the way = Chiuso fino al pezzo {} di {}: qualcosa è d'intralcio
+Circuit closed with {} pieces = Circuito chiuso con {} pezzi
+Nothing put down with the editor to take back = Niente messo con l'editor da riprendere
+Another piece of track is in the way of that one = Un altro pezzo di pista intralcia quello
+{} does not fit the open end = {} non si attacca al capo aperto
+Put a piece down with the editor carried, or right click one with it, first = Prima metti un pezzo con l'editor in mano, o clic destro su uno con l'editor
+
+# --- Trees, robots ---
+A sapling grows on grass or dirt = Un alberello cresce su erba o terra
+Robot {} is full and has no chest with room near its base = Il robot {} è pieno e non ha un baule con spazio vicino alla base
+Robot {} has no torches to light up with: put some in a chest near its base = Il robot {} non ha torce per illuminare: mettine in un baule vicino alla base
+Robot {}: give it tools with a right click, and right click it for its program = Robot {}: dagli gli attrezzi con un clic destro, e clic destro su di lui per il programma
+Robot {} -- {} = Robot {} -- {}
+working = al lavoro
+stopped = fermo
+Close = Chiudi
+Program, in order: = Programma, in ordine:
+Add: = Aggiungi:
+Tools: {}   Carrying: {} = Attrezzi: {}   Trasporta: {}
+none = nessuno
+Stop = Ferma
+Run = Avvia
+Clear = Svuota
+Base here = Base qui
+Pick up = Raccogli
+Robot {} works about here now = Il robot {} ora lavora da queste parti
+This robot is {}'s = Questo robot è di {}
+
+# --- Inferno portal, bed, archery ---
+the portal opens onto the Inferno = il portale si apre sull'Inferno
+this world has no way to the Inferno to open = questo mondo non ha una via per l'Inferno da aprire
+the portal goes out; the way to the Inferno is in the plaza again = il portale si spegne; la via per l'Inferno è di nuovo nella piazza
+No room for the head of the bed = Non c'è spazio per la testata del letto
+Spawn point set. You can sleep only at night = Punto di rinascita fissato. Puoi dormire solo di notte
+You may not rest now; there are monsters nearby = Non puoi riposare ora; ci sono mostri nei dintorni
+Sleeping = Dormi
+Your bed is gone = Il tuo letto non c'è più
+Everybody slept; good morning = Hanno dormito tutti; buongiorno
+No arrows = Niente frecce
+
+# --- Territories ---
+Land is kept under a player's key: join with one to found a territory. = La terra è legata alla chiave di un giocatore: entra con una per fondare un territorio.
+The ground round the world's spawn is everybody's. = Il terreno attorno al punto di partenza è di tutti.
+You have a boundary stone already: break it to found elsewhere. = Hai già un cippo di confine: rompilo per fondare altrove.
+This ground is somebody's already. = Questo terreno è già di qualcuno.
+No more territories can be founded in this world. = In questo mondo non si possono fondare altri territori.
+Your territory: it grows while you stay on it. = Il tuo territorio: cresce finché ci resti.
+This boundary stone is {}'s. = Questo cippo di confine è di {}.
+The territory is no more. = Il territorio non c'è più.
+{}'s territory: {} cells. = Territorio di {}: {} celle.
+Take off = Togli
+Add the players near = Aggiungi i giocatori vicini
+Nobody near who is not an owner (6 at most). = Nessuno vicino che non sia già proprietario (al massimo 6).
+A guard watches a territory: found one with a boundary stone first. = Una guardia sorveglia un territorio: prima fondane uno con un cippo di confine.
+A guard of the village watches your territory for {} day(s) more. = Una guardia del villaggio sorveglia il tuo territorio per altri {} giorni.
+Your guard's days are over: hire it again from a mayor. = I giorni della tua guardia sono finiti: riassumila da un sindaco.
+Stolen: what you take from {}'s territory is marked. = Rubato: ciò che prendi dal territorio di {} è marchiato.
+{} took {} thing(s) from your territory. = {} ha preso {} cose dal tuo territorio.
+Caught: {} stolen thing(s) went back to {}. = Preso: {} cose rubate sono tornate a {}.
+You took back {} thing(s) from {}. = Hai ripreso {} cose da {}.
+
+# --- Villages ---
+The inspector found stolen goods in your bag. = L'ispettore ha trovato merce rubata nella tua borsa.
+Give them back? The village will not trust you again. = Restituirla? Il villaggio non si fiderà più di te.
+Give them back = Restituisci
+Refuse = Rifiuta
+Thief! The watch is after you while you are in this village. = Ladro! Le guardie ti inseguono finché sei in questo villaggio.
+You gave it all back. This village does not trust you any more. = Hai restituito tutto. Questo villaggio non si fida più di te.
+The inspector looks through your bag, slowly. Nothing, this time. = L'ispettore fruga nella tua borsa, lentamente. Niente, stavolta.
+The inspector looks through your bag: all in order. = L'ispettore fruga nella tua borsa: tutto in ordine.
+The inspector found 1 stolen thing on you. = L'ispettore ti ha trovato addosso 1 cosa rubata.
+The inspector found {} stolen things on you. = L'ispettore ti ha trovato addosso {} cose rubate.
+Stolen: what you took from this village is marked, and its inspector will know it. = Rubato: ciò che hai preso da questo villaggio è marchiato, e il suo ispettore lo saprà.
+The mayor: land in this village, for emeralds. = Il sindaco: terreni in questo villaggio, in cambio di smeraldi.
+The builder has {} order(s) before yours. The treasury holds {} emeralds. = Il costruttore ha {} ordini prima del tuo. Il tesoro ha {} smeraldi.
+The builder is free. The treasury holds {} emeralds. = Il costruttore è libero. Il tesoro ha {} smeraldi.
+A lot of 7 by 7, levelled, a way to it: {} emeralds = Un lotto 7 per 7, livellato, con una strada: {} smeraldi
+A house on a lot of its own... = Una casa su un lotto suo...
+More for the house you have here... = Altro per la casa che hai qui...
+A guard for your territory, a day: {} emeralds = Una guardia per il tuo territorio, al giorno: {} smeraldi
+Not now = Non ora
+Which house? Built of wood, stone bricks or bricks. = Quale casa? Di legno, mattoni di pietra o mattoni.
+For the house you have in this village: = Per la casa che hai in questo villaggio:
+A second storey, a ladder up: {} emeralds = Un secondo piano, con una scala: {} smeraldi
+A fenced garden of wheat beside it: {} emeralds = Un orto di grano recintato accanto: {} smeraldi
+Yours: {} at {} {}. The builder needs {}. = Tuo: {} a {} {}. Al costruttore serve {}.
+That is {} emeralds. = Fanno {} smeraldi.
+The mayor will not sell to a thief. = Il sindaco non vende a un ladro.
+The mayor sells land only to a player with a key of their own. = Il sindaco vende terreni solo a chi ha una chiave propria.
+The builder has too much to do: come back later. = Il costruttore ha troppo da fare: torna più tardi.
+There is no room left round this village. = Non c'è più spazio attorno a questo villaggio.
+You have no house in this village. = Non hai una casa in questo villaggio.
+Your house has its second storey already. = La tua casa ha già il secondo piano.
+Your house has its garden already. = La tua casa ha già l'orto.
+There is no room for a garden by your house. = Non c'è spazio per un orto accanto alla tua casa.
+Building {}'s {}. = Costruisce: {} di {}.
+Nothing to build. = Niente da costruire.
+For {}'s {} the builder still needs: = Per {} di {} al costruttore serve ancora:
+Hand over what I have of it = Consegna quello che ne ho
+The village's workers are fetching it. = I lavoratori del villaggio lo stanno andando a prendere.
+Find it yourself: the workers fetch it = Trovalo tu: i lavoratori lo vanno a prendere
+You handed over {}. = Hai consegnato {}.
+You have none of it. = Non ne hai.
+{} sells what the village has: = {} vende ciò che ha il villaggio:
+{} has nothing to sell today. = {} oggi non ha niente da vendere.
+Hold what you want to sell to be offered a price. = Tieni in mano ciò che vuoi vendere per ricevere un'offerta.
+The village's treasury: {}. = Il tesoro del villaggio: {}.
+That is gone. = Non c'è più.
+That is {}. = Fanno {}.
+You bought {} {}. = Hai comprato {} {}.
+The village has {} to pay with. = Il villaggio ha {} per pagare.
+It buys {} at a time. = Compra {} alla volta.
+The village's chests are full. = I bauli del villaggio sono pieni.
+You sold {} {} for {}. = Hai venduto {} {} per {}.
+Your house at {} {} is ready. = La tua casa a {} {} è pronta.
+Your house's second storey is ready. = Il secondo piano della tua casa è pronto.
+Your garden is sown. = Il tuo orto è seminato.
+Your lot at {} {} is ready to build on. = Il tuo lotto a {} {} è pronto per costruire.
+Done. = Fatto.
+The {} turns away from you: the village has not forgotten. = Il {} ti volta le spalle: il villaggio non ha dimenticato.
+No village within {} regions. = Nessun villaggio entro {} regioni.
+No town within {} regions. = Nessuna città entro {} regioni.
+Village at {} {}. = Villaggio a {} {}.
+Town at {} {}. = Città a {} {}.
+
+# --- Action RPG ---
+GOLD  {} = ORO  {}
+CLICK: WEAR / SELL   CTRL+CLICK: DROP = CLIC: INDOSSA / VENDI   CTRL+CLIC: GETTA
+CLICK TO BUY - CLICK YOUR ITEMS TO SELL = CLICCA PER COMPRARE - CLICCA I TUOI OGGETTI PER VENDERE
+EXPERIENCE {} / {} = ESPERIENZA {} / {}
+{} STAT POINTS TO SPEND = {} PUNTI CARATTERISTICA DA SPENDERE
+{} SKILL POINTS TO SPEND = {} PUNTI ABILITÀ DA SPENDERE
+NOT LEARNED YET = NON ANCORA APPRESA
+NEEDS LEVEL {} = RICHIEDE LIVELLO {}
+CHOOSE YOUR CLASS = SCEGLI LA TUA CLASSE
+STR {}  DEX {} = FOR {}  DES {}
+VIT {}  ENE {} = VIT {}  ENE {}
+Q  {} LIFE = Q  {} VITA
+R  {} MANA = R  {} MANA
+B  {} TOWN PORTAL = B  {} PORTALE CITTÀ
+LEVEL {} = LIVELLO {}
+{} GOLD = {} ORO
+POINTS TO SPEND: {} STAT (C)  {} SKILL (K) = PUNTI DA SPENDERE: {} CARATT. (C)  {} ABILITÀ (K)
+LMB WALK / ATTACK   RMB SKILL   1-4 SKILL   Q R POTIONS   B PORTAL   I BAG   C STATS   K SKILLS = SX CAMMINA / ATTACCA   DX ABILITÀ   1-4 ABILITÀ   Q R POZIONI   B PORTALE   I BORSA   C CARATT.   K ABILITÀ
+{}  -  LEVEL {} = {}  -  LIVELLO {}
+NOT ENOUGH MANA = MANA INSUFFICIENTE
+
+# --- Shooters ---
+KILLS {} = UCCISIONI {}
+GRENADES {}   KILLS {} = GRANATE {}   UCCISIONI {}
+RED {} = ROSSI {}
+{} BLUE = {} BLU
+
+# --- Example console mod ---
+mods/console -- an example panel = mods/console -- un pannello d'esempio
+you broke the yellow switch block. = hai rotto il blocco interruttore giallo.
+every word here is written in Lua. = ogni parola qui è scritta in Lua.
+blocks placed from here: {} = blocchi messi da qui: {}
+place a blue block = metti un blocco blu
+take them away = toglili
+close this panel = chiudi questo pannello

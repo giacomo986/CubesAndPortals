@@ -1,0 +1,99 @@
+# English for the text the worlds' mods wrote in Italian. The engine writes
+# English and needs nothing here (client/ui/lang.h).
+@name = English
+
+# --- Keys (parkour and the other worlds) ---
+Chiudi = Close
+Non porti nessuna chiave. Ce n'e' una in ogni mondo dietro i portali. = You carry no key. There is one in every world behind the portals.
+Prova superata. La {} ti aspetta sul piedistallo accanto all'uscita. = Trial passed. The {} waits for you on the pedestal by the exit.
+Hai preso la {}. /diario per leggere la pagina dell'ingegnere. = You took the {}. /diario to read the engineer's page.
+Un incavo a forma di chiave, vuoto. La prova non e' ancora superata. = A key-shaped hollow, empty. The trial is not passed yet.
+Le sette chiavi vibrano insieme. Il portale del laboratorio si e' acceso. = The seven keys hum together. The lab's portal has lit up.
+Un incavo del piedistallo si illumina: {} chiavi su 7. = A hollow in the pedestal lights up: {} keys of 7.
+Chiave della Corsa = Key of the Race
+Chiave del Fuoco = Key of Fire
+Chiave dell'Assedio = Key of the Siege
+Chiave della Cripta = Key of the Crypt
+Chiave della Prova = Key of the Trial
+Chiave dell'Uscita = Key of the Way Out
+Chiave della Vetta = Key of the Summit
+Il portale e' spento. Servono le sette chiavi: ne hai portate {}. = The portal is dark. It needs the seven keys: you have brought {}.
+
+# --- Backrooms ---
+La torcia si sta ricaricando. = The torch is recharging.
+La luce le stordisce. = The light stuns them.
+{} e' qui. = {} is here.
+{}. Nessuna via per {} qui vicino. = {}. No way {} near here.
+{}. Scale per {}: {}. = {}. Stairs {}: {}.
+salire = up
+scendere = down
+{} e' un livello sopra = {} is one level up
+{} e' un livello sotto = {} is one level down
+{} e' due livelli sopra = {} is two levels up
+{} e' due livelli sotto = {} is two levels down
+L'entrata = The way in
+L'uscita = The way out
+{} m, {} = {} m, {}
+davanti = ahead
+davanti a destra = ahead to the right
+a destra = to the right
+dietro a destra = behind to the right
+dietro = behind
+dietro a sinistra = behind to the left
+a sinistra = to the left
+davanti a sinistra = ahead to the left
+forte = strong
+chiaro = clear
+debole = weak
+{}. Un buco nel pavimento: {}. = {}. A hole in the floor: {}.
+Si dice che qualcuno abbia lasciato delle casse, qui. E che le creature tengano i pezzi di una bussola. = They say somebody left crates here. And that the creatures keep the pieces of a compass.
+Una radio gracchia nel buio, lontano. Segui il segnale. = A radio crackles in the dark, far off. Follow the signal.
+L'uscita. La torcia dell'ingegnere e' rimasta qui. = The way out. The engineer's torch was left here.
+Il segnale della radio e' {}. = The radio's signal is {}.
+
+# --- Assault ---
+Crediti {}   soldati {}   costruttori {} = Credits {}   soldiers {}   builders {}
+{}  liv. {} = {}  lv. {}
+Preso = Taken
+1-9: ARMI = 1-9: WEAPONS
+CREDITI {}   B: NEGOZIO = CREDITS {}   B: SHOP
+
+# --- Lab ---
+La mitragliatrice! = The machine gun!
+Il laser ti ha colpito. = The laser hit you.
+La torcia lo coglie! = The torch catches it!
+Il gelo lo rallenta. = The frost slows it down.
+Un generatore e' spento. Ne resta {}. = A generator is off. {} left.
+L'ultimo generatore si spegne. = The last generator goes off.
+Una valvola chiusa. Ne restano {}. = A valve closed. {} left.
+{} secondi prima che crolli. Fuori, a nord! = {} seconds before it collapses. Out, to the north!
+Le valvole sono chiuse: la lava defluisce. = The valves are closed: the lava drains away.
+Il portale di casa e' alla parete ovest. Il sandbox e' tuo. = The portal home is on the west wall. The sandbox is yours.
+Il crollo ti ha raggiunto. Torna al kart e riprova. = The collapse caught you. Back to the kart and try again.
+Sei caduto nel buio. Torna al kart e riprova. = You fell into the dark. Back to the kart and try again.
+{} secondi. = {} seconds.
+Nella hotbar: portal gun, pistola, fucile, corda, torcia, gelo. = In the hotbar: portal gun, pistol, shotgun, rope, torch, frost.
+L'OSPITE = THE GUEST
+CARTUCCE {}   PROIETTILI {} = SHELLS {}   BULLETS {}
+
+# --- Cards ---
+Tasto destro: scegli il gioco = Right click: choose the game
+Il tavolo è libero = The table is free
+Briscola, cinquiglio, scopa o tresette   --   tasto destro: menu, alzati = Briscola, cinquiglio, scopa or tresette   --   right click: menu, stand up
+{}   --   V: dall'alto = {}   --   V: from above
+{}   --   V: in mano = {}   --   V: in hand
+
+# --- Inferno ---
+Il quarto braciere arde. Il cancello del cuore della fortezza si apre, a est. = The fourth brazier burns. The gate to the fortress's heart opens, to the east.
+Un braciere acceso: {} di 4. = A brazier lit: {} of 4.
+Il cancello resta chiuso: {} bracieri accesi su 4. = The gate stays shut: {} braziers lit of 4.
+Il guardiano e' caduto. = The guardian has fallen.
+Dal cerchio di fuoco si leva il guardiano del cuore. = From the ring of fire rises the guardian of the heart.
+Tre giri sotto il tempo dell'ingegnere. = Three laps under the engineer's time.
+Il tempo dell'ingegnere: {} s. Giri di fila sotto: {} di 3. = The engineer's time: {} s. Laps in a row under it: {} of 3.
+
+# --- Crypt ---
+Il Custode delle tombe si alza dal suo trono. = The Keeper of the tombs rises from his throne.
+Il piano {} della cripta si sveglia. = Floor {} of the crypt wakes up.
+Il sigillo verso il piano {} si spezza. = The seal to floor {} breaks.
+Il Custode e' caduto. = The Keeper has fallen.

@@ -1,0 +1,120 @@
+{
+ "asset": {
+  "version": "2.0",
+  "generator": "cubes-and-portals tools/make_voxel_blocks.py"
+ },
+ "scene": 0,
+ "scenes": [
+  {
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "name": "azure_bluet",
+   "mesh": 0
+  }
+ ],
+ "meshes": [
+  {
+   "name": "azure_bluet",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1,
+      "TEXCOORD_0": 2
+     },
+     "indices": 3,
+     "material": 0
+    }
+   ]
+  }
+ ],
+ "materials": [
+  {
+   "name": "azure_bluet",
+   "doubleSided": true,
+   "alphaMode": "MASK",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicFactor": 0,
+    "roughnessFactor": 1
+   }
+  }
+ ],
+ "textures": [
+  {
+   "source": 0
+  }
+ ],
+ "images": [
+  {
+   "uri": "azure_bluet.png"
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 280,
+   "uri": "data:application/octet-stream;base64,mpkZPgAAAACamRk+MzMzPwAAAAAzMzO/AAAAAAAAgD+amVk/AAAAAJqZWT8zMzM/AAAAADMzM78AAIA/AACAP5qZWT8AAIA/mplZPzMzMz8AAAAAMzMzvwAAgD8AAAAAmpkZPgAAgD+amRk+MzMzPwAAAAAzMzO/AAAAAAAAAACamVk/AAAAAJqZGT4zMzM/AAAAADMzMz8AAAAAAACAP5qZGT4AAAAAmplZPzMzMz8AAAAAMzMzPwAAgD8AAIA/mpkZPgAAgD+amVk/MzMzPwAAAAAzMzM/AACAPwAAAACamVk/AACAP5qZGT4zMzM/AAAAADMzMz8AAAAAAAAAAAAAAQACAAAAAgADAAQABQAGAAQABgAHAA=="
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 256,
+   "byteStride": 32,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 256,
+   "byteLength": 24,
+   "target": 34963
+  }
+ ],
+ "accessors": [
+  {
+   "bufferView": 0,
+   "byteOffset": 0,
+   "componentType": 5126,
+   "count": 8,
+   "type": "VEC3",
+   "min": [
+    0.15,
+    0,
+    0.15
+   ],
+   "max": [
+    0.85,
+    1,
+    0.85
+   ]
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 12,
+   "componentType": 5126,
+   "count": 8,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 24,
+   "componentType": 5126,
+   "count": 8,
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5123,
+   "count": 12,
+   "type": "SCALAR"
+  }
+ ]
+}

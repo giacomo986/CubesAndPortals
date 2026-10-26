@@ -1,0 +1,232 @@
+{
+ "about": "The illustrated deck of mods/cards, drawn by ElevenLabs (gpt-image-2, 1280x720, one generation each): the figures, the suit emblems, the back, then each 1..7 as a whole picture (<value>_<suit>). The free plan stops after a few images a day: every day generate the ones not done, save each as ~/kart_assets/cards/elevenlabs/<name>.png, set done, then run tools/make_cards.py and the models (tools/make_card_models.py in Blender). A card whose art is missing is drawn from the Blender art meanwhile.",
+ "flow_id": "qT8FnJCh3tI5dv8yxDrg",
+ "model_id": "gpt-image-2",
+ "images": [
+  {
+   "name": "fante_denari",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the JACK of COINS (Fante di Denari). A young page with a feathered cap and a green and red short tunic and hose, standing, full figure, holding one large round golden coin with a sun-like ornament in one hand. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, figure centred filling the height.",
+   "done": true
+  },
+  {
+   "name": "cavallo_denari",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the KNIGHT of COINS (Cavallo di Denari). A young knight in a green and red tunic riding a horse seen from the side, the whole horse and rider in the picture, holding one large round golden coin with a sun-like ornament in one hand. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, figure centred filling the height.",
+   "done": true
+  },
+  {
+   "name": "re_denari",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the KING of COINS (Re di Denari). A bearded king with a crown and a green and red robe, standing, full figure, holding one large round golden coin with a sun-like ornament in one hand. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, figure centred filling the height.",
+   "done": true
+  },
+  {
+   "name": "fante_coppe",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the JACK of CUPS (Fante di Coppe). A young page with a feathered cap and a red and blue short tunic and hose, standing, full figure, holding a golden goblet (cup) in one hand. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, figure centred filling the height.",
+   "done": true
+  },
+  {
+   "name": "cavallo_coppe",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the KNIGHT of CUPS (Cavallo di Coppe). A young knight in a red and blue tunic riding a horse seen from the side, the whole horse and rider in the picture, holding a golden goblet (cup) in one hand. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, figure centred filling the height.",
+   "done": true
+  },
+  {
+   "name": "re_coppe",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the KING of CUPS (Re di Coppe). A bearded king with a crown and a red and blue robe, standing, full figure, holding a golden goblet (cup) in one hand. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, figure centred filling the height.",
+   "done": true
+  },
+  {
+   "name": "fante_spade",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the JACK of SWORDS (Fante di Spade). A young page with a feathered cap and a blue and yellow short tunic and hose, standing, full figure, holding one straight long sword upright in one hand. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, figure centred filling the height.",
+   "done": true
+  },
+  {
+   "name": "cavallo_spade",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the KNIGHT of SWORDS (Cavallo di Spade). A young knight in a blue and yellow tunic riding a horse seen from the side, the whole horse and rider in the picture, holding one straight long sword upright in one hand. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, figure centred filling the height.",
+   "done": true
+  },
+  {
+   "name": "re_spade",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the KING of SWORDS (Re di Spade). A bearded king with a crown and a blue and yellow robe, standing, full figure, holding one straight long sword upright in one hand. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, figure centred filling the height.",
+   "done": true
+  },
+  {
+   "name": "fante_bastoni",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the JACK of CLUBS (Fante di Bastoni). A young page with a feathered cap and a red and green short tunic and hose, standing, full figure, holding one big rough wooden club (a knotted cudgel with small green leaves) in one hand. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, figure centred filling the height.",
+   "done": true
+  },
+  {
+   "name": "cavallo_bastoni",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the KNIGHT of CLUBS (Cavallo di Bastoni). A young knight in a red and green tunic riding a horse seen from the side, the whole horse and rider in the picture, holding one big rough wooden club (a knotted cudgel with small green leaves) in one hand. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, figure centred filling the height.",
+   "done": true
+  },
+  {
+   "name": "re_bastoni",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the KING of CLUBS (Re di Bastoni). A bearded king with a crown and a red and green robe, standing, full figure, holding one big rough wooden club (a knotted cudgel with small green leaves) in one hand. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, figure centred filling the height.",
+   "done": true
+  },
+  {
+   "name": "denari",
+   "prompt": "A single emblem for the suit of COINS (denari) of traditional Neapolitan playing cards: large round golden coin with a sun-like ornament, alone, upright, centred, not held by anybody. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters.",
+   "done": true
+  },
+  {
+   "name": "coppe",
+   "prompt": "A single emblem for the suit of CUPS (coppe) of traditional Neapolitan playing cards: a golden goblet (cup), alone, upright, centred, not held by anybody. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters.",
+   "done": true
+  },
+  {
+   "name": "spade",
+   "prompt": "A single emblem for the suit of SWORDS (spade) of traditional Neapolitan playing cards: straight long sword upright, alone, upright, centred, not held by anybody. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters.",
+   "done": true
+  },
+  {
+   "name": "bastoni",
+   "prompt": "A single emblem for the suit of CLUBS (bastoni) of traditional Neapolitan playing cards: big rough wooden club (a knotted cudgel with small green leaves), alone, upright, centred, not held by anybody. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters.",
+   "done": true
+  },
+  {
+   "name": "back",
+   "prompt": "The back of a traditional Italian playing card: a symmetrical ornamental pattern of deep red and gold, a lattice of small diamonds and a round golden medallion with a sun in the middle, like an old engraved card back. Flat colours, fine black lines, no text, no letters. The pattern fills the whole picture.",
+   "done": true
+  },
+  {
+   "name": "1_denari",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the ACE of COINS (Asso di Denari). A single very large and richly ornamented large round golden coin with a sun-like ornament, the grand ace of the suit, with small decorative flourishes around it. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "2_denari",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the TWO of COINS (Due di Denari). Exactly 2 large round golden coins, every coin the same design: a golden disc with a sun with a calm human face in its centre, pointed rays alternating red, blue and green, a thin ring of small dots at the rim, all the same size, arranged one above the other in a column, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "3_denari",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the THREE of COINS (Tre di Denari). Exactly 3 large round golden coins, every coin the same design: a golden disc with a sun with a calm human face in its centre, pointed rays alternating red, blue and green, a thin ring of small dots at the rim, all the same size, arranged one above the other in a column, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "4_denari",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the FOUR of COINS (Quattro di Denari). Exactly 4 large round golden coins, every coin the same design: a golden disc with a sun with a calm human face in its centre, pointed rays alternating red, blue and green, a thin ring of small dots at the rim, all the same size, arranged in two columns of two, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "5_denari",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the FIVE of COINS (Cinque di Denari). Exactly 5 large round golden coins, every coin the same design: a golden disc with a sun with a calm human face in its centre, pointed rays alternating red, blue and green, a thin ring of small dots at the rim, all the same size, arranged two at the top, one in the middle, two at the bottom, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "6_denari",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the SIX of COINS (Sei di Denari). Exactly 6 large round golden coins, every coin the same design: a golden disc with a sun with a calm human face in its centre, pointed rays alternating red, blue and green, a thin ring of small dots at the rim, all the same size, arranged in two columns of three, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "7_denari",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the SEVEN of COINS (Sette di Denari). Exactly 7 large round golden coins, every coin the same design: a golden disc with a sun with a calm human face in its centre, pointed rays alternating red, blue and green, a thin ring of small dots at the rim, all the same size, arranged two at the top, one just below them in the middle, two in the middle, two at the bottom, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "1_coppe",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the ACE of CUPS (Asso di Coppe). A single very large and richly ornamented golden goblet (cup), the grand ace of the suit, with small decorative flourishes around it. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "2_coppe",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the TWO of CUPS (Due di Coppe). Exactly 2 golden goblets (cups), all the same size, arranged one above the other in a column, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "3_coppe",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the THREE of CUPS (Tre di Coppe). Exactly 3 golden goblets (cups), every cup the same design: a deep bowl red inside with a band of green leaves around its lower half, a short golden stem with one blue ring, a golden foot with a blue rim, all the same size, arranged one above the other in a column, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "4_coppe",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the FOUR of CUPS (Quattro di Coppe). Exactly 4 golden goblets (cups), every cup the same design: a deep bowl red inside with a band of green leaves around its lower half, a short golden stem with one blue ring, a golden foot with a blue rim, all the same size, arranged in two columns of two, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "5_coppe",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the FIVE of CUPS (Cinque di Coppe). Exactly 5 golden goblets (cups), every cup the same design: a deep bowl golden on the outside and red only inside, with a band of green leaves around its lower half, a short golden stem with one blue ring, a golden foot with a blue rim, all the same size, arranged two at the top, one in the middle, two at the bottom, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "6_coppe",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the SIX of CUPS (Sei di Coppe). Exactly 6 golden goblets (cups), every cup the same design: a deep bowl golden on the outside and red only inside, with a band of green leaves around its lower half, a short golden stem with one blue ring, a golden foot with a blue rim, all the same size, arranged in two columns of three, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "7_coppe",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the SEVEN of CUPS (Sette di Coppe). Exactly 7 golden goblets (cups), every cup the same design: a deep bowl golden on the outside and red only inside, with a band of green leaves around its lower half, a short golden stem with one blue ring, a golden foot with a blue rim, all the same size, arranged two at the top, one just below them in the middle, two in the middle, two at the bottom, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "1_spade",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the ACE of SWORDS (Asso di Spade). A single very large and richly ornamented straight long sword, upright, the grand ace of the suit, with small decorative flourishes around it. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "2_spade",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the TWO of SWORDS (Due di Spade). Exactly 2 straight long swords, upright, every sword the same design: a blue blade, a golden crossguard with curled ends and a red oval gem in the middle, a red grip wrapped in a golden spiral, a golden pommel, all the same size, arranged one above the other in a column, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "3_spade",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the THREE of SWORDS (Tre di Spade). Exactly 3 straight long swords, upright, every sword the same design: a blue blade, a golden crossguard with curled ends and a red oval gem in the middle, a red grip wrapped in a golden spiral, a golden pommel, all exactly the same size, short enough that every sword fits whole inside the picture with a margin above and below, arranged one above the other in a column, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": false
+  },
+  {
+   "name": "4_spade",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the FOUR of SWORDS (Quattro di Spade). Exactly 4 straight long swords, upright, every sword the same design: a blue blade, a golden crossguard with curled ends and a red oval gem in the middle, a red grip wrapped in a golden spiral, a golden pommel, all exactly the same size, short enough that every sword fits whole inside the picture with a margin above and below, arranged in two columns of two, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": true
+  },
+  {
+   "name": "5_spade",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the FIVE of SWORDS (Cinque di Spade). Exactly 5 straight long swords, upright, every sword the same design: a blue blade, a golden crossguard with curled ends and a red oval gem in the middle, a red grip wrapped in a golden spiral, a golden pommel, all exactly the same size, short enough that every sword fits whole inside the picture with a margin above and below, arranged two at the top, one in the middle, two at the bottom, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": false
+  },
+  {
+   "name": "6_spade",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the SIX of SWORDS (Sei di Spade). Exactly 6 straight long swords, upright, every sword the same design: a blue blade, a golden crossguard with curled ends and a red oval gem in the middle, a red grip wrapped in a golden spiral, a golden pommel, all exactly the same size, short enough that every sword fits whole inside the picture with a margin above and below, arranged in two columns of three, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": false
+  },
+  {
+   "name": "7_spade",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the SEVEN of SWORDS (Sette di Spade). Exactly 7 straight long swords, upright, every sword the same design: a blue blade, a golden crossguard with curled ends and a red oval gem in the middle, a red grip wrapped in a golden spiral, a golden pommel, all exactly the same size, short enough that every sword fits whole inside the picture with a margin above and below, arranged two at the top, one just below them in the middle, two in the middle, two at the bottom, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": false
+  },
+  {
+   "name": "1_bastoni",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the ACE of CLUBS (Asso di Bastoni). A single very large and richly ornamented big rough wooden club (a knotted cudgel with small green leaves), upright, the grand ace of the suit, with small decorative flourishes around it. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": false
+  },
+  {
+   "name": "2_bastoni",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the TWO of CLUBS (Due di Bastoni). Exactly 2 big rough wooden clubs (knotted cudgels with small green leaves), upright, all the same size, arranged one above the other in a column, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": false
+  },
+  {
+   "name": "3_bastoni",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the THREE of CLUBS (Tre di Bastoni). Exactly 3 big rough wooden clubs (knotted cudgels with small green leaves), upright, all the same size, arranged one above the other in a column, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": false
+  },
+  {
+   "name": "4_bastoni",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the FOUR of CLUBS (Quattro di Bastoni). Exactly 4 big rough wooden clubs (knotted cudgels with small green leaves), upright, all the same size, arranged in two columns of two, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": false
+  },
+  {
+   "name": "5_bastoni",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the FIVE of CLUBS (Cinque di Bastoni). Exactly 5 big rough wooden clubs (knotted cudgels with small green leaves), upright, all the same size, arranged two at the top, one in the middle, two at the bottom, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": false
+  },
+  {
+   "name": "6_bastoni",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the SIX of CLUBS (Sei di Bastoni). Exactly 6 big rough wooden clubs (knotted cudgels with small green leaves), upright, all the same size, arranged in two columns of three, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": false
+  },
+  {
+   "name": "7_bastoni",
+   "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the SEVEN of CLUBS (Sette di Bastoni). Exactly 7 big rough wooden clubs (knotted cudgels with small green leaves), upright, all the same size, arranged two at the top, one just below them in the middle, two in the middle, two at the bottom, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
+   "done": false
+  }
+ ]
+}

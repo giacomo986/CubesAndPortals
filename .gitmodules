@@ -1,0 +1,21 @@
+[submodule "third_party/raylib"]
+	path = third_party/raylib
+	url = https://github.com/raysan5/raylib.git
+[submodule "third_party/luau"]
+	path = third_party/luau
+	url = https://github.com/luau-lang/luau.git
+[submodule "third_party/enet"]
+	path = third_party/enet
+	url = https://github.com/lsalzman/enet.git
+[submodule "third_party/zstd"]
+	path = third_party/zstd
+	url = https://github.com/facebook/zstd.git
+[submodule "third_party/monocypher"]
+	path = third_party/monocypher
+	url = https://github.com/LoupVaillant/Monocypher.git
+[submodule "third_party/flecs"]
+	path = third_party/flecs
+	url = https://github.com/SanderMertens/flecs.git
+[submodule "third_party/JoltPhysics"]
+	path = third_party/JoltPhysics
+	url = https://github.com/jrouwe/JoltPhysics.git

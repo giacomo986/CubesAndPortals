@@ -1,0 +1,120 @@
+{
+ "asset": {
+  "version": "2.0",
+  "generator": "cubes-and-portals tools/make_farm_assets.py"
+ },
+ "scene": 0,
+ "scenes": [
+  {
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "name": "wheat_0",
+   "mesh": 0
+  }
+ ],
+ "meshes": [
+  {
+   "name": "wheat_0",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1,
+      "TEXCOORD_0": 2
+     },
+     "indices": 3,
+     "material": 0
+    }
+   ]
+  }
+ ],
+ "materials": [
+  {
+   "name": "wheat",
+   "doubleSided": true,
+   "alphaMode": "MASK",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicFactor": 0,
+    "roughnessFactor": 1
+   }
+  }
+ ],
+ "textures": [
+  {
+   "source": 0
+  }
+ ],
+ "images": [
+  {
+   "uri": "wheat_0.png"
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 560,
+   "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAIA+AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAgD4AAAAAAAAAAAAAgD8AAIA/AACAPwAAgD8AAKA+AACAPgAAAAAAAAAAAACAPwAAgD8AADA/AAAAAAAAoD4AAIA+AAAAAAAAAAAAAIA/AAAAAAAAMD8AAIA+AAAAAAAAgD8AAIA/AAAAAAAAAAAAAAAAAACAPwAAgD4AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAIA/AACAPgAAoD4AAAAAAACAPwAAAAAAAAAAAACAPwAAMD8AAIA+AACgPgAAgD8AAIA/AAAAAAAAAAAAAAAAAAAwPwAAAAAAAAAAAABAPwAAAAAAAAAAAACAPwAAAAAAAIA/AACAPwAAAAAAAEA/AAAAAAAAAAAAAIA/AACAPwAAgD8AAIA/AACgPgAAQD8AAAAAAAAAAAAAgD8AAIA/AAAwPwAAAAAAAKA+AABAPwAAAAAAAAAAAACAPwAAAAAAADA/AABAPwAAAAAAAIA/AACAPwAAAAAAAAAAAAAAAAAAgD8AAEA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AACAPwAAQD8AAKA+AAAAAAAAgD8AAAAAAAAAAAAAgD8AADA/AABAPwAAoD4AAIA/AACAPwAAAAAAAAAAAAAAAAAAMD8AAAEAAgAAAAIAAwAEAAUABgAEAAYABwAIAAkACgAIAAoACwAMAA0ADgAMAA4ADwA="
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 512,
+   "byteStride": 32,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 512,
+   "byteLength": 48,
+   "target": 34963
+  }
+ ],
+ "accessors": [
+  {
+   "bufferView": 0,
+   "byteOffset": 0,
+   "componentType": 5126,
+   "count": 16,
+   "type": "VEC3",
+   "min": [
+    0,
+    0,
+    0
+   ],
+   "max": [
+    1,
+    0.3125,
+    1
+   ]
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 12,
+   "componentType": 5126,
+   "count": 16,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 24,
+   "componentType": 5126,
+   "count": 16,
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5123,
+   "count": 24,
+   "type": "SCALAR"
+  }
+ ]
+}

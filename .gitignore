@@ -1,0 +1,46 @@
+build/
+build-*/
+cmake-build-*/
+third_party/*/build/
+*.o
+*.a
+*.so
+*.appimage
+*.AppImage
+compile_commands.json
+.cache/
+worlds/
+bench/
+
+# Identity keys, server and player. Secrets, and per-machine. `.sign` is the
+# ticket-signing key, which is a different algorithm and the same discipline.
+*.key
+*.sign
+
+# World files a run leaves behind, and the logs beside them.
+*.world
+*.world-shm
+*.world-wal
+*.log
+
+# What the gates leave on the disk. pack_check/ is written by the pack_draw
+# gate every time it runs -- three folders of art it draws itself -- so a
+# tracked copy would show up as modified after every test run.
+pack_check/
+
+# Somebody else's art, kept out of the repository on purpose and not because
+# nobody got round to it. The archives are downloads, the two folders are what
+# comes out of them, and what is in them travels under licences of its own:
+# Kenney's voxel pack is CC0, the mannequin demake is not. They live on this
+# machine and the game reads them with --textures / --models.
+assets/*.zip
+assets/models/
+assets/packs/
+
+# Mod packages are built from mods/ by tools/modpack; the directory is the
+# source and the .cnpmod is what gets shipped.
+*.cnpmod
+
+# What ctest and Python leave behind.
+Testing/
+__pycache__/
