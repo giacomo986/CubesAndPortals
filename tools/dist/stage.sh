@@ -12,6 +12,8 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 mkdir -p "$DEST/assets"
 cp -r "$ROOT/mods"  "$DEST/mods"
 cp -r "$ROOT/games" "$DEST/games"
-for d in textures sounds models lang; do
+# Not assets/models: it is somebody else's art, kept out of the repository
+# (.gitignore); the game reads it when it is there, or from --models.
+for d in textures sounds lang; do
     cp -r "$ROOT/assets/$d" "$DEST/assets/$d"
 done

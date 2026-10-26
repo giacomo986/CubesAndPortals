@@ -62,7 +62,7 @@ e `docs/api.d.luau`, che stanno nel repository e vanno committati insieme.
 ## I pacchetti
 
 Ogni pacchetto è una cartella con i tre programmi e, accanto, `mods/`, `games/` e `assets/`
-(`textures`, `sounds`, `models`): la copia la fa `tools/dist/stage.sh`, ed è la disposizione in
+(`textures`, `sounds`, `lang`): la copia la fa `tools/dist/stage.sh`, ed è la disposizione in
 cui `core/paths.h` cerca i file. Un pacchetto si chiama
 `cubes-and-portals-<versione>-<sistema>-<architettura>` e finisce in `<build>/dist/`.
 
