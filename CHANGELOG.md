@@ -3,6 +3,19 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.md](docs/BUILDING.md#versioni).
 
+## 0.9.0-alpha.3 — 2026-10-27
+
+Protocollo 109, come la 0.9.0-alpha.2: gioca con i suoi server e legge i suoi mondi.
+
+- Chi tiene un server ha un'amministrazione completa: ruoli, ban, kick, mute, lista d'accesso,
+  console, RCON, riavvii programmati, manutenzione, messaggio del giorno, regole da accettare,
+  rollback dei blocchi, backup e webhook. Il manuale è [docs/ADMIN.md](docs/ADMIN.md).
+- I server amici condividono ban, presenza, chat e lo zaino: chi passa da un portale verso un
+  amico porta con sé lo stesso zaino.
+- La lista Multiplayer mostra giocatori, versione e messaggio del giorno di ogni server.
+- Il titolo avvisa quando su GitHub c'è un'alpha più nuova.
+- Il README è anche in inglese.
+
 ## 0.9.0-alpha.2 — 2026-10-26
 
 Protocollo 109, come la 0.9.0-alpha.1: gioca con i suoi server e legge i suoi mondi.
