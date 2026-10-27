@@ -2,6 +2,10 @@
 
 *[Leggi in italiano](README.it.md)*
 
+[![A video of the game](https://img.youtube.com/vi/WdtsBnpiZpA/hqdefault.jpg)](https://www.youtube.com/watch?v=WdtsBnpiZpA)
+
+**[A video of the game](https://www.youtube.com/watch?v=WdtsBnpiZpA)**
+
 **Contents**
 
 - [Status](#status)

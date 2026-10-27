@@ -2,6 +2,10 @@
 
 *[Read in English](README.md)*
 
+[![Un video del gioco](https://img.youtube.com/vi/WdtsBnpiZpA/hqdefault.jpg)](https://www.youtube.com/watch?v=WdtsBnpiZpA)
+
+**[Un video del gioco](https://www.youtube.com/watch?v=WdtsBnpiZpA)**
+
 **Indice**
 
 - [Stato](#stato)
