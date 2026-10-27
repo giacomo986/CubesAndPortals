@@ -2953,7 +2953,7 @@ Puts a page on one player's screen, laid out by the engine: wrapped text, button
 core.is_muted(player: number) -> number
 ```
 
-1 when this player's chat is held (/mute). The engine already holds what a muted player's command makes a mod core.chat to anybody else; this is for an answer that says why, as /msg gives. 0 in the single-process client.
+1 when this player's chat is held (/mute). The engine already holds what a muted player's command, page action, click or mod message makes a mod say to anybody else, then or later: a core.chat, core.notice or page line carrying three of their words in a row (twelve letters or more, or all they said) goes to them alone, while they are muted and for an hour after. This is for an answer that says why, as /msg gives, and for a relay that should not wait for that. 0 in the single-process client.
 
 | argomento | tipo | default | note |
 |---|---|---|---|

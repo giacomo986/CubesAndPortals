@@ -1690,6 +1690,96 @@ const char *asking_mod()
     return m ? m->name.c_str() : "";
 }
 
+// What muted players handed the mods: a command's words, a page's field, a
+// panel's text, a line from their own mod (hold_if_muted). A mod that says
+// them again -- now, or later from a tick: a letter delivered, a note pinned
+// on a board -- says them to nobody but their author: in chat, in a notice,
+// on a page. Every room's, since a mod may pass words on through the shared
+// storage; kept while the author is muted and for an hour after the words.
+struct MutedWords {
+    admin::Who               who;
+    std::vector<std::string> words;   // lowercased
+    int64_t                  at = 0;
+};
+std::deque<MutedWords> g_muted_words;
+
+std::vector<std::string> lower_words(const std::string &text)
+{
+    std::vector<std::string> out;
+    std::string              w;
+    for (const char c : text + " ") {
+        if (std::isspace((unsigned char)c)) {
+            if (!w.empty()) out.push_back(std::move(w));
+            w.clear();
+        } else {
+            w += (char)std::tolower((unsigned char)c);
+        }
+    }
+    return out;
+}
+
+void note_muted_words(const admin::Who &who, const std::string &text)
+{
+    std::vector<std::string> w = lower_words(text);
+    if (w.empty()) return;
+    g_muted_words.push_back({who, std::move(w), (int64_t)std::time(nullptr)});
+    if (g_muted_words.size() > 1000) g_muted_words.pop_front();
+}
+
+// Whose muted words `text` carries, "" for nobody's (or only the reader's own).
+// Three of their words in a row, twelve letters or more -- or all they said,
+// when that is less -- are theirs. ponytail: what they said in under six
+// letters passes, and somebody else repeating their phrase within the hour
+// is held too; a mod that relays knows better and asks core.is_muted.
+std::string muted_author(const std::string &text, const std::string &reader)
+{
+    if (g_muted_words.empty()) return "";
+    const int64_t     now = (int64_t)std::time(nullptr);
+    std::string       out;
+    for (const std::string &w : lower_words(text)) out += " " + w;
+    out += " ";
+    std::string why;
+    for (auto it = g_muted_words.begin(); it != g_muted_words.end();) {
+        const bool live = now - it->at < 3600 || admin::muted(it->who, why);
+        if (!live) {
+            it = g_muted_words.erase(it);
+            continue;
+        }
+        const MutedWords &m = *it++;
+        if (m.who.name == reader) continue;
+        size_t total = 0;
+        for (const std::string &w : m.words) total += w.size();
+        if (total < 6) continue;
+        const size_t want_letters = std::min<size_t>(12, total), want_words = std::min<size_t>(3, m.words.size());
+        for (size_t i = 0; i < m.words.size(); ++i) {
+            std::string run = m.words[i];
+            size_t      letters = run.size(), j = i + 1;
+            while ((letters < want_letters || j - i < want_words) && j < m.words.size()) {
+                run += " " + m.words[j];
+                letters += m.words[j++].size();
+            }
+            if (letters < want_letters || j - i < want_words) break;
+            if (out.find(" " + run + " ") != std::string::npos) return m.who.name;
+        }
+    }
+    return "";
+}
+
+// A line for `player` (0: everybody) carrying a muted player's words goes to
+// its author alone, if they are here. True when it was held.
+bool hold_muted_line(ServerState *s, int player, const std::string &text, bool notice)
+{
+    const net::Session *to     = player > 0 ? s->sessions->find((net::PeerId)player) : nullptr;
+    const std::string   author = muted_author(text, to ? to->name : "");
+    if (author.empty()) return false;
+    if (player == 0)
+        for (const net::PeerId peer : s->sessions->ready_peers())
+            if (const net::Session *p = s->sessions->find(peer); p && p->name == author)
+                s->mod_says.push_back(ServerState::ModSay{(int)peer, 0, text, notice, !notice});
+    std::printf("        held a mod's line with %s's words (muted)\n", author.c_str());
+    return true;
+}
+
 // A line in a player's chat (core.chat), queued with the notices.
 int host_chat(void *ud, int player, const char *text)
 {
@@ -1702,6 +1792,7 @@ int host_chat(void *ud, int player, const char *text)
         s->muted_why.clear();   // said once
         return 1;
     }
+    if (hold_muted_line(s, player, text, false)) return 1;
 
     s->mod_says.push_back(ServerState::ModSay{player, 0, text, false, true});
     return 1;
@@ -2302,6 +2393,7 @@ int host_notice(void *ud, int player, const char *text)
         return 0;
     }
     if (player < 0 || (player > 0 && !s->sessions->find((net::PeerId)player))) return 0;
+    if (hold_muted_line(s, player, text, true)) return 1;
 
     s->mod_says.push_back(ServerState::ModSay{player, 0, text, true});
     return 1;
@@ -4576,10 +4668,16 @@ bool open_page(ServerState &s, net::PeerId peer, const std::string &name, int sc
 
 // While a muted player's command, page action or click runs, what its mod
 // core.chats to anybody else is held (host_chat); cleared after the emit.
-void hold_if_muted(ServerState &s, net::PeerId peer)
+// And what they handed it is noted (g_muted_words), for what the mod says
+// with it later.
+void hold_if_muted(ServerState &s, net::PeerId peer, const std::string &words)
 {
     const net::Session *p = s.sessions ? s.sessions->find(peer) : nullptr;
-    if (p && admin::muted(admin_who(*p), s.muted_why)) s.muted_caller = (int)peer;
+    if (!p) return;
+    const admin::Who who = admin_who(*p);
+    if (!admin::muted(who, s.muted_why)) return;
+    s.muted_caller = (int)peer;
+    note_muted_words(who, words);
 }
 
 // A line a player typed or a page ran for them: a /command answered here or by
@@ -4648,7 +4746,7 @@ void run_chat_line(ServerState &s, net::PeerId peer, const std::string &line)
             {"args", SCRIPT_V_STRING, 0.0, args.c_str(), 0},
         };
         std::string cmd_err;
-        hold_if_muted(s, peer);
+        hold_if_muted(s, peer, args);
         if (!s.mods.events().emit("core:command", fields, 3, nullptr, cmd_err, &c->second.owner))
             std::fprintf(stderr, "emit core:command: %s\n", cmd_err.c_str());
         s.muted_caller = 0;
@@ -4696,7 +4794,7 @@ void page_click(ServerState &s, net::PeerId peer, const std::string &id, const s
             {"text", SCRIPT_V_STRING, 0.0, l->field ? text.c_str() : "", 0},
         };
         std::string err;
-        hold_if_muted(s, peer);
+        hold_if_muted(s, peer, l->field ? text : "");
         if (!s.mods.events().emit("core:page_action", fields, 4, nullptr, err, &up.owner))
             std::fprintf(stderr, "emit core:page_action: %s\n", err.c_str());
         s.muted_caller = 0;
@@ -4728,7 +4826,18 @@ int host_page_show(void *ud, int player, const char *name, const char *markup)
     ServerState::PageUp up;
     up.name   = name;
     up.owner  = asking_mod();
-    up.markup = markup;
+    // A line of the page with a muted player's words is held for everybody
+    // but them (a board's note).
+    const std::string reader = s->sessions->find((net::PeerId)player)->name;
+    std::istringstream lines(markup);
+    for (std::string l; std::getline(lines, l);) {
+        const std::string author = muted_author(l, reader);
+        static std::set<std::string> told;   // once for each page, author and reader
+        if (!author.empty() && told.insert(std::string(name) + "|" + author + "|" + reader).second)
+            std::printf("        held a line of page '%s' with %s's words (muted) from '%s'\n", name,
+                        author.c_str(), reader.c_str());
+        up.markup += (author.empty() ? l : "(held: " + ui::page_text(author) + " is muted)") + "\n";
+    }
     const auto decl = s->pages.find(name);
     up.title  = decl != s->pages.end() && decl->second.owner == up.owner ? decl->second.title : name;
     if (const auto was = s->pages_up.find((net::PeerId)player);
@@ -7268,9 +7377,12 @@ int serve_room(int argc, char **argv)
                         };
                         bool        ignored = false;
                         std::string emit_err;
+                        hold_if_muted(s, ev.peer, said.text);
                         if (!s.mods.events().emit("core:net_message", fields, 3, &ignored,
                                                   emit_err, &s.mod_channels[which]))
                             std::printf("        emit core:net_message: %s\n", emit_err.c_str());
+                        s.muted_caller = 0;
+                        s.muted_why.clear();
                         break;
                     }
 
@@ -7502,7 +7614,7 @@ int serve_room(int argc, char **argv)
                         };
                         bool        ignored = false;
                         std::string click_err;
-                        hold_if_muted(s, ev.peer);
+                        hold_if_muted(s, ev.peer, a.ui_click.text);
                         if (!s.mods.events().emit("core:ui_click", fields, 4, &ignored, click_err))
                             std::fprintf(stderr, "emit core:ui_click: %s\n", click_err.c_str());
                         s.muted_caller = 0;

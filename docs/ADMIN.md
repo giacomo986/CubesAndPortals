@@ -14,6 +14,7 @@ through one function there, whichever way it was typed.
 - [Flags and server.conf](#flags-and-serverconf)
 - [Keeping it running](#keeping-it-running)
 - [Restarts, stops and maintenance](#restarts-stops-and-maintenance)
+- [What mute holds](#what-mute-holds)
 - [Rules to accept](#rules-to-accept)
 - [Alt accounts](#alt-accounts)
 - [Update check](#update-check)
@@ -90,7 +91,7 @@ owner of that name on this world, or the bare name.
 | `/banip NAME\|ADDRESS [time] [reason]` | ban.ip | Keep an address out |
 | `/unban NAME\|ADDRESS` | ban | Lift a ban. Lifting a friend server's ban here keeps it lifted |
 | `/bans` | ban | Who is banned, by whom, until when |
-| `/mute NAME [time] [reason]` `/unmute NAME` | mute | Hold a player's chat, and what their mod commands and page clicks would say to others |
+| `/mute NAME [time] [reason]` `/unmute NAME` | mute | Hold a player's chat, and their words wherever a mod passes them on (below). A name nobody owns yet is muted by name, and the mute holds when it comes with a key |
 | `/whitelist on\|off\|list\|add NAME\|remove NAME` | access | Only the listed players, and staff, come in |
 | `/perm [PERMISSION ROLE]` | perms | Which role each permission wants |
 | `/warn NAME reason` | warn | A warning; three in 30 days are a day's ban |
@@ -229,6 +230,16 @@ cancel` stops the countdown.
 
 Maintenance keeps everybody but staff out; whoever is in and not staff is put out with its
 text. It survives a restart, until `/maintenance off`.
+
+## What mute holds
+
+A muted player's own chat is held, and so is whatever a mod says to others while running their
+command, page action, panel click or message. And the words they handed a mod are noted: a
+mod's chat line, notice or page line that carries three of those words in a row (twelve
+letters or more, or all they said if that is less) reaches only them, then or later -- a letter
+delivered on a later tick, a note pinned on a board. A held page line reads `(held: NAME is
+muted)`. Words are noted while the player is muted and kept while they stay muted and for an
+hour after; what they said in under six letters is not. The log says each time a line is held.
 
 ## Rules to accept
 
@@ -374,9 +385,9 @@ Bags themselves are in each room's world file, as they always were.
 
 ## Limits
 
-- Mod chat sent from a tick, not from a player's command, page action or click, is not held
-  by `/mute`: nothing says whose words it carries. A mod that relays a player's words later
-  (a mailbox) asks `core.is_muted` itself, as `/msg` and `/me` do.
+- `/mute` recognises a muted player's words by three in a row: a mod that rewords them, or a
+  line under six letters, gets through; another player repeating their phrase within the hour
+  is held too. A mod that relays words asks `core.is_muted` itself, as `/msg` and `/me` do.
 - A friend that stays unreachable while a player plays on with the copy kept here keeps its own
   copy too; whichever moved more often wins the next time the two are compared.
 - The client's check that the far server's key is the one a portal names stands behind the

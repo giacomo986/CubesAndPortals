@@ -526,7 +526,9 @@ void cmd_mute(const Who &c, const Args &a, const Hooks &h, std::vector<std::stri
 
 void cmd_unmute(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
 {
-    if (!drop("mute", target_of(resolve(a.name, h)))) {
+    bool any = false;
+    for (const std::string &t : targets_of(resolve(a.name, h))) any = drop("mute", t) || any;
+    if (!any) {
         out.push_back(a.name + " is not muted.");
         return;
     }
@@ -1532,10 +1534,15 @@ bool admits(const Who &w, net::RefuseReason &reason, std::string &why)
 
 bool muted(const Who &w, std::string &why)
 {
-    Row r;
-    if (!find("mute", target_of(w), r)) return false;
-    why = "You are muted " + until_text(r.until) + (r.value.empty() ? "" : ": " + r.value) + ".";
-    return true;
+    // By key, or by the name it was given under before anybody owned it (as a
+    // ban is), or by address.
+    for (const std::string &t : targets_of(w)) {
+        Row r;
+        if (!find("mute", t, r)) continue;
+        why = "You are muted " + until_text(r.until) + (r.value.empty() ? "" : ": " + r.value) + ".";
+        return true;
+    }
+    return false;
 }
 
 bool restart_at(const std::string &hhmm)

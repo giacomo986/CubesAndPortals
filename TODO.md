@@ -1392,8 +1392,18 @@ is hidden there and returns onto the back with its 6 gems. Rules: edits and
 chat refused before /accept, the page in Xephyr in Italian ("Accetta"),
 accepted by a click. /alts and the join warning. ctest 13/13.
 
+**Done 2026-10-27, mute and mod chat:** the words a muted player hands a
+mod (command, page field, click, mod message) are noted; a mod's chat,
+notice or page line carrying three of them in a row (12+ letters) reaches
+only them, then or later (`g_muted_words`, an hour after the words or while
+muted). Fixed: a mute given to a name nobody owned yet was never applied
+once that name came with a key (`muted` looked at the key only).
+Checked with a letter-box scratch mod: bob muted, his letter delivered a
+tick later held in chat, notice and on the board for eve and carl; carl's
+own letters, one sharing two of bob's words, pass. ctest 13/13.
+
 Open:
-- Mod chat from a tick is not held by /mute (nothing says whose words).
+- /mute knows words, not meaning: a mod that rewords them gets through.
 - A friend unreachable while the player plays on keeps its own copy too.
 - The client's far-key check is behind the ticket check, which refuses
   first; a server lying about tickets is the only case it catches.
