@@ -4503,7 +4503,7 @@ admin::Hooks admin_hooks()
                           " playing, " + std::to_string(watching) + " looking in, longest gap between ticks " +
                           std::to_string(r.worst_tick_ms.load()) + " ms this minute (50 is on time).");
         }
-#ifndef _WIN32
+#ifdef __linux__ // /proc is Linux only
         if (FILE *f = std::fopen("/proc/self/statm", "r")) {
             long pages = 0, rss = 0;
             if (std::fscanf(f, "%ld %ld", &pages, &rss) == 2)

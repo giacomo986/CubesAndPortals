@@ -3,9 +3,10 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.md](docs/BUILDING.md#versioni).
 
-## 0.9.0-alpha.3 — 2026-10-27
+## 0.9.0-alpha.4 — 2026-10-27
 
-Protocollo 109, come la 0.9.0-alpha.2: gioca con i suoi server e legge i suoi mondi.
+Protocollo 109, come la 0.9.0-alpha.2: gioca con i suoi server e legge i suoi mondi. La
+0.9.0-alpha.3 non è uscita: il pacchetto macOS non si costruiva.
 
 - Chi tiene un server ha un'amministrazione completa: ruoli, ban, kick, mute, lista d'accesso,
   console, RCON, riavvii programmati, manutenzione, messaggio del giorno, regole da accettare,
