@@ -15910,10 +15910,12 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 const LinkDest    rd_to   = link_dest(*conn, rd.host, rd.port, rd.room);
                 const std::string rd_spec = rd_to.spec;
                 int               rd_mouth = 0;
+                const net::PortalAway *rd_away = nullptr;
                 for (int m = 0; m < net::kMaxMouths; ++m) {
                     const net::PortalAway &a = conn->portals().away[m];
                     if (a.leads_away() && link_dest(*conn, a.host, a.port, a.room).spec == rd_spec) {
                         rd_mouth = m;
+                        rd_away  = &a;
                         break;
                     }
                 }
@@ -15945,6 +15947,10 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                     fcfg.scope      = net::Scope::Observe;
                     fcfg.has_ticket = rd.has_ticket;
                     if (rd.has_ticket) fcfg.ticket = rd.ticket;
+                    // The key the link names, as the window would check it:
+                    // a redirect is the same crossing, the slow way.
+                    fcfg.expect_signer = rd_away && rd_away->has_key;
+                    if (fcfg.expect_signer) std::memcpy(fcfg.signer, rd_away->key, net::kSignPublicBytes);
                     fallback_has_ticket = rd.has_ticket;
                     fallback_ticket     = rd.ticket;
 

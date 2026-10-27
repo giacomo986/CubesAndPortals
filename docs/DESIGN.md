@@ -441,11 +441,13 @@ da un mondo all'altro).
 
 **Eccezione dal 2026-10-27: i server amici** (`/friend`, `src/server/admin.h`). Due server che si
 mettono a vicenda nella propria lista si scambiano, su una porta TCP loro (`--federation`), righe
-firmate con la chiave di firma di ciascuno: i ban permanenti per chiave, chi è online (`/where`) e
-una chat (`/fed`). La fiducia c'è perché è stata data a mano, da entrambe le parti, ed è
-revocabile (`/friend remove` toglie anche i suoi ban). Non passa di lì niente che serva per
-attraversare: un portale verso un amico funziona come verso chiunque. Lo zaino non viaggia tra
-server (vedi TODO.md, "Server administration").
+firmate con la chiave di firma di ciascuno e cifrate per chi le riceve: i ban permanenti per
+chiave, chi è online (`/where`), una chat (`/fed`) e lo zaino. La fiducia c'è perché è stata data
+a mano, da entrambe le parti, ed è revocabile (`/friend remove` toglie anche i suoi ban). Non passa
+di lì niente che serva per attraversare: un portale verso un amico funziona come verso chiunque.
+Lo zaino invece è uno solo per tutti gli amici: sta su un server alla volta, e il server dove il
+giocatore arriva lo chiede a quello da cui viene (o a chi ne ha la copia più recente), che lo cede;
+gli oggetti che un mondo non conosce restano nascosti e viaggiano con lo zaino (docs/ADMIN.md).
 
 ```
 1. Server A → client:  PORTAL_LINK { portal_id, host, port, world, dst_pos, dst_yaw, ticket }

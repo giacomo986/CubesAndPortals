@@ -2304,6 +2304,8 @@ bool ServerSessions::change_scope(PeerId peer, const ChangeScope &req, double no
             reason = RefuseReason::BadTicket;
             return false;
         }
+        s->admitted_by_ticket = true;   // and by whom: whose bag it is (src/server/admin.h)
+        std::memcpy(s->ticket_issuer, req.ticket.issuer, kSignPublicBytes);
         if (m_crossing_seen) m_crossing_seen(req.ticket.issuer, peer);
     } else if (m_config.require_ticket) {
         reason = RefuseReason::BadTicket;

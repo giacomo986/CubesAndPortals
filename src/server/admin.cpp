@@ -25,6 +25,8 @@
 #include <algorithm>
 #include <atomic>
 #include <condition_variable>
+#include <map>
+#include <tuple>
 #include <unordered_map>
 #include <climits>
 #include <filesystem>
@@ -78,6 +80,17 @@ const char *kTables =
     "  left INTEGER NOT NULL,"
     "  reason TEXT NOT NULL"
     ");"
+    // Every block a player changed, for /inspect and /rollback; a month kept.
+    "CREATE TABLE IF NOT EXISTS edits ("
+    "  room TEXT NOT NULL,"
+    "  x INTEGER NOT NULL, y INTEGER NOT NULL, z INTEGER NOT NULL,"
+    "  old INTEGER NOT NULL, old_facing INTEGER NOT NULL, new INTEGER NOT NULL,"
+    "  target TEXT NOT NULL,"
+    "  name TEXT NOT NULL,"
+    "  at INTEGER NOT NULL"
+    ");"
+    "CREATE INDEX IF NOT EXISTS edits_cell ON edits (room, x, y, z);"
+    "CREATE INDEX IF NOT EXISTS edits_target ON edits (target, at);"
     "CREATE INDEX IF NOT EXISTS sessions_target ON sessions (target);"
     "CREATE INDEX IF NOT EXISTS admin_log_target ON admin_log (target, action);";
 
@@ -163,9 +176,53 @@ bool drop(const std::string &kind, const std::string &target)
     return g_db && sqlite3_changes(g_db) > 0;
 }
 
+// --webhook URL: every line of the admin log, and the server's start, stop
+// and reports, POSTed as JSON -- with "content" and "text" for a chat
+// service's webhook to show as it is. curl, as the client's update check.
+std::string g_webhook;
+
+std::string json_text(const std::string &t)
+{
+    std::string o = "\"";
+    for (const char c : t) {
+        if (c == '"' || c == '\\') o += '\\', o += c;
+        else if ((unsigned char)c < 0x20) o += ' ';
+        else o += c;
+    }
+    return o + "\"";
+}
+
+void webhook(const std::string &event, const std::string &by, const std::string &target,
+             const std::string &detail, bool wait = false)
+{
+    if (g_webhook.empty()) return;
+    const std::string line = "[" + event + "] " + by + (target.empty() ? "" : " " + target) +
+                             (detail.empty() ? "" : ": " + detail);
+    const std::string body = "{\"event\":" + json_text(event) + ",\"by\":" + json_text(by) +
+                             ",\"target\":" + json_text(target) + ",\"detail\":" + json_text(detail) +
+                             ",\"at\":" + std::to_string(now()) + ",\"content\":" + json_text(line) +
+                             ",\"text\":" + json_text(line) + "}";
+    const std::string cmd = "curl -fsS --max-time 5 -H \"Content-Type: application/json\" --data-binary @- \"" +
+                            g_webhook + "\" >" +
+#ifdef _WIN32
+                            "NUL 2>NUL";
+#else
+                            "/dev/null 2>&1";
+#endif
+    auto post = [cmd, body] {
+        if (FILE *pipe = popen(cmd.c_str(), "w")) {
+            std::fwrite(body.data(), 1, body.size(), pipe);
+            pclose(pipe);
+        }
+    };
+    if (wait) post();
+    else std::thread(post).detach();
+}
+
 void log(const Who &by, const std::string &action, const std::string &target,
          const std::string &detail)
 {
+    webhook(action, by.name, target, detail);
     query("INSERT INTO admin_log (at, by, action, target, detail) VALUES (?1, ?2, ?3, ?4, ?5)",
           {std::to_string(now()), by.name, action, target, detail});
     std::printf("        admin: %s %s %s%s%s\n", by.name.c_str(), action.c_str(), target.c_str(),
@@ -294,6 +351,8 @@ const PermRow kPerms[] = {
     {"reports", Role::Helper},     {"notes", Role::Helper},   {"players", Role::Helper},
     {"whois", Role::Moderator},    {"logs", Role::Admin},     {"backup", Role::Admin},
     {"portals", Role::Admin},      {"federation", Role::Owner},
+    {"inspect", Role::Helper},     {"rollback", Role::Moderator},
+    {"bag", Role::Moderator},      {"give", Role::Admin},
 };
 
 struct Command {
@@ -311,8 +370,12 @@ void cmd_perms(const Who &c, const Args &, const Hooks &, std::vector<std::strin
 void cmd_role(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
 {
     if (a.name.empty()) {
-        for (const Row &r : all("role"))
-            out.push_back(r.label + ": " + r.value + " (by " + r.by + ", " + when_text(r.at) + ")");
+        for (const Row &r : all("role")) {
+            const size_t at = r.target.find('@');
+            out.push_back(r.label + ": " + r.value +
+                          (at == std::string::npos ? "" : " in " + r.target.substr(at + 1)) +
+                          " (by " + r.by + ", " + when_text(r.at) + ")");
+        }
         if (!g_owner.empty()) out.push_back(g_owner + ": owner (--owner)");
         if (out.empty()) out.push_back("Nobody here has a role.");
         return;
@@ -335,13 +398,15 @@ void cmd_role(const Who &c, const Args &a, const Hooks &h, std::vector<std::stri
         out.push_back("You can only give roles below your own, to players below you.");
         return;
     }
+    const std::string room = a.words.size() > 2 ? a.words[2] : "";
+    const std::string at   = room.empty() ? "" : "@" + room;
     if (want == Role::Player) {
-        drop("role", target_of(t));
+        drop("role", target_of(t) + at);
     } else {
-        put("role", target_of(t), t.name, role_name(want), c.name, 0);
+        put("role", target_of(t) + at, t.name, role_name(want), c.name, 0);
     }
-    log(c, "role", t.name, role_name(want));
-    out.push_back(a.name + " is now " + role_name(want) + ".");
+    log(c, "role", t.name, role_name(want) + (room.empty() ? "" : " in " + room));
+    out.push_back(a.name + " is now " + role_name(want) + (room.empty() ? "" : " in " + room) + ".");
 }
 
 void cmd_kick(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
@@ -763,6 +828,7 @@ void cmd_report(const Who &c, const Args &a, const Hooks &h, std::vector<std::st
     query("INSERT INTO admin_log (at, by, action, target, detail) VALUES (?1, ?2, 'report', ?3, ?4)",
           {std::to_string(now()), c.name, target_of(t), a.name + ": " + what});
     tell_staff(h, "[report] " + c.name + " about " + a.name + ": " + what);
+    webhook("report", c.name, a.name, what);
     out.push_back("Reported. Thank you.");
 }
 
@@ -797,6 +863,97 @@ std::string span_text(int64_t s)
 }
 
 // /seen NAME: online, or when they were last, and how much they have played.
+// Edits wait here and go to the file together, every few seconds: one
+// transaction a dig would be a disk write a block.
+struct Edit {
+    std::string room, target, name;
+    int         x, y, z, old, old_facing, now_block;
+    int64_t     at;
+};
+std::vector<Edit> g_edits;
+
+void flush_edits()
+{
+    if (g_edits.empty() || !g_db) return;
+    sqlite3_exec(g_db, "BEGIN", nullptr, nullptr, nullptr);
+    for (const Edit &e : g_edits)
+        query("INSERT INTO edits (room, x, y, z, old, old_facing, new, target, name, at) "
+              "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+              {e.room, std::to_string(e.x), std::to_string(e.y), std::to_string(e.z), std::to_string(e.old),
+               std::to_string(e.old_facing), std::to_string(e.now_block), e.target, e.name,
+               std::to_string(e.at)});
+    sqlite3_exec(g_db, "COMMIT", nullptr, nullptr, nullptr);
+    g_edits.clear();
+}
+
+std::string block_text(const Hooks &h, const std::string &room, int id)
+{
+    const std::string n = h.block_name ? h.block_name(room, id) : "";
+    return n.empty() ? "#" + std::to_string(id) : n;
+}
+
+void cmd_inspect(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    int x, y, z;
+    if (a.words.size() < 3 || std::sscanf((a.words[0] + " " + a.words[1] + " " + a.words[2]).c_str(), "%d %d %d", &x, &y, &z) != 3) {
+        out.push_back("/inspect X Y Z [ROOM]");
+        return;
+    }
+    const std::string room = a.words.size() > 3 ? a.words[3] : c.room;
+    flush_edits();
+    query("SELECT name, old, new, at FROM edits WHERE room = ?1 AND x = ?2 AND y = ?3 AND z = ?4 "
+          "ORDER BY at DESC, rowid DESC LIMIT 10",
+          {room, std::to_string(x), std::to_string(y), std::to_string(z)}, [&](sqlite3_stmt *st) {
+              out.push_back(col(st, 0) + ": " + block_text(h, room, sqlite3_column_int(st, 1)) + " to " +
+                            block_text(h, room, sqlite3_column_int(st, 2)) + ", " +
+                            when_text(sqlite3_column_int64(st, 3)));
+          });
+    if (out.empty()) out.push_back("No player changed " + a.words[0] + " " + a.words[1] + " " + a.words[2] + " this month.");
+}
+
+void cmd_rollback(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    if (a.name.empty() || a.seconds <= 0) {
+        out.push_back("/rollback NAME DURATION [ROOM] -- e.g. /rollback bob 2h");
+        return;
+    }
+    const Who t = resolve(a.name, h);
+    if (!outranks(c, t)) {
+        out.push_back("You cannot roll back " + a.name + ".");
+        return;
+    }
+    flush_edits();
+    const std::string since = std::to_string(now() - a.seconds);
+    // Each cell back to what it was before their first change in the time,
+    // if it still holds what they left there: somebody else's later change
+    // stays.
+    std::map<std::tuple<std::string, int, int, int>, Restore> cells;
+    query("SELECT room, x, y, z, old, old_facing, new FROM edits WHERE target = ?1 AND at >= ?2 "
+          "ORDER BY at, rowid",
+          {target_of(t), since}, [&](sqlite3_stmt *st) {
+              const std::string room = col(st, 0);
+              if (!a.reason.empty() && room != a.reason) return;
+              const auto key = std::make_tuple(room, sqlite3_column_int(st, 1), sqlite3_column_int(st, 2),
+                                               sqlite3_column_int(st, 3));
+              auto it = cells.find(key);
+              if (it == cells.end())
+                  it = cells.emplace(key, Restore{room, std::get<1>(key), std::get<2>(key), std::get<3>(key),
+                                                  sqlite3_column_int(st, 4), sqlite3_column_int(st, 5), 0}).first;
+              it->second.expect = sqlite3_column_int(st, 6);
+          });
+    std::vector<Restore> list;
+    for (const auto &kv : cells) list.push_back(kv.second);
+    if (list.empty()) {
+        out.push_back(a.name + " changed nothing in the last " + duration_text(a.seconds) + ".");
+        return;
+    }
+    if (h.restore) h.restore(list);
+    query("DELETE FROM edits WHERE target = ?1 AND at >= ?2" , {target_of(t), since});
+    log(c, "rollback", t.name, duration_text(a.seconds) + ", " + std::to_string(list.size()) + " cell(s)");
+    out.push_back(std::to_string(list.size()) + " cell(s) " + a.name + " changed in the last " +
+                  duration_text(a.seconds) + " go back as they were (a cell changed since stays).");
+}
+
 void cmd_seen(const Who &, const Args &a, const Hooks &h, std::vector<std::string> &out)
 {
     if (a.name.empty()) {
@@ -854,6 +1011,45 @@ void cmd_players(const Who &, const Args &a, const Hooks &, std::vector<std::str
 }
 
 // /whois NAME: what the staff knows about a player.
+void cmd_bag(const Who &, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    if (a.name.empty()) {
+        out.push_back("/bag NAME");
+        return;
+    }
+    const Who t = resolve(a.name, h);
+    Row       away;
+    if (t.has_identity && find("bagaway", key_target(t.identity), away))
+        out.push_back("Their bag went to " + away.label + " " + when_text(away.at) + "; this is an old copy.");
+    if (h.bag_lines)
+        for (const std::string &l : h.bag_lines(t)) out.push_back(l);
+    if (t.has_identity && !hidden(t.identity).empty())
+        out.push_back("And things this world does not know, kept aside for another.");
+    if (out.empty()) out.push_back(a.name + " carries nothing here.");
+}
+
+void cmd_give(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    if (a.words.size() < 2) {
+        out.push_back("/give NAME ITEM [COUNT]");
+        return;
+    }
+    net::PeerId peer = net::kNoPeer;
+    const Who   t    = resolve(a.name, h, &peer);
+    const int   n    = a.words.size() > 2 ? std::max(1, std::min(9999, std::atoi(a.words[2].c_str()))) : 1;
+    if (peer == net::kNoPeer) {
+        out.push_back("Nobody called '" + a.name + "' is online.");
+        return;
+    }
+    const std::string why = h.give ? h.give(peer, a.words[1], n) : "not on this server";
+    if (!why.empty()) {
+        out.push_back(why);
+        return;
+    }
+    log(c, "give", t.name, std::to_string(n) + " " + a.words[1]);
+    out.push_back(t.name + " gets " + std::to_string(n) + " " + a.words[1] + ".");
+}
+
 void cmd_whois(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
 {
     if (a.name.empty()) {
@@ -947,7 +1143,7 @@ void cmd_where(const Who &, const Args &, const Hooks &, std::vector<std::string
 
 const Command kCommands[] = {
     {"perms", nullptr, "-- your role here", cmd_perms},
-    {"role", "roles", "[NAME [ROLE]] -- see or give roles", cmd_role},
+    {"role", "roles", "[NAME [ROLE [ROOM]]] -- see or give roles, in one room only with ROOM", cmd_role},
     {"kick", "kick", "NAME [reason] -- put a player out", cmd_kick},
     {"ban", "ban", "NAME [30m|2h|7d] [reason] -- keep a player out", cmd_ban},
     {"banip", "ban.ip", "NAME|ADDRESS [time] [reason] -- keep an address out", cmd_banip},
@@ -967,6 +1163,10 @@ const Command kCommands[] = {
     {"report", nullptr, "NAME what happened -- to the staff", cmd_report},
     {"reports", "reports", "-- the latest reports", cmd_reports},
     {"note", "notes", "NAME text -- a note for the staff", cmd_note},
+    {"bag", "bag", "NAME -- what a player carries", cmd_bag},
+    {"give", "give", "NAME ITEM [COUNT] -- into a player's bag", cmd_give},
+    {"inspect", "inspect", "X Y Z [ROOM] -- who changed that block", cmd_inspect},
+    {"rollback", "rollback", "NAME DURATION [ROOM] -- put back what a player changed", cmd_rollback},
     {"seen", nullptr, "NAME -- when a player was last here", cmd_seen},
     {"players", "players", "[7d] -- who came in lately", cmd_players},
     {"whois", "whois", "NAME -- what the staff knows of a player", cmd_whois},
@@ -974,7 +1174,7 @@ const Command kCommands[] = {
     {"metrics", "logs", "-- how the server is doing", cmd_metrics},
     {"backup", "backup", "-- copy every world file now", cmd_backup},
     {"portals", "portals", "-- links out, and who sends players in", cmd_portals},
-    {"friend", "federation", "add NAME HOST:PORT KEY [bans,presence,chat]|remove NAME|list -- friend servers", cmd_friend},
+    {"friend", "federation", "add NAME HOST:PORT KEY [bans,presence,chat,bags]|remove NAME|list -- friend servers", cmd_friend},
     {"fed", nullptr, "TEXT -- to the players of every friend server", cmd_fed},
     {"where", nullptr, "NAME -- here, or on which friend server", cmd_where},
 };
@@ -1160,11 +1360,15 @@ bool open(const std::string &path, std::string &err)
     }
     query("INSERT INTO admin_log (at, by, action, target, detail) VALUES (?1, 'server', 'start', '', '')",
           {std::to_string(now())});
+    webhook(open_visits ? "unclean start" : "start", "server", "", open_visits ? "the last run did not stop cleanly" : "");
+    query("DELETE FROM edits WHERE at < ?1", {std::to_string(now() - 30 * 86400)});
     return true;
 }
 
 void close()
 {
+    flush_edits();
+    if (g_db) webhook("stop", "server", "", "", true);
     query("UPDATE sessions SET left = ?1, reason = 'server stopped' WHERE left = 0", {std::to_string(now())});
     query("INSERT INTO admin_log (at, by, action, target, detail) VALUES (?1, 'server', 'stop', '', '')",
           {std::to_string(now())});
@@ -1174,6 +1378,22 @@ void close()
 
 void set_owner(const std::string &name) { g_owner = name; }
 
+bool set_webhook(const std::string &url)
+{
+    if (url.rfind("http://", 0) != 0 && url.rfind("https://", 0) != 0) return false;
+    for (const char c : url)
+        if (!std::isalnum((unsigned char)c) && std::strchr(":/?&=._~%#+-@", c) == nullptr) return false;
+    g_webhook = url;
+    return true;
+}
+
+void edited(const Who &who, const std::string &room, int x, int y, int z, int old_block, int old_facing,
+            int new_block)
+{
+    if (old_block == new_block) return;
+    g_edits.push_back({room, target_of(who), who.name, x, y, z, old_block, old_facing, new_block, now()});
+}
+
 Role role_of(const Who &w)
 {
     if (w.console) return Role::Owner;
@@ -1181,8 +1401,13 @@ Role role_of(const Who &w)
     if (!g_owner.empty() && w.name == g_owner) return Role::Owner;
     Row  r;
     Role role;
-    if (find("role", key_target(w.identity), r) && parse_role(r.value, role)) return role;
-    return Role::Player;
+    Role best = Role::Player;
+    if (find("role", key_target(w.identity), r) && parse_role(r.value, role)) best = role;
+    // /role NAME ROLE ROOM: that role in that room only, never less than the rest.
+    if (!w.room.empty() && find("role", key_target(w.identity) + "@" + w.room, r) &&
+        parse_role(r.value, role) && role > best)
+        best = role;
+    return best;
 }
 
 bool may(const Who &w, const std::string &perm)
@@ -1239,6 +1464,11 @@ bool restart_at(const std::string &hhmm)
 Stop tick(const Hooks &h)
 {
     const int64_t t = now();
+    static int64_t next_flush = 0;
+    if (t >= next_flush) {
+        next_flush = t + 5;
+        flush_edits();
+    }
     if (g_backup_every > 0 && t >= g_next_backup) {
         g_next_backup = t + g_backup_every;
         std::string err;
@@ -1602,13 +1832,15 @@ std::string roles_page(const Who &v, const Hooks &h)
     m += "## Roles given\n";
     if (rows.empty()) m += "None yet.\n";
     for (const Row &r : rows) {
+        const size_t      at   = r.target.find('@');
+        const std::string room = at == std::string::npos ? "" : r.target.substr(at + 1);
         std::string acts;
         if (outranks(v, resolve(r.label, h)))
-            acts = cmd_link(v, "roles", "take away", "/role " + r.label + " player", r.label);
-        m += "| " + page_text(r.label) + " | " + r.value + " | by " + page_text(r.by) + " |" +
-             acts + " |\n";
+            acts = cmd_link(v, "roles", "take away", "/role " + r.label + " player" + (room.empty() ? "" : " " + room), r.label);
+        m += "| " + page_text(r.label) + " | " + r.value + (room.empty() ? "" : " in " + page_text(room)) +
+             " | by " + page_text(r.by) + " |" + acts + " |\n";
     }
-    m += "\n?[NAME ROLE](cmd:/role {text})\n";
+    m += "\n?[NAME ROLE [ROOM]](cmd:/role {text})\n";
     m += "> Roles: player, helper, moderator, admin, owner. You give only roles below "
          "your own.\n";
     return m;
@@ -1815,14 +2047,14 @@ bool start_rcon(int port, const std::string &password, std::string &err)
 // other in their list exchange, a line of TCP at a time, what both chose
 // to share -- their permanent bans, who is online, and a chat between them.
 //
-//   CNPFED1 FROM TO MS PAYLOAD SIG
+//   CNPFED2 FROM TO MS SEALED SIG
 //
 // FROM and TO are signing keys in hex, MS the sender's clock in milliseconds
-// (later than its last line, and within five minutes of ours), PAYLOAD hex,
-// SIG the ed25519 signature of "CNPFED1|TO|MS|payload" by FROM. Signed, not
-// encrypted: what friends share is a list of keys, of names and a chat
-// anybody on either server reads. A line from a key not in the list is
-// dropped where it is read (federation_tick).
+// (later than its last line, and within five minutes of ours), SEALED the
+// payload sealed for TO (net::seal_for: only TO reads it) in hex, SIG the
+// ed25519 signature of "CNPFED2|TO|MS|sealed" by FROM. Sealed because bags
+// travel this way, and a bag is the player's. A line from a key not in the
+// list is dropped where it is read (federation_tick).
 
 namespace {
 
@@ -1896,11 +2128,14 @@ void fed_send(const Friend &f, const std::string &payload)
     const int64_t     ms   = std::max(now_ms(), last + 1);
     last                   = ms;
     const std::string to   = f.key.substr(4);
-    const std::string body = "CNPFED1|" + to + "|" + std::to_string(ms) + "|" + payload;
+    uint8_t           to_key[net::kSignPublicBytes];
+    std::string       sealed;
+    if (!net::from_hex(to, to_key, sizeof(to_key)) || !net::seal_for(g_me, to_key, payload, sealed)) return;
+    const std::string body = "CNPFED2|" + to + "|" + std::to_string(ms) + "|" + sealed;
     uint8_t           sig[net::kSignatureBytes];
     net::sign_message(g_me, body.data(), body.size(), sig);
-    std::string line = "CNPFED1 " + g_me_hex + " " + to + " " + std::to_string(ms) + " " +
-                       net::to_hex((const uint8_t *)payload.data(), payload.size()) + " " +
+    std::string line = "CNPFED2 " + g_me_hex + " " + to + " " + std::to_string(ms) + " " +
+                       net::to_hex((const uint8_t *)sealed.data(), sealed.size()) + " " +
                        net::to_hex(sig, sizeof(sig)) + "\n";
     std::lock_guard<std::mutex> hold(g_fed_m);
     if (g_fed_out.size() < 256) g_fed_out.push_back({f.host, f.port, std::move(line)});
@@ -1975,15 +2210,17 @@ void fed_reader(Sock c, std::string address)
     std::string        magic, from, to, ms_text, payload_hex, sig_hex;
     in >> magic >> from >> to >> ms_text >> payload_hex >> sig_hex;
     uint8_t     key[net::kSignPublicBytes], sig[net::kSignatureBytes];
-    std::string payload(payload_hex.size() / 2, '\0');
+    std::string sealed(payload_hex.size() / 2, '\0'), payload;
     const int64_t ms = std::atoll(ms_text.c_str());
-    if (magic != "CNPFED1" || to != g_me_hex || !net::from_hex(from, key, sizeof(key)) ||
+    if (magic != "CNPFED2" || to != g_me_hex || !net::from_hex(from, key, sizeof(key)) ||
         !net::from_hex(sig_hex, sig, sizeof(sig)) ||
-        !net::from_hex(payload_hex, (uint8_t *)payload.data(), payload.size()) ||
+        !net::from_hex(payload_hex, (uint8_t *)sealed.data(), sealed.size()) ||
         std::llabs(ms - now_ms()) > 300000)
         return;
-    const std::string body = "CNPFED1|" + to + "|" + ms_text + "|" + payload;
-    if (!net::verify_message(key, body.data(), body.size(), sig)) return;
+    const std::string body = "CNPFED2|" + to + "|" + ms_text + "|" + sealed;
+    if (!net::verify_message(key, body.data(), body.size(), sig) ||
+        !net::open_sealed(g_me, key, sealed, payload))
+        return;
     std::lock_guard<std::mutex> hold(g_fed_m);
     int64_t &last = g_fed_last_ms[from];
     if (ms <= last) return;   // seen, or older: a replay
@@ -2000,6 +2237,137 @@ std::string own_bans()
         if (r.until == 0 && r.target.rfind("key:", 0) == 0 && r.by.rfind("friend:", 0) != 0)
             p += "\n" + r.target.substr(4) + "\t" + r.label + "\t" + r.value;
     return p;
+}
+
+// ------------------------------------------------- bags between friends
+//
+// One bag for a player across friend servers, moved when they move: the
+// server they arrive at asks the one they came from (or the one it gave the
+// bag to last) and that one lets go of it -- a session holding it is emptied,
+// and a `bagaway` row says where it went, so a later visit asks there too.
+//
+//   bagask  ID          send me ID's bag
+//   bag     ID BAG HID  here it is, and what some world did not know
+//   bagat   ID KEY      not here: it went to that friend
+//   bagnone ID          never had one
+//   bagpeek ID          (to every friend, for a player who walked in) whose is newest?
+//   bagseen ID SEEN     mine was kept then (unix seconds), -1 for not mine
+
+struct BagAsk {
+    std::string friend_key;
+    int64_t     until = 0;
+    int         hops  = 0;
+};
+std::unordered_map<std::string, BagAsk> g_bag_asks;   // by identity hex
+
+// A peek at every friend: the newest bag, or the one here, wins.
+struct BagPeek {
+    int64_t     until = 0, best = -1;
+    int         waiting = 0;
+    std::string best_key;
+};
+std::unordered_map<std::string, BagPeek> g_bag_peeks;   // by identity hex
+
+bool ask_bag(const Friend &f, const std::string &id_hex, int hops)
+{
+    if (!f.shares_("bags")) return false;
+    g_bag_asks[id_hex] = {f.key, now() + 5, hops};
+    fed_send(f, "bagask\n" + id_hex);
+    std::printf("        federation: asked %s for a bag\n", f.name.c_str());
+    return true;
+}
+
+void bag_done(const std::string &id_hex, const Hooks &h, bool late)
+{
+    g_bag_asks.erase(id_hex);
+    uint8_t id[net::kSignPublicBytes];
+    if (!net::from_hex(id_hex, id, sizeof(id))) return;
+    if (late) {
+        drop("bagaway", "key:" + id_hex);   // the one here is the one now
+        if (h.bag_late) h.bag_late(id);
+    }
+}
+
+void peek_done(const std::string &id_hex, const Hooks &h)
+{
+    const BagPeek p = g_bag_peeks[id_hex];
+    g_bag_peeks.erase(id_hex);
+    for (const Friend &f : friends())
+        if (f.key == p.best_key && ask_bag(f, id_hex, 0)) return;
+    bag_done(id_hex, h, true);
+}
+
+void apply_bag(const Friend &f, const std::string &kind, std::istringstream &in, const Hooks &h)
+{
+    std::string id_hex;
+    std::getline(in, id_hex);
+    uint8_t id[net::kSignPublicBytes];
+    if (!net::from_hex(id_hex, id, sizeof(id))) return;
+    const std::string key = "key:" + id_hex;
+
+    if (kind == "bagpeek") {
+        Row           away;
+        const int64_t seen = find("bagaway", key, away) || !h.bag_seen ? -1 : h.bag_seen(id);
+        fed_send(f, "bagseen\n" + id_hex + "\n" + std::to_string(seen));
+        return;
+    }
+    if (kind == "bagseen") {
+        const auto p = g_bag_peeks.find(id_hex);
+        if (p == g_bag_peeks.end()) return;
+        std::string seen_text;
+        std::getline(in, seen_text);
+        const int64_t seen = std::atoll(seen_text.c_str());
+        if (seen > p->second.best) {
+            p->second.best     = seen;
+            p->second.best_key = f.key;
+        }
+        if (--p->second.waiting <= 0) peek_done(id_hex, h);
+        return;
+    }
+    if (kind == "bagask") {
+        Row        away;
+        const bool is_away = find("bagaway", key, away);
+        std::string bag;
+        if (h.bag_give && h.bag_give(id, !is_away, bag)) {
+            const std::string hid = hidden(id);
+            set_hidden(id, "");
+            fed_send(f, "bag\n" + id_hex + "\n" + net::to_hex((const uint8_t *)bag.data(), bag.size()) +
+                            "\n" + net::to_hex((const uint8_t *)hid.data(), hid.size()));
+            put("bagaway", key, f.name, f.key.substr(4), "friend:" + f.name, 0);
+            std::printf("        federation: %s takes a bag\n", f.name.c_str());
+        } else if (is_away) {
+            fed_send(f, "bagat\n" + id_hex + "\n" + away.value);
+        } else {
+            fed_send(f, "bagnone\n" + id_hex);
+        }
+        return;
+    }
+
+    const auto asked = g_bag_asks.find(id_hex);
+    const bool ours  = asked != g_bag_asks.end() && asked->second.friend_key == f.key;
+    if (kind == "bag") {
+        std::string bag_hex, hid_hex;
+        std::getline(in, bag_hex);
+        std::getline(in, hid_hex);
+        std::string bag(bag_hex.size() / 2, '\0'), hid(hid_hex.size() / 2, '\0');
+        if (!net::from_hex(bag_hex, (uint8_t *)bag.data(), bag.size()) ||
+            !net::from_hex(hid_hex, (uint8_t *)hid.data(), hid.size()))
+            return;
+        g_bag_asks.erase(id_hex);
+        drop("bagaway", key);
+        if (h.bag_take) h.bag_take(id, bag, hid, f.name);
+        return;
+    }
+    if (!ours) return;
+    if (kind == "bagat") {
+        std::string next;
+        std::getline(in, next);
+        for (const Friend &g : friends())
+            if (g.key == "key:" + next && g.key != f.key && asked->second.hops < 3 &&
+                ask_bag(g, id_hex, asked->second.hops + 1))
+                return;
+    }
+    bag_done(id_hex, h, true);   // bagnone, or a friend of a friend we do not know
 }
 
 void apply(const Friend &f, const std::string &payload, const Hooks &h)
@@ -2030,6 +2398,8 @@ void apply(const Friend &f, const std::string &payload, const Hooks &h)
                 h.remove(o.peer, net::RefuseReason::Banned, "banned on " + f.name);
         }
         std::printf("        federation: %s bans %d key(s) here\n", f.name.c_str(), n);
+    } else if (f.shares_("bags") && kind.rfind("bag", 0) == 0) {
+        apply_bag(f, kind, in, h);
     } else if (kind == "chat" && f.shares_("chat")) {
         std::string line;
         std::getline(in, line);
@@ -2046,10 +2416,10 @@ void cmd_friend(const Who &c, const Args &a, const Hooks &, std::vector<std::str
         uint8_t key[net::kSignPublicBytes];
         if (a.words.size() < 4 || !net::from_hex(a.words[3], key, sizeof(key)) ||
             a.words[2].find(':') == std::string::npos) {
-            out.push_back("/friend add NAME HOST:PORT KEY [bans,presence,chat]");
+            out.push_back("/friend add NAME HOST:PORT KEY [bans,presence,chat,bags]");
             return;
         }
-        const std::string shares = a.words.size() > 4 ? a.words[4] : "bans,presence,chat";
+        const std::string shares = a.words.size() > 4 ? a.words[4] : "bans,presence,chat,bags";
         put("friend", "key:" + net::to_hex(key, sizeof(key)), a.words[1], a.words[2] + " " + shares, c.name, 0);
         log(c, "friend", a.words[1], a.words[2] + " " + shares);
         g_next_presence = g_next_bans = 0;   // tell it now
@@ -2193,6 +2563,20 @@ void federation_tick(const Hooks &h)
         }
     }
     const int64_t t = now();
+    for (auto it = g_bag_peeks.begin(); it != g_bag_peeks.end();) {
+        const std::string id = it->first;
+        ++it;
+        if (g_bag_peeks[id].until <= t) peek_done(id, h);
+    }
+    // A friend that does not answer within five seconds: the bag here, then.
+    for (auto it = g_bag_asks.begin(); it != g_bag_asks.end();) {
+        const std::string id = it->first;
+        ++it;
+        if (g_bag_asks[id].until <= t) {
+            std::printf("        federation: no bag from a friend in 5 s; the one here\n");
+            bag_done(id, h, true);
+        }
+    }
     // Who is here every thirty seconds, and as soon as it changes.
     std::string p = "presence";
     if (h.online)
@@ -2212,6 +2596,52 @@ void federation_tick(const Hooks &h)
             fed_send_all("bans", b);
         }
     }
+}
+
+bool bag_ask(const Who &who, const uint8_t *issuer, const Hooks &h)
+{
+    if (!g_fed_on || !who.has_identity) return false;
+    const std::string id_hex = net::to_hex(who.identity, net::kSignPublicBytes);
+    std::string       want;
+    Row               away;
+    if (issuer) want = "key:" + net::to_hex(issuer, net::kSignPublicBytes);
+    for (int pass = 0; pass < 2; ++pass) {
+        for (const Friend &f : friends())
+            if (f.key == want) return ask_bag(f, id_hex, 0);
+        if (pass == 0 && find("bagaway", key_target(who.identity), away)) want = "key:" + away.value;
+    }
+    // Walked in, with nothing saying where the bag is: whichever friend kept
+    // it last has it, if that is later than here.
+    BagPeek p;
+    p.until = now() + 3;
+    p.best  = h.bag_seen ? h.bag_seen(who.identity) : -1;
+    for (const Friend &f : friends())
+        if (f.shares_("bags")) {
+            fed_send(f, "bagpeek\n" + id_hex);
+            ++p.waiting;
+        }
+    if (p.waiting == 0) return false;
+    g_bag_peeks[id_hex] = p;
+    return true;
+}
+
+std::string hidden(const uint8_t *identity)
+{
+    Row         r;
+    std::string bytes;
+    if (find("hidden", key_target(identity), r)) {
+        bytes.assign(r.value.size() / 2, '\0');
+        if (!net::from_hex(r.value, (uint8_t *)bytes.data(), bytes.size())) bytes.clear();
+    }
+    return bytes;
+}
+
+void set_hidden(const uint8_t *identity, const std::string &bytes)
+{
+    if (bytes.empty())
+        drop("hidden", key_target(identity));
+    else
+        put("hidden", key_target(identity), "", net::to_hex((const uint8_t *)bytes.data(), bytes.size()), "", 0);
 }
 
 std::vector<ConsoleLine> take_console_lines()

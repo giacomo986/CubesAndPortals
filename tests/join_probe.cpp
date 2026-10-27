@@ -36,6 +36,7 @@ namespace {
 
 float g_travel = 0.0f;    // --travel: blocks to fly along +x after joining
 float g_hold   = 35.0f;   // --hold: seconds to hover at the end of it
+int   g_dig    = 0;       // --dig: blocks to break beside the spawn first (/rollback)
 bool  g_far    = false;   // --far X Y Z: say at the end whether that chunk arrived
 float g_far_at[3] = {0.0f, 0.0f, 0.0f};
 bool  g_flown  = true;    // --walked-down: come down without saying it is flying
@@ -154,6 +155,21 @@ int join_mode(const char *host, uint16_t port, const char *name, int extent,
                 client.chunks_received(), ground ? "solid" : "MISSING");
 
     const bool streamed_ok = client.chunks_received() > 0 && client.chunk_error().empty() && ground;
+
+    // --dig N: the top of the ground, N cells along +x from under the player,
+    // swung at every half second until it comes away (a hard block takes a
+    // first swing and its seconds) -- something for /inspect and /rollback.
+    for (int i = 0; i < g_dig && streamed_ok; ++i) {
+        const int gx = (int)start_x + i, gz = (int)start_z;
+        int       gy = kWorldHeight - 1;
+        while (gy > 0 && client.world().get_block(gx, gy, gz) == kAir) --gy;
+        for (int swing = 0; swing < 20 && client.world().get_block(gx, gy, gz) != kAir; ++swing) {
+            client.send_edit(gx, gy, gz, 0, 1, 0, true, 0);
+            for (const double until = now_seconds() + 0.5; now_seconds() < until;) client.pump(now_seconds(), 10);
+        }
+        std::printf("        broke %d %d %d%s%s\n", gx, gy, gz, client.edit_refusal().empty() ? "" : ": ",
+                    client.edit_refusal().c_str());
+    }
 
     // --travel N: climb, fly N blocks along +x, hover for --hold seconds, then
     // fly down to the ground and stand there a second. A measurement by hand and
@@ -290,6 +306,7 @@ int main(int argc, char **argv)
         if (arg == "--identity" && i + 1 < argc) g_identity = argv[++i];
         if (arg == "--travel" && i + 1 < argc) g_travel = (float)std::atof(argv[++i]);
         if (arg == "--hold" && i + 1 < argc) g_hold = (float)std::atof(argv[++i]);
+        if (arg == "--dig" && i + 1 < argc) g_dig = std::atoi(argv[++i]);
         if (arg == "--walked-down") g_flown = false;
         if (arg == "--far" && i + 3 < argc) {
             g_far = true;

@@ -3,23 +3,26 @@
 # --restart-at: it leaves with 75) or crashes (--watchdog included), and not
 # when it stops (Ctrl+C, /stop: it leaves with 0). Every line it prints goes to
 # one log file a day, with the time in front; the oldest go after -k days.
+# With -w URL a crash is POSTed there as JSON, like the server's --webhook.
 # The server's stdin stays this script's, so its console still works.
 #
-# usage: tools/serve.sh [-l LOGDIR] [-k DAYS] SERVER [ARGS...]
+# usage: tools/serve.sh [-l LOGDIR] [-k DAYS] [-w URL] SERVER [ARGS...]
 #        tools/serve.sh -l logs build-release/src/server/cnp_server --config server.conf
 set -u
 
 LOGDIR=logs
 KEEP=14
-while getopts "l:k:" o; do
+HOOK=
+while getopts "l:k:w:" o; do
     case $o in
         l) LOGDIR=$OPTARG ;;
         k) KEEP=$OPTARG ;;
+        w) HOOK=$OPTARG ;;
         *) exit 2 ;;
     esac
 done
 shift $((OPTIND - 1))
-[ $# -gt 0 ] || { echo "usage: $0 [-l LOGDIR] [-k DAYS] SERVER [ARGS...]" >&2; exit 2; }
+[ $# -gt 0 ] || { echo "usage: $0 [-l LOGDIR] [-k DAYS] [-w URL] SERVER [ARGS...]" >&2; exit 2; }
 mkdir -p "$LOGDIR" || exit 1
 
 stamp() {
@@ -30,6 +33,15 @@ stamp() {
 }
 
 say() { printf '%(%F %T)T serve.sh: %s\n' -1 "$1" | tee -a "$LOGDIR/server-$(printf '%(%Y-%m-%d)T' -1).log"; }
+
+# The same fields as the server's --webhook.
+hook() {
+    [ -n "$HOOK" ] || return 0
+    local t; printf -v t '%(%s)T' -1
+    printf '{"event":"%s","by":"serve.sh","target":"","detail":"%s","at":%s,"content":"[%s] %s","text":"[%s] %s"}' \
+        "$1" "$2" "$t" "$1" "$2" "$1" "$2" |
+        curl -fsS --max-time 5 -H "Content-Type: application/json" --data-binary @- "$HOOK" >/dev/null 2>&1
+}
 
 # A background job's stdin is /dev/null unless it is given one.
 exec 3<&0
@@ -66,8 +78,10 @@ while :; do
     crashes=("${kept[@]}" "$now")
     if [ ${#crashes[@]} -ge 5 ]; then
         say "the server crashed 5 times in 10 minutes ($rc); giving up"
+        hook "gave up" "crashed 5 times in 10 minutes ($rc)"
         exit $rc
     fi
     say "the server crashed ($rc); starting it again in 5 s"
+    hook crash "exit status $rc; starting it again"
     sleep 5
 done

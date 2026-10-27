@@ -289,6 +289,64 @@ bool verify_message(const uint8_t public_key[kSignPublicBytes], const void *mess
     return crypto_eddsa_check(signature, public_key, (const uint8_t *)message, size) == 0;
 }
 
+namespace {
+
+// This curve's EdDSA scalar is the first half of BLAKE2b(seed), which is an
+// X25519 secret as it stands: crypto_x25519 trims it the same way.
+bool shared_key(const SignKeyPair &me, const uint8_t other[kSignPublicBytes], uint8_t key[32])
+{
+    uint8_t hash[64], mine[32], theirs[32], check[32], raw[32];
+    crypto_blake2b(hash, sizeof(hash), me.secret_key, kSignSeedBytes);
+    std::memcpy(mine, hash, 32);
+    crypto_eddsa_to_x25519(theirs, other);
+    crypto_eddsa_to_x25519(check, me.public_key);
+    crypto_x25519_public_key(hash, mine);
+    const bool ok = crypto_verify32(hash, check) == 0;
+    crypto_x25519(raw, mine, theirs);
+    // Both public keys in, in the same order at both ends.
+    uint8_t in[32 * 3];
+    std::memcpy(in, raw, 32);
+    const bool first = std::memcmp(me.public_key, other, 32) < 0;
+    std::memcpy(in + 32, first ? me.public_key : other, 32);
+    std::memcpy(in + 64, first ? other : me.public_key, 32);
+    crypto_blake2b(key, 32, in, sizeof(in));
+    crypto_wipe(hash, sizeof(hash));
+    crypto_wipe(mine, sizeof(mine));
+    crypto_wipe(raw, sizeof(raw));
+    crypto_wipe(in, sizeof(in));
+    return ok;
+}
+
+} // namespace
+
+bool seal_for(const SignKeyPair &me, const uint8_t to[kSignPublicBytes], const std::string &plain,
+              std::string &out)
+{
+    uint8_t key[32];
+    out.assign(kNonceBytes + kMacBytes + plain.size(), '\0');
+    uint8_t *o = (uint8_t *)out.data();
+    if (!shared_key(me, to, key) || !random_bytes(o, kNonceBytes)) return false;
+    crypto_aead_lock(o + kNonceBytes + kMacBytes, o + kNonceBytes, key, o, nullptr, 0,
+                     (const uint8_t *)plain.data(), plain.size());
+    crypto_wipe(key, sizeof(key));
+    return true;
+}
+
+bool open_sealed(const SignKeyPair &me, const uint8_t from[kSignPublicBytes],
+                 const std::string &sealed, std::string &plain)
+{
+    if (sealed.size() < kNonceBytes + kMacBytes) return false;
+    uint8_t key[32];
+    if (!shared_key(me, from, key)) return false;
+    const uint8_t *s = (const uint8_t *)sealed.data();
+    plain.assign(sealed.size() - kNonceBytes - kMacBytes, '\0');
+    const bool ok = crypto_aead_unlock((uint8_t *)plain.data(), s + kNonceBytes, key, s, nullptr, 0,
+                                       s + kNonceBytes + kMacBytes, plain.size()) == 0;
+    crypto_wipe(key, sizeof(key));
+    if (!ok) plain.clear();
+    return ok;
+}
+
 bool load_or_create_sign_key(const std::string &path, SignKeyPair &out, bool &created,
                              std::string &err)
 {

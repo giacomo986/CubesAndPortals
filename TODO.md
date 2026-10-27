@@ -1337,15 +1337,38 @@ the server on its way out (glibc waits for waiters): kept alive for good.
 `peek_type` did not know the new message types until listed (its switch has
 no default on purpose, and the warning went unseen).
 
+**Done 2026-10-27, the rest:**
+- One bag across friend servers (share `bags`, on by default): the server a
+  player arrives at asks the friend whose ticket brought them, or the one it
+  gave the bag to last (`bagaway` rows), or, for a player who walked in,
+  every friend whose copy is newest; that one lets go of it. Items a world
+  does not know are kept aside (`hidden` rows) and travel with the bag.
+- Federation lines sealed for the receiver (`net::seal_for`: X25519 from the
+  two signing keys, XChaCha20-Poly1305), `CNPFED2`.
+- A redirect crossing checks the far key the link names, like a window.
+- `/inspect X Y Z`, `/rollback NAME 2h` (an `edits` table, a month kept,
+  written every 5 s); `cnp_join_probe --dig N`.
+- `--webhook URL` (admin log, reports, start, stop, unclean start) and
+  `tools/serve.sh -w URL` (crashes).
+- `/role NAME ROLE ROOM`: a role in one room.
+- `/bag NAME`, `/give NAME ITEM [N]`.
+- docs/ADMIN.md: every command, permission, flag, conf key and script.
+
+Checked: two servers with different mods, a player walking between them
+four times: `t1:shell` (unknown on B) hidden on B and back on A, gems given
+on B arrive on A; a player online on A joining B takes the bag from A's
+session; webhook posts received by a local listener (start, friend, give,
+ban, stop); per-room role in a 2-room server; a probe digs 3 cells, /inspect
+names it, /rollback puts them back. ctest 13/13.
+
 Open:
-- Bags do not travel between friend servers: which bag wins on arrival, items
-  one game does not know, and one holder at a time need deciding first.
-- Federation lines are signed, not encrypted (bans, names, chat).
-- A redirect crossing (no window first) does not check the far key.
+- A bag later than the 5 s wait is dropped (logged); the one here stays.
+- "Newest" compares two servers' clocks; a backpack's contents do not
+  travel between friends.
+- Federation sealing has no forward secrecy (long-term keys).
 - Labels a client translates are still measured untranslated.
-- Not built: rollback/inspect of blocks, webhooks, per-room roles, rules to
-  accept, alt-account detection, the server's own update check, `--report`
-  as JSON.
+- Not built: rules to accept, alt-account detection, the server's own update
+  check, `--report` as JSON.
 
 ## Mods and scripting
 

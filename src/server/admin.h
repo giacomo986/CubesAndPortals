@@ -48,6 +48,10 @@ std::string duration_text(int64_t seconds);
 bool open(const std::string &path, std::string &err);
 void close();
 
+// --webhook URL: every admin action, start, stop and /report POSTed there as
+// JSON. False for anything but an http(s) URL of plain characters.
+bool set_webhook(const std::string &url);
+
 // --owner NAME: whoever plays under that name with an identity is the owner.
 // The name check already makes a name its first key's on a kept world.
 void set_owner(const std::string &name);
@@ -59,6 +63,7 @@ struct Who {
     uint8_t     identity[net::kSignPublicBytes]{};
     std::string address;   // "" when not connected
     bool        console = false;   // the server's own stdin: above every role
+    std::string room;      // the room they are in, for a role given in one room only
 };
 
 Role role_of(const Who &who);
@@ -78,6 +83,12 @@ struct Online {
     Who         who;
     std::string room;   // "" on a server of one world
 };
+// A block to put back (/rollback): in `room`, if it still holds `expect`.
+struct Restore {
+    std::string room;
+    int         x = 0, y = 0, z = 0, block = 0, facing = 0, expect = 0;
+};
+
 struct Hooks {
     std::function<std::vector<Online>()>                                           online;
     std::function<void(net::PeerId, net::RefuseReason, const std::string &text)> remove;
@@ -85,6 +96,26 @@ struct Hooks {
     std::function<void(net::PeerId, const std::string &line)>                     say;      // one chat
     std::function<std::vector<std::string>()>                                     metrics;
     std::function<std::vector<std::string>()>                                     portals;  // links out
+    std::function<std::string(const std::string &room, int block)>                block_name;
+    std::function<void(const std::vector<Restore> &)>                             restore;
+
+    // Bags between friend servers (bag_ask). bag_give: a friend wants this
+    // player's bag -- take it from wherever it is in this process (a session
+    // holding it lets go of it), or from the world file when `from_file`;
+    // false for no bag here at all. bag_take: the bag a friend sent, by name
+    // (core/item/item_codec.h), and what this player carries that some world
+    // did not know (`hidden`). bag_late: the friend did not send it; use the
+    // one here.
+    std::function<bool(const uint8_t *identity, bool from_file, std::string &bag)> bag_give;
+    std::function<void(const uint8_t *identity, const std::string &bag, const std::string &hidden,
+                       const std::string &from)>                                   bag_take;
+    std::function<void(const uint8_t *identity)>                                   bag_late;
+    std::function<int64_t(const uint8_t *identity)> bag_seen;   // kept here when, -1 for never or not held
+
+    // /bag and /give: what a player carries, a line a stack; and `count` of an
+    // item by name into an online player's bag ("" when it went in).
+    std::function<std::vector<std::string>(const Who &)>                             bag_lines;
+    std::function<std::string(net::PeerId, const std::string &item, int count)>     give;
 };
 
 // The server's own life: /restart and /stop count down, warning every screen,
@@ -108,6 +139,9 @@ void left(const Who &who, const std::string &room, const std::string &reason);
 // A player who came through a portal on a ticket `issuer` signed, from
 // `address`: who sends players here, how many, from where (/portals).
 void crossed_in(const uint8_t *issuer, const std::string &address);
+// A block a player changed, for /inspect and /rollback.
+void edited(const Who &who, const std::string &room, int x, int y, int z, int old_block, int old_facing,
+            int new_block);
 // A player the door turned away (admits), for --report.
 void refused(const Who &who, const std::string &why);
 
@@ -127,6 +161,22 @@ int report(const std::string &path, int64_t since_seconds);
 // room each tick, applies what friends sent and sends this server's share.
 bool start_federation(int port, const net::SignKeyPair &me, std::string &err);
 void federation_tick(const Hooks &hooks);
+
+// One bag for friend servers: a player who arrives as a body on a ticket a
+// friend signed, or whose bag went to a friend last, has it sent from there,
+// and that friend lets go of it (Hooks::bag_give). True: asked for; the bag
+// stays empty until bag_take, or bag_late after five seconds, or at once when
+// the friend says it has none. A player who walked in, with nothing saying
+// where their bag is, has every friend asked whose copy is newest
+// (Hooks::bag_seen), and that one sends it if it is newer than the one here.
+// False: the bag is here.
+bool bag_ask(const Who &who, const uint8_t *issuer, const Hooks &hooks);
+
+// What this player carries that a world did not know, kept aside (encoded,
+// "" for nothing): it goes with the bag to the next friend and comes out where
+// it is known.
+std::string hidden(const uint8_t *identity);
+void        set_hidden(const uint8_t *identity, const std::string &bytes);
 
 // The console, which is the machine's owner.
 Who console();

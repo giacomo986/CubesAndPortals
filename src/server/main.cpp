@@ -1706,7 +1706,7 @@ int host_chat(void *ud, int player, const char *text)
     return 1;
 }
 
-admin::Who admin_who(const net::Session &p);   // below the rooms
+admin::Who admin_who(const net::Session &p, const std::string *room = nullptr);   // below the rooms
 
 int host_command(void *ud, const char *name, const char *help, const char *perm)
 {
@@ -4090,10 +4090,12 @@ struct RoomShared {
     std::string          name;
     net::ServerSessions *sessions = nullptr;
     ItemRegistry        *items    = nullptr;
+    const NodeRegistry  *registry = nullptr;   // block names, for /inspect
     const ModelRegistry *models   = nullptr;
     WorldDb             *db       = nullptr;
     ContainerSet        *containers = nullptr;   // bring_carried_containers
     ModStore            *mod_store  = nullptr;   // the first room's: core.shared_storage_*
+    std::unordered_set<uint32_t> *bags_touched = nullptr;   // a bag a friend server took or sent
     // The longest tick of the last minute, for /metrics; and when this room
     // last finished one, for --watchdog.
     std::atomic<int>     worst_tick_ms{0};
@@ -4104,8 +4106,8 @@ struct RoomShared {
 
     explicit RoomShared(std::string n) : name(std::move(n)) {}
     RoomShared(RoomShared &&o) noexcept
-        : name(std::move(o.name)), sessions(o.sessions), items(o.items), models(o.models), db(o.db),
-          containers(o.containers), mod_store(o.mod_store)
+        : name(std::move(o.name)), sessions(o.sessions), items(o.items), registry(o.registry), models(o.models), db(o.db),
+          containers(o.containers), mod_store(o.mod_store), bags_touched(o.bags_touched)
     {
     }
 };
@@ -4128,6 +4130,8 @@ struct Router {
         Portal where;
     };
     std::vector<std::vector<FarMoved>> far_moved;
+    // Blocks /rollback puts back, for each room's next tick.
+    std::vector<std::vector<admin::Restore>> restores;
 
     // Connected, and not yet said which room: held until the Hello, or dropped
     // after a while like any peer that never says hello.
@@ -4254,10 +4258,20 @@ ModStore &shared_store(ServerState *s)
     return s->mod_store;
 }
 
+// Bags between friend servers, below the rooms (admin::bag_ask).
+bool bag_give_here(const uint8_t *identity, bool from_file, std::string &out);
+void bag_take_here(const uint8_t *identity, const std::string &bag, const std::string &hidden,
+                   const std::string &from);
+void bag_late_here(const uint8_t *identity);
+int64_t bag_seen_here(const uint8_t *identity);
+net::Session *bag_holder(const uint8_t *identity, int &room);
+WorldDb      *newest_bag_file(const uint8_t *identity);
+
 // A player in this process as the admin store sees them (src/server/admin.h).
-admin::Who admin_who(const net::Session &p)
+admin::Who admin_who(const net::Session &p, const std::string *room)
 {
     admin::Who w;
+    w.room         = room ? *room : g_router.rooms[(size_t)g_room].name;
     w.name         = p.name;
     w.has_identity = p.has_identity;
     if (p.has_identity) std::memcpy(w.identity, p.identity, net::kSignPublicBytes);
@@ -4277,7 +4291,7 @@ admin::Hooks admin_hooks()
             if (!r.sessions) continue;
             for (const net::PeerId peer : r.sessions->ready_peers())
                 if (const net::Session *p = r.sessions->find(peer))
-                    out.push_back({peer, admin_who(*p), r.name});
+                    out.push_back({peer, admin_who(*p, &r.name), r.name});
         }
         return out;
     };
@@ -4298,6 +4312,56 @@ admin::Hooks admin_hooks()
                         g_router.transport.send(peer, net::Channel::Event, bytes, true);
         std::printf("        notice: %s\n", text.c_str());
     };
+    h.block_name = [](const std::string &room, int id) {
+        const int r = g_router.find(room);
+        return r < 0 || g_router.rooms[(size_t)r].registry == nullptr || id < 0 ||
+                       (size_t)id >= g_router.rooms[(size_t)r].registry->size()
+                   ? std::string()
+                   : g_router.rooms[(size_t)r].registry->get((BlockId)id).name;
+    };
+    h.restore = [](const std::vector<admin::Restore> &list) {
+        for (const admin::Restore &r : list) {
+            const int room = g_router.find(r.room);
+            if (room >= 0 && (size_t)room < g_router.restores.size()) g_router.restores[(size_t)room].push_back(r);
+        }
+    };
+    h.bag_lines = [](const admin::Who &w) {
+        std::vector<std::string> out;
+        if (!w.has_identity) return out;
+        int                  room = 0;
+        Inventory            file_bag;
+        const Inventory     *bag  = nullptr;
+        if (const net::Session *sess = bag_holder(w.identity, room)) {
+            bag = &sess->bag();
+        } else if (WorldDb *db = newest_bag_file(w.identity); db && g_router.rooms[0].items) {
+            std::string err;
+            if (db->load_player_bag(w.identity, *g_router.rooms[0].items, file_bag, err)) bag = &file_bag;
+            out.push_back("Not online; the bag kept here:");
+        }
+        if (bag == nullptr) return out;
+        const ItemRegistry &items = *g_router.rooms[(size_t)room].items;
+        for (int i = 0; i < bag->size(); ++i)
+            if (!bag->at(i).empty())
+                out.push_back("square " + std::to_string(i + 1) + ": " + std::to_string(bag->at(i).count) + " " +
+                              items.get(bag->at(i).item).name);
+        return out;
+    };
+    h.give = [](net::PeerId peer, const std::string &item, int count) -> std::string {
+        const auto r = g_router.room_of.find(peer);
+        if (r == g_router.room_of.end()) return "not in a room";
+        RoomShared   &room = g_router.rooms[(size_t)r->second];
+        net::Session *sess = room.sessions ? room.sessions->find_mutable(peer) : nullptr;
+        if (!sess || !sess->holds_bag) return "they hold no bag here (watching, or arriving)";
+        const ItemId id = room.items->find(item);
+        if (id == kNoItem || room.items->is_orphan(id)) return "no item '" + item + "' in that world";
+        const uint16_t left = sess->bag().add(*room.items, id, (uint16_t)count);
+        if (room.bags_touched) room.bags_touched->insert((uint32_t)peer);
+        return left > 0 ? "only " + std::to_string(count - left) + " fitted" : "";
+    };
+    h.bag_give = bag_give_here;
+    h.bag_take = bag_take_here;
+    h.bag_late = bag_late_here;
+    h.bag_seen = bag_seen_here;
     h.say = [](net::PeerId peer, const std::string &line) {
         g_router.transport.send(peer, net::Channel::Event, net::Chat{line}.encode(), true);
     };
@@ -4927,6 +4991,154 @@ WorldDb *newest_bag_file(const uint8_t *identity)
         }
     }
     return best;
+}
+
+// Bags asked of a friend server and not here yet (admin::bag_ask). Such a
+// player holds an empty bag, which nothing saves over the one in the file.
+std::set<IdentityKey> g_bag_waiting;
+
+// The session in any room of this process that holds this player's bag.
+net::Session *bag_holder(const uint8_t *identity, int &room)
+{
+    for (size_t i = 0; i < g_router.rooms.size(); ++i) {
+        RoomShared &r = g_router.rooms[i];
+        if (r.sessions == nullptr) continue;
+        for (const net::PeerId peer : r.sessions->ready_peers()) {
+            net::Session *sess = r.sessions->find_mutable(peer);
+            if (sess && sess->has_identity && sess->holds_bag &&
+                std::memcmp(sess->identity, identity, net::kSignPublicBytes) == 0) {
+                room = (int)i;
+                return sess;
+            }
+        }
+    }
+    return nullptr;
+}
+
+// A friend server wants this player's bag: the session holding it here lets
+// go of it, as take_carried does for a room of this process, so it is neither
+// used nor saved here any more.
+bool bag_give_here(const uint8_t *identity, bool from_file, std::string &out)
+{
+    if (g_bag_waiting.count(identity_key(identity))) return false;
+    int                  room = 0;
+    std::vector<uint8_t> bytes;
+    if (net::Session *sess = bag_holder(identity, room)) {
+        RoomShared &r   = g_router.rooms[(size_t)room];
+        bytes           = encode_inventory(*r.items, sess->bag());
+        sess->bag()     = Inventory{};
+        sess->holds_bag = false;
+        if (r.bags_touched) r.bags_touched->insert((uint32_t)sess->id);
+    } else {
+        WorldDb    *db = from_file ? newest_bag_file(identity) : nullptr;
+        Inventory   bag;
+        std::string err;
+        if (db == nullptr || g_router.rooms[0].items == nullptr ||
+            !db->load_player_bag(identity, *g_router.rooms[0].items, bag, err))
+            return false;
+        bytes = encode_inventory(*g_router.rooms[0].items, bag);
+    }
+    out.assign(bytes.begin(), bytes.end());
+    return true;
+}
+
+// The bag a friend sent. What this world does not know (an orphan here,
+// core/item/item_codec.h) is kept aside, and what was kept aside and is known
+// here comes out into the free squares.
+void bag_take_here(const uint8_t *identity, const std::string &bag, const std::string &hidden,
+                   const std::string &from)
+{
+    const bool    waiting = g_bag_waiting.erase(identity_key(identity)) > 0;
+    int           room    = 0;
+    net::Session *sess    = bag_holder(identity, room);
+    if (sess && !waiting) {
+        // ponytail: a bag later than the 5 s wait is dropped; the one here is in use.
+        std::printf("server: '%s' bag from %s came too late; the one here stays\n",
+                    sess->name.c_str(), from.c_str());
+        return;
+    }
+    RoomShared   &r     = g_router.rooms[(size_t)room];
+    ItemRegistry &items = *r.items;
+    Inventory     got;
+    std::string   err;
+    if (!decode_inventory(items, (const uint8_t *)bag.data(), bag.size(), got, err)) {
+        std::printf("server: could not read a bag from %s: %s\n", from.c_str(), err.c_str());
+        got = Inventory{};
+    }
+    std::vector<ItemStack> extra;
+    for (const std::string &h : {admin::hidden(identity), hidden}) {
+        Inventory aside(kMaxStoredSlots);
+        if (h.empty() || !decode_inventory(items, (const uint8_t *)h.data(), h.size(), aside, err)) continue;
+        for (const ItemStack &st : aside.slots())
+            if (!st.empty()) extra.push_back(st);
+    }
+    for (int i = 0; i < got.size(); ++i)
+        if (!got.at(i).empty() && items.is_orphan(got.at(i).item)) {
+            extra.push_back(got.at(i));
+            got.slot(i) = ItemStack{};
+        }
+    Inventory aside(kMaxStoredSlots);
+    int       kept = 0;
+    for (const ItemStack &st : extra) {
+        bool placed = false;
+        for (int i = 0; i < Inventory::kDefaultSlots && !placed && !items.is_orphan(st.item); ++i)
+            if (got.at(i).empty()) {
+                got.slot(i) = st;
+                placed      = true;
+            }
+        if (!placed && kept < kMaxStoredSlots) aside.slot(kept++) = st;
+    }
+    const std::vector<uint8_t> aside_bytes = kept > 0 ? encode_inventory(items, aside) : std::vector<uint8_t>{};
+    admin::set_hidden(identity, std::string(aside_bytes.begin(), aside_bytes.end()));
+
+    if (sess) {
+        sess->bag() = got;
+        if (r.bags_touched) r.bags_touched->insert((uint32_t)sess->id);
+        std::printf("        '%s' bag comes from %s (%d thing(s) this world does not know, kept aside)\n",
+                    sess->name.c_str(), from.c_str(), kept);
+    } else if (r.db != nullptr && r.db->is_open()) {
+        // Gone while it came: it waits in the file for their next visit.
+        if (r.db->save_player_bag(identity, "", items, got, (int64_t)std::time(nullptr), err))
+            g_bag_kept_by[identity_key(identity)] = room;
+    }
+}
+
+// When this player's bag was last kept here: now, for one held this moment.
+int64_t bag_seen_here(const uint8_t *identity)
+{
+    int room = 0;
+    // Waiting: asking for it itself, and the file is what it has.
+    if (!g_bag_waiting.count(identity_key(identity)) && bag_holder(identity, room))
+        return (int64_t)std::time(nullptr);
+    WorldDb *db = newest_bag_file(identity);
+    return db ? db->bag_seen(identity) : -1;
+}
+
+// A player becoming a body here whose bag may be on a friend server
+// (admin::bag_ask). Waiting from before the asking, so that bag_seen_here
+// reads this server's file rather than the empty bag they hold now.
+bool ask_friend_for_bag(const net::Session &sess)
+{
+    const IdentityKey k = identity_key(sess.identity);
+    g_bag_waiting.insert(k);
+    if (admin::bag_ask(admin_who(sess), sess.admitted_by_ticket ? sess.ticket_issuer : nullptr,
+                       admin_hooks()))
+        return true;
+    g_bag_waiting.erase(k);
+    return false;
+}
+
+// The friend did not send it: the bag here, as if nobody had been asked.
+void bag_late_here(const uint8_t *identity)
+{
+    if (g_bag_waiting.erase(identity_key(identity)) == 0) return;
+    int           room = 0;
+    net::Session *sess = bag_holder(identity, room);
+    if (sess == nullptr) return;
+    RoomShared &r = g_router.rooms[(size_t)room];
+    std::string err;
+    if (WorldDb *from = newest_bag_file(identity)) from->load_player_bag(identity, *r.items, sess->bag(), err);
+    if (r.bags_touched) r.bags_touched->insert((uint32_t)sess->id);
 }
 
 } // namespace
@@ -6207,6 +6419,7 @@ int serve_room(int argc, char **argv)
                                     net::PeerId peer, net::RefuseReason &reason,
                                     std::string &why) {
             admin::Who w;
+            w.room         = g_router.rooms[(size_t)g_room].name;
             w.name         = name;
             w.has_identity = identity != nullptr;
             if (identity) std::memcpy(w.identity, identity, net::kSignPublicBytes);
@@ -6353,9 +6566,11 @@ int serve_room(int argc, char **argv)
         });
         g_router.rooms[(size_t)g_room].items    = &s.items;
         g_router.rooms[(size_t)g_room].models   = &s.models;
+        g_router.rooms[(size_t)g_room].registry = &s.registry;
         g_router.rooms[(size_t)g_room].db       = db.is_open() ? &db : nullptr;
         g_router.rooms[(size_t)g_room].containers = &s.containers;
         g_router.rooms[(size_t)g_room].mod_store  = &s.mod_store;
+        g_router.rooms[(size_t)g_room].bags_touched = &s.bags_touched;
 
         // What a body here looks like, from whatever the mods said while they
         // loaded -- which was before this table existed, so it is applied now
@@ -6473,6 +6688,8 @@ int serve_room(int argc, char **argv)
                     sessions.set_body_movement(peer, s.movement, s.now);
                     sessions.set_body_model(peer, (uint16_t)s.player_model);
                 }
+            } else if (ask_friend_for_bag(*sess)) {
+                // On a friend server: it comes from there (bag_take_here).
             } else if (WorldDb *from = newest_bag_file(sess->identity)) {
                 if (from->load_player_bag(sess->identity, s.items, sess->bag(), err)) {
                     if (!quiet)
@@ -6509,7 +6726,7 @@ int serve_room(int argc, char **argv)
 
             if (!db.is_open()) return;
             const net::Session *sess = sessions.find(peer);
-            if (!bag_is_keepable(sess)) return;
+            if (!bag_is_keepable(sess) || g_bag_waiting.count(identity_key(sess->identity))) return;
 
             const int64_t when = (int64_t)std::time(nullptr);
             std::string   err;
@@ -7059,10 +7276,18 @@ int serve_room(int argc, char **argv)
                         // cells, and a relight each would be OPEN-29's 1.9 ms a
                         // cell in the middle of answering a player.
                         bool wrote;
+                        const int old_block  = (int)s.world.get_block(plan.x, plan.y, plan.z);
+                        const int old_facing = (int)s.world.get_facing(plan.x, plan.y, plan.z);
                         {
                             LightRun lights(s);
                             wrote = apply_edit(s, ev.peer, plan, why);
                         }
+                        // Who did it, for /inspect and /rollback.
+                        if (wrote)
+                            if (const net::Session *by = sessions.find(ev.peer))
+                                admin::edited(admin_who(*by), g_router.rooms[(size_t)g_room].name, plan.x,
+                                              plan.y, plan.z, old_block, old_facing,
+                                              (int)s.world.get_block(plan.x, plan.y, plan.z));
 
                         if (!wrote) {
                             transport.send(ev.peer, net::Channel::Block,
@@ -7733,6 +7958,17 @@ int serve_room(int argc, char **argv)
 
                 if (g_room == 0) admin::federation_tick(admin_hooks());
 
+                // Blocks /rollback puts back here: each one only if it still
+                // holds what the player left in it.
+                if ((size_t)g_room < g_router.restores.size() && !g_router.restores[(size_t)g_room].empty()) {
+                    std::vector<admin::Restore> back;
+                    back.swap(g_router.restores[(size_t)g_room]);
+                    LightRun lights(s);
+                    for (const admin::Restore &r : back)
+                        if ((int)s.world.get_block(r.x, r.y, r.z) == r.expect)
+                            write_told(s, r.x, r.y, r.z, (BlockId)r.block, (uint8_t)r.facing);
+                }
+
                 // A restart or a stop counted down to its end (/restart).
                 if (g_room == 0) switch (admin::tick(admin_hooks())) {
                     case admin::Stop::None: break;
@@ -8274,6 +8510,10 @@ int main(int argc, char **argv)
     // (src/server/admin.h). --owner is every room's, so it is read here.
     {
         std::string err;
+        if (const std::string hook = last_of(common, "--webhook"); !hook.empty() && !admin::set_webhook(hook)) {
+            std::printf("server: --webhook wants an http(s) URL\n");
+            return 1;
+        }
         if (!admin::open(first_world, err)) {
             std::printf("server: %s\n", err.c_str());
             return 1;
@@ -8380,6 +8620,7 @@ int main(int argc, char **argv)
         }).detach();
     g_router.queues.resize(rooms.size());
     g_router.far_moved.resize(rooms.size());
+    g_router.restores.resize(rooms.size());
 
     std::vector<int>         rc(rooms.size(), 0);
     std::vector<std::thread> threads;

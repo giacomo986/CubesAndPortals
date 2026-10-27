@@ -435,7 +435,8 @@ L'elenco completo è in `main()` di [`src/client/main.cpp`](src/client/main.cpp)
 | `--backup-every 6h` `--backup-keep N` | Copie di ogni file del mondo accanto a lui (`NOME.backup-DATA`), fatte a server acceso; restano le N più recenti (5). `/backup` ne fa una subito |
 | `--max-per-address N` | Al massimo N giocatori dallo stesso indirizzo |
 | `--watchdog S` | Una stanza che non finisce un tick in S secondi fa uscire il server con lo stack stampato, perché `tools/serve.sh` lo riavvii |
-| `--federation PORTA` | Server amici (`/friend`): righe firmate su questa porta TCP, con la chiave dei biglietti (`--ticket-key`, o MONDO.sign) |
+| `--federation PORTA` | Server amici (`/friend`): righe firmate e cifrate su questa porta TCP, con la chiave dei biglietti (`--ticket-key`, o MONDO.sign) |
+| `--webhook URL` | Azioni admin, avvio, arresto e segnalazioni mandati lì in POST come JSON ([`docs/ADMIN.md`](docs/ADMIN.md#webhooks)) |
 | `--report FILE` `--since 7d` | Senza server: cosa ricorda un file del mondo -- giocatori, tempo di gioco, massimo insieme, ingressi per ora, stanze, chi è stato respinto, azioni dello staff, riavvii e crash, attraversamenti da altri server |
 | `--portals` `--portal-to HOST:PORT[/N]` | Una coppia di aperture gestita dal server; `--portal-to` dice dove porta la prima (e da quale apertura `N` si esce); ripetuto, la seconda, la terza e la quarta |
 | `--ticket-key FILE` `--portal-peer-key HEX` `--trust HEX` `--require-ticket` | Ticket firmati per attraversare fra server |
@@ -444,53 +445,19 @@ L'elenco completo è in `main()` di [`src/client/main.cpp`](src/client/main.cpp)
 
 ### Amministrazione del server
 
-Si scrivono in chat, se il proprio ruolo lo permette, o sullo stdin del server
-senza la barra: la console sta sopra ogni ruolo. Ruoli, ban e lista stanno nel
-file del mondo della prima stanza e valgono per tutte (`src/server/admin.h`).
+Si scrive in chat da un giocatore il cui ruolo lo permette, sullo stdin del server senza la
+barra, via RCON (`tools/admin.sh`), o con i pulsanti della pagina `/admin`. Ruoli (guest,
+player, helper, moderator, admin, owner, anche per stanza), ban, mute, whitelist,
+avvertimenti, segnalazioni e note, riavvii con avvisi e manutenzione, messaggio del giorno,
+visite e `--report`, `/inspect` e `/rollback` di quello che un giocatore ha cambiato, backup,
+webhook, `/bag` e `/give`, e server amici che condividono ban, presenza, una chat e un solo
+zaino per ogni giocatore.
 
-| Comando | Ruolo | Cosa fa |
-|---|---|---|
-| `/perms` | chiunque | Il proprio ruolo qui |
-| `/role [NOME [RUOLO]]` | admin | Vedere o dare ruoli: guest (senza identità), player, helper, moderator, admin, owner. Solo sotto il proprio |
-| `/kick NOME [motivo]` | moderator | Mette fuori un giocatore da tutte le stanze; il client torna al titolo dicendo perché |
-| `/ban NOME [30m\|2h\|7d\|1w] [motivo]` `/unban` `/bans` | moderator | Tiene fuori un giocatore, a tempo o per sempre. Un nome con un proprietario banna la sua chiave; uno senza, anche l'ultimo indirizzo da cui è venuto |
-| `/banip NOME\|INDIRIZZO [tempo] [motivo]` | admin | Tiene fuori un indirizzo |
-| `/mute NOME [tempo] [motivo]` `/unmute` | helper | Blocca la chat di un giocatore, e quello che un comando di un mod direbbe agli altri per lui |
-| `/whitelist on\|off\|list\|add NOME\|remove NOME` | admin | Entrano solo i giocatori in lista, e lo staff |
-| `/perm [PERMESSO RUOLO]` | owner | Quale ruolo serve per ogni permesso (mute, kick, ban, creative, pages, ban.ip, access, roles, perms) |
-| `/page [NOME]` `/admin` | chiunque, helper | Le pagine in gioco: l'elenco, o la pagina di amministrazione |
-| `/restart [5m\|now\|cancel] [motivo]` `/stop ...` | admin | Riavvia o ferma con avvisi su ogni schermo (10m, 5m, 1m, 30s, 10s...). I giocatori escono come "restarting" e il loro client rientra da solo quando il server risponde |
-| `/maintenance on [testo]\|off` | admin | Entra solo lo staff; gli altri escono con il testo, e la lista server mostra "maintenance" |
-| `/motd [TESTO\|off]` `/announce TESTO` | admin, moderator | Il messaggio del giorno; un avviso su ogni schermo |
-| `/seen NOME` `/players [7d]` `/whois NOME` | chiunque, helper, moderator | Quando un giocatore è stato qui l'ultima volta; chi è venuto di recente e per quanto; cosa sa lo staff (nomi, indirizzi, avvertimenti, note) |
-| `/warn NOME motivo` | helper | Tre in 30 giorni sono un giorno di ban |
-| `/report NOME testo` `/reports` `/note NOME testo` | chiunque, helper | Una segnalazione per lo staff (avvisato subito se qualcuno è online); note su un giocatore |
-| `/sc TESTO` | helper | Chat dello staff |
-| `/logs [N] [AZIONE]` `/metrics` `/backup` | admin | Le ultime azioni admin; giocatori, tick e memoria; un backup subito |
-| `/portals` | admin | Dove portano i portali, e quali server mandano giocatori qui, quanti |
-| `/friend add NOME HOST:PORTA CHIAVE [bans,presence,chat]\|remove NOME\|list` | owner | Server amici: si aggiungono a vicenda. Condividono i ban permanenti per chiave (tolti qui con `/unban`, spariscono con l'amico), chi è online, una chat |
-| `/fed TESTO` `/where NOME` | chiunque | Chat verso ogni server amico; su quale server amico è un giocatore |
+**Ogni comando, permesso, flag e chiave di `server.conf` è in [`docs/ADMIN.md`](docs/ADMIN.md)** (in inglese).
+`/help` in gioco elenca quelli che puoi usare.
 
-**Pagine.** `/page` apre le pagine in gioco: `admin` (chi è online, con i
-pulsanti kick, ban e mute), `bans`, `whitelist`, `roles`, `perms`, `server` (le
-stanze e chi c'è), `mods`, `here` (dove sei e di chi è il terreno), e quelle
-offerte dai mod, come la bacheca `board`. Una pagina mostra solo quello che chi
-guarda può fare, e un pulsante esegue lo stesso comando che si scriverebbe. I
-mod scrivono le pagine in un piccolo markup (`# titolo`, testo con link
-`[etichetta](destinazione)`, righe `| tabella |`, campi `?[suggerimento](destinazione)`)
-con `core.page_register` e `core.page_show`; vedi [`docs/API.md`](docs/API.md).
-Un mondo giocato in un solo processo (`--quick`) ha anche `/page`, con le
-pagine dei mod e senza amministrazione. Lo staff ha anche `running` (riavvii,
-manutenzione, messaggio del giorno, backup), `players`, `reports` e `log`.
-
-**Tenerlo acceso.** `tools/serve.sh -l logs build-release/src/server/cnp_server --config server.conf`
-fa ripartire il server dopo un riavvio o un crash (non dopo uno stop; si arrende
-dopo 5 crash in 10 minuti) e scrive un log al giorno con l'ora su ogni riga,
-tenendo 14 giorni (`-k`). La lista server del client mostra quanti giocano, o
-"maintenance".
-
-I mod proteggono i propri comandi con `core.command(nome, aiuto, perm)` e
-chiedono `core.has_perm(player, perm)` e `core.role(player)`.
+`tools/serve.sh -l logs build-release/src/server/cnp_server --config server.conf` tiene un
+server acceso tra riavvii e crash, con un log al giorno.
 
 ### Strumenti
 
@@ -504,7 +471,7 @@ chiedono `core.has_perm(player, perm)` e `core.role(player)`.
 | `build/tools/cnp_netshape` | Relay UDP con ritardo e perdita, per provare link lenti |
 | `build/tools/libcnp_clock_skew.so` | `LD_PRELOAD` che sposta l'orologio di un processo, per i ticket |
 | `tools/admin.sh` (`-p PORTA`) | Un comando admin a un server avviato, via RCON; la password in `CNP_RCON_PASSWORD` |
-| `tools/serve.sh` (`-l DIR` `-k GIORNI`) | Tiene acceso un server tra riavvii e crash, un log al giorno |
+| `tools/serve.sh` (`-l DIR` `-k GIORNI` `-w URL`) | Tiene acceso un server tra riavvii e crash, un log al giorno; i crash mandati in POST all'URL |
 | `tools/two_machines.sh` | Due server in container, con MTU e NAT veri |
 | `build/tools/cnp_bake_textures` | Rigenera le texture segnaposto dei blocchi |
 

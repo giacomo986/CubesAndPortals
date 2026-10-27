@@ -2900,7 +2900,7 @@ Declares a chat command, /name, for this mod. When a player types it, this mod a
 core.has_perm(player: number, perm: string) -> number
 ```
 
-1 when this player's role on this server reaches `perm`, else 0. Roles go guest (no identity), player, helper, moderator, admin, owner, and are given with /role. In the single-process client its one player owns the world: always 1.
+1 when this player's role on this server reaches `perm`, else 0. Roles go guest (no identity), player, helper, moderator, admin, owner, and are given with /role (a role given for one room counts in that room). In the single-process client its one player owns the world: always 1.
 
 | argomento | tipo | default | note |
 |---|---|---|---|

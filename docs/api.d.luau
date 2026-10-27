@@ -486,7 +486,7 @@ Returns 0 when the write is refused -- a field name or value too long, more than
     chat: (player: number, text: string) -> number,
     -- Declares a chat command, /name, for this mod. When a player types it, this mod and only this mod hears core:command with the player, the name and the rest of the line; the mod answers with core.chat. A player below `perm` is told no and the mod hears nothing. Returns 0 for a bad name, one the engine keeps (help, list, the admin commands), one another mod already declared, or a `perm` nobody has heard of. The single-process client ignores `perm`: its one player owns the world.
     command: (name: string, help: string, perm: string?) -> number,
-    -- 1 when this player's role on this server reaches `perm`, else 0. Roles go guest (no identity), player, helper, moderator, admin, owner, and are given with /role. In the single-process client its one player owns the world: always 1.
+    -- 1 when this player's role on this server reaches `perm`, else 0. Roles go guest (no identity), player, helper, moderator, admin, owner, and are given with /role (a role given for one room counts in that room). In the single-process client its one player owns the world: always 1.
     has_perm: (player: number, perm: string) -> number,
     -- This player's role on this server: guest, player, helper, moderator, admin or owner; empty for nobody. "owner" in the single-process client.
     role: (player: number) -> string,
