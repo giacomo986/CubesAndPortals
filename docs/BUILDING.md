@@ -162,7 +162,8 @@ Per fare un'alpha:
 1. alzare `kEngineVersion`;
 2. aggiungere in cima a `CHANGELOG.md` la nuova voce, con la data e cosa cambia per chi gioca;
 3. fare un commit, poi `git tag v<versione>` (per esempio `git tag v0.4.0-alpha.2`);
-4. `git push --follow-tags`: la CI costruisce i pacchetti e li pubblica. Senza GitHub, si
+4. `git push`, poi `git push origin v<versione>` (`--follow-tags` non porta i tag semplici):
+   la CI costruisce i pacchetti e li pubblica. Senza GitHub, si
    lanciano a mano i `package-*.sh` qui sopra e si consegnano i file di `<build>/dist/`.
    Ogni `package-*.sh`, prima di costruire, sposta in `<build>/dist/vecchie/` i pacchetti
    delle altre versioni (`tools/dist/archive-old.sh`): in `dist/` resta solo quella da
