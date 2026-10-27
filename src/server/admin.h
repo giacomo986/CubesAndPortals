@@ -106,9 +106,12 @@ struct Hooks {
     // (core/item/item_codec.h), and what this player carries that some world
     // did not know (`hidden`). bag_late: the friend did not send it; use the
     // one here.
-    std::function<bool(const uint8_t *identity, bool from_file, std::string &bag)> bag_give;
+    // `packs`: what the backpacks in it hold (mods/backpack), which go with it.
+    std::function<bool(const uint8_t *identity, bool from_file, std::string &bag, std::string &packs)>
+        bag_give;
     std::function<void(const uint8_t *identity, const std::string &bag, const std::string &hidden,
-                       const std::string &from)>                                   bag_take;
+                       const std::string &packs, const std::string &from)>
+        bag_take;
     std::function<void(const uint8_t *identity)>                                   bag_late;
     std::function<int64_t(const uint8_t *identity)> bag_seen;   // kept here when, -1 for never or not held
 
@@ -132,9 +135,16 @@ std::string motd();
 std::string maintenance();   // its text, "" when open to everybody
 void        set_motd(const std::string &text);
 
+// The rules (--rules-file, /rules set): each player accepts these ones once
+// (/accept, the page "rules") before they speak or build; staff need not.
+void set_rules(const std::string &text);
+bool accepted(const Who &who);
+
 // Visits, for /seen, /players, /whois and --report: one row from coming into a
 // room to leaving it. A visit a crash left open is closed at the next start.
 void joined(const Who &who, const std::string &room);
+// The staff online told when `who` shares an address with a banned player.
+void check_alts(const Who &who, const Hooks &hooks);
 void left(const Who &who, const std::string &room, const std::string &reason);
 // A player who came through a portal on a ticket `issuer` signed, from
 // `address`: who sends players here, how many, from where (/portals).
@@ -153,7 +163,8 @@ bool backup(std::string &err);
 
 // --report: what a world file remembers of its players, printed. Offline,
 // with the server stopped or not (it only reads).
-int report(const std::string &path, int64_t since_seconds);
+// --json: the same as one JSON object, for a program to read.
+int report(const std::string &path, int64_t since_seconds, bool json = false);
 
 // Federation with friend servers (/friend, /fed, /where): a TCP port other
 // servers send signed lines to, 0 for sending only; `me` is this server's
@@ -175,8 +186,9 @@ bool bag_ask(const Who &who, const uint8_t *issuer, const Hooks &hooks);
 // What this player carries that a world did not know, kept aside (encoded,
 // "" for nothing): it goes with the bag to the next friend and comes out where
 // it is known.
-std::string hidden(const uint8_t *identity);
-void        set_hidden(const uint8_t *identity, const std::string &bytes);
+// `kind` "packs": what the hidden backpacks hold.
+std::string hidden(const uint8_t *identity, const char *kind = "hidden");
+void        set_hidden(const uint8_t *identity, const std::string &bytes, const char *kind = "hidden");
 
 // The console, which is the machine's owner.
 Who console();

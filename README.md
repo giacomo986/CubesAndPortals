@@ -429,8 +429,9 @@ The full list is in `main()` in [`src/client/main.cpp`](src/client/main.cpp).
 | `--max-per-address N` | At most N players from one address |
 | `--watchdog S` | A room that has not finished a tick in S seconds aborts the server with its stack printed, for `tools/serve.sh` to start it again |
 | `--federation PORT` | Friend servers (`/friend`): sealed, signed lines on this TCP port, under the ticket key (`--ticket-key`, or WORLD.sign) |
+| `--rules-file FILE` `--no-update-check` | Rules each player accepts before playing; no asking GitHub for a newer release ([`docs/ADMIN.md`](docs/ADMIN.md)) |
 | `--webhook URL` | Admin actions, start, stop and reports POSTed there as JSON ([`docs/ADMIN.md`](docs/ADMIN.md#webhooks)) |
-| `--report FILE` `--since 7d` | No server: what a world file remembers -- players, play time, most at once, joins by hour, rooms, who was turned away, staff actions, restarts and crashes, crossings in from other servers |
+| `--report FILE` `--since 7d` `--json` | No server: what a world file remembers -- players, play time, most at once, joins by hour, rooms, who was turned away, staff actions, restarts and crashes, crossings in from other servers |
 | `--portals` `--portal-to HOST:PORT[/N]` | A pair of server-managed openings; `--portal-to` says where the first leads (and which opening `N` you come out of); repeated, the second, third and fourth |
 | `--ticket-key FILE` `--portal-peer-key HEX` `--trust HEX` `--require-ticket` | Signed tickets for crossing between servers |
 | `--mobs N` `--ticks N` `--quiet` | Test mobs, ticks before exiting, less logging |
@@ -441,7 +442,7 @@ The full list is in `main()` in [`src/client/main.cpp`](src/client/main.cpp).
 Typed in chat by a player whose role allows it, on the server's stdin without the slash, over
 RCON (`tools/admin.sh`), or with the buttons of the `/admin` page. Roles (guest, player,
 helper, moderator, admin, owner, also per room), bans, mutes, the whitelist, warnings,
-reports and notes, restarts with warnings and maintenance, the message of the day, visits and
+reports and notes, rules to accept, alt accounts, restarts with warnings and maintenance, the message of the day, visits and
 `--report`, `/inspect` and `/rollback` of what a player changed, backups, webhooks, `/bag` and
 `/give`, and friend servers that share bans, presence, a chat and one bag for each player.
 

@@ -14,6 +14,9 @@ through one function there, whichever way it was typed.
 - [Flags and server.conf](#flags-and-serverconf)
 - [Keeping it running](#keeping-it-running)
 - [Restarts, stops and maintenance](#restarts-stops-and-maintenance)
+- [Rules to accept](#rules-to-accept)
+- [Alt accounts](#alt-accounts)
+- [Update check](#update-check)
 - [Visits, logs and reports](#visits-logs-and-reports)
 - [Blocks: inspect and rollback](#blocks-inspect-and-rollback)
 - [Backups](#backups)
@@ -61,8 +64,8 @@ Each command asks for a permission, and each permission wants a least role. The 
 | Role | Permissions |
 |---|---|
 | helper | `mute`, `pages`, `staffchat`, `warn`, `reports`, `notes`, `players`, `inspect` |
-| moderator | `kick`, `ban`, `creative`, `announce`, `whois`, `rollback`, `bag` |
-| admin | `ban.ip`, `access`, `roles`, `restart`, `maintenance`, `motd`, `logs`, `backup`, `portals`, `give` |
+| moderator | `kick`, `ban`, `creative`, `announce`, `whois`, `rollback`, `bag`, `alts` |
+| admin | `ban.ip`, `access`, `roles`, `restart`, `maintenance`, `motd`, `rules`, `logs`, `backup`, `portals`, `give` |
 | owner | `perms`, `federation` |
 
 `/perm PERMISSION ROLE` (owner) moves a permission to another role; `/perm` lists them.
@@ -91,6 +94,8 @@ owner of that name on this world, or the bare name.
 | `/whitelist on\|off\|list\|add NAME\|remove NAME` | access | Only the listed players, and staff, come in |
 | `/perm [PERMISSION ROLE]` | perms | Which role each permission wants |
 | `/warn NAME reason` | warn | A warning; three in 30 days are a day's ban |
+| `/rules [set TEXT\|off]` | anybody (rules to change) | The rules everybody accepts; setting new ones asks everybody again |
+| `/accept` `/leave` | anybody | Accept the rules, or leave the server not accepting them |
 
 ### The server's life
 
@@ -111,7 +116,8 @@ owner of that name on this world, or the bare name.
 | `/seen NAME` | anybody | When a player was last here, and for how long in all |
 | `/players [7d]` | players | Who came in lately, visits and time played |
 | `/whois NAME` | whois | Key, names used, addresses, warnings, notes, bans |
-| `/bag NAME` | bag | What a player carries, square by square; offline, the bag kept here; and whether it went to a friend server |
+| `/alts NAME` | alts | Other players who came in from an address this one came from, and which are banned |
+| `/bag NAME` | bag | What a player carries, square by square, and what their backpacks hold; offline, the bag kept here; and whether it went to a friend server |
 | `/give NAME ITEM [COUNT]` | give | Items by name (`chest:box`) into an online player's bag |
 | `/report NAME what happened` | anybody | A report for the staff, told at once to those online |
 | `/reports` | reports | The latest reports |
@@ -148,8 +154,12 @@ owner of that name on this world, or the bare name.
 `/admin` opens a page with who is online and buttons to kick, ban and mute; from there
 `bans`, `whitelist`, `roles`, `perms`, `running` (restarts, maintenance, message of the day,
 backups), `players`, `reports` and `log`. Everybody has `server` (the rooms and who is in
-them), `mods`, `here` (where you stand and whose ground it is) and the pages mods add. A page
-shows only what its viewer may do, and each button runs the command typing it would.
+them), `mods`, `here` (where you stand and whose ground it is), `rules` and the pages mods add.
+A page shows only what its viewer may do, and each button runs the command typing it would.
+
+Pages are laid out by the server in English. A client that translates a label or a button
+draws the translation smaller when it is wider than the room it was given, down to two thirds
+of the size, and past that the English words, which fit by construction.
 
 ## Flags and server.conf
 
@@ -165,6 +175,7 @@ owner = alice
 rcon = 25399
 rcon-password = change-me
 motd = Welcome! /help lists the commands.
+rules-file = rules.txt
 restart-at = 04:00
 backup-every = 6h
 backup-keep = 8
@@ -179,6 +190,8 @@ webhook = https://example.org/hooks/server
 | `--owner NAME` | Whoever plays under NAME with a key is the owner |
 | `--rcon PORT` `--rcon-password PW` | Admin commands over TCP on 127.0.0.1 |
 | `--motd TEXT` | The message of the day |
+| `--rules-file FILE` | The rules to accept, from a file (several lines); see below |
+| `--no-update-check` | Do not ask GitHub whether a newer release is out |
 | `--restart-at HH:MM` | A restart every day at that local time, with ten minutes of warnings |
 | `--backup-every 6h` `--backup-keep N` | Backups while running; the newest N stay (5) |
 | `--max-per-address N` | At most N players from one address |
@@ -186,7 +199,7 @@ webhook = https://example.org/hooks/server
 | `--federation PORT` | Friend servers' TCP port, under the ticket key (`--ticket-key`, or WORLD.sign) |
 | `--webhook URL` | Admin actions, start, stop and reports POSTed there |
 | `--max-players N` `--require-identity` `--no-observers` | Seats; players must have a key; no portal windows from other worlds |
-| `--report FILE` `--since 7d` | No server: what a world file remembers, printed |
+| `--report FILE` `--since 7d` `--json` | No server: what a world file remembers, printed; `--json` as one JSON object |
 | `--names` `--free-name NAME` | No server: who owns each name; let one go |
 
 The rest of the flags (world, mods, portals, rooms) are in the [README](../README.md#server-cnp_server).
@@ -217,6 +230,28 @@ cancel` stops the countdown.
 Maintenance keeps everybody but staff out; whoever is in and not staff is put out with its
 text. It survives a restart, until `/maintenance off`.
 
+## Rules to accept
+
+With `--rules-file FILE` (or `/rules set TEXT`), each player coming in sees the page `rules`
+with the text and two buttons, Accept and Leave. Until they accept they cannot chat, run
+commands other than `/rules`, `/accept`, `/leave` and `/help`, or break or place blocks; the
+page comes back each time they try. Staff are taken to have accepted. Setting different rules
+asks everybody again; the same text read again at a restart does not. `/rules off` removes
+them.
+
+## Alt accounts
+
+`/alts NAME` lists the other players (keys) who came in from any address that player came
+from, with which of them are banned. When a player comes in from an address a banned player
+used, the staff online are told at once (`[alts] bob came in from where eve did, who is
+banned`). An address is not a person: a household, a school or a phone network shares one.
+
+## Update check
+
+A server that listens asks GitHub once, at start, whether a release newer than its own is out
+(the same question the client's title screen asks). When one is, the log says so, and every
+admin online and each admin coming in is told in chat. `--no-update-check` turns it off.
+
 ## Visits, logs and reports
 
 Each visit is a row: who, from which address, in which room, from when to when, and why it
@@ -226,6 +261,9 @@ Every admin action goes to the admin log with who did it, to whom, and the detai
 `cnp_server --report worlds/main.world --since 7d` prints, without stopping the server:
 players and their time, most at once, joins by hour, rooms, who was turned away and why,
 staff actions, restarts and crashes, and arrivals through portals from other servers.
+With `--json` the same numbers come as one JSON object (`players`, `visits`,
+`seconds_played`, `most_at_once`, `joins_by_hour`, `most_played`, `rooms`, `refused`,
+`staff_actions`, `server`, `crossings_in`), for a program to read.
 
 ## Blocks: inspect and rollback
 
@@ -287,9 +325,13 @@ Setting up two friends:
 2. On the first: `/friend add second second.example.org:25480 HEX_OF_SECOND`.
 3. On the second: `/friend add first first.example.org:25480 HEX_OF_FIRST`.
 
-Each line is signed by the sender's ticket key and sealed for the receiver (X25519 from the two
-keys, XChaCha20-Poly1305), with the sender's clock: a line older than its last, or five minutes
-away from this clock, is dropped, and so is one from a key not in the list.
+Each line goes on a TCP connection of its own. The receiver speaks first, with a key made for
+that connection alone; the sender answers with one of its own and the line, sealed for the
+receiver (XChaCha20-Poly1305, with a key from the two servers' long-term keys and the two
+throwaway ones) and signed by the sender's ticket key. The throwaway keys are forgotten at
+once, so a line recorded today cannot be opened tomorrow even with both servers' keys: forward
+secrecy. A line older than the sender's last, five minutes away from this clock, or from a key
+not in the list is dropped.
 
 ### One bag
 
@@ -298,15 +340,24 @@ A player's bag lives on one friend server at a time and goes where they go:
 - **Through a portal** from a friend: the server they arrive at asks the one they come from,
   which lets go of it (the player there is a window now) and sends it.
 - **Walking in** from the menu: the server asks every friend whose copy is newest. The newest,
-  if newer than its own, sends it and lets go of it.
+  if newer than its own, sends it and lets go of it. Newest is the copy that moved between
+  friends most often, which needs no clock (only the holder is ever given a higher count); two
+  copies that never moved, from before the servers were friends, are told apart by when each
+  was kept.
 - The one that sent it remembers where it went: a later visit there asks that server first,
   and `/bag` there says so.
 - While it comes (a few milliseconds, at most five seconds) the player holds an empty bag, and
   nothing saves over the one on disk. A friend that does not answer in time leaves the player
-  with the bag kept here.
+  with the bag kept here; if the friend's bag comes later after all, it takes the place of
+  that old copy, and what the player picked up in the meantime goes into it.
+- **Backpacks** (`mods/backpack`) go with their contents. A backpack's contents are kept under
+  its number, which each server's mod counts from 1, so the server a backpack comes to gives
+  it a number of its own from 100000 up (kept when it comes back to a server where that number
+  is free).
 - **Things a world does not know** (an item of a mod it does not have) are hidden: kept aside,
-  out of the bag, and sent along with it; they come back into free squares on a server that
-  knows them. `/bag` says when a player has some.
+  out of the bag, and sent along with it, a hidden backpack with its contents; they come back
+  on a server that knows them, into the square they had (a backpack onto the back) or a free
+  one. `/bag` says when a player has some.
 
 ## What is kept, and where
 
@@ -314,7 +365,7 @@ In the first room's world file (one store for every room), next to the world:
 
 | Table | What |
 |---|---|
-| `admin` | One row a thing: `role`, `ban`, `mute`, `allow` (whitelist), `setting` (whitelist on, maintenance, message of the day), `perm`, `addr` (last address), `friend`, `fedskip` (a friend's ban lifted here), `bagaway` (whose bag went to which friend), `hidden` (what a player carries that this world does not know) |
+| `admin` | One row a thing: `role`, `ban`, `mute`, `allow` (whitelist), `setting` (whitelist on, maintenance, message of the day, rules), `accepted` (which rules a player accepted), `perm`, `addr` (last address), `friend`, `fedskip` (a friend's ban lifted here), `bagaway` (whose bag went to which friend), `baggen` (how often a bag moved), `hidden` and `packs` (what a player carries that this world does not know, and what its backpacks hold) |
 | `admin_log` | Every admin action, start, stop, unclean stop, report, note, warning |
 | `sessions` | One row a visit |
 | `edits` | Every block a player changed, a month |
@@ -323,13 +374,11 @@ Bags themselves are in each room's world file, as they always were.
 
 ## Limits
 
-- A bag that comes from a friend later than five seconds after the player arrived is dropped
-  and logged; the player keeps the one here.
-- Friends compare their clocks to say whose bag is newest: a player who leaves one and walks
-  into the other within the difference between their clocks may get the older one.
-- What a backpack holds (`mods/backpack`) moves between rooms of one server, not between
-  friend servers.
-- A friend line is sealed with the two servers' long-term keys: no forward secrecy.
-- Mod chat sent from a tick, not from a command, is not held by `/mute`.
-- A page measures a label in English even where the client shows it translated; a translation
-  that does not fit is shown in English.
+- Mod chat sent from a tick, not from a player's command, page action or click, is not held
+  by `/mute`: nothing says whose words it carries. A mod that relays a player's words later
+  (a mailbox) asks `core.is_muted` itself, as `/msg` and `/me` do.
+- A friend that stays unreachable while a player plays on with the copy kept here keeps its own
+  copy too; whichever moved more often wins the next time the two are compared.
+- The client's check that the far server's key is the one a portal names stands behind the
+  ticket: a server that is not the one named refuses the ticket before the client ever reads
+  its key, so the check only matters for a server that would lie about tickets too.

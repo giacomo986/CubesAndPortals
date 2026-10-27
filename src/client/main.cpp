@@ -30,7 +30,7 @@
 #include "client/render/selection.h"
 #include "client/ui/hud.h"
 #include "client/ui/lang.h"
-#include "client/update_check.h"
+#include "core/update_check.h"
 #include "client/render/world_render.h"
 #include "core/math/mat4.h"
 #include "core/media/media_set.h"
@@ -3300,7 +3300,7 @@ int         host_is_muted(void *, int) { return 0; }
 bool core_page_name(const std::string &n)
 {
     for (const char *c : {"pages", "admin", "bans", "whitelist", "roles", "perms", "server", "running", "players", "reports", "log",
-                          "mods", "here"})
+                          "mods", "here", "rules"})
         if (n == c) return true;
     return false;
 }
@@ -15967,6 +15967,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                                                              s.at(fallback_world).registry,
                                                              s.at(fallback_world).movement);
                         fallback_pending = true;
+                        fallback_asked   = false;   // a second redirect asks again
                         fallback_started = now;
                         ++redirects_taken;
                         std::printf("redirected to %s opening %u: %s%s\n",
@@ -16003,7 +16004,9 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 // Chunks AT THE MOMENT OF ARRIVAL, which is the number that
                 // says the world was not there yet -- the gate reads what the
                 // session has by the end of the run for the rest of it.
-                fallback_chunks  = fb->chunks_received();
+                // The first arrival's: a way back may find a few streamed
+                // while the reconnect waited for its answer.
+                if (crossed_once == 0) fallback_chunks = fb->chunks_received();
                 fallback_seconds = now - fallback_started;
                 ++crossed_once;
                 chunks_before_arriving = 0;   // nothing had been streamed: that IS the cost
@@ -16984,7 +16987,9 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                     (double)player.pos.z, (double)s.act().portal_a.center.x,
                     (double)s.act().portal_a.center.y, (double)s.act().portal_a.center.z);
 
-        check(redirects_taken == 1, "the server's redirect is what carried the player across");
+        // One redirect a crossing: --cross-back walks back the same way.
+        check(redirects_taken >= 1 && redirects_taken == crossed_once,
+              "the server's redirect is what carried the player across");
         check(fallback_seconds >= 0.0,
               "and the player is standing in the world on the other side");
         check(conn->playing() && conn->scope() == net::Scope::Enter,

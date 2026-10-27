@@ -37,6 +37,8 @@ namespace {
 float g_travel = 0.0f;    // --travel: blocks to fly along +x after joining
 float g_hold   = 35.0f;   // --hold: seconds to hover at the end of it
 int   g_dig    = 0;       // --dig: blocks to break beside the spawn first (/rollback)
+bool  g_pack   = false;   // --pack: wear what is in square 1 on the back, then /packfill
+std::vector<std::string> g_say;   // --say TEXT: chat lines (a /command too), before --dig
 bool  g_far    = false;   // --far X Y Z: say at the end whether that chunk arrived
 float g_far_at[3] = {0.0f, 0.0f, 0.0f};
 bool  g_flown  = true;    // --walked-down: come down without saying it is flying
@@ -155,6 +157,28 @@ int join_mode(const char *host, uint16_t port, const char *name, int extent,
                 client.chunks_received(), ground ? "solid" : "MISSING");
 
     const bool streamed_ok = client.chunks_received() > 0 && client.chunk_error().empty() && ground;
+
+    // --pack: three seconds for something to be given, then square 1 onto the
+    // back (the fifth worn square) and /packfill, a scratch mod's command that
+    // numbers it and fills its container -- a backpack between friend servers.
+    if (g_pack && streamed_ok) {
+        const auto pump_for = [&](double s) {
+            for (const double until = now_seconds() + s; now_seconds() < until;) client.pump(now_seconds(), 10);
+        };
+        pump_for(3.0);
+        client.send_move_item(0, Inventory::kDefaultSlots + 4);
+        pump_for(1.0);
+        client.send_chat("/packfill");
+        pump_for(1.0);
+        std::printf("        wore square 1 on the back and asked for /packfill\n");
+    }
+
+    for (const std::string &line : g_say) {
+        if (!streamed_ok) break;
+        client.send_chat(line);
+        for (const double until = now_seconds() + 0.7; now_seconds() < until;) client.pump(now_seconds(), 10);
+        std::printf("        said '%s'\n", line.c_str());
+    }
 
     // --dig N: the top of the ground, N cells along +x from under the player,
     // swung at every half second until it comes away (a hard block takes a
@@ -307,6 +331,8 @@ int main(int argc, char **argv)
         if (arg == "--travel" && i + 1 < argc) g_travel = (float)std::atof(argv[++i]);
         if (arg == "--hold" && i + 1 < argc) g_hold = (float)std::atof(argv[++i]);
         if (arg == "--dig" && i + 1 < argc) g_dig = std::atoi(argv[++i]);
+        if (arg == "--pack") g_pack = true;
+        if (arg == "--say" && i + 1 < argc) g_say.push_back(argv[++i]);
         if (arg == "--walked-down") g_flown = false;
         if (arg == "--far" && i + 3 < argc) {
             g_far = true;

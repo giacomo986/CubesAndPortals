@@ -4,6 +4,7 @@
 # grown a graphics dependency (DESIGN.md 3.1).
 add_library(cnp_core STATIC
     audio/attenuation.cpp
+    update_check.cpp
     audio/tone.cpp
     math/mat4.cpp
     diag/profiler.cpp

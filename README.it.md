@@ -436,8 +436,9 @@ L'elenco completo è in `main()` di [`src/client/main.cpp`](src/client/main.cpp)
 | `--max-per-address N` | Al massimo N giocatori dallo stesso indirizzo |
 | `--watchdog S` | Una stanza che non finisce un tick in S secondi fa uscire il server con lo stack stampato, perché `tools/serve.sh` lo riavvii |
 | `--federation PORTA` | Server amici (`/friend`): righe firmate e cifrate su questa porta TCP, con la chiave dei biglietti (`--ticket-key`, o MONDO.sign) |
+| `--rules-file FILE` `--no-update-check` | Regole che ogni giocatore accetta prima di giocare; niente domanda a GitHub su una release più nuova ([`docs/ADMIN.md`](docs/ADMIN.md)) |
 | `--webhook URL` | Azioni admin, avvio, arresto e segnalazioni mandati lì in POST come JSON ([`docs/ADMIN.md`](docs/ADMIN.md#webhooks)) |
-| `--report FILE` `--since 7d` | Senza server: cosa ricorda un file del mondo -- giocatori, tempo di gioco, massimo insieme, ingressi per ora, stanze, chi è stato respinto, azioni dello staff, riavvii e crash, attraversamenti da altri server |
+| `--report FILE` `--since 7d` `--json` | Senza server: cosa ricorda un file del mondo -- giocatori, tempo di gioco, massimo insieme, ingressi per ora, stanze, chi è stato respinto, azioni dello staff, riavvii e crash, attraversamenti da altri server |
 | `--portals` `--portal-to HOST:PORT[/N]` | Una coppia di aperture gestita dal server; `--portal-to` dice dove porta la prima (e da quale apertura `N` si esce); ripetuto, la seconda, la terza e la quarta |
 | `--ticket-key FILE` `--portal-peer-key HEX` `--trust HEX` `--require-ticket` | Ticket firmati per attraversare fra server |
 | `--mobs N` `--ticks N` `--quiet` | Mob di prova, tick prima di uscire, meno log |
@@ -448,7 +449,7 @@ L'elenco completo è in `main()` di [`src/client/main.cpp`](src/client/main.cpp)
 Si scrive in chat da un giocatore il cui ruolo lo permette, sullo stdin del server senza la
 barra, via RCON (`tools/admin.sh`), o con i pulsanti della pagina `/admin`. Ruoli (guest,
 player, helper, moderator, admin, owner, anche per stanza), ban, mute, whitelist,
-avvertimenti, segnalazioni e note, riavvii con avvisi e manutenzione, messaggio del giorno,
+avvertimenti, segnalazioni e note, regole da accettare, account doppi, riavvii con avvisi e manutenzione, messaggio del giorno,
 visite e `--report`, `/inspect` e `/rollback` di quello che un giocatore ha cambiato, backup,
 webhook, `/bag` e `/give`, e server amici che condividono ban, presenza, una chat e un solo
 zaino per ogni giocatore.

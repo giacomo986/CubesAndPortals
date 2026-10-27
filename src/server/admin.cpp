@@ -7,6 +7,7 @@
 
 #include <cctype>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <ctime>
 #ifdef _WIN32
@@ -26,6 +27,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <map>
+#include <set>
 #include <tuple>
 #include <unordered_map>
 #include <climits>
@@ -352,7 +354,8 @@ const PermRow kPerms[] = {
     {"whois", Role::Moderator},    {"logs", Role::Admin},     {"backup", Role::Admin},
     {"portals", Role::Admin},      {"federation", Role::Owner},
     {"inspect", Role::Helper},     {"rollback", Role::Moderator},
-    {"bag", Role::Moderator},      {"give", Role::Admin},
+    {"bag", Role::Moderator},      {"give", Role::Admin},     {"rules", Role::Admin},
+    {"alts", Role::Moderator},
 };
 
 struct Command {
@@ -742,6 +745,53 @@ void cmd_motd(const Who &c, const Args &a, const Hooks &, std::vector<std::strin
     out.push_back("Message of the day: " + text);
 }
 
+// The rules: shown on a page to each player who has not accepted these ones
+// (the time they were set is their version), who cannot speak or build
+// until they /accept. Staff are taken to have.
+void cmd_rules(const Who &c, const Args &a, const Hooks &, std::vector<std::string> &out)
+{
+    if (a.name == "set" && may(c, "rules")) {
+        const std::string text = rest(a, 1);
+        if (text.empty()) {
+            out.push_back("/rules set TEXT");
+            return;
+        }
+        set_rules(text);
+        log(c, "rules", "", text);
+        out.push_back("New rules; everybody accepts them again.");
+        return;
+    }
+    if (a.name == "off" && may(c, "rules")) {
+        drop("setting", "rules");
+        log(c, "rules", "off", "");
+        out.push_back("No rules now.");
+        return;
+    }
+    const std::string r = setting("rules");
+    out.push_back(r.empty() ? "This server has no rules to accept." : r);
+    if (!r.empty() && !accepted(c)) out.push_back("/accept them, or /leave.");
+}
+
+void cmd_accept(const Who &c, const Args &, const Hooks &, std::vector<std::string> &out)
+{
+    Row r;
+    if (!find("setting", "rules", r)) {
+        out.push_back("There are no rules to accept.");
+        return;
+    }
+    put("accepted", target_of(c), c.name, std::to_string(r.at), "", 0);
+    log(c, "accept", "", "");
+    out.push_back("Thank you. Have fun.");
+}
+
+void cmd_leave(const Who &c, const Args &, const Hooks &h, std::vector<std::string> &out)
+{
+    net::PeerId peer = net::kNoPeer;
+    resolve(c.name, h, &peer);
+    if (peer != net::kNoPeer && h.remove) h.remove(peer, net::RefuseReason::Kicked, "you did not accept the rules");
+    out.push_back("Goodbye.");
+}
+
 void cmd_announce(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
 {
     const std::string text = rest(a, 0);
@@ -1050,6 +1100,40 @@ void cmd_give(const Who &c, const Args &a, const Hooks &h, std::vector<std::stri
     out.push_back(t.name + " gets " + std::to_string(n) + " " + a.words[1] + ".");
 }
 
+// Other players who came in from an address this one came from: the same
+// person under another key, or a household. `banned_only` for the warning
+// to the staff when one comes in.
+std::vector<std::string> alts_of(const Who &t, bool banned_only)
+{
+    std::vector<std::string> out;
+    const std::string        target = target_of(t);
+    std::set<std::string>    addrs;
+    query("SELECT DISTINCT address FROM sessions WHERE target = ?1 AND address != ''", {target},
+          [&](sqlite3_stmt *st) { addrs.insert(col(st, 0)); });
+    if (!t.address.empty()) addrs.insert(t.address);
+    std::map<std::string, std::pair<std::string, std::string>> seen;   // target -> name, address
+    for (const std::string &ad : addrs)
+        query("SELECT target, name FROM sessions WHERE address = ?1 AND target != ?2 GROUP BY target",
+              {ad, target}, [&](sqlite3_stmt *st) { seen[col(st, 0)] = {col(st, 1), ad}; });
+    for (const auto &[other, na] : seen) {
+        Row        ban;
+        const bool banned = find("ban", other, ban);
+        if (banned_only && !banned) continue;
+        out.push_back(na.first + (banned ? " (banned)" : "") + ", from " + na.second);
+    }
+    return out;
+}
+
+void cmd_alts(const Who &, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    if (a.name.empty()) {
+        out.push_back("/alts NAME");
+        return;
+    }
+    for (const std::string &l : alts_of(resolve(a.name, h), false)) out.push_back(l);
+    if (out.empty()) out.push_back("Nobody else came in from where " + a.name + " did.");
+}
+
 void cmd_whois(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
 {
     if (a.name.empty()) {
@@ -1158,6 +1242,9 @@ const Command kCommands[] = {
     {"maintenance", "maintenance", "on [text]|off -- only staff come in", cmd_maintenance},
     {"motd", nullptr, "[TEXT|off] -- the message of the day", cmd_motd},
     {"announce", "announce", "TEXT -- a notice on every screen", cmd_announce},
+    {"rules", nullptr, "[set TEXT|off] -- the rules everybody accepts", cmd_rules},
+    {"accept", nullptr, "-- accept the rules", cmd_accept},
+    {"leave", nullptr, "-- leave, not accepting the rules", cmd_leave},
     {"sc", "staffchat", "TEXT -- to the staff online", cmd_sc},
     {"warn", "warn", "NAME reason -- 3 in 30 days ban for a day", cmd_warn},
     {"report", nullptr, "NAME what happened -- to the staff", cmd_report},
@@ -1170,6 +1257,7 @@ const Command kCommands[] = {
     {"seen", nullptr, "NAME -- when a player was last here", cmd_seen},
     {"players", "players", "[7d] -- who came in lately", cmd_players},
     {"whois", "whois", "NAME -- what the staff knows of a player", cmd_whois},
+    {"alts", "alts", "NAME -- other players from the same addresses", cmd_alts},
     {"logs", "logs", "[N] [ACTION] -- the latest admin actions", cmd_logs},
     {"metrics", "logs", "-- how the server is doing", cmd_metrics},
     {"backup", "backup", "-- copy every world file now", cmd_backup},
@@ -1511,6 +1599,25 @@ void set_motd(const std::string &text)
     put("setting", "motd", "motd", text, "config", 0);
 }
 
+void set_rules(const std::string &text)
+{
+    if (setting("rules") != text) put("setting", "rules", "rules", text, "config", 0);
+}
+
+bool accepted(const Who &w)
+{
+    Row rules, mine;
+    if (!find("setting", "rules", rules) || role_of(w) >= Role::Helper) return true;
+    return find("accepted", target_of(w), mine) && mine.value == std::to_string(rules.at);
+}
+
+void check_alts(const Who &w, const Hooks &h)
+{
+    for (const std::string &l : alts_of(w, true))
+        tell_staff(h, "[alts] " + w.name + " came in from where " + l.substr(0, l.find(" (banned)")) +
+                          " did, who is banned");
+}
+
 void joined(const Who &w, const std::string &room)
 {
     query("INSERT INTO sessions (target, name, address, room, joined, left, reason) "
@@ -1600,7 +1707,7 @@ bool backup(std::string &err)
     return true;
 }
 
-int report(const std::string &path, int64_t since)
+int report(const std::string &path, int64_t since, bool json)
 {
     // Its own read-only connection: not open(), which writes.
     if (sqlite3_open_v2(path.c_str(), &g_db, SQLITE_OPEN_READONLY, nullptr) != SQLITE_OK) {
@@ -1612,22 +1719,32 @@ int report(const std::string &path, int64_t since)
     bool kept = false;
     query("SELECT 1 FROM sqlite_master WHERE name = 'sessions'", {}, [&](sqlite3_stmt *) { kept = true; });
     if (!kept) {
-        std::printf("report: %s has no visits recorded (a server from 0.9 on keeps them)\n", path.c_str());
+        if (json) std::printf("{\"file\":%s,\"visits_kept\":false}\n", json_text(path).c_str());
+        else std::printf("report: %s has no visits recorded (a server from 0.9 on keeps them)\n", path.c_str());
         sqlite3_close(g_db);
         g_db = nullptr;
         return 0;
     }
+    // Text for a person, or one JSON object for a program (--json): the same
+    // numbers either way. `j` gathers the object's members.
+    std::string j  = "{\"file\":" + json_text(path) + ",\"since_seconds\":" + std::to_string(since);
+    const auto  tx = [&](const char *fmt, auto... v) {
+        if (!json) std::printf(fmt, v...);
+    };
     const int64_t     t = now(), from_t = since > 0 ? t - since : 0;
     const std::string from = std::to_string(from_t), to = std::to_string(t);
     const char       *secs = "(CASE WHEN left = 0 THEN ?2 ELSE left END) - joined";
-    std::printf("%s, %s\n\n", path.c_str(),
-                since > 0 ? ("the last " + duration_text(since)).c_str() : "since it was first served");
+    tx("%s, %s\n\n", path.c_str(),
+       since > 0 ? ("the last " + duration_text(since)).c_str() : "since it was first served");
 
     query((std::string("SELECT COUNT(DISTINCT target), COUNT(*), SUM(") + secs +
            ") FROM sessions WHERE joined >= ?1").c_str(),
           {from, to}, [&](sqlite3_stmt *st) {
-              std::printf("players   %lld, %lld visits, %s played\n", sqlite3_column_int64(st, 0),
-                          sqlite3_column_int64(st, 1), span_text(sqlite3_column_int64(st, 2)).c_str());
+              tx("players   %lld, %lld visits, %s played\n", sqlite3_column_int64(st, 0),
+                 sqlite3_column_int64(st, 1), span_text(sqlite3_column_int64(st, 2)).c_str());
+              j += ",\"players\":" + std::to_string(sqlite3_column_int64(st, 0)) +
+                   ",\"visits\":" + std::to_string(sqlite3_column_int64(st, 1)) +
+                   ",\"seconds_played\":" + std::to_string(sqlite3_column_int64(st, 2));
           });
 
     // The most at once, swept over every visit's two ends.
@@ -1642,52 +1759,74 @@ int report(const std::string &path, int64_t since)
     int64_t peak_at = 0;
     for (const auto &[at, d] : ends)
         if ((on += d) > peak) peak = on, peak_at = at;
-    if (peak) std::printf("most at once  %d, %s\n", peak, when_text(peak_at).c_str());
+    if (peak) tx("most at once  %d, %s\n", peak, when_text(peak_at).c_str());
+    j += ",\"most_at_once\":" + std::to_string(peak) + ",\"most_at_once_at\":" + std::to_string(peak_at);
 
     int hours[24] = {};
     query("SELECT joined FROM sessions WHERE joined >= ?1", {from}, [&](sqlite3_stmt *st) {
         const std::time_t tt = (std::time_t)sqlite3_column_int64(st, 0);
         ++hours[std::localtime(&tt)->tm_hour];
     });
-    std::printf("joins by hour");
-    for (int h = 0; h < 24; ++h)
-        if (hours[h]) std::printf("  %02d:%d", h, hours[h]);
-    std::printf("\n\nmost played\n");
+    tx("joins by hour");
+    j += ",\"joins_by_hour\":[";
+    for (int h = 0; h < 24; ++h) {
+        if (hours[h]) tx("  %02d:%d", h, hours[h]);
+        j += (h ? "," : "") + std::to_string(hours[h]);
+    }
+    j += "]";
+    tx("\n\nmost played\n");
+    j += ",\"most_played\":[";
+    bool first = true;
     query((std::string("SELECT name, COUNT(*), SUM(") + secs +
            ") AS s FROM sessions WHERE joined >= ?1 GROUP BY target ORDER BY s DESC LIMIT 10")
               .c_str(),
           {from, to}, [&](sqlite3_stmt *st) {
-              std::printf("  %-20s %4lld visits  %s\n", col(st, 0).c_str(), sqlite3_column_int64(st, 1),
-                          span_text(sqlite3_column_int64(st, 2)).c_str());
+              tx("  %-20s %4lld visits  %s\n", col(st, 0).c_str(), sqlite3_column_int64(st, 1),
+                 span_text(sqlite3_column_int64(st, 2)).c_str());
+              j += std::string(first ? "" : ",") + "{\"name\":" + json_text(col(st, 0)) +
+                   ",\"visits\":" + std::to_string(sqlite3_column_int64(st, 1)) +
+                   ",\"seconds\":" + std::to_string(sqlite3_column_int64(st, 2)) + "}";
+              first = false;
           });
-    std::printf("\nrooms\n");
+    tx("\nrooms\n");
+    j += "],\"rooms\":[";
+    first = true;
     query((std::string("SELECT room, COUNT(*), SUM(") + secs +
            ") FROM sessions WHERE joined >= ?1 GROUP BY room ORDER BY 3 DESC")
               .c_str(),
           {from, to}, [&](sqlite3_stmt *st) {
-              std::printf("  %-20s %4lld visits  %s\n", col(st, 0).empty() ? "(the world)" : col(st, 0).c_str(),
-                          sqlite3_column_int64(st, 1), span_text(sqlite3_column_int64(st, 2)).c_str());
+              tx("  %-20s %4lld visits  %s\n", col(st, 0).empty() ? "(the world)" : col(st, 0).c_str(),
+                 sqlite3_column_int64(st, 1), span_text(sqlite3_column_int64(st, 2)).c_str());
+              j += std::string(first ? "" : ",") + "{\"room\":" + json_text(col(st, 0)) +
+                   ",\"visits\":" + std::to_string(sqlite3_column_int64(st, 1)) +
+                   ",\"seconds\":" + std::to_string(sqlite3_column_int64(st, 2)) + "}";
+              first = false;
           });
-    const auto counts = [&](const char *title, const char *sql) {
-        std::printf("\n%s\n", title);
+    j += "]";
+    const auto counts = [&](const char *title, const char *key, const char *sql) {
+        tx("\n%s\n", title);
+        j += std::string(",\"") + key + "\":{";
         bool any = false;
         query(sql, {from}, [&](sqlite3_stmt *st) {
+            tx("  %-40s %lld\n", col(st, 0).substr(0, 40).c_str(), sqlite3_column_int64(st, 1));
+            j += std::string(any ? "," : "") + json_text(col(st, 0)) + ":" + std::to_string(sqlite3_column_int64(st, 1));
             any = true;
-            std::printf("  %-40s %lld\n", col(st, 0).substr(0, 40).c_str(), sqlite3_column_int64(st, 1));
         });
-        if (!any) std::printf("  none\n");
+        if (!any) tx("  none\n");
+        j += "}";
     };
-    counts("turned away at the door",
+    counts("turned away at the door", "refused",
            "SELECT substr(detail, 1, instr(detail || ',', ',') - 1), COUNT(*) FROM admin_log "
            "WHERE action = 'refused' AND at >= ?1 GROUP BY 1 ORDER BY 2 DESC LIMIT 10");
-    counts("staff actions",
+    counts("staff actions", "staff_actions",
            "SELECT action, COUNT(*) FROM admin_log WHERE by NOT IN ('server', 'door') AND at >= ?1 "
            "GROUP BY action ORDER BY 2 DESC");
-    counts("the server",
+    counts("the server", "server",
            "SELECT action, COUNT(*) FROM admin_log WHERE by = 'server' AND at >= ?1 GROUP BY action");
-    counts("crossings in, by the server that sent them",
+    counts("crossings in, by the server that sent them", "crossings_in",
            "SELECT label, CAST(value AS INTEGER) FROM admin WHERE kind = 'inbound' AND at >= ?1 "
            "ORDER BY 2 DESC");
+    if (json) std::printf("%s}\n", j.c_str());
     sqlite3_close(g_db);
     g_db = nullptr;
     return 0;
@@ -1938,6 +2077,13 @@ std::string lines_page(const std::vector<std::string> &lines)
 bool page(const std::string &name, const Who &viewer, const Hooks &hooks, std::string &title,
           std::string &markup)
 {
+    if (name == "rules") {
+        const std::string r = setting("rules");
+        title  = "Rules";
+        markup = r.empty() ? "This server has no rules to accept.\n" : page_text(r) + "\n";
+        if (!r.empty() && !accepted(viewer)) markup += "\n[Accept](cmd:/accept) [Leave](cmd:/leave)\n";
+        return true;
+    }
     if (name == "running" && (may(viewer, "restart") || may(viewer, "maintenance") || may(viewer, "motd"))) {
         title  = "Running the server";
         markup = running_page(viewer, hooks);
@@ -2047,14 +2193,20 @@ bool start_rcon(int port, const std::string &password, std::string &err)
 // other in their list exchange, a line of TCP at a time, what both chose
 // to share -- their permanent bans, who is online, and a chat between them.
 //
-//   CNPFED2 FROM TO MS SEALED SIG
+// One TCP connection a line. The receiver speaks first, with a key of this
+// connection only:
+//
+//   <- CNPFED3 R_EPH
+//   -> CNPFED3 FROM TO MS S_EPH SEALED SIG
 //
 // FROM and TO are signing keys in hex, MS the sender's clock in milliseconds
-// (later than its last line, and within five minutes of ours), SEALED the
-// payload sealed for TO (net::seal_for: only TO reads it) in hex, SIG the
-// ed25519 signature of "CNPFED2|TO|MS|sealed" by FROM. Sealed because bags
-// travel this way, and a bag is the player's. A line from a key not in the
-// list is dropped where it is read (federation_tick).
+// (later than its last line, and within five minutes of ours), S_EPH the
+// sender's own throwaway key, SEALED the payload sealed for TO (net::seal_for,
+// with the two throwaway keys' secret mixed in: only TO reads it, and not even
+// TO once both throwaway keys are gone) in hex, SIG the ed25519 signature of
+// "CNPFED3|TO|MS|R_EPH|S_EPH|sealed" by FROM. Sealed because bags travel this
+// way, and a bag is the player's. A line from a key not in the list is
+// dropped where it is read (federation_tick).
 
 namespace {
 
@@ -2068,7 +2220,9 @@ struct FedIn {
 struct FedOut {
     std::string host;
     int         port = 0;
-    std::string line;
+    std::string to, payload;   // sealed once the receiver has said its key
+    int64_t     ms  = 0;
+    bool        bag = false;   // carries a bag (CNP_TEST_FED_DELAY_MS)
 };
 // Never destroyed: the sender thread waits on them for as long as the
 // process lives, and glibc's condition variable destructor waits for its
@@ -2127,18 +2281,9 @@ void fed_send(const Friend &f, const std::string &payload)
     static int64_t    last = 0;
     const int64_t     ms   = std::max(now_ms(), last + 1);
     last                   = ms;
-    const std::string to   = f.key.substr(4);
-    uint8_t           to_key[net::kSignPublicBytes];
-    std::string       sealed;
-    if (!net::from_hex(to, to_key, sizeof(to_key)) || !net::seal_for(g_me, to_key, payload, sealed)) return;
-    const std::string body = "CNPFED2|" + to + "|" + std::to_string(ms) + "|" + sealed;
-    uint8_t           sig[net::kSignatureBytes];
-    net::sign_message(g_me, body.data(), body.size(), sig);
-    std::string line = "CNPFED2 " + g_me_hex + " " + to + " " + std::to_string(ms) + " " +
-                       net::to_hex((const uint8_t *)sealed.data(), sealed.size()) + " " +
-                       net::to_hex(sig, sizeof(sig)) + "\n";
     std::lock_guard<std::mutex> hold(g_fed_m);
-    if (g_fed_out.size() < 256) g_fed_out.push_back({f.host, f.port, std::move(line)});
+    if (g_fed_out.size() < 256)
+        g_fed_out.push_back({f.host, f.port, f.key.substr(4), payload, ms, payload.rfind("bag\n", 0) == 0});
     g_fed_wake.notify_one();
 }
 
@@ -2190,6 +2335,44 @@ Sock dial(const std::string &host, int port)
     return s;
 }
 
+// The line for `o`, once the receiver on `s` has said its throwaway key; ""
+// when it does not within three seconds, or says something else.
+std::string sealed_line(Sock s, const FedOut &o)
+{
+#ifdef _WIN32
+    DWORD tv = 3000;
+#else
+    timeval tv{3, 0};
+#endif
+    setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
+    std::string hello;
+    char        buf[256];
+    for (long n; hello.find('\n') == std::string::npos && hello.size() < 200 &&
+                 (n = read_sock(s, buf, sizeof(buf))) > 0;)
+        hello.append(buf, (size_t)n);
+    std::istringstream in(hello.substr(0, hello.find('\n')));
+    std::string        magic, r_eph_hex;
+    in >> magic >> r_eph_hex;
+    uint8_t      r_eph[net::kKeyBytes], to_key[net::kSignPublicBytes], mix[net::kKeyBytes];
+    net::KeyPair eph;
+    std::string  sealed;
+    if (magic != "CNPFED3" || !net::from_hex(r_eph_hex, r_eph, sizeof(r_eph)) ||
+        !net::from_hex(o.to, to_key, sizeof(to_key)) || !net::KeyPair::generate(eph))
+        return "";
+    net::x25519_shared(eph.secret_key, r_eph, mix);
+    const bool ok = net::seal_for(g_me, to_key, o.payload, sealed, mix);
+    const std::string s_eph = net::to_hex(eph.public_key, net::kKeyBytes);
+    std::memset(&eph, 0, sizeof(eph));
+    std::memset(mix, 0, sizeof(mix));
+    if (!ok) return "";
+    const std::string ms   = std::to_string(o.ms);
+    const std::string body = "CNPFED3|" + o.to + "|" + ms + "|" + r_eph_hex + "|" + s_eph + "|" + sealed;
+    uint8_t           sig[net::kSignatureBytes];
+    net::sign_message(g_me, body.data(), body.size(), sig);
+    return "CNPFED3 " + g_me_hex + " " + o.to + " " + ms + " " + s_eph + " " +
+           net::to_hex((const uint8_t *)sealed.data(), sealed.size()) + " " + net::to_hex(sig, sizeof(sig)) + "\n";
+}
+
 void fed_reader(Sock c, std::string address)
 {
 #ifdef _WIN32
@@ -2198,6 +2381,14 @@ void fed_reader(Sock c, std::string address)
     timeval tv{5, 0};
 #endif
     setsockopt(c, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
+    net::KeyPair eph;
+    if (!net::KeyPair::generate(eph)) {
+        close_sock(c);
+        --g_fed_readers;
+        return;
+    }
+    const std::string r_eph = net::to_hex(eph.public_key, net::kKeyBytes);
+    send_sock(c, "CNPFED3 " + r_eph + "\n");
     std::string line;
     char        buf[4096];
     for (long n; line.find('\n') == std::string::npos && line.size() < 200000 &&
@@ -2207,20 +2398,23 @@ void fed_reader(Sock c, std::string address)
     --g_fed_readers;
 
     std::istringstream in(line.substr(0, line.find('\n')));
-    std::string        magic, from, to, ms_text, payload_hex, sig_hex;
-    in >> magic >> from >> to >> ms_text >> payload_hex >> sig_hex;
-    uint8_t     key[net::kSignPublicBytes], sig[net::kSignatureBytes];
+    std::string        magic, from, to, ms_text, s_eph_hex, payload_hex, sig_hex;
+    in >> magic >> from >> to >> ms_text >> s_eph_hex >> payload_hex >> sig_hex;
+    uint8_t     key[net::kSignPublicBytes], sig[net::kSignatureBytes], s_eph[net::kKeyBytes], mix[net::kKeyBytes];
     std::string sealed(payload_hex.size() / 2, '\0'), payload;
     const int64_t ms = std::atoll(ms_text.c_str());
-    if (magic != "CNPFED2" || to != g_me_hex || !net::from_hex(from, key, sizeof(key)) ||
-        !net::from_hex(sig_hex, sig, sizeof(sig)) ||
+    if (magic != "CNPFED3" || to != g_me_hex || !net::from_hex(from, key, sizeof(key)) ||
+        !net::from_hex(sig_hex, sig, sizeof(sig)) || !net::from_hex(s_eph_hex, s_eph, sizeof(s_eph)) ||
         !net::from_hex(payload_hex, (uint8_t *)sealed.data(), sealed.size()) ||
         std::llabs(ms - now_ms()) > 300000)
         return;
-    const std::string body = "CNPFED2|" + to + "|" + ms_text + "|" + sealed;
-    if (!net::verify_message(key, body.data(), body.size(), sig) ||
-        !net::open_sealed(g_me, key, sealed, payload))
-        return;
+    const std::string body = "CNPFED3|" + to + "|" + ms_text + "|" + r_eph + "|" + s_eph_hex + "|" + sealed;
+    net::x25519_shared(eph.secret_key, s_eph, mix);
+    const bool opened = net::verify_message(key, body.data(), body.size(), sig) &&
+                        net::open_sealed(g_me, key, sealed, payload, mix);
+    std::memset(&eph, 0, sizeof(eph));
+    std::memset(mix, 0, sizeof(mix));
+    if (!opened) return;
     std::lock_guard<std::mutex> hold(g_fed_m);
     int64_t &last = g_fed_last_ms[from];
     if (ms <= last) return;   // seen, or older: a replay
@@ -2247,11 +2441,16 @@ std::string own_bans()
 // and a `bagaway` row says where it went, so a later visit asks there too.
 //
 //   bagask  ID          send me ID's bag
-//   bag     ID BAG HID  here it is, and what some world did not know
+//   bag     ID BAG HID GEN  here it is, what some world did not know, and
+//                           how many times it has moved between friends
 //   bagat   ID KEY      not here: it went to that friend
 //   bagnone ID          never had one
 //   bagpeek ID          (to every friend, for a player who walked in) whose is newest?
-//   bagseen ID SEEN     mine was kept then (unix seconds), -1 for not mine
+//   bagseen ID GEN SEEN mine has moved GEN times, kept here at SEEN; -1 -1 not mine
+//
+// Newest is the one that moved most, which needs no clock: only the holder
+// is ever given a higher count. Two copies that never moved (two servers
+// that met when both had one) are told apart by when each was kept.
 
 struct BagAsk {
     std::string friend_key;
@@ -2262,10 +2461,17 @@ std::unordered_map<std::string, BagAsk> g_bag_asks;   // by identity hex
 
 // A peek at every friend: the newest bag, or the one here, wins.
 struct BagPeek {
-    int64_t     until = 0, best = -1;
+    int64_t     until = 0;
+    std::pair<int64_t, int64_t> best{-1, -1};   // moves, then when kept
     int         waiting = 0;
     std::string best_key;
 };
+
+int64_t bag_gen(const std::string &key)
+{
+    Row r;
+    return find("baggen", key, r) ? std::atoll(r.value.c_str()) : 0;
+}
 std::unordered_map<std::string, BagPeek> g_bag_peeks;   // by identity hex
 
 bool ask_bag(const Friend &f, const std::string &id_hex, int hops)
@@ -2308,7 +2514,8 @@ void apply_bag(const Friend &f, const std::string &kind, std::istringstream &in,
     if (kind == "bagpeek") {
         Row           away;
         const int64_t seen = find("bagaway", key, away) || !h.bag_seen ? -1 : h.bag_seen(id);
-        fed_send(f, "bagseen\n" + id_hex + "\n" + std::to_string(seen));
+        fed_send(f, "bagseen\n" + id_hex + "\n" + std::to_string(seen < 0 ? -1 : bag_gen(key)) + " " +
+                        std::to_string(seen));
         return;
     }
     if (kind == "bagseen") {
@@ -2316,9 +2523,10 @@ void apply_bag(const Friend &f, const std::string &kind, std::istringstream &in,
         if (p == g_bag_peeks.end()) return;
         std::string seen_text;
         std::getline(in, seen_text);
-        const int64_t seen = std::atoll(seen_text.c_str());
-        if (seen > p->second.best) {
-            p->second.best     = seen;
+        std::pair<int64_t, int64_t> theirs{-1, -1};
+        std::istringstream(seen_text) >> theirs.first >> theirs.second;
+        if (theirs.second >= 0 && theirs > p->second.best) {
+            p->second.best     = theirs;
             p->second.best_key = f.key;
         }
         if (--p->second.waiting <= 0) peek_done(id_hex, h);
@@ -2327,12 +2535,14 @@ void apply_bag(const Friend &f, const std::string &kind, std::istringstream &in,
     if (kind == "bagask") {
         Row        away;
         const bool is_away = find("bagaway", key, away);
-        std::string bag;
-        if (h.bag_give && h.bag_give(id, !is_away, bag)) {
+        std::string bag, packs;
+        if (h.bag_give && h.bag_give(id, !is_away, bag, packs)) {
             const std::string hid = hidden(id);
             set_hidden(id, "");
             fed_send(f, "bag\n" + id_hex + "\n" + net::to_hex((const uint8_t *)bag.data(), bag.size()) +
-                            "\n" + net::to_hex((const uint8_t *)hid.data(), hid.size()));
+                            "\n" + net::to_hex((const uint8_t *)hid.data(), hid.size()) + "\n" +
+                            std::to_string(bag_gen(key)) + "\n" +
+                            net::to_hex((const uint8_t *)packs.data(), packs.size()));
             put("bagaway", key, f.name, f.key.substr(4), "friend:" + f.name, 0);
             std::printf("        federation: %s takes a bag\n", f.name.c_str());
         } else if (is_away) {
@@ -2346,16 +2556,21 @@ void apply_bag(const Friend &f, const std::string &kind, std::istringstream &in,
     const auto asked = g_bag_asks.find(id_hex);
     const bool ours  = asked != g_bag_asks.end() && asked->second.friend_key == f.key;
     if (kind == "bag") {
-        std::string bag_hex, hid_hex;
+        std::string bag_hex, hid_hex, gen_text, packs_hex;
         std::getline(in, bag_hex);
         std::getline(in, hid_hex);
-        std::string bag(bag_hex.size() / 2, '\0'), hid(hid_hex.size() / 2, '\0');
+        std::getline(in, gen_text);
+        std::getline(in, packs_hex);
+        std::string bag(bag_hex.size() / 2, '\0'), hid(hid_hex.size() / 2, '\0'),
+            packs(packs_hex.size() / 2, '\0');
         if (!net::from_hex(bag_hex, (uint8_t *)bag.data(), bag.size()) ||
-            !net::from_hex(hid_hex, (uint8_t *)hid.data(), hid.size()))
+            !net::from_hex(hid_hex, (uint8_t *)hid.data(), hid.size()) ||
+            !net::from_hex(packs_hex, (uint8_t *)packs.data(), packs.size()))
             return;
         g_bag_asks.erase(id_hex);
         drop("bagaway", key);
-        if (h.bag_take) h.bag_take(id, bag, hid, f.name);
+        put("baggen", key, "", std::to_string(std::atoll(gen_text.c_str()) + 1), "friend:" + f.name, 0);
+        if (h.bag_take) h.bag_take(id, bag, hid, packs, f.name);
         return;
     }
     if (!ours) return;
@@ -2522,8 +2737,11 @@ bool start_federation(int port, const net::SignKeyPair &me, std::string &err)
             }
         }).detach();
     }
-    // One sender, a line a connection.
-    std::thread([] {
+    // One sender, a line a connection. CNP_TEST_FED_DELAY_MS holds each bag
+    // it sends back that long: a slow friend, for trying the late bag.
+    const char *delay_env = std::getenv("CNP_TEST_FED_DELAY_MS");
+    const int   delay_ms  = delay_env ? std::atoi(delay_env) : 0;
+    std::thread([delay_ms] {
         for (;;) {
             FedOut o;
             {
@@ -2532,9 +2750,10 @@ bool start_federation(int port, const net::SignKeyPair &me, std::string &err)
                 o = std::move(g_fed_out.front());
                 g_fed_out.erase(g_fed_out.begin());
             }
+            if (delay_ms > 0 && o.bag) std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
             const Sock s = dial(o.host, o.port);
             if (s == kNoSock) continue;
-            send_sock(s, o.line);
+            send_sock(s, sealed_line(s, o));
             close_sock(s);
         }
     }).detach();
@@ -2613,8 +2832,9 @@ bool bag_ask(const Who &who, const uint8_t *issuer, const Hooks &h)
     // Walked in, with nothing saying where the bag is: whichever friend kept
     // it last has it, if that is later than here.
     BagPeek p;
-    p.until = now() + 3;
-    p.best  = h.bag_seen ? h.bag_seen(who.identity) : -1;
+    p.until             = now() + 3;
+    const int64_t mine  = h.bag_seen ? h.bag_seen(who.identity) : -1;
+    if (mine >= 0) p.best = {bag_gen(key_target(who.identity)), mine};
     for (const Friend &f : friends())
         if (f.shares_("bags")) {
             fed_send(f, "bagpeek\n" + id_hex);
@@ -2625,23 +2845,23 @@ bool bag_ask(const Who &who, const uint8_t *issuer, const Hooks &h)
     return true;
 }
 
-std::string hidden(const uint8_t *identity)
+std::string hidden(const uint8_t *identity, const char *kind)
 {
     Row         r;
     std::string bytes;
-    if (find("hidden", key_target(identity), r)) {
+    if (find(kind, key_target(identity), r)) {
         bytes.assign(r.value.size() / 2, '\0');
         if (!net::from_hex(r.value, (uint8_t *)bytes.data(), bytes.size())) bytes.clear();
     }
     return bytes;
 }
 
-void set_hidden(const uint8_t *identity, const std::string &bytes)
+void set_hidden(const uint8_t *identity, const std::string &bytes, const char *kind)
 {
     if (bytes.empty())
-        drop("hidden", key_target(identity));
+        drop(kind, key_target(identity));
     else
-        put("hidden", key_target(identity), "", net::to_hex((const uint8_t *)bytes.data(), bytes.size()), "", 0);
+        put(kind, key_target(identity), "", net::to_hex((const uint8_t *)bytes.data(), bytes.size()), "", 0);
 }
 
 std::vector<ConsoleLine> take_console_lines()

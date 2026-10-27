@@ -50,6 +50,7 @@
 #include "script/mod_host.h"
 #include "script/world_code.h"
 #include "server/admin.h"
+#include "core/update_check.h"
 
 #include <algorithm>
 #include <chrono>
@@ -4113,6 +4114,12 @@ struct RoomShared {
 };
 
 const auto g_started = std::chrono::steady_clock::now();
+bool       g_update_told = false;    // the newer release said once (update::newer)
+
+std::string update_line()
+{
+    return "A newer release, " + update::newer() + ", is out; this server runs " + kEngineVersion + ".";
+}
 int        g_exit_code = 0;          // 75 for a restart: tools/serve.sh starts it again
 int        g_max_per_address = 0;    // --max-per-address, 0 for no limit
 
@@ -4259,9 +4266,9 @@ ModStore &shared_store(ServerState *s)
 }
 
 // Bags between friend servers, below the rooms (admin::bag_ask).
-bool bag_give_here(const uint8_t *identity, bool from_file, std::string &out);
+bool bag_give_here(const uint8_t *identity, bool from_file, std::string &out, std::string &packs);
 void bag_take_here(const uint8_t *identity, const std::string &bag, const std::string &hidden,
-                   const std::string &from);
+                   const std::string &packs, const std::string &from);
 void bag_late_here(const uint8_t *identity);
 int64_t bag_seen_here(const uint8_t *identity);
 net::Session *bag_holder(const uint8_t *identity, int &room);
@@ -4340,10 +4347,22 @@ admin::Hooks admin_hooks()
         }
         if (bag == nullptr) return out;
         const ItemRegistry &items = *g_router.rooms[(size_t)room].items;
-        for (int i = 0; i < bag->size(); ++i)
-            if (!bag->at(i).empty())
-                out.push_back("square " + std::to_string(i + 1) + ": " + std::to_string(bag->at(i).count) + " " +
-                              items.get(bag->at(i).item).name);
+        for (int i = 0; i < bag->size(); ++i) {
+            const ItemStack &st = bag->at(i);
+            if (st.empty()) continue;
+            out.push_back("square " + std::to_string(i + 1) + ": " + std::to_string(st.count) + " " +
+                          items.get(st.item).name);
+            // And what a backpack holds (mods/backpack), wherever its room is.
+            const uint32_t pack = st.tag & kTagIdMask;
+            if (pack == 0 || items.get(st.item).wear != kWornBack) continue;
+            for (const RoomShared &o : g_router.rooms)
+                if (const Inventory *c = o.containers ? o.containers->find(ContainerAt{(int)pack, kCarriedBelow, 0})
+                                                      : nullptr)
+                    for (const ItemStack &in : c->slots())
+                        if (!in.empty())
+                            out.push_back("  in it (#" + std::to_string(pack) + "): " + std::to_string(in.count) +
+                                          " " + o.items->get(in.item).name);
+        }
         return out;
     };
     h.give = [](net::PeerId peer, const std::string &item, int count) -> std::string {
@@ -4415,7 +4434,7 @@ std::string page_panel(net::PeerId peer) { return "page:" + std::to_string(peer)
 bool core_page_name(const std::string &n)
 {
     for (const char *c : {"pages", "admin", "bans", "whitelist", "roles", "perms", "server", "running", "players", "reports", "log",
-                          "mods", "here"})
+                          "mods", "here", "rules"})
         if (n == c) return true;
     return false;
 }
@@ -4574,7 +4593,15 @@ void run_chat_line(ServerState &s, net::PeerId peer, const std::string &line)
     std::string         name, args;
     std::vector<std::string> said;
     std::string              held;
-    if (!net::chat_split(line, name, args)) {
+    const bool               is_command = net::chat_split(line, name, args);
+    // Rules not accepted: only what reads, accepts or leaves them.
+    if (!admin::accepted(caller) && !(is_command && (name == "rules" || name == "accept" ||
+                                                     name == "leave" || name == "help"))) {
+        say_to(s, peer, "Accept the rules first: /rules, then /accept (or /leave).");
+        open_page(s, peer, "rules");
+        return;
+    }
+    if (!is_command) {
         if (admin::muted(caller, held)) {
             say_to(s, peer, held);
             return;
@@ -4996,6 +5023,9 @@ WorldDb *newest_bag_file(const uint8_t *identity)
 // Bags asked of a friend server and not here yet (admin::bag_ask). Such a
 // player holds an empty bag, which nothing saves over the one in the file.
 std::set<IdentityKey> g_bag_waiting;
+// The bag kept here that a player was given when a friend did not answer in
+// time (bag_late_here), as it was then: what came later is told apart by it.
+std::map<IdentityKey, std::vector<uint8_t>> g_bag_fallback;
 
 // The session in any room of this process that holds this player's bag.
 net::Session *bag_holder(const uint8_t *identity, int &room)
@@ -5015,10 +5045,44 @@ net::Session *bag_holder(const uint8_t *identity, int &room)
     return nullptr;
 }
 
+// What the backpacks in a bag hold (mods/backpack: a carried container
+// numbered by the stack's tag), taken out of every room here to go with the
+// bag to a friend server: a line each, NUMBER:HEX.
+std::string take_packs(const Inventory &bag, const ItemRegistry &items)
+{
+    std::string out;
+    for (const ItemStack &st : bag.slots()) {
+        const uint32_t id = st.tag & kTagIdMask;
+        if (st.empty() || id == 0 || items.get(st.item).wear != kWornBack) continue;
+        const ContainerAt at{(int)id, kCarriedBelow, 0};
+        for (RoomShared &o : g_router.rooms) {
+            const Inventory *c = o.containers ? o.containers->find(at) : nullptr;
+            if (c == nullptr || o.items == nullptr) continue;
+            const std::vector<uint8_t> b = encode_inventory(*o.items, *c);
+            out += std::to_string(id) + ":" + net::to_hex(b.data(), b.size()) + "\n";
+            o.containers->erase(at);
+            break;
+        }
+    }
+    return out;
+}
+
+bool pack_here(uint32_t id)
+{
+    for (const RoomShared &o : g_router.rooms)
+        if (o.containers && o.containers->find(ContainerAt{(int)id, kCarriedBelow, 0})) return true;
+    return false;
+}
+
+// Numbers for backpacks that came from a friend, from where the mod, which
+// counts from 1, does not reach: two servers' counters know nothing of each
+// other.
+constexpr uint32_t kFriendPacksFrom = 100000;
+
 // A friend server wants this player's bag: the session holding it here lets
 // go of it, as take_carried does for a room of this process, so it is neither
 // used nor saved here any more.
-bool bag_give_here(const uint8_t *identity, bool from_file, std::string &out)
+bool bag_give_here(const uint8_t *identity, bool from_file, std::string &out, std::string &packs)
 {
     if (g_bag_waiting.count(identity_key(identity))) return false;
     int                  room = 0;
@@ -5026,6 +5090,7 @@ bool bag_give_here(const uint8_t *identity, bool from_file, std::string &out)
     if (net::Session *sess = bag_holder(identity, room)) {
         RoomShared &r   = g_router.rooms[(size_t)room];
         bytes           = encode_inventory(*r.items, sess->bag());
+        packs           = take_packs(sess->bag(), *r.items);
         sess->bag()     = Inventory{};
         sess->holds_bag = false;
         if (r.bags_touched) r.bags_touched->insert((uint32_t)sess->id);
@@ -5037,8 +5102,11 @@ bool bag_give_here(const uint8_t *identity, bool from_file, std::string &out)
             !db->load_player_bag(identity, *g_router.rooms[0].items, bag, err))
             return false;
         bytes = encode_inventory(*g_router.rooms[0].items, bag);
+        packs = take_packs(bag, *g_router.rooms[0].items);
     }
     out.assign(bytes.begin(), bytes.end());
+    packs += admin::hidden(identity, "packs");   // those of backpacks this world does not know
+    admin::set_hidden(identity, "", "packs");
     return true;
 }
 
@@ -5046,14 +5114,15 @@ bool bag_give_here(const uint8_t *identity, bool from_file, std::string &out)
 // core/item/item_codec.h) is kept aside, and what was kept aside and is known
 // here comes out into the free squares.
 void bag_take_here(const uint8_t *identity, const std::string &bag, const std::string &hidden,
-                   const std::string &from)
+                   const std::string &packs, const std::string &from)
 {
-    const bool    waiting = g_bag_waiting.erase(identity_key(identity)) > 0;
-    int           room    = 0;
-    net::Session *sess    = bag_holder(identity, room);
-    if (sess && !waiting) {
-        // ponytail: a bag later than the 5 s wait is dropped; the one here is in use.
-        std::printf("server: '%s' bag from %s came too late; the one here stays\n",
+    const IdentityKey k       = identity_key(identity);
+    const bool        waiting = g_bag_waiting.erase(k) > 0;
+    int               room    = 0;
+    net::Session     *sess    = bag_holder(identity, room);
+    const auto        late    = g_bag_fallback.find(k);
+    if (sess && !waiting && late == g_bag_fallback.end()) {
+        std::printf("server: '%s' has a bag here already; the one from %s is not taken\n",
                     sess->name.c_str(), from.c_str());
         return;
     }
@@ -5065,31 +5134,107 @@ void bag_take_here(const uint8_t *identity, const std::string &bag, const std::s
         std::printf("server: could not read a bag from %s: %s\n", from.c_str(), err.c_str());
         got = Inventory{};
     }
-    std::vector<ItemStack> extra;
+    // Each with the square it had: a thing kept aside goes back there when
+    // that square is free -- a backpack onto the back -- or into a free one.
+    // Aside, it sits at that same square if it can.
+    std::vector<std::pair<int, ItemStack>> extra;
     for (const std::string &h : {admin::hidden(identity), hidden}) {
         Inventory aside(kMaxStoredSlots);
         if (h.empty() || !decode_inventory(items, (const uint8_t *)h.data(), h.size(), aside, err)) continue;
-        for (const ItemStack &st : aside.slots())
-            if (!st.empty()) extra.push_back(st);
+        for (int i = 0; i < aside.size(); ++i)
+            if (!aside.at(i).empty()) extra.push_back({i, aside.at(i)});
     }
     for (int i = 0; i < got.size(); ++i)
         if (!got.at(i).empty() && items.is_orphan(got.at(i).item)) {
-            extra.push_back(got.at(i));
+            extra.push_back({i, got.at(i)});
             got.slot(i) = ItemStack{};
         }
     Inventory aside(kMaxStoredSlots);
     int       kept = 0;
-    for (const ItemStack &st : extra) {
+    for (const auto &[was, st] : extra) {
         bool placed = false;
-        for (int i = 0; i < Inventory::kDefaultSlots && !placed && !items.is_orphan(st.item); ++i)
-            if (got.at(i).empty()) {
-                got.slot(i) = st;
-                placed      = true;
+        if (!items.is_orphan(st.item)) {
+            if (was < got.size() && got.at(was).empty() &&
+                (was < Inventory::kDefaultSlots || items.get(st.item).wear != 0)) {
+                got.slot(was) = st;
+                placed        = true;
             }
-        if (!placed && kept < kMaxStoredSlots) aside.slot(kept++) = st;
+            for (int i = 0; i < Inventory::kDefaultSlots && !placed; ++i)
+                if (got.at(i).empty()) {
+                    got.slot(i) = st;
+                    placed      = true;
+                }
+        }
+        if (placed) continue;
+        int at = was < kMaxStoredSlots && aside.at(was).empty() ? was : -1;
+        for (int i = 0; i < kMaxStoredSlots && at < 0; ++i)
+            if (aside.at(i).empty()) at = i;
+        if (at >= 0) {
+            aside.slot(at) = st;
+            ++kept;
+        }
     }
     const std::vector<uint8_t> aside_bytes = kept > 0 ? encode_inventory(items, aside) : std::vector<uint8_t>{};
     admin::set_hidden(identity, std::string(aside_bytes.begin(), aside_bytes.end()));
+
+    // Later than the wait: the player has been using the bag kept here since
+    // (bag_late_here). What they picked up meanwhile goes into the one that
+    // came; the rest of the copy here was the old bag.
+    if (late != g_bag_fallback.end()) {
+        Inventory before, now_bag;
+        decode_inventory(items, late->second.data(), late->second.size(), before, err);
+        g_bag_fallback.erase(late);
+        if (sess)
+            now_bag = sess->bag();
+        else if (WorldDb *db = newest_bag_file(identity))
+            db->load_player_bag(identity, items, now_bag, err);
+        std::map<ItemId, int> gained;
+        for (const ItemStack &st : now_bag.slots())
+            if (!st.empty()) gained[st.item] += st.count;
+        for (const ItemStack &st : before.slots())
+            if (!st.empty()) gained[st.item] -= st.count;
+        int added = 0;
+        for (const auto &[item, n] : gained)
+            if (n > 0) added += n - got.add(items, item, (uint16_t)std::min(n, 65535));
+        std::printf("        '%s' bag from %s came late; %d thing(s) picked up meanwhile go into it\n",
+                    sess ? sess->name.c_str() : "?", from.c_str(), added);
+    }
+    // The backpacks' contents, under a number of this server's: the one they
+    // had if it is in the friends' range and free here, else the next free.
+    // Those of a backpack kept aside wait with it.
+    std::map<uint32_t, std::string> packs_in;
+    for (const std::string &list : {packs, admin::hidden(identity, "packs")}) {
+        std::istringstream lines(list);
+        for (std::string l; std::getline(lines, l);)
+            if (const size_t c = l.find(':'); c != std::string::npos)
+                packs_in[(uint32_t)std::strtoul(l.c_str(), nullptr, 10)] = l.substr(c + 1);
+    }
+    if (r.containers != nullptr)
+        for (int i = 0; i < got.size(); ++i) {
+            ItemStack     &st = got.slot(i);
+            const uint32_t id = st.tag & kTagIdMask;
+            const auto     p  = packs_in.find(id);
+            if (st.empty() || id == 0 || items.get(st.item).wear != kWornBack || p == packs_in.end()) continue;
+            uint32_t to = id;
+            if (to < kFriendPacksFrom || pack_here(to))
+                for (to = kFriendPacksFrom; to < kTagIdMask && pack_here(to);) ++to;
+            std::vector<uint8_t> b(p->second.size() / 2);
+            const ContainerAt    at{(int)to, kCarriedBelow, 0};
+            Inventory           *into = net::from_hex(p->second, b.data(), b.size())
+                                            ? r.containers->open(at, stored_slots(b), err)
+                                            : nullptr;
+            if (into == nullptr || !decode_inventory(items, b, *into, err)) {
+                std::printf("server: a backpack from %s did not fit here: %s\n", from.c_str(), err.c_str());
+                if (into != nullptr) r.containers->erase(at);
+                continue;
+            }
+            r.containers->touched(at);
+            st.tag = (st.tag & ~kTagIdMask) | to;
+            packs_in.erase(p);
+        }
+    std::string still;
+    for (const auto &[id, hex] : packs_in) still += std::to_string(id) + ":" + hex + "\n";
+    admin::set_hidden(identity, still, "packs");
 
     if (sess) {
         sess->bag() = got;
@@ -5120,6 +5265,7 @@ int64_t bag_seen_here(const uint8_t *identity)
 bool ask_friend_for_bag(const net::Session &sess)
 {
     const IdentityKey k = identity_key(sess.identity);
+    g_bag_fallback.erase(k);   // an old wait's, not this one's
     g_bag_waiting.insert(k);
     if (admin::bag_ask(admin_who(sess), sess.admitted_by_ticket ? sess.ticket_issuer : nullptr,
                        admin_hooks()))
@@ -5138,6 +5284,7 @@ void bag_late_here(const uint8_t *identity)
     RoomShared &r = g_router.rooms[(size_t)room];
     std::string err;
     if (WorldDb *from = newest_bag_file(identity)) from->load_player_bag(identity, *r.items, sess->bag(), err);
+    g_bag_fallback[identity_key(identity)] = encode_inventory(*r.items, sess->bag());
     if (r.bags_touched) r.bags_touched->insert((uint32_t)sess->id);
 }
 
@@ -7180,9 +7327,14 @@ int serve_room(int argc, char **argv)
                     // the day for whoever comes in through the door.
                     if (const net::Session *in = sessions.find(ev.peer);
                         in && in->scope == net::Scope::Enter && (a.has_joined || a.has_entered)) {
-                        admin::joined(admin_who(*in), g_router.rooms[(size_t)g_room].name);
+                        const admin::Who who = admin_who(*in);
+                        admin::joined(who, g_router.rooms[(size_t)g_room].name);
                         if (const std::string m = admin::motd(); a.has_joined && !m.empty())
                             say_to(s, ev.peer, m);
+                        admin::check_alts(who, admin_hooks());
+                        if (!update::newer().empty() && admin::may(who, "restart")) say_to(s, ev.peer, update_line());
+                        // Rules not accepted yet: on the screen before anything else.
+                        if (!admin::accepted(who)) open_page(s, ev.peer, "rules");
                     }
 
                     if (a.has_joined) {
@@ -7275,10 +7427,13 @@ int serve_room(int argc, char **argv)
                         // hole dug beside a lake, up to a couple of hundred
                         // cells, and a relight each would be OPEN-29's 1.9 ms a
                         // cell in the middle of answering a player.
-                        bool wrote;
+                        bool wrote = false;
+                        const net::Session *editor = sessions.find(ev.peer);
                         const int old_block  = (int)s.world.get_block(plan.x, plan.y, plan.z);
                         const int old_facing = (int)s.world.get_facing(plan.x, plan.y, plan.z);
-                        {
+                        if (editor && !admin::accepted(admin_who(*editor))) {
+                            why = "accept the rules first: /rules";
+                        } else {
                             LightRun lights(s);
                             wrote = apply_edit(s, ev.peer, plan, why);
                         }
@@ -7958,6 +8113,16 @@ int serve_room(int argc, char **argv)
 
                 if (g_room == 0) admin::federation_tick(admin_hooks());
 
+                // A newer release (--no-update-check to not ask): said once
+                // in the log and to the admins online, and to each coming in.
+                if (g_room == 0 && !g_update_told && !update::newer().empty()) {
+                    g_update_told = true;
+                    std::printf("server: %s is out, this is %s (%s)\n", update::newer().c_str(),
+                                kEngineVersion, kReleasesPage);
+                    for (const admin::Online &o : admin_hooks().online())
+                        if (admin::may(o.who, "restart")) say_to(s, o.peer, update_line());
+                }
+
                 // Blocks /rollback puts back here: each one only if it still
                 // holds what the player left in it.
                 if ((size_t)g_room < g_router.restores.size() && !g_router.restores[(size_t)g_room].empty()) {
@@ -8476,7 +8641,8 @@ int main(int argc, char **argv)
                     std::printf("server: --since wants 30m, 2h, 7d, 1w\n");
                     return 1;
                 }
-            return admin::report(cli[i + 1], since);
+            return admin::report(cli[i + 1], since,
+                                 std::find(cli.begin(), cli.end(), "--json") != cli.end());
         }
 
     std::vector<std::string>                                      common;
@@ -8538,6 +8704,20 @@ int main(int argc, char **argv)
 
         // The server's own life (phase 3 of the administration).
         if (const std::string m = last_of(common, "--motd"); !m.empty()) admin::set_motd(m);
+        // A server that listens asks once whether a newer release is out.
+        if (!last_of(common, "--listen").empty() &&
+            std::find(common.begin(), common.end(), "--no-update-check") == common.end())
+            update::start();
+        if (const std::string f = last_of(common, "--rules-file"); !f.empty()) {
+            std::ifstream in(f);
+            std::stringstream text;
+            text << in.rdbuf();
+            if (!in || text.str().empty()) {
+                std::printf("server: --rules-file: cannot read %s\n", f.c_str());
+                return 1;
+            }
+            admin::set_rules(text.str());
+        }
         if (const std::string at = last_of(common, "--restart-at"); !at.empty()) {
             if (!admin::restart_at(at)) {
                 std::printf("server: --restart-at wants HH:MM\n");

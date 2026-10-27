@@ -1,4 +1,4 @@
-#include "update_check.h"
+#include "core/update_check.h"
 
 #include "core/version.h"
 

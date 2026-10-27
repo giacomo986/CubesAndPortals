@@ -2,7 +2,7 @@
 
 // Is there a newer release than this build? Asked once, of the repository's
 // releases on GitHub (kReleasesApi in core/version.h), on a thread of its own
-// so the title screen never waits for it. Nothing is sent but the request; an
+// so neither the client's title screen nor a server's tick waits for it. Nothing is sent but the request; an
 // answer that does not come, or does not parse, is no update.
 
 #include <string>

@@ -1298,9 +1298,6 @@ stayed listed with its dead VM's address, and ran in the next VM malloc put
 there. `worldgen` failed 1/40 on HEAD and 15/40 with this work under 4-way
 load; stages now go dead with their VM, and it passes 60/60.
 
-Open:
-- Chat a mod sends from a tick is not held by /mute.
-
 **Done 2026-10-27, phases 3-6 and extras:**
 - Restarts: `/restart`, `/stop` with warnings, `--restart-at`, exit code 75
   under `tools/serve.sh` (restarts, crash count, a log a day with times),
@@ -1361,14 +1358,45 @@ session; webhook posts received by a local listener (start, friend, give,
 ban, stop); per-room role in a 2-room server; a probe digs 3 cells, /inspect
 names it, /rollback puts them back. ctest 13/13.
 
+**Done 2026-10-27, the open limits:**
+- A bag later than the 5 s wait is no longer dropped: it replaces the copy
+  the player was given, plus what they picked up meanwhile.
+- "Newest" between friends is the bag that moved most (`baggen` rows), not
+  a clock; a clock only between two copies that never moved.
+- Backpack contents travel with the bag, renumbered from 100000 on the
+  server they reach; a hidden backpack keeps its contents aside with it;
+  hidden things come back into the square they had.
+- Federation lines: the receiver sends a throwaway key first (`CNPFED3`),
+  mixed into the sealing key: forward secrecy.
+- A translated page label or button wider than its room is drawn smaller
+  (down to 2/3), past that in English.
+- Rules to accept (`--rules-file`, `/rules`, `/accept`, `/leave`, page
+  `rules`): no chat, commands or edits before.
+- `/alts NAME`; the staff told when a player comes in from a banned
+  player's address.
+- The server asks GitHub for a newer release (`update_check` moved to
+  core), says so in the log and to admins; `--no-update-check`.
+- `--report FILE --json`.
+- Fixed on the way: after a first redirect, the client never sent the
+  second crossing's enter (`fallback_asked` was never reset), so a
+  `--no-passive` run could not come back; the gate now counts one redirect
+  per crossing.
+
+Checked: a scripted client in Xephyr crossing A->B->A through real
+portals, with windows and with `--no-passive` (redirect): the bag goes
+with it both ways, B hides `t1:shell` and A gets it back. A friend's bag
+held back 8 s (`CNP_TEST_FED_DELAY_MS`): the late bag replaced the old copy
+and kept 2 shells given meanwhile. A backpack #7 from A arrives on B as
+#100000 beside B's own #7, and back on A; with B not knowing backpacks it
+is hidden there and returns onto the back with its 6 gems. Rules: edits and
+chat refused before /accept, the page in Xephyr in Italian ("Accetta"),
+accepted by a click. /alts and the join warning. ctest 13/13.
+
 Open:
-- A bag later than the 5 s wait is dropped (logged); the one here stays.
-- "Newest" compares two servers' clocks; a backpack's contents do not
-  travel between friends.
-- Federation sealing has no forward secrecy (long-term keys).
-- Labels a client translates are still measured untranslated.
-- Not built: rules to accept, alt-account detection, the server's own update
-  check, `--report` as JSON.
+- Mod chat from a tick is not held by /mute (nothing says whose words).
+- A friend unreachable while the player plays on keeps its own copy too.
+- The client's far-key check is behind the ticket check, which refuses
+  first; a server lying about tickets is the only case it catches.
 
 ## Mods and scripting
 

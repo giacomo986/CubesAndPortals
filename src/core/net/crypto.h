@@ -106,12 +106,19 @@ bool verify_message(const uint8_t public_key[kSignPublicBytes], const void *mess
 // A message only the holder of `to` can read, from the holder of `me`: the two
 // signing keys turned into X25519 ones, their shared secret the key, a random
 // nonce in front. For servers that know each other's signing key and nothing
-// else (friend servers). No forward secrecy: both keys are long-term.
+// else (friend servers).
 // open_sealed is false for anything `from` did not seal for `me`.
+// `mix`, when given, is a secret of this exchange alone (x25519_shared of two
+// throwaway keys) folded into the key: what was sealed cannot be opened with
+// the long-term keys alone, stolen later. That is the forward secrecy.
 bool seal_for(const SignKeyPair &me, const uint8_t to[kSignPublicBytes], const std::string &plain,
-              std::string &out);
+              std::string &out, const uint8_t *mix = nullptr);
 bool open_sealed(const SignKeyPair &me, const uint8_t from[kSignPublicBytes],
-                 const std::string &sealed, std::string &plain);
+                 const std::string &sealed, std::string &plain, const uint8_t *mix = nullptr);
+
+// X25519 of a secret key and another's public one.
+void x25519_shared(const uint8_t secret[kKeyBytes], const uint8_t other[kKeyBytes],
+                   uint8_t out[kKeyBytes]);
 
 // The identity a name and a password make, and nothing else: Argon2id over the
 // password, salted with the name, into the seed of a signing pair. The same two

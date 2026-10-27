@@ -1212,6 +1212,27 @@ std::string item_display_name(const std::string &name)
     return out;
 }
 
+namespace {
+
+// Words laid out by somebody who measured them in English (a server's page,
+// src/core/ui/page.h), translated here: a translation wider than `room` is
+// drawn smaller, down to two thirds, and past that in the English it was
+// measured in, which fits by construction.
+const char *fit_text(const std::string &words, float room, float &size)
+{
+    const char *text = lang::tr(words);
+    const float tw   = gfx_2d_text_width(text, size);
+    if (tw <= room || text == words.c_str() || room <= 0.0f) return text;
+    const float smaller = size * room / tw;
+    if (smaller >= size * (2.0f / 3.0f)) {
+        size = smaller;
+        return text;
+    }
+    return words.c_str();
+}
+
+} // namespace
+
 void draw_mod_panel(const Panel &p, const PanelPlacement &at, int hover, int screen_w,
                     int screen_h, int typing, const char *typed, const ItemRegistry *items,
                     const NodeRegistry *nodes, const IconSource *icons)
@@ -1260,16 +1281,9 @@ void draw_mod_panel(const Panel &p, const PanelPlacement &at, int hover, int scr
             // Centred, which needs the text measured rather than guessed: a
             // caption placed by an estimate drifts off its button the moment
             // somebody writes a longer word.
-            const float size = at.cell * 0.34f;
-            const char *text = lang::tr(e.text);
-            float       tw   = gfx_2d_text_width(text, size);
-            // A button sized for its words by somebody who measured them in
-            // English (a server's page): a translation that does not fit is
-            // worse than the words it was made for.
-            if (tw > ew - at.cell * 0.2f && text != e.text.c_str()) {
-                text = e.text.c_str();
-                tw   = gfx_2d_text_width(text, size);
-            }
+            float       size = at.cell * 0.34f;
+            const char *text = fit_text(e.text, ew - at.cell * 0.2f, size);
+            const float tw   = gfx_2d_text_width(text, size);
             gfx_2d_text(text, ex + (ew - tw) * 0.5f, ey + (eh - size) * 0.5f, size, kWhite);
             break;
         }
@@ -1300,8 +1314,10 @@ void draw_mod_panel(const Panel &p, const PanelPlacement &at, int hover, int scr
 
         case ElemKind::Label:
         default: {
-            const float size = at.cell * 0.34f;
-            gfx_2d_text(lang::tr(e.text), ex, ey, size, kWhite);
+            // To the panel's edge: a page's line was cut there in English.
+            float       size = at.cell * 0.34f;
+            const char *text = fit_text(e.text, at.x + p.w * at.cell - ex, size);
+            gfx_2d_text(text, ex, ey, size, kWhite);
             break;
         }
         }
