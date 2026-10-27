@@ -19,6 +19,7 @@
   - [Il menù del titolo](#il-menù-del-titolo)
   - [Client (cnp_client)](#client-cnp_client)
   - [Server (cnp_server)](#server-cnp_server)
+  - [Amministrazione del server](#amministrazione-del-server)
   - [Strumenti](#strumenti)
   - [Test](#test)
 - [Tecnologia](#tecnologia)
@@ -426,10 +427,45 @@ L'elenco completo è in `main()` di [`src/client/main.cpp`](src/client/main.cpp)
 | `--key-file FILE` `--no-encryption` | L'identità del server; cifratura spenta (solo per prove) |
 | `--max-players N` `--require-identity` `--no-observers` | Posti, giocatori obbligati ad avere una chiave, niente osservatori da altri mondi. Un nome è di chi lo ha usato per primo, e resta nel file del mondo |
 | `--names` `--free-name NOME` | Con `--world-file` e nessun server sul file: chi possiede ogni nome, o libera un nome. Chi entra dopo con quel nome eredita borsa e posizione del vecchio proprietario |
+| `--owner NOME` | Chi gioca come NOME con un'identità è il proprietario del server. Il client lo passa ai mondi che avvia |
+| `--config FILE` | I flag da un file, un `chiave valore` (o `chiave = valore`) per riga, `[room NOME]` per una stanza, `#` per i commenti; `chiave = true` è il flag da solo. Letto dove sta, quindi i flag dopo vincono |
+| `--rcon PORTA` `--rcon-password PW` | Comandi admin via TCP solo su 127.0.0.1: `tools/admin.sh -p PORTA ban bob 2h`. La password va nel file di config, non sulla riga di comando |
 | `--portals` `--portal-to HOST:PORT[/N]` | Una coppia di aperture gestita dal server; `--portal-to` dice dove porta la prima (e da quale apertura `N` si esce); ripetuto, la seconda, la terza e la quarta |
 | `--ticket-key FILE` `--portal-peer-key HEX` `--trust HEX` `--require-ticket` | Ticket firmati per attraversare fra server |
 | `--mobs N` `--ticks N` `--quiet` | Mob di prova, tick prima di uscire, meno log |
 | `--room NOME` | Una stanza: un mondo in più sullo stesso server e sulla stessa porta. Quello che segue vale solo per quella stanza (`--mods`, `--world-file`, `--portal-to`...), quello prima del primo `--room` per tutte. `--portal-to @NOME[/N]` porta in un'altra stanza; borsa e salute sono le stesse in tutte. Il client sceglie la stanza con `--room NOME` |
+
+### Amministrazione del server
+
+Si scrivono in chat, se il proprio ruolo lo permette, o sullo stdin del server
+senza la barra: la console sta sopra ogni ruolo. Ruoli, ban e lista stanno nel
+file del mondo della prima stanza e valgono per tutte (`src/server/admin.h`).
+
+| Comando | Ruolo | Cosa fa |
+|---|---|---|
+| `/perms` | chiunque | Il proprio ruolo qui |
+| `/role [NOME [RUOLO]]` | admin | Vedere o dare ruoli: guest (senza identità), player, helper, moderator, admin, owner. Solo sotto il proprio |
+| `/kick NOME [motivo]` | moderator | Mette fuori un giocatore da tutte le stanze; il client torna al titolo dicendo perché |
+| `/ban NOME [30m\|2h\|7d\|1w] [motivo]` `/unban` `/bans` | moderator | Tiene fuori un giocatore, a tempo o per sempre. Un nome con un proprietario banna la sua chiave; uno senza, anche l'ultimo indirizzo da cui è venuto |
+| `/banip NOME\|INDIRIZZO [tempo] [motivo]` | admin | Tiene fuori un indirizzo |
+| `/mute NOME [tempo] [motivo]` `/unmute` | helper | Blocca la chat di un giocatore, e quello che un comando di un mod direbbe agli altri per lui |
+| `/whitelist on\|off\|list\|add NOME\|remove NOME` | admin | Entrano solo i giocatori in lista, e lo staff |
+| `/perm [PERMESSO RUOLO]` | owner | Quale ruolo serve per ogni permesso (mute, kick, ban, creative, pages, ban.ip, access, roles, perms) |
+| `/page [NOME]` `/admin` | chiunque, helper | Le pagine in gioco: l'elenco, o la pagina di amministrazione |
+
+**Pagine.** `/page` apre le pagine in gioco: `admin` (chi è online, con i
+pulsanti kick, ban e mute), `bans`, `whitelist`, `roles`, `perms`, `server` (le
+stanze e chi c'è), `mods`, `here` (dove sei e di chi è il terreno), e quelle
+offerte dai mod, come la bacheca `board`. Una pagina mostra solo quello che chi
+guarda può fare, e un pulsante esegue lo stesso comando che si scriverebbe. I
+mod scrivono le pagine in un piccolo markup (`# titolo`, testo con link
+`[etichetta](destinazione)`, righe `| tabella |`, campi `?[suggerimento](destinazione)`)
+con `core.page_register` e `core.page_show`; vedi [`docs/API.md`](docs/API.md).
+Un mondo giocato in un solo processo (`--quick`) ha anche `/page`, con le
+pagine dei mod e senza amministrazione.
+
+I mod proteggono i propri comandi con `core.command(nome, aiuto, perm)` e
+chiedono `core.has_perm(player, perm)` e `core.role(player)`.
 
 ### Strumenti
 
@@ -442,6 +478,7 @@ L'elenco completo è in `main()` di [`src/client/main.cpp`](src/client/main.cpp)
 | `tools/dist/package-*.sh` | I pacchetti per Linux, Windows e macOS ([`docs/BUILDING.md`](docs/BUILDING.md)) |
 | `build/tools/cnp_netshape` | Relay UDP con ritardo e perdita, per provare link lenti |
 | `build/tools/libcnp_clock_skew.so` | `LD_PRELOAD` che sposta l'orologio di un processo, per i ticket |
+| `tools/admin.sh` (`-p PORTA`) | Un comando admin a un server avviato, via RCON; la password in `CNP_RCON_PASSWORD` |
 | `tools/two_machines.sh` | Due server in container, con MTU e NAT veri |
 | `build/tools/cnp_bake_textures` | Rigenera le texture segnaposto dei blocchi |
 

@@ -22,6 +22,7 @@
 #include "core/item/item_registry.h"
 #include "core/item/recipe.h"
 #include "core/ui/panel.h"
+#include "core/ui/page.h"
 #include "core/net/session.h"
 #include "core/net/transport.h"
 #include "core/registry/core_nodes.h"
@@ -48,6 +49,7 @@
 #include "core/track/piece.h"
 #include "script/mod_host.h"
 #include "script/world_code.h"
+#include "server/admin.h"
 
 #include <algorithm>
 #include <chrono>
@@ -66,6 +68,7 @@
 #include <vector>
 
 #include <deque>
+#include <fstream>
 #include <mutex>
 #include <condition_variable>
 #include <thread>
@@ -189,9 +192,29 @@ struct ServerState {
         bool        chat   = false;   // core.chat: a net::Chat
     };
     std::vector<ModSay> mod_says;
+    // A muted player whose /command is running (run_chat_line): what its mod
+    // says to anybody else is held, so no mod's command is a way round /mute.
+    int muted_caller = 0;
+    std::string muted_why;
 
     // The /commands this world's mods declared (core.command).
     net::ChatCommands commands;
+
+    // The page each player has up (src/core/ui/page.h): what it says, so a
+    // click can be read against the links it had, and a command run from it
+    // can show it again with what changed.
+    struct PageUp {
+        std::string    name, owner, title, markup;   // owner "core" for the engine's
+        int            screen = 0;
+        ui::PageLayout layout;
+    };
+    std::unordered_map<net::PeerId, PageUp> pages_up;
+
+    // The pages this world's mods offer (core.page_register), by name.
+    struct PageDecl {
+        std::string owner, title, perm;
+    };
+    std::map<std::string, PageDecl> pages;
 
     // Bodies a mod moved (core.player_place), sent after the tick's block
     // changes: a body put where a mod just took a block away has to find it
@@ -1669,21 +1692,52 @@ int host_chat(void *ud, int player, const char *text)
     ServerState *s = static_cast<ServerState *>(ud);
     if (!text || s->sessions == nullptr || std::strlen(text) > net::kMaxWireModText) return 0;
     if (player < 0 || (player > 0 && !s->sessions->find((net::PeerId)player))) return 0;
+    if (s->muted_caller && player != s->muted_caller) {
+        if (!s->muted_why.empty())
+            s->mod_says.push_back(ServerState::ModSay{s->muted_caller, 0, s->muted_why, false, true});
+        s->muted_why.clear();   // said once
+        return 1;
+    }
 
     s->mod_says.push_back(ServerState::ModSay{player, 0, text, false, true});
     return 1;
 }
 
-int host_command(void *ud, const char *name, const char *help)
+admin::Who admin_who(const net::Session &p);   // below the rooms
+
+int host_command(void *ud, const char *name, const char *help, const char *perm)
 {
     ServerState *s = static_cast<ServerState *>(ud);
     if (!name || !net::chat_command_name_ok(name) || net::chat_builtin(name)) return 0;
+    if (admin::is_command(name) || std::strcmp(name, "page") == 0 || std::strcmp(name, "admin") == 0)
+        return 0;
     const std::string owner = asking_mod();
     const auto        it    = s->commands.find(name);
     if (it != s->commands.end() && it->second.owner != owner) return 0;
+    admin::Role need;
+    if (perm && *perm && !admin::perm_role(perm, need)) {
+        std::printf("[mod] %s: command /%s: no permission called '%s'\n", owner.c_str(), name,
+                    perm);
+        return 0;
+    }
 
-    s->commands[name] = net::ChatCommand{owner, help ? help : ""};
+    s->commands[name] = net::ChatCommand{owner, help ? help : "", perm ? perm : ""};
     return 1;
+}
+
+// core.has_perm and core.role: what a player here may do (src/server/admin.h).
+int host_has_perm(void *ud, int player, const char *perm)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    const net::Session *p = s->sessions ? s->sessions->find((net::PeerId)player) : nullptr;
+    return p && perm && admin::may(admin_who(*p), perm) ? 1 : 0;
+}
+
+const char *host_role(void *ud, int player)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    const net::Session *p = s->sessions ? s->sessions->find((net::PeerId)player) : nullptr;
+    return p ? admin::role_name(admin::role_of(admin_who(*p))) : "";
 }
 
 // A body moved and turned by a mod (core.player_place): queued, and sent with
@@ -3779,7 +3833,7 @@ size_t run_mod_stages(ServerState &s, ColumnPos column)
         // VM is gone.
         bool alive = false;
         for (const Mod &m : s.mods.mods())
-            if (m.vm == st.vm) alive = m.running;
+            if (st.vm && m.vm == st.vm) alive = m.running;
         if (!alive) continue;
 
         // Read-only, and there is no way to say otherwise: a stage writes with
@@ -4158,6 +4212,327 @@ ModStore &shared_store(ServerState *s)
     if (!g_router.rooms.empty() && g_router.rooms[0].mod_store != nullptr)
         return *g_router.rooms[0].mod_store;
     return s->mod_store;
+}
+
+// A player in this process as the admin store sees them (src/server/admin.h).
+admin::Who admin_who(const net::Session &p)
+{
+    admin::Who w;
+    w.name         = p.name;
+    w.has_identity = p.has_identity;
+    if (p.has_identity) std::memcpy(w.identity, p.identity, net::kSignPublicBytes);
+    w.address = g_router.transport.address(p.id);
+    return w;
+}
+
+// What an admin command reaches: the players of every room, a portal window
+// included, and the way out -- the refusal first, flushed, then the cut, so
+// they read why. The room hears the Disconnected and lets go of the body.
+admin::Hooks admin_hooks()
+{
+    admin::Hooks h;
+    h.online = [] {
+        std::vector<admin::Online> out;
+        for (const RoomShared &r : g_router.rooms) {
+            if (!r.sessions) continue;
+            for (const net::PeerId peer : r.sessions->ready_peers())
+                if (const net::Session *p = r.sessions->find(peer))
+                    out.push_back({peer, admin_who(*p), r.name});
+        }
+        return out;
+    };
+    h.remove = [](net::PeerId peer, net::RefuseReason reason, const std::string &text) {
+        net::Refuse r;
+        r.reason = reason;
+        r.detail = text;
+        g_router.transport.send(peer, net::Channel::Handshake, r.encode(), true);
+        g_router.transport.flush();
+        g_router.transport.disconnect(peer);
+    };
+    return h;
+}
+
+// The pages: the engine's own and the mods' (src/core/ui/page.h), each player's
+// on a panel of its own that the engine owns.
+constexpr const char *kPageOwner = "core:page";
+
+std::string page_panel(net::PeerId peer) { return "page:" + std::to_string(peer); }
+
+// Names the engine answers itself, which no mod may register.
+bool core_page_name(const std::string &n)
+{
+    for (const char *c : {"pages", "admin", "bans", "whitelist", "roles", "perms", "server",
+                          "mods", "here"})
+        if (n == c) return true;
+    return false;
+}
+
+void show_page(ServerState &s, net::PeerId peer, ServerState::PageUp up)
+{
+    const std::string name = page_panel(peer);
+    up.layout = ui::layout_page(name, kPageOwner, up.title, up.markup, up.screen);
+    up.screen = up.layout.screen;
+    std::string err;
+    bool ok = s.panels.define(name, kPageOwner, up.layout.panel.w, up.layout.panel.h, err);
+    for (const ui::Element &e : up.layout.panel.elements)
+        ok = ok && s.panels.add(name, kPageOwner, e, err);
+    ok = ok && s.panels.show(name, kPageOwner, true, (ui::PlayerId)peer, err);
+    if (!ok) {
+        std::printf("        page '%s' for %u: %s\n", up.name.c_str(), (unsigned)peer, err.c_str());
+        return;
+    }
+    s.pages_up[peer] = std::move(up);
+}
+
+void close_page(ServerState &s, net::PeerId peer)
+{
+    s.pages_up.erase(peer);
+    s.panels.drop_owner(kPageOwner, page_panel(peer));
+}
+
+void say_to(ServerState &s, net::PeerId peer, const std::string &line)
+{
+    s.mod_says.push_back(ServerState::ModSay{(int)peer, 0, line, false, true});
+}
+
+// The engine's pages that need the world rather than the admin store.
+bool world_page(ServerState &s, const admin::Who &who, const net::Session &me,
+                const std::string &name, std::string &title, std::string &m)
+{
+    using ui::page_text;
+    if (name == "pages") {
+        title = "Pages";
+        if (admin::may(who, "pages")) m += "[Administration](page:admin)\n";
+        m += "[Server](page:server) [Mods](page:mods) [Here](page:here)\n";
+        bool any = false;
+        for (const auto &[n, d] : s.pages)
+            if (d.perm.empty() || admin::may(who, d.perm)) {
+                if (!any) m += "## From the mods\n";
+                any = true;
+                m += "[" + page_text(d.title) + "](page:" + n + ") ";
+            }
+        m += "\n";
+        return true;
+    }
+    if (name == "server") {
+        title = "Server";
+        m += std::string("Cubes and portals ") + kEngineVersion + ".\n";
+        m += "## Rooms\n| room | players | |\n";
+        for (const RoomShared &r : g_router.rooms) {
+            size_t n = 0;
+            if (r.sessions)
+                for (const net::PeerId peer : r.sessions->ready_peers())
+                    if (const net::Session *p = r.sessions->find(peer); p && p->scope == net::Scope::Enter)
+                        ++n;
+            m += "| " + page_text(r.name.empty() ? "this world" : r.name) + " | " +
+                 std::to_string(n) + " | |\n";
+        }
+        if (admin::may(who, "pages")) m += "\n[Administration](page:admin)\n";
+        return true;
+    }
+    if (name == "mods") {
+        title = "Mods in this world";
+        m += "| mod | version | |\n";
+        for (const Mod &mod : s.mods.mods())
+            m += "| " + page_text(mod.manifest.name) + " | " + mod.manifest.version.str() + " | " +
+                 (mod.running ? "running" : page_text("stopped: " + mod.error)) + " |\n";
+        return true;
+    }
+    if (name == "here") {
+        title = "Here";
+        const ecs::Position p = me.avatar.is_alive() && me.avatar.has<ecs::Position>()
+                                    ? me.avatar.get<ecs::Position>()
+                                    : ecs::Position{};
+        const int x = (int)std::floor(p.x), z = (int)std::floor(p.z);
+        const uint32_t tag = s.sessions ? s.sessions->owned_at(x, z) : 0;
+        m += "Room: " + page_text(g_router.rooms[(size_t)g_room].name.empty()
+                                      ? "this world"
+                                      : g_router.rooms[(size_t)g_room].name) + "\n";
+        m += "Standing at " + std::to_string(x) + " " + std::to_string((int)std::floor(p.y)) + " " +
+             std::to_string(z) + ".\n";
+        m += tag ? "This ground belongs to owner " + std::to_string(tag) +
+                       " (core.owned_area): what is taken here comes out marked.\n"
+                 : "This ground belongs to nobody.\n";
+        m += "> A mod that keeps zones can offer its own page: /page lists them.\n";
+        return true;
+    }
+    return false;
+}
+
+// A page for a player: the engine's, or a mod's -- whose mod hears
+// core:page_open and answers with core.page_show. False for none they may see.
+bool open_page(ServerState &s, net::PeerId peer, const std::string &name, int screen = 0)
+{
+    const net::Session *me = s.sessions ? s.sessions->find(peer) : nullptr;
+    if (!me) return false;
+    const admin::Who     who = admin_who(*me);
+    ServerState::PageUp up;
+    up.name   = name;
+    up.owner  = "core";
+    up.screen = screen;
+    if (admin::page(name, who, admin_hooks(), up.title, up.markup) ||
+        world_page(s, who, *me, name, up.title, up.markup)) {
+        show_page(s, peer, std::move(up));
+        return true;
+    }
+    const auto it = s.pages.find(name);
+    if (it == s.pages.end() || (!it->second.perm.empty() && !admin::may(who, it->second.perm)))
+        return false;
+    // Where they were on it, for the mod's answer (host_page_show).
+    if (const auto was = s.pages_up.find(peer); was == s.pages_up.end() || was->second.name != name)
+        s.pages_up.erase(peer);
+    script_field fields[2] = {
+        {"player", SCRIPT_V_NUMBER, (double)peer, nullptr, 0},
+        {"page", SCRIPT_V_STRING, 0.0, name.c_str(), 0},
+    };
+    std::string err;
+    if (!s.mods.events().emit("core:page_open", fields, 2, nullptr, err, &it->second.owner))
+        std::fprintf(stderr, "emit core:page_open: %s\n", err.c_str());
+    return true;
+}
+
+// A line a player typed or a page ran for them: a /command answered here or by
+// its mod, or something said to everybody in this world. Answers go out with
+// the mods' chat, at the end of the tick.
+void run_chat_line(ServerState &s, net::PeerId peer, const std::string &line)
+{
+    const net::Session *from = s.sessions ? s.sessions->find(peer) : nullptr;
+    const std::string   who  = from ? from->name : "?";
+    const admin::Who    caller = from ? admin_who(*from) : admin::Who{};
+    std::string         name, args;
+    std::vector<std::string> said;
+    std::string              held;
+    if (!net::chat_split(line, name, args)) {
+        if (admin::muted(caller, held)) {
+            say_to(s, peer, held);
+            return;
+        }
+        const std::string out = "<" + who + "> " + line;
+        std::printf("        chat: %s\n", out.c_str());
+        s.mod_says.push_back(ServerState::ModSay{0, 0, out, false, true});
+    } else if (admin::run(caller, name, args, admin_hooks(), said)) {
+        for (const std::string &l : said) say_to(s, peer, l);
+    } else if (name == "page" || name == "admin") {
+        std::string want = name == "admin" ? "admin" : args.substr(0, args.find(' '));
+        if (want.empty()) want = "pages";
+        if (!open_page(s, peer, want)) say_to(s, peer, "No page '" + want + "' for you -- /page lists them");
+    } else if (name == "help") {
+        for (const std::string &l : net::chat_help(s.commands)) say_to(s, peer, l);
+        say_to(s, peer, "/page [NAME] -- the pages: the server's, the mods'");
+        if (admin::may(caller, "pages")) say_to(s, peer, "/admin -- the administration page");
+        for (const std::string &l : admin::help(caller)) say_to(s, peer, l);
+    } else if (name == "list") {
+        std::string names;
+        int         n = 0;
+        for (const net::PeerId p : s.sessions->ready_peers())
+            if (const net::Session *o = s.sessions->find(p); o && o->scope == net::Scope::Enter)
+                names += (n++ ? ", " : "") + o->name;
+        say_to(s, peer, std::to_string(n) + " in this world: " + names);
+    } else if (const auto c = s.commands.find(name);
+               c != s.commands.end() && !c->second.perm.empty() &&
+               !admin::may(caller, c->second.perm)) {
+        say_to(s, peer, "You may not use /" + name + ".");
+    } else if (c != s.commands.end()) {
+        std::printf("        '%s' ran /%s\n", who.c_str(), name.c_str());
+        script_field fields[3] = {
+            {"player", SCRIPT_V_NUMBER, (double)peer, nullptr, 0},
+            {"name", SCRIPT_V_STRING, 0.0, name.c_str(), 0},
+            {"args", SCRIPT_V_STRING, 0.0, args.c_str(), 0},
+        };
+        std::string cmd_err;
+        if (admin::muted(caller, s.muted_why)) s.muted_caller = (int)peer;
+        if (!s.mods.events().emit("core:command", fields, 3, nullptr, cmd_err, &c->second.owner))
+            std::fprintf(stderr, "emit core:command: %s\n", cmd_err.c_str());
+        s.muted_caller = 0;
+        s.muted_why.clear();
+    } else {
+        say_to(s, peer, "Unknown command /" + name + " -- /help lists them");
+    }
+}
+
+// A click on a player's page: its own buttons, or a link.
+void page_click(ServerState &s, net::PeerId peer, const std::string &id, const std::string &text)
+{
+    const auto it = s.pages_up.find(peer);
+    if (it == s.pages_up.end()) return;
+    ServerState::PageUp up = it->second;   // a copy: what runs below may replace it
+    if (id == ui::kPanelEscape || id == ui::kPageClose) {
+        close_page(s, peer);
+        return;
+    }
+    if (id == ui::kPagePrev || id == ui::kPageNext) {
+        up.screen += id == ui::kPagePrev ? -1 : 1;
+        show_page(s, peer, std::move(up));
+        return;
+    }
+    const ui::PageLink *l = ui::page_link(up.layout, id);
+    if (!l) return;
+    std::string target = l->target;
+    if (l->field)
+        for (size_t at; (at = target.find("{text}")) != std::string::npos;)
+            target.replace(at, 6, text);
+
+    if (target.rfind("page:", 0) == 0) {
+        if (!open_page(s, peer, target.substr(5))) say_to(s, peer, "No page '" + target.substr(5) + "' for you");
+    } else if (target.rfind("cmd:", 0) == 0) {
+        run_chat_line(s, peer, target.substr(4));
+        // And the page again, with what the command changed.
+        if (const auto now = s.pages_up.find(peer); now != s.pages_up.end() && now->second.name == up.name)
+            open_page(s, peer, up.name, up.screen);
+    } else if (target.rfind("act:", 0) == 0 && up.owner != "core") {
+        const std::string act = target.substr(4);
+        script_field fields[4] = {
+            {"player", SCRIPT_V_NUMBER, (double)peer, nullptr, 0},
+            {"page", SCRIPT_V_STRING, 0.0, up.name.c_str(), 0},
+            {"id", SCRIPT_V_STRING, 0.0, act.c_str(), 0},
+            {"text", SCRIPT_V_STRING, 0.0, l->field ? text.c_str() : "", 0},
+        };
+        std::string err;
+        if (!s.mods.events().emit("core:page_action", fields, 4, nullptr, err, &up.owner))
+            std::fprintf(stderr, "emit core:page_action: %s\n", err.c_str());
+    }
+}
+
+// core.page_register, core.page_show, core.is_muted.
+int host_page_register(void *ud, const char *name, const char *title, const char *perm)
+{
+    ServerState      *s     = static_cast<ServerState *>(ud);
+    const std::string owner = asking_mod();
+    admin::Role       need;
+    if (!name || !net::chat_command_name_ok(name) || core_page_name(name) ||
+        (perm && *perm && !admin::perm_role(perm, need)))
+        return 0;
+    const auto it = s->pages.find(name);
+    if (it != s->pages.end() && it->second.owner != owner) return 0;
+    s->pages[name] = ServerState::PageDecl{owner, title && *title ? title : name, perm ? perm : ""};
+    return 1;
+}
+
+int host_page_show(void *ud, int player, const char *name, const char *markup)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (!s->sessions || !name || !*name || !markup || std::strlen(markup) > 16384 ||
+        !s->sessions->find((net::PeerId)player))
+        return 0;
+    ServerState::PageUp up;
+    up.name   = name;
+    up.owner  = asking_mod();
+    up.markup = markup;
+    const auto decl = s->pages.find(name);
+    up.title  = decl != s->pages.end() && decl->second.owner == up.owner ? decl->second.title : name;
+    if (const auto was = s->pages_up.find((net::PeerId)player);
+        was != s->pages_up.end() && was->second.name == up.name)
+        up.screen = was->second.screen;
+    show_page(*s, (net::PeerId)player, std::move(up));
+    return 1;
+}
+
+int host_is_muted(void *ud, int player)
+{
+    ServerState        *s = static_cast<ServerState *>(ud);
+    const net::Session *p = s->sessions ? s->sessions->find((net::PeerId)player) : nullptr;
+    std::string         why;
+    return p && admin::muted(admin_who(*p), why) ? 1 : 0;
 }
 
 // Called holding the rooms' lock, as every host call is, so the room it is for
@@ -4821,6 +5196,11 @@ int serve_room(int argc, char **argv)
         host.notice        = host_notice;
         host.chat          = host_chat;
         host.command       = host_command;
+        host.has_perm      = host_has_perm;
+        host.role          = host_role;
+        host.page_register = host_page_register;
+        host.page_show     = host_page_show;
+        host.is_muted      = host_is_muted;
         host.storage_set   = host_storage_set;
         host.storage_get   = host_storage_get;
         host.shared_storage_set = host_shared_storage_set;
@@ -4931,7 +5311,16 @@ int serve_room(int argc, char **argv)
                                  const std::string &error) {
             s.mods.disable_vm(vm, "system '" + system + "': " + error);
         });
-        s.mods.set_vm_gone([&s](script_vm *vm) { s.lua_ecs.drop_vm(vm); });
+        // A VM that went -- a mod disabled, or one that failed halfway through
+        // loading after it asked for a stage -- leaves its stages dead. They
+        // stay listed, their names still taken, but point at no VM: matched by
+        // address they would run in the next mod's VM, which can be given the
+        // same one, as whatever function sits at that ref.
+        s.mods.set_vm_gone([&s](script_vm *vm) {
+            s.lua_ecs.drop_vm(vm);
+            for (ServerState::LuaStage &st : s.mapgen_stages)
+                if (st.vm == vm) st.vm = nullptr;
+        });
 
         // The engine's own events, declared before the mods load or the first
         // mod to listen for one would be told it does not exist.
@@ -5073,6 +5462,24 @@ int serve_room(int argc, char **argv)
                           {"name", SCRIPT_V_STRING},
                           {"args", SCRIPT_V_STRING}};
         s.mods.events().define(command, err);
+
+        // A player opened a page this mod registered (core.page_register):
+        // the mod answers with core.page_show. To that mod alone.
+        EventSchema page_open;
+        page_open.name   = "core:page_open";
+        page_open.owner  = "core";
+        page_open.fields = {{"player", SCRIPT_V_NUMBER}, {"page", SCRIPT_V_STRING}};
+        s.mods.events().define(page_open, err);
+
+        // An act:ID link on a page this mod showed, with a field's text.
+        EventSchema page_action;
+        page_action.name   = "core:page_action";
+        page_action.owner  = "core";
+        page_action.fields = {{"player", SCRIPT_V_NUMBER},
+                              {"page", SCRIPT_V_STRING},
+                              {"id", SCRIPT_V_STRING},
+                              {"text", SCRIPT_V_STRING}};
+        s.mods.events().define(page_action, err);
 
         EventSchema watched;
         watched.name   = "core:watched";
@@ -5672,6 +6079,18 @@ int serve_room(int argc, char **argv)
                                 name_err.c_str());
             }
             return true;
+        });
+
+        // Bans and the whitelist, the same for every room (src/server/admin.h).
+        sessions.set_admit_check([](const std::string &name, const uint8_t *identity,
+                                    net::PeerId peer, net::RefuseReason &reason,
+                                    std::string &why) {
+            admin::Who w;
+            w.name         = name;
+            w.has_identity = identity != nullptr;
+            if (identity) std::memcpy(w.identity, identity, net::kSignPublicBytes);
+            w.address = g_router.transport.address(peer);
+            return admin::admits(w, reason, why);
         });
 
         // What a position is checked against: the fastest this world's own
@@ -6312,6 +6731,7 @@ int serve_room(int argc, char **argv)
                         if (!sess->name.empty()) std::printf("        '%s' left\n",
                                                              sess->name.c_str());
                     }
+                    close_page(s, ev.peer);
                     sessions.on_disconnect(ev.peer);
                     break;
 
@@ -6533,7 +6953,9 @@ int serve_room(int argc, char **argv)
                     // panel that is actually up. Emitted here for the same
                     // reason an edit is applied here: this is where the mod
                     // host lives.
-                    if (a.has_ui_click) {
+                    if (a.has_ui_click && a.ui_click.panel == page_panel(ev.peer)) {
+                        page_click(s, ev.peer, a.ui_click.id, a.ui_click.text);
+                    } else if (a.has_ui_click) {
                         // ESC: off this player's screen first, whatever the mod says.
                         if (a.ui_click.id == ui::kPanelEscape) {
                             std::string perr;
@@ -6552,49 +6974,8 @@ int serve_room(int argc, char **argv)
                             std::fprintf(stderr, "emit core:ui_click: %s\n", click_err.c_str());
                     }
 
-                    // A line of chat: a /command answered here or by its mod,
-                    // or something said to everybody in this world.
-                    if (a.has_chat) {
-                        const net::Session *from = sessions.find(ev.peer);
-                        const std::string   who  = from ? from->name : "?";
-                        const auto tell = [&](net::PeerId to, const std::string &line) {
-                            transport.send(to, net::Channel::Event, net::Chat{line}.encode(), true);
-                        };
-                        std::string name, args;
-                        if (!net::chat_split(a.chat, name, args)) {
-                            const std::string line = "<" + who + "> " + a.chat;
-                            std::printf("        chat: %s\n", line.c_str());
-                            for (const net::PeerId peer : sessions.ready_peers())
-                                if (const net::Session *to = sessions.find(peer);
-                                    to && to->scope == net::Scope::Enter)
-                                    tell(peer, line);
-                        } else if (name == "help") {
-                            for (const std::string &line : net::chat_help(s.commands))
-                                tell(ev.peer, line);
-                        } else if (name == "list") {
-                            std::string names;
-                            int         n = 0;
-                            for (const net::PeerId peer : sessions.ready_peers())
-                                if (const net::Session *p = sessions.find(peer);
-                                    p && p->scope == net::Scope::Enter) {
-                                    names += (n++ ? ", " : "") + p->name;
-                                }
-                            tell(ev.peer, std::to_string(n) + " in this world: " + names);
-                        } else if (const auto c = s.commands.find(name); c != s.commands.end()) {
-                            std::printf("        '%s' ran /%s\n", who.c_str(), name.c_str());
-                            script_field fields[3] = {
-                                {"player", SCRIPT_V_NUMBER, (double)ev.peer, nullptr, 0},
-                                {"name", SCRIPT_V_STRING, 0.0, name.c_str(), 0},
-                                {"args", SCRIPT_V_STRING, 0.0, args.c_str(), 0},
-                            };
-                            std::string cmd_err;
-                            if (!s.mods.events().emit("core:command", fields, 3, nullptr, cmd_err,
-                                                      &c->second.owner))
-                                std::fprintf(stderr, "emit core:command: %s\n", cmd_err.c_str());
-                        } else {
-                            tell(ev.peer, "Unknown command /" + name + " -- /help lists them");
-                        }
-                    }
+                    // A line of chat (run_chat_line).
+                    if (a.has_chat) run_chat_line(s, ev.peer, a.chat);
 
                     if (a.close) {
                         // Flushed first, or the refusal races the disconnect
@@ -6613,6 +6994,7 @@ int serve_room(int argc, char **argv)
             for (const net::PeerId p : sessions.expired(seconds_since(t_start))) {
                 std::printf("        dropped a peer that connected and never said hello\n");
                 keep_player(p);
+                close_page(s, p);
                 sessions.on_disconnect(p);
                 transport.disconnect(p);
             }
@@ -6641,6 +7023,7 @@ int serve_room(int argc, char **argv)
                             idle_sess ? net::quiet_for(*idle_sess, liveness_now) : 0.0,
                             idle_sess ? net::join_patience(*idle_sess) : 0.0);
                 keep_player(p);
+                close_page(s, p);
                 sessions.on_disconnect(p);
                 transport.disconnect(p);
             }
@@ -7163,6 +7546,26 @@ int serve_room(int argc, char **argv)
                 // is about the mod's own state and not about a cell the client
                 // may not have yet, and holding it would be the engine having
                 // an opinion about a conversation it does not read.
+                // What the server's own stdin typed: admin commands, as the
+                // owner. Room 0 serves it, since the store is the process's.
+                if (g_room == 0)
+                    for (const admin::ConsoleLine &in : admin::take_console_lines()) {
+                        std::string              cname, cargs;
+                        std::vector<std::string> said;
+                        const std::string        cmd = in.line.empty() || in.line[0] == '/' ? in.line : "/" + in.line;
+                        if (!net::chat_split(cmd, cname, cargs)) {
+                            if (in.reply) in.reply->set_value({});
+                            continue;
+                        }
+                        if (cname == "help")
+                            said = admin::help(in.who);
+                        else if (!admin::run(in.who, cname, cargs, admin_hooks(), said))
+                            said.push_back("no admin command /" + cname + " -- help lists them");
+                        if (in.reply) in.reply->set_value(said);
+                        else
+                            for (const std::string &l : said) std::printf("console: %s\n", l.c_str());
+                    }
+
                 for (const ServerState::ModSay &say : s.mod_says) {
                     const std::vector<uint8_t> bytes =
                         say.chat     ? net::Chat{say.text}.encode()
@@ -7575,6 +7978,56 @@ int serve_room(int argc, char **argv)
 // What comes before the first --room is every room's; what follows a --room is
 // that room's alone. With no --room there is one room, which is the server this
 // program always was, with the same arguments.
+// --config FILE, replaced by the file's flags where it stands, so what comes
+// after it on the command line says otherwise. A line is `key value` or
+// `key = value`, meaning --key value; a key alone or set to true is the bare
+// flag, false leaves it out; `[room NAME]` starts a room; # starts a comment.
+bool expand_config(const std::vector<std::string> &in, std::vector<std::string> &out,
+                   std::string &err)
+{
+    const auto trim = [](std::string t) {
+        t.erase(0, t.find_first_not_of(" \t"));
+        t.erase(t.find_last_not_of(" \t\r") + 1);
+        return t;
+    };
+    for (size_t i = 0; i < in.size(); ++i) {
+        if (in[i] != "--config" || i + 1 >= in.size()) {
+            out.push_back(in[i]);
+            continue;
+        }
+        const std::string path = in[++i];
+        std::ifstream     f(path);
+        if (!f) {
+            err = "cannot read the config " + path;
+            return false;
+        }
+        int n = 0;
+        for (std::string line; std::getline(f, line);) {
+            ++n;
+            line = trim(line.substr(0, line.find('#')));
+            if (line.empty()) continue;
+            if (line.rfind("[room ", 0) == 0 && line.back() == ']') {
+                out.push_back("--room");
+                out.push_back(trim(line.substr(6, line.size() - 7)));
+                continue;
+            }
+            const size_t eq  = line.find('=');
+            const size_t cut = eq != std::string::npos ? eq : line.find_first_of(" \t");
+            const std::string key   = trim(line.substr(0, cut));
+            const std::string value = cut == std::string::npos ? "" : trim(line.substr(cut + 1));
+            if (key.empty() || key.find(' ') != std::string::npos) {
+                err = path + ":" + std::to_string(n) + ": not a setting: " + line;
+                return false;
+            }
+            if (value == "false" || value == "no" || value == "off") continue;
+            out.push_back("--" + key);
+            if (!value.empty() && value != "true" && value != "yes" && value != "on")
+                out.push_back(value);
+        }
+    }
+    return true;
+}
+
 int main(int argc, char **argv)
 {
     // Before anything else, so a crash while a world is being generated says
@@ -7583,14 +8036,28 @@ int main(int argc, char **argv)
     install_crash_handler();
     install_stop_handler();
 
+    // Line buffered before the first line, which main() may print itself
+    // (--owner, rcon): setvbuf after output does nothing reliable, and a log
+    // that arrives when the server exits is not a log. See serve_room.
+    std::setvbuf(stdout, nullptr, _IOLBF, 0);
+
+    std::vector<std::string> cli;
+    {
+        std::string err;
+        if (!expand_config(std::vector<std::string>(argv + 1, argv + argc), cli, err)) {
+            std::printf("server: %s\n", err.c_str());
+            return 1;
+        }
+    }
+
     std::vector<std::string>                                      common;
     std::vector<std::pair<std::string, std::vector<std::string>>> rooms;
-    for (int i = 1; i < argc; ++i) {
-        if (std::strcmp(argv[i], "--room") == 0 && i + 1 < argc) {
-            rooms.push_back({argv[++i], {}});
+    for (size_t i = 0; i < cli.size(); ++i) {
+        if (cli[i] == "--room" && i + 1 < cli.size()) {
+            rooms.push_back({cli[++i], {}});
             continue;
         }
-        (rooms.empty() ? common : rooms.back().second).push_back(argv[i]);
+        (rooms.empty() ? common : rooms.back().second).push_back(cli[i]);
     }
     if (rooms.empty()) rooms.push_back({"", {}});
     for (size_t i = 0; i < rooms.size(); ++i)
@@ -7601,19 +8068,47 @@ int main(int argc, char **argv)
                 return 1;
             }
 
+    const auto last_of = [](const std::vector<std::string> &args, const char *flag) {
+        std::string v;
+        for (size_t i = 0; i + 1 < args.size(); ++i)
+            if (args[i] == flag) v = args[i + 1];
+        return v;
+    };
+    std::string first_world = last_of(rooms[0].second, "--world-file");
+    if (first_world.empty()) first_world = last_of(common, "--world-file");
+
+    // Who may do what, once for every room, in the first room's file
+    // (src/server/admin.h). --owner is every room's, so it is read here.
+    {
+        std::string err;
+        if (!admin::open(first_world, err)) {
+            std::printf("server: %s\n", err.c_str());
+            return 1;
+        }
+        std::string owner = last_of(common, "--owner");
+        if (owner.empty()) owner = last_of(rooms[0].second, "--owner");
+        if (!owner.empty()) {
+            admin::set_owner(owner);
+            std::printf("server: '%s' owns this server\n", owner.c_str());
+        }
+        admin::start_console();
+
+        // RCON: the same commands from a script on this machine.
+        const std::string rcon = last_of(common, "--rcon");
+        if (!rcon.empty()) {
+            if (!admin::start_rcon(std::atoi(rcon.c_str()), last_of(common, "--rcon-password"), err)) {
+                std::printf("server: %s\n", err.c_str());
+                return 1;
+            }
+            std::printf("server: rcon on 127.0.0.1:%s\n", rcon.c_str());
+        }
+    }
+
     // More than one room: one identity and one ticket key for all of them,
     // each room trusting its own tickets, so a mouth from one room into
     // another needs no keys on the command line.
     std::vector<std::string> shared;
     if (rooms.size() > 1) {
-        const auto last_of = [](const std::vector<std::string> &args, const char *flag) {
-            std::string v;
-            for (size_t i = 0; i + 1 < args.size(); ++i)
-                if (args[i] == flag) v = args[i + 1];
-            return v;
-        };
-        std::string first_world = last_of(rooms[0].second, "--world-file");
-        if (first_world.empty()) first_world = last_of(common, "--world-file");
 
         std::string key = last_of(common, "--key-file");
         if (key.empty()) key = first_world.empty() ? "server.key" : first_world + ".key";
@@ -7660,6 +8155,7 @@ int main(int argc, char **argv)
     }
     for (std::thread &t : threads) t.join();
     g_router.transport.close();
+    admin::close();
 
     for (const int code : rc)
         if (code != 0) return code;

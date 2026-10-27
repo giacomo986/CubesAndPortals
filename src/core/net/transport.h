@@ -163,6 +163,10 @@ public:
     // doubling timeout and one heartbeat in forty takes several seconds.
     double round_trip(PeerId peer) const;
 
+    // The peer's IP address as text, "" for one that is not connected: what
+    // an address ban is matched against (src/server/admin.h).
+    std::string address(PeerId peer) const;
+
     // Bytes of reliable data this end still owes that peer: sent and not yet
     // acknowledged, plus whatever is queued behind a window that is full.
     //

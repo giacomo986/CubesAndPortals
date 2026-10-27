@@ -182,7 +182,9 @@ public:
 
     // Everything one mod declared, gone. For a mod being disabled rather than
     // reloaded, where nothing is coming back.
-    size_t drop_owner(const std::string &owner);
+    // With `only`, just the panel of that name, if it is that owner's: a page
+    // whose player left (src/core/ui/page.h).
+    size_t drop_owner(const std::string &owner, const std::string &only = "");
 
 
     // How many times what a viewer can SEE changed.

@@ -1258,6 +1258,54 @@ it; a password is the key, recovered only by a server's owner
 address is the first non-loopback IPv4; a deleted world has no bin; fields
 have no cursor; the menu is in English.
 
+## Server administration
+
+**Done 2026-10-27** (`src/server/admin.h`, `src/core/ui/page.h`):
+- Phase 1: roles, /kick /ban /banip /mute /whitelist, an audit table,
+  `--owner`, the stdin console, `core.command(..., perm)`, `core.has_perm`,
+  `core.role`.
+- Phase 2: `--config FILE` and RCON (`--rcon`, `tools/admin.sh`).
+- In-game pages: `/page`, `/admin`, built-in pages for administration, the
+  server, the mods and the ground underfoot; `core.page_register` and
+  `core.page_show` for mods (`mods/board`).
+- `/perm` changes which role each permission wants.
+- An anonymous player's ban takes their address too.
+- The single-process client's player is owner.
+- `/msg` and `/me` respect /mute (`core.is_muted`).
+- /mute holds any mod's chat: while a muted player's command runs, its mod's
+  `core.chat` to anybody else is held.
+- The address each player last came from is kept (`addr` rows), so an offline
+  player without a key is banned with it, and `/banip NAME` works offline.
+- Page text is measured with the glyph widths of the client's font (raylib's
+  default, copied into `src/core/ui/page.cpp`): a line is cut at the page's
+  edge to the pixel.
+- The single-process client has `/page`: the mods' pages and `mods`, no
+  administration.
+
+Checked:
+- `two_process_join` bans a name from the console, refuses it, lets another
+  name in and the first back after /unban, and RCON answers only to its
+  password.
+- In Xephyr: /admin, the permission buttons (the page reloads with the change),
+  the board's field and actions, back/next over 4 screens of mods.
+- `two_process_join`: an offline name without a key is banned with its address.
+- In Xephyr, `--quick`: /page, the board (post, take down), mods 1/4 to 2/4,
+  ESC; a wide note cut exactly at the edge. Joined and muted from the console,
+  /me through a whisper mod without its own check is held.
+
+Found on the way: a mapgen stage from a mod that failed halfway through loading
+stayed listed with its dead VM's address, and ran in the next VM malloc put
+there. `worldgen` failed 1/40 on HEAD and 15/40 with this work under 4-way
+load; stages now go dead with their VM, and it passes 60/60.
+
+Open:
+- A text `lang::tr` translates on the client is measured untranslated.
+- Chat a mod sends from a tick or a page action, not a command, is not held
+  by /mute.
+- Next phases: timed restarts, maintenance, MOTD; logs with timestamps,
+  sessions, `/seen`, `--report`; status query and portal targets; federation
+  between friend servers.
+
 ## Mods and scripting
 
 **OPEN-42 -- modifiers (ABM/LBM).** One Lua call per cell that fires, no

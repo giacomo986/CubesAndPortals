@@ -682,7 +682,7 @@ if serving then
 
     -- For trying things out: /mezzo jeep puts one six nodes in front, of the
     -- player's team, and none comes back when it is lost.
-    core.command("mezzo", "<jeep|tank|heli|plane|bomber|nest|mortar|howitzer|aa> -- a machine in front of you (test)")
+    core.command("mezzo", "<jeep|tank|heli|plane|bomber|nest|mortar|howitzer|aa> -- a machine in front of you (test)", "moderator")
     core.event.on("core:command", function(ev)
         if ev.name ~= "mezzo" then return end
         local kind = string.match(ev.args or "", "%S+") or "jeep"

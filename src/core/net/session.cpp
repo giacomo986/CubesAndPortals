@@ -328,6 +328,16 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
                                     "refused '" + hello.player_name +
                                         "': that name belongs to another identity on this world");
 
+        if (m_admit_check) {
+            RefuseReason reason = RefuseReason::Banned;
+            std::string  why;
+            if (!m_admit_check(hello.player_name, s.has_identity ? s.identity : nullptr, peer,
+                               reason, why))
+                return refuse_and_close(reason, why,
+                                        "refused '" + hello.player_name + "': " +
+                                            refuse_reason_text(reason) + " (" + why + ")");
+        }
+
         // The ticket, if one was presented -- and it is checked whether or not
         // this world requires one, for the same reason the identity is: a
         // server that ignores a credential it was handed is a server whose log

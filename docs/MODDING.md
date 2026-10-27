@@ -428,6 +428,8 @@ Il core usa lo stesso bus, con gli stessi schemi, senza percorsi privilegiati
 | `core:world_ready` | — | no |
 | `core:net_message` | `player, mod, text` | no |
 | `core:command` | `player, name, args` | no — solo al mod che l'ha dichiarato |
+| `core:page_open` | `player, page` | no — solo al mod che ha registrato la pagina |
+| `core:page_action` | `player, page, id, text` | no — solo al mod che ha mostrato la pagina |
 | `core:input` | `action, player` | sì — solo su un client |
 | `core:far_moved` | `index, x, y, z, axis, sign, half_w, half_h` | no — solo su un server a stanze |
 
@@ -552,7 +554,12 @@ core.shared_storage_set(chiave, valore) -> 1 | 0  -- lo stesso, uno per tutte le
 core.shared_storage_get(chiave) -> stringa
 core.notice(player, testo) -> 1 | 0              -- una frase sullo schermo; 0 = tutti
 core.chat(player, testo) -> 1 | 0                -- una riga nella chat (T); 0 = tutti
-core.command(nome, aiuto) -> 1 | 0               -- dichiara /nome; arriva come core:command
+core.command(nome, aiuto, perm?) -> 1 | 0       -- dichiara /nome; arriva come core:command
+core.has_perm(player, perm) -> 1 | 0            -- il ruolo del giocatore arriva a perm?
+core.role(player) -> stringa                     -- guest, player, helper, moderator, admin, owner
+core.is_muted(player) -> 1 | 0                   -- la sua chat è bloccata (/mute)?
+core.page_register(nome, titolo, perm?) -> 1 | 0 -- una pagina che /page NOME apre
+core.page_show(player, nome, markup) -> 1 | 0    -- mostra una pagina a un giocatore
 
 core.find_nodes(x1,y1,z1, x2,y2,z2, nome) -> { x,y,z, x,y,z, ... }
 
@@ -2155,6 +2162,38 @@ fusione nei meta della fornace e la dà con `furnace:xp` a chi la apre;
 core.event.define("furnace:xp", { fields = { player = "number", points = "number" }, cancellable = false })
 core.event.emit("furnace:xp", { player = ev.player, points = 3 })
 ```
+
+### Pagine: `core.page_register` e `core.page_show`
+
+Una pagina è una schermata stile pagina web, impaginata dal motore sul server
+e disegnata con gli stessi elementi di un pannello: nessun messaggio nuovo sul
+filo. Un mod la registra con un nome; quando un giocatore la apre (`/page
+nome`, o un link `page:nome`) il mod riceve `core:page_open` e risponde con
+`core.page_show`. Il markup, un costrutto per riga:
+
+```
+# Titolo                  una barra
+## Sottotitolo            con una riga sotto
+testo con [un link](page:altra) dentro, che va a capo da solo
+| nome | ruolo | [kick](cmd:/kick bob) |      righe di tabella, colonne larghe quanto serve
+?[scrivi qui](act:invia)                       un campo: Invio esegue la destinazione
+> testo più quieto
+---
+```
+
+Le destinazioni: `page:NOME` apre un'altra pagina, `cmd:/riga` esegue un
+comando come il giocatore che ha cliccato (con i suoi permessi, come se
+l'avesse scritto; dopo, la pagina si riapre aggiornata), `act:ID` arriva al mod
+come `core:page_action`. In un campo `{text}` diventa quello che è stato
+scritto. Oltre una schermata compaiono "back" e "next". Il testo è misurato con
+le larghezze dei caratteri del font del client, quindi va a capo dove viene
+disegnato. Nel client a processo singolo (`--quick`) le pagine dei mod ci sono
+lo stesso, con `/page`. L'esempio completo è `mods/board`.
+
+Un giocatore con `/mute` non parla agli altri neanche attraverso i comandi dei
+mod: mentre il suo comando gira, il `core.chat` del mod verso chiunque altro è
+trattenuto, e lui legge una volta che è mutato. `core.is_muted` serve solo per
+rispondere meglio (come fa `/msg`).
 
 ### Come si aggiunge una funzione all'API
 

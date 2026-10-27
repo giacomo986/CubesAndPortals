@@ -145,7 +145,7 @@ if serving then
         fill(ev.player)
     end)
 
-    core.command("creative", "[text] -- the catalogue, only the items whose names hold the text")
+    core.command("creative", "[text] -- the catalogue, only the items whose names hold the text", "creative")
 
     core.event.on("core:command", function(ev)
         if ev.name ~= "creative" then

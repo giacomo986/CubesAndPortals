@@ -644,11 +644,14 @@ enum class RefuseReason : uint8_t {
     ArrivalBlocked  = 12,  // there is, and what is in front of it is solid
     BadTicket       = 13,  // no ticket, an expired one, or one this world will not take
     NoSuchRoom      = 14,  // this server holds no world by that name
+    Banned          = 15,  // this player or address is banned here; the detail says until when
+    NotAllowed      = 16,  // the server lets in only the players on its list
+    Kicked          = 17,  // sent to a player already in, by an admin, before the cut
 
     // Always the last real value. What a decoder compares against, so that
     // adding a reason does not silently turn it into "no reason" on every
     // client that was built before it.
-    Last = NoSuchRoom,
+    Last = Kicked,
 };
 
 const char *refuse_reason_text(RefuseReason r);

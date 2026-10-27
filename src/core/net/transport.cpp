@@ -457,6 +457,16 @@ double Transport::round_trip(PeerId peer) const
     return (double)p->roundTripTime / 1000.0;
 }
 
+std::string Transport::address(PeerId peer) const
+{
+    if (!m_host) return "";
+    ENetPeer *p = find_peer((ENetHost *)m_host, peer);
+    if (!p || p->state != ENET_PEER_STATE_CONNECTED) return "";
+    char ip[64] = "";
+    if (enet_address_get_host_ip(&p->address, ip, sizeof(ip)) != 0) return "";
+    return ip;
+}
+
 size_t Transport::owed_bytes(PeerId peer) const
 {
     if (!m_host) return 0;

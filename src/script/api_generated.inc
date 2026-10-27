@@ -2502,13 +2502,69 @@ int l_chat(lua_State *L)
     return 1;
 }
 
-// core.command(name: string, help: string) -> number
+// core.command(name: string, help: string, perm: string?) -> number
 int l_command(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *name = (const char *)luaL_checkstring(L, 1);
     const char *help = (const char *)luaL_checkstring(L, 2);
-    const int result = (vm && vm->host.command) ? vm->host.command(vm->host.ud, name, help) : (int)0;
+    const char *perm = (const char *)luaL_optstring(L, 3, "");
+    const int result = (vm && vm->host.command) ? vm->host.command(vm->host.ud, name, help, perm) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.has_perm(player: number, perm: string) -> number
+int l_has_perm(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int player = (int)luaL_checkinteger(L, 1);
+    const char *perm = (const char *)luaL_checkstring(L, 2);
+    const int result = (vm && vm->host.has_perm) ? vm->host.has_perm(vm->host.ud, player, perm) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.role(player: number) -> string
+int l_role(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int player = (int)luaL_checkinteger(L, 1);
+    const char *result = (vm && vm->host.role) ? vm->host.role(vm->host.ud, player) : nullptr;
+    lua_pushstring(L, result ? result : "");
+    return 1;
+}
+
+// core.page_register(name: string, title: string, perm: string?) -> number
+int l_page_register(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_checkstring(L, 1);
+    const char *title = (const char *)luaL_checkstring(L, 2);
+    const char *perm = (const char *)luaL_optstring(L, 3, "");
+    const int result = (vm && vm->host.page_register) ? vm->host.page_register(vm->host.ud, name, title, perm) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.page_show(player: number, name: string, markup: string) -> number
+int l_page_show(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int player = (int)luaL_checkinteger(L, 1);
+    const char *name = (const char *)luaL_checkstring(L, 2);
+    const char *markup = (const char *)luaL_checkstring(L, 3);
+    const int result = (vm && vm->host.page_show) ? vm->host.page_show(vm->host.ud, player, name, markup) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.is_muted(player: number) -> number
+int l_is_muted(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int player = (int)luaL_checkinteger(L, 1);
+    const int result = (vm && vm->host.is_muted) ? vm->host.is_muted(vm->host.ud, player) : (int)0;
     lua_pushinteger(L, result);
     return 1;
 }
@@ -2989,6 +3045,16 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "chat");
     lua_pushcfunction(L, l_command, "core.command");
     lua_setfield(L, -2, "command");
+    lua_pushcfunction(L, l_has_perm, "core.has_perm");
+    lua_setfield(L, -2, "has_perm");
+    lua_pushcfunction(L, l_role, "core.role");
+    lua_setfield(L, -2, "role");
+    lua_pushcfunction(L, l_page_register, "core.page_register");
+    lua_setfield(L, -2, "page_register");
+    lua_pushcfunction(L, l_page_show, "core.page_show");
+    lua_setfield(L, -2, "page_show");
+    lua_pushcfunction(L, l_is_muted, "core.is_muted");
+    lua_setfield(L, -2, "is_muted");
     lua_pushcfunction(L, l_storage_set, "core.storage_set");
     lua_setfield(L, -2, "storage_set");
     lua_pushcfunction(L, l_storage_get, "core.storage_get");

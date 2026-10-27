@@ -15,6 +15,7 @@ namespace net {
 struct ChatCommand {
     std::string owner;
     std::string help;
+    std::string perm;   // what a player needs to run it (src/server/admin.h); "" anybody
 };
 using ChatCommands = std::map<std::string, ChatCommand>;
 

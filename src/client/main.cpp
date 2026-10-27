@@ -54,6 +54,7 @@
 #include "core/ecs/health.h"
 #include "core/ecs/mob.h"
 #include "core/physics/fall.h"
+#include "core/ui/page.h"
 #include "core/ui/panel.h"
 #include "core/item/item_registry.h"
 #include "core/item/recipe.h"
@@ -98,6 +99,7 @@
 #include <cerrno>
 #include <future>
 #include <map>
+#include <optional>
 #include <deque>
 #include <memory>
 #include <random>
@@ -1190,6 +1192,17 @@ struct Scene {
     // The chat (T), and the /commands this process's mods declared.
     ui::Chat          chat;
     net::ChatCommands chat_commands;
+
+    // The pages this process's mods offer (core.page_register), name to owner
+    // and title, and the one on the screen: cnp_server's pages, for the one
+    // player of a world run here, without the administration it has no use for.
+    struct PageUp {
+        std::string    name, owner, title, markup;   // owner "core" for the engine's
+        int            screen = 0;
+        ui::PageLayout layout;
+    };
+    std::map<std::string, std::pair<std::string, std::string>> pages;
+    std::optional<PageUp> page_up;
 
     // The grid the single-process player crafts in, when there is one. A
     // pointer because the loop owns it and this struct outlives none of it --
@@ -3264,15 +3277,59 @@ const char *asking_mod()
 }
 
 // A /command for this process's mods (core.command), with the server's rules.
-int host_command(void *ud, const char *name, const char *help)
+int host_command(void *ud, const char *name, const char *help, const char *)
 {
     Scene *s = static_cast<Scene *>(ud);
     if (!name || !net::chat_command_name_ok(name) || net::chat_builtin(name)) return 0;
+    if (std::strcmp(name, "page") == 0 || std::strcmp(name, "admin") == 0) return 0;
     const std::string owner = asking_mod();
     const auto        it    = s->chat_commands.find(name);
     if (it != s->chat_commands.end() && it->second.owner != owner) return 0;
 
     s->chat_commands[name] = net::ChatCommand{owner, help ? help : ""};
+    return 1;
+}
+
+// The one player of a world run in this process owns it (src/server/admin.h).
+int         host_has_perm(void *, int, const char *) { return 1; }
+const char *host_role(void *, int) { return "owner"; }
+int         host_is_muted(void *, int) { return 0; }
+
+// core.page_register and core.page_show, cnp_server's refusals; a connected
+// world's pages are the server's, so its code here has none.
+bool core_page_name(const std::string &n)
+{
+    for (const char *c : {"pages", "admin", "bans", "whitelist", "roles", "perms", "server",
+                          "mods", "here"})
+        if (n == c) return true;
+    return false;
+}
+
+int host_page_register(void *ud, const char *name, const char *title, const char *)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    if (s->conn || !name || !net::chat_command_name_ok(name) || core_page_name(name)) return 0;
+    const std::string owner = asking_mod();
+    const auto        it    = s->pages.find(name);
+    if (it != s->pages.end() && it->second.first != owner) return 0;
+    s->pages[name] = {owner, title && *title ? title : name};
+    return 1;
+}
+
+void show_local_page(Scene &s, Scene::PageUp up);   // with the chat, below
+
+int host_page_show(void *ud, int, const char *name, const char *markup)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    if (s->conn || !name || !*name || !markup || std::strlen(markup) > 16384) return 0;
+    Scene::PageUp up;
+    up.name   = name;
+    up.owner  = asking_mod();
+    up.markup = markup;
+    const auto decl = s->pages.find(name);
+    up.title = decl != s->pages.end() && decl->second.first == up.owner ? decl->second.second : name;
+    if (s->page_up && s->page_up->name == up.name) up.screen = s->page_up->screen;
+    show_local_page(*s, std::move(up));
     return 1;
 }
 
@@ -3326,7 +3383,7 @@ size_t run_mod_stages(Session &sess, ColumnPos column)
     for (const Session::LuaStage &st : sess.mapgen_stages) {
         bool alive = false;
         for (const Mod &m : sess.mods.mods())
-            if (m.vm == st.vm) alive = m.running;
+            if (st.vm && m.vm == st.vm) alive = m.running;
         if (!alive) continue;
 
         script_field fields[6] = {
@@ -4784,6 +4841,19 @@ void define_core_events(Scene &s)
     if (!s.act().mods.events().define(command, err))
         std::fprintf(stderr, "core event 'core:command': %s\n", err.c_str());
 
+    // Pages (core.page_register), opened with /page (local_chat).
+    EventSchema page_open;
+    page_open.name   = "core:page_open";
+    page_open.owner  = "core";
+    page_open.fields = {{"player", SCRIPT_V_NUMBER}, {"page", SCRIPT_V_STRING}};
+    s.act().mods.events().define(page_open, err);
+    EventSchema page_action;
+    page_action.name   = "core:page_action";
+    page_action.owner  = "core";
+    page_action.fields = {{"player", SCRIPT_V_NUMBER}, {"page", SCRIPT_V_STRING},
+                          {"id", SCRIPT_V_STRING}, {"text", SCRIPT_V_STRING}};
+    s.act().mods.events().define(page_action, err);
+
     EventSchema watched;
     watched.name   = "core:watched";
     watched.owner  = "core";
@@ -4792,10 +4862,17 @@ void define_core_events(Scene &s)
         std::fprintf(stderr, "core event 'core:watched': %s\n", err.c_str());
 }
 
+constexpr const char *kLocalPage = "core:page";   // the page's panel, and its owner
+void local_page_click(Scene &s, const std::string &id, const std::string &text);
+
 // A click on a panel, back to the mod that declared it.
 void emit_ui_click(Scene &s, const std::string &panel, const std::string &id,
                    const std::string &text = "")
 {
+    if (panel == kLocalPage) {
+        local_page_click(s, id, text);
+        return;
+    }
     script_field fields[4] = {
         {"panel",  SCRIPT_V_STRING, 0.0,                        panel.c_str(), 0},
         {"id",     SCRIPT_V_STRING, 0.0,                        id.c_str(),    0},
@@ -4922,8 +4999,111 @@ bool chat_frame(Scene &s, LookSettle &settle, bool &esc, std::string &out)
     return true;
 }
 
+// The single-process player's page (src/core/ui/page.h), as cnp_server shows
+// one (show_page there).
+void show_local_page(Scene &s, Scene::PageUp up)
+{
+    up.layout = ui::layout_page(kLocalPage, kLocalPage, up.title, up.markup, up.screen);
+    up.screen = up.layout.screen;
+    ui::PanelSet &ps = s.act().panels;
+    std::string   err;
+    bool ok = ps.define(kLocalPage, kLocalPage, up.layout.panel.w, up.layout.panel.h, err);
+    for (const ui::Element &e : up.layout.panel.elements) ok = ok && ps.add(kLocalPage, kLocalPage, e, err);
+    ok = ok && ps.show(kLocalPage, kLocalPage, true, ui::kLocalPlayer, err);
+    if (!ok) {
+        std::fprintf(stderr, "page '%s': %s\n", up.name.c_str(), err.c_str());
+        return;
+    }
+    s.page_up = std::move(up);
+}
+
+void close_local_page(Scene &s)
+{
+    s.page_up.reset();
+    s.act().panels.drop_owner(kLocalPage);
+}
+
+// The engine's pages here, or a mod's, whose mod hears core:page_open.
+bool open_local_page(Scene &s, const std::string &name, int screen = 0)
+{
+    using ui::page_text;
+    Scene::PageUp up;
+    up.name   = name;
+    up.owner  = "core";
+    up.screen = screen;
+    if (name == "pages") {
+        up.title  = "Pages";
+        up.markup = "[Mods](page:mods)\n";
+        if (!s.pages.empty()) up.markup += "## From the mods\n";
+        for (const auto &[n, d] : s.pages) up.markup += "[" + page_text(d.second) + "](page:" + n + ") ";
+        up.markup += "\n> Administration is a server's: a world of one player is its owner's.\n";
+    } else if (name == "mods") {
+        up.title  = "Mods in this world";
+        up.markup = "| mod | version | |\n";
+        for (const Mod &mod : s.act().mods.mods())
+            up.markup += "| " + page_text(mod.manifest.name) + " | " + mod.manifest.version.str() +
+                         " | " + (mod.running ? "running" : page_text("stopped: " + mod.error)) + " |\n";
+    } else {
+        const auto it = s.pages.find(name);
+        if (it == s.pages.end()) return false;
+        if (s.page_up && s.page_up->name != name) s.page_up.reset();
+        script_field fields[2] = {
+            {"player", SCRIPT_V_NUMBER, (double)ui::kLocalPlayer, nullptr, 0},
+            {"page", SCRIPT_V_STRING, 0.0, name.c_str(), 0},
+        };
+        std::string err;
+        if (!s.act().mods.events().emit("core:page_open", fields, 2, nullptr, err, &it->second.first))
+            std::fprintf(stderr, "emit core:page_open: %s\n", err.c_str());
+        return true;
+    }
+    show_local_page(s, std::move(up));
+    return true;
+}
+
+void local_chat(Scene &s, const std::string &line);
+
+// A click on the page: cnp_server's page_click.
+void local_page_click(Scene &s, const std::string &id, const std::string &text)
+{
+    if (!s.page_up) return;
+    Scene::PageUp up = *s.page_up;   // a copy: what runs below may replace it
+    if (id == ui::kPanelEscape || id == ui::kPageClose) {
+        close_local_page(s);
+        return;
+    }
+    if (id == ui::kPagePrev || id == ui::kPageNext) {
+        up.screen += id == ui::kPagePrev ? -1 : 1;
+        show_local_page(s, std::move(up));
+        return;
+    }
+    const ui::PageLink *l = ui::page_link(up.layout, id);
+    if (!l) return;
+    std::string target = l->target;
+    if (l->field)
+        for (size_t at; (at = target.find("{text}")) != std::string::npos;) target.replace(at, 6, text);
+
+    if (target.rfind("page:", 0) == 0) {
+        if (!open_local_page(s, target.substr(5)))
+            s.chat.add("No page '" + target.substr(5) + "' here", s.notice_clock);
+    } else if (target.rfind("cmd:", 0) == 0) {
+        local_chat(s, target.substr(4));
+        if (s.page_up && s.page_up->name == up.name) open_local_page(s, up.name, up.screen);
+    } else if (target.rfind("act:", 0) == 0 && up.owner != "core") {
+        const std::string act = target.substr(4);
+        script_field fields[4] = {
+            {"player", SCRIPT_V_NUMBER, (double)ui::kLocalPlayer, nullptr, 0},
+            {"page", SCRIPT_V_STRING, 0.0, up.name.c_str(), 0},
+            {"id", SCRIPT_V_STRING, 0.0, act.c_str(), 0},
+            {"text", SCRIPT_V_STRING, 0.0, l->field ? text.c_str() : "", 0},
+        };
+        std::string err;
+        if (!s.act().mods.events().emit("core:page_action", fields, 4, nullptr, err, &up.owner))
+            std::fprintf(stderr, "emit core:page_action: %s\n", err.c_str());
+    }
+}
+
 // A line the single-process player said: this process is its own server, so
-// it answers /help, /list and a mod's command the way cnp_server does.
+// it answers /help, /list, /page and a mod's command the way cnp_server does.
 void local_chat(Scene &s, const std::string &line)
 {
     std::string name, args;
@@ -4932,8 +5112,13 @@ void local_chat(Scene &s, const std::string &line)
         s.chat.add("<" + g_self_name + "> " + line, now);
     } else if (name == "help") {
         for (const std::string &l : net::chat_help(s.chat_commands)) s.chat.add(l, now);
+        s.chat.add("/page [NAME] -- the pages: this world's, the mods'", now);
     } else if (name == "list") {
         s.chat.add("1 in this world: " + g_self_name, now);
+    } else if (name == "page") {
+        std::string want = args.substr(0, args.find(' '));
+        if (want.empty()) want = "pages";
+        if (!open_local_page(s, want)) s.chat.add("No page '" + want + "' here -- /page lists them", now);
     } else if (const auto c = s.chat_commands.find(name); c != s.chat_commands.end()) {
         script_field fields[3] = {
             {"player", SCRIPT_V_NUMBER, (double)ui::kLocalPlayer, nullptr, 0},
@@ -9836,6 +10021,12 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
         args.push_back("--bind");
         args.push_back("127.0.0.1");
     }
+    // The world is this machine's, so whoever plays it from here owns it:
+    // /ban, /role and the rest (src/server/admin.h) are theirs.
+    if (m.has_identity) {
+        args.push_back("--owner");
+        args.push_back(m.player.c_str());
+    }
 
     // The world with its two ways out, as tools/track.sh runs it: the plaza's
     // first opening to the track, its second to the Inferno, each a room of the
@@ -13714,6 +13905,16 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         if (conn->state() != net::ClientState::Playing) {
             std::printf("disconnected: %s%s%s\n", net::client_state_text(conn->state()),
                         conn->error().empty() ? "" : " -- ", conn->error().c_str());
+            // Put out by the server (a kick, a ban): back to the title, saying
+            // why, rather than a window that just closes.
+            if (conn->state() == net::ClientState::Refused) {
+                g_to_title = true;
+#ifdef _WIN32
+                _putenv_s("CNP_TITLE_ERROR", conn->error().c_str());
+#else
+                ::setenv("CNP_TITLE_ERROR", conn->error().c_str(), 1);
+#endif
+            }
             dropped = true;
             break;
         }
@@ -13800,10 +14001,14 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 here.mods.set_host(world_code_host(make_client_host(s)));
                 here.mods.set_side(ModSide::Client);
                 here.mods.set_world_code(true);
-                here.mods.set_vm_gone([&s](script_vm *vm) {
+                here.mods.set_vm_gone([&s, &here](script_vm *vm) {
                     s.lua_ecs.drop_vm(vm);
                     s.passes.drop_vm(vm);
                     s.hud_passes.drop_vm(vm);
+                    // Its stages dead too: matched by VM address, they would
+                    // run in the next VM given the same one (see the server's).
+                    for (Session::LuaStage &st : here.mapgen_stages)
+                        if (st.vm == vm) st.vm = nullptr;
                 });
                 define_core_events(s);
 
@@ -18577,6 +18782,11 @@ script_host make_client_host(Scene &scene)
     host.notice        = host_notice;
     host.chat          = host_chat;
     host.command       = host_command;
+    host.has_perm      = host_has_perm;
+    host.role          = host_role;
+    host.is_muted      = host_is_muted;
+    host.page_register = host_page_register;
+    host.page_show     = host_page_show;
     host.storage_set   = host_storage_set;
     host.storage_get   = host_storage_get;
     host.shared_storage_set = host_storage_set;   // one world here: the same store
@@ -19081,6 +19291,14 @@ int client_main(int argc, char **argv)
     // it outlives them: a world's server is stopped once its player has left.
     LocalServer local_server;
     TitleMenu   menu;
+    if (const char *why = std::getenv("CNP_TITLE_ERROR"); why && *why) {
+        menu.error = why;
+#ifdef _WIN32
+        _putenv_s("CNP_TITLE_ERROR", "");
+#else
+        ::unsetenv("CNP_TITLE_ERROR");
+#endif
+    }
     bool        menu_debug = false;
     uint16_t    menu_port  = 0;
     std::string local_name, local_server_key, local_host;
@@ -19817,10 +20035,12 @@ int client_main(int argc, char **argv)
                                          const std::string &system, const std::string &error) {
             scene.act().mods.disable_vm(vm, "system '" + system + "': " + error);
         });
-        scene.act().mods.set_vm_gone([&scene](script_vm *vm) {
+        scene.act().mods.set_vm_gone([&scene, sess = &scene.act()](script_vm *vm) {
             scene.lua_ecs.drop_vm(vm);
             scene.passes.drop_vm(vm);
             scene.hud_passes.drop_vm(vm);
+            for (Session::LuaStage &st : sess->mapgen_stages)
+                if (st.vm == vm) st.vm = nullptr;
         });
 
         // Before the mods load, or the first mod to ask for core:pre_place

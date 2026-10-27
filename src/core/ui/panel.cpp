@@ -301,11 +301,11 @@ size_t PanelSet::end_reload(const std::string &owner)
     return dropped;
 }
 
-size_t PanelSet::drop_owner(const std::string &owner)
+size_t PanelSet::drop_owner(const std::string &owner, const std::string &only)
 {
     size_t dropped = 0;
     for (size_t i = m_panels.size(); i-- > 0;) {
-        if (m_panels[i].owner != owner) continue;
+        if (m_panels[i].owner != owner || (!only.empty() && m_panels[i].name != only)) continue;
 
         touched(m_panels[i].name);
         for (size_t k = m_shown.size(); k-- > 0;)

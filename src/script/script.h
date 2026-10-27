@@ -671,7 +671,18 @@ typedef struct script_host {
     // A line in one player's chat (core.chat), player 0 everybody in this
     // world; and a /command this mod answers (core.command).
     int (*chat)(void *ud, int player, const char *text);
-    int (*command)(void *ud, const char *name, const char *help);
+    int (*command)(void *ud, const char *name, const char *help, const char *perm);
+
+    // What a player may do on this server (core.has_perm, core.role):
+    // src/server/admin.h. Null in the single-process client.
+    int         (*has_perm)(void *ud, int player, const char *perm);
+    const char *(*role)(void *ud, int player);
+    // Pages (src/core/ui/page.h): one a player may open by name, the markup
+    // shown to one player, and whether a player's chat is held. Null in the
+    // single-process client.
+    int (*page_register)(void *ud, const char *name, const char *title, const char *perm);
+    int (*page_show)(void *ud, int player, const char *name, const char *markup);
+    int (*is_muted)(void *ud, int player);
 
     // What a mod keeps across a restart (core.storage_set, core.storage_get):
     // strings under names, the mod's own, in the world file. Null where

@@ -484,8 +484,18 @@ Returns 0 when the write is refused -- a field name or value too long, more than
     notice: (player: number, text: string) -> number,
     -- Puts a line in a player's chat, the one T opens, as it is: the engine adds no name in front. For an answer to a /command, or news everybody in the world should be able to read back. Returns 0 for nobody to tell or a line too long.
     chat: (player: number, text: string) -> number,
-    -- Declares a chat command, /name, for this mod. When a player types it, this mod and only this mod hears core:command with the player, the name and the rest of the line; the mod answers with core.chat. Returns 0 for a bad name, one the engine keeps (help, list) or one another mod already declared.
-    command: (name: string, help: string) -> number,
+    -- Declares a chat command, /name, for this mod. When a player types it, this mod and only this mod hears core:command with the player, the name and the rest of the line; the mod answers with core.chat. A player below `perm` is told no and the mod hears nothing. Returns 0 for a bad name, one the engine keeps (help, list, the admin commands), one another mod already declared, or a `perm` nobody has heard of. The single-process client ignores `perm`: its one player owns the world.
+    command: (name: string, help: string, perm: string?) -> number,
+    -- 1 when this player's role on this server reaches `perm`, else 0. Roles go guest (no identity), player, helper, moderator, admin, owner, and are given with /role. In the single-process client its one player owns the world: always 1.
+    has_perm: (player: number, perm: string) -> number,
+    -- This player's role on this server: guest, player, helper, moderator, admin or owner; empty for nobody. "owner" in the single-process client.
+    role: (player: number) -> string,
+    -- Offers a page, the in-game web page: /page lists it and a page:NAME link opens it. When a player opens it this mod alone hears core:page_open with the player and the name, and answers with core.page_show. Returns 0 for a bad name, one the engine keeps (pages, admin, bans, whitelist, roles, perms, server, mods, here), one another mod registered, or a `perm` nobody has heard of.
+    page_register: (name: string, title: string, perm: string?) -> number,
+    -- Puts a page on one player's screen, laid out by the engine: wrapped text, buttons, tables, fields, and back/next when it runs past one screen. A link's target says what a click does: `page:NAME` opens another page, `cmd:/line` runs a chat command as that player (their role decides, as if they had typed it), and `act:ID` tells this mod core:page_action. A field's target has `{text}` replaced by what was typed, on Enter. After a cmd: link the page is opened again, so it shows what the command changed. ESC or x closes it. Returns 0 for nobody to show it to or markup too long. In the single-process client the page is shown the same way; in a connected world's code, always 0: its pages are the server's.
+    page_show: (player: number, name: string, markup: string) -> number,
+    -- 1 when this player's chat is held (/mute). The engine already holds what a muted player's command makes a mod core.chat to anybody else; this is for an answer that says why, as /msg gives. 0 in the single-process client.
+    is_muted: (player: number) -> number,
     -- What this mod keeps across a restart: a string under a name, the mod's own -- another mod cannot read or write it. Saved in the world file with the chunks, only the keys that changed; a server with no world file, and the single-process client, keep it until they stop.
 
 The file is read after the mods load, so a mod reads what it kept from core:world_ready on, not while it loads. Returns 0 when refused -- a key or value too long, or more than 4 MiB of keys and values -- and says which in the log; and in a world's code on a player's machine, which keeps nothing.

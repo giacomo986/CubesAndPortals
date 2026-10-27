@@ -272,6 +272,12 @@ uint64_t build(Fixture &f, uint32_t seed, int extent, int ticks, const char *mod
         host.ud            = &f;
 
         f.mods.set_host(host);
+        // As the server does: a VM that goes leaves its stages dead, or the
+        // next VM given its address would run them.
+        f.mods.set_vm_gone([&f](script_vm *vm) {
+            for (Fixture::LuaStage &st : f.stages)
+                if (st.vm == vm) st.vm = nullptr;
+        });
 
         const std::vector<EventField> block_fields = {
             {"x", SCRIPT_V_NUMBER}, {"y", SCRIPT_V_NUMBER}, {"z", SCRIPT_V_NUMBER},
@@ -309,7 +315,7 @@ uint64_t build(Fixture &f, uint32_t seed, int extent, int ticks, const char *mod
                 for (const Fixture::LuaStage &st : f.stages) {
                     bool running = false;
                     for (const Mod &m : f.mods.mods())
-                        if (m.vm == st.vm) running = m.running;
+                        if (st.vm && m.vm == st.vm) running = m.running;
                     if (!running) continue;
 
                     script_field fields[6] = {

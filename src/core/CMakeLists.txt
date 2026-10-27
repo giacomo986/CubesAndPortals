@@ -16,6 +16,7 @@ add_library(cnp_core STATIC
     ecs/lua_ecs.cpp
     ecs/machine.cpp
     ui/panel.cpp
+    ui/page.cpp
     ecs/mob.cpp
     item/container.cpp
     item/craft_grid.cpp

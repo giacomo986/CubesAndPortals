@@ -47,6 +47,9 @@ const char *refuse_reason_text(RefuseReason r)
     case RefuseReason::ArrivalBlocked: return "the way out of that opening is blocked";
     case RefuseReason::BadTicket:      return "no ticket this world will honour";
     case RefuseReason::NoSuchRoom:     return "this server holds no world by that name";
+    case RefuseReason::Banned:         return "banned here";
+    case RefuseReason::NotAllowed:     return "not on this server's list";
+    case RefuseReason::Kicked:         return "kicked";
     }
     return "unknown";
 }
@@ -71,6 +74,9 @@ bool refusal_is_permanent(RefuseReason r)
     case RefuseReason::ArrivalBlocked:
     case RefuseReason::BadTicket:
     case RefuseReason::NoSuchRoom:
+    case RefuseReason::Banned:
+    case RefuseReason::NotAllowed:
+    case RefuseReason::Kicked:
         return true;
     }
     // A reason from something newer. Treated as permanent, because retrying

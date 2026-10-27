@@ -50,7 +50,7 @@ start_server() {
     PORT=0
     for candidate in 25301 25302 25303 25304 25305 25306 25307 25308; do
         "$SERVER" --listen "$candidate" --ticks "$TICKS" --world "$EXTENT" \
-                  --key-file "$KEYFILE" "$@" > "$LOG" 2>&1 &
+                  --key-file "$KEYFILE" "$@" < "${SERVER_STDIN:-/dev/null}" > "$LOG" 2>&1 &
         SERVER_PID=$!
 
         i=0
@@ -220,6 +220,83 @@ esac
 echo "server said:"
 sed 's/^/        /' "$LOG"
 stop_server
+
+# A ban typed on the server's console keeps that name out, and lifting it lets
+# it back in (src/server/admin.h). The probe has no identity, so it is the
+# name that is banned. The fifo is opened read-write so neither end waits.
+echo ""
+echo "a ban from the server's console"
+
+CONSOLE="$(mktemp -u -t cnp_console.XXXXXX)"
+mkfifo "$CONSOLE"
+exec 4<>"$CONSOLE"
+SERVER_STDIN="$CONSOLE"
+RCON_PORT=$((25390 + $$ % 300))
+if ! start_server --no-mods --rcon "$RCON_PORT" --rcon-password "pw$$"; then
+    echo "  FAIL  could not start a server with a console"
+    cat "$LOG"
+    exit 1
+fi
+
+# One line on the console, and its answer in the log.
+console() {
+    echo "$1" >&4
+    i=0
+    while [ $i -lt 50 ] && ! grep -q "console: $2" "$LOG"; do sleep 0.1; i=$((i + 1)); done
+}
+
+console "ban bannato 1h prova" "bannato is banned"
+"$CLIENT" --join 127.0.0.1 "$PORT" "bannato" "$EXTENT"
+if [ $? -eq 2 ] && grep -q "refused 'bannato': banned" "$LOG"; then
+    echo "  ok    a banned name is refused, and the log says it is a ban"
+else
+    echo "  FAIL  a banned name was not refused as banned"
+    FAILURES=$((FAILURES + 1))
+fi
+if "$CLIENT" --join 127.0.0.1 "$PORT" "altro" "$EXTENT"; then
+    echo "  ok    another name still joins"
+else
+    echo "  FAIL  a ban kept out a name it was not about"
+    FAILURES=$((FAILURES + 1))
+fi
+console "unban bannato" "bannato is no longer banned"
+if "$CLIENT" --join 127.0.0.1 "$PORT" "bannato" "$EXTENT"; then
+    echo "  ok    lifted, the name joins again"
+else
+    echo "  FAIL  the name stayed out after the ban was lifted"
+    FAILURES=$((FAILURES + 1))
+fi
+# Gone, with no identity: the ban takes the address it last came from.
+console "ban altro 1h" "altro is banned"
+console "bans" "altro (127.0.0.1)"
+if grep -q "console: altro (127.0.0.1)" "$LOG"; then
+    echo "  ok    an offline name without a key is banned with its last address"
+else
+    echo "  FAIL  an offline name's ban did not take its address"
+    FAILURES=$((FAILURES + 1))
+fi
+console "unban altro" "altro is no longer banned"
+
+# The same commands over RCON, which answers only to its password.
+ADMIN="$(dirname "$0")/../tools/admin.sh"
+if CNP_RCON_PASSWORD="pw$$" "$ADMIN" -p "$RCON_PORT" bans | grep -q "Nobody is banned"; then
+    echo "  ok    rcon answers a command with the right password"
+else
+    echo "  FAIL  rcon did not answer with the right password"
+    FAILURES=$((FAILURES + 1))
+fi
+if CNP_RCON_PASSWORD="wrong" "$ADMIN" -p "$RCON_PORT" ban altro 2>/dev/null; then
+    echo "  FAIL  rcon ran a command with the wrong password"
+    FAILURES=$((FAILURES + 1))
+else
+    echo "  ok    rcon refuses the wrong password"
+fi
+
+echo "server said:"
+sed 's/^/        /' "$LOG"
+stop_server
+exec 4>&-
+rm -f "$CONSOLE"
 
 if [ "$FAILURES" -eq 0 ]; then
     echo "two-process join passed"

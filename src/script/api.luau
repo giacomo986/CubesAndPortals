@@ -3061,11 +3061,88 @@ local api: { Fn } = {
         args = {
             { name = "name", type = "string", doc = "1 to 32 of a-z, 0-9, _ and -, without the slash." },
             { name = "help", type = "string", doc = "One line for /help; may be empty." },
+            { name = "perm", type = "string", default = "",
+              doc = "What a player needs to run it: a permission (kick, ban, mute, creative...) "
+                 .. "or a role (helper, moderator, admin, owner). Empty for anybody." },
         },
         doc = "Declares a chat command, /name, for this mod. When a player types it, this mod "
            .. "and only this mod hears core:command with the player, the name and the rest of "
-           .. "the line; the mod answers with core.chat. Returns 0 for a bad name, one the "
-           .. "engine keeps (help, list) or one another mod already declared.",
+           .. "the line; the mod answers with core.chat. A player below `perm` is told no and "
+           .. "the mod hears nothing. Returns 0 for a bad name, one the engine keeps (help, "
+           .. "list, the admin commands), one another mod already declared, or a `perm` "
+           .. "nobody has heard of. The single-process client ignores `perm`: its one player "
+           .. "owns the world.",
+    },
+    {
+        name = "has_perm",
+        host = "has_perm",
+        ret  = "int",
+        args = {
+            { name = "player", type = "int" },
+            { name = "perm", type = "string", doc = "A permission or a role, as for core.command." },
+        },
+        doc = "1 when this player's role on this server reaches `perm`, else 0. Roles go "
+           .. "guest (no identity), player, helper, moderator, admin, owner, and are given "
+           .. "with /role. In the single-process client its one player owns the world: always 1.",
+    },
+    {
+        name = "role",
+        host = "role",
+        ret  = "string",
+        args = {
+            { name = "player", type = "int" },
+        },
+        doc = "This player's role on this server: guest, player, helper, moderator, admin or "
+           .. "owner; empty for nobody. \"owner\" in the single-process client.",
+    },
+    {
+        name = "page_register",
+        host = "page_register",
+        ret  = "int",
+        args = {
+            { name = "name", type = "string", doc = "1 to 32 of a-z, 0-9, _ and -: what /page NAME and page:NAME links open." },
+            { name = "title", type = "string", doc = "The page's title bar, and its line in /page." },
+            { name = "perm", type = "string", default = "",
+              doc = "Who may open it, as for core.command; empty for anybody." },
+        },
+        doc = "Offers a page, the in-game web page: /page lists it and a page:NAME link opens "
+           .. "it. When a player opens it this mod alone hears core:page_open with the player "
+           .. "and the name, and answers with core.page_show. Returns 0 for a bad name, one the "
+           .. "engine keeps (pages, admin, bans, whitelist, roles, perms, server, mods, here), "
+           .. "one another mod registered, or a `perm` nobody has heard of.",
+    },
+    {
+        name = "page_show",
+        host = "page_show",
+        ret  = "int",
+        args = {
+            { name = "player", type = "int" },
+            { name = "name", type = "string", doc = "The page's name: a registered one shows its title." },
+            { name = "markup", type = "string",
+              doc = "At most 16 KiB. One construct a line: `# heading`, `## subheading`, text "
+                 .. "with `[label](target)` links, `| a | b |` table rows, `?[hint](target)` a "
+                 .. "field, `> quieter text`, `---` a rule, an empty line a gap." },
+        },
+        doc = "Puts a page on one player's screen, laid out by the engine: wrapped text, "
+           .. "buttons, tables, fields, and back/next when it runs past one screen. A link's "
+           .. "target says what a click does: `page:NAME` opens another page, `cmd:/line` runs "
+           .. "a chat command as that player (their role decides, as if they had typed it), "
+           .. "and `act:ID` tells this mod core:page_action. A field's target has `{text}` "
+           .. "replaced by what was typed, on Enter. After a cmd: link the page is opened "
+           .. "again, so it shows what the command changed. ESC or x closes it. Returns 0 for "
+           .. "nobody to show it to or markup too long. In the single-process client the page is "
+           .. "shown the same way; in a connected world's code, always 0: its pages are the server's.",
+    },
+    {
+        name = "is_muted",
+        host = "is_muted",
+        ret  = "int",
+        args = {
+            { name = "player", type = "int" },
+        },
+        doc = "1 when this player's chat is held (/mute). The engine already holds what a "
+           .. "muted player's command makes a mod core.chat to anybody else; this is for an "
+           .. "answer that says why, as /msg gives. 0 in the single-process client.",
     },
     {
         name = "storage_set",

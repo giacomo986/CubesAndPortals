@@ -916,6 +916,12 @@ public:
     using NameCheck = std::function<bool(const std::string &name, const uint8_t *identity)>;
     void set_name_check(NameCheck check) { m_name_check = std::move(check); }
 
+    // And after it, whether this server lets this player in at all: a ban or a
+    // whitelist (src/server/admin.h). False with the reason and the sentence.
+    using AdmitCheck = std::function<bool(const std::string &name, const uint8_t *identity,
+                                          PeerId peer, RefuseReason &reason, std::string &why)>;
+    void set_admit_check(AdmitCheck check) { m_admit_check = std::move(check); }
+
     void set_panels(ui::PanelSet *panels) { m_panels = panels; }
 
     // The containers this world holds. Optional and silent when absent: a
@@ -1415,6 +1421,7 @@ private:
     std::unordered_set<Cell, CellHash>    m_open_cells;
 
     NameCheck                             m_name_check;
+    AdmitCheck                            m_admit_check;
     std::unordered_map<PeerId, Session>   m_sessions;
 
     // Every body in this world, players and everything else. Declared before
