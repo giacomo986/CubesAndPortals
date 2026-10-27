@@ -1299,12 +1299,53 @@ there. `worldgen` failed 1/40 on HEAD and 15/40 with this work under 4-way
 load; stages now go dead with their VM, and it passes 60/60.
 
 Open:
-- A text `lang::tr` translates on the client is measured untranslated.
-- Chat a mod sends from a tick or a page action, not a command, is not held
-  by /mute.
-- Next phases: timed restarts, maintenance, MOTD; logs with timestamps,
-  sessions, `/seen`, `--report`; status query and portal targets; federation
-  between friend servers.
+- Chat a mod sends from a tick is not held by /mute.
+
+**Done 2026-10-27, phases 3-6 and extras:**
+- Restarts: `/restart`, `/stop` with warnings, `--restart-at`, exit code 75
+  under `tools/serve.sh` (restarts, crash count, a log a day with times),
+  `--watchdog`. A player put out as Restarting is joined again by the client's
+  title once the server answers (not in the first 5 s, given up after 3 min).
+- `/maintenance`, `/motd` (`--motd`), `/announce`; the refusals Restarting,
+  Stopping, Maintenance (Restarting retried, the others permanent).
+- Visits (`sessions` table): `/seen`, `/players`, `/whois`, `/logs`,
+  `/metrics`; `cnp_server --report FILE [--since 7d]`; refusals at the door
+  and server start/stop/unclean in `admin_log`.
+- Pages `running`, `players`, `reports`, `log`.
+- Status query (`StatusQuery`/`Status`, before any hello): the client's server
+  list shows players or "maintenance". A server from before answers as up.
+- `/portals`: links out, and crossings in by issuer (`inbound` rows). A portal
+  window checks the far server's signing key against the link's
+  (`ClientConfig::expect_signer`).
+- Federation (`--federation`, `/friend`, `/fed`, `/where`): signed TCP lines,
+  bans by key, presence, chat. DESIGN.md 4.3 updated.
+- Extras: `/warn` (3 in 30 days = 1 day ban), `/report` `/reports` `/note`,
+  `/sc`, chat flood limit (5 lines in 5 s), `--max-per-address`, `/backup`
+  and `--backup-every` (SQLite online backup on a thread).
+- Mute also holds a mod's chat during a muted player's page action or click.
+- A translation wider than a page's button is drawn untranslated.
+
+Checked: headless script (maintenance refuses, 3 warns ban, report, note,
+whois, logs, metrics, backup file written, restart under serve.sh and stop,
+daily log, --report); two servers federated (ban on A refused on B, /unban on
+B sticks, `/fed` chat, `/where` across); in Xephyr the server list shows
+"0 playing", MOTD in chat on join, /admin and its new pages, restart from the
+page with countdown, client back in 5 s after the restart. ctest 13/13.
+
+Found on the way: the federation's condition variable destroyed at exit hung
+the server on its way out (glibc waits for waiters): kept alive for good.
+`peek_type` did not know the new message types until listed (its switch has
+no default on purpose, and the warning went unseen).
+
+Open:
+- Bags do not travel between friend servers: which bag wins on arrival, items
+  one game does not know, and one holder at a time need deciding first.
+- Federation lines are signed, not encrypted (bans, names, chat).
+- A redirect crossing (no window first) does not check the far key.
+- Labels a client translates are still measured untranslated.
+- Not built: rollback/inspect of blocks, webhooks, per-room roles, rules to
+  accept, alt-account detection, the server's own update check, `--report`
+  as JSON.
 
 ## Mods and scripting
 

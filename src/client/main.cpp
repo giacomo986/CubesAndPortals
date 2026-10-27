@@ -3299,7 +3299,7 @@ int         host_is_muted(void *, int) { return 0; }
 // world's pages are the server's, so its code here has none.
 bool core_page_name(const std::string &n)
 {
-    for (const char *c : {"pages", "admin", "bans", "whitelist", "roles", "perms", "server",
+    for (const char *c : {"pages", "admin", "bans", "whitelist", "roles", "perms", "server", "running", "players", "reports", "log",
                           "mods", "here"})
         if (n == c) return true;
     return false;
@@ -8664,6 +8664,9 @@ std::string g_hosting_at;
 // main() then starts this program again once everything has been shut down.
 bool g_from_title = false;
 bool g_to_title   = false;
+// The title's account for the server being played on, when it is one from the
+// list: what a restart rejoins (TitleMenu::rejoin).
+std::string g_rejoin_account;
 
 // One element of an engine panel -- the pause menu, the title screen -- a cell
 // tall. A label sits a third of a cell down, which is where a button's caption
@@ -9242,6 +9245,9 @@ struct ServerRow {
     std::string key;       // the server's key the first join saw, pinned from then on
     State       state   = State::Unchecked;
     double      ping_ms = 0.0;
+    // What the server said of itself (net::Status); none from one too old to.
+    bool        has_status = false;
+    net::Status status;
 };
 
 // Each line is an address, and after a tab the name this client played under
@@ -9283,6 +9289,10 @@ enum class MenuChoice { Quit, World, Server };
 
 struct TitleMenu {
     MenuPage                page = MenuPage::Title;
+    // The server to join again once it answers: one that put this player out
+    // because it was restarting (net::RefuseReason::Restarting).
+    std::string             rejoin;
+    double                  rejoin_from = 0.0, rejoin_until = 0.0;
     std::vector<SavedWorld> worlds;
     size_t                  first = 0;   // the first world listed
     std::string             name  = "New World";
@@ -9374,6 +9384,7 @@ struct ServerProbe {
     double                      started = 0.0;
     std::shared_ptr<HostLookup> lookup;               // its name, while it resolves
     uint16_t                    port    = 0;
+    double                      asked_at = 0.0;       // when the status was asked for
 
     void step(std::vector<ServerRow> &rows)
     {
@@ -9402,17 +9413,32 @@ struct ServerProbe {
             // Waited on here rather than once a frame: the menu draws every
             // 10 ms, and an answer acknowledged that late reads as 10 ms of
             // round trip that is this loop's and not the link's.
+            // Connected, then asked who is there (net::StatusQuery): the
+            // answer, a refusal from a server too old to know the question, or
+            // a second's silence all end it.
             net::NetEvent ev;
             bool          answered = false;
             for (int i = 0; i < 5 && !answered; ++i)
-                while (tr.poll(ev, 1))
-                    if (ev.type == net::NetEvent::Type::Connected) answered = true;
+                while (tr.poll(ev, 1)) {
+                    if (ev.type == net::NetEvent::Type::Connected && asked_at == 0.0) {
+                        asked_at          = now;
+                        const double rtt  = tr.round_trip(tr.server_peer());
+                        rows[row].ping_ms = (rtt > 0.0 ? rtt : now - started) * 1e3;
+                        tr.send(tr.server_peer(), net::Channel::Handshake, net::StatusQuery{}.encode(), true);
+                    } else if (ev.type == net::NetEvent::Type::Received) {
+                        ByteReader r(ev.data);
+                        if (net::peek_type(ev.data.data(), ev.data.size()) == net::MsgType::Status)
+                            rows[row].has_status = net::Status::decode(r, rows[row].status);
+                        answered = true;
+                    } else if (ev.type == net::NetEvent::Type::Disconnected && asked_at > 0.0) {
+                        answered = true;
+                    }
+                }
 
-            if (answered) {
-                const double rtt  = tr.round_trip(tr.server_peer());
-                rows[row].state   = ServerRow::State::Up;
-                rows[row].ping_ms = (rtt > 0.0 ? rtt : now - started) * 1e3;
-            } else if (now - started < kProbeSeconds) {
+            if (asked_at > 0.0 && (answered || now - asked_at > 1.0)) {
+                rows[row].state = ServerRow::State::Up;
+                asked_at        = 0.0;
+            } else if (asked_at > 0.0 || now - started < kProbeSeconds) {
                 return;
             } else {
                 rows[row].state = ServerRow::State::Down;
@@ -9438,7 +9464,8 @@ struct ServerProbe {
     {
         tr.close();
         lookup.reset();
-        row = SIZE_MAX;
+        row      = SIZE_MAX;
+        asked_at = 0.0;
     }
 };
 
@@ -9567,8 +9594,11 @@ ui::Panel title_panel(const TitleMenu &m, bool debug)
         for (size_t i = m.first; i < m.servers.size() && i < m.first + kWorldsShown; ++i) {
             const std::string n = std::to_string(i);
             const ServerRow  &row  = m.servers[i];
-            const std::string what = row.player.empty() ? row.address
-                                                        : row.address + "   as " + row.player;
+            std::string what = row.player.empty() ? row.address : row.address + "   as " + row.player;
+            if (row.state == ServerRow::State::Up && row.has_status)
+                what += row.status.maintenance.empty()
+                            ? "   " + std::to_string(row.status.players) + " playing"
+                            : std::string("   maintenance");
             panel_add(p, ui::ElemKind::Button, "server:" + n, what, 0.5f, y, 9.8f);
             panel_add(p, ui::ElemKind::Button, "drop:" + n, "x", 10.5f, y, 1.0f);
             y += 1.2f;
@@ -9771,6 +9801,33 @@ MenuChoice title_menu(Scene &s, TitleMenu &m, bool &debug)
             float mx = 0.0f, my = 0.0f;
             plat_mouse_position(&mx, &my);
             id = click_panel(s, p, mx, my);
+        }
+
+        // Back from a server that restarted: its row is knocked on until it
+        // answers -- not in the first seconds, when the old one may still be
+        // going down -- and then joined as if clicked.
+        if (!m.rejoin.empty() && id.empty()) {
+            const double now = plat_time();
+            if (m.rejoin_until == 0.0) {
+                m.rejoin_from  = now + 5.0;
+                m.rejoin_until = now + 180.0;
+                m.servers      = saved_servers();   // what Multiplayer loads
+            }
+            size_t i = 0;
+            while (i < m.servers.size() && m.servers[i].address != m.rejoin) ++i;
+            m.page = MenuPage::Server;
+            if (i == m.servers.size() || now > m.rejoin_until) {
+                m.error = "the server did not come back";
+                m.rejoin.clear();
+            } else if (m.servers[i].state == ServerRow::State::Up && now > m.rejoin_from) {
+                id = "server:" + std::to_string(i);
+                m.rejoin.clear();
+            } else {
+                m.error = "the server is restarting: joining again when it answers";
+                if ((m.servers[i].state == ServerRow::State::Down ||
+                     m.servers[i].state == ServerRow::State::Up) && now > m.rejoin_from)
+                    m.servers[i].state = ServerRow::State::Unchecked;
+            }
         }
 
         // Nothing this menu opens is anonymous, and the servers this client
@@ -13914,6 +13971,14 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
 #else
                 ::setenv("CNP_TITLE_ERROR", conn->error().c_str(), 1);
 #endif
+                // Restarting: the title joins it again (TitleMenu::rejoin).
+                if (conn->refusal().reason == net::RefuseReason::Restarting && !g_rejoin_account.empty()) {
+#ifdef _WIN32
+                    _putenv_s("CNP_REJOIN", g_rejoin_account.c_str());
+#else
+                    ::setenv("CNP_REJOIN", g_rejoin_account.c_str(), 1);
+#endif
+                }
             }
             dropped = true;
             break;
@@ -16275,6 +16340,10 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 wcfg.port       = to.port;
                 wcfg.room       = to.room;
                 wcfg.pin_server = false;
+                // But WHO it is, when the link names it: a crossing lands only
+                // on the server the link was made to.
+                wcfg.expect_signer = away.has_key;
+                if (away.has_key) std::memcpy(wcfg.signer, away.key, net::kSignPublicBytes);
                 wcfg.scope      = net::Scope::Observe;
                 wcfg.has_ticket = mo.have_ticket;
                 if (mo.have_ticket) wcfg.ticket = mo.held_ticket;
@@ -19291,6 +19360,14 @@ int client_main(int argc, char **argv)
     // it outlives them: a world's server is stopped once its player has left.
     LocalServer local_server;
     TitleMenu   menu;
+    if (const char *again = std::getenv("CNP_REJOIN"); again && *again) {
+        menu.rejoin = again;
+#ifdef _WIN32
+        _putenv_s("CNP_REJOIN", "");
+#else
+        ::unsetenv("CNP_REJOIN");
+#endif
+    }
     if (const char *why = std::getenv("CNP_TITLE_ERROR"); why && *why) {
         menu.error = why;
 #ifdef _WIN32
@@ -19519,6 +19596,10 @@ int client_main(int argc, char **argv)
         for (;;) {
             cfg.host = connect_host;
             cfg.port = connect_port;
+            if (menu_up)
+                g_rejoin_account = menu.identity_for != kLocalAccount && menu.identity_for != kHostAccount
+                                       ? menu.identity_for
+                                       : "";
 
             self_session = net_sessions.open(cfg, player_name, plat_time(), err);
             if (self_session != net::ClientSessionSet::kNoSession) {

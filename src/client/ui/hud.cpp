@@ -1262,7 +1262,14 @@ void draw_mod_panel(const Panel &p, const PanelPlacement &at, int hover, int scr
             // somebody writes a longer word.
             const float size = at.cell * 0.34f;
             const char *text = lang::tr(e.text);
-            const float tw   = gfx_2d_text_width(text, size);
+            float       tw   = gfx_2d_text_width(text, size);
+            // A button sized for its words by somebody who measured them in
+            // English (a server's page): a translation that does not fit is
+            // worse than the words it was made for.
+            if (tw > ew - at.cell * 0.2f && text != e.text.c_str()) {
+                text = e.text.c_str();
+                tw   = gfx_2d_text_width(text, size);
+            }
             gfx_2d_text(text, ex + (ew - tw) * 0.5f, ey + (eh - size) * 0.5f, size, kWhite);
             break;
         }

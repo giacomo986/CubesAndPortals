@@ -2190,9 +2190,9 @@ le larghezze dei caratteri del font del client, quindi va a capo dove viene
 disegnato. Nel client a processo singolo (`--quick`) le pagine dei mod ci sono
 lo stesso, con `/page`. L'esempio completo è `mods/board`.
 
-Un giocatore con `/mute` non parla agli altri neanche attraverso i comandi dei
-mod: mentre il suo comando gira, il `core.chat` del mod verso chiunque altro è
-trattenuto, e lui legge una volta che è mutato. `core.is_muted` serve solo per
+Un giocatore con `/mute` non parla agli altri neanche attraverso i mod: mentre
+gira un suo comando, un'azione su una pagina o un click su un pannello, il
+`core.chat` del mod verso chiunque altro è trattenuto, e lui legge una volta che è mutato. `core.is_muted` serve solo per
 rispondere meglio (come fa `/msg`).
 
 ### Come si aggiunge una funzione all'API

@@ -131,6 +131,12 @@ struct ClientConfig {
     bool    pin_server = false;
     uint8_t server_key[kKeyBytes]{};
 
+    // Who the server must be, by its signing key: what a portal's PortalAway
+    // said was over there. A welcome naming another key, or none, fails the
+    // join -- a crossing lands only on the server the link was made to.
+    bool    expect_signer = false;
+    uint8_t signer[kSignPublicBytes]{};
+
     // Off only for measuring what the encryption costs, and for the in-process
     // loopback test. A caller that says nothing gets encryption.
     bool encrypt = true;

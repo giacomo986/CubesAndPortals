@@ -519,6 +519,12 @@ void ClientSession::handle(const std::vector<uint8_t> &data, double now, uint8_t
             fail(std::move(why));
             break;
         }
+        if (m_cfg.expect_signer &&
+            !(m_welcome.has_signing_key &&
+              std::memcmp(m_welcome.signing_key, m_cfg.signer, kSignPublicBytes) == 0)) {
+            fail("not the server the portal leads to: its key is not the one the link names");
+            break;
+        }
 
         // Adopt the server's block table. From here the ids in every chunk are
         // the server's ids, not this build's, and that is the point: a name this

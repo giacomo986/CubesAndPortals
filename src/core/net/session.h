@@ -922,6 +922,12 @@ public:
                                           PeerId peer, RefuseReason &reason, std::string &why)>;
     void set_admit_check(AdmitCheck check) { m_admit_check = std::move(check); }
 
+    // Told of each player that comes through a portal on a ticket: the server
+    // that signed it, and who. For the administration's record of who sends
+    // players here (src/server/admin.h).
+    using CrossingSeen = std::function<void(const uint8_t *issuer, PeerId who)>;
+    void set_crossing_seen(CrossingSeen seen) { m_crossing_seen = std::move(seen); }
+
     void set_panels(ui::PanelSet *panels) { m_panels = panels; }
 
     // The containers this world holds. Optional and silent when absent: a
@@ -1422,6 +1428,7 @@ private:
 
     NameCheck                             m_name_check;
     AdmitCheck                            m_admit_check;
+    CrossingSeen                          m_crossing_seen;
     std::unordered_map<PeerId, Session>   m_sessions;
 
     // Every body in this world, players and everything else. Declared before

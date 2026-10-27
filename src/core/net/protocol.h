@@ -613,6 +613,12 @@ enum class MsgType : uint8_t {
     // "I look like this now" (protocol 93): the livery picked in a game's
     // pause menu, after the one the hello carried.
     Dress = 47,          // client -> server, channel 3
+
+    // "Who is there?" before any hello: the list of servers asks, the server
+    // answers with a Status and lets go. A server from before them refuses the
+    // question as a malformed hello, which the list reads as "up, nothing more".
+    StatusQuery = 48,    // client -> server, channel 0, instead of a Hello
+    Status      = 49,    // server -> client, channel 0
 };
 
 // Players per world, decided in DESIGN.md, and the reason the entity message
@@ -647,11 +653,14 @@ enum class RefuseReason : uint8_t {
     Banned          = 15,  // this player or address is banned here; the detail says until when
     NotAllowed      = 16,  // the server lets in only the players on its list
     Kicked          = 17,  // sent to a player already in, by an admin, before the cut
+    Restarting      = 18,  // the server is going down to come straight back: try again
+    Stopping        = 19,  // the server is going down
+    Maintenance     = 20,  // only staff come in for now; the detail says why
 
     // Always the last real value. What a decoder compares against, so that
     // adding a reason does not silently turn it into "no reason" on every
     // client that was built before it.
-    Last = Kicked,
+    Last = Maintenance,
 };
 
 const char *refuse_reason_text(RefuseReason r);
@@ -2268,6 +2277,21 @@ struct Hold {
 
     std::vector<uint8_t> encode() const;
     static bool decode(ByteReader &r, Hold &out);
+};
+
+struct StatusQuery {
+    std::vector<uint8_t> encode() const;
+};
+
+struct Status {
+    std::string version;        // kEngineVersion
+    uint16_t    players = 0;    // playing, in every room
+    uint16_t    rooms   = 1;
+    std::string motd;           // the message of the day, "" for none
+    std::string maintenance;    // "" when open to everybody
+
+    std::vector<uint8_t> encode() const;
+    static bool decode(ByteReader &r, Status &out);
 };
 
 struct Notice {

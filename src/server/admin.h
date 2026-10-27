@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/net/crypto.h"
 #include "core/net/protocol.h"
 #include "core/net/transport.h"
 
@@ -80,7 +81,52 @@ struct Online {
 struct Hooks {
     std::function<std::vector<Online>()>                                           online;
     std::function<void(net::PeerId, net::RefuseReason, const std::string &text)> remove;
+    std::function<void(const std::string &text)>                                  notice;   // every screen
+    std::function<void(net::PeerId, const std::string &line)>                     say;      // one chat
+    std::function<std::vector<std::string>()>                                     metrics;
+    std::function<std::vector<std::string>()>                                     portals;  // links out
 };
+
+// The server's own life: /restart and /stop count down, warning every screen,
+// and --restart-at HH:MM does it every day with ten minutes' warning. Called
+// by one room each tick; at the end everybody is put out (Restarting or
+// Stopping) and it says which. A restart is the process leaving with 75, for
+// tools/serve.sh to start it again.
+enum class Stop { None, Stop, Restart };
+Stop tick(const Hooks &hooks);
+bool restart_at(const std::string &hhmm);   // false for anything but HH:MM
+
+// The message of the day, said to each player coming in; --motd sets it.
+std::string motd();
+std::string maintenance();   // its text, "" when open to everybody
+void        set_motd(const std::string &text);
+
+// Visits, for /seen, /players, /whois and --report: one row from coming into a
+// room to leaving it. A visit a crash left open is closed at the next start.
+void joined(const Who &who, const std::string &room);
+void left(const Who &who, const std::string &room, const std::string &reason);
+// A player who came through a portal on a ticket `issuer` signed, from
+// `address`: who sends players here, how many, from where (/portals).
+void crossed_in(const uint8_t *issuer, const std::string &address);
+// A player the door turned away (admits), for --report.
+void refused(const Who &who, const std::string &why);
+
+// Copies of the world files next to them (NAME.backup-YYYYMMDD-HHMMSS), with
+// SQLite's online backup on a thread of its own; the newest `keep` stay.
+// `every` seconds, 0 for only /backup.
+void set_backups(const std::vector<std::string> &files, int64_t every, int keep);
+bool backup(std::string &err);
+
+// --report: what a world file remembers of its players, printed. Offline,
+// with the server stopped or not (it only reads).
+int report(const std::string &path, int64_t since_seconds);
+
+// Federation with friend servers (/friend, /fed, /where): a TCP port other
+// servers send signed lines to, 0 for sending only; `me` is this server's
+// signing key, which friends put in their list. federation_tick, from one
+// room each tick, applies what friends sent and sends this server's share.
+bool start_federation(int port, const net::SignKeyPair &me, std::string &err);
+void federation_tick(const Hooks &hooks);
 
 // The console, which is the machine's owner.
 Who console();

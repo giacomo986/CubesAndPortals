@@ -2304,6 +2304,7 @@ bool ServerSessions::change_scope(PeerId peer, const ChangeScope &req, double no
             reason = RefuseReason::BadTicket;
             return false;
         }
+        if (m_crossing_seen) m_crossing_seen(req.ticket.issuer, peer);
     } else if (m_config.require_ticket) {
         reason = RefuseReason::BadTicket;
         why    = "this world only takes players it has been vouched for";

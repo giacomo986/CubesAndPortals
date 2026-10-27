@@ -50,6 +50,9 @@ const char *refuse_reason_text(RefuseReason r)
     case RefuseReason::Banned:         return "banned here";
     case RefuseReason::NotAllowed:     return "not on this server's list";
     case RefuseReason::Kicked:         return "kicked";
+    case RefuseReason::Restarting:     return "the server is restarting";
+    case RefuseReason::Stopping:       return "the server stopped";
+    case RefuseReason::Maintenance:    return "under maintenance";
     }
     return "unknown";
 }
@@ -58,6 +61,7 @@ bool refusal_is_permanent(RefuseReason r)
 {
     switch (r) {
     case RefuseReason::ServerFull:
+    case RefuseReason::Restarting:
         return false;   // a moment, not a decision
 
     case RefuseReason::None:
@@ -77,6 +81,8 @@ bool refusal_is_permanent(RefuseReason r)
     case RefuseReason::Banned:
     case RefuseReason::NotAllowed:
     case RefuseReason::Kicked:
+    case RefuseReason::Stopping:
+    case RefuseReason::Maintenance:
         return true;
     }
     // A reason from something newer. Treated as permanent, because retrying
@@ -2469,6 +2475,36 @@ bool Hold::decode(ByteReader &r, Hold &out)
     return r.done() && out.slot < 9 && w <= 3;   // Inventory::kHotbar, which this layer cannot see
 }
 
+std::vector<uint8_t> StatusQuery::encode() const
+{
+    ByteWriter w;
+    w.u8((uint8_t)MsgType::StatusQuery);
+    return w.data();
+}
+
+std::vector<uint8_t> Status::encode() const
+{
+    ByteWriter w;
+    w.u8((uint8_t)MsgType::Status);
+    w.str(version);
+    w.u16(players);
+    w.u16(rooms);
+    w.str(motd);
+    w.str(maintenance);
+    return w.data();
+}
+
+bool Status::decode(ByteReader &r, Status &out)
+{
+    out = Status{};
+    if (r.u8() != (uint8_t)MsgType::Status) return false;
+    if (!r.str(out.version, 64)) return false;
+    out.players = r.u16();
+    out.rooms   = r.u16();
+    if (!r.str(out.motd, kMaxWireModText) || !r.str(out.maintenance, kMaxWireModText)) return false;
+    return r.done();
+}
+
 std::vector<uint8_t> Notice::encode() const
 {
     ByteWriter w;
@@ -2753,6 +2789,8 @@ MsgType peek_type(const void *data, size_t size)
     case MsgType::Sound:
     case MsgType::Seal:
     case MsgType::Dress:
+    case MsgType::StatusQuery:
+    case MsgType::Status:
         return (MsgType)t;
     }
 

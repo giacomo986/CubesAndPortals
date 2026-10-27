@@ -15,12 +15,19 @@
 #include <ws2tcpip.h>
 #else
 #include <arpa/inet.h>
+#include <fcntl.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #endif
 
+#include <algorithm>
 #include <atomic>
+#include <condition_variable>
+#include <unordered_map>
+#include <climits>
+#include <filesystem>
 #include <chrono>
 #include <mutex>
 #include <sstream>
@@ -36,7 +43,9 @@ namespace {
 //   ban     value = the reason
 //   mute    value = the reason
 //   allow   on the whitelist
-//   setting target "whitelist", value "on" or "off"
+//   setting target "whitelist" ("on"/"off"), "maintenance" (its text),
+//           "motd" (the line a player reads coming in)
+//   addr    the address a player last came from
 // Its own CREATE IF NOT EXISTS, like mod_store: a world file from before it
 // grows it empty, and an empty table is a server nobody has been banned from.
 const char *kTables =
@@ -57,7 +66,20 @@ const char *kTables =
     "  action TEXT NOT NULL,"
     "  target TEXT NOT NULL,"
     "  detail TEXT NOT NULL"
-    ");";
+    ");"
+    // One row a visit: a player in one room from `joined` to `left` (0 while
+    // there). What /seen, /players and --report read.
+    "CREATE TABLE IF NOT EXISTS sessions ("
+    "  target TEXT NOT NULL,"
+    "  name TEXT NOT NULL,"
+    "  address TEXT NOT NULL,"
+    "  room TEXT NOT NULL,"
+    "  joined INTEGER NOT NULL,"
+    "  left INTEGER NOT NULL,"
+    "  reason TEXT NOT NULL"
+    ");"
+    "CREATE INDEX IF NOT EXISTS sessions_target ON sessions (target);"
+    "CREATE INDEX IF NOT EXISTS admin_log_target ON admin_log (target, action);";
 
 ::sqlite3  *g_db = nullptr;
 std::string g_owner;
@@ -267,6 +289,11 @@ const PermRow kPerms[] = {
     {"mute", Role::Helper},        {"kick", Role::Moderator}, {"ban", Role::Moderator},
     {"creative", Role::Moderator}, {"pages", Role::Helper},   {"ban.ip", Role::Admin},
     {"access", Role::Admin},       {"roles", Role::Admin},    {"perms", Role::Owner},
+    {"restart", Role::Admin},      {"maintenance", Role::Admin}, {"motd", Role::Admin},
+    {"announce", Role::Moderator}, {"staffchat", Role::Helper}, {"warn", Role::Helper},
+    {"reports", Role::Helper},     {"notes", Role::Helper},   {"players", Role::Helper},
+    {"whois", Role::Moderator},    {"logs", Role::Admin},     {"backup", Role::Admin},
+    {"portals", Role::Admin},      {"federation", Role::Owner},
 };
 
 struct Command {
@@ -390,6 +417,10 @@ void cmd_unban(const Who &c, const Args &a, const Hooks &h, std::vector<std::str
 {
     const std::string target =
         looks_like_address(a.name) ? "ip:" + a.name : target_of(resolve(a.name, h));
+    // A friend server's ban lifted here stays lifted when the friend sends
+    // its list again.
+    if (Row r; find("ban", target, r) && r.by.rfind("friend:", 0) == 0)
+        put("fedskip", target, r.label, r.by, c.name, 0);
     // A name banned before it had an owner is under its name: both go.
     bool gone = drop("ban", target) | drop("ban", "name:" + a.name);
     // And the address a ban by name took with it (ban, above).
@@ -500,6 +531,420 @@ void cmd_perm(const Who &c, const Args &a, const Hooks &, std::vector<std::strin
     out.push_back(a.name + " now wants " + role_name(want) + ".");
 }
 
+
+// "in 5 minutes", for a sentence.
+std::string left_text(int64_t s)
+{
+    if (s >= 3600 && s % 3600 == 0) return std::to_string(s / 3600) + (s == 3600 ? " hour" : " hours");
+    if (s >= 60 && s % 60 == 0) return std::to_string(s / 60) + (s == 60 ? " minute" : " minutes");
+    return std::to_string(s) + (s == 1 ? " second" : " seconds");
+}
+
+std::string setting(const std::string &name)
+{
+    Row r;
+    return find("setting", name, r) ? r.value : "";
+}
+
+// Every word from the `from`th on, as one line.
+std::string rest(const Args &a, size_t from)
+{
+    std::string t;
+    for (size_t i = from; i < a.words.size(); ++i) t += (t.empty() ? "" : " ") + a.words[i];
+    return t;
+}
+
+// A restart or a stop the server is counting down to, and the daily one.
+struct Pending {
+    int64_t     at = 0;   // 0: nothing
+    bool        restart = false;
+    std::string reason;
+    int64_t     warned = INT64_MAX;   // the last warning's threshold
+};
+Pending g_pending;
+
+std::vector<std::string> g_world_files;   // --backup-every, /backup
+int64_t                  g_backup_every = 0, g_next_backup = 0;
+int                      g_backup_keep  = 5;
+std::atomic<bool>        g_backing_up{false};
+int     g_daily      = -1;   // --restart-at, minutes after midnight
+int64_t g_next_daily = 0;
+
+int64_t next_daily(int64_t from)
+{
+    const std::time_t t  = (std::time_t)from;
+    std::tm           tm = *std::localtime(&t);
+    tm.tm_hour = g_daily / 60, tm.tm_min = g_daily % 60, tm.tm_sec = 0, tm.tm_isdst = -1;
+    int64_t at = (int64_t)std::mktime(&tm);
+    if (at <= from) {
+        ++tm.tm_mday;
+        at = (int64_t)std::mktime(&tm);
+    }
+    return at;
+}
+
+std::string going_text(const Pending &p, int64_t left)
+{
+    return std::string("The server ") + (p.restart ? "restarts" : "stops") +
+           (left > 0 ? " in " + left_text(left) : std::string(" now")) +
+           (p.reason.empty() ? "." : ": " + p.reason + ".");
+}
+
+// /restart and /stop: [time|now|cancel] [reason]. A minute when no time.
+void schedule(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out, bool restart)
+{
+    const char *what = restart ? "restart" : "stop";
+    if (a.name == "cancel") {
+        if (!g_pending.at) {
+            out.push_back("Nothing is scheduled.");
+            return;
+        }
+        // A cancelled daily restart is tomorrow's now.
+        if (g_daily >= 0 && g_pending.at >= g_next_daily) g_next_daily = next_daily(g_pending.at);
+        g_pending = {};
+        log(c, "cancel", what, "");
+        if (h.notice) h.notice("The server is staying up after all.");
+        out.push_back("Cancelled.");
+        return;
+    }
+    int64_t secs = 60;
+    size_t  from = 0;
+    if (a.name == "now") {
+        secs = 0, from = 1;
+    } else if (!a.words.empty() && parse_duration(a.words[0], secs)) {
+        from = 1;
+    }
+    g_pending = Pending{now() + secs, restart, rest(a, from), INT64_MAX};
+    log(c, what, "", (secs ? "in " + left_text(secs) : std::string("now")) +
+                         (g_pending.reason.empty() ? "" : ", " + g_pending.reason));
+    out.push_back(going_text(g_pending, secs));
+}
+
+void cmd_restart(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    schedule(c, a, h, out, true);
+}
+
+void cmd_stop(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    schedule(c, a, h, out, false);
+}
+
+// /maintenance on [text] | off: only staff come in, and the rest are put out.
+void cmd_maintenance(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    if (a.name == "off") {
+        if (!drop("setting", "maintenance")) {
+            out.push_back("The server is not in maintenance.");
+            return;
+        }
+        log(c, "maintenance", "off", "");
+        out.push_back("Open again.");
+        return;
+    }
+    if (a.name == "on") {
+        std::string text = rest(a, 1);
+        if (text.empty()) text = "back soon";
+        put("setting", "maintenance", "maintenance", text, c.name, 0);
+        log(c, "maintenance", "on", text);
+        if (h.online)
+            for (const Online &o : h.online())
+                if (role_of(o.who) < Role::Helper) h.remove(o.peer, net::RefuseReason::Maintenance, text);
+        out.push_back("In maintenance: only staff come in (" + text + ").");
+        return;
+    }
+    const std::string m = setting("maintenance");
+    out.push_back(m.empty() ? "Not in maintenance. /maintenance on [text] | off"
+                            : "In maintenance: " + m + ". /maintenance off opens it.");
+}
+
+void cmd_motd(const Who &c, const Args &a, const Hooks &, std::vector<std::string> &out)
+{
+    if (a.words.empty() || !may(c, "motd")) {
+        const std::string m = setting("motd");
+        out.push_back(m.empty() ? "No message of the day." : m);
+        return;
+    }
+    if (a.name == "off") {
+        drop("setting", "motd");
+        log(c, "motd", "off", "");
+        out.push_back("No message of the day now.");
+        return;
+    }
+    const std::string text = rest(a, 0);
+    put("setting", "motd", "motd", text, c.name, 0);
+    log(c, "motd", "", text);
+    out.push_back("Message of the day: " + text);
+}
+
+void cmd_announce(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    const std::string text = rest(a, 0);
+    if (text.empty()) {
+        out.push_back("/announce TEXT");
+        return;
+    }
+    if (h.notice) h.notice(text);
+    log(c, "announce", "", text);
+    out.push_back("Announced.");
+}
+
+// What people with a role at least `least` hear: staff chat, reports.
+void tell_staff(const Hooks &h, const std::string &line, Role least = Role::Helper)
+{
+    if (h.online && h.say)
+        for (const Online &o : h.online())
+            if (role_of(o.who) >= least) h.say(o.peer, line);
+    std::printf("        %s\n", line.c_str());
+}
+
+void cmd_sc(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    const std::string text = rest(a, 0);
+    if (text.empty()) {
+        out.push_back("/sc TEXT -- to the staff online");
+        return;
+    }
+    tell_staff(h, "[staff] " + c.name + ": " + text);
+}
+
+// The log rows about one player of an action: warns, notes, reports.
+std::vector<Row> log_rows(const std::string &target, const char *action, int64_t since = 0)
+{
+    std::vector<Row> rows;
+    query("SELECT target, '', detail, by, at, 0 FROM admin_log WHERE target = ?1 AND action = ?2 "
+          "AND at >= ?3 ORDER BY at",
+          {target, action, std::to_string(since)}, [&](sqlite3_stmt *st) { rows.push_back(read_row(st)); });
+    return rows;
+}
+
+constexpr int     kWarnsToBan  = 3;
+constexpr int64_t kWarnWindow  = 30 * 86400;
+constexpr int64_t kWarnBanTime = 86400;
+
+// /warn NAME reason: three in thirty days are a day's ban.
+void cmd_warn(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    net::PeerId peer = net::kNoPeer;
+    const Who   t    = resolve(a.name, h, &peer);
+    if (a.name.empty() || !outranks(c, t)) {
+        out.push_back(a.name.empty() ? "/warn NAME reason" : "You cannot warn " + a.name + ".");
+        return;
+    }
+    const std::string why = rest(a, 1);
+    query("INSERT INTO admin_log (at, by, action, target, detail) VALUES (?1, ?2, 'warn', ?3, ?4)",
+          {std::to_string(now()), c.name, target_of(t), why});
+    const int n = (int)log_rows(target_of(t), "warn", now() - kWarnWindow).size();
+    if (peer != net::kNoPeer && h.say)
+        h.say(peer, "You are warned" + (why.empty() ? std::string() : ": " + why) + " (" +
+                        std::to_string(n) + " of " + std::to_string(kWarnsToBan) + ").");
+    out.push_back(a.name + " is warned (" + std::to_string(n) + " in 30 days).");
+    if (n < kWarnsToBan) return;
+    const int64_t until = now() + kWarnBanTime;
+    put("ban", target_of(t), t.name, std::to_string(n) + " warnings", "warns", until);
+    if (!t.has_identity && !t.address.empty())
+        put("ban", "ip:" + t.address, t.name + " (" + t.address + ")", std::to_string(n) + " warnings",
+            "warns", until);
+    log(c, "ban", t.name, until_text(until) + ", " + std::to_string(n) + " warnings");
+    for (const Online &o : online_matching(target_of(t), h))
+        h.remove(o.peer, net::RefuseReason::Banned, std::to_string(n) + " warnings, " + until_text(until));
+    out.push_back(a.name + " is banned for a day: " + std::to_string(n) + " warnings.");
+}
+
+// /report NAME what happened: for the staff, now if any is online.
+void cmd_report(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    const std::string what = rest(a, 1);
+    if (a.name.empty() || what.empty()) {
+        out.push_back("/report NAME what happened");
+        return;
+    }
+    const Who t = resolve(a.name, h);
+    query("INSERT INTO admin_log (at, by, action, target, detail) VALUES (?1, ?2, 'report', ?3, ?4)",
+          {std::to_string(now()), c.name, target_of(t), a.name + ": " + what});
+    tell_staff(h, "[report] " + c.name + " about " + a.name + ": " + what);
+    out.push_back("Reported. Thank you.");
+}
+
+void cmd_reports(const Who &, const Args &, const Hooks &, std::vector<std::string> &out)
+{
+    query("SELECT at, by, detail FROM admin_log WHERE action = 'report' ORDER BY at DESC LIMIT 20", {},
+          [&](sqlite3_stmt *st) {
+              out.push_back(when_text(sqlite3_column_int64(st, 0)) + " " + col(st, 1) + " about " +
+                            col(st, 2));
+          });
+    if (out.empty()) out.push_back("No reports.");
+}
+
+void cmd_note(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    const std::string text = rest(a, 1);
+    if (a.name.empty() || text.empty()) {
+        out.push_back("/note NAME text -- for the staff, in /whois");
+        return;
+    }
+    const Who t = resolve(a.name, h);
+    query("INSERT INTO admin_log (at, by, action, target, detail) VALUES (?1, ?2, 'note', ?3, ?4)",
+          {std::to_string(now()), c.name, target_of(t), text});
+    out.push_back("Noted.");
+}
+
+std::string span_text(int64_t s)
+{
+    if (s >= 86400) return std::to_string(s / 86400) + "d " + std::to_string(s % 86400 / 3600) + "h";
+    if (s >= 3600) return std::to_string(s / 3600) + "h " + std::to_string(s % 3600 / 60) + "m";
+    return std::to_string(s / 60) + "m";
+}
+
+// /seen NAME: online, or when they were last, and how much they have played.
+void cmd_seen(const Who &, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    if (a.name.empty()) {
+        out.push_back("/seen NAME");
+        return;
+    }
+    if (h.online)
+        for (const Online &o : h.online())
+            if (o.who.name == a.name) {
+                out.push_back(a.name + " is online" + (o.room.empty() ? "" : " in " + o.room) + ".");
+                return;
+            }
+    const Who t = resolve(a.name, h);
+    int64_t   last = 0, first = 0, total = 0, visits = 0;
+    std::string room;
+    query("SELECT MAX(left), MIN(joined), SUM(left - joined), COUNT(*) FROM sessions "
+          "WHERE target = ?1 AND left > 0",
+          {target_of(t)}, [&](sqlite3_stmt *st) {
+              last   = sqlite3_column_int64(st, 0);
+              first  = sqlite3_column_int64(st, 1);
+              total  = sqlite3_column_int64(st, 2);
+              visits = sqlite3_column_int64(st, 3);
+          });
+    if (!visits) {
+        out.push_back("Never seen " + a.name + " here.");
+        return;
+    }
+    query("SELECT room FROM sessions WHERE target = ?1 AND left = ?2", {target_of(t), std::to_string(last)},
+          [&](sqlite3_stmt *st) { room = col(st, 0); });
+    out.push_back(a.name + " was last here " + when_text(last) + (room.empty() ? "" : " in " + room) +
+                  "; " + std::to_string(visits) + " visits since " + when_text(first) + ", " +
+                  span_text(total) + " in all.");
+}
+
+// /players [7d]: who came in the last week, or in the time given.
+void cmd_players(const Who &, const Args &a, const Hooks &, std::vector<std::string> &out)
+{
+    int64_t span = 7 * 86400;
+    if (!a.name.empty() && !parse_duration(a.name, span)) {
+        out.push_back("/players [30m|2h|7d|1w]");
+        return;
+    }
+    const int64_t t = now();
+    query("SELECT name, COUNT(*), SUM((CASE WHEN left = 0 THEN ?2 ELSE left END) - joined), "
+          "MAX(CASE WHEN left = 0 THEN ?2 ELSE left END), MIN(left) FROM sessions "
+          "WHERE joined >= ?1 OR left = 0 OR left >= ?1 GROUP BY target ORDER BY 4 DESC LIMIT 30",
+          {std::to_string(t - span), std::to_string(t)}, [&](sqlite3_stmt *st) {
+              const bool on = sqlite3_column_int64(st, 4) == 0;
+              out.push_back(col(st, 0) + ": " + std::to_string(sqlite3_column_int64(st, 1)) +
+                            " visits, " + span_text(sqlite3_column_int64(st, 2)) +
+                            (on ? ", online" : ", last " + when_text(sqlite3_column_int64(st, 3))));
+          });
+    if (out.empty()) out.push_back("Nobody in that time.");
+    else out.insert(out.begin(), std::to_string(out.size()) + " players in " + duration_text(span) + ":");
+}
+
+// /whois NAME: what the staff knows about a player.
+void cmd_whois(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    if (a.name.empty()) {
+        out.push_back("/whois NAME");
+        return;
+    }
+    const Who         t      = resolve(a.name, h);
+    const std::string target = target_of(t);
+    out.push_back(a.name + ": " + role_name(role_of(t)) + ", " +
+                  (t.has_identity ? "key " + target.substr(4, 16) : std::string("no identity")));
+    std::string names, addrs;
+    query("SELECT DISTINCT name FROM sessions WHERE target = ?1", {target},
+          [&](sqlite3_stmt *st) { names += (names.empty() ? "" : ", ") + col(st, 0); });
+    query("SELECT address FROM sessions WHERE target = ?1 GROUP BY address ORDER BY MAX(joined) DESC "
+          "LIMIT 5",
+          {target}, [&](sqlite3_stmt *st) { addrs += (addrs.empty() ? "" : ", ") + col(st, 0); });
+    query("SELECT MIN(joined) FROM sessions WHERE target = ?1", {target}, [&](sqlite3_stmt *st) {
+        if (sqlite3_column_int64(st, 0))
+            out.push_back("First seen " + when_text(sqlite3_column_int64(st, 0)) + " as " + names + ".");
+    });
+    if (may(c, "ban.ip") && !addrs.empty()) out.push_back("Addresses: " + addrs + ".");
+    Row r;
+    if (find("ban", target, r)) out.push_back("Banned " + until_text(r.until) + " by " + r.by + ": " + r.value);
+    if (find("mute", target, r)) out.push_back("Muted " + until_text(r.until) + " by " + r.by + ": " + r.value);
+    for (const char *kind : {"warn", "note", "report"})
+        for (const Row &w : log_rows(target, kind))
+            out.push_back(std::string(kind) + " " + when_text(w.at) + " by " + w.by + ": " + w.value);
+    query("SELECT at, by, action, detail FROM admin_log WHERE target = ?1 AND action IN ('ban', 'kick', "
+          "'mute') ORDER BY at DESC LIMIT 5",
+          {t.name}, [&](sqlite3_stmt *st) {
+              out.push_back(col(st, 2) + " " + when_text(sqlite3_column_int64(st, 0)) + " by " +
+                            col(st, 1) + ": " + col(st, 3));
+          });
+}
+
+// /logs [N] [ACTION]: the latest admin actions.
+void cmd_logs(const Who &, const Args &a, const Hooks &, std::vector<std::string> &out)
+{
+    int         n      = 15;
+    std::string action = "%";
+    for (const std::string &w : a.words) {
+        if (!w.empty() && std::isdigit((unsigned char)w[0])) n = std::clamp(std::atoi(w.c_str()), 1, 200);
+        else action = w;
+    }
+    std::vector<std::string> rows;
+    query("SELECT at, by, action, target, detail FROM admin_log WHERE action LIKE ?1 "
+          "ORDER BY at DESC, rowid DESC LIMIT ?2",
+          {action, std::to_string(n)}, [&](sqlite3_stmt *st) {
+              const std::string tgt = col(st, 3);
+              rows.push_back(when_text(sqlite3_column_int64(st, 0)) + " " + col(st, 1) + " " + col(st, 2) +
+                             (tgt.empty() ? "" : " " + tgt.substr(0, 40)) +
+                             (col(st, 4).empty() ? "" : " -- " + col(st, 4)));
+          });
+    out.assign(rows.rbegin(), rows.rend());
+    if (out.empty()) out.push_back("Nothing logged.");
+}
+
+// /portals: where this server's portals lead, and who sends players here.
+void cmd_portals(const Who &, const Args &, const Hooks &h, std::vector<std::string> &out)
+{
+    if (h.portals) out = h.portals();
+    if (out.empty()) out.push_back("No links out (--portal-to).");
+    const std::vector<Row> in = all("inbound");
+    if (in.empty()) out.push_back("Nobody has come in through a portal from another server.");
+    for (const Row &r : in)
+        out.push_back("In from server " + r.target.substr(4, 16) + ": " + r.value + " crossings, last " +
+                      when_text(r.at) + " from " + r.label + ".");
+}
+
+void cmd_metrics(const Who &, const Args &, const Hooks &h, std::vector<std::string> &out)
+{
+    if (h.metrics) out = h.metrics();
+    if (out.empty()) out.push_back("No numbers from this server.");
+}
+
+void cmd_backup(const Who &c, const Args &, const Hooks &, std::vector<std::string> &out)
+{
+    std::string err;
+    if (!backup(err)) {
+        out.push_back("No backup: " + err);
+        return;
+    }
+    log(c, "backup", "", "");
+    out.push_back("Backing up the worlds; the log says when it is done.");
+}
+
+// Federation, below the sockets.
+void cmd_friend(const Who &, const Args &, const Hooks &, std::vector<std::string> &);
+void cmd_fed(const Who &, const Args &, const Hooks &, std::vector<std::string> &);
+void cmd_where(const Who &, const Args &, const Hooks &, std::vector<std::string> &);
+
 const Command kCommands[] = {
     {"perms", nullptr, "-- your role here", cmd_perms},
     {"role", "roles", "[NAME [ROLE]] -- see or give roles", cmd_role},
@@ -512,6 +957,26 @@ const Command kCommands[] = {
     {"unmute", "mute", "NAME", cmd_unmute},
     {"whitelist", "access", "on|off|list|add NAME|remove NAME", cmd_whitelist},
     {"perm", "perms", "[PERMISSION ROLE] -- which role each permission wants", cmd_perm},
+    {"restart", "restart", "[5m|now|cancel] [reason] -- restart, warning everybody", cmd_restart},
+    {"stop", "restart", "[5m|now|cancel] [reason] -- stop the server, warning everybody", cmd_stop},
+    {"maintenance", "maintenance", "on [text]|off -- only staff come in", cmd_maintenance},
+    {"motd", nullptr, "[TEXT|off] -- the message of the day", cmd_motd},
+    {"announce", "announce", "TEXT -- a notice on every screen", cmd_announce},
+    {"sc", "staffchat", "TEXT -- to the staff online", cmd_sc},
+    {"warn", "warn", "NAME reason -- 3 in 30 days ban for a day", cmd_warn},
+    {"report", nullptr, "NAME what happened -- to the staff", cmd_report},
+    {"reports", "reports", "-- the latest reports", cmd_reports},
+    {"note", "notes", "NAME text -- a note for the staff", cmd_note},
+    {"seen", nullptr, "NAME -- when a player was last here", cmd_seen},
+    {"players", "players", "[7d] -- who came in lately", cmd_players},
+    {"whois", "whois", "NAME -- what the staff knows of a player", cmd_whois},
+    {"logs", "logs", "[N] [ACTION] -- the latest admin actions", cmd_logs},
+    {"metrics", "logs", "-- how the server is doing", cmd_metrics},
+    {"backup", "backup", "-- copy every world file now", cmd_backup},
+    {"portals", "portals", "-- links out, and who sends players in", cmd_portals},
+    {"friend", "federation", "add NAME HOST:PORT KEY [bans,presence,chat]|remove NAME|list -- friend servers", cmd_friend},
+    {"fed", nullptr, "TEXT -- to the players of every friend server", cmd_fed},
+    {"where", nullptr, "NAME -- here, or on which friend server", cmd_where},
 };
 
 std::mutex               g_console_m;
@@ -684,11 +1149,25 @@ bool open(const std::string &path, std::string &err)
         close();
         return false;
     }
+    // Visits a crash left open end where the last thing was heard of them.
+    int open_visits = 0;
+    query("SELECT COUNT(*) FROM sessions WHERE left = 0", {},
+          [&](sqlite3_stmt *st) { open_visits = sqlite3_column_int(st, 0); });
+    if (open_visits) {
+        query("UPDATE sessions SET left = joined, reason = 'server went down' WHERE left = 0", {});
+        query("INSERT INTO admin_log (at, by, action, target, detail) VALUES (?1, 'server', 'unclean', '', ?2)",
+              {std::to_string(now()), std::to_string(open_visits) + " visits left open"});
+    }
+    query("INSERT INTO admin_log (at, by, action, target, detail) VALUES (?1, 'server', 'start', '', '')",
+          {std::to_string(now())});
     return true;
 }
 
 void close()
 {
+    query("UPDATE sessions SET left = ?1, reason = 'server stopped' WHERE left = 0", {std::to_string(now())});
+    query("INSERT INTO admin_log (at, by, action, target, detail) VALUES (?1, 'server', 'stop', '', '')",
+          {std::to_string(now())});
     if (g_db) sqlite3_close(g_db);
     g_db = nullptr;
 }
@@ -721,6 +1200,11 @@ bool admits(const Who &w, net::RefuseReason &reason, std::string &why)
         why    = (r.value.empty() ? std::string() : r.value + ", ") + until_text(r.until);
         return false;
     }
+    if (const std::string m = setting("maintenance"); !m.empty() && role_of(w) < Role::Helper) {
+        reason = net::RefuseReason::Maintenance;
+        why    = m;
+        return false;
+    }
     if (whitelist_on() && role_of(w) < Role::Helper) {
         Row r;
         if (!find("allow", target_of(w), r)) {
@@ -741,6 +1225,244 @@ bool muted(const Who &w, std::string &why)
     return true;
 }
 
+bool restart_at(const std::string &hhmm)
+{
+    int h = -1, m = -1;
+    char extra = 0;
+    if (std::sscanf(hhmm.c_str(), "%d:%d%c", &h, &m, &extra) != 2 || h < 0 || h > 23 || m < 0 || m > 59)
+        return false;
+    g_daily      = h * 60 + m;
+    g_next_daily = next_daily(now());
+    return true;
+}
+
+Stop tick(const Hooks &h)
+{
+    const int64_t t = now();
+    if (g_backup_every > 0 && t >= g_next_backup) {
+        g_next_backup = t + g_backup_every;
+        std::string err;
+        if (!backup(err)) std::printf("        backup: %s\n", err.c_str());
+    }
+    if (g_daily >= 0 && !g_pending.at && g_next_daily - t <= 600)
+        g_pending = Pending{g_next_daily, true, "the daily restart", INT64_MAX};
+    if (!g_pending.at) return Stop::None;
+
+    const int64_t left = g_pending.at - t;
+    if (left > 0) {
+        // Once as each of these is crossed: the bucket the time left is in.
+        static const int64_t kWarn[] = {1, 2, 3, 4, 5, 10, 30, 60, 120, 300, 600, 1800, 3600};
+        for (const int64_t w : kWarn)
+            if (left <= w) {
+                if (w < g_pending.warned) {
+                    g_pending.warned = w;
+                    if (h.notice) h.notice(going_text(g_pending, left));
+                }
+                break;
+            }
+        return Stop::None;
+    }
+    const Pending p = g_pending;
+    g_pending       = {};
+    const std::string text = p.reason.empty() ? (p.restart ? "back in a moment" : "stopped") : p.reason;
+    if (h.online)
+        for (const Online &o : h.online())
+            h.remove(o.peer, p.restart ? net::RefuseReason::Restarting : net::RefuseReason::Stopping, text);
+    query("INSERT INTO admin_log (at, by, action, target, detail) VALUES (?1, 'server', ?2, '', ?3)",
+          {std::to_string(t), p.restart ? "restarting" : "stopping", text});
+    return p.restart ? Stop::Restart : Stop::Stop;
+}
+
+std::string motd() { return setting("motd"); }
+std::string maintenance() { return setting("maintenance"); }
+
+void set_motd(const std::string &text)
+{
+    put("setting", "motd", "motd", text, "config", 0);
+}
+
+void joined(const Who &w, const std::string &room)
+{
+    query("INSERT INTO sessions (target, name, address, room, joined, left, reason) "
+          "VALUES (?1, ?2, ?3, ?4, ?5, 0, '')",
+          {target_of(w), w.name, w.address, room, std::to_string(now())});
+}
+
+void left(const Who &w, const std::string &room, const std::string &reason)
+{
+    query("UPDATE sessions SET left = ?1, reason = ?2 WHERE target = ?3 AND room = ?4 AND left = 0",
+          {std::to_string(now()), reason, target_of(w), room});
+}
+
+void crossed_in(const uint8_t *issuer, const std::string &address)
+{
+    const std::string key = "key:" + net::to_hex(issuer, net::kSignPublicBytes);
+    Row               r;
+    const long long   n = find("inbound", key, r) ? std::atoll(r.value.c_str()) : 0;
+    put("inbound", key, address, std::to_string(n + 1), "portal", 0);
+}
+
+void refused(const Who &w, const std::string &why)
+{
+    query("INSERT INTO admin_log (at, by, action, target, detail) VALUES (?1, 'door', 'refused', ?2, ?3)",
+          {std::to_string(now()), w.name + (w.address.empty() ? "" : " (" + w.address + ")"), why});
+}
+
+void set_backups(const std::vector<std::string> &files, int64_t every, int keep)
+{
+    g_world_files  = files;
+    g_backup_every = every;
+    g_backup_keep  = std::max(1, keep);
+    g_next_backup  = now() + every;
+}
+
+bool backup(std::string &err)
+{
+    if (g_world_files.empty()) {
+        err = "no world files";
+        return false;
+    }
+    if (g_backing_up.exchange(true)) {
+        err = "one is running";
+        return false;
+    }
+    char stamp[32];
+    const std::time_t tt = std::time(nullptr);
+    std::strftime(stamp, sizeof(stamp), "%Y%m%d-%H%M%S", std::localtime(&tt));
+    // Its own connections, on a thread: SQLite's online backup copies a world
+    // in use, a page at a time, and the rooms keep ticking.
+    std::thread([files = g_world_files, keep = g_backup_keep, stamp = std::string(stamp)] {
+        namespace fs = std::filesystem;
+        for (const std::string &f : files) {
+            const std::string to = f + ".backup-" + stamp;
+            sqlite3 *src = nullptr, *dst = nullptr;
+            bool ok = sqlite3_open_v2(f.c_str(), &src, SQLITE_OPEN_READONLY, nullptr) == SQLITE_OK &&
+                      sqlite3_open(to.c_str(), &dst) == SQLITE_OK;
+            if (ok) {
+                sqlite3_backup *b = sqlite3_backup_init(dst, "main", src, "main");
+                ok = b != nullptr;
+                while (ok) {
+                    const int rc = sqlite3_backup_step(b, 256);
+                    if (rc == SQLITE_DONE) break;
+                    if (rc == SQLITE_BUSY || rc == SQLITE_LOCKED) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+                        continue;
+                    }
+                    ok = rc == SQLITE_OK;
+                }
+                if (b) sqlite3_backup_finish(b);
+            }
+            if (src) sqlite3_close(src);
+            if (dst) sqlite3_close(dst);
+            std::printf("        backup: %s %s\n", to.c_str(), ok ? "written" : "FAILED");
+            // The newest `keep`, by name, which is by time.
+            std::error_code ec;
+            const fs::path        p(f);
+            std::vector<fs::path> old;
+            for (const auto &e : fs::directory_iterator(p.parent_path().empty() ? "." : p.parent_path(), ec))
+                if (e.path().filename().string().rfind(p.filename().string() + ".backup-", 0) == 0)
+                    old.push_back(e.path());
+            std::sort(old.begin(), old.end());
+            for (size_t i = 0; i + (size_t)keep < old.size(); ++i) fs::remove(old[i], ec);
+        }
+        g_backing_up = false;
+    }).detach();
+    return true;
+}
+
+int report(const std::string &path, int64_t since)
+{
+    // Its own read-only connection: not open(), which writes.
+    if (sqlite3_open_v2(path.c_str(), &g_db, SQLITE_OPEN_READONLY, nullptr) != SQLITE_OK) {
+        std::printf("report: cannot open %s\n", path.c_str());
+        close();
+        return 1;
+    }
+    sqlite3_busy_timeout(g_db, 2000);
+    bool kept = false;
+    query("SELECT 1 FROM sqlite_master WHERE name = 'sessions'", {}, [&](sqlite3_stmt *) { kept = true; });
+    if (!kept) {
+        std::printf("report: %s has no visits recorded (a server from 0.9 on keeps them)\n", path.c_str());
+        sqlite3_close(g_db);
+        g_db = nullptr;
+        return 0;
+    }
+    const int64_t     t = now(), from_t = since > 0 ? t - since : 0;
+    const std::string from = std::to_string(from_t), to = std::to_string(t);
+    const char       *secs = "(CASE WHEN left = 0 THEN ?2 ELSE left END) - joined";
+    std::printf("%s, %s\n\n", path.c_str(),
+                since > 0 ? ("the last " + duration_text(since)).c_str() : "since it was first served");
+
+    query((std::string("SELECT COUNT(DISTINCT target), COUNT(*), SUM(") + secs +
+           ") FROM sessions WHERE joined >= ?1").c_str(),
+          {from, to}, [&](sqlite3_stmt *st) {
+              std::printf("players   %lld, %lld visits, %s played\n", sqlite3_column_int64(st, 0),
+                          sqlite3_column_int64(st, 1), span_text(sqlite3_column_int64(st, 2)).c_str());
+          });
+
+    // The most at once, swept over every visit's two ends.
+    std::vector<std::pair<int64_t, int>> ends;
+    query("SELECT joined, CASE WHEN left = 0 THEN ?2 ELSE left END FROM sessions WHERE joined >= ?1",
+          {from, to}, [&](sqlite3_stmt *st) {
+              ends.push_back({sqlite3_column_int64(st, 0), 1});
+              ends.push_back({sqlite3_column_int64(st, 1), -1});
+          });
+    std::sort(ends.begin(), ends.end());   // a leave before a join at the same second
+    int     on = 0, peak = 0;
+    int64_t peak_at = 0;
+    for (const auto &[at, d] : ends)
+        if ((on += d) > peak) peak = on, peak_at = at;
+    if (peak) std::printf("most at once  %d, %s\n", peak, when_text(peak_at).c_str());
+
+    int hours[24] = {};
+    query("SELECT joined FROM sessions WHERE joined >= ?1", {from}, [&](sqlite3_stmt *st) {
+        const std::time_t tt = (std::time_t)sqlite3_column_int64(st, 0);
+        ++hours[std::localtime(&tt)->tm_hour];
+    });
+    std::printf("joins by hour");
+    for (int h = 0; h < 24; ++h)
+        if (hours[h]) std::printf("  %02d:%d", h, hours[h]);
+    std::printf("\n\nmost played\n");
+    query((std::string("SELECT name, COUNT(*), SUM(") + secs +
+           ") AS s FROM sessions WHERE joined >= ?1 GROUP BY target ORDER BY s DESC LIMIT 10")
+              .c_str(),
+          {from, to}, [&](sqlite3_stmt *st) {
+              std::printf("  %-20s %4lld visits  %s\n", col(st, 0).c_str(), sqlite3_column_int64(st, 1),
+                          span_text(sqlite3_column_int64(st, 2)).c_str());
+          });
+    std::printf("\nrooms\n");
+    query((std::string("SELECT room, COUNT(*), SUM(") + secs +
+           ") FROM sessions WHERE joined >= ?1 GROUP BY room ORDER BY 3 DESC")
+              .c_str(),
+          {from, to}, [&](sqlite3_stmt *st) {
+              std::printf("  %-20s %4lld visits  %s\n", col(st, 0).empty() ? "(the world)" : col(st, 0).c_str(),
+                          sqlite3_column_int64(st, 1), span_text(sqlite3_column_int64(st, 2)).c_str());
+          });
+    const auto counts = [&](const char *title, const char *sql) {
+        std::printf("\n%s\n", title);
+        bool any = false;
+        query(sql, {from}, [&](sqlite3_stmt *st) {
+            any = true;
+            std::printf("  %-40s %lld\n", col(st, 0).substr(0, 40).c_str(), sqlite3_column_int64(st, 1));
+        });
+        if (!any) std::printf("  none\n");
+    };
+    counts("turned away at the door",
+           "SELECT substr(detail, 1, instr(detail || ',', ',') - 1), COUNT(*) FROM admin_log "
+           "WHERE action = 'refused' AND at >= ?1 GROUP BY 1 ORDER BY 2 DESC LIMIT 10");
+    counts("staff actions",
+           "SELECT action, COUNT(*) FROM admin_log WHERE by NOT IN ('server', 'door') AND at >= ?1 "
+           "GROUP BY action ORDER BY 2 DESC");
+    counts("the server",
+           "SELECT action, COUNT(*) FROM admin_log WHERE by = 'server' AND at >= ?1 GROUP BY action");
+    counts("crossings in, by the server that sent them",
+           "SELECT label, CAST(value AS INTEGER) FROM admin WHERE kind = 'inbound' AND at >= ?1 "
+           "ORDER BY 2 DESC");
+    sqlite3_close(g_db);
+    g_db = nullptr;
+    return 0;
+}
+
 Who console()
 {
     Who w;
@@ -759,8 +1481,9 @@ bool run(const Who &caller, const std::string &name, const std::string &args, co
             return true;
         }
         const Args a = split(args);
-        if (a.name.empty() && c.fn != cmd_perms && c.fn != cmd_role && c.fn != cmd_bans &&
-            c.fn != cmd_whitelist && c.fn != cmd_perm) {
+        // A command whose help starts with what it needs gets its help back
+        // without it.
+        if (a.name.empty() && (std::strncmp(c.help, "NAME", 4) == 0 || std::strncmp(c.help, "TEXT", 4) == 0)) {
             out.push_back(std::string("/") + c.name + " " + c.help);
             return true;
         }
@@ -805,7 +1528,15 @@ std::string admin_page(const Who &v, const Hooks &h)
     if (may(v, "access")) m += "[Whitelist](page:whitelist) ";
     if (may(v, "roles")) m += "[Roles](page:roles) ";
     if (may(v, "perms")) m += "[Permissions](page:perms) ";
+    if (may(v, "restart") || may(v, "maintenance") || may(v, "motd")) m += "[Running](page:running) ";
+    if (may(v, "players")) m += "[Players](page:players) ";
+    if (may(v, "reports")) m += "[Reports](page:reports) ";
+    if (may(v, "logs")) m += "[Log](page:log) ";
     m += "[Server](page:server) [Mods](page:mods) [Here](page:here)\n";
+    if (const std::string mt = setting("maintenance"); !mt.empty())
+        m += "> In maintenance: " + page_text(mt) + "\n";
+    if (g_pending.at)
+        m += "> " + page_text(going_text(g_pending, std::max<int64_t>(0, g_pending.at - now()))) + "\n";
 
     const std::vector<Online> on = h.online ? h.online() : std::vector<Online>{};
     m += "## Online: " + std::to_string(on.size()) + "\n";
@@ -901,11 +1632,103 @@ std::string perms_page(const Who &v)
     return m;
 }
 
+// Restarts, maintenance, the message of the day, backups.
+std::string running_page(const Who &v, const Hooks &h)
+{
+    std::string m = "[Back](page:admin)\n## Restart\n";
+    if (g_pending.at) {
+        m += page_text(going_text(g_pending, std::max<int64_t>(0, g_pending.at - now()))) + " ";
+        if (may(v, "restart")) m += "[cancel](cmd:/restart cancel)";
+        m += "\n";
+    } else if (may(v, "restart")) {
+        m += "[in 1 minute](cmd:/restart 1m) [in 5 minutes](cmd:/restart 5m) [in 15 minutes](cmd:/restart 15m) "
+             "[stop in 5 minutes](cmd:/stop 5m)\n";
+    }
+    if (g_daily >= 0) {
+        char at[16];
+        std::snprintf(at, sizeof(at), "%02d:%02d", g_daily / 60, g_daily % 60);
+        m += std::string("Every day at ") + at + " (--restart-at).\n";
+    }
+    if (may(v, "maintenance")) {
+        const std::string mt = setting("maintenance");
+        m += "## Maintenance\n";
+        m += mt.empty() ? "Open to everybody.\n?[close for maintenance: why](cmd:/maintenance on {text})\n"
+                        : "Only staff come in: " + page_text(mt) + " [open again](cmd:/maintenance off)\n";
+    }
+    if (may(v, "motd")) {
+        const std::string mt = setting("motd");
+        m += "## Message of the day\n" + (mt.empty() ? std::string("None.") : page_text(mt)) + "\n";
+        m += "?[a new one](cmd:/motd {text})\n";
+    }
+    if (may(v, "announce")) m += "?[announce to every screen](cmd:/announce {text})\n";
+    if (may(v, "backup")) {
+        m += "## Backups\n";
+        m += g_backup_every > 0 ? "Every " + duration_text(g_backup_every) + ", the newest " +
+                                      std::to_string(g_backup_keep) + " kept. "
+                                : std::string("Only when asked. ");
+        m += "[back up now](cmd:/backup)\n";
+    }
+    if (may(v, "logs") && h.metrics) {
+        m += "## Now\n";
+        for (const std::string &l : h.metrics()) m += page_text(l) + "\n";
+    }
+    return m;
+}
+
+std::string players_page(const Who &v, const Hooks &h)
+{
+    std::string m = "[Back](page:admin)\nThe last week.\n| name | visits | played | last | |\n";
+    const int64_t t = now();
+    query("SELECT name, COUNT(*), SUM((CASE WHEN left = 0 THEN ?2 ELSE left END) - joined), "
+          "MAX(CASE WHEN left = 0 THEN ?2 ELSE left END), MIN(left) FROM sessions "
+          "WHERE joined >= ?1 OR left = 0 OR left >= ?1 GROUP BY target ORDER BY 4 DESC LIMIT 60",
+          {std::to_string(t - 7 * 86400), std::to_string(t)}, [&](sqlite3_stmt *st) {
+              const std::string n = col(st, 0);
+              m += "| " + page_text(n) + " | " + std::to_string(sqlite3_column_int64(st, 1)) + " | " +
+                   span_text(sqlite3_column_int64(st, 2)) + " | " +
+                   (sqlite3_column_int64(st, 4) == 0 ? std::string("online")
+                                                     : when_text(sqlite3_column_int64(st, 3))) +
+                   " |" + cmd_link(v, "whois", "whois", "/whois " + n, n) + " |\n";
+          });
+    (void)h;
+    return m;
+}
+
+std::string lines_page(const std::vector<std::string> &lines)
+{
+    std::string m = "[Back](page:admin)\n";
+    for (const std::string &l : lines) m += page_text(l) + "\n";
+    return m;
+}
+
 } // namespace
 
 bool page(const std::string &name, const Who &viewer, const Hooks &hooks, std::string &title,
           std::string &markup)
 {
+    if (name == "running" && (may(viewer, "restart") || may(viewer, "maintenance") || may(viewer, "motd"))) {
+        title  = "Running the server";
+        markup = running_page(viewer, hooks);
+        return true;
+    }
+    if (name == "players" && may(viewer, "players")) {
+        title  = "Players";
+        markup = players_page(viewer, hooks);
+        return true;
+    }
+    if ((name == "reports" && may(viewer, "reports")) || (name == "log" && may(viewer, "logs"))) {
+        std::vector<std::string> lines;
+        Args                     a;
+        if (name == "reports") {
+            cmd_reports(viewer, a, hooks, lines);
+        } else {
+            a.words = {"40"};
+            cmd_logs(viewer, a, hooks, lines);
+        }
+        title  = name == "reports" ? "Reports" : "Log";
+        markup = lines_page(lines);
+        return true;
+    }
     if (name == "admin" && may(viewer, "pages")) {
         title  = "Server administration";
         markup = admin_page(viewer, hooks);
@@ -983,6 +1806,412 @@ bool start_rcon(int port, const std::string &password, std::string &err)
         }
     }).detach();
     return true;
+}
+
+
+// ------------------------------------------------------------- federation
+//
+// Friend servers (DESIGN.md 4.3, since 0.9): two servers that each put the
+// other in their list exchange, a line of TCP at a time, what both chose
+// to share -- their permanent bans, who is online, and a chat between them.
+//
+//   CNPFED1 FROM TO MS PAYLOAD SIG
+//
+// FROM and TO are signing keys in hex, MS the sender's clock in milliseconds
+// (later than its last line, and within five minutes of ours), PAYLOAD hex,
+// SIG the ed25519 signature of "CNPFED1|TO|MS|payload" by FROM. Signed, not
+// encrypted: what friends share is a list of keys, of names and a chat
+// anybody on either server reads. A line from a key not in the list is
+// dropped where it is read (federation_tick).
+
+namespace {
+
+net::SignKeyPair g_me;
+bool             g_fed_on = false;
+std::string      g_me_hex;
+
+struct FedIn {
+    std::string from, payload, address;
+};
+struct FedOut {
+    std::string host;
+    int         port = 0;
+    std::string line;
+};
+// Never destroyed: the sender thread waits on them for as long as the
+// process lives, and glibc's condition variable destructor waits for its
+// waiters, so destroying them at exit would hang the server on its way out.
+std::mutex                                    &g_fed_m    = *new std::mutex;
+std::condition_variable                       &g_fed_wake = *new std::condition_variable;
+std::vector<FedIn>                             g_fed_in;
+std::vector<FedOut>                            g_fed_out;
+std::unordered_map<std::string, int64_t>       g_fed_last_ms;   // replay guard, by sender
+std::atomic<int>                               g_fed_readers{0};
+
+struct Friend {
+    std::string key, name, host, shares;   // key: "key:<hex>"
+    int         port = 0;
+    bool        shares_(const char *what) const { return shares.find(what) != std::string::npos; }
+};
+
+std::vector<Friend> friends()
+{
+    std::vector<Friend> out;
+    for (const Row &r : all("friend")) {
+        Friend f;
+        f.key  = r.target;
+        f.name = r.label;
+        std::istringstream in(r.value);
+        std::string        addr;
+        in >> addr >> f.shares;
+        const size_t colon = addr.rfind(':');
+        f.host = addr.substr(0, colon);
+        f.port = colon == std::string::npos ? 0 : std::atoi(addr.c_str() + colon + 1);
+        out.push_back(f);
+    }
+    return out;
+}
+
+// Who is on each friend, and when it last said so; when each was last heard.
+struct Presence {
+    std::vector<std::string> names;
+    int64_t                  at = 0;
+};
+std::unordered_map<std::string, Presence> g_presence;   // by friend key
+std::unordered_map<std::string, int64_t>  g_heard;
+int64_t     g_next_presence = 0, g_next_bans = 0, g_next_bans_look = 0;
+std::string g_last_bans, g_last_presence;
+
+int64_t now_ms()
+{
+    return (int64_t)std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::system_clock::now().time_since_epoch())
+        .count();
+}
+
+void fed_send(const Friend &f, const std::string &payload)
+{
+    if (!g_fed_on || f.host.empty() || f.port <= 0) return;
+    static int64_t    last = 0;
+    const int64_t     ms   = std::max(now_ms(), last + 1);
+    last                   = ms;
+    const std::string to   = f.key.substr(4);
+    const std::string body = "CNPFED1|" + to + "|" + std::to_string(ms) + "|" + payload;
+    uint8_t           sig[net::kSignatureBytes];
+    net::sign_message(g_me, body.data(), body.size(), sig);
+    std::string line = "CNPFED1 " + g_me_hex + " " + to + " " + std::to_string(ms) + " " +
+                       net::to_hex((const uint8_t *)payload.data(), payload.size()) + " " +
+                       net::to_hex(sig, sizeof(sig)) + "\n";
+    std::lock_guard<std::mutex> hold(g_fed_m);
+    if (g_fed_out.size() < 256) g_fed_out.push_back({f.host, f.port, std::move(line)});
+    g_fed_wake.notify_one();
+}
+
+void fed_send_all(const char *share, const std::string &payload)
+{
+    for (const Friend &f : friends())
+        if (f.shares_(share)) fed_send(f, payload);
+}
+
+// Connected within three seconds, or not at all: a friend that is down
+// costs the sender thread, never a tick.
+Sock dial(const std::string &host, int port)
+{
+    addrinfo hints{}, *res = nullptr;
+    hints.ai_family   = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    if (getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &res) != 0 || !res) return kNoSock;
+    Sock s = ::socket(AF_INET, SOCK_STREAM, 0);
+    if (s == kNoSock) {
+        freeaddrinfo(res);
+        return kNoSock;
+    }
+#ifdef _WIN32
+    u_long nb = 1;
+    ioctlsocket(s, FIONBIO, &nb);
+#else
+    const int fl = fcntl(s, F_GETFL, 0);
+    fcntl(s, F_SETFL, fl | O_NONBLOCK);
+#endif
+    ::connect(s, res->ai_addr, (int)res->ai_addrlen);
+    freeaddrinfo(res);
+    fd_set w;
+    FD_ZERO(&w);
+    FD_SET(s, &w);
+    timeval tv{3, 0};
+    int     err = 0;
+    socklen_t len = sizeof(err);
+    if (select((int)s + 1, nullptr, &w, nullptr, &tv) != 1 ||
+        getsockopt(s, SOL_SOCKET, SO_ERROR, (char *)&err, &len) != 0 || err != 0) {
+        close_sock(s);
+        return kNoSock;
+    }
+#ifdef _WIN32
+    nb = 0;
+    ioctlsocket(s, FIONBIO, &nb);
+#else
+    fcntl(s, F_SETFL, fl);
+#endif
+    return s;
+}
+
+void fed_reader(Sock c, std::string address)
+{
+#ifdef _WIN32
+    DWORD tv = 5000;
+#else
+    timeval tv{5, 0};
+#endif
+    setsockopt(c, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
+    std::string line;
+    char        buf[4096];
+    for (long n; line.find('\n') == std::string::npos && line.size() < 200000 &&
+                 (n = read_sock(c, buf, sizeof(buf))) > 0;)
+        line.append(buf, (size_t)n);
+    close_sock(c);
+    --g_fed_readers;
+
+    std::istringstream in(line.substr(0, line.find('\n')));
+    std::string        magic, from, to, ms_text, payload_hex, sig_hex;
+    in >> magic >> from >> to >> ms_text >> payload_hex >> sig_hex;
+    uint8_t     key[net::kSignPublicBytes], sig[net::kSignatureBytes];
+    std::string payload(payload_hex.size() / 2, '\0');
+    const int64_t ms = std::atoll(ms_text.c_str());
+    if (magic != "CNPFED1" || to != g_me_hex || !net::from_hex(from, key, sizeof(key)) ||
+        !net::from_hex(sig_hex, sig, sizeof(sig)) ||
+        !net::from_hex(payload_hex, (uint8_t *)payload.data(), payload.size()) ||
+        std::llabs(ms - now_ms()) > 300000)
+        return;
+    const std::string body = "CNPFED1|" + to + "|" + ms_text + "|" + payload;
+    if (!net::verify_message(key, body.data(), body.size(), sig)) return;
+    std::lock_guard<std::mutex> hold(g_fed_m);
+    int64_t &last = g_fed_last_ms[from];
+    if (ms <= last) return;   // seen, or older: a replay
+    last = ms;
+    if (g_fed_in.size() < 1024) g_fed_in.push_back({from, std::move(payload), std::move(address)});
+}
+
+// The permanent bans of keys made here, for friends: not the ones a friend
+// sent, which would go round in a circle.
+std::string own_bans()
+{
+    std::string p = "bans";
+    for (const Row &r : all("ban"))
+        if (r.until == 0 && r.target.rfind("key:", 0) == 0 && r.by.rfind("friend:", 0) != 0)
+            p += "\n" + r.target.substr(4) + "\t" + r.label + "\t" + r.value;
+    return p;
+}
+
+void apply(const Friend &f, const std::string &payload, const Hooks &h)
+{
+    std::istringstream in(payload);
+    std::string        kind;
+    std::getline(in, kind);
+    const std::string by = "friend:" + f.name;
+    if (kind == "presence" && f.shares_("presence")) {
+        Presence p;
+        p.at = now();
+        for (std::string n; std::getline(in, n);)
+            if (!n.empty()) p.names.push_back(n);
+        g_presence[f.key] = std::move(p);
+    } else if (kind == "bans" && f.shares_("bans")) {
+        // The friend's whole list, again: what it no longer bans goes.
+        query("DELETE FROM admin WHERE kind = 'ban' AND by = ?1", {by});
+        int n = 0;
+        for (std::string l; std::getline(in, l);) {
+            const size_t t1 = l.find('\t'), t2 = l.find('\t', t1 + 1);
+            const std::string key = "key:" + l.substr(0, t1);
+            if (t1 == std::string::npos || t1 != 2 * net::kSignPublicBytes) continue;
+            Row r;
+            if (find("ban", key, r) || find("fedskip", key, r)) continue;   // ours, or lifted here
+            put("ban", key, l.substr(t1 + 1, t2 - t1 - 1), t2 == std::string::npos ? "" : l.substr(t2 + 1), by, 0);
+            ++n;
+            for (const Online &o : online_matching(key, h))
+                h.remove(o.peer, net::RefuseReason::Banned, "banned on " + f.name);
+        }
+        std::printf("        federation: %s bans %d key(s) here\n", f.name.c_str(), n);
+    } else if (kind == "chat" && f.shares_("chat")) {
+        std::string line;
+        std::getline(in, line);
+        line = "[" + f.name + "] " + line.substr(0, 300);
+        if (h.online && h.say)
+            for (const Online &o : h.online()) h.say(o.peer, line);
+        std::printf("        %s\n", line.c_str());
+    }
+}
+
+void cmd_friend(const Who &c, const Args &a, const Hooks &, std::vector<std::string> &out)
+{
+    if (a.name == "add") {
+        uint8_t key[net::kSignPublicBytes];
+        if (a.words.size() < 4 || !net::from_hex(a.words[3], key, sizeof(key)) ||
+            a.words[2].find(':') == std::string::npos) {
+            out.push_back("/friend add NAME HOST:PORT KEY [bans,presence,chat]");
+            return;
+        }
+        const std::string shares = a.words.size() > 4 ? a.words[4] : "bans,presence,chat";
+        put("friend", "key:" + net::to_hex(key, sizeof(key)), a.words[1], a.words[2] + " " + shares, c.name, 0);
+        log(c, "friend", a.words[1], a.words[2] + " " + shares);
+        g_next_presence = g_next_bans = 0;   // tell it now
+        out.push_back(a.words[1] + " is a friend: " + shares + ". It has to add this server too (" +
+                      (g_fed_on ? "key " + g_me_hex : std::string("start with --federation PORT")) + ").");
+        return;
+    }
+    if (a.name == "remove" && a.words.size() > 1) {
+        for (const Friend &f : friends())
+            if (f.name == a.words[1]) {
+                drop("friend", f.key);
+                query("DELETE FROM admin WHERE kind = 'ban' AND by = ?1", {"friend:" + f.name});
+                g_presence.erase(f.key);
+                log(c, "unfriend", f.name, "");
+                out.push_back(f.name + " is no longer a friend; its bans are lifted here.");
+                return;
+            }
+        out.push_back("No friend called " + a.words[1] + ".");
+        return;
+    }
+    out.push_back(g_fed_on ? "This server's key: " + g_me_hex : "Federation off: --federation PORT.");
+    for (const Friend &f : friends()) {
+        const auto heard = g_heard.find(f.key);
+        out.push_back(f.name + " " + f.host + ":" + std::to_string(f.port) + " " + f.shares + ", " +
+                      (heard == g_heard.end() ? std::string("never heard from")
+                                              : "heard " + when_text(heard->second)));
+    }
+}
+
+void cmd_fed(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    const std::string text = rest(a, 0);
+    std::string       why;
+    if (text.empty()) {
+        out.push_back("/fed TEXT");
+    } else if (muted(c, why)) {
+        out.push_back(why);
+    } else if (!g_fed_on) {
+        out.push_back("This server has no friends to talk to (--federation).");
+    } else {
+        fed_send_all("chat", "chat\n" + c.name + ": " + text);
+        if (h.online && h.say)
+            for (const Online &o : h.online()) h.say(o.peer, "[here] " + c.name + ": " + text);
+    }
+}
+
+void cmd_where(const Who &, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    if (h.online)
+        for (const Online &o : h.online())
+            if (o.who.name == a.name) {
+                out.push_back(a.name + " is here" + (o.room.empty() ? "." : ", in " + o.room + "."));
+                return;
+            }
+    for (const Friend &f : friends()) {
+        const auto p = g_presence.find(f.key);
+        if (p == g_presence.end() || now() - p->second.at > 120) continue;
+        for (const std::string &n : p->second.names)
+            if (n == a.name) {
+                out.push_back(a.name + " is on " + f.name + ".");
+                return;
+            }
+    }
+    out.push_back("Nobody called " + a.name + " here or on a friend server.");
+}
+
+} // namespace
+
+bool start_federation(int port, const net::SignKeyPair &me, std::string &err)
+{
+    g_me     = me;
+    g_me_hex = net::to_hex(me.public_key, net::kSignPublicBytes);
+    if (port > 0) {
+        const Sock l = ::socket(AF_INET, SOCK_STREAM, 0);
+        int        yes = 1;
+        setsockopt(l, SOL_SOCKET, SO_REUSEADDR, (const char *)&yes, sizeof(yes));
+        sockaddr_in at{};
+        at.sin_family      = AF_INET;
+        at.sin_port        = htons((uint16_t)port);
+        at.sin_addr.s_addr = htonl(INADDR_ANY);   // other machines: that is the point
+        if (l == kNoSock || ::bind(l, (const sockaddr *)&at, sizeof(at)) != 0 || ::listen(l, 8) != 0) {
+            if (l != kNoSock) close_sock(l);
+            err = "federation: cannot listen on port " + std::to_string(port);
+            return false;
+        }
+        std::thread([l] {
+            for (;;) {
+                sockaddr_in from{};
+                socklen_t   len = sizeof(from);
+                const Sock  c   = ::accept(l, (sockaddr *)&from, &len);
+                if (c == kNoSock) continue;
+                if (g_fed_readers >= 8) {
+                    close_sock(c);
+                    continue;
+                }
+                char ip[64] = "?";
+                inet_ntop(AF_INET, &from.sin_addr, ip, sizeof(ip));
+                ++g_fed_readers;
+                std::thread(fed_reader, c, std::string(ip)).detach();
+            }
+        }).detach();
+    }
+    // One sender, a line a connection.
+    std::thread([] {
+        for (;;) {
+            FedOut o;
+            {
+                std::unique_lock<std::mutex> hold(g_fed_m);
+                g_fed_wake.wait(hold, [] { return !g_fed_out.empty(); });
+                o = std::move(g_fed_out.front());
+                g_fed_out.erase(g_fed_out.begin());
+            }
+            const Sock s = dial(o.host, o.port);
+            if (s == kNoSock) continue;
+            send_sock(s, o.line);
+            close_sock(s);
+        }
+    }).detach();
+    g_fed_on = true;
+    return true;
+}
+
+void federation_tick(const Hooks &h)
+{
+    if (!g_fed_on) return;
+    std::vector<FedIn> in;
+    {
+        std::lock_guard<std::mutex> hold(g_fed_m);
+        in.swap(g_fed_in);
+    }
+    if (!in.empty()) {
+        const std::vector<Friend> fs = friends();
+        for (const FedIn &m : in) {
+            const auto f = std::find_if(fs.begin(), fs.end(), [&](const Friend &x) { return x.key == "key:" + m.from; });
+            if (f == fs.end()) {
+                std::printf("        federation: a line from %s, a server not in the list\n", m.address.c_str());
+                continue;
+            }
+            g_heard[f->key] = now();
+            apply(*f, m.payload, h);
+        }
+    }
+    const int64_t t = now();
+    // Who is here every thirty seconds, and as soon as it changes.
+    std::string p = "presence";
+    if (h.online)
+        for (const Online &o : h.online()) p += "\n" + o.who.name;
+    if (t >= g_next_presence || p != g_last_presence) {
+        g_next_presence = t + 30;
+        g_last_presence = p;
+        fed_send_all("presence", p);
+    }
+    // The list again every five minutes, and as soon as it changes.
+    if (t >= g_next_bans_look) {
+        g_next_bans_look = t + 5;
+        const std::string b = own_bans();
+        if (t >= g_next_bans || b != g_last_bans) {
+            g_next_bans = t + 300;
+            g_last_bans = b;
+            fed_send_all("bans", b);
+        }
+    }
 }
 
 std::vector<ConsoleLine> take_console_lines()

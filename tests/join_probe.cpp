@@ -14,6 +14,7 @@
 // client refused what the server sent.
 
 #include "core/net/client_session.h"
+#include "core/net/crypto.h"
 #include "core/net/protocol.h"
 #include "core/net/session.h"
 #include "core/net/transport.h"
@@ -56,6 +57,8 @@ uint64_t generate_and_hash(uint32_t seed, int extent)
     return world_hash(world, extent, kWorldHeight);
 }
 
+const char *g_identity = nullptr;
+
 int join_mode(const char *host, uint16_t port, const char *name, int extent,
               bool claim_wrong_table, bool adopt, const char *pin_hex, bool encrypt)
 {
@@ -73,6 +76,16 @@ int join_mode(const char *host, uint16_t port, const char *name, int extent,
             return 1;
         }
         cfg.pin_server = true;
+    }
+    // --identity FILE: a key of its own, made once, so a server can tell the
+    // probe from another (bans by key, roles).
+    if (g_identity) {
+        bool created = false;
+        if (!load_or_create_sign_key(g_identity, cfg.identity, created, err)) {
+            std::printf("--identity: %s\n", err.c_str());
+            return 1;
+        }
+        cfg.has_identity = true;
     }
 
     Hello hello = make_client_hello(name);
@@ -274,6 +287,7 @@ int main(int argc, char **argv)
         if (arg == "--no-adopt") adopt = false;
         if (arg == "--no-encryption") encrypt = false;
         if (arg == "--server-key" && i + 1 < argc) pin = argv[++i];
+        if (arg == "--identity" && i + 1 < argc) g_identity = argv[++i];
         if (arg == "--travel" && i + 1 < argc) g_travel = (float)std::atof(argv[++i]);
         if (arg == "--hold" && i + 1 < argc) g_hold = (float)std::atof(argv[++i]);
         if (arg == "--walked-down") g_flown = false;

@@ -67,6 +67,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include <atomic>
 #include <deque>
 #include <fstream>
 #include <mutex>
@@ -195,6 +196,8 @@ struct ServerState {
     // A muted player whose /command is running (run_chat_line): what its mod
     // says to anybody else is held, so no mod's command is a way round /mute.
     int muted_caller = 0;
+    // When each player last spoke, for the chat's flood limit (run_chat_line).
+    std::unordered_map<net::PeerId, std::deque<double>> said_at;
     std::string muted_why;
 
     // The /commands this world's mods declared (core.command).
@@ -4091,7 +4094,25 @@ struct RoomShared {
     WorldDb             *db       = nullptr;
     ContainerSet        *containers = nullptr;   // bring_carried_containers
     ModStore            *mod_store  = nullptr;   // the first room's: core.shared_storage_*
+    // The longest tick of the last minute, for /metrics; and when this room
+    // last finished one, for --watchdog.
+    std::atomic<int>     worst_tick_ms{0};
+    std::atomic<int64_t> beat{0};
+    // Its links out (--portal-to) and the issuers it trusts (--trust), for
+    // /portals.
+    std::vector<std::string> portal_to, trusted;
+
+    explicit RoomShared(std::string n) : name(std::move(n)) {}
+    RoomShared(RoomShared &&o) noexcept
+        : name(std::move(o.name)), sessions(o.sessions), items(o.items), models(o.models), db(o.db),
+          containers(o.containers), mod_store(o.mod_store)
+    {
+    }
 };
+
+const auto g_started = std::chrono::steady_clock::now();
+int        g_exit_code = 0;          // 75 for a restart: tools/serve.sh starts it again
+int        g_max_per_address = 0;    // --max-per-address, 0 for no limit
 
 struct Router {
     TurnLock                                 big;
@@ -4148,6 +4169,25 @@ struct Router {
             }
             const auto w = waiting.find(ev.peer);
             if (w == waiting.end()) return;
+
+            // The list of servers asking who is here: answered and let go.
+            if (net::peek_type(ev.data.data(), ev.data.size()) == net::MsgType::StatusQuery) {
+                net::Status st;
+                st.version = kEngineVersion;
+                st.rooms   = (uint16_t)rooms.size();
+                for (const RoomShared &r : rooms)
+                    if (r.sessions)
+                        for (const net::PeerId p : r.sessions->ready_peers())
+                            if (const net::Session *s = r.sessions->find(p); s && s->scope == net::Scope::Enter)
+                                ++st.players;
+                st.motd        = admin::motd();
+                st.maintenance = admin::maintenance();
+                transport.send(ev.peer, net::Channel::Handshake, st.encode(), true);
+                transport.flush();
+                transport.disconnect(ev.peer);
+                waiting.erase(w);
+                return;
+            }
 
             // The first word decides the room. Anything that is not a Hello
             // goes to the first room, whose sessions refuse it as they would.
@@ -4249,6 +4289,55 @@ admin::Hooks admin_hooks()
         g_router.transport.flush();
         g_router.transport.disconnect(peer);
     };
+    h.notice = [](const std::string &text) {
+        const std::vector<uint8_t> bytes = net::Notice{text}.encode();
+        for (const RoomShared &r : g_router.rooms)
+            if (r.sessions)
+                for (const net::PeerId peer : r.sessions->ready_peers())
+                    if (const net::Session *p = r.sessions->find(peer); p && p->scope == net::Scope::Enter)
+                        g_router.transport.send(peer, net::Channel::Event, bytes, true);
+        std::printf("        notice: %s\n", text.c_str());
+    };
+    h.say = [](net::PeerId peer, const std::string &line) {
+        g_router.transport.send(peer, net::Channel::Event, net::Chat{line}.encode(), true);
+    };
+    h.portals = [] {
+        std::vector<std::string> out;
+        for (const RoomShared &r : g_router.rooms) {
+            const std::string room = r.name.empty() ? std::string("this world") : r.name;
+            for (size_t i = 0; i < r.portal_to.size(); ++i)
+                out.push_back(room + ", opening " + std::to_string(i) + ": " + r.portal_to[i]);
+            if (!r.trusted.empty())
+                out.push_back(room + " takes tickets from " + std::to_string(r.trusted.size()) + " server(s).");
+        }
+        return out;
+    };
+    h.metrics = [] {
+        std::vector<std::string> out;
+        const int64_t up = (int64_t)std::chrono::duration_cast<std::chrono::seconds>(
+                               std::chrono::steady_clock::now() - g_started).count();
+        out.push_back("Up " + std::to_string(up / 3600) + "h " + std::to_string(up % 3600 / 60) + "m, " +
+                      std::string(kEngineVersion) + ".");
+        for (const RoomShared &r : g_router.rooms) {
+            size_t n = 0, watching = 0;
+            if (r.sessions)
+                for (const net::PeerId peer : r.sessions->ready_peers())
+                    if (const net::Session *p = r.sessions->find(peer))
+                        ++(p->scope == net::Scope::Enter ? n : watching);
+            out.push_back((r.name.empty() ? std::string("the world") : r.name) + ": " + std::to_string(n) +
+                          " playing, " + std::to_string(watching) + " looking in, longest gap between ticks " +
+                          std::to_string(r.worst_tick_ms.load()) + " ms this minute (50 is on time).");
+        }
+#ifndef _WIN32
+        if (FILE *f = std::fopen("/proc/self/statm", "r")) {
+            long pages = 0, rss = 0;
+            if (std::fscanf(f, "%ld %ld", &pages, &rss) == 2)
+                out.push_back("Memory " + std::to_string(rss * (sysconf(_SC_PAGESIZE) / 1024) / 1024) + " MB.");
+            std::fclose(f);
+        }
+#endif
+        return out;
+    };
     return h;
 }
 
@@ -4261,7 +4350,7 @@ std::string page_panel(net::PeerId peer) { return "page:" + std::to_string(peer)
 // Names the engine answers itself, which no mod may register.
 bool core_page_name(const std::string &n)
 {
-    for (const char *c : {"pages", "admin", "bans", "whitelist", "roles", "perms", "server",
+    for (const char *c : {"pages", "admin", "bans", "whitelist", "roles", "perms", "server", "running", "players", "reports", "log",
                           "mods", "here"})
         if (n == c) return true;
     return false;
@@ -4288,6 +4377,17 @@ void close_page(ServerState &s, net::PeerId peer)
 {
     s.pages_up.erase(peer);
     s.panels.drop_owner(kPageOwner, page_panel(peer));
+}
+
+// A player gone from this room, however they went: the visit ends
+// (admin::left), the page goes.
+void gone(ServerState &s, net::PeerId peer, const char *why)
+{
+    if (const net::Session *p = s.sessions ? s.sessions->find(peer) : nullptr;
+        p && p->scope == net::Scope::Enter && !p->name.empty())
+        admin::left(admin_who(*p), g_router.rooms[(size_t)g_room].name, why);
+    s.said_at.erase(peer);
+    close_page(s, peer);
 }
 
 void say_to(ServerState &s, net::PeerId peer, const std::string &line)
@@ -4391,6 +4491,14 @@ bool open_page(ServerState &s, net::PeerId peer, const std::string &name, int sc
     return true;
 }
 
+// While a muted player's command, page action or click runs, what its mod
+// core.chats to anybody else is held (host_chat); cleared after the emit.
+void hold_if_muted(ServerState &s, net::PeerId peer)
+{
+    const net::Session *p = s.sessions ? s.sessions->find(peer) : nullptr;
+    if (p && admin::muted(admin_who(*p), s.muted_why)) s.muted_caller = (int)peer;
+}
+
 // A line a player typed or a page ran for them: a /command answered here or by
 // its mod, or something said to everybody in this world. Answers go out with
 // the mods' chat, at the end of the tick.
@@ -4407,6 +4515,15 @@ void run_chat_line(ServerState &s, net::PeerId peer, const std::string &line)
             say_to(s, peer, held);
             return;
         }
+        // Five lines in five seconds, and the sixth waits.
+        std::deque<double> &said_at = s.said_at[peer];
+        const double        t       = std::chrono::duration<double>(std::chrono::steady_clock::now() - g_started).count();
+        while (!said_at.empty() && t - said_at.front() > 5.0) said_at.pop_front();
+        if (said_at.size() >= 5) {
+            say_to(s, peer, "Slow down: five lines in five seconds at most.");
+            return;
+        }
+        said_at.push_back(t);
         const std::string out = "<" + who + "> " + line;
         std::printf("        chat: %s\n", out.c_str());
         s.mod_says.push_back(ServerState::ModSay{0, 0, out, false, true});
@@ -4440,7 +4557,7 @@ void run_chat_line(ServerState &s, net::PeerId peer, const std::string &line)
             {"args", SCRIPT_V_STRING, 0.0, args.c_str(), 0},
         };
         std::string cmd_err;
-        if (admin::muted(caller, s.muted_why)) s.muted_caller = (int)peer;
+        hold_if_muted(s, peer);
         if (!s.mods.events().emit("core:command", fields, 3, nullptr, cmd_err, &c->second.owner))
             std::fprintf(stderr, "emit core:command: %s\n", cmd_err.c_str());
         s.muted_caller = 0;
@@ -4488,8 +4605,11 @@ void page_click(ServerState &s, net::PeerId peer, const std::string &id, const s
             {"text", SCRIPT_V_STRING, 0.0, l->field ? text.c_str() : "", 0},
         };
         std::string err;
+        hold_if_muted(s, peer);
         if (!s.mods.events().emit("core:page_action", fields, 4, nullptr, err, &up.owner))
             std::fprintf(stderr, "emit core:page_action: %s\n", err.c_str());
+        s.muted_caller = 0;
+        s.muted_why.clear();
     }
 }
 
@@ -4553,7 +4673,7 @@ thread_local std::chrono::steady_clock::time_point g_held_since;
 // and the columns took, how far behind the clock the server got. Printed every
 // ten seconds when anything ran over, and reset.
 struct TickStats {
-    double started = -1.0, last = 0.0, worst = 0.0, behind = 0.0;
+    double started = -1.0, last = 0.0, worst = 0.0, behind = 0.0, last_took = 0.0;
     double mods = 0.0, mods_worst = 0.0, cols = 0.0, cols_tick = 0.0, cols_worst = 0.0;
     int    ticks = 0, over = 0;
     void add_mods(double secs)
@@ -4565,6 +4685,7 @@ struct TickStats {
     {
         const double took = started >= 0.0 && last > 0.0 ? now - last : 0.0;
         last = now;
+        last_took = took;
         if (started < 0.0) started = now;
         ++ticks;
         worst = std::max(worst, took);
@@ -6090,7 +6211,23 @@ int serve_room(int argc, char **argv)
             w.has_identity = identity != nullptr;
             if (identity) std::memcpy(w.identity, identity, net::kSignPublicBytes);
             w.address = g_router.transport.address(peer);
-            return admin::admits(w, reason, why);
+            if (!admin::admits(w, reason, why)) {
+                admin::refused(w, net::refuse_reason_text(reason) + std::string(", ") + why);
+                return false;
+            }
+            // --max-per-address: names already in from there, this one aside.
+            if (g_max_per_address > 0 && !w.address.empty()) {
+                std::set<std::string> names;
+                for (const admin::Online &o : admin_hooks().online())
+                    if (o.who.address == w.address && o.who.name != name) names.insert(o.who.name);
+                if ((int)names.size() >= g_max_per_address) {
+                    reason = net::RefuseReason::ServerFull;
+                    why    = "too many players from your address";
+                    admin::refused(w, "too many from one address");
+                    return false;
+                }
+            }
+            return true;
         });
 
         // What a position is checked against: the fastest this world's own
@@ -6207,7 +6344,13 @@ int serve_room(int argc, char **argv)
         sessions.set_items(&s.items);
 
         // And the other rooms may reach it from now on (take_carried).
-        g_router.rooms[(size_t)g_room].sessions = &sessions;
+        g_router.rooms[(size_t)g_room].sessions  = &sessions;
+        g_router.rooms[(size_t)g_room].portal_to.assign(portal_to.begin(), portal_to.end());
+        g_router.rooms[(size_t)g_room].trusted.assign(trusted.begin(), trusted.end());
+        // Who sends players here through a portal (/portals, --report).
+        sessions.set_crossing_seen([](const uint8_t *issuer, net::PeerId who) {
+            admin::crossed_in(issuer, g_router.transport.address(who));
+        });
         g_router.rooms[(size_t)g_room].items    = &s.items;
         g_router.rooms[(size_t)g_room].models   = &s.models;
         g_router.rooms[(size_t)g_room].db       = db.is_open() ? &db : nullptr;
@@ -6731,7 +6874,7 @@ int serve_room(int argc, char **argv)
                         if (!sess->name.empty()) std::printf("        '%s' left\n",
                                                              sess->name.c_str());
                     }
-                    close_page(s, ev.peer);
+                    gone(s, ev.peer, "left");
                     sessions.on_disconnect(ev.peer);
                     break;
 
@@ -6816,6 +6959,15 @@ int serve_room(int argc, char **argv)
                     // with the spawn at 30.5 17.5 on the road. Only a join that
                     // asks to PLAY: one coming through a portal joins as a
                     // window, and its crossing places it.
+                    // A visit begins (src/server/admin.h), and the message of
+                    // the day for whoever comes in through the door.
+                    if (const net::Session *in = sessions.find(ev.peer);
+                        in && in->scope == net::Scope::Enter && (a.has_joined || a.has_entered)) {
+                        admin::joined(admin_who(*in), g_router.rooms[(size_t)g_room].name);
+                        if (const std::string m = admin::motd(); a.has_joined && !m.empty())
+                            say_to(s, ev.peer, m);
+                    }
+
                     if (a.has_joined) {
                         const net::Session *joined = sessions.find(ev.peer);
                         if (joined && joined->scope == net::Scope::Enter &&
@@ -6970,8 +7122,11 @@ int serve_room(int argc, char **argv)
                         };
                         bool        ignored = false;
                         std::string click_err;
+                        hold_if_muted(s, ev.peer);
                         if (!s.mods.events().emit("core:ui_click", fields, 4, &ignored, click_err))
                             std::fprintf(stderr, "emit core:ui_click: %s\n", click_err.c_str());
+                        s.muted_caller = 0;
+                        s.muted_why.clear();
                     }
 
                     // A line of chat (run_chat_line).
@@ -6994,7 +7149,7 @@ int serve_room(int argc, char **argv)
             for (const net::PeerId p : sessions.expired(seconds_since(t_start))) {
                 std::printf("        dropped a peer that connected and never said hello\n");
                 keep_player(p);
-                close_page(s, p);
+                gone(s, p, "never said hello");
                 sessions.on_disconnect(p);
                 transport.disconnect(p);
             }
@@ -7023,7 +7178,7 @@ int serve_room(int argc, char **argv)
                             idle_sess ? net::quiet_for(*idle_sess, liveness_now) : 0.0,
                             idle_sess ? net::join_patience(*idle_sess) : 0.0);
                 keep_player(p);
-                close_page(s, p);
+                gone(s, p, "went silent");
                 sessions.on_disconnect(p);
                 transport.disconnect(p);
             }
@@ -7231,6 +7386,16 @@ int serve_room(int argc, char **argv)
 
             ++tick;
             g_tick_stats.end_tick(seconds_since(t_start), quiet);
+            {
+                // For /metrics and --watchdog.
+                RoomShared   &me  = g_router.rooms[(size_t)g_room];
+                const int64_t sec = (int64_t)std::chrono::duration_cast<std::chrono::seconds>(
+                                        std::chrono::steady_clock::now() - g_started).count();
+                const int     ms  = (int)(g_tick_stats.last_took * 1e3);
+                if (sec / 60 != me.beat.load() / 60) me.worst_tick_ms = ms;
+                else if (ms > me.worst_tick_ms) me.worst_tick_ms = ms;
+                me.beat = sec;
+            }
             ++ticks_run;
 
             // Where a returning player left off, once they are standing
@@ -7564,6 +7729,22 @@ int serve_room(int argc, char **argv)
                         if (in.reply) in.reply->set_value(said);
                         else
                             for (const std::string &l : said) std::printf("console: %s\n", l.c_str());
+                    }
+
+                if (g_room == 0) admin::federation_tick(admin_hooks());
+
+                // A restart or a stop counted down to its end (/restart).
+                if (g_room == 0) switch (admin::tick(admin_hooks())) {
+                    case admin::Stop::None: break;
+                    case admin::Stop::Restart:
+                        std::printf("server: restarting\n");
+                        g_exit_code = 75;
+                        g_stop      = 1;
+                        break;
+                    case admin::Stop::Stop:
+                        std::printf("server: stopping\n");
+                        g_stop = 1;
+                        break;
                     }
 
                 for (const ServerState::ModSay &say : s.mod_says) {
@@ -8050,6 +8231,18 @@ int main(int argc, char **argv)
         }
     }
 
+    // --report FILE [--since 7d]: what a world file remembers, and no server.
+    for (size_t i = 0; i + 1 < cli.size(); ++i)
+        if (cli[i] == "--report") {
+            int64_t since = 0;
+            for (size_t j = 0; j + 1 < cli.size(); ++j)
+                if (cli[j] == "--since" && !admin::parse_duration(cli[j + 1], since)) {
+                    std::printf("server: --since wants 30m, 2h, 7d, 1w\n");
+                    return 1;
+                }
+            return admin::report(cli[i + 1], since);
+        }
+
     std::vector<std::string>                                      common;
     std::vector<std::pair<std::string, std::vector<std::string>>> rooms;
     for (size_t i = 0; i < cli.size(); ++i) {
@@ -8102,6 +8295,46 @@ int main(int argc, char **argv)
             }
             std::printf("server: rcon on 127.0.0.1:%s\n", rcon.c_str());
         }
+
+        // The server's own life (phase 3 of the administration).
+        if (const std::string m = last_of(common, "--motd"); !m.empty()) admin::set_motd(m);
+        if (const std::string at = last_of(common, "--restart-at"); !at.empty()) {
+            if (!admin::restart_at(at)) {
+                std::printf("server: --restart-at wants HH:MM\n");
+                return 1;
+            }
+            std::printf("server: restarts every day at %s (under tools/serve.sh)\n", at.c_str());
+        }
+        std::vector<std::string> files;
+        for (const auto &r : rooms) {
+            std::string f = last_of(r.second, "--world-file");
+            if (f.empty()) f = last_of(common, "--world-file");
+            if (!f.empty() && std::find(files.begin(), files.end(), f) == files.end()) files.push_back(f);
+        }
+        int64_t every = 0;
+        if (const std::string e = last_of(common, "--backup-every"); !e.empty() && !admin::parse_duration(e, every)) {
+            std::printf("server: --backup-every wants 30m, 6h, 1d\n");
+            return 1;
+        }
+        const std::string keep = last_of(common, "--backup-keep");
+        admin::set_backups(files, every, keep.empty() ? 5 : std::atoi(keep.c_str()));
+        g_max_per_address = std::atoi(last_of(common, "--max-per-address").c_str());
+
+        // Friend servers (/friend): signed lines on a TCP port of their own,
+        // under the key tickets are signed with.
+        if (const std::string fed = last_of(common, "--federation"); !fed.empty()) {
+            std::string sign = last_of(common, "--ticket-key");
+            if (sign.empty()) sign = first_world.empty() ? "server.sign.key" : first_world + ".sign";
+            net::SignKeyPair me;
+            bool             created = false;
+            if (!net::load_or_create_sign_key(sign, me, created, err) ||
+                !admin::start_federation(std::atoi(fed.c_str()), me, err)) {
+                std::printf("server: %s\n", err.c_str());
+                return 1;
+            }
+            std::printf("server: federation on TCP %s, this server's key %s\n", fed.c_str(),
+                        net::to_hex(me.public_key, net::kSignPublicBytes).c_str());
+        }
     }
 
     // More than one room: one identity and one ticket key for all of them,
@@ -8127,6 +8360,24 @@ int main(int argc, char **argv)
     }
 
     for (const auto &r : rooms) g_router.rooms.push_back(RoomShared{r.first});
+    // --watchdog SECONDS: a room that has not finished a tick in that long is
+    // a server stuck for good; the crash handler prints where, and
+    // tools/serve.sh starts it again.
+    if (const int dog = std::atoi(last_of(common, "--watchdog").c_str()); dog > 0)
+        std::thread([dog] {
+            for (;;) {
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+                const int64_t now = (int64_t)std::chrono::duration_cast<std::chrono::seconds>(
+                                        std::chrono::steady_clock::now() - g_started).count();
+                for (const RoomShared &r : g_router.rooms)
+                    if (r.beat > 0 && now - r.beat > dog) {
+                        std::printf("server: watchdog: room '%s' stuck for %lld s\n", r.name.c_str(),
+                                    (long long)(now - r.beat));
+                        std::fflush(stdout);
+                        std::abort();
+                    }
+            }
+        }).detach();
     g_router.queues.resize(rooms.size());
     g_router.far_moved.resize(rooms.size());
 
@@ -8159,5 +8410,5 @@ int main(int argc, char **argv)
 
     for (const int code : rc)
         if (code != 0) return code;
-    return 0;
+    return g_exit_code;
 }

@@ -423,6 +423,13 @@ The full list is in `main()` in [`src/client/main.cpp`](src/client/main.cpp).
 | `--owner NAME` | Whoever plays under NAME with an identity owns the server. The client passes it for the worlds it starts |
 | `--config FILE` | The flags from a file, one `key value` (or `key = value`) a line, `[room NAME]` for a room, `#` comments; `key = true` is the bare flag. Read where it stands, so flags after it win |
 | `--rcon PORT` `--rcon-password PW` | Admin commands over TCP on 127.0.0.1 only: `tools/admin.sh -p PORT ban bob 2h`. Put the password in the config file, not on the command line |
+| `--motd TEXT` | The message of the day, said in chat to each player coming in (also `/motd`) |
+| `--restart-at HH:MM` | A restart every day, with ten minutes of warnings; under `tools/serve.sh`, which starts it again |
+| `--backup-every 6h` `--backup-keep N` | Copies of every world file beside it (`NAME.backup-DATE`), made while the server runs; the newest N stay (5). `/backup` makes one now |
+| `--max-per-address N` | At most N players from one address |
+| `--watchdog S` | A room that has not finished a tick in S seconds aborts the server with its stack printed, for `tools/serve.sh` to start it again |
+| `--federation PORT` | Friend servers (`/friend`): signed lines on this TCP port, under the ticket key (`--ticket-key`, or WORLD.sign) |
+| `--report FILE` `--since 7d` | No server: what a world file remembers -- players, play time, most at once, joins by hour, rooms, who was turned away, staff actions, restarts and crashes, crossings in from other servers |
 | `--portals` `--portal-to HOST:PORT[/N]` | A pair of server-managed openings; `--portal-to` says where the first leads (and which opening `N` you come out of); repeated, the second, third and fourth |
 | `--ticket-key FILE` `--portal-peer-key HEX` `--trust HEX` `--require-ticket` | Signed tickets for crossing between servers |
 | `--mobs N` `--ticks N` `--quiet` | Test mobs, ticks before exiting, less logging |
@@ -446,6 +453,17 @@ list are kept in the first room's world file and hold for every room
 | `/whitelist on\|off\|list\|add NAME\|remove NAME` | admin | Only the players on the list, and staff, may come in |
 | `/perm [PERMISSION ROLE]` | owner | Which role each permission wants (mute, kick, ban, creative, pages, ban.ip, access, roles, perms) |
 | `/page [NAME]` `/admin` | anybody, helper | The in-game pages: the list, or the administration page |
+| `/restart [5m\|now\|cancel] [reason]` `/stop ...` | admin | Restart or stop with warnings on every screen (10m, 5m, 1m, 30s, 10s...). Players are put out as "restarting" and their client joins again by itself once the server answers |
+| `/maintenance on [text]\|off` | admin | Only staff come in; the others are put out with the text, and the server list shows "maintenance" |
+| `/motd [TEXT\|off]` `/announce TEXT` | admin, moderator | The message of the day; a notice on every screen |
+| `/seen NAME` `/players [7d]` `/whois NAME` | anybody, helper, moderator | When a player was last here; who came lately and for how long; what the staff knows (names, addresses, warnings, notes) |
+| `/warn NAME reason` | helper | Three in 30 days are a day's ban |
+| `/report NAME text` `/reports` `/note NAME text` | anybody, helper | A report for the staff (told at once if any is online); notes on a player |
+| `/sc TEXT` | helper | Staff chat |
+| `/logs [N] [ACTION]` `/metrics` `/backup` | admin | The latest admin actions; players, ticks and memory; a backup now |
+| `/portals` | admin | Where the portals lead, and which servers send players in, how many |
+| `/friend add NAME HOST:PORT KEY [bans,presence,chat]\|remove NAME\|list` | owner | Friend servers: both add each other. They share their permanent bans by key (lifted here with `/unban`, gone with the friend), who is online, a chat |
+| `/fed TEXT` `/where NAME` | anybody | Chat to every friend server; on which friend server a player is |
 
 **Pages.** `/page` opens the in-game pages: `admin` (who is online, with kick,
 ban and mute buttons), `bans`, `whitelist`, `roles`, `perms`, `server` (the
@@ -456,7 +474,14 @@ would. Mods write pages in a small markup (`# heading`, text with
 `[label](target)` links, `| table | rows |`, `?[hint](target)` fields) with
 `core.page_register` and `core.page_show`; see [`docs/API.md`](docs/API.md).
 A world played in one process (`--quick`) has `/page` too, with the mods'
-pages and no administration.
+pages and no administration. Staff also get `running` (restarts, maintenance,
+message of the day, backups), `players`, `reports` and `log`.
+
+**Running it for good.** `tools/serve.sh -l logs build-release/src/server/cnp_server --config server.conf`
+starts the server again after a restart or a crash (not after a stop; it gives
+up after 5 crashes in 10 minutes) and writes one log a day with the time on
+every line, keeping 14 days (`-k`). The server list in the client shows how
+many are playing, or "maintenance".
 
 Mods gate their own commands with `core.command(name, help, perm)` and ask
 `core.has_perm(player, perm)` and `core.role(player)`.
@@ -474,6 +499,7 @@ Mods gate their own commands with `core.command(name, help, perm)` and ask
 | `build/tools/libcnp_clock_skew.so` | An `LD_PRELOAD` that shifts a process's clock, for the tickets |
 | `tools/two_machines.sh` | Two servers in containers, with real MTU and NAT |
 | `tools/admin.sh` (`-p PORT`) | One admin command to a running server over RCON; the password in `CNP_RCON_PASSWORD` |
+| `tools/serve.sh` (`-l DIR` `-k DAYS`) | Keeps a server running across restarts and crashes, a log a day |
 | `build/tools/cnp_bake_textures` | Regenerates the blocks' placeholder textures |
 
 ### Tests
