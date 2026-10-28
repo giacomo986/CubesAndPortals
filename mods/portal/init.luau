@@ -12,8 +12,9 @@
 -- opens that menu: its name, where it leads, the other frames to link it to,
 -- and buttons to turn the front round, turn it a quarter, or close it.
 --
--- A world has 16 openings (core.portal_open), so a seventeenth frame is told
--- there is no room. Breaking a block of a frame closes it; a right click on a
+-- A world holds as many frames as are built: core.portal_open's portals are
+-- virtual, and only the ones near a player (and what they lead to) take one
+-- of the world's openings at a time. Breaking a block of a frame closes it; a right click on a
 -- whole frame that is closed opens it again. What is open, and what leads where,
 -- is kept across a restart (core.storage_set) and opened again on the first
 -- tick, which is when a server's openings exist.
@@ -39,7 +40,7 @@ type Frame = {
     link: string?,                        -- the name of the frame it leads to
 }
 
--- The frames that are open now: 16 at most, the world's openings.
+-- The frames that are open now, as many as there are.
 local frames: { Frame } = {}
 
 local function named(name: string?): Frame?
@@ -321,7 +322,7 @@ local function menu()
 end
 
 -- Opens a whole frame that is not open yet, its front towards whoever finished
--- it. The open frame, or nil when there was no room.
+-- it. The open frame, or nil when the engine refused it.
 local function try_open(f: Frame, player: number): Frame?
     for _, g in frames do
         if g.x == f.x and g.y == f.y and g.z == f.z and g.axis == f.axis then

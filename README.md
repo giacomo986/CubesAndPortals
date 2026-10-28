@@ -251,8 +251,9 @@ owners stand in it. Inside, owners are faster and tougher, strangers weaker; wha
 there is marked stolen.
 
 **Waystones** (`mods/travel`). A waystone stands by every village's well, and one can be made
-for a territory: touch one to remember it, then travel from any waystone to those you remember
-for an emerald every 200 nodes.
+for a territory: touch one to remember it, then pay an emerald every 200 nodes to open a portal
+from any waystone to one you remember, for anybody to walk through, for five minutes. A world
+holds as many portals as are built; only the ones near players are live at once.
 
 **Carts** (`mods/carts`). Five iron ingots make a cart: right click a rail to sit in it and ride,
 jump to get out. Rails run both ways, turn corners and climb slopes; a powered rail drives a cart at 11 m/s when

@@ -1197,6 +1197,12 @@ public:
     }
     int close_portal(Vec3 center);
 
+    // The same by index, and how many openings are neither in use nor a mouth
+    // onto another room: what the server's virtual portals (core.portal_open,
+    // src/server/main.cpp) have to hand out.
+    void close_opening(int index);
+    int  free_openings() const;
+
     // Links two openings to each other (core.portal_link), and whatever each
     // was linked to before to nothing. `b` of -1 unlinks `a`. False for an
     // index out of range; an index with no opening may be linked, so a mod can

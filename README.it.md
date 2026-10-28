@@ -254,8 +254,10 @@ proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resist
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
 **Pietre del viaggio** (`mods/travel`). Ogni villaggio ne ha una accanto al pozzo, e una si
-fabbrica per il proprio territorio: toccarla la fa ricordare, e da qualunque pietra si viaggia verso
-quelle ricordate per uno smeraldo ogni 200 nodi.
+fabbrica per il proprio territorio: toccarla la fa ricordare, e da qualunque pietra si paga uno
+smeraldo ogni 200 nodi per aprire un portale verso una di quelle ricordate, attraversabile da tutti
+per cinque minuti. Un mondo tiene quanti portali si vuole; sono attivi solo quelli vicini ai
+giocatori.
 
 **Carrelli** (`mods/carts`). Cinque lingotti di ferro fanno un carrello: tasto destro su un binario
 per salire, salto per scendere. I binari vanno nei due sensi, curvano e salgono; un binario alimentato spinge a 11 m/s

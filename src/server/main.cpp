@@ -252,6 +252,22 @@ struct ServerState {
     // Mouths sealed to one player (core.portal_seal): the mask to send them.
     std::vector<std::pair<net::PeerId, uint32_t>> mod_seals;
 
+    // The portals mods open (core.portal_open): as many as they like. A world
+    // has kMaxOpenings openings on the wire, so these are VIRTUAL: every half
+    // second the ones within kPortalNear of a player, and whatever each leads
+    // to, nearest first, are given an opening, and the rest give theirs back
+    // (schedule_portals). The limit is what is in use near players at once,
+    // not what a world holds. An id is the lowest one free, and leads to
+    // id xor 1 until linked -- what core.portal_open always returned.
+    struct VirtualPortal {
+        Portal p;
+        bool   alive = false;
+        int    link  = -1;   // another id, or -1
+        int    slot  = -1;   // the opening it has now, or -1
+    };
+    std::vector<VirtualPortal> vportals;
+    double                     vportal_next = 0.0;
+
     // Seats taken or left by a mod (core.ride), decided at the call and sent
     // with the placements, in the order they were asked for.
     std::vector<std::pair<net::PeerId, net::SessionAction>> mod_rides;
@@ -1272,13 +1288,115 @@ int host_portal_open(void *ud, float x, float y, float z, int axis, int sign, in
     p.half_h      = half_h;
     p.kind        = PortalKind::Frame;
     p.colour      = (uint8_t)(colour >= 0 && colour <= 2 ? colour : 0);
-    return s->sessions->open_portal(p);
+
+    // The one already at this centre in this plane takes the new shape -- on
+    // its opening too, if it has one; anything else the lowest free id.
+    auto &v = s->vportals;
+    int   id = -1;
+    for (int i = 0; i < (int)v.size() && id < 0; ++i)
+        if (v[i].alive && v[i].p.axis == p.axis && length(v[i].p.center - p.center) < 0.01f) id = i;
+    if (id < 0) {
+        for (int i = 0; i < (int)v.size() && id < 0; ++i)
+            if (!v[i].alive) id = i;
+        if (id < 0) {
+            id = (int)v.size();
+            v.emplace_back();
+        }
+        v[id] = ServerState::VirtualPortal{};
+        v[id].alive = true;
+        // Leads to id xor 1 until linked, as the openings always did -- unless
+        // that one is linked elsewhere.
+        const int pair = id ^ 1;
+        if (pair < (int)v.size() && v[pair].alive && v[pair].link < 0) {
+            v[id].link   = pair;
+            v[pair].link = id;
+        } else if (pair >= (int)v.size() || !v[pair].alive) {
+            v[id].link = pair;   // a partner opened later finds it waiting
+        }
+    }
+    v[id].p = p;
+    if (v[id].slot >= 0) s->sessions->open_portal(p);   // reshaped where it stands
+    s->vportal_next = 0.0;   // given an opening on the next tick, not in half a second
+    return id;
 }
 
 int host_portal_close(void *ud, float x, float y, float z)
 {
     ServerState *s = static_cast<ServerState *>(ud);
-    return s->sessions ? s->sessions->close_portal(Vec3{x, y, z}) : -1;
+    if (!s->sessions) return -1;
+    auto &v = s->vportals;
+    for (int i = 0; i < (int)v.size(); ++i) {
+        if (!v[i].alive || length(v[i].p.center - Vec3{x, y, z}) >= 0.01f) continue;
+        if (v[i].slot >= 0) s->sessions->close_opening(v[i].slot);
+        v[i] = ServerState::VirtualPortal{};
+        // Its partner keeps the link, as a closed opening's did: it leads to
+        // an id with nothing in it, and draws nothing, until linked again.
+        return i;
+    }
+    return -1;
+}
+
+// Every half second: which virtual portals have an opening. Wanted are the
+// ones within kPortalNear of a player and whatever those lead to, each keyed
+// by the nearer of the two ends, nearest first, as many as there are openings
+// to hand out; the others give theirs back. Then every portal with an
+// opening is linked to its partner's opening, or to nothing.
+constexpr float kPortalNear = 160.0f;
+void schedule_portals(ServerState &s, double now)
+{
+    if (!s.sessions || now < s.vportal_next) return;
+    s.vportal_next = now + 0.5;
+    auto &v = s.vportals;
+    if (v.empty()) return;
+
+    std::vector<Vec3> bodies;
+    for (const net::PeerId peer : s.sessions->ready_peers()) {
+        const net::Session *sess = s.sessions->find(peer);
+        if (!sess || sess->scope == net::Scope::Observe) continue;
+        const MovementState &at = sess->authority();
+        if (at.valid) bodies.push_back(Vec3{at.x, at.y, at.z});
+    }
+    std::vector<float> near(v.size(), 1e30f);
+    for (size_t i = 0; i < v.size(); ++i)
+        if (v[i].alive)
+            for (const Vec3 &b : bodies) near[i] = std::min(near[i], length(v[i].p.center - b));
+    std::vector<std::pair<float, int>> wanted;
+    int held = 0;
+    for (size_t i = 0; i < v.size(); ++i) {
+        if (!v[i].alive) continue;
+        if (v[i].slot >= 0) ++held;
+        const int   l   = v[i].link;
+        const float key = std::min(near[i], l >= 0 && l < (int)v.size() && v[l].alive ? near[l] : 1e30f);
+        if (key <= kPortalNear) wanted.emplace_back(key, (int)i);
+    }
+    std::sort(wanted.begin(), wanted.end());
+    const size_t room = (size_t)(s.sessions->free_openings() + held);
+    if (wanted.size() > room) wanted.resize(room);
+    std::vector<char> want(v.size(), 0);
+    for (const auto &w : wanted) want[w.second] = 1;
+
+    int taken = 0, given = 0, alive = 0;
+    for (size_t i = 0; i < v.size(); ++i) {
+        alive += v[i].alive ? 1 : 0;
+        if (v[i].slot >= 0 && !want[i]) {
+            s.sessions->close_opening(v[i].slot);
+            v[i].slot = -1;
+            ++taken;
+        }
+    }
+    for (const auto &w : wanted)
+        if (v[w.second].slot < 0) {
+            v[w.second].slot = s.sessions->open_portal(v[w.second].p);
+            given += v[w.second].slot >= 0 ? 1 : 0;
+        }
+    if (taken + given > 0)
+        std::printf("portals: %d given an opening, %d gave one back; %d of %d live\n", given, taken,
+                    held - taken + given, alive);
+    for (size_t i = 0; i < v.size(); ++i) {
+        if (v[i].slot < 0) continue;
+        const int l = v[i].link;
+        s.sessions->link_portals(v[i].slot, l >= 0 && l < (int)v.size() && v[l].alive ? v[l].slot : -1);
+    }
 }
 
 // Sent with the placements: a seal is the player's own and not the world's,
@@ -1296,10 +1414,25 @@ int host_portal_seal(void *ud, int player, int index, bool sealed)
     return 1;
 }
 
+// Between virtual portals (core.portal_open's ids), as link_portals is
+// between openings: pairs, and whatever either led to leads nowhere now. The
+// openings follow on the next tick.
 int host_portal_link(void *ud, int a, int b)
 {
     ServerState *s = static_cast<ServerState *>(ud);
-    return s->sessions && s->sessions->link_portals(a, b) ? 1 : 0;
+    if (!s->sessions || a < 0 || a >= 1 << 20 || b < -1 || b >= 1 << 20) return 0;
+    auto &v = s->vportals;
+    const int most = std::max(a, b);
+    if (most >= (int)v.size()) v.resize((size_t)most + 1);
+    if (v[a].link >= 0 && v[a].link < (int)v.size() && v[v[a].link].link == a) v[v[a].link].link = -1;
+    v[a].link = -1;
+    if (b >= 0 && b != a) {
+        if (v[b].link >= 0 && v[b].link < (int)v.size() && v[v[b].link].link == b) v[v[b].link].link = -1;
+        v[b].link = a;
+        v[a].link = b;
+    }
+    s->vportal_next = 0.0;
+    return 1;
 }
 
 void host_log(void *ud, const char *message)
@@ -8435,6 +8568,7 @@ int serve_room(int argc, char **argv)
                 for (const auto &[peer, mask] : s.mod_seals)
                     transport.send(peer, net::Channel::Event, net::Seal{mask}.encode(), true);
                 s.mod_seals.clear();
+                schedule_portals(s, seconds_since(t_start));
 
 
                 for (const auto &m : s.mod_sounds)

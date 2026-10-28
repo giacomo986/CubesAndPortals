@@ -527,7 +527,7 @@ core.loaded(x, y, z) -> 1 | 0       -- 0: colonna non in memoria, get_block legg
 core.light(x, y, z) -> 0..15        -- luce ora: dei blocchi, o del cielo per l'ora
 core.get_facing(x, y, z) -> giro
 core.set_portal(indice, x, y, z)    -- sul server: le aperture del mondo, solo mentre i mod caricano
-core.portal_open(x, y, z, asse, verso, giro, mezza_l, mezza_a, colore?) -> 0..15|-1  -- sul server, quando ascolta: -1 prima, riprovare
+core.portal_open(x, y, z, asse, verso, giro, mezza_l, mezza_a, colore?) -> id|-1  -- sul server, quando ascolta: -1 prima, riprovare; quanti se ne vuole: le 32 aperture vanno ai più vicini ai giocatori
                                     -- colore: com'è chiusa finché non porta da nessuna parte: 0 verde (fissa, default), 1 blu, 2 arancione (portal gun)
 core.portal_close(x, y, z) -> 0..15|-1                             -- per centro, non per indice
 core.portal_link(a, b) -> 1|0       -- a e b portano l'una all'altra; b = -1 scollega a
@@ -2267,7 +2267,8 @@ I tre mod in `mods/` sono esempi funzionanti:
   VM. Nessuna riga di motore è stata scritta per la regola "qui non si
   costruisce";
 - `portal` — una cornice di `portal:frame` attorno a un buco d'aria, in piedi o
-  coricata, apre una delle 16 aperture del mondo (`core.portal_open`) e la
+  coricata, apre un portale (`core.portal_open`, quante cornici si vuole: il
+  server dà le 32 aperture vere a quelle vicine ai giocatori) e la
   collega all'ultima rimasta sola (`core.portal_link`); il tasto destro sulla
   cornice apre il suo menù, con le altre cornici a cui collegarla. Finché non
   è collegata il client la chiude con una membrana verde animata, che si apre

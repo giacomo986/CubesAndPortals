@@ -465,6 +465,23 @@ the villagers and start with questions (memory: villagers-need-design-first).
    emeralds and put the player beside it. Open: villages made before today
    have no stone (craft one); nothing stops a trip into a stranger's
    territory -- its own rules apply there.
+   Since (Giacomo: the limit is portals loaded at once, not portals in a
+   world): core.portal_open is VIRTUAL -- ids unbounded, lowest free, i xor 1
+   until linked, as before -- and every half second the server
+   (schedule_portals) gives its 32 openings to the portals within 160 nodes of
+   a player and to what those lead to, nearest first, and takes them back
+   from the rest; mouths onto other rooms are not handed out. Checked: 102
+   opened, 32 live; the player moved 2000 east, 30 given and 30 taken back.
+   mods/portal frames are no longer capped. A trip by waystone is now a real
+   portal: paid, one opens beside this stone onto one beside that stone, both
+   ways, for anybody, five minutes (a new trip from or to either replaces
+   it). A stone's portal place (gate) is found while its ground is loaded and
+   kept in storage, so a far stone can be reached. Checked on a server with a
+   client: the portal shows the far stone's beach; walked into with W, the
+   player came out 300 east beside it; with the time cut to 5 s both ends shut
+   on time. Open: a body thrown in by core.player_launch went through the
+   plane without crossing (walking crosses); at more than 32 wanted at once,
+   the farthest pair may have one end live and the other not.
 7. A map that fills as you go, and a compass home.
 8. Rare structures: desert temples, wrecks, sunken ruins, each a small puzzle.
 9. A deep layer under `depths`: glowing fungi, lava, crystals, a guardian.

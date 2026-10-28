@@ -159,31 +159,33 @@ local api: { Fn } = {
             { name = "colour", type = "int", default = 0,
               doc = "What it shows while it leads nowhere: 0 green (a fixed portal), 1 blue, 2 orange (a portal gun's)." },
         },
-        doc = "Opens a portal while the world runs, on a server. It becomes the world's "
-           .. "first free opening of 16 -- or, when an opening in the same plane already "
-           .. "has this centre, that one takes the new shape, so a frame turned or flipped "
-           .. "from its menu stays the same opening. It leads to the opening it is linked "
-           .. "with (core.portal_link); until something links it, opening i leads to i xor 1, "
-           .. "so 0 and 1 are a pair, 2 and 3, and so on. Every player is sent the change. "
-           .. "In a world whose openings 0 and 1 lead to another world (--portal-to), a pair "
-           .. "opened here besides them is still this world's own: crossed by the server, "
-           .. "drawn by the client (the nearest two in sight). "
-           .. "Returns which opening it is, or -1: all 32 in use, a shape out of range, no "
-           .. "world to open it in yet (the openings exist once the server listens -- in a "
-           .. "room, a few ticks after the first core:tick, so ask again until it opens), or the "
-           .. "single-process client, whose two openings are its scene's.",
+        doc = "Opens a portal while the world runs, on a server, and returns its id: the lowest "
+           .. "free one -- or, when a portal in the same plane already has this centre, that one, "
+           .. "which takes the new shape, so a frame turned or flipped from its menu stays the "
+           .. "same portal. It leads to the portal it is linked with (core.portal_link); until "
+           .. "something links it, id i leads to i xor 1, so 0 and 1 are a pair, 2 and 3, and "
+           .. "so on. A world holds as many as mods open: they are VIRTUAL, and every half "
+           .. "second the server gives its 32 openings to the ones within 160 nodes of a "
+           .. "player and to whatever those lead to, nearest first; the rest are drawn and "
+           .. "crossed by nobody until somebody comes near. So the limit is how many are in "
+           .. "use near players at once, and a portal opened is live on the next tick, not "
+           .. "the one it was opened in. In a world whose openings 0 and 1 lead to another "
+           .. "world (--portal-to), those mouths are not handed out. "
+           .. "Returns -1 for a shape out of range, no world to open it in yet (a room's "
+           .. "openings exist a few ticks after the first core:tick, so ask again until it "
+           .. "opens), or the single-process client, whose two openings are its scene's.",
     },
     {
         name = "portal_link",
         host = "portal_link",
         ret  = "int",
         args = {
-            { name = "a", type = "int", doc = "An opening, as portal_open returned it." },
-            { name = "b", type = "int", doc = "The opening it leads to, or -1 for none." },
+            { name = "a", type = "int", doc = "A portal, as portal_open returned it." },
+            { name = "b", type = "int", doc = "The portal it leads to, or -1 for none." },
         },
         doc = "Makes two openings lead to each other, on a server: what is seen in one is "
            .. "seen from the other, and a body walking into one comes out of the other. "
-           .. "Whatever either led to before leads nowhere now. An index with no opening "
+           .. "Whatever either led to before leads nowhere now. An id with no portal yet "
            .. "may be linked, so a mod can link before it opens. Returns 1, or 0 for an "
            .. "index out of range or no server.",
     },
@@ -198,8 +200,8 @@ local api: { Fn } = {
         },
         doc = "Closes the opening with that centre, on a server: nothing is drawn in it or "
            .. "crosses it, and the other end leads nowhere until something is opened again. "
-           .. "By centre and not by index, so a mod closes the portal it opened and not "
-           .. "whatever has taken that index since. Returns which opening it was, or -1.",
+           .. "By centre and not by id, so a mod closes the portal it opened and not "
+           .. "whatever has taken that id since. Returns which portal it was, or -1.",
     },
     {
         name = "portal_seal",

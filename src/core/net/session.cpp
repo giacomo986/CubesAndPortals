@@ -1686,6 +1686,21 @@ int ServerSessions::close_portal(Vec3 center)
     return -1;
 }
 
+void ServerSessions::close_opening(int index)
+{
+    if (index < 0 || index >= kMaxOpenings || !m_portal_set[index]) return;
+    m_portal_set[index] = false;
+    openings_changed();
+}
+
+int ServerSessions::free_openings() const
+{
+    int n = 0;
+    for (int i = 0; i < kMaxOpenings; ++i)
+        if (!m_portal_set[i] && !(i < kMaxMouths && m_away[i].leads_away())) ++n;
+    return n;
+}
+
 bool ServerSessions::link_portals(int a, int b)
 {
     if (a < 0 || a >= kMaxOpenings || b < -1 || b >= kMaxOpenings) return false;

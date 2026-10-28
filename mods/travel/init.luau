@@ -5,11 +5,14 @@
 -- put down anywhere else it comes back to the bag. Right click one: it is
 -- remembered for that player (attuned), and they are shown the others they
 -- remember, nearest first, each with its price -- an emerald every 200 nodes,
--- one at least. Pick one: paid, they stand beside it. Broken, it is forgotten
--- by everybody.
+-- one at least. Pick one: paid, a portal opens beside this stone onto one
+-- beside that one, both ways, for five minutes and for anybody (a new trip from
+-- or to either stone replaces it). Broken, a stone is forgotten by everybody.
 --
--- Kept in core.storage: "stones", a line per waystone (x,y,z|name), and per
--- player name "att:<name>", the keys of the stones they touched.
+-- Kept in core.storage: "stones", a line per waystone (x,y,z|name|gate), and
+-- per player name "att:<name>", the keys of the stones they touched. A stone's
+-- gate is where its portal stands, worked out while somebody is there to load
+-- its ground: a trip to a stone far from everybody cannot look.
 
 local STONE = core.register_node("travel:waystone", 90, 200, 190, true, 7, "", 0, 2.0, "")
 core.node_box(STONE, 0.1, 0, 0.1, 0.9, 0.2, 0.9)
@@ -21,11 +24,13 @@ core.recipe_shaped("travel:waystone", 1,
     "rocks:smooth_stone  rocks:smooth_stone  rocks:smooth_stone")
 
 local PER = 200     -- nodes an emerald
+local OPEN = 300    -- seconds a paid way stays open
 local SHOWN = 8     -- destinations on the panel at most
 local VILLAGE = 65536          -- mods/territory: a village's ground from here,
 local TERRITORY = 32768        -- a player's from here
 
-type Stone = { x: number, y: number, z: number, name: string }
+-- gate: the portal's centre, plane and facing (gate below), or nil with no room.
+type Stone = { x: number, y: number, z: number, name: string, gate: { number }? }
 local stones: { [string]: Stone } = {}
 
 local function key(x: number, y: number, z: number): string
@@ -35,16 +40,25 @@ end
 local function save()
     local lines = {}
     for k, s in stones do
-        table.insert(lines, `{k}|{s.name}`)
+        local g = s.gate
+        table.insert(lines, `{k}|{s.name}|{if g then `{g[1]} {g[2]} {g[3]} {g[4]} {g[5]}` else ""}`)
     end
     table.sort(lines)
     core.storage_set("stones", table.concat(lines, "\n"))
 end
 
 for line in string.gmatch(core.storage_get("stones") or "", "[^\n]+") do
-    local x, y, z, name = string.match(line, "^(-?%d+),(-?%d+),(-?%d+)|(.*)$")
+    local x, y, z, name, gate = string.match(line, "^(-?%d+),(-?%d+),(-?%d+)|([^|]*)|?(.*)$")
     if x then
-        local s = { x = tonumber(x) :: number, y = tonumber(y) :: number, z = tonumber(z) :: number, name = name :: string }
+        local s: Stone = { x = tonumber(x) :: number, y = tonumber(y) :: number, z = tonumber(z) :: number,
+                           name = name :: string }
+        local g = {}
+        for w in string.gmatch(gate or "", "%S+") do
+            table.insert(g, tonumber(w) or 0)
+        end
+        if #g == 5 then
+            s.gate = g
+        end
         stones[key(s.x, s.y, s.z)] = s
     end
 end
@@ -106,19 +120,95 @@ local function price(a: Stone, b: Stone): number
     return math.max(1, math.ceil(math.sqrt((a.x - b.x) ^ 2 + (a.z - b.z) ^ 2) / PER))
 end
 
--- Somewhere beside a stone to stand: a side with two cells of room over ground.
-local function beside(s: Stone): (number, number, number)
+-- Where a stone's portal stands: a side with two cells of room over ground,
+-- the portal across that cell facing away from the stone -- walked into
+-- towards the stone, come out of walking away from it. Its centre, its plane
+-- (core.portal_open's axis) and which way it faces; nil with no room.
+local function gate(s: Stone): { number }?
+    if core.loaded(s.x, s.y, s.z) == 0 then
+        return s.gate   -- nobody there to look: what was found last time
+    end
     for _, d in { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } } do
         local x, z = s.x + d[1], s.z + d[2]
-        for dy = 1, -1, -1 do
+        for dy = 0, -1, -1 do
             local y = s.y + dy
             if core.get_block(x, y, z) == 0 and core.get_block(x, y + 1, z) == 0
                 and core.node_solid(core.get_block(x, y - 1, z)) == 1 then
-                return x + 0.5, y, z + 0.5
+                return { x + 0.5, y + 1, z + 0.5, if d[1] ~= 0 then 1 else 0, d[1] + d[2] }
             end
         end
     end
-    return s.x + 0.5, s.y + 1, s.z + 0.5   -- on top of it, then
+    return nil
+end
+
+-- Looks again while its ground is loaded, and keeps what it found.
+local function regate(s: Stone)
+    if core.loaded(s.x, s.y, s.z) == 1 then
+        local g = gate(s)
+        local was = s.gate
+        s.gate = g
+        if (g == nil) ~= (was == nil) or (g and was and (g[1] ~= was[1] or g[2] ~= was[2] or g[3] ~= was[3])) then
+            save()
+        end
+    end
+end
+
+-- The ways open now, by the stone at each end: the portal's centre there, and
+-- when it shuts. Not kept across a restart: five minutes is not worth it.
+type Way = { x: number, y: number, z: number, other: string, shuts: number }
+local ways: { [string]: Way } = {}
+local clock = 0
+
+local function shut(k: string)
+    local w = ways[k]
+    if w == nil then
+        return
+    end
+    ways[k] = nil
+    core.portal_close(w.x, w.y, w.z)
+    if ways[w.other] and ways[w.other].other == k then
+        shut(w.other)
+    end
+end
+
+core.event.on("core:tick", function(ev)
+    clock += ev.dt
+    for k, w in ways do
+        if clock >= w.shuts then
+            shut(k)
+        end
+    end
+end)
+
+-- A way from one stone to another: a portal by each, linked. False when
+-- either has no room for one.
+local function open_way(a: Stone, b: Stone): boolean
+    local ka, kb = key(a.x, a.y, a.z), key(b.x, b.y, b.z)
+    shut(ka)
+    shut(kb)
+    regate(a)
+    regate(b)
+    local ga, gb = a.gate, b.gate
+    if ga == nil or gb == nil then
+        return false
+    end
+    local ia = core.portal_open(ga[1], ga[2], ga[3], ga[4], ga[5], 0, 0.5, 1.0)
+    local ib = core.portal_open(gb[1], gb[2], gb[3], gb[4], gb[5], 0, 0.5, 1.0)
+    if ia < 0 or ib < 0 then
+        if ia >= 0 then
+            core.portal_close(ga[1], ga[2], ga[3])
+        end
+        if ib >= 0 then
+            core.portal_close(gb[1], gb[2], gb[3])
+        end
+        return false
+    end
+    core.portal_link(ia, ib)
+    ways[ka] = { x = ga[1], y = ga[2], z = ga[3], other = kb, shuts = clock + OPEN }
+    ways[kb] = { x = gb[1], y = gb[2], z = gb[3], other = ka, shuts = clock + OPEN }
+    core.play_sound("travel:whoosh", ga[1], ga[2], ga[3])
+    core.play_sound("travel:whoosh", gb[1], gb[2], gb[3])
+    return true
 end
 
 -- Per player, the panel's rows: the stone each button goes to.
@@ -164,7 +254,9 @@ local function lay(x: number, y: number, z: number, who: string): boolean
     if name == nil then
         return false
     end
-    stones[key(x, y, z)] = { x = x, y = y, z = z, name = name }
+    local s: Stone = { x = x, y = y, z = z, name = name }
+    s.gate = gate(s)
+    stones[key(x, y, z)] = s
     save()
     return true
 end
@@ -186,6 +278,7 @@ end)
 core.event.on("core:broken", function(ev)
     local k = key(ev.x, ev.y, ev.z)
     if stones[k] then
+        shut(k)
         stones[k] = nil
         save()
     end
@@ -205,6 +298,7 @@ core.event.on("core:used", function(ev)
         end
         s = stones[k]
     end
+    regate(s)
     if attune(ev.player, k) then
         core.notice(ev.player, `Waystone remembered: {s.name}`)
     end
@@ -236,10 +330,10 @@ core.event.on("core:ui_click", function(ev)
         return
     end
     core.ui_show(ev.panel, false, p)
-    local fx, fy, fz = core.player_pos(p)
-    core.play_sound("travel:whoosh", fx, fy, fz)
-    local x, y, z = beside(to)
-    core.player_place(p, x, y, z)
-    core.play_sound("travel:whoosh", x, y, z)
-    core.notice(p, to.name)
+    if not open_way(o.from, to) then
+        core.give_item(p, "ore:emerald", n)
+        core.notice(p, "There is no room by one of the waystones for a portal")
+        return
+    end
+    core.notice(p, `A way to {to.name} is open for five minutes`)
 end)
