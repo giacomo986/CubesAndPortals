@@ -250,6 +250,9 @@ job, meals and a bed. Every village has:
 owners stand in it. Inside, owners are faster and tougher, strangers weaker; what strangers take
 there is marked stolen.
 
+**Decoration** (`mods/building`): stained glass and panes in sixteen colours, stone and brick walls,
+glazed and chequered tiles, chairs and tables of every wood, carpets, lanterns.
+
 **Railways** (`mods/building`, `mods/carts`): track, curves, slopes, powered rails and switches as
 proper models; a mine cart you climb into and ride seated.
 

@@ -670,7 +670,21 @@ the villagers and start with questions (memory: villagers-need-design-first).
     held only 2 of the 4 glass. Open: a robot reaches some four up from the
     layout's bottom (no scaffolding); the ghost is sent whole again on each
     change (a big blueprint is many messages).
-15. More decorative blocks: stained glass, fences, walls, tiles, furniture.
+15. Decorative blocks -- built 2026-10-28 in `mods/building` (fences, gates,
+    panes and bars were there): stained glass in the sixteen colours (eight
+    glass round a dye) and its panes, joined as panes are (the see-through
+    150, the pictures tinted with a lighter rim); walls of cobblestone, mossy
+    cobblestone, stone bricks and bricks, a post and lower arms, joined as
+    fences; glazed tiles in the sixteen colours (four terracotta), stone tiles
+    (four stone bricks -- four smooth stone clashed with stone bricks) and a
+    black and white chequer (concrete); a chair (faces whoever put it down)
+    and a table for every wood; carpets, a sixteenth high, of every colour;
+    a lantern, light 14, hanging when put under a block. Pictures by
+    tools/make_voxel_blocks.py's new decor() on its own seed -- the old ones
+    came out byte for byte the same, and its rail model no longer overwrites
+    tools/make_rail_models.py's. Checked with a client: a showcase by day and
+    by night, every kind drawn, glass seen through. Open: nobody sits on a
+    chair; the lantern is boxes in a framed picture, no model.
 16. Plaza games on the chess frame (draughts, mill), a scored PvP arena.
 
 Railways redone 2026-10-28 (asked the same day), in Blender through its MCP

@@ -624,7 +624,7 @@ def building(rng):
     save(hay, f"{d}_hay_bale")
     save(framed((190, 160, 50), rng, (170, 140, 40)), f"{d}_hay_bale_top")
     alias("building:hay_bale", f"{d}_hay_bale_top", "bottom")
-    plant_model("building", "rail", rail(rng), shape="flat")
+    rail(rng)   # its draw kept so the seeds after it stay; the model is tools/make_rail_models.py's now
     for wood in ["oak"] + list(WOODS):
         planks_file = "timber_planks" if wood == "oak" else f"woods_{wood}_planks"
         base = OAK if wood == "oak" else WOODS[wood][1]
@@ -659,6 +659,65 @@ def dungeons(rng):
     save(cage, "dungeons_spawner")
 
 
+def decor(rng):
+    """mods/building's decoration: stained glass, tiles, the lantern; walls,
+    panes, carpets and furniture wear the blocks they are made of."""
+    d = "building"
+    for c, rgb in COLOURS.items():
+        g = Image.new("RGBA", (16, 16))
+        for y in range(16):
+            for x in range(16):
+                edge = x in (0, 15) or y in (0, 15)
+                streak = (x + y) % 7 == 0 and 3 < x < 13
+                k = 1.25 if edge else 1.12 if streak else rng.uniform(0.95, 1.03)
+                g.putpixel((x, y), shade(rgb, k) + (215 if edge else 150,))
+        save_rgba(g, f"{d}_{c}_stained_glass")
+        for i in range(16):
+            alias(f"{d}:{c}_stained_glass_pane" + (f"_{i}" if i else ""), f"{d}_{c}_stained_glass")
+        # Glazed tiles: four to a face, a glossy corner, grout between.
+        t = Image.new("RGB", (16, 16))
+        grout = shade(rgb, 0.55)
+        for y in range(16):
+            for x in range(16):
+                if x in (0, 7, 8, 15) or y in (0, 7, 8, 15):
+                    t.putpixel((x, y), shade(grout, rng.uniform(0.95, 1.05)))
+                else:
+                    lx, ly = x % 8, y % 8
+                    k = 1.22 if lx + ly <= 3 else rng.uniform(0.94, 1.04)
+                    t.putpixel((x, y), shade(rgb, k))
+        save(t, f"{d}_{c}_tiles")
+        alias(f"{d}:{c}_carpet", f"colors_{c}_wool")
+    stone = Image.new("RGB", (16, 16))
+    for y in range(16):
+        for x in range(16):
+            line = x in (0, 15) or y in (0, 15) or (y == 7 and x < 8) or (x == 7 and y > 7)
+            stone.putpixel((x, y), shade((150, 150, 152), 0.75 if line else rng.uniform(0.95, 1.05)))
+    save(stone, f"{d}_stone_tiles")
+    chq = Image.new("RGB", (16, 16))
+    for y in range(16):
+        for x in range(16):
+            white = ((x // 4) + (y // 4)) % 2 == 0
+            chq.putpixel((x, y), shade((232, 230, 224) if white else (28, 28, 32), rng.uniform(0.95, 1.04)))
+    save(chq, f"{d}_chequer_tiles")
+    lantern = Image.new("RGB", (16, 16))
+    for y in range(16):
+        for x in range(16):
+            frame = x in (0, 1, 14, 15) or y in (0, 1, 14, 15)
+            lantern.putpixel((x, y), shade((60, 60, 64), rng.uniform(0.9, 1.1)) if frame
+                             else shade((255, 200, 110), rng.uniform(0.92, 1.05)))
+    save(lantern, f"{d}_lantern")
+    alias(f"{d}:lantern_hung", f"{d}_lantern")
+    for i in range(16):
+        tail = f"_{i}" if i else ""
+        alias(f"{d}:cobblestone_wall{tail}", "rocks_cobblestone")
+        alias(f"{d}:mossy_cobblestone_wall{tail}", "rocks_mossy_cobblestone")
+        alias(f"{d}:stone_brick_wall{tail}", "rocks_stone_bricks")
+    for wood in ["oak"] + list(WOODS):
+        planks_file = "timber_planks" if wood == "oak" else f"woods_{wood}_planks"
+        alias(f"{d}:{wood}_chair", planks_file)
+        alias(f"{d}:{wood}_table", planks_file)
+
+
 def main():
     os.makedirs(TEX, exist_ok=True)
     rocks(random.Random(9001))
@@ -667,6 +726,7 @@ def main():
     colors(random.Random(9004))
     building(random.Random(9005))
     dungeons(random.Random(9006))
+    decor(random.Random(9007))
     # mods/steps' stairs of wood and sandstone wear their block's picture.
     for kind, file in (("oak", "timber_planks"), ("spruce", "woods_spruce_planks"),
                        ("dark_oak", "woods_dark_oak_planks"), ("sandstone", "rocks_sandstone")):

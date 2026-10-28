@@ -253,6 +253,9 @@ e un letto. Ogni villaggio ha:
 proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resistenti, gli estranei
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
+**Decorazioni** (`mods/building`): vetro colorato e lastre in sedici colori, muretti di pietra e
+mattoni, piastrelle smaltate e a scacchi, sedie e tavoli di ogni legno, tappeti, lanterne.
+
 **Ferrovie** (`mods/building`, `mods/carts`): binari, curve, salite, binari alimentati e scambi come
 veri modelli; un carrello da miniera in cui si sale e si viaggia seduti.
 

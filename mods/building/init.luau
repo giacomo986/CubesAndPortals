@@ -22,6 +22,16 @@
 --   cauldron    holds a bucket of water, and gives it back
 --   hay bale    nine wheat
 --   rails       six iron and a stick make sixteen
+--   stained glass  eight glass round a dye make eight of its colour, sixteen
+--               colours, and six of it sixteen panes, joined as panes are
+--   walls       six cobblestone, mossy cobblestone, stone bricks or bricks make
+--               six, lower than a block and joined as fences are
+--   tiles       four terracotta of a colour make four glazed tiles; four stone
+--               bricks four stone tiles; white and black concrete a chequer
+--   chairs and tables  one per wood, of its planks and sticks; a chair faces
+--               whoever put it down
+--   carpets     two wool of a colour make three, a sixteenth high
+--   lantern     iron round a torch, hanging or standing, light 14
 local WOODS = { "oak", "birch", "spruce", "jungle", "acacia", "dark_oak" }
 local function planks_of(w: string): string
     return if w == "oak" then "timber:planks" else `woods:{w}_planks`
@@ -239,6 +249,95 @@ if serving then
     core.recipe_shaped("building:iron_bars", 16,
         "furnace:iron_ingot furnace:iron_ingot furnace:iron_ingot",
         "furnace:iron_ingot furnace:iron_ingot furnace:iron_ingot")
+
+    -- ------------------------------------------------------------ decoration
+
+    -- The sixteen colours of mods/colors, in its order, and their dyes.
+    local COLOURS = {
+        { "white", { 234, 236, 236 } }, { "orange", { 240, 118, 20 } }, { "magenta", { 190, 68, 180 } },
+        { "light_blue", { 58, 176, 218 } }, { "yellow", { 248, 198, 40 } }, { "lime", { 112, 186, 26 } },
+        { "pink", { 238, 142, 172 } }, { "gray", { 62, 68, 72 } }, { "light_gray", { 142, 142, 136 } },
+        { "cyan", { 22, 138, 146 } }, { "purple", { 122, 42, 172 } }, { "blue", { 52, 56, 158 } },
+        { "brown", { 114, 72, 40 } }, { "green", { 84, 110, 28 } }, { "red", { 160, 38, 34 } },
+        { "black", { 20, 20, 24 } },
+    }
+    for _, entry in COLOURS do
+        local c, rgb = entry[1], entry[2]
+        local dye = `colors:{c}_dye`
+        local glass = node(`building:{c}_stained_glass`, rgb, true, "", 0.3, "glass")
+        core.node_glass(glass, 150)
+        core.recipe_shaped(`building:{c}_stained_glass`, 8,
+            "core:glass core:glass core:glass",
+            `core:glass {dye} core:glass`,
+            "core:glass core:glass core:glass")
+        joined(`building:{c}_stained_glass_pane`, rgb, 0.3, "glass", { 0.4375, 0, 0.4375, 0.5625, 1, 0.5625 },
+               reach(0.4375, 0.5625, { { 0, 1 } }), 150)
+        core.recipe_shaped(`building:{c}_stained_glass_pane`, 16,
+            `building:{c}_stained_glass building:{c}_stained_glass building:{c}_stained_glass`,
+            `building:{c}_stained_glass building:{c}_stained_glass building:{c}_stained_glass`)
+        node(`building:{c}_tiles`, rgb, true, "", 1.4, "stone")
+        core.recipe_shaped(`building:{c}_tiles`, 4,
+            `colors:{c}_terracotta colors:{c}_terracotta`,
+            `colors:{c}_terracotta colors:{c}_terracotta`)
+        local carpet = node(`building:{c}_carpet`, rgb, false, "", 0.1, "")
+        core.node_box(carpet, 0, 0, 0, 1, 1 / 16, 1)
+        core.recipe_shaped(`building:{c}_carpet`, 3, `colors:{c}_wool colors:{c}_wool`)
+    end
+    node("building:stone_tiles", { 150, 150, 152 }, true, "", 2.0, "stone")
+    core.recipe_shaped("building:stone_tiles", 4, "rocks:stone_bricks rocks:stone_bricks",
+        "rocks:stone_bricks rocks:stone_bricks")
+    node("building:chequer_tiles", { 130, 130, 130 }, true, "", 1.8, "stone")
+    core.recipe_shaped("building:chequer_tiles", 4, "colors:white_concrete colors:black_concrete",
+        "colors:black_concrete colors:white_concrete")
+
+    -- Walls: a post, and a wall lower than it out to each joined side.
+    for _, w in { { "cobblestone", "rocks:cobblestone", { 120, 120, 120 } },
+                  { "mossy_cobblestone", "rocks:mossy_cobblestone", { 100, 120, 90 } },
+                  { "stone_brick", "rocks:stone_bricks", { 122, 122, 124 } },
+                  { "brick", "craft:brick", { 190, 80, 60 } } } do
+        joined(`building:{w[1]}_wall`, w[3], 2.0, "stone", { 0.25, 0, 0.25, 0.75, 1, 0.75 },
+               reach(0.3125, 0.6875, { { 0, 0.8125 } }))
+        core.recipe_shaped(`building:{w[1]}_wall`, 6, `{w[2]} {w[2]} {w[2]}`, `{w[2]} {w[2]} {w[2]}`)
+    end
+
+    -- Chairs and tables, one of each per wood.
+    for _, w in WOODS do
+        local chair = node(`building:{w}_chair`, { 160, 130, 80 }, true, "upright", 1.0, "wood")
+        boxes(chair, { { 0.15, 0.45, 0.15, 0.85, 0.55, 0.85 },                        -- seat
+                       { 0.15, 0, 0.15, 0.25, 0.45, 0.25 }, { 0.75, 0, 0.15, 0.85, 0.45, 0.25 },   -- legs
+                       { 0.15, 0, 0.75, 0.25, 0.45, 0.85 }, { 0.75, 0, 0.75, 0.85, 0.45, 0.85 },
+                       { 0.15, 0.55, 0.75, 0.85, 1.1, 0.85 } })                         -- back
+        core.recipe_shaped(`building:{w}_chair`, 2,
+            "timber:stick  -",
+            `{planks_of(w)} {planks_of(w)}`,
+            "timber:stick  timber:stick")
+        local tab = node(`building:{w}_table`, { 160, 130, 80 }, true, "", 1.2, "wood")
+        boxes(tab, { { 0, 0.85, 0, 1, 1, 1 },
+                     { 0.06, 0, 0.06, 0.18, 0.85, 0.18 }, { 0.82, 0, 0.06, 0.94, 0.85, 0.18 },
+                     { 0.06, 0, 0.82, 0.18, 0.85, 0.94 }, { 0.82, 0, 0.82, 0.94, 0.85, 0.94 } })
+        core.recipe_shaped(`building:{w}_table`, 1,
+            `{planks_of(w)} {planks_of(w)} {planks_of(w)}`,
+            "timber:stick  -            timber:stick")
+    end
+
+    -- A lantern: iron round a torch, hung under a block or stood on one.
+    local LANTERN = node("building:lantern", { 230, 190, 110 }, false, "", 0.6, "stone", 14)
+    boxes(LANTERN, { { 0.3, 0, 0.3, 0.7, 0.45, 0.7 }, { 0.36, 0.45, 0.36, 0.64, 0.52, 0.64 },
+                     { 0.47, 0.52, 0.47, 0.53, 0.62, 0.53 } })
+    local HUNG = node("building:lantern_hung", { 230, 190, 110 }, false, "", 0.6, "stone", 14)
+    boxes(HUNG, { { 0.3, 0.38, 0.3, 0.7, 0.83, 0.7 }, { 0.36, 0.83, 0.36, 0.64, 0.9, 0.64 },
+                  { 0.47, 0.9, 0.47, 0.53, 1, 0.53 } })
+    core.node_drop(HUNG, LANTERN)
+    core.recipe_shaped("building:lantern", 1,
+        "-                  furnace:iron_ingot -",
+        "furnace:iron_ingot torches:torch      furnace:iron_ingot",
+        "-                  furnace:iron_ingot -")
+    -- Put against the underside of a block, it hangs from it.
+    core.event.on("core:placed", function(ev)
+        if ev.id == LANTERN and core.get_block(ev.x, ev.y - 1, ev.z) == 0 and core.get_block(ev.x, ev.y + 1, ev.z) ~= 0 then
+            core.set_block(ev.x, ev.y, ev.z, HUNG)
+        end
+    end)
 
     -- Gates, shut across and open as two posts; trapdoors, down and up.
     local TOGGLE: { [number]: number } = {}
