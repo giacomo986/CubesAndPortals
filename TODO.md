@@ -422,7 +422,24 @@ the villagers and start with questions (memory: villagers-need-design-first).
    third person); a cow 3.5 ahead pushed a node aside; two clients put 0.9
    apart drifted 6 apart. Open: a creature sunk under the hull is passed over;
    a boat is no Jolt body, so it does not tip or rock.
-5. Minecarts on rails worked by cinnabar, with switches and stations.
+5. Minecarts -- built 2026-10-28: `mods/carts` and rails in `mods/building`
+   (its old decorative rail is now ridable), powered by `mods/cinnabar`.
+   Engine: `core.node_conveyor`'s `rail` (NodeDef::rail, protocol 110: bit 32
+   of a block's body flags, which a 109 client refuses) and `core.body_cart`
+   (bit 3 of BodyMovement's moves byte). A rail is a slide only a body in a
+   cart rides -- level, up or down, turning where a rail on its own level runs
+   into a side -- brought up to its speed at 4 m/s^2 and down at 20, a slope
+   giving 8 m/s^2 a node of rise, top 12. Rail 6 m/s; powered rail 11 on and
+   a brake off (a station: forward pushes off at 2); a switch turns right
+   while powered; slopes up and down. The server counts a cart on a rail as
+   standing (no fall, no rise refusal). Checked in the client: straight,
+   corner, slope up, the brake stopping at 6 m/s within a node, a cinnabar
+   block beside it sending the cart off, a powered switch turning it right and
+   down a slope; seen in Xephyr sat in the cart. Open: corner and switch cells
+   draw a straight rail; rails run one way only; no rolling sound; a boat or a
+   cart in the bag shows its name, not an icon. Found on the way: the recipe
+   clash message now names both results, which showed rocks:stone_bricks never
+   craftable (craft:brick's shape) -- now four smooth stone.
 6. Travel portals between villages or territories, with a cost or a rule.
 7. A map that fills as you go, and a compass home.
 8. Rare structures: desert temples, wrecks, sunken ruins, each a small puzzle.

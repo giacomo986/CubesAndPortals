@@ -666,7 +666,7 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
                                             body_box(Vec3{v.x, v.y, v.z}, m_limits.half_width))) {
                     // On a ladder: held, so a climb down is not a fall.
                     fall_reset(s.fall, v.y);
-                } else if (has_authority() && chute_at(*m_world, *m_registry, v.x, v.y, v.z).on) {
+                } else if (has_authority() && chute_at(*m_world, *m_registry, v.x, v.y, v.z, true).on) {
                     // Riding a slide: held by it all the way down.
                     fall_reset(s.fall, v.y);
                 } else if (has_authority() &&

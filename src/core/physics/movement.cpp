@@ -237,6 +237,8 @@ MovementVerdict check_move(const MovementState &last, float x, float y, float z,
     const bool stands = box_hits_world(world, registry, below) ||
                         box_in_liquid(world, registry, body_box(Vec3{x, y, z}, half)) ||
                         box_on_climbable(world, registry, body_box(Vec3{x, y, z}, half)) ||
+                        // or by a rail, a cart riding up a slope of them
+                        chute_at(world, registry, x, y, z, true).on ||
                         body_at_ledge(world, registry, Vec3{x, y, z}, half);
     const float stood  = last.placed ? last.y : last.ground_y;
 

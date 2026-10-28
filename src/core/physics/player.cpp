@@ -276,11 +276,17 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
     // body flies on with the speed it had. Jump gets off. Round a turn the
     // view turns with the chute.
     if (!input.jump) {
-        Chute c = chute_at(world, reg, player.pos.x, player.pos.y, player.pos.z);
+        Chute c = chute_at(world, reg, player.pos.x, player.pos.y, player.pos.z, rules.cart);
         if (c.on) {
             const Vec3  from  = player.pos;
-            const float speed = std::clamp(std::hypot(player.velocity.x, player.velocity.z) + kChuteAccel * dt,
-                                           kChuteStart, c.speed);
+            const float now   = std::hypot(player.velocity.x, player.velocity.z);
+            // A rail brings the cart to its speed, a slope speeds or slows it;
+            // a slide only gathers speed.
+            const float want  = std::max(c.speed, input.move_forward > 0.5f ? kRailPush : 0.0f);
+            const float speed = c.rail ? std::clamp(now + std::clamp(want - now, -kRailBrake * dt, kRailAccel * dt) -
+                                                        c.rise * kRailSlope * dt,
+                                                    0.0f, kRailTop)
+                                       : std::clamp(now + kChuteAccel * dt, kChuteStart, c.speed);
             const float heading = std::atan2(c.tx, -c.tz);   // Player::forward's yaw
             Vec3 p = player.pos, last{};
             for (float left = speed * dt; left > 0.0f && c.on;) {
@@ -291,7 +297,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
                 p.x = c.mx + (p.x - c.mx) * keep + c.tx * step;
                 p.z = c.mz + (p.z - c.mz) * keep + c.tz * step;
                 p.y = c.surface;
-                c   = chute_at(world, reg, p.x, p.y, p.z);
+                c   = chute_at(world, reg, p.x, p.y, p.z, rules.cart);
                 if (c.on) p.y = c.surface;
                 last = (p - was) * (1.0f / step);
             }

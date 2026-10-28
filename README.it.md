@@ -253,6 +253,10 @@ e un letto. Ogni villaggio ha:
 proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resistenti, gli estranei
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
+**Carrelli** (`mods/carts`). Cinque lingotti di ferro fanno un carrello: tasto destro su un binario
+per salire, salto per scendere. I binari curvano e salgono; un binario alimentato spinge a 11 m/s
+quando il cinabro lo accende ed è una stazione quando è spento; uno scambio alimentato gira a destra.
+
 **Barche** (`mods/boats`). Cinque assi fanno una barca: tasto destro sull'acqua per sedersi,
 remare al doppio del nuoto e sterzare con A e D (scansa le creature e rimbalza sulle altre barche), tasto destro su una riva (o arenarsi) per scendere con la barca nella borsa.
 

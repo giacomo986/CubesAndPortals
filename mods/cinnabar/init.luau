@@ -318,7 +318,8 @@ local function solve(cx: number, cy: number, cz: number): { Cell }
     local observers = found(cx, cy, cz, { "cinnabar:observer_on" })
     local hoppers = found(cx, cy, cz, { "cinnabar:hopper", "cinnabar:hopper_locked",
                                     "cinnabar:hopper_side", "cinnabar:hopper_side_locked" })
-    if #dust + #torches + #repeaters + #comparators + #pistons + #lamps + #hoppers == 0 then
+    local rails = found(cx, cy, cz, { "building:powered_rail", "building:powered_rail_on", "building:switch" })
+    if #dust + #torches + #repeaters + #comparators + #pistons + #lamps + #hoppers + #rails == 0 then
         return {}
     end
 
@@ -452,6 +453,33 @@ local function solve(cx: number, cy: number, cz: number): { Cell }
             end
         end
         set(c, if lit then LAMP_ON else LAMP)
+    end
+
+    -- mods/building's powered rail is on, and its switch turned right, beside
+    -- power -- as a lamp is lit. A switch's own way is in its meta from when it
+    -- was laid. By name: building loads after this mod.
+    local PRAIL, PRAIL_ON, SWITCH = core.node_id("building:powered_rail"), core.node_id("building:powered_rail_on"),
+        core.node_id("building:switch")
+    for _, c in rails do
+        local on = (fed[k(c.x, c.y, c.z)] or 0) > 0
+        for _, d in ALL6 do
+            if strength(c.x + d[1], c.y + d[2], c.z + d[3]) > 0 then
+                on = true
+                break
+            end
+        end
+        local facing = core.get_facing(c.x, c.y, c.z)
+        local id = core.get_block(c.x, c.y, c.z)
+        if id == SWITCH then
+            local base = tonumber(core.meta_get(c.x, c.y, c.z, "base")) or facing
+            local want = if on then (base + 3) % 4 else base
+            if facing ~= want then
+                core.set_facing(c.x, c.y, c.z, want)
+            end
+        elseif id ~= (if on then PRAIL_ON else PRAIL) then
+            set(c, if on then PRAIL_ON else PRAIL)
+            core.set_facing(c.x, c.y, c.z, facing)
+        end
     end
 
     -- A hopper beside power is locked, at once.
@@ -904,5 +932,6 @@ core.event.on("core:broken", function(ev)
     core.meta_set(ev.x, ev.y, ev.z, "delay", "")
     core.meta_set(ev.x, ev.y, ev.z, "mode", "")
     core.meta_set(ev.x, ev.y, ev.z, "level", "")
+    core.meta_set(ev.x, ev.y, ev.z, "base", "")
     update(ev.x, ev.y, ev.z)
 end)

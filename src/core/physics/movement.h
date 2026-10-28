@@ -157,6 +157,17 @@ inline constexpr float kBoatGrip  = 1.2f;
 inline constexpr float kBoatKeel  = 4.0f;    // 1/s
 inline constexpr float kBoatTurn  = 1.8f;    // rad/s at full rudder
 
+// A cart on a rail (MovementRules::cart): brought up to the rail's speed at
+// kRailAccel and down to it at kRailBrake -- a brake rail stops a cart at 6 m/s
+// within a node, one at the top speed within three -- sped down a slope and slowed up one by kRailSlope per
+// node of rise, never past kRailTop -- under any validator's sprint budget a
+// flier has. Forward held pushes a cart stopped on a brake off at kRailPush.
+inline constexpr float kRailAccel = 4.0f;    // m/s^2
+inline constexpr float kRailBrake = 20.0f;   // m/s^2
+inline constexpr float kRailSlope = 8.0f;    // m/s^2 a node of rise
+inline constexpr float kRailTop   = 12.0f;   // m/s
+inline constexpr float kRailPush  = 2.0f;    // m/s
+
 // How a body moves in ONE world: what its mods declared, or the numbers above
 // when they declared nothing (TODO.md OPEN-44, DESIGN.md M13).
 //
@@ -230,6 +241,10 @@ struct MovementRules {
     // One body's, never a world's: only BodyMovement carries it.
     bool boat = false;
 
+    // In a cart (core.body_cart): a rail (NodeDef::rail) is ridden as a slide
+    // is (core/physics/player.cpp). One body's, as `boat`.
+    bool cart = false;
+
     bool drives() const { return accel > 0.0f; }
 
     // Whether a body here may leave the ground for longer than a jump. Nobody
@@ -252,6 +267,7 @@ inline void keep_body(MovementRules &to, const MovementRules &from)
     to.parkour = from.parkour;
     to.ledges  = from.ledges;
     to.boat    = from.boat;
+    to.cart    = from.cart;
 }
 
 // What a body in a parkour world may do beyond walking (MovementRules::parkour),

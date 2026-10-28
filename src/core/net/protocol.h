@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 109; // 109 the bodies in parts of a frame (Entities)
+inline constexpr uint16_t kProtocol    = 110; // 110 rails (NodeDef::rail) and carts
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -359,7 +359,10 @@ inline constexpr uint16_t kProtocol    = 109; // 109 the bodies in parts of a fr
 // colour turning in whirls here and there (core.world_storm): a flag and three
 // bytes after the sky's in the Welcome, which a 107 client reads as the item
 // table's count.
-inline constexpr uint16_t kMinProtocol = 109;
+// 110 says which blocks are rails (core.node_conveyor's `rail`): bit 32 of a
+// block's body flags, then its speed, height and rise as a belt's, which a 109
+// client refuses; and bit 3 of BodyMovement's moves byte for a body in a cart.
+inline constexpr uint16_t kMinProtocol = 110;
 
 // What a player picked to look like (protocol 93): the three colours of their
 // model's tint_1..3 materials -- primary, secondary, accent -- five bits each,
@@ -1038,6 +1041,7 @@ struct NodeBodyDesc {
     float   conveyor        = 0.0f;   // a belt, m/s, and its top (protocol 78)
     float   conveyor_height = 1.0f;
     float   conveyor_rise   = 0.0f;
+    bool    rail            = false;  // the belt is a rail (protocol 110)
 };
 
 // A block that is not the cell it lives in, as it travels.

@@ -576,7 +576,7 @@ void ClientSession::handle(const std::vector<uint8_t> &data, double now, uint8_t
             const NodeBodyDesc &b = m_welcome.node_bodies[id];
             m_registry->set_body((BlockId)id, b.solid, b.opaque, b.opacity, b.liquid, b.fill,
                                  b.climbable);
-            m_registry->set_conveyor((BlockId)id, b.conveyor, b.conveyor_height, b.conveyor_rise);
+            m_registry->set_conveyor((BlockId)id, b.conveyor, b.conveyor_height, b.conveyor_rise, b.rail);
             m_registry->set_light_source((BlockId)id, b.light);
         }
 

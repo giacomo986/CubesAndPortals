@@ -188,7 +188,7 @@ Belt belt_under(const World &world, const NodeRegistry &reg, float x, float y, f
     const int top = floor_i(y - 0.05f);
     for (int cy = top; cy >= top - 1; --cy) {
         const NodeDef &d = reg.get(world.get_block(bx, cy, bz));
-        if (d.conveyor <= 0.0f) continue;
+        if (d.conveyor <= 0.0f || d.rail) continue;
         const int   f  = world.get_facing(bx, cy, bz) & 3;
         const int   dx = kRun[f][0], dz = kRun[f][1];
         const float fx = x - (float)bx, fz = z - (float)bz;
@@ -201,12 +201,12 @@ Belt belt_under(const World &world, const NodeRegistry &reg, float x, float y, f
     return Belt{};
 }
 
-Chute chute_at(const World &world, const NodeRegistry &reg, float x, float y, float z)
+Chute chute_at(const World &world, const NodeRegistry &reg, float x, float y, float z, bool rails)
 {
     static constexpr int kRun[4][2] = {{0, -1}, {-1, 0}, {0, 1}, {1, 0}};
     const auto chute = [&](int cx, int cy, int cz) {
         const NodeDef &d = reg.get(world.get_block(cx, cy, cz));
-        return d.conveyor >= kChuteSpeed && d.conveyor_rise < 0.0f;
+        return d.rail ? rails : d.conveyor >= kChuteSpeed && d.conveyor_rise < 0.0f;
     };
     const auto runs = [&](int cx, int cy, int cz, int dx, int dz) {
         const int f = world.get_facing(cx, cy, cz) & 3;
@@ -220,12 +220,17 @@ Chute chute_at(const World &world, const NodeRegistry &reg, float x, float y, fl
         const NodeDef &d  = reg.get(world.get_block(bx, cy, bz));
         const int      f  = world.get_facing(bx, cy, bz) & 3;
         const float    ox = (float)kRun[f][0], oz = (float)kRun[f][1];
-        // The way in: straight on, unless a slide a cell up runs in from a side.
+        // The way in: straight on, unless a slide a cell up runs in from a
+        // side -- or for a rail, which runs level too, one on the same level.
         float ix = ox, iz = oz;
-        if (!runs(bx - kRun[f][0], cy + 1, bz - kRun[f][1], kRun[f][0], kRun[f][1]))
+        const int bkx = bx - kRun[f][0], bkz = bz - kRun[f][1];
+        const bool behind = runs(bkx, cy + 1, bkz, kRun[f][0], kRun[f][1]) ||
+                            (d.rail && (runs(bkx, cy, bkz, kRun[f][0], kRun[f][1]) ||
+                                        runs(bkx, cy - 1, bkz, kRun[f][0], kRun[f][1])));
+        if (!behind)
             for (int s : {1, -1}) {
                 const int px = s * kRun[f][1], pz = -s * kRun[f][0];   // a side
-                if (runs(bx + px, cy + 1, bz + pz, -px, -pz)) {
+                if (runs(bx + px, cy + 1, bz + pz, -px, -pz) || (d.rail && runs(bx + px, cy, bz + pz, -px, -pz))) {
                     ix = (float)-px;
                     iz = (float)-pz;
                     break;
@@ -257,6 +262,8 @@ Chute chute_at(const World &world, const NodeRegistry &reg, float x, float y, fl
         }
         c.surface = (float)cy + d.conveyor_height + d.conveyor_rise * t;
         c.speed   = d.conveyor;
+        c.rise    = d.conveyor_rise;
+        c.rail    = d.rail;
         c.on      = true;
         if (std::fabs(y - c.surface) <= best_gap) {
             best_gap = std::fabs(y - c.surface);

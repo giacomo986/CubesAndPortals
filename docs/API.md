@@ -479,7 +479,7 @@ A body in a cell of this block climbs: no gravity, up while jump is held or whil
 ## `core.node_conveyor`
 
 ```luau
-core.node_conveyor(id: number, speed: number?, height: number?, rise: number?) -> number
+core.node_conveyor(id: number, speed: number?, height: number?, rise: number?, rail: boolean?) -> number
 ```
 
 A conveyor belt: a stack, a player or a creature standing on a cell of this block is carried the way the cell runs -- away from whoever put it down, which is facing 0 heading -z, 1 -x, 2 +z, 3 +x. A stack is also drawn to the middle of the belt across, so it follows a belt that turns a corner, and held on its top, so it goes up and down a ramp; something solid ahead stops it, off the end it falls. A ramp's top may stand out of its cell (height + rise over 1): give it core.node_box steps a body can walk up. A ramp down at 3 m/s or more is a slide: a player is not carried but rides it, sat on its line -- straight, or round a quarter circle where the slide a cell up comes into its side -- gathering speed up to `speed`, and flies off its end; make it not solid, so its boxes are not in the way. Returns 1, or 0 for an id that is not a block.
@@ -490,6 +490,7 @@ A conveyor belt: a stack, a player or a creature standing on a cell of this bloc
 | `speed` | number | `1` | m/s. 0 makes it no belt again. |
 | `height` | number | `1` | Its top over the cell's floor where things come in, in nodes. |
 | `rise` | number | `0` | How much higher its top is where things leave: 1 a ramp up a block, -1 down one. |
+| `rail` | boolean | `false` | A rail: it carries nothing standing on it, and a body in a cart (core.body_cart) rides it as a slide -- level, up or down, turning where a rail on its own level or one up runs into its side -- brought to `speed` (0 a brake, forward held pushes off it), sped down a slope and slowed up one, up to 12 m/s. Protocol 110. |
 
 ## `core.node_door`
 
@@ -879,6 +880,19 @@ Puts ONE player in a boat, or out of it, at any time like core.body_movement. On
 |---|---|---|---|
 | `player` | number | — | The id every event carries in its `player` field. |
 | `on` | boolean | `true` | false puts them back to swimming. |
+
+## `core.body_cart`
+
+```luau
+core.body_cart(player: number, on: boolean?) -> number
+```
+
+Puts ONE player in a cart, or out of it, at any time like core.body_movement: on a rail (core.node_conveyor's `rail`) the body rides it, sat on its line. Jump gets off it; off its end the body flies on. Getting out, and what the cart looks like, are the mod's. Returns 1, or 0 for a player who is not in this world.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `player` | number | — | The id every event carries in its `player` field. |
+| `on` | boolean | `true` | false and rails are nothing to them. |
 
 ## `core.register_item`
 

@@ -530,6 +530,11 @@ local api: { Fn } = {
               doc = "Its top over the cell's floor where things come in, in nodes." },
             { name = "rise", type = "float", default = 0.0,
               doc = "How much higher its top is where things leave: 1 a ramp up a block, -1 down one." },
+            { name = "rail", type = "bool", default = false,
+              doc = "A rail: it carries nothing standing on it, and a body in a cart (core.body_cart) rides "
+                 .. "it as a slide -- level, up or down, turning where a rail on its own level or one up "
+                 .. "runs into its side -- brought to `speed` (0 a brake, forward held pushes off it), "
+                 .. "sped down a slope and slowed up one, up to 12 m/s. Protocol 110." },
         },
         doc = "A conveyor belt: a stack, a player or a creature standing on a cell of this block "
            .. "is carried the way the cell runs -- away from whoever put it down, which is facing "
@@ -1036,6 +1041,19 @@ local api: { Fn } = {
            .. "nothing. Off a "
            .. "liquid it walks as ever: getting out, and what the boat looks like (core.player_wear, "
            .. "core.player_clip), are the mod's. Returns 1, or 0 for a player who is not in this world.",
+    },
+    {
+        name = "body_cart",
+        host = "body_cart",
+        ret  = "int",
+        args = {
+            { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
+            { name = "on", type = "bool", default = true, doc = "false and rails are nothing to them." },
+        },
+        doc = "Puts ONE player in a cart, or out of it, at any time like core.body_movement: on a rail "
+           .. "(core.node_conveyor's `rail`) the body rides it, sat on its line. Jump gets off it; off "
+           .. "its end the body flies on. Getting out, and what the cart looks like, are the mod's. "
+           .. "Returns 1, or 0 for a player who is not in this world.",
     },
     {
         name = "register_item",

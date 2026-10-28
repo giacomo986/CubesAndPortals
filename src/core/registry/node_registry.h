@@ -214,6 +214,12 @@ struct NodeDef {
     float conveyor_height = 1.0f;
     float conveyor_rise   = 0.0f;
 
+    // A rail (core.node_conveyor's `rail`, protocol 110): a belt nobody is
+    // carried by. A body in a cart (MovementRules::cart) rides it as a slide,
+    // level or up as well as down, and `conveyor` is the speed it brings the
+    // cart to -- 0 a brake.
+    bool rail = false;
+
     // A stack lying on it does not grow older (and on a belt it never does):
     // a sorter. Things kept moving about a factory would otherwise vanish five
     // minutes after they first fell out of a chest (kDropLifetime).
@@ -510,12 +516,13 @@ public:
         if (id < m_light.size()) m_light[id] = m_defs[id].light_source;
     }
 
-    void set_conveyor(BlockId id, float speed, float height, float rise)
+    void set_conveyor(BlockId id, float speed, float height, float rise, bool rail = false)
     {
         if (id >= m_defs.size()) return;
         m_defs[id].conveyor        = speed;
         m_defs[id].conveyor_height = height;
         m_defs[id].conveyor_rise   = rise;
+        m_defs[id].rail            = rail;
     }
 
     void set_body(BlockId id, bool solid, bool opaque, uint8_t opacity, bool liquid,

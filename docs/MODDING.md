@@ -1627,6 +1627,13 @@ core.event.on("core:used", function(ev)
 end)
 ```
 
+Un carrello è `core.body_cart(player, true)`: un blocco dichiarato binario
+(`core.node_conveyor(id, velocità, altezza, salita, true)`) non trascina chi ci
+cammina sopra, ma chi è in carrello lo percorre come uno scivolo, in piano, in
+salita o in discesa, curvando dove un binario allo stesso livello entra di lato;
+`velocità` è quella a cui porta il carrello, 0 un freno (avanti tenuto riparte).
+`mods/carts` e i binari di `mods/building`.
+
 Una barca è `core.body_boat(player, true)`: su un liquido il corpo galleggia coi
 piedi 0.35 sotto il pelo, W/S remano lungo la prua (avanti fino alla `sprint`), A/D
 sterzano e la chiglia toglie la deriva laterale; fuori dall'acqua cammina. Lo scafo e la posa sono del mod (`core.player_wear`,

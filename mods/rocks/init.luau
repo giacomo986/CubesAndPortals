@@ -106,7 +106,8 @@ core.event.on("core:broken", function(ev)
     end
 end)
 
-core.recipe_shaped("rocks:stone_bricks", 4, "core:stone core:stone", "core:stone core:stone")
+-- From smooth stone: four plain stone make craft:brick.
+core.recipe_shaped("rocks:stone_bricks", 4, "rocks:smooth_stone rocks:smooth_stone", "rocks:smooth_stone rocks:smooth_stone")
 core.recipe_shaped("rocks:sandstone", 1, "core:sand core:sand", "core:sand core:sand")
 core.recipe_shaped("rocks:clay", 1, "rocks:clay_ball rocks:clay_ball", "rocks:clay_ball rocks:clay_ball")
 core.recipe_shaped("rocks:amethyst_block", 1, "rocks:amethyst_shard rocks:amethyst_shard",

@@ -1453,7 +1453,7 @@ int host_container_search(void *ud, int x, int y, int z, const char *text)
     return 1;
 }
 
-int host_node_conveyor(void *ud, int id_in, float speed, float height, float rise)
+int host_node_conveyor(void *ud, int id_in, float speed, float height, float rise, int rail)
 {
     NodeRegistry &R = static_cast<ServerState *>(ud)->registry;
     const BlockId id = (BlockId)id_in;
@@ -1462,6 +1462,7 @@ int host_node_conveyor(void *ud, int id_in, float speed, float height, float ris
     d.conveyor        = std::max(speed, 0.0f);
     d.conveyor_height = height;
     d.conveyor_rise   = rise;
+    d.rail            = rail != 0;
     R.register_node(d);
     return 1;
 }
@@ -2327,6 +2328,18 @@ int host_body_boat(void *ud, int player, int on)
     if (body == nullptr) return 0;
     MovementRules rules = body->movement;
     rules.boat          = on != 0;
+    return s->sessions->set_body_movement((net::PeerId)player, rules, s->now) ? 1 : 0;
+}
+
+// One body in a cart, or out of it (core.body_cart), as host_body_boat.
+int host_body_cart(void *ud, int player, int on)
+{
+    ServerState        *s    = static_cast<ServerState *>(ud);
+    const net::Session *body =
+        (player > 0 && s->sessions != nullptr) ? s->sessions->find((net::PeerId)player) : nullptr;
+    if (body == nullptr) return 0;
+    MovementRules rules = body->movement;
+    rules.cart          = on != 0;
     return s->sessions->set_body_movement((net::PeerId)player, rules, s->now) ? 1 : 0;
 }
 
@@ -5755,6 +5768,7 @@ int serve_room(int argc, char **argv)
         host.drive         = host_drive;
         host.body_drive    = host_body_drive;
         host.body_boat     = host_body_boat;
+        host.body_cart     = host_body_cart;
         host.side          = host_side;
         host.player_name   = host_player_name;
         host.player_key    = host_player_key;
@@ -6594,6 +6608,7 @@ int serve_room(int argc, char **argv)
             b.conveyor        = d.conveyor;
             b.conveyor_height = d.conveyor_height;
             b.conveyor_rise   = d.conveyor_rise;
+            b.rail            = d.rail;
             config.node_bodies.push_back(b);
         }
         config.features    = server_features();

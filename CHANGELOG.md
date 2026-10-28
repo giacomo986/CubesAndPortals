@@ -5,6 +5,12 @@ un'alpha: [docs/BUILDING.md](docs/BUILDING.md#versioni).
 
 ## Non ancora uscito
 
+Protocollo 110: un client 0.9.0-alpha.4 non entra in un server con i binari.
+
+- I carrelli sui binari: curve, salite e discese, binari alimentati dal cinabro (stazioni da
+  spenti), scambi.
+- I mattoni di pietra si fanno con la pietra liscia: la ricetta vecchia era quella dei mattoni.
+
 - Il sandbox ha il meteo: pioggia, neve nella tundra e sulle vette, temporali con fulmini e
   tuono. La pioggia innaffia i campi.
 - Le stagioni: foglie che cambiano colore, campi fermi d'inverno senza lampade, neve

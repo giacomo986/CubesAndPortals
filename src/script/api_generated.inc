@@ -399,7 +399,7 @@ int l_node_climbable(lua_State *L)
     return 1;
 }
 
-// core.node_conveyor(id: number, speed: number?, height: number?, rise: number?) -> number
+// core.node_conveyor(id: number, speed: number?, height: number?, rise: number?, rail: boolean?) -> number
 int l_node_conveyor(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -407,7 +407,8 @@ int l_node_conveyor(lua_State *L)
     const float speed = (float)luaL_optnumber(L, 2, 1);
     const float height = (float)luaL_optnumber(L, 3, 1);
     const float rise = (float)luaL_optnumber(L, 4, 0);
-    const int result = (vm && vm->host.node_conveyor) ? vm->host.node_conveyor(vm->host.ud, id, speed, height, rise) : (int)0;
+    const int rail = lua_isnoneornil(L, 5) ? 0 : (lua_toboolean(L, 5) ? 1 : 0);
+    const int result = (vm && vm->host.node_conveyor) ? vm->host.node_conveyor(vm->host.ud, id, speed, height, rise, rail) : (int)0;
     lua_pushinteger(L, result);
     return 1;
 }
@@ -722,6 +723,17 @@ int l_body_boat(lua_State *L)
     const int player = (int)luaL_checkinteger(L, 1);
     const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
     const int result = (vm && vm->host.body_boat) ? vm->host.body_boat(vm->host.ud, player, on) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.body_cart(player: number, on: boolean?) -> number
+int l_body_cart(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int player = (int)luaL_checkinteger(L, 1);
+    const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
+    const int result = (vm && vm->host.body_cart) ? vm->host.body_cart(vm->host.ud, player, on) : (int)0;
     lua_pushinteger(L, result);
     return 1;
 }
@@ -2814,6 +2826,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "body_drive");
     lua_pushcfunction(L, l_body_boat, "core.body_boat");
     lua_setfield(L, -2, "body_boat");
+    lua_pushcfunction(L, l_body_cart, "core.body_cart");
+    lua_setfield(L, -2, "body_cart");
     lua_pushcfunction(L, l_register_item, "core.register_item");
     lua_setfield(L, -2, "register_item");
     lua_pushcfunction(L, l_register_model, "core.register_model");

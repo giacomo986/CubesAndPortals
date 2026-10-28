@@ -146,7 +146,7 @@ typedef struct script_host {
     int (*node_climbable)(void *ud, int id, int on);
     int (*node_door)(void *ud, int shut, int open);
     // A block that carries what stands on it (a conveyor belt): m/s, and its top.
-    int (*node_conveyor)(void *ud, int id, float speed, float height, float rise);
+    int (*node_conveyor)(void *ud, int id, float speed, float height, float rise, int rail);
 
     int (*node_box)(void *ud, int id, double x0, double y0, double z0, double x1, double y1,
                     double z1, const char *part);
@@ -655,6 +655,8 @@ typedef struct script_host {
 
     // And whether ONE body is in a boat (core.body_boat), sent as body_movement is.
     int (*body_boat)(void *ud, int player, int on);
+    // And in a cart (core.body_cart): rails are ridden.
+    int (*body_cart)(void *ud, int player, int on);
 
     // How wide a body is in this world, and how long when it drives
     // (core.body_width): the same moment and the same welcome.

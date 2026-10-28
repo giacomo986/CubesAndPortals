@@ -276,11 +276,12 @@ std::vector<uint8_t> Welcome::encode() const
     for (size_t i = 0; i < nbody; ++i) {
         const NodeBodyDesc &b = node_bodies[i];
         w.u8((uint8_t)((b.solid ? 1 : 0) | (b.opaque ? 2 : 0) | (b.liquid ? 4 : 0) |
-                       (b.climbable ? 8 : 0) | (b.conveyor > 0.0f ? 16 : 0)));
+                       (b.climbable ? 8 : 0) | (b.conveyor > 0.0f && !b.rail ? 16 : 0) |
+                       (b.rail ? 32 : 0)));
         w.u8(b.opacity);
         w.u8(b.fill);
         w.u8(b.light);
-        if (b.conveyor > 0.0f) {   // a belt, since protocol 78
+        if (b.conveyor > 0.0f || b.rail) {   // a belt, since protocol 78, or a rail (110)
             w.f32(b.conveyor);
             w.f32(b.conveyor_height);
             w.f32(b.conveyor_rise);
@@ -456,11 +457,13 @@ bool Welcome::decode(ByteReader &r, Welcome &out)
         body.opacity = r.u8();
         body.fill    = r.u8();
         body.light   = r.u8();
-        // Five flags and nothing else (climbable since 53, conveyor since 78): a bit
-        // past them is a writer that means something this reader does not
-        // know. And a fill of 1..8, because an empty cell of water is air and
-        // a fuller one than a cell is nothing.
-        if (!r.ok() || flags > 31 || body.fill < 1 || body.fill > 8 || body.light > 15) return false;
+        // Six flags and nothing else (climbable since 53, conveyor since 78, rail
+        // since 110): a bit past them is a writer that means something this
+        // reader does not know. And a fill of 1..8, because an empty cell of
+        // water is air and a fuller one than a cell is nothing.
+        if (!r.ok() || flags > 63 || (flags & 48) == 48 || body.fill < 1 || body.fill > 8 ||
+            body.light > 15)
+            return false;
         body.solid  = (flags & 1) != 0;
         body.opaque = (flags & 2) != 0;
         body.liquid = (flags & 4) != 0;
@@ -470,6 +473,15 @@ bool Welcome::decode(ByteReader &r, Welcome &out)
             body.conveyor_height = r.f32();
             body.conveyor_rise   = r.f32();
             if (!r.ok() || !std::isfinite(body.conveyor) || body.conveyor <= 0.0f ||
+                !std::isfinite(body.conveyor_height) || !std::isfinite(body.conveyor_rise))
+                return false;
+        }
+        if ((flags & 32) != 0) {   // a rail (110): the speed it brings a cart to, 0 a brake
+            body.rail            = true;
+            body.conveyor        = r.f32();
+            body.conveyor_height = r.f32();
+            body.conveyor_rise   = r.f32();
+            if (!r.ok() || !std::isfinite(body.conveyor) || body.conveyor < 0.0f ||
                 !std::isfinite(body.conveyor_height) || !std::isfinite(body.conveyor_rise))
                 return false;
         }
@@ -1922,7 +1934,8 @@ std::vector<uint8_t> BodyMovement::encode() const
     w.f32(rules.rise);
     w.f32(rules.eye);
     // Bit 2 a boat, which a 109 client ignores: it swims there instead.
-    w.u8((rules.parkour ? 1 : 0) | (rules.ledges ? 0 : 2) | (rules.boat ? 4 : 0));
+    // Bit 3 a cart (110).
+    w.u8((rules.parkour ? 1 : 0) | (rules.ledges ? 0 : 2) | (rules.boat ? 4 : 0) | (rules.cart ? 8 : 0));
     w.u8(gen);
     w.f32(dig);
     return w.data();
@@ -1951,6 +1964,7 @@ bool BodyMovement::decode(ByteReader &r, BodyMovement &out)
     out.rules.parkour = (moves & 1) != 0;
     out.rules.ledges  = (moves & 2) == 0;
     out.rules.boat    = (moves & 4) != 0;
+    out.rules.cart    = (moves & 8) != 0;
     out.gen           = r.u8();
     out.dig           = r.f32();
 

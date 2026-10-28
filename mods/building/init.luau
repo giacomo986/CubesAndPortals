@@ -603,6 +603,51 @@ if serving then
         "furnace:iron_ingot -            furnace:iron_ingot",
         "furnace:iron_ingot timber:stick furnace:iron_ingot",
         "furnace:iron_ingot -            furnace:iron_ingot")
+
+    -- Ridden by a body in a cart (mods/carts, core.node_conveyor's `rail`): one
+    -- way, away from whoever laid them, turning where a rail on its own level
+    -- runs into a side. A rail brings a cart to 6 m/s. A powered rail is a
+    -- brake while off -- a station: a cart stops on it and forward held pushes
+    -- it off -- and 11 m/s on. A switch turns a cart right while powered,
+    -- straight on else. Slopes up and down a block, slowed going up and sped
+    -- down. mods/cinnabar powers them, as a lamp. The new ones are flat boxes
+    -- along +Z turned with the cell; a slope is four steps.
+    local PRAIL     = node("building:powered_rail", { 150, 120, 60 }, false, "upright", 0.7, "stone")
+    local PRAIL_ON  = node("building:powered_rail_on", { 230, 170, 60 }, false, "upright", 0.7, "stone", 4)
+    local SWITCH    = node("building:switch", { 120, 110, 140 }, false, "upright", 0.7, "stone")
+    local RAIL_UP   = node("building:rail_up", { 150, 130, 110 }, false, "upright", 0.7, "stone")
+    local RAIL_DOWN = node("building:rail_down", { 150, 130, 110 }, false, "upright", 0.7, "stone")
+    for _, id in { PRAIL, PRAIL_ON, SWITCH } do
+        core.node_box(id, 0.12, 0, 0, 0.22, 1 / 16, 1)
+        core.node_box(id, 0.78, 0, 0, 0.88, 1 / 16, 1)
+        for _, z in { 0.1, 0.45, 0.8 } do
+            core.node_box(id, 0.05, 0, z, 0.95, 1 / 32, z + 0.1)
+        end
+    end
+    for i = 0, 3 do   -- up away from whoever laid it (-Z), or down
+        core.node_box(RAIL_UP, 0.05, 0, 0.75 - i * 0.25, 0.95, 1 / 16 + 0.25 * i + 0.125, 1 - i * 0.25)
+        core.node_box(RAIL_DOWN, 0.05, 0, 0.75 - i * 0.25, 0.95, 1 - 0.25 * i - 0.125, 1 - i * 0.25)
+    end
+    core.node_conveyor(RAIL, 6, 1 / 16, 0, true)
+    core.node_conveyor(PRAIL, 0, 1 / 16, 0, true)
+    core.node_conveyor(PRAIL_ON, 11, 1 / 16, 0, true)
+    core.node_conveyor(SWITCH, 6, 1 / 16, 0, true)
+    core.node_conveyor(RAIL_UP, 6, 1 / 16, 1, true)
+    core.node_conveyor(RAIL_DOWN, 6, 1 + 1 / 16, -1, true)
+    core.node_drop(PRAIL_ON, PRAIL)
+    core.recipe_shaped("building:powered_rail", 6,
+        "furnace:gold_ingot -            furnace:gold_ingot",
+        "furnace:gold_ingot timber:stick furnace:gold_ingot",
+        "furnace:gold_ingot ore:cinnabar furnace:gold_ingot")
+    core.recipe_shaped("building:switch", 1, "cinnabar:lever", "building:rail")
+    core.recipe_shaped("building:rail_up", 1, "building:rail", "rocks:cobblestone")
+    core.recipe_shaped("building:rail_down", 1, "rocks:cobblestone", "building:rail")
+    -- A switch remembers the way it was laid; mods/cinnabar turns it from there.
+    core.event.on("core:placed", function(ev)
+        if ev.id == SWITCH then
+            core.meta_set(ev.x, ev.y, ev.z, "base", tostring(core.get_facing(ev.x, ev.y, ev.z)))
+        end
+    end)
 end
 
 -- ===================================================================== client

@@ -218,7 +218,10 @@ bool RecipeSet::take(Recipe &&made, const char *clash, std::string &err)
             return true;
         }
 
-        err = clash + (m_recipes[i].owner.empty() ? std::string("the engine") : m_recipes[i].owner);
+        // Named both ways: which shape, whose, and what each makes -- a clash
+        // that only says whose leaves a modder bisecting recipes.
+        err = clash + (m_recipes[i].owner.empty() ? std::string("the engine") : m_recipes[i].owner) +
+              " (" + m_recipes[i].result + "; this one makes " + made.result + ")";
         return false;
     }
 

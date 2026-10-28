@@ -2604,6 +2604,14 @@ int host_body_boat(void *ud, int player, int on)
     return 1;
 }
 
+// core.body_cart for the one body here; the server's is in src/server/main.cpp.
+int host_body_cart(void *ud, int player, int on)
+{
+    if ((ui::PlayerId)player != ui::kLocalPlayer) return 0;
+    static_cast<Scene *>(ud)->act().movement.cart = on != 0;
+    return 1;
+}
+
 int host_ecs_component(void *ud, const char *name, const char *const *fields, int count,
                        char *err, size_t err_size)
 {
@@ -3005,7 +3013,7 @@ int host_container_search(void *ud, int x, int y, int z, const char *text)
     return 1;
 }
 
-int host_node_conveyor(void *ud, int id_in, float speed, float height, float rise)
+int host_node_conveyor(void *ud, int id_in, float speed, float height, float rise, int rail)
 {
     NodeRegistry &R = static_cast<Scene *>(ud)->act().registry;
     const BlockId id = (BlockId)id_in;
@@ -3014,6 +3022,7 @@ int host_node_conveyor(void *ud, int id_in, float speed, float height, float ris
     d.conveyor        = std::max(speed, 0.0f);
     d.conveyor_height = height;
     d.conveyor_rise   = rise;
+    d.rail            = rail != 0;
     R.register_node(d);
     return 1;
 }
@@ -18925,6 +18934,7 @@ script_host make_client_host(Scene &scene)
     host.body_movement = host_body_movement;
     host.body_drive    = host_body_drive;
     host.body_boat     = host_body_boat;
+    host.body_cart     = host_body_cart;
     host.notice        = host_notice;
     host.chat          = host_chat;
     host.command       = host_command;
