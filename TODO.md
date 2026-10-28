@@ -556,8 +556,13 @@ the villagers and start with questions (memory: villagers-need-design-first).
     10 s, glowing and bubbling, and puts the potion on top. Drunk like food,
     3 minutes, the flask back: night sight (glowcap), swiftness (sugar cane,
     walk 1.4), stoneskin (crystal shard, blows 0.5), mending (melon, regen 3),
-    haste (amethyst, dig 1.6); a HUD list top right with what is left. Water
-    breathing dropped: the engine has no drowning. Engine: core.night_sight
+    haste (amethyst, dig 1.6); a HUD list top right with what is left.
+    Drowning added after (`mods/breath`, side both): with the eye in water
+    15 s of air (ten bubbles over the hunger bar, shown while not full), back
+    4 a second out of it, then 2 points a second -- an unarmed player dies in
+    ~24 s. Water breathing (raw fish) stops the air going, through the
+    "breath:water" event. Checked in a pool: drowned at the expected ticks;
+    with the event, 20 s under water with no damage. Engine: core.night_sight
     (client; blocks and models drawn no darker than 0.55 x amount), and
     core.player_factors takes a `source` -- each source keeps its own four
     and the body gets their product (mods/territory passes "territory"), so a

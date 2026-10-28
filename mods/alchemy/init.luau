@@ -13,6 +13,7 @@
 --   deep:shard          stoneskin     half of every blow
 --   plants:melon_slice  mending       health back three times as fast
 --   rocks:amethyst_shard haste        digging 1.6 times as fast
+--   pets:fish           water_breathing  no air lost under water (mods/breath)
 --
 -- Each potion is its own source of core.player_factors, so two drunk add up
 -- and neither undoes a territory's. The effects are in memory: they end with
@@ -26,13 +27,14 @@ local LAST = 180       -- seconds a potion lasts
 local BREW = 10        -- seconds a still brews
 
 -- What each potion does: the four factors, or night sight.
-type Potion = { from: string, factors: { number }?, sight: boolean?, said: string }
+type Potion = { from: string, factors: { number }?, sight: boolean?, gills: boolean?, said: string }
 local POTIONS: { [string]: Potion } = {
     night_sight = { from = "deep:glowcap", sight = true, said = "Night sight" },
     swiftness   = { from = "cane:sugar_cane", factors = { 1.4, 1, 1, 1 }, said = "Swiftness" },
     stoneskin   = { from = "deep:shard", factors = { 1, 1, 0.5, 1 }, said = "Stoneskin" },
     mending     = { from = "plants:melon_slice", factors = { 1, 1, 1, 3 }, said = "Mending" },
     haste       = { from = "rocks:amethyst_shard", factors = { 1, 1.6, 1, 1 }, said = "Haste" },
+    water_breathing = { from = "pets:fish", gills = true, said = "Water breathing" },
 }
 
 if serving then
@@ -139,6 +141,9 @@ if serving then
                 effects[ev.player] = e
                 e[name] = LAST
                 apply(ev.player, name, true)
+                if POTIONS[name].gills then
+                    core.event.emit("breath:water", { player = ev.player, seconds = LAST })
+                end
                 core.play_sound("alchemy:drink", ev.x, ev.y, ev.z)
                 core.notice(ev.player, POTIONS[name].said .. " for three minutes")
                 show(ev.player)

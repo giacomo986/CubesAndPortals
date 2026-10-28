@@ -251,7 +251,8 @@ owners stand in it. Inside, owners are faster and tougher, strangers weaker; wha
 there is marked stolen.
 
 **Alchemy** (`mods/alchemy`). A still brews a flask of water and an ingredient into a potion: night
-sight, swiftness, stoneskin, mending, haste -- three minutes each.
+sight, swiftness, stoneskin, mending, haste, water breathing -- three minutes each. Under water
+the air lasts fifteen seconds (`mods/breath`).
 
 **Hollows** (`mods/deep`). Under the bedrock of some regions lies a sealed cavern country, reached
 by a sinkhole with rungs down its side: glowing fungi and moss, crystals, lava lakes, and an altar
