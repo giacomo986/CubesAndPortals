@@ -580,9 +580,13 @@ the villagers and start with questions (memory: villagers-need-design-first).
     fisher buys them: carp 6, trout and cod 4, eel 3, tuna 2 for an emerald,
     a goldfish 4 emeralds (the season's and stock's price rules apply).
     Checked headless: 1000 catches at a column of each water came out at the
-    weights (sea 663 cod, 306 eel, 31 goldfish...). Open: not fished with a
-    client after the change (the cast and bite are as before); the toad
-    villagers themselves still bring up perch only.
+    weights (sea 663 cod, 306 eel, 31 goldfish...). Then fished with a client
+    (the bite forced, its window widened, in a scratch copy): 10 casts in a
+    river at 160 120 gave 9 trout and a perch, 14 in the sea at 355 115 gave
+    10 cod and 4 eels. The toad fishers catch by the same weights now (a copy
+    of the table inside fish(): villagers is at Luau's 200 locals); a toad
+    made by hand by a pond on the plains brought up perch and carp and
+    cooked them.
 12. Herding widened: dyed wool, milk, stables, a robot order to tend animals.
 13. Errands from the mayor and the merchant, paid from the treasury.
 14. Blueprints: copy a build, have the village builder or a robot build it.

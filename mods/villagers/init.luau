@@ -543,6 +543,29 @@ local function farm(v: V)
 end
 
 local function fish(v: V)
+    -- What a toad brings up, by the water it fishes: mods/pets's own weights
+    -- (kept in step by hand -- a mod cannot call another's function). Inside
+    -- this function: the file is at Luau's 200 locals.
+    local CATCHES: { [string]: { { any } } } = {
+        ["core:river"] = { { "trout", 70 }, { "fish", 30 } }, ["core:gorge"] = { { "trout", 70 }, { "fish", 30 } },
+        ["core:sea"] = { { "cod", 70 }, { "eel", 30 } }, ["core:beach"] = { { "cod", 70 }, { "eel", 30 } },
+        ["core:ocean"] = { { "tuna", 50 }, { "cod", 50 } },
+    }
+    local function caught(x: number, z: number): string
+        if math.random() < 0.03 then
+            return "pets:goldfish"
+        end
+        local list = CATCHES[core.biome(x, z)] or { { "fish", 70 }, { "carp", 30 } }
+        local r = math.random() * 100
+        for _, k in list do
+            r -= k[2]
+            if r <= 0 then
+                return "pets:" .. k[1]
+            end
+        end
+        return "pets:" .. list[1][1]
+    end
+
     -- A cell of open water with a bank beside it, level with the water.
     local water = core.find_nodes(v.hx - 24, v.hy - 8, v.hz - 24, v.hx + 24, v.hy + 3, v.hz + 24, "lakes:water")
     local px, _, pz = core.mob_pos(v.id)
@@ -587,7 +610,7 @@ local function fish(v: V)
             core.set_block(wx, wy + 1, wz, AIR)
         end
         if math.random() < 0.7 then
-            add(v, "pets:fish", 1)
+            add(v, caught(wx, wz), 1)
         end
         if is_night() then
             break
