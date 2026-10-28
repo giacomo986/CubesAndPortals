@@ -2670,7 +2670,7 @@ Lays a player on their back, as in a bed: the body is put there as core.player_p
 ## `core.player_clip`
 
 ```luau
-core.player_clip(player: number, clip: string?) -> number
+core.player_clip(player: number, clip: string?, dx: number?, dz: number?) -> number
 ```
 
 Has a body play a clip until told otherwise, "" to stop: holding cards at a table. On a server everybody else sees the body play it, over the walk and the idle; on a player's machine (only their own id) the arms seen in first person play the clip of the same name in the player model's _arms, and go on holding it while the camera is on a point at the eye (core.fixed_view with a distance under 0.1). Returns 1, or 0 for a player who is not here.
@@ -2679,6 +2679,8 @@ Has a body play a clip until told otherwise, "" to stop: holding cards at a tabl
 |---|---|---|---|
 | `player` | number | — | An id from core.players, or from an event. |
 | `clip` | string | `` | A clip of the player model (and of its _arms), at most 32 bytes; "" for none. |
+| `dx` | number | `0` | With dz, the way the body faces while it plays the clip, whatever it looks at: sat on a chair. 0, 0 faces where it looks. |
+| `dz` | number | `0` |  |
 
 ## `core.player_wear`
 

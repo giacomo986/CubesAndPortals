@@ -2825,6 +2825,10 @@ local api: { Fn } = {
             { name = "player", type = "int", doc = "An id from core.players, or from an event." },
             { name = "clip", type = "string", default = "",
               doc = "A clip of the player model (and of its _arms), at most 32 bytes; \"\" for none." },
+            { name = "dx", type = "float", default = 0.0,
+              doc = "With dz, the way the body faces while it plays the clip, whatever it looks at: "
+                 .. "sat on a chair. 0, 0 faces where it looks." },
+            { name = "dz", type = "float", default = 0.0 },
         },
         doc = "Has a body play a clip until told otherwise, \"\" to stop: holding cards at a table. "
            .. "On a server everybody else sees the body play it, over the walk and the idle; on a "

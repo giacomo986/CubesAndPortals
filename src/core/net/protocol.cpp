@@ -2561,6 +2561,8 @@ std::vector<uint8_t> OwnPose::encode() const
     ByteWriter w;
     w.u8((uint8_t)MsgType::OwnPose);
     w.str(clip);
+    w.f32(yaw);
+    w.u8(faced ? 1 : 0);
     for (int k = 0; k < 10; ++k) {
         w.u16(model[k]);
         w.u16(tint[k]);
@@ -2573,6 +2575,9 @@ bool OwnPose::decode(ByteReader &r, OwnPose &out)
     out = OwnPose{};
     if (r.u8() != (uint8_t)MsgType::OwnPose) return false;
     if (!r.str(out.clip, kMaxClipName)) return false;
+    out.yaw   = r.f32();
+    out.faced = r.u8() != 0;
+    if (!std::isfinite(out.yaw)) return false;
     for (int k = 0; k < 10; ++k) {
         out.model[k] = r.u16();
         out.tint[k]  = r.u16();

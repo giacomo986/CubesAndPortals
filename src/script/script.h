@@ -434,7 +434,7 @@ typedef struct script_host {
     // A clip a body plays until told otherwise (core.player_clip), "" for none:
     // on a server everybody else sees it; on a player's machine the arms seen
     // in first person play it.
-    int (*player_clip)(void *ud, int player, const char *clip);
+    int (*player_clip)(void *ud, int player, const char *clip, double dx, double dz);
     // A model of a mod's own a body wears in one of ten slots (core.player_wear),
     // 0 for none, and its tint; for everybody to see. 1, or 0 when refused.
     int (*player_wear)(void *ud, int player, int slot, int model, int tint);

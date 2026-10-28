@@ -2126,7 +2126,7 @@ int host_player_lie(void *ud, int player, int on, double x, double y, double z, 
 }
 
 // A clip a body plays for everybody else (core.player_clip), sent with it.
-int host_player_clip(void *ud, int player, const char *clip)
+int host_player_clip(void *ud, int player, const char *clip, double dx, double dz)
 {
     ServerState *s    = static_cast<ServerState *>(ud);
     net::Session *sess = s->sessions ? s->sessions->find_mutable((net::PeerId)player) : nullptr;
@@ -2137,8 +2137,9 @@ int host_player_clip(void *ud, int player, const char *clip)
                     "over %zu bytes\n", name.empty() ? "?" : name.c_str(), player, net::kMaxClipName);
         return 0;
     }
+    const bool faced = std::isfinite(dx) && std::isfinite(dz) && (dx != 0.0 || dz != 0.0);
     if (c.empty()) sess->avatar.remove<ecs::Posed>();
-    else sess->avatar.set<ecs::Posed>({c});
+    else sess->avatar.set<ecs::Posed>({c, faced ? (float)std::atan2(dx, -dz) : 0.0f, faced});
     sess->pose_owed = true;
     return 1;
 }

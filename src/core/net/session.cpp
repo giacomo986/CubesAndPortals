@@ -2827,7 +2827,11 @@ std::vector<uint8_t> ServerSessions::pose_message(PeerId peer) const
     OwnPose m;
     const Session *s = find(peer);
     if (s != nullptr && s->avatar.is_alive()) {
-        if (const ecs::Posed *p = s->avatar.try_get<ecs::Posed>()) m.clip = p->clip;
+        if (const ecs::Posed *p = s->avatar.try_get<ecs::Posed>()) {
+            m.clip  = p->clip;
+            m.yaw   = p->yaw;
+            m.faced = p->faced;
+        }
         if (const ecs::Dressed *d = s->avatar.try_get<ecs::Dressed>())
             for (int k = 0; k < ecs::kDressSlots && k < 10; ++k) {
                 m.model[k] = d->model[k];
@@ -4623,6 +4627,8 @@ std::vector<EntityState> ServerSessions::entities_for(PeerId peer, float radius)
                     s.dress[k]      = d->model[k];
                     s.dress_tint[k] = d->tint[k];
                 }
+            // Held facing a way (core.player_clip's dx, dz): sat on a chair.
+            if (const ecs::Posed *pose = e.try_get<ecs::Posed>(); pose && pose->faced) s.yaw = pose->yaw;
             // Carried on a seat: facing the way what carries them faces,
             // whatever they look at (their look is their head's).
             if (const ecs::DrivenBy *by = e.try_get<ecs::DrivenBy>())

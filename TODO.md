@@ -695,7 +695,15 @@ the villagers and start with questions (memory: villagers-need-design-first).
     (tools/make_lantern_model.py, assets/blender/lantern.blend): an iron
     base, posts, a stepped roof with a ring round glowing glass and a flame,
     and hung on a chain of links. Checked with a client: sat on a chair by
-    a real click, seen seated from behind and from the seat.
+    a real click, seen seated from behind and from the seat. Then (asked
+    the same day): a seated body does not turn with the camera --
+    core.player_clip takes dx, dz, the way the body faces while held
+    (ecs::Posed::faced: everybody else's entities and OwnPose carry it, the
+    own client draws it); the chair passes its seat's way. And F gets out of
+    a cart (mods/carts is side both now: the server tells its client "in" /
+    "out", F sends "off"), and F does not toggle flying while in a cart.
+    Checked with a client: F mid-ride put the cart back in the bag at once;
+    sat on a chair, the camera turned a full circle and the body stayed.
 16. Plaza games on the chess frame (draughts, mill), a scored PvP arena.
 
 Railways redone 2026-10-28 (asked the same day), in Blender through its MCP

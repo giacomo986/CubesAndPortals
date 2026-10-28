@@ -333,7 +333,7 @@ if serving then
         ev.cancel = true
         local run = RUN[core.get_facing(ev.x, ev.y, ev.z) % 4 + 1]
         core.player_place(ev.player, ev.x + 0.5, ev.y + 0.40, ev.z + 0.5, run[1], -0.1, run[2])
-        core.player_clip(ev.player, "sit")
+        core.player_clip(ev.player, "sit", run[1], run[2])   -- facing away from its back, whatever the view
         -- The fourth: a second before moving counts, while the body is put there.
         seated[ev.player] = { ev.x + 0.5, ev.y + 0.40, ev.z + 0.5, 1.0 }
     end)

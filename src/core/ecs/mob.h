@@ -297,6 +297,10 @@ struct Act {
 // Act is a worker, and a right click on it goes to its mod.
 struct Posed {
     std::string clip;
+    // Facing this way while held (core.player_clip's dx, dz), whatever the
+    // look -- sat on a chair; `faced` false keeps the look's.
+    float yaw   = 0.0f;
+    bool  faced = false;
 };
 
 // What a mod dresses a person in (core.player_wear), slot by slot: a model on

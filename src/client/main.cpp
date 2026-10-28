@@ -1557,6 +1557,8 @@ struct Scene {
     double      mod_arms_start = 0.0;
     // And one they hold until told otherwise (core.player_clip): cards in hand.
     std::string own_clip;
+    bool        own_faced = false;   // core.player_clip with dx, dz: the body faces own_face
+    float       own_face  = 0.0f;
     // What world code dresses this body in (core.player_wear): model and tint
     // per slot, seen in this machine's own drawing of it (the server shows
     // everybody else). ponytail: per scene like own_clip, not per world.
@@ -2295,11 +2297,13 @@ int host_player_lie(void *ud, int player, int on, double x, double y, double z, 
 
 // The arms seen in first person playing a clip of the mod's until told
 // otherwise (core.player_clip); the server's copy shows the body to everybody else.
-int host_player_clip(void *ud, int player, const char *clip)
+int host_player_clip(void *ud, int player, const char *clip, double dx, double dz)
 {
     Scene *s = static_cast<Scene *>(ud);
     if ((ui::PlayerId)player != ui::kLocalPlayer) return 0;
-    s->own_clip = clip ? clip : "";
+    s->own_clip  = clip ? clip : "";
+    s->own_faced = !s->own_clip.empty() && std::isfinite(dx) && std::isfinite(dz) && (dx != 0.0 || dz != 0.0);
+    s->own_face  = s->own_faced ? (float)std::atan2(dx, -dz) : 0.0f;
     return 1;
 }
 
@@ -8736,6 +8740,11 @@ void add_own_body(Scene &s, const Player &player, uint16_t model)
     b.roll   = player.body_roll;
     // In a cart on a rail: facing the rail, not the view.
     if (player.riding && s.act().movement.cart) b.yaw = player.ride_yaw;
+    // Held facing a way by a mod (core.player_clip's dx, dz): sat on a chair.
+    if (s.own_faced) b.yaw = s.own_face;
+    else if (s.own_clip.empty() && s.conn != nullptr && s.conn->own_pose().faced &&
+             !s.conn->own_pose().clip.empty())
+        b.yaw = s.conn->own_pose().yaw;
     b.id     = kOwnBody;
     const DriveLook look = vehicle_look(player);
     b.boosting = look.boosting;
@@ -14486,7 +14495,8 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             in.jump       = plat_key_down(PLAT_KEY_SPACE);
             in.sprint     = plat_key_down(PLAT_KEY_SHIFT);
             in.descend    = plat_key_down(PLAT_KEY_CTRL);
-            in.toggle_fly = plat_key_pressed(PLAT_KEY_F);
+            // Not in a cart: there F gets out (mods/carts), it does not fly.
+            in.toggle_fly = plat_key_pressed(PLAT_KEY_F) && !s.act().movement.cart;
             plat_mouse_delta(&in.look_dx, &in.look_dy);
 
             // The first deltas after a grab are not movements. See LookSettle.
@@ -18385,7 +18395,8 @@ int run_interactive(Scene &s, double seconds)
             in.jump       = plat_key_down(PLAT_KEY_SPACE);
             in.sprint     = plat_key_down(PLAT_KEY_SHIFT);
             in.descend    = plat_key_down(PLAT_KEY_CTRL);
-            in.toggle_fly = plat_key_pressed(PLAT_KEY_F);
+            // Not in a cart: there F gets out (mods/carts), it does not fly.
+            in.toggle_fly = plat_key_pressed(PLAT_KEY_F) && !s.act().movement.cart;
             plat_mouse_delta(&in.look_dx, &in.look_dy);
 
             // The first deltas after a grab are not movements. See LookSettle.

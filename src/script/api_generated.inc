@@ -2314,13 +2314,15 @@ int l_player_lie(lua_State *L)
     return 1;
 }
 
-// core.player_clip(player: number, clip: string?) -> number
+// core.player_clip(player: number, clip: string?, dx: number?, dz: number?) -> number
 int l_player_clip(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const char *clip = (const char *)luaL_optstring(L, 2, "");
-    const int result = (vm && vm->host.player_clip) ? vm->host.player_clip(vm->host.ud, player, clip) : (int)0;
+    const float dx = (float)luaL_optnumber(L, 3, 0);
+    const float dz = (float)luaL_optnumber(L, 4, 0);
+    const int result = (vm && vm->host.player_clip) ? vm->host.player_clip(vm->host.ud, player, clip, dx, dz) : (int)0;
     lua_pushinteger(L, result);
     return 1;
 }

@@ -2324,6 +2324,8 @@ struct Dress {
 
 struct OwnPose {
     std::string clip;              // "" none, at most kMaxClipName
+    float       yaw   = 0.0f;      // the way it faces while held, when `faced`
+    bool        faced = false;
     uint16_t    model[10] = {};    // ecs::kDressSlots
     uint16_t    tint[10]  = {};
 
