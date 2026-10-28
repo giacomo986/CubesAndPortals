@@ -13962,17 +13962,25 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         if (conn->state() != net::ClientState::Playing) {
             std::printf("disconnected: %s%s%s\n", net::client_state_text(conn->state()),
                         conn->error().empty() ? "" : " -- ", conn->error().c_str());
-            // Put out by the server (a kick, a ban): back to the title, saying
-            // why, rather than a window that just closes.
-            if (conn->state() == net::ClientState::Refused) {
+            // Put out by the server (a kick, a ban) or lost (the server went
+            // away): back to the title, saying why, rather than a window that
+            // just closes. A timed run that lost it is a check and ends here.
+            if (conn->state() == net::ClientState::Refused || seconds <= 0.0) {
                 g_to_title = true;
+                // Lost: the error without its round trip, which the menu's line
+                // would cut off halfway.
+                const std::string why = conn->state() == net::ClientState::Refused ? conn->error()
+                                        : conn->error().empty()
+                                            ? std::string("lost the server: ") + net::client_state_text(conn->state())
+                                            : conn->error().substr(0, conn->error().find(" ("));
 #ifdef _WIN32
-                _putenv_s("CNP_TITLE_ERROR", conn->error().c_str());
+                _putenv_s("CNP_TITLE_ERROR", why.c_str());
 #else
-                ::setenv("CNP_TITLE_ERROR", conn->error().c_str(), 1);
+                ::setenv("CNP_TITLE_ERROR", why.c_str(), 1);
 #endif
                 // Restarting: the title joins it again (TitleMenu::rejoin).
-                if (conn->refusal().reason == net::RefuseReason::Restarting && !g_rejoin_account.empty()) {
+                if (conn->state() == net::ClientState::Refused &&
+                    conn->refusal().reason == net::RefuseReason::Restarting && !g_rejoin_account.empty()) {
 #ifdef _WIN32
                     _putenv_s("CNP_REJOIN", g_rejoin_account.c_str());
 #else
@@ -19380,7 +19388,11 @@ int client_main(int argc, char **argv)
 #endif
     }
     if (const char *why = std::getenv("CNP_TITLE_ERROR"); why && *why) {
-        menu.error = why;
+        // On the list of servers: the title page has nowhere to say it, and
+        // that list is where the player joins again.
+        menu.error   = why;
+        menu.servers = saved_servers();
+        menu.page    = MenuPage::Server;
 #ifdef _WIN32
         _putenv_s("CNP_TITLE_ERROR", "");
 #else
@@ -20367,6 +20379,18 @@ int main(int argc, char **argv)
     // every list of processes.
     const std::string self = exe_path();
     std::fflush(nullptr);
+    // Without --connect, or the run started from the command line would join
+    // the same server again rather than show the title and why it left.
+    std::vector<char *> again;
+    for (int i = 0; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--connect") == 0 && i + 1 < argc) {
+            ++i;
+            continue;
+        }
+        again.push_back(argv[i]);
+    }
+    again.push_back(nullptr);
+    argv = again.data();
 #ifdef _WIN32
     // A new process and this one ends: Windows has no exec that keeps the pid.
     _execv(self.c_str(), argv);

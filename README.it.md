@@ -324,7 +324,7 @@ ctest --test-dir build                       # 13 test, ~3 s; -LE gpu salta quel
 ./build/src/client/cnp_client                # il menù del titolo
 ./build/src/client/cnp_client --quick        # avvio rapido: un mondo locale di prova, niente salvato
 
-./build/src/server/cnp_server --listen 25301 --world 128 --world-file mondo.db
+./build/src/server/cnp_server --listen 25301 --ticks 0 --world 128 --world-file mondo.db
 ./build/src/client/cnp_client --connect 127.0.0.1 --port 25301 --name giocatore
 
 # L'arena shooter: un sandbox e l'arena su un server solo

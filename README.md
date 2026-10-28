@@ -317,7 +317,7 @@ ctest --test-dir build                       # 13 tests, ~3 s; -LE gpu skips the
 ./build/src/client/cnp_client                # the title menu
 ./build/src/client/cnp_client --quick        # quick start: a local test world, nothing saved
 
-./build/src/server/cnp_server --listen 25301 --world 128 --world-file world.db
+./build/src/server/cnp_server --listen 25301 --ticks 0 --world 128 --world-file world.db
 ./build/src/client/cnp_client --connect 127.0.0.1 --port 25301 --name player
 
 # The arena shooter: a sandbox and the arena on one server
