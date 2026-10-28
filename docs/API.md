@@ -1658,6 +1658,18 @@ Takes a worker out of the world at once, leaving nothing and playing no death: i
 |---|---|---|---|
 | `id` | number | — |  |
 
+## `core.body_player`
+
+```luau
+core.body_player(id: number) -> number
+```
+
+The player whose body that is, or 0 for a creature, a thing or nothing: who was struck, when core:hit's target is a player. On a server.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `id` | number | — | A body's id, as core:hit's target. |
+
 ## `core.mob_kind`
 
 ```luau

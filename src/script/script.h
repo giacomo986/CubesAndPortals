@@ -316,6 +316,7 @@ typedef struct script_host {
     int (*mob_remove)(void *ud, int id);
     // A herder's (core.mob_kind, mob_love, mob_keep, mob_shear_now).
     const char *(*mob_kind)(void *ud, int id);
+    int (*body_player)(void *ud, int id);   // whose body an entity is: a player id, 0 none
     int (*mob_love)(void *ud, int id);
     int (*mob_keep)(void *ud, int id, int on);
     int (*mob_shear_now)(void *ud, int id, int drop);

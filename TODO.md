@@ -720,7 +720,33 @@ for the bag picture; the still and the waystone got face pictures of their
 own. Checked with a client: each held in turn, and the bar. Seen: a held
 model shows some seconds after joining, as the models arrive.
 
-16. Plaza games on the chess frame (draughts, mill), a scored PvP arena.
+16. Plaza games and an arena -- built 2026-10-28. The chess table (mods/chess)
+    plays two more games from its "Variante" menu: Italian draughts (dama:
+    men on the dark squares step and take forward only and never a king,
+    kings one step any way, taking is a must, the line taking most, then the
+    king's, then the most kings, then the earliest king; crowned on the far
+    rank, which ends the line; who cannot move loses, forty moves without a
+    taking or a man moving draw) and the mill (mulino: 24 points drawn over
+    the board -- a light plate, its lines and points -- nine stones each from
+    a tray beside the table as crazyhouse's hand, moved along the lines, flying
+    with three; a mill takes a stone not in a mill while there is one, the
+    move held (st.ep) till it is taken; down to two or blocked loses). Pieces
+    M/D and O, models by tools/make_chess_models.py (a grooved disc, two
+    stacked, a rounded stone). Checked headless (seven opening moves, a forced
+    taking, a double, a man refusing a king, a crowning, the king's taking
+    first, a blocked loss; 24 placings, a mill and its taking, flying with
+    three, two left losing) and with a client (the variant chosen from the
+    menu, a man moved c3-d4 by clicks, the mill's board and trays drawn and a
+    stone put down from the tray). The arena (mods/arena): a gong (gold in
+    iron; one put by the spawn's square) shows the standing and starts a
+    round of three minutes; a player knocked down by another in the ring (10
+    round, 6 up or down) is the other's point and is put back on the ring's
+    edge; the score is said every half minute, the winner at the end, the
+    standing (wins, knock-downs) kept. Engine: core.body_player(id), whose
+    body core:hit's target is. Checked with two clients: a knocked b down with
+    a sword -- a 1, b back 9 from the gong --, the round ended with a the
+    winner and the standing "a=1,1". Open: no score shown on the screen
+    between the half-minute notices; the ring is not marked on the ground.
 
 Railways redone 2026-10-28 (asked the same day), in Blender through its MCP
 server: tools/make_rail_models.py (assets/blender/rails.blend) makes the nine

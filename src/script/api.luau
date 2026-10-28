@@ -1833,6 +1833,14 @@ local api: { Fn } = {
            .. "its mod taking it back. Returns 1, or 0 for one that is gone or not a worker.",
     },
     {
+        name = "body_player",
+        host = "body_player",
+        ret  = "int",
+        args = { { name = "id", type = "int", doc = "A body's id, as core:hit's target." } },
+        doc = "The player whose body that is, or 0 for a creature, a thing or nothing: who "
+           .. "was struck, when core:hit's target is a player. On a server.",
+    },
+    {
         name = "mob_kind",
         host = "mob_kind",
         ret  = "string",

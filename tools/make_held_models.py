@@ -1118,6 +1118,10 @@ BLOCK_ICONS["travel:waystone"] = block_icon([((0.1, 0, 0.1, 0.9, 0.2, 0.9), "way
                                              ((0.25, 0.2, 0.25, 0.75, 0.85, 0.75), "waystone"),
                                              ((0.18, 0.85, 0.18, 0.82, 1.0, 0.82), "waystone_base")])
 BLOCK_ICONS["building:lantern"] = from_block("mods/building/lantern.gltf")
+M["gong"] = material("Gong", (0.85, 0.62, 0.22), 1.0, 0.3)
+BLOCK_ICONS["arena:gong"] = block_icon([((0.1, 0, 0.4, 0.2, 1, 0.6), "dark_wood"), ((0.8, 0, 0.4, 0.9, 1, 0.6), "dark_wood"),
+                                        ((0.1, 0.9, 0.4, 0.9, 1, 0.6), "dark_wood"),
+                                        ((0.22, 0.2, 0.46, 0.78, 0.76, 0.54), "gong")])
 BLOCK_TURN = tuple(math.degrees(a) for a in (
     Matrix.Rotation(math.radians(30), 3, "X") @ Matrix.Rotation(math.radians(35), 3, "Y")).to_euler("XYZ"))
 

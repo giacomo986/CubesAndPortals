@@ -4008,6 +4008,17 @@ int host_mob_remove(void *ud, int id)
     return s->sessions ? cnp::ecs::mob_remove(s->sessions->ecs(), (uint32_t)id) : 0;
 }
 
+int host_body_player(void *ud, int id)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (!s->sessions) return 0;
+    for (const net::PeerId peer : s->sessions->ready_peers())
+        if (const net::Session *sess = s->sessions->find(peer);
+            sess && sess->avatar.is_alive() && (uint32_t)sess->avatar.id() == (uint32_t)id)
+            return (int)peer;
+    return 0;
+}
+
 const char *host_mob_kind(void *ud, int id)
 {
     ServerState *s = static_cast<ServerState *>(ud);
@@ -5955,6 +5966,7 @@ int serve_room(int argc, char **argv)
         host.mob_face       = host_mob_face;
     host.mob_remove     = host_mob_remove;
     host.mob_kind       = host_mob_kind;
+    host.body_player    = host_body_player;
     host.mob_love       = host_mob_love;
     host.mob_keep       = host_mob_keep;
     host.mob_shear_now  = host_mob_shear_now;

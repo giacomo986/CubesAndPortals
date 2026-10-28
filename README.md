@@ -250,6 +250,9 @@ job, meals and a bed. Every village has:
 owners stand in it. Inside, owners are faster and tougher, strangers weaker; what strangers take
 there is marked stolen.
 
+**Plaza games** (`mods/chess`, `mods/arena`): the chess table also plays Italian draughts and the mill;
+a gong starts a three-minute PvP round in the ring round it, scored, with a standing kept.
+
 **Decoration** (`mods/building`): stained glass and panes in sixteen colours, stone and brick walls,
 glazed and chequered tiles, chairs and tables of every wood, carpets, lanterns.
 

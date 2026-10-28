@@ -253,6 +253,9 @@ e un letto. Ogni villaggio ha:
 proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resistenti, gli estranei
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
+**Giochi in piazza** (`mods/chess`, `mods/arena`): il tavolo degli scacchi gioca anche a dama italiana e
+al mulino; un gong avvia una sfida PvP di tre minuti nel cerchio attorno, con punti e classifica.
+
 **Decorazioni** (`mods/building`): vetro colorato e lastre in sedici colori, muretti di pietra e
 mattoni, piastrelle smaltate e a scacchi, sedie e tavoli di ogni legno, tappeti, lanterne.
 

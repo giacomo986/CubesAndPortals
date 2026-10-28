@@ -33,6 +33,21 @@ local SQ  = 0.1     -- a square, in nodes (tools/make_chess_models.py)
 local TOP = 0.775   -- the squares' top above the cell's floor
 
 -- ===================================================================== rules
+-- Besides chess the table plays two other games on the same squares (VARIANTS,
+-- the menu's "Variante"):
+--   dama    Italian draughts on the dark squares: men step forward one
+--           diagonal and take forward only, never a king; kings step one
+--           diagonal any way; a taking is a must, the line that takes most,
+--           then the king's, then the one taking most kings; a man that
+--           gets to the far rank is crowned and stops. Who cannot move loses;
+--           forty moves without a taking or a man moving are a draw.
+--   mulino  the mill (nine men's morris), on 24 points over the board: nine
+--           stones each put down one a turn from a tray beside the table, then
+--           moved along the lines to a point next to them -- anywhere, with
+--           three left; three in a line is a mill, and its maker takes one of
+--           the other's stones (not out of a mill while there is one that is
+--           not). Down to two, or with no move, loses.
+-- Their pieces are letters chess does not use: M and D (man, king), O (stone).
 -- A board is 64 letters, a1 first, rank by rank: PNBRQK white, pnbrqk black,
 -- "." empty. A square is its index, 1..64.
 
@@ -59,10 +74,11 @@ local START = "RNBQKBNRPPPPPPPP" .. string.rep(".", 32) .. "pppppppprnbqkbnr"
 --          piece taken is a pawn again
 --   horde  white has 36 pawns and no king (those on the first rank may go
 --          two too), black the usual set: black wins taking them all
-local VARIANTS = { "std", "960", "koth", "3check", "race", "anti", "atomic", "zh", "horde" }
+local VARIANTS = { "std", "960", "koth", "3check", "race", "anti", "atomic", "zh", "horde", "dama", "mulino" }
 local VARIANT_NAME = { std = "Classica", ["960"] = "Scacchi 960", koth = "Re della collina",
                        ["3check"] = "Tre scacchi", race = "Corsa dei re", anti = "Vinciperdi",
-                       atomic = "Atomica", zh = "Crazyhouse", horde = "Orda" }
+                       atomic = "Atomica", zh = "Crazyhouse", horde = "Orda", dama = "Dama italiana",
+                       mulino = "Mulino" }
 
 -- Crazyhouse puts pieces down from the hand: a move from 100 + k for white
 -- and 110 + k for black, k the place in DROPS of the piece put down.
@@ -170,6 +186,10 @@ local function piece_at(st: State, i: number): string
     if i <= 64 then
         return st.b[i]
     end
+    if st.var == "mulino" then
+        local stone = if i < 110 then "O" else "o"
+        return if string.find(st.pocket, stone, 1, true) then stone else "."
+    end
     local p = string.sub(DROPS, i % 10, i % 10)
     p = if i < 110 then p else string.lower(p)
     return if string.find(st.pocket, p, 1, true) then p else "."
@@ -220,10 +240,21 @@ local function new_game(tc: number?, inc: number?, var: string?): State
         castle = ""
     elseif v == "horde" then
         start, castle = string.rep("P", 32) .. ".PP..PP." .. string.rep(".", 8) .. "pppppppprnbqkbnr", "kq"
+    elseif v == "dama" then
+        -- Men on the dark squares (a1's colour) of each side's three ranks.
+        local b = {}
+        for i = 1, 64 do
+            local f, r = (i - 1) % 8, (i - 1) // 8
+            b[i] = if (f + r) % 2 ~= 0 then "." elseif r <= 2 then "M" elseif r >= 5 then "m" else "."
+        end
+        start, castle = table.concat(b), ""
+    elseif v == "mulino" then
+        start, castle = string.rep(".", 64), ""
     end
     return { b = string.split(start, ""), turn = "w", castle = castle, ep = 0, half = 0, from = 0, to = 0,
              result = "", why = "", tc = t, inc = inc or 0, wt = t, bt = t, offer = "", var = v, rk = rk,
-             checks = "00", pocket = "", pr = if v == "zh" then string.rep(".", 64) else "" }
+             checks = "00", pocket = if v == "mulino" then "OOOOOOOOOooooooooo" else "",
+             pr = if v == "zh" then string.rep(".", 64) else "" }
 end
 
 -- The rook files a game castles from.
@@ -322,6 +353,280 @@ local function pseudo(st: State, i: number, out: { number })
 end
 
 -- Whether the move puts a pawn on its last rank.
+-- --------------------------------------------------------------- draughts
+
+-- The takings a piece on i can make, as lines: where it ends, how many it
+-- takes, how many kings, the first king's place in the line, and the squares
+-- taken. A man takes forward only and never a king; crowned, it stops.
+type Line = { to: number, n: number, kings: number, first: number, taken: { number } }
+local function dama_lines(b: { string }, i: number): { Line }
+    local p = b[i]
+    local c = colour(p) :: string
+    local king = string.upper(p) == "D"
+    local ahead = if c == "w" then 1 else -1
+    local out: { Line } = {}
+    local function walk(at_i: number, taken: { number }, kings: number, first: number)
+        local f, r = fr(at_i)
+        local went = false
+        for _, d in BISHOP do
+            if not king and d[2] ~= ahead then
+                continue
+            end
+            local mf, mr, lf, lr = f + d[1], r + d[2], f + 2 * d[1], r + 2 * d[2]
+            if not (on(mf, mr) and on(lf, lr)) then
+                continue
+            end
+            local mid, land = at(mf, mr), at(lf, lr)
+            local q = b[mid]
+            if q == "." or colour(q) == c or table.find(taken, mid) then
+                continue
+            end
+            if not king and string.upper(q) == "D" then
+                continue   -- a man never takes a king
+            end
+            if b[land] ~= "." and land ~= i then
+                continue
+            end
+            local t2 = table.clone(taken)
+            table.insert(t2, mid)
+            local k2 = kings + (if string.upper(q) == "D" then 1 else 0)
+            local f2 = if first == 0 and string.upper(q) == "D" then #t2 else first
+            went = true
+            if not king and lr == (if c == "w" then 7 else 0) then
+                table.insert(out, { to = land, n = #t2, kings = k2, first = f2, taken = t2 })   -- crowned: stops
+            else
+                walk(land, t2, k2, f2)
+            end
+        end
+        if not went and #taken > 0 then
+            table.insert(out, { to = at_i, n = #taken, kings = kings, first = first, taken = taken })
+        end
+    end
+    walk(i, {}, 0, 0)
+    return out
+end
+
+-- Whether line a is to be preferred over b by the Italian rules.
+local function dama_better(b: { string }, ai: number, a: Line, bi: number, bl: Line): boolean
+    if a.n ~= bl.n then
+        return a.n > bl.n
+    end
+    local ak, bk = string.upper(b[ai]) == "D", string.upper(b[bi]) == "D"
+    if ak ~= bk then
+        return ak
+    end
+    if a.kings ~= bl.kings then
+        return a.kings > bl.kings
+    end
+    return a.first ~= 0 and (bl.first == 0 or a.first < bl.first)
+end
+
+-- The side's moves: the best takings if there is one, else the steps.
+local function dama_legal(st: State, only: number?): { { number } }
+    local b = st.b
+    local best: { { any } } = {}
+    for i = 1, 64 do
+        if colour(b[i]) == st.turn then
+            for _, l in dama_lines(b, i) do
+                if #best == 0 or dama_better(b, i, l, best[1][1], best[1][2]) then
+                    best = { { i, l } }
+                elseif not dama_better(b, best[1][1], best[1][2], i, l) then
+                    table.insert(best, { i, l })
+                end
+            end
+        end
+    end
+    local moves = {}
+    if #best > 0 then
+        for _, e in best do
+            if only == nil or only == e[1] then
+                table.insert(moves, { e[1], e[2].to })
+            end
+        end
+        return moves
+    end
+    for i = 1, 64 do
+        if colour(b[i]) == st.turn and (only == nil or only == i) then
+            local f, r = fr(i)
+            local king = string.upper(b[i]) == "D"
+            for _, d in BISHOP do
+                if (king or d[2] == (if st.turn == "w" then 1 else -1)) and on(f + d[1], r + d[2])
+                    and b[at(f + d[1], r + d[2])] == "." then
+                    table.insert(moves, { i, at(f + d[1], r + d[2]) })
+                end
+            end
+        end
+    end
+    return moves
+end
+
+local function dama_apply(st: State, from: number, to: number): State
+    local b = table.clone(st.b)
+    local p = b[from]
+    local c = colour(p) :: string
+    local n = table.clone(st)
+    n.b, n.turn, n.from, n.to, n.offer, n.result, n.why = b, other(c), from, to, st.offer, "", ""
+    n.half = st.half + 1
+    local best: Line? = nil
+    for _, l in dama_lines(st.b, from) do
+        if l.to == to and (best == nil or dama_better(st.b, from, l, from, best :: Line)) then
+            best = l
+        end
+    end
+    if best then
+        for _, sq in best.taken do
+            b[sq] = "."
+        end
+        n.half = 0
+    end
+    b[from], b[to] = ".", p
+    if string.upper(p) == "M" then
+        n.half = 0
+        local _, r = fr(to)
+        if r == (if c == "w" then 7 else 0) then
+            b[to] = as("D", c)
+        end
+    end
+    return n
+end
+
+-- ------------------------------------------------------------------- mill
+
+-- The 24 points, (file, rank) on a 7 by 7 grid, and the 16 lines of three.
+local MILL_POINTS = { { 0, 0 }, { 3, 0 }, { 6, 0 }, { 1, 1 }, { 3, 1 }, { 5, 1 }, { 2, 2 }, { 3, 2 }, { 4, 2 },
+                      { 0, 3 }, { 1, 3 }, { 2, 3 }, { 4, 3 }, { 5, 3 }, { 6, 3 }, { 2, 4 }, { 3, 4 }, { 4, 4 },
+                      { 1, 5 }, { 3, 5 }, { 5, 5 }, { 0, 6 }, { 3, 6 }, { 6, 6 } }
+local MILL_LINES = {}
+local MILL_NEXT: { [number]: { number } } = {}
+local IS_POINT: { [number]: boolean } = {}
+do
+    local idx: { [string]: number } = {}
+    for _, q in MILL_POINTS do
+        IS_POINT[at(q[1], q[2])] = true
+        idx[`{q[1]},{q[2]}`] = at(q[1], q[2])
+    end
+    -- Rows and columns: the points on each, in order, three at a time.
+    for axis = 0, 1 do
+        for k = 0, 6 do
+            local row = {}
+            for j = 0, 6 do
+                local key = if axis == 0 then `{j},{k}` else `{k},{j}`
+                if idx[key] then
+                    table.insert(row, idx[key])
+                end
+            end
+            -- The middle row and column hold two lines of three, either side.
+            for s0 = 1, #row, 3 do
+                local line = { row[s0], row[s0 + 1], row[s0 + 2] }
+                table.insert(MILL_LINES, line)
+                for a = 1, 2 do
+                    MILL_NEXT[line[a]] = MILL_NEXT[line[a]] or {}
+                    MILL_NEXT[line[a + 1]] = MILL_NEXT[line[a + 1]] or {}
+                    table.insert(MILL_NEXT[line[a]], line[a + 1])
+                    table.insert(MILL_NEXT[line[a + 1]], line[a])
+                end
+            end
+        end
+    end
+end
+
+local function in_mill(b: { string }, i: number): boolean
+    local p = b[i]
+    for _, l in MILL_LINES do
+        if (l[1] == i or l[2] == i or l[3] == i) and b[l[1]] == p and b[l[2]] == p and b[l[3]] == p then
+            return true
+        end
+    end
+    return false
+end
+
+local function stones(st: State, c: string): (number, number)
+    local s = as("O", c)
+    local on_board = 0
+    for i = 1, 64 do
+        on_board += if st.b[i] == s then 1 else 0
+    end
+    return on_board, select(2, string.gsub(st.pocket, s, ""))
+end
+
+-- st.ep is 1 while the side to move has made a mill and takes a stone: then
+-- its moves are { i, i } on the stones it may take.
+local function mill_legal(st: State, only: number?): { { number } }
+    local moves = {}
+    local me, them = st.turn, other(st.turn)
+    if st.ep == 1 then
+        local free = {}
+        local all = {}
+        for i = 1, 64 do
+            if st.b[i] == as("O", them) then
+                table.insert(all, i)
+                if not in_mill(st.b, i) then
+                    table.insert(free, i)
+                end
+            end
+        end
+        for _, i in (if #free > 0 then free else all) do
+            if only == nil or only == i then
+                table.insert(moves, { i, i })
+            end
+        end
+        return moves
+    end
+    local on_board, in_hand = stones(st, me)
+    local hand = if me == "w" then 101 else 111
+    if in_hand > 0 then
+        if only == nil or only == hand then
+            for i in IS_POINT do
+                if st.b[i] == "." then
+                    table.insert(moves, { hand, i })
+                end
+            end
+        end
+        return moves
+    end
+    for i in IS_POINT do
+        if st.b[i] == as("O", me) and (only == nil or only == i) then
+            local to = if on_board <= 3 then nil else MILL_NEXT[i]
+            for j in (if to then {} else IS_POINT) do
+                if st.b[j] == "." then
+                    table.insert(moves, { i, j })
+                end
+            end
+            for _, j in to or {} do
+                if st.b[j] == "." then
+                    table.insert(moves, { i, j })
+                end
+            end
+        end
+    end
+    return moves
+end
+
+local function mill_apply(st: State, from: number, to: number): State
+    local b = table.clone(st.b)
+    local n = table.clone(st)
+    n.b, n.from, n.to, n.result, n.why = b, from, to, "", ""
+    n.half = st.half + 1
+    if st.ep == 1 then
+        b[to] = "."   -- taken
+        n.ep, n.turn, n.half = 0, other(st.turn), 0
+        return n
+    end
+    local p = piece_at(st, from)
+    if from > 64 then
+        n.pocket = (string.gsub(st.pocket, p, "", 1))
+    else
+        b[from] = "."
+    end
+    b[to] = p
+    if in_mill(b, to) then
+        n.ep = 1   -- and takes a stone before the other moves
+    else
+        n.turn = other(st.turn)
+    end
+    return n
+end
+
 local function promotes(st: State, from: number, to: number): boolean
     local _, tr = fr(to)
     return from <= 64 and string.upper(st.b[from]) == "P" and (tr == 0 or tr == 7)
@@ -330,6 +635,11 @@ end
 -- The state after a move, which must be one pseudo() gave; a pawn that gets to
 -- the last rank becomes `promo` ("Q", "R", "B", "N"), a queen if not said.
 local function apply(st: State, from: number, to: number, promo: string?): State
+    if st.var == "dama" then
+        return dama_apply(st, from, to)
+    elseif st.var == "mulino" then
+        return mill_apply(st, from, to)
+    end
     local b = table.clone(st.b)
     local p, taken = piece_at(st, from), b[to]
     local c = colour(p) :: string
@@ -448,6 +758,11 @@ end
 -- In losing chess any king may be taken and a taking is a must: there all
 -- the side's moves are looked at, and only the takings kept if there is one.
 local function legal(st: State, only: number?): { { number } }
+    if st.var == "dama" then
+        return dama_legal(st, only)
+    elseif st.var == "mulino" then
+        return mill_legal(st, only)
+    end
     local moves = {}
     local anti = st.var == "anti"
     local takes = false
@@ -540,6 +855,27 @@ end
 local function judge(st: State): State
     local mover = other(st.turn)
     local v = st.var
+    if v == "dama" then
+        if #legal(st) == 0 then
+            st.result, st.why = mover, "blocked"
+        elseif st.half >= 80 then
+            st.result, st.why = "=", "forty"
+        end
+        return st
+    elseif v == "mulino" then
+        if st.ep == 1 then
+            return st   -- a stone to take first
+        end
+        local on_board, in_hand = stones(st, st.turn)
+        if on_board + in_hand < 3 then
+            st.result, st.why = mover, "few"
+        elseif #legal(st) == 0 then
+            st.result, st.why = mover, "blocked"
+        elseif st.half >= 100 then
+            st.result, st.why = "=", "fifty"
+        end
+        return st
+    end
     if v == "atomic" and king_of(st.b, st.turn) == 0 then
         st.result, st.why = mover, "atomic"
         return st
@@ -634,7 +970,7 @@ local function load(w: { string }, k: number): State?
              var = if VARIANT_NAME[w[k + 14] or ""] then w[k + 14] :: string else "std",
              rk = if string.match(w[k + 15] or "", "^%d%d$") then w[k + 15] :: string else "07",
              checks = if string.match(w[k + 16] or "", "^%d%d$") then w[k + 16] :: string else "00",
-             pocket = if string.match(w[k + 17] or "", "^[PNBRQpnbrq]+$") then w[k + 17] :: string else "",
+             pocket = if string.match(w[k + 17] or "", "^[PNBRQOpnbrqo]+$") then w[k + 17] :: string else "",
              pr = if string.match(w[k + 18] or "", "^[.+]+$") and #(w[k + 18] :: string) == 64
                  then w[k + 18] :: string else "" }
 end
@@ -667,7 +1003,7 @@ if serving then
     core.node_model(BOARD, core.register_model("chess:board", "board.gltf"))
     core.node_box(BOARD, 0, 0, 0, 1, TOP, 1)
     for _, c in { "w", "b" } do
-        for _, k in { "p", "n", "b", "r", "q", "k" } do
+        for _, k in { "p", "n", "b", "r", "q", "k", "m", "d", "o" } do
             core.register_model(`chess:{c}_{k}`, `{c}_{k}.gltf`)
         end
     end
@@ -1276,9 +1612,14 @@ if drawing then
 
     -- A board's square (file, rank) to the world, its centre on the squares'
     -- top; the board turned by its cell's facing like its model.
+    -- The mill's points are a 7 by 7 grid over the board, MILL_STEP apart.
+    local MILL_STEP = SQ * 8 / 7
     local function world_of(s: Seen, f: number, r: number): (number, number, number)
         local a = s.facing * math.pi / 2
         local u, v = (f - 3.5) * SQ, (3.5 - r) * SQ
+        if s.st.var == "mulino" and f >= 0 and f <= 6 and r >= 0 and r <= 6 then
+            u, v = (f - 3) * MILL_STEP, (3 - r) * MILL_STEP
+        end
         return s.x + 0.5 + u * math.cos(a) + v * math.sin(a), s.y + TOP, s.z + 0.5 - u * math.sin(a) + v * math.cos(a)
     end
 
@@ -1298,11 +1639,21 @@ if drawing then
         local u = wx * math.cos(a) - wz * math.sin(a)
         local v = wx * math.sin(a) + wz * math.cos(a)
         local f, r = math.floor(u / SQ + 4), math.floor(4 - v / SQ)
-        if on(f, r) then
+        local hand = if s.st.var == "mulino" then 1 elseif s.st.var == "zh" then #DROPS else 0
+        if s.st.var == "mulino" then
+            -- The nearest point, if the cursor is near enough to it.
+            local gf, gr = u / MILL_STEP + 3, 3 - v / MILL_STEP
+            local nf, nr = math.floor(gf + 0.5), math.floor(gr + 0.5)
+            if math.abs(gf - nf) < 0.4 and math.abs(gr - nr) < 0.4 and nf >= 0 and nf <= 6 and nr >= 0 and nr <= 6
+                and IS_POINT[at(nf, nr)] then
+                return at(nf, nr), px, s.y + TOP, pz
+            end
+        elseif on(f, r) then
             return at(f, r), px, s.y + TOP, pz
-        elseif s.st.var == "zh" and f == 9 and r >= 1 and r <= #DROPS then
+        end
+        if f == 9 and r >= 1 and r <= hand then
             return 100 + r, px, s.y + TOP, pz
-        elseif s.st.var == "zh" and f == -2 and 7 - r >= 1 and 7 - r <= #DROPS then
+        elseif f == -2 and 7 - r >= 1 and 7 - r <= hand then
             return 110 + 7 - r, px, s.y + TOP, pz
         end
         return nil, px, s.y + TOP, pz
@@ -1462,7 +1813,16 @@ if drawing then
                 return
             end
             local i = under_cursor(s)
-            if i == nil then
+            if i ~= nil and s.st.var == "mulino" and s.st.ep == 1 and may_move(s, s.st.turn) then
+                -- A mill made: the click takes the stone it is on, if it may.
+                for _, m in legal(s.st, i) do
+                    if m[1] == i and m[2] == i then
+                        move(s, i, i)
+                        return
+                    end
+                end
+                drop()
+            elseif i == nil then
                 drop()
             elseif picked and targets[i] then
                 move(s, picked, i)
@@ -1548,6 +1908,24 @@ if drawing then
                     end
                 end
             end
+            if st.var == "mulino" then
+                -- A light board over the squares, its lines and points.
+                local cx0, cy0, cz0 = world_of(s, 3, 3)
+                core.render.box(cx0, cy0 + 0.001, cz0, 8 * SQ, 0.003, 8 * SQ, 214, 186, 140, 255)
+                for _, l in MILL_LINES do
+                    local f1, r1 = fr(l[1])
+                    local f3, r3 = fr(l[3])
+                    local x1, y1, z1 = world_of(s, f1, r1)
+                    local x3, _, z3 = world_of(s, f3, r3)
+                    core.render.box((x1 + x3) / 2, y1 + 0.004, (z1 + z3) / 2, math.abs(x3 - x1) + 0.012, 0.003,
+                                    math.abs(z3 - z1) + 0.012, 60, 40, 25, 255)
+                end
+                for i in IS_POINT do
+                    local f, r = fr(i)
+                    local x, y, z = world_of(s, f, r)
+                    core.render.box(x, y + 0.005, z, 0.03, 0.004, 0.03, 60, 40, 25, 255)
+                end
+            end
             local turn = s.facing * math.pi / 2
             for i, p in st.b do
                 if p == "." then
@@ -1565,7 +1943,8 @@ if drawing then
             end
             -- The crazyhouse hands: a tray beside the table each, a piece a
             -- kind held, and as many pips as there are of it past one.
-            if st.var == "zh" then
+            if st.var == "zh" or st.var == "mulino" then
+                local kinds = if st.var == "mulino" then "O" else DROPS
                 for _, c in { "w", "b" } do
                     local base = if c == "w" then 100 else 110
                     local tf, tr = place(base + 3)
@@ -1573,8 +1952,8 @@ if drawing then
                     local along = s.facing % 2 == 0
                     core.render.box(x, y - 0.01, z, if along then SQ else 5 * SQ, 0.02, if along then 5 * SQ else SQ,
                                     90, 55, 30, 255)
-                    for k = 1, #DROPS do
-                        local p = as(string.sub(DROPS, k, k), c)
+                    for k = 1, #kinds do
+                        local p = as(string.sub(kinds, k, k), c)
                         local n = select(2, string.gsub(st.pocket, p, ""))
                         if n == 0 then
                             continue
@@ -1588,7 +1967,7 @@ if drawing then
                             local px, py, pz = world_of(s, f, r)
                             core.render.model(model(p), px, py, pz, yaw)
                         end
-                        for j = 2, math.min(n, 6) do
+                        for j = 2, math.min(n, 9) do
                             local qx, qy, qz = world_of(s, f + (if c == "w" then -0.42 else 0.42), r - 0.4 + (j - 1) * 0.16)
                             core.render.box(qx, qy + 0.004, qz, 0.012, 0.008, 0.012, 230, 220, 190, 255)
                         end
@@ -1648,9 +2027,10 @@ if drawing then
 
     local DRAWN = { stalemate = "stallo", fifty = "cinquanta mosse", material = "materiale insufficiente",
                     repetition = "triplice ripetizione", agreed = "d'accordo", time = "tempo scaduto",
-                    race = "tutti e due i re all'ottava" }
+                    race = "tutti e due i re all'ottava", forty = "quaranta mosse senza prese" }
     local WON = { hill = "Re sulla collina", checks = "Terzo scacco", race = "Re all'ottava traversa",
-                  anti = "Senza più mosse", atomic = "Re saltato in aria", horde = "Orda distrutta" }
+                  anti = "Senza più mosse", atomic = "Re saltato in aria", horde = "Orda distrutta",
+                  blocked = "Avversario senza mosse", few = "Avversario ridotto a due pedine" }
     core.hud.pass("chess:status", 100, function()
         local s = if sitting then seen[sitting] else nil
         if s == nil then
@@ -1669,6 +2049,7 @@ if drawing then
         else
             line = (if st.var == "std" then "" else `{VARIANT_NAME[st.var]} -- `)
                 .. `Muove il {who(st.turn)}` .. (if in_check(st) then " -- scacco!" else "")
+                .. (if st.var == "mulino" and st.ep == 1 then " -- mulino! togli una pedina" else "")
                 .. (if st.var == "3check"
                     then ` -- scacchi dati {string.sub(st.checks, 1, 1)}-{string.sub(st.checks, 2, 2)}` else "")
                 .. (if st.offer ~= "" then ` -- il {who(st.offer)} propone la patta` else "")

@@ -292,6 +292,8 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     mob_unseen: (id: number, player: number) -> number,
     -- Takes a worker out of the world at once, leaving nothing and playing no death: its mod taking it back. Returns 1, or 0 for one that is gone or not a worker.
     mob_remove: (id: number) -> number,
+    -- The player whose body that is, or 0 for a creature, a thing or nothing: who was struck, when core:hit's target is a player. On a server.
+    body_player: (id: number) -> number,
     -- What kind a creature is, by the name it was registered under (register_mob), or an empty string for one that is gone or no creature. What a mod answering core:used_mob reads to know a cow from a sheep.
     mob_kind: (id: number) -> string,
     -- Puts a creature in love as if a player had fed it its food (core.mob_breed): only a grown one, not in love already and not within five minutes of its last young. A trough, a robot tending a pen. Returns 1 if it is in love now.

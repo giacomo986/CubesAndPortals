@@ -1415,6 +1415,16 @@ int l_mob_remove(lua_State *L)
     return 1;
 }
 
+// core.body_player(id: number) -> number
+int l_body_player(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const int result = (vm && vm->host.body_player) ? vm->host.body_player(vm->host.ud, id) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.mob_kind(id: number) -> string
 int l_mob_kind(lua_State *L)
 {
@@ -3077,6 +3087,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "mob_unseen");
     lua_pushcfunction(L, l_mob_remove, "core.mob_remove");
     lua_setfield(L, -2, "mob_remove");
+    lua_pushcfunction(L, l_body_player, "core.body_player");
+    lua_setfield(L, -2, "body_player");
     lua_pushcfunction(L, l_mob_kind, "core.mob_kind");
     lua_setfield(L, -2, "mob_kind");
     lua_pushcfunction(L, l_mob_love, "core.mob_love");

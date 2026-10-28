@@ -9,6 +9,10 @@
 #                    shapes turned on a lathe (the knight's head cut from a
 #                    side profile), feet at 0 about their middle, the knight
 #                    looking down -Z. Sized to the squares: the king is 0.155.
+#   {w,b}_{m,d,o}.gltf
+#                    the other games of the table: draughts' man (a disc with a
+#                    groove round it and rings on its face) and king (two of
+#                    them stacked), and the mill's stone (rounded, lower)
 #   blast.gltf, smoke.gltf
 #                    atomic chess's explosion: a ball of fire in lumps, white
 #                    hot inside to red outside, and a puff of grey smoke, a
@@ -320,7 +324,26 @@ def king():
     return parts
 
 
-PIECES = {"p": (pawn, None), "r": (rook, rook_cut), "n": (knight, None), "b": (bishop, bishop_cut),
+def man():
+    p = [(0, 0), (0.38, 0), (0.40, 0.03), (0.40, 0.06), (0.37, 0.075), (0.40, 0.09), (0.40, 0.12),
+         (0.37, 0.145), (0.30, 0.145), (0.28, 0.13), (0.22, 0.13), (0.20, 0.145), (0.10, 0.145),
+         (0.08, 0.13), (0, 0.13)]
+    return [(lathe([(a * SQ, b * SQ) for a, b in p]), "M")]
+
+
+def king_man():
+    p = [(0, 0), (0.38, 0), (0.40, 0.03), (0.40, 0.11), (0.37, 0.135), (0.40, 0.16), (0.40, 0.25),
+         (0.37, 0.28), (0.30, 0.28), (0.28, 0.265), (0.22, 0.265), (0.20, 0.28), (0.12, 0.28),
+         (0.12, 0.33), (0.07, 0.33), (0.07, 0.28), (0, 0.28)]
+    return [(lathe([(a * SQ, b * SQ) for a, b in p]), "M")]
+
+
+def stone():
+    p = [(0, 0), (0.30, 0), (0.36, 0.04), (0.37, 0.09), (0.33, 0.15), (0.20, 0.185), (0, 0.19)]
+    return [(lathe([(a * SQ, b * SQ) for a, b in p]), "M")]
+
+
+PIECES = {"m": (man, None), "d": (king_man, None), "o": (stone, None), "p": (pawn, None), "r": (rook, rook_cut), "n": (knight, None), "b": (bishop, bishop_cut),
           "q": (queen, None), "k": (king, None)}
 
 
@@ -395,7 +418,7 @@ def preview(objs):
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 os.makedirs(MOD, exist_ok=True)
-made = [board()] + [piece(k, c) for c in "wb" for k in "prnbqk"]
+made = [board()] + [piece(k, c) for c in "wb" for k in "prnbqkmdo"]
 for o in (blast(), smoke()):
     o.location = (-0.6 if o.name == "blast" else -1.4, 0.2, 1.4)   # beside the board in the picture
 os.makedirs(os.path.dirname(BLEND), exist_ok=True)

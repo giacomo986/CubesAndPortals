@@ -731,6 +731,8 @@ def decor(rng):
     faces("alchemy:still_on", "alchemy_still_face")
     save(speckle((90, 200, 190), [(60, 160, 150), (150, 235, 225)], rng, 50), "travel_waystone_face")
     faces("travel:waystone", "travel_waystone_face")
+    save(speckle((200, 160, 60), [(170, 130, 40), (235, 200, 110)], rng, 40), "arena_gong_face")
+    faces("arena:gong", "arena_gong_face")
     for wood in ["oak"] + list(WOODS):
         planks_file = "timber_planks" if wood == "oak" else f"woods_{wood}_planks"
         faces(f"{d}:{wood}_chair", planks_file)
