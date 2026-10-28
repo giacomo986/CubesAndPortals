@@ -317,6 +317,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
             player.pos       = p;
             player.on_ground = c.on;
             player.riding    = c.on;
+            if (c.on) player.ride_yaw = std::atan2(c.tx, -c.tz);
             return;
         }
     }

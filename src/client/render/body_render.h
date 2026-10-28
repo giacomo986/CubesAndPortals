@@ -55,6 +55,7 @@ struct Body {
     ClipAt   rider_clips[2];
     bool     rider_headless = false;   // the rider seen from inside its own head
     bool     arms_only = false;        // the body itself seen from its own head, in a seat: its arms alone
+    bool     dress_in_view = false;   // with arms_only: what a mod dresses it in too (a cart)
 
     // What is in its hand, by item name ("tools:pick"), when this machine
     // knows. A tool_<short name> bone is shown for it and every other tool_*

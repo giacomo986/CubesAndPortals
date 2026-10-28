@@ -6088,7 +6088,8 @@ void wheel_pose(const SkinnedModel &m, const Body &b, std::vector<float> &out)
         for (int j = 0; j < m.joint_count; ++j) {
             const std::string &name = m.joint_names[(size_t)j];
             const bool arm = name.rfind("upper_arm_", 0) == 0 || name.rfind("forearm_", 0) == 0 ||
-                             name.rfind("hand_", 0) == 0 || name.rfind("tool_", 0) == 0;
+                             name.rfind("hand_", 0) == 0 || name.rfind("tool_", 0) == 0 ||
+                             (b.dress_in_view && name == "root");   // what is worn on the feet: a cart
             if (!arm) std::fill(out.begin() + (ptrdiff_t)j * 12, out.begin() + (ptrdiff_t)j * 12 + 12, 0.0f);
         }
 }
@@ -6643,6 +6644,10 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
         if (!b.arms_only) {   // nothing worn shows from inside the head
             draw_extras(w.models, *e, posed, b.livery, false, projection, view, place);
             if (r == nullptr) dress(*e);
+        } else if (b.dress_in_view) {   // but a cart sat in, seen from inside
+            for (int k = 0; k < 10; ++k)
+                if (const ModelStore::Entry *piece = b.dress[k] != 0 ? w.models.entry(b.dress[k]) : nullptr)
+                    draw_worn(w.models, e->model, posed, piece->name, projection, view, place, b.dress_tint[k]);
         }
     } else {
         e->renderer.draw(projection, view, place, e->model.bind_pose, gfx_texture{0}, light, b.alpha);
@@ -8729,6 +8734,8 @@ void add_own_body(Scene &s, const Player &player, uint16_t model)
                    : player.yaw;
     b.pitch  = player.body_pitch;
     b.roll   = player.body_roll;
+    // In a cart on a rail: facing the rail, not the view.
+    if (player.riding && s.act().movement.cart) b.yaw = player.ride_yaw;
     b.id     = kOwnBody;
     const DriveLook look = vehicle_look(player);
     b.boosting = look.boosting;
@@ -8826,10 +8833,16 @@ void add_own_body(Scene &s, const Player &player, uint16_t model)
         b.rider_headless = true;
         s.rider_eye      = rider_eye(s.act(), b, player.eye());
     }
-    s.seat_view = s.act().view_distance <= 0.0f && s.seat_on && !s.driving_view;
+    // Held in a clip by a mod and dressed by it (a cart, sat in): seen from
+    // its posed head as a seat is, its arms where the clip puts them and what
+    // it is dressed in round it.
+    const bool posed_in = s.own_clip.empty() && s.conn != nullptr && !s.conn->own_pose().clip.empty() &&
+                          std::any_of(std::begin(b.dress), std::end(b.dress), [](uint16_t m) { return m != 0; });
+    s.seat_view = s.act().view_distance <= 0.0f && (s.seat_on || posed_in) && !s.driving_view;
     if (s.seat_view) {
-        b.arms_only = true;
-        s.seat_eye  = seat_eye(s.act(), b, player.eye());
+        b.arms_only     = true;
+        b.dress_in_view = posed_in;
+        s.seat_eye      = seat_eye(s.act(), b, player.eye());
     }
     if (s.act().view_distance <= 0.0f && !s.driving_view && !s.seat_view) return;
     // Looking at a point (core.fixed_view) the camera can pass through the
@@ -15284,7 +15297,13 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         s.act().player_model_id = conn->welcome().player_model;
         add_own_body(s, player, conn->welcome().player_model);
 
-        const Vec3 fwd = player.forward();
+        Vec3 fwd = player.forward();
+        // In a cart on a rail, the body everybody else sees faces the rail
+        // (its yaw is the look's): the look's pitch, the rail's heading.
+        if (player.riding && s.act().movement.cart) {
+            const float flat = std::sqrt(std::max(0.0f, 1.0f - fwd.y * fwd.y));
+            fwd = Vec3{std::sin(player.ride_yaw) * flat, fwd.y, -std::cos(player.ride_yaw) * flat};
+        }
         conn->send_move(player.pos.x, player.pos.y, player.pos.z, fwd.x, fwd.y, fwd.z, now,
                         player.flying, player.velocity);
 

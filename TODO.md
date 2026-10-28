@@ -694,9 +694,18 @@ unreleased) sends a body's core.player_clip and core.player_wear to its own
 client, which draws them where its own world code says nothing (boats, karts
 of the games, cards held by a server mod all benefit). Checked with a client:
 the track seen as models, a ride from a real click: climbing in, then seated,
-over the rails and the powered rail. Open: models arrive some ten seconds
-after joining, till then rails are not drawn at all (the block-model has no
-box fallback while loading); no first-person seated camera.
+over the rails and the powered rail. Then (asked the same day): in first
+person a body a server mod holds in a clip and dresses (OwnPose) is seen
+from its posed head as a seat is -- its arms where the clip puts them, on
+the rims, and the cart round it (Body::dress_in_view keeps the root bone
+the cart hangs on); and a cart on a rail faces the rail, not the view
+(Player::ride_yaw, set by the rail physics; the look sent to the server
+takes its heading, so everybody else sees it so too). Checked with a
+client: looking down from the seat, the cart's rims with the robot's hands
+on them; in third person the view turned a full circle and the cart stayed
+along the track. Open: models arrive some ten seconds after joining, till
+then rails are not drawn at all (the block-model has no box fallback while
+loading).
 
 ## Portals and movement
 

@@ -150,6 +150,9 @@ struct Player {
 
     // Riding a slide (chute_at, player_update): sat in it, the eye low.
     bool  riding = false;
+    // The way the rail under a cart runs (Player::forward's yaw), while it
+    // rides one: the body and its cart face it, wherever the view turns.
+    float ride_yaw = 0.0f;
 
     // On a rope (core.rope): the hands kept within rope_len of rope_at, which
     // they swing about.
