@@ -36,6 +36,7 @@ end
 local URN = core.register_node("relics:urn", 150, 90, 60, true, 0, "", 0, 0.4, "glass")
 core.node_box(URN, 0.25, 0, 0.25, 0.75, 0.7, 0.75)
 core.register_item("relics:shard", 16)
+core.register_model("relics:shard_held", "shard_held.gltf")   -- tools/make_held_models.py
 core.node_drop_item(URN, "relics:shard")
 
 local SQUARE = 384   -- a multiple of 32: a column is in one square only

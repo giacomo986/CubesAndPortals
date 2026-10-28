@@ -35,6 +35,9 @@ local ALTAR   = core.register_node("deep:altar", 120, 80, 160, true, 9, "", 99, 
 core.node_box(ALTAR, 0.05, 0, 0.05, 0.95, 0.4, 0.95)
 core.node_box(ALTAR, 0.25, 0.4, 0.25, 0.75, 1.0, 0.75)
 core.register_item("deep:heart", 1)
+-- In the hand: their own models (tools/make_held_models.py).
+core.register_model("deep:shard_held", "shard_held.gltf")
+core.register_model("deep:heart_held", "heart_held.gltf")
 
 local GUARDIAN = core.register_model("deep:guardian", "guardian.gltf")
 -- Slower than a walk, hits like two zombies (four blows down a player without

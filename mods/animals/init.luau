@@ -102,7 +102,7 @@ end)
 -- What each item looks like in a hand: its own model, drawn in the palm
 -- (tools/make_held_models.py).
 for _, n in { "beef", "steak", "pork", "cooked_pork", "egg", "fried_egg", "feather",
-              "leather", "seeds", "shears", "wool" } do
+              "leather", "seeds", "shears", "wool", "milk", "cheese", "cake" } do
     core.register_model(`animals:{n}_held`, `{n}_held.gltf`)
 end
 
@@ -206,6 +206,7 @@ for _, id in { TROUGH, FILLED } do
 end
 core.node_box(FILLED, 0.1, 0.1, 0.2, 0.9, 0.45, 0.8)
 core.node_drop(FILLED, TROUGH)
+core.register_model("animals:trough_held", "trough_held.gltf")   -- tools/make_held_models.py
 core.recipe_shaped("animals:trough", 1,
     "timber:planks farm:wheat    timber:planks",
     "timber:planks timber:planks timber:planks")

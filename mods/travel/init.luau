@@ -18,6 +18,7 @@ local STONE = core.register_node("travel:waystone", 90, 200, 190, true, 7, "", 0
 core.node_box(STONE, 0.1, 0, 0.1, 0.9, 0.2, 0.9)
 core.node_box(STONE, 0.25, 0.2, 0.25, 0.75, 0.85, 0.75)
 core.node_box(STONE, 0.18, 0.85, 0.18, 0.82, 1.0, 0.82)
+core.register_model("travel:waystone_held", "waystone_held.gltf")   -- tools/make_held_models.py
 core.recipe_shaped("travel:waystone", 1,
     "rocks:smooth_stone  ore:emerald   rocks:smooth_stone",
     "rocks:smooth_stone  ore:cinnabar  rocks:smooth_stone",

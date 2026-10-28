@@ -20,6 +20,8 @@ local drawing = side ~= "server"
 
 core.register_item("maps:compass", 1)
 core.register_item("maps:map", 1)
+core.register_model("maps:compass_held", "compass_held.gltf")   -- tools/make_held_models.py
+core.register_model("maps:map_held", "map_held.gltf")
 core.recipe_shaped("maps:compass", 1,
     "-                   furnace:iron_ingot  -",
     "furnace:iron_ingot  ore:cinnabar        furnace:iron_ingot",

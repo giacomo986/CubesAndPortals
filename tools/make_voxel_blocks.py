@@ -659,6 +659,13 @@ def dungeons(rng):
     save(cage, "dungeons_spawner")
 
 
+def faces(node, file):
+    """Every face of `node` wearing `file`, its own name left free for its
+    bag picture (tools/make_held_models.py's block icons)."""
+    for face in ("side", "top", "bottom"):
+        alias(node, file, face)
+
+
 def decor(rng):
     """mods/building's decoration: stained glass, tiles, the lantern; walls,
     panes, carpets and furniture wear the blocks they are made of."""
@@ -673,7 +680,7 @@ def decor(rng):
                 g.putpixel((x, y), shade(rgb, k) + (215 if edge else 150,))
         save_rgba(g, f"{d}_{c}_stained_glass")
         for i in range(16):
-            alias(f"{d}:{c}_stained_glass_pane" + (f"_{i}" if i else ""), f"{d}_{c}_stained_glass")
+            (faces if i == 0 else alias)(f"{d}:{c}_stained_glass_pane" + (f"_{i}" if i else ""), f"{d}_{c}_stained_glass")
         # Glazed tiles: four to a face, a glossy corner, grout between.
         t = Image.new("RGB", (16, 16))
         grout = shade(rgb, 0.55)
@@ -686,7 +693,7 @@ def decor(rng):
                     k = 1.22 if lx + ly <= 3 else rng.uniform(0.94, 1.04)
                     t.putpixel((x, y), shade(rgb, k))
         save(t, f"{d}_{c}_tiles")
-        alias(f"{d}:{c}_carpet", f"colors_{c}_wool")
+        faces(f"{d}:{c}_carpet", f"colors_{c}_wool")
     stone = Image.new("RGB", (16, 16))
     for y in range(16):
         for x in range(16):
@@ -705,17 +712,29 @@ def decor(rng):
             frame = x in (0, 1, 14, 15) or y in (0, 1, 14, 15)
             lantern.putpixel((x, y), shade((60, 60, 64), rng.uniform(0.9, 1.1)) if frame
                              else shade((255, 200, 110), rng.uniform(0.92, 1.05)))
-    save(lantern, f"{d}_lantern")
-    alias(f"{d}:lantern_hung", f"{d}_lantern")
+    save(lantern, f"{d}_lantern_box")
+    faces(f"{d}:lantern", f"{d}_lantern_box")
+    alias(f"{d}:lantern_hung", f"{d}_lantern_box")
     for i in range(16):
         tail = f"_{i}" if i else ""
-        alias(f"{d}:cobblestone_wall{tail}", "rocks_cobblestone")
-        alias(f"{d}:mossy_cobblestone_wall{tail}", "rocks_mossy_cobblestone")
-        alias(f"{d}:stone_brick_wall{tail}", "rocks_stone_bricks")
+        put = faces if i == 0 else alias
+        put(f"{d}:cobblestone_wall{tail}", "rocks_cobblestone")
+        put(f"{d}:mossy_cobblestone_wall{tail}", "rocks_mossy_cobblestone")
+        put(f"{d}:stone_brick_wall{tail}", "rocks_stone_bricks")
+    # The sandbox's other blocks of boxes with a bag picture of their own:
+    # their faces somewhere else (an icon is not a face).
+    faces("animals:trough", "timber_planks")
+    faces("animals:trough_full", "timber_planks")
+    faces("villagers:board", "timber_planks")
+    save(speckle((184, 115, 75), [(150, 90, 60), (210, 150, 100)], rng, 50), "alchemy_still_face")
+    faces("alchemy:still", "alchemy_still_face")
+    faces("alchemy:still_on", "alchemy_still_face")
+    save(speckle((90, 200, 190), [(60, 160, 150), (150, 235, 225)], rng, 50), "travel_waystone_face")
+    faces("travel:waystone", "travel_waystone_face")
     for wood in ["oak"] + list(WOODS):
         planks_file = "timber_planks" if wood == "oak" else f"woods_{wood}_planks"
-        alias(f"{d}:{wood}_chair", planks_file)
-        alias(f"{d}:{wood}_table", planks_file)
+        faces(f"{d}:{wood}_chair", planks_file)
+        faces(f"{d}:{wood}_table", planks_file)
 
 
 def main():

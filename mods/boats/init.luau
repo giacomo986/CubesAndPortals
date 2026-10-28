@@ -10,6 +10,7 @@
 
 local BOAT = "boats:boat"
 core.register_item(BOAT, 1)
+core.register_model("boats:boat_held", "boat_held.gltf")   -- small, in the hand (tools/make_held_models.py)
 local HULL = core.register_model(BOAT, "boat.gltf")
 core.recipe_shaped(BOAT, 1,
     "timber:planks -             timber:planks",

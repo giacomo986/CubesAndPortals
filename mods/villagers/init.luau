@@ -3378,9 +3378,11 @@ E.click = function(p: number, id: number)
 end
 
 core.register_item("villagers:parcel", 1, "", 0, 1.0, "")
+core.register_model("villagers:parcel_held", "parcel_held.gltf")   -- tools/make_held_models.py
 E.BOARD = core.register_node("villagers:board", 150, 112, 70, true, 0, "upright", 0, 1.5, "wood")
 core.node_box(E.BOARD, 0.45, 0, 0.45, 0.55, 1.0, 0.55)
 core.node_box(E.BOARD, 0.05, 0.55, 0.42, 0.95, 1.25, 0.58)
+core.register_model("villagers:board_held", "board_held.gltf")   -- tools/make_held_models.py
 core.recipe_shaped("villagers:board", 1,
     "timber:planks cane:paper   timber:planks",
     "-             timber:stick -")

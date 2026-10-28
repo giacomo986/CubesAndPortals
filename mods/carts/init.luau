@@ -21,6 +21,7 @@ if serving then
     core.net.open()
     local CART = "carts:cart"
     core.register_item(CART, 1)
+    core.register_model("carts:cart_held", "cart_held.gltf")   -- small, in the hand (tools/make_held_models.py)
     local MODEL = core.register_model(CART, "cart.gltf")
     core.recipe_shaped(CART, 1,
         "furnace:iron_ingot  -                   furnace:iron_ingot",

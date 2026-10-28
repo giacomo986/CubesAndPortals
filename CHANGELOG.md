@@ -13,6 +13,8 @@ Protocollo 110: un client 0.9.0-alpha.4 non entra in un server con i binari.
 - Le pietre del viaggio: una per villaggio accanto al pozzo, fabbricabili per i territori;
   pagando uno smeraldo ogni 200 nodi si apre un portale vero verso una pietra toccata, per
   cinque minuti.
+- Modelli in mano e icone per tutti gli oggetti e i blocchi nuovi che non li avevano (le sedie
+  nell'inventario non sono più quadrati di assi).
 - Decorazioni: vetro colorato e lastre nei sedici colori, muretti, piastrelle smaltate, a scacchi
   e di pietra, sedie (ci si siede, e il corpo non gira con la telecamera) e tavoli per ogni legno,
   tappeti, lanterne in ferro e vetro. Dal carrello si scende anche con F.

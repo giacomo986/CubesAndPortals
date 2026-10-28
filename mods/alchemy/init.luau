@@ -42,9 +42,14 @@ if serving then
 
     core.register_item("alchemy:flask", 16, "", 0, 1.0, "")
     core.register_item("alchemy:flask_water", 16, "", 0, 1.0, "")
+    -- In the hand: a round bottle, its body the colour of what is in it
+    -- (tools/make_held_models.py).
+    core.register_model("alchemy:flask_held", "flask_held.gltf")
+    core.register_model("alchemy:flask_water_held", "flask_water_held.gltf")
     local BY_INGREDIENT: { [string]: string } = {}
     for name, p in POTIONS do
         core.register_item("alchemy:" .. name, 16, "", 0, 1.0, "")
+        core.register_model(`alchemy:{name}_held`, `{name}_held.gltf`)
         BY_INGREDIENT[p.from] = name
     end
 
@@ -59,6 +64,7 @@ if serving then
         core.node_box(id, 0.45, 0.85, 0.7, 0.55, 0.95, 1.0)
     end
     core.node_drop(BUSY, STILL)
+    core.register_model("alchemy:still_held", "still_held.gltf")   -- tools/make_held_models.py
 
     core.recipe_shaped("alchemy:flask", 3,
         "core:glass -          core:glass",

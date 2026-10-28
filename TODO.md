@@ -704,6 +704,22 @@ the villagers and start with questions (memory: villagers-need-design-first).
     "out", F sends "off"), and F does not toggle flying while in a cart.
     Checked with a client: F mid-ride put the cart back in the bag at once;
     sat on a chair, the camera turned a full circle and the body stayed.
+Held models and icons for the session's new things (2026-10-28), by
+tools/make_held_models.py (ONLY= the new ones; the rest untouched): every new
+item that had none got a model in the hand -- a bucket of milk, cheese, a cake,
+the hollows' crystal and heart, compass and map, a relic's shard, the
+blueprints rolled, a parcel, the flasks and potions (their body the potion's
+colour: through white glass they were all alike), gunpowder, and the boat and
+cart small -- and the crystal and heart an icon. And the new blocks of boxes,
+which showed in the bag as a square of their face (a chair was planks) and in
+the hand as a cube, got both from their boxes: chairs and tables of every
+wood, walls, the panes and carpets of every colour, the lantern, the still,
+the trough, the board and the waystone. For that their faces are aliased by
+side (tools/make_voxel_blocks.py's faces()), which leaves their own file name
+for the bag picture; the still and the waystone got face pictures of their
+own. Checked with a client: each held in turn, and the bar. Seen: a held
+model shows some seconds after joining, as the models arrive.
+
 16. Plaza games on the chess frame (draughts, mill), a scored PvP arena.
 
 Railways redone 2026-10-28 (asked the same day), in Blender through its MCP

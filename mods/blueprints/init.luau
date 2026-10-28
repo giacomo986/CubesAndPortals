@@ -37,6 +37,9 @@ if serving then
     core.net.open()
     core.register_item("blueprints:empty", 16, "", 0, 1.0, "")
     core.register_item("blueprints:plan", 1, "", 0, 1.0, "")
+    -- In the hand: a rolled sheet, blank or drawn on (tools/make_held_models.py).
+    core.register_model("blueprints:empty_held", "empty_held.gltf")
+    core.register_model("blueprints:plan_held", "plan_held.gltf")
     core.recipe_shapeless("blueprints:empty", 2, "cane:paper cane:paper ore:lapis")
 
     -- ---------------------------------------------------------- the store

@@ -80,6 +80,7 @@ if serving then
     local LIT = node("building:tnt_lit", { 250, 250, 240 }, true, "", 0.0, "", 6)
     core.node_drop(LIT, TNT)
     core.register_item("building:gunpowder", 64, "", 0, 1.0, "")
+    core.register_model("building:gunpowder_held", "gunpowder_held.gltf")   -- tools/make_held_models.py
     core.mob_drop("mobs:zombie", "building:gunpowder", 2)
     core.recipe_shaped("building:tnt", 1,
         "building:gunpowder core:sand          building:gunpowder",
@@ -283,6 +284,9 @@ if serving then
         local carpet = node(`building:{c}_carpet`, rgb, false, "", 0.1, "")
         core.node_box(carpet, 0, 0, 0, 1, 1 / 16, 1)
         core.recipe_shaped(`building:{c}_carpet`, 3, `colors:{c}_wool colors:{c}_wool`)
+        -- In the hand: their own boxes, not a cube (tools/make_held_models.py).
+        core.register_model(`building:{c}_stained_glass_pane_held`, `{c}_stained_glass_pane_held.gltf`)
+        core.register_model(`building:{c}_carpet_held`, `{c}_carpet_held.gltf`)
     end
     node("building:stone_tiles", { 150, 150, 152 }, true, "", 2.0, "stone")
     core.recipe_shaped("building:stone_tiles", 4, "rocks:stone_bricks rocks:stone_bricks",
@@ -299,6 +303,7 @@ if serving then
         joined(`building:{w[1]}_wall`, w[3], 2.0, "stone", { 0.25, 0, 0.25, 0.75, 1, 0.75 },
                reach(0.3125, 0.6875, { { 0, 0.8125 } }))
         core.recipe_shaped(`building:{w[1]}_wall`, 6, `{w[2]} {w[2]} {w[2]}`, `{w[2]} {w[2]} {w[2]}`)
+        core.register_model(`building:{w[1]}_wall_held`, `{w[1]}_wall_held.gltf`)
     end
 
     -- Chairs and tables, one of each per wood.
@@ -310,6 +315,8 @@ if serving then
                        { 0.15, 0, 0.75, 0.25, 0.30, 0.85 }, { 0.75, 0, 0.75, 0.85, 0.30, 0.85 },
                        { 0.15, 0.40, 0.75, 0.85, 1.0, 0.85 } })                         -- back
         CHAIRS[chair] = true
+        core.register_model(`building:{w}_chair_held`, `{w}_chair_held.gltf`)
+        core.register_model(`building:{w}_table_held`, `{w}_table_held.gltf`)
         core.recipe_shaped(`building:{w}_chair`, 2,
             "timber:stick  -",
             `{planks_of(w)} {planks_of(w)}`,
@@ -363,6 +370,7 @@ if serving then
     -- (tools/make_lantern_model.py, assets/blender/lantern.blend).
     core.node_model(LANTERN, core.register_model("building:lantern", "lantern.gltf"))
     core.node_model(HUNG, core.register_model("building:lantern_hung", "lantern_hung.gltf"))
+    core.register_model("building:lantern_held", "lantern_held.gltf")
     core.recipe_shaped("building:lantern", 1,
         "-                  furnace:iron_ingot -",
         "furnace:iron_ingot torches:torch      furnace:iron_ingot",

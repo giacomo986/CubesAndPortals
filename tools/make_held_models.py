@@ -836,6 +836,122 @@ for w, (body, bit) in KEY_COLOURS.items():
                          (box((0.024, 0.012, 0.012), at=(0.017, 0.115, 0)), f"key_{w}_bit"),
                          (ball(0.009, at=(0, 0.0, 0.006)), f"key_{w}_bit")]
 
+# The sandbox's newer things (2026-10-28): a bucket of milk, cheese and a cake
+# (mods/animals), the hollows' crystal and heart (mods/deep), the compass and
+# the map (mods/maps), a relic's shard, the blueprints, a parcel, the flasks
+# and potions (mods/alchemy), gunpowder; and the boat and the cart as small
+# copies of themselves.
+for key, rgb, metal, rough, glow in (
+        ("milk", (0.96, 0.95, 0.90), 0.0, 0.4, False), ("cheese", (0.98, 0.80, 0.30), 0.0, 0.6, False),
+        ("cheese_rind", (0.88, 0.62, 0.18), 0.0, 0.7, False), ("sponge", (0.62, 0.40, 0.22), 0.0, 0.8, False),
+        ("icing", (0.97, 0.96, 0.93), 0.0, 0.5, False), ("cherry", (0.80, 0.08, 0.10), 0.0, 0.3, False),
+        ("crystal", (0.74, 0.47, 0.98), 0.0, 0.1, True), ("heart", (0.60, 0.20, 0.85), 0.2, 0.2, True),
+        ("brass", (0.80, 0.62, 0.28), 1.0, 0.35, False), ("dial", (0.95, 0.93, 0.86), 0.0, 0.6, False),
+        ("map", (0.86, 0.80, 0.62), 0.0, 0.8, False), ("map_land", (0.45, 0.62, 0.32), 0.0, 0.8, False),
+        ("map_sea", (0.35, 0.55, 0.80), 0.0, 0.8, False), ("relic", (0.47, 0.90, 0.80), 0.0, 0.1, True),
+        ("blueprint", (0.24, 0.41, 0.75), 0.0, 0.7, False), ("parcel", (0.70, 0.52, 0.32), 0.0, 0.8, False),
+        ("twine", (0.95, 0.90, 0.78), 0.0, 0.8, False), ("glass", (0.82, 0.92, 0.96), 0.0, 0.05, False),
+        ("cork", (0.62, 0.44, 0.26), 0.0, 0.9, False), ("powder", (0.33, 0.33, 0.34), 0.0, 0.9, False)):
+    M[key] = material(key.capitalize() + "_new", rgb, metal, rough, glow=glow)
+POTIONS = {"flask_water": (0.25, 0.48, 0.86), "night_sight": (0.31, 0.84, 0.90), "swiftness": (0.94, 0.86, 0.35),
+           "stoneskin": (0.67, 0.47, 0.94), "mending": (0.92, 0.31, 0.35), "haste": (0.94, 0.59, 0.24),
+           "water_breathing": (0.24, 0.78, 0.63)}
+
+
+def flask(liquid):
+    """A round bottle, its neck up the screen, a cork; the body the colour of
+    what is in it (the glass is not drawn see-through), a glint on it."""
+    return [(ball(0.048, segs=14, rings=10, at=(0, 0.03, 0)), liquid or "glass"),
+            (cyl(0.016, 0.06, segs=10, at=(0, 0.07, 0)), "glass"),
+            (cyl(0.019, 0.022, segs=10, at=(0, 0.125, 0)), "cork"),
+            (ball(0.009, segs=6, rings=4, at=(-0.022, 0.05, 0.04)), "white")]
+
+
+def miniature(path, size):
+    """A model worn by a body (a boat, a cart: the robot's rig, feet at 0, front
+    +Y) small in the hand: its meshes joined, its longest side `size`, upright
+    up the screen, about the fist."""
+    def build_it(name):
+        before = set(bpy.data.objects)
+        bpy.ops.import_scene.gltf(filepath=os.path.join(ROOT, path))
+        new = [o for o in bpy.data.objects if o not in before]
+        meshes = [o for o in new if o.type == "MESH" and o.name.lower().find("icosphere") < 0]
+        for o in meshes:
+            for mod in list(o.modifiers):
+                o.modifiers.remove(mod)
+            mw = o.matrix_world.copy()
+            o.parent = None
+            o.matrix_world = mw
+        for o in new:
+            if o not in meshes:
+                bpy.data.objects.remove(o)
+        bpy.ops.object.select_all(action="DESELECT")
+        for o in meshes:
+            o.select_set(True)
+        bpy.context.view_layer.objects.active = meshes[0]
+        if len(meshes) > 1:
+            bpy.ops.object.join()
+        obj = bpy.context.view_layer.objects.active
+        obj.name = name
+        obj.rotation_mode = "XYZ"
+        obj.vertex_groups.clear()
+        obj.data.transform(obj.matrix_world)
+        obj.matrix_world = Matrix.Identity(4)
+        lo = Vector((min(v.co[i] for v in obj.data.vertices) for i in range(3)))
+        hi = Vector((max(v.co[i] for v in obj.data.vertices) for i in range(3)))
+        k = size / max(hi - lo)
+        mid = (lo + hi) / 2
+        # Blender's up to the grip's up (+Y), its front away from the eye.
+        obj.data.transform(Matrix.Translation((0, 0.05, 0)) @ Matrix.Scale(k, 4) @
+                           Matrix.Rotation(math.radians(-90), 4, "X") @ Matrix.Translation(-mid))
+        for mat in obj.data.materials:
+            bsdf = next((n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None) if mat.node_tree else None
+            if bsdf is not None:
+                mat.diffuse_color = tuple(bsdf.inputs["Base Color"].default_value)
+        return obj
+    return build_it
+
+
+ITEMS["animals:milk"] = [(bm_, "milk" if m_ == "water" else m_) for bm_, m_ in bucket(True)]
+ITEMS["animals:cheese"] = [(slab([(-0.07, -0.02), (0.07, -0.02), (0.0, 0.11)], 0.05, at=(0, 0.02, 0)), "cheese"),
+                           (slab([(-0.07, -0.02), (0.07, -0.02), (0.07, -0.005), (-0.07, -0.005)], 0.052,
+                                 at=(0, 0.02, 0)), "cheese_rind")] + \
+    [(ball(0.008, segs=6, rings=4, at=(x, 0.04 + y, 0.026)), "cheese_rind") for x, y in ((-0.02, 0.0), (0.015, 0.03), (0.0, -0.01))]
+ITEMS["animals:cake"] = [(cyl(0.07, 0.045, segs=16, at=(0, 0.0, 0), rot=(90, 0, 0)), "sponge"),
+                         (cyl(0.072, 0.012, segs=16, at=(0, 0.0, 0.045), rot=(90, 0, 0)), "icing")] + \
+    [(ball(0.011, segs=6, rings=4, at=(0.045 * math.cos(a), 0.045 * math.sin(a), 0.062)), "cherry")
+     for a in (0.4, 2.5, 4.6)]
+ITEMS["deep:shard"] = [(cyl(0.022, 0.13, segs=6, r2=0.004, at=(0, -0.01, 0)), "crystal"),
+                       (cyl(0.016, 0.08, segs=6, r2=0.003, at=(-0.018, -0.005, 0), rot=(0, 0, 28)), "crystal"),
+                       (cyl(0.014, 0.07, segs=6, r2=0.003, at=(0.018, -0.005, 0), rot=(0, 0, -30)), "crystal")]
+ITEMS["deep:heart"] = [(ball(0.036, segs=12, rings=8, at=(-0.026, 0.07, 0), scale=(1, 1, 0.75)), "heart"),
+                       (ball(0.036, segs=12, rings=8, at=(0.026, 0.07, 0), scale=(1, 1, 0.75)), "heart"),
+                       (cyl(0.058, 0.08, segs=12, r2=0.0, at=(0, 0.075, 0), rot=(0, 0, 180), scale=(1, 1, 0.75)), "heart"),
+                       (cyl(0.008, 0.03, segs=6, r2=0.0, at=(0.0, 0.08, 0.022), rot=(-60, 0, 0)), "crystal")]
+ITEMS["maps:compass"] = [(cyl(0.055, 0.02, segs=18, at=(0, 0.05, -0.01), rot=(90, 0, 0)), "brass"),
+                         (cyl(0.047, 0.004, segs=18, at=(0, 0.05, 0.01), rot=(90, 0, 0)), "dial"),
+                         (box((0.008, 0.04, 0.004), at=(0, 0.068, 0.014)), "red"),
+                         (box((0.008, 0.04, 0.004), at=(0, 0.032, 0.014)), "dark_iron")]
+ITEMS["maps:map"] = [(box((0.15, 0.17, 0.003), at=(0, 0.05, 0)), "map"),
+                     (box((0.06, 0.07, 0.002), at=(-0.03, 0.07, 0.002)), "map_land"),
+                     (box((0.05, 0.05, 0.002), at=(0.035, 0.02, 0.002)), "map_sea"),
+                     (box((0.008, 0.008, 0.003), at=(0.0, 0.05, 0.003)), "red")]
+ITEMS["relics:shard"] = [(lump(0.04, 23, rough=0.25, at=(0, 0.05, 0), scale=(0.6, 1.3, 0.35)), "relic")]
+for which in ("empty", "plan"):
+    ITEMS[f"blueprints:{which}"] = [(cyl(0.024, 0.17, segs=10, at=(0, -0.04, 0)), "blueprint"),
+                                    (cyl(0.025, 0.012, segs=10, at=(0, 0.03, 0)), "white" if which == "plan" else "dark_iron")]
+ITEMS["villagers:parcel"] = [(box((0.12, 0.09, 0.08), bevel=0.004, at=(0, 0.05, 0)), "parcel"),
+                             (box((0.124, 0.012, 0.084), at=(0, 0.05, 0)), "twine"),
+                             (box((0.012, 0.094, 0.084), at=(0, 0.05, 0)), "twine")]
+ITEMS["alchemy:flask"] = flask(None)
+for pname, rgb in POTIONS.items():
+    M[f"potion_{pname}"] = material(f"Potion_{pname}", rgb, 0.0, 0.2, glow=pname != "flask_water")
+    ITEMS[f"alchemy:{pname}"] = flask(f"potion_{pname}")
+ITEMS["building:gunpowder"] = [(lump(0.022, s, rough=0.3, at=(x, 0.03 + y, 0), scale=(1, 0.7, 0.8)), "powder")
+                               for s, x, y in ((3, -0.025, 0), (5, 0.02, 0.005), (7, 0.0, 0.03))]
+ITEMS["boats:boat"] = miniature("mods/boats/boat.gltf", 0.24)
+ITEMS["carts:cart"] = miniature("mods/carts/cart.gltf", 0.18)
+
 # The ones with no icon, and how each is turned for its picture, which is seen
 # the way first person sees it: long things lie corner to corner like the
 # tools' icons.
@@ -857,6 +973,8 @@ ICONS = {
     "conveyor:belt": tuple(math.degrees(a) for a in (
         Matrix.Rotation(math.radians(30), 3, "X") @ Matrix.Rotation(math.radians(45), 3, "Y")).to_euler("XYZ")),
     "furnace:charcoal": (-20, 0, 15),
+    "deep:shard": (0, 0, -30),
+    "deep:heart": (0, 0, 0),
     "jetpack:jetpack": (0, 0, 0),
     "backpack:backpack": (0, 0, 0),
     "archery:bow": (147.0, -55.5, -106.8),   # its plane to the camera, string to the lower left
@@ -948,6 +1066,62 @@ def render_icon(obj, out, turn, size=32):
     obj.rotation_euler = (0, 0, 0)
 
 
+# Blocks drawn as boxes whose bag square was their face's picture -- a chair
+# showed as a square of planks -- and that a hand held as a cube: their boxes
+# as their held model, and as an icon three quarters from above as the
+# furnace's. The boxes are mods' core.node_box, x, up, z in the cell.
+def block_icon(boxes):
+    return [held_part((b[0] * 16, b[2] * 16, b[1] * 16), (b[3] * 16, b[5] * 16, b[4] * 16), m) for b, m in boxes]
+
+
+WOOD_RGB = {"oak": (160, 130, 80), "birch": (196, 176, 118), "spruce": (114, 84, 50), "jungle": (160, 116, 80),
+            "acacia": (170, 92, 50), "dark_oak": (66, 43, 20)}
+COLOUR_RGB = {
+    "white": (234, 236, 236), "orange": (240, 118, 20), "magenta": (190, 68, 180), "light_blue": (58, 176, 218),
+    "yellow": (248, 198, 40), "lime": (112, 186, 26), "pink": (238, 142, 172), "gray": (62, 68, 72),
+    "light_gray": (142, 142, 136), "cyan": (22, 138, 146), "purple": (122, 42, 172), "blue": (52, 56, 158),
+    "brown": (114, 72, 40), "green": (84, 110, 28), "red": (160, 38, 34), "black": (20, 20, 24)}
+BLOCK_ICONS = {}
+for w, rgb in WOOD_RGB.items():
+    M[f"plank_{w}"] = material(f"Plank_{w}", tuple(c / 255 for c in rgb))
+    mw = f"plank_{w}"
+    legs = [((x, 0, z, x + 0.1, h, z + 0.1), mw) for x in (0.15, 0.75) for z in (0.15, 0.75) for h in (0.3,)]
+    BLOCK_ICONS[f"building:{w}_chair"] = block_icon([((0.15, 0.30, 0.15, 0.85, 0.40, 0.85), mw),
+                                                     ((0.15, 0.40, 0.75, 0.85, 1.0, 0.85), mw)] + legs)
+    BLOCK_ICONS[f"building:{w}_table"] = block_icon([((0, 0.85, 0, 1, 1, 1), mw)] +
+        [((x, 0, z, x + 0.12, 0.85, z + 0.12), mw) for x in (0.06, 0.82) for z in (0.06, 0.82)])
+for key, rgb in (("cobblestone", (120, 120, 120)), ("mossy_cobblestone", (100, 120, 90)),
+                 ("stone_brick", (122, 122, 124)), ("brick", (170, 70, 52))):
+    M[f"wall_{key}"] = material(f"Wall_{key}", tuple(c / 255 for c in rgb), 0.0, 0.9)
+    BLOCK_ICONS[f"building:{key}_wall"] = block_icon([((0.25, 0, 0.25, 0.75, 1, 0.75), f"wall_{key}"),
+                                                      ((0, 0, 0.3125, 1, 0.8125, 0.6875), f"wall_{key}")])
+for c, rgb in COLOUR_RGB.items():
+    M[f"pane_{c}"] = material(f"Pane_{c}", tuple(min(1.0, v / 255 * 1.1 + 0.08) for v in rgb), 0.0, 0.1)
+    M[f"carpet_{c}"] = material(f"Carpet_{c}", tuple(v / 255 for v in rgb), 0.0, 1.0)
+    BLOCK_ICONS[f"building:{c}_stained_glass_pane"] = block_icon([((0, 0, 0.4375, 1, 1, 0.5625), f"pane_{c}")])
+    BLOCK_ICONS[f"building:{c}_carpet"] = block_icon([((0, 0, 0, 1, 0.12, 1), f"carpet_{c}")])
+M["still_brick"] = material("StillBrick", (0.62, 0.32, 0.24), 0.0, 0.9)
+BLOCK_ICONS["alchemy:still"] = block_icon([((0.05, 0, 0.05, 0.95, 0.3, 0.95), "still_brick"),
+                                           ((0.15, 0.3, 0.15, 0.85, 0.8, 0.85), "copper"),
+                                           ((0.3, 0.8, 0.3, 0.7, 0.95, 0.7), "copper"),
+                                           ((0.45, 0.85, 0.7, 0.55, 0.95, 1.0), "copper")])
+BLOCK_ICONS["animals:trough"] = block_icon([((0, 0, 0.1, 1, 0.1, 0.9), "plank_oak"), ((0, 0.1, 0.1, 1, 0.55, 0.2), "plank_oak"),
+                                            ((0, 0.1, 0.8, 1, 0.55, 0.9), "plank_oak"), ((0, 0.1, 0.2, 0.1, 0.55, 0.8), "plank_oak"),
+                                            ((0.9, 0.1, 0.2, 1, 0.55, 0.8), "plank_oak"), ((0.1, 0.1, 0.2, 0.9, 0.4, 0.8), "straw")])
+BLOCK_ICONS["villagers:board"] = block_icon([((0.45, 0, 0.45, 0.55, 1.0, 0.55), "dark_wood"),
+                                             ((0.05, 0.55, 0.42, 0.95, 1.25, 0.58), "plank_oak"),
+                                             ((0.15, 0.7, 0.59, 0.45, 1.1, 0.6), "paper"),
+                                             ((0.55, 0.65, 0.59, 0.85, 1.0, 0.6), "paper")])
+M["waystone"] = material("Waystone", (0.35, 0.78, 0.74), 0.0, 0.6, glow=True)
+M["waystone_base"] = material("WaystoneBase", (0.45, 0.46, 0.48), 0.0, 0.9)
+BLOCK_ICONS["travel:waystone"] = block_icon([((0.1, 0, 0.1, 0.9, 0.2, 0.9), "waystone_base"),
+                                             ((0.25, 0.2, 0.25, 0.75, 0.85, 0.75), "waystone"),
+                                             ((0.18, 0.85, 0.18, 0.82, 1.0, 0.82), "waystone_base")])
+BLOCK_ICONS["building:lantern"] = from_block("mods/building/lantern.gltf")
+BLOCK_TURN = tuple(math.degrees(a) for a in (
+    Matrix.Rotation(math.radians(30), 3, "X") @ Matrix.Rotation(math.radians(35), 3, "Y")).to_euler("XYZ"))
+
+
 # `-- DIR` after the script: a picture of every model in DIR as well, to look
 # them over; the icons of assets/textures are only made for ICONS.
 # ONLY="cinnabar:hopper,..." in the environment: just those, so one new item
@@ -975,6 +1149,16 @@ for i, (item, parts) in enumerate(ITEMS.items()):
                     128 if turn else 32)
     obj.location.x = (i % 8) * 0.5   # laid out in the .blend; exported at the origin
     obj.location.y = (i // 8) * 0.8
+for item, parts in BLOCK_ICONS.items():
+    if ONLY and item not in ONLY:
+        continue
+    mod, name = item.split(":")
+    obj = parts(item.replace(":", "_") + "_held") if callable(parts) else build(item.replace(":", "_") + "_held", parts, M)
+    export(obj, item)
+    render_icon(obj, os.path.join(TEXTURES, f"{mod}_{name}.png"), BLOCK_TURN)
+    if args:
+        render_icon(obj, os.path.join(args[0], f"{mod}_{name}.png"), BLOCK_TURN)
+    bpy.data.objects.remove(obj)
 for o in bpy.context.scene.objects:
     o.hide_render = False
 if not ONLY:
