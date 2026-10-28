@@ -298,6 +298,8 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     mob_become: (id: number, kind: string) -> number,
     -- Whose sounds a kind makes: "herding:sheep_red" with the voice "animals:sheep" plays mods/animals/sheep_say.ogg and the rest. Returns 1, or 0 for a kind nobody registered.
     mob_voice: (name: string, voice: string) -> number,
+    -- What is left of `item` when a recipe spends it: `back`, in the square it was in, when it was the last of it there. A bucket of milk in a cake leaves the bucket. Returns 1.
+    item_returns: (item: string, back: string) -> number,
     -- One creature, by id, loses `damage` as core.shoot would take it off and is knocked back: a mod's own bullet that picked its target itself, such as a team's that passes its friends. Returns 2 when that killed it, 1 when struck, 0 for one that is gone or already dead. On a server.
     mob_hurt: (id: number, damage: number, from_x: number, from_z: number) -> number,
     -- Turns a worker to look at x, z: the water it fishes, the furnace it cooks at.

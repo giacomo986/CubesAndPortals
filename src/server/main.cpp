@@ -3305,6 +3305,13 @@ int host_item_dye(void *ud, const char *item, int dye)
     return 0;
 }
 
+int host_item_returns(void *ud, const char *item, const char *back)
+{
+    if (!item || !back || !*item || !*back) return 0;
+    static_cast<ServerState *>(ud)->recipes.add_returns(item, back);
+    return 1;
+}
+
 int host_drop_item(void *ud, int x, int y, int z, int item, int count)
 {
     ServerState *s = static_cast<ServerState *>(ud);
@@ -6034,6 +6041,7 @@ int serve_room(int argc, char **argv)
         host.recipe_shapeless = host_recipe_shapeless;
         host.recipe_dye       = host_recipe_dye;
         host.item_dye         = host_item_dye;
+        host.item_returns     = host_item_returns;
         host.worn_id          = host_worn_id;
         host.worn_set_id      = host_worn_set_id;
         host.craft_show      = host_craft_show;

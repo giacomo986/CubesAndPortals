@@ -611,6 +611,13 @@ the villagers and start with questions (memory: villagers-need-design-first).
     way, not fixed: for ~10 s after joining, creatures are drawn as boxes
     while the client loads the 456 models. Open: no cake or cheese from the
     milk; a kept animal can only be let go by a mod (core.mob_keep false).
+    Closed after: core.item_returns (engine, RecipeSet::consume) leaves a
+    spent item's container in its square -- a bucket of milk makes 2 cheese
+    or, with wheat, sugar cane and an egg, a cake (food 4 and 10), and the
+    bucket stays in the grid (checked against the engine's craft_take: the
+    square held lakes:bucket x1 after). A stick on a kept animal lets it go
+    (no trough keeps it for 10 minutes): two kept cows, one let go, the
+    player 300 away for 30 s, one cow left when back.
 13. Errands from the mayor and the merchant, paid from the treasury.
 14. Blueprints: copy a build, have the village builder or a robot build it.
 15. More decorative blocks: stained glass, fences, walls, tiles, furniture.

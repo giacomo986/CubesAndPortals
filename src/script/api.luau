@@ -1865,6 +1865,15 @@ local api: { Fn } = {
            .. "for a kind nobody registered.",
     },
     {
+        name = "item_returns",
+        host = "item_returns",
+        ret  = "int",
+        args = { { name = "item", type = "string" }, { name = "back", type = "string" } },
+        doc = "What is left of `item` when a recipe spends it: `back`, in the square it was in, "
+           .. "when it was the last of it there. A bucket of milk in a cake leaves the bucket. "
+           .. "Returns 1.",
+    },
+    {
         name = "mob_hurt",
         host = "mob_hurt",
         ret  = "int",

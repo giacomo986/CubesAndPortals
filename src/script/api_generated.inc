@@ -1448,6 +1448,17 @@ int l_mob_voice(lua_State *L)
     return 1;
 }
 
+// core.item_returns(item: string, back: string) -> number
+int l_item_returns(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *item = (const char *)luaL_checkstring(L, 1);
+    const char *back = (const char *)luaL_checkstring(L, 2);
+    const int result = (vm && vm->host.item_returns) ? vm->host.item_returns(vm->host.ud, item, back) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.mob_hurt(id: number, damage: number, from_x: number, from_z: number) -> number
 int l_mob_hurt(lua_State *L)
 {
@@ -3017,6 +3028,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "mob_become");
     lua_pushcfunction(L, l_mob_voice, "core.mob_voice");
     lua_setfield(L, -2, "mob_voice");
+    lua_pushcfunction(L, l_item_returns, "core.item_returns");
+    lua_setfield(L, -2, "item_returns");
     lua_pushcfunction(L, l_mob_hurt, "core.mob_hurt");
     lua_setfield(L, -2, "mob_hurt");
     lua_pushcfunction(L, l_mob_face, "core.mob_face");

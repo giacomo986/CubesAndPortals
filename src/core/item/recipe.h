@@ -109,6 +109,9 @@ public:
     // dyes in reading order and the rest as they were (ItemStack::tag).
     bool add_dyeable(const std::string &item, std::string &err);
     bool add_dye(const std::string &item, int dye, std::string &err);
+    // What is left of an item spent in a recipe (core.item_returns): a
+    // bucket of milk leaves the bucket in its square.
+    void add_returns(const std::string &item, const std::string &back) { m_returns[item] = back; }
 
     // What this grid makes: a thing dyed, or else what a recipe makes. The one
     // question a table asks; match and result_of are its second half.
@@ -151,6 +154,7 @@ private:
     // keeps its things dyeable until the process restarts.
     std::unordered_set<std::string>      m_dyeable;   // by name, like a recipe
     std::unordered_map<std::string, int> m_dyes;      // name -> 1..16
+    std::unordered_map<std::string, std::string> m_returns;   // add_returns
 
     ItemStack dyed(const ItemRegistry &items, const Inventory &grid, int w, int h) const;
 };

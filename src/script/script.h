@@ -314,6 +314,7 @@ typedef struct script_host {
     int (*mob_love)(void *ud, int id);
     int (*mob_keep)(void *ud, int id, int on);
     int (*mob_shear_now)(void *ud, int id, int drop);
+    int (*item_returns)(void *ud, const char *item, const char *back);
     int (*mob_become)(void *ud, int id, const char *kind);
     int (*mob_voice)(void *ud, const char *name, const char *voice);
     int (*mob_hurt)(void *ud, int id, int damage, double from_x, double from_z);

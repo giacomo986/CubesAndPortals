@@ -1699,6 +1699,19 @@ Whose sounds a kind makes: "herding:sheep_red" with the voice "animals:sheep" pl
 | `name` | string | — | A kind from register_mob. |
 | `voice` | string | — | Another kind, whose sound files it uses. |
 
+## `core.item_returns`
+
+```luau
+core.item_returns(item: string, back: string) -> number
+```
+
+What is left of `item` when a recipe spends it: `back`, in the square it was in, when it was the last of it there. A bucket of milk in a cake leaves the bucket. Returns 1.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `item` | string | — |  |
+| `back` | string | — |  |
+
 ## `core.mob_hurt`
 
 ```luau

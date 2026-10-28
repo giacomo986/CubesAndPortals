@@ -288,6 +288,44 @@ LIQUIDS = {
     "haste": ((240, 150, 60), (190, 100, 30)),
     "water_breathing": ((60, 200, 160), (30, 140, 110)),
 }
+# Cheese and a cake (mods/animals).
+SHAPES["animals_cheese"] = ([
+    "................",
+    "................",
+    "................",
+    "........yy......",
+    "......yyYYy.....",
+    "....yyYYYYYy....",
+    "..yyYYYYYYYYy...",
+    "..oYYYYYYYYYYy..",
+    "..oyyYYYYYYYYy..",
+    "..oyyyyYYoYYYy..",
+    "..ooyyyyyyYYYy..",
+    "...oooyyyyyyYy..",
+    "......oooyyyyy..",
+    ".........ooooo..",
+    "................",
+    "................",
+], {"y": (230, 190, 70), "Y": (250, 220, 110), "o": (190, 145, 45)})
+SHAPES["animals_cake"] = ([
+    "................",
+    "................",
+    "......r..r..r...",
+    "....wwwwwwwwww..",
+    "...wWWWWWWWWWWw.",
+    "...wWWrWWWWrWWw.",
+    "...wwwwwwwwwwww.",
+    "...bbbbbbbbbbbb.",
+    "...BBBBBBBBBBBb.",
+    "...wWwWwWwWwWww.",
+    "...bbbbbbbbbbbb.",
+    "...BBBBBBBBBBBb.",
+    "...bbbbbbbbbbbb.",
+    "................",
+    "................",
+    "................",
+], {"w": (225, 222, 215), "W": (250, 248, 242), "r": (210, 40, 50), "b": (170, 110, 60), "B": (195, 135, 80)})
+
 # A bucket of milk (mods/animals): the bucket of water, white.
 SHAPES["animals_milk"] = (SHAPES["lakes_bucket_water"][0], dict(SHAPES["lakes_bucket_water"][1], b=(245, 244, 236)))
 

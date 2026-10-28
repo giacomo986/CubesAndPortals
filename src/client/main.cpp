@@ -3782,6 +3782,13 @@ int host_recipe_dye(void *ud, const char *item)
     return 0;
 }
 
+int host_item_returns(void *ud, const char *item, const char *back)
+{
+    if (!item || !back || !*item || !*back) return 0;
+    static_cast<Scene *>(ud)->act().recipes.add_returns(item, back);
+    return 1;
+}
+
 int host_item_dye(void *ud, const char *item, int dye)
 {
     std::string err;
@@ -19042,6 +19049,7 @@ script_host make_client_host(Scene &scene)
     host.recipe_shapeless = host_recipe_shapeless;
     host.recipe_dye       = host_recipe_dye;
     host.item_dye         = host_item_dye;
+    host.item_returns     = host_item_returns;
     host.worn_id          = host_worn_id;
     host.worn_set_id      = host_worn_set_id;
     host.craft_show      = host_craft_show;

@@ -115,13 +115,16 @@ end
 -- their own. Models: tools/make_dyed_sheep.py.
 --
 -- MILK: an empty bucket (mods/lakes) used on a cow fills with it; drunk, it
--- gives four points back and the bucket.
+-- gives four points back and the bucket. A bucket of milk makes two cheeses,
+-- and with three wheat, two sugar canes and an egg a cake; either way the
+-- bucket is left in its square (core.item_returns).
 --
 -- A TROUGH keeps a STABLE: right click it with wheat or seeds to fill it (16
 -- at most). Every ten seconds the animals within 8 of it are kept (never sent
 -- away, saved with the world: core.mob_keep), and two grown ones of a kind
 -- that eats what is in it are put in love (core.mob_love), at two of its food
--- -- until there are eight of that kind.
+-- -- until there are eight of that kind. A kept animal is let go with a
+-- right click holding a stick, and no trough keeps it again for ten minutes.
 local DYED = { "orange", "magenta", "light_blue", "yellow", "lime", "pink", "gray", "light_gray",
                "cyan", "purple", "blue", "brown", "green", "red", "black" }
 for _, c in DYED do
@@ -134,9 +137,31 @@ for _, c in DYED do
 end
 
 core.register_item("animals:milk", 1, "", 0, 1.0, "")
+core.register_item("animals:cheese", 64, "", 0, 1.0, "")
+core.register_item("animals:cake", 16, "", 0, 1.0, "")
+core.item_returns("animals:milk", "lakes:bucket")
+core.recipe_shapeless("animals:cheese", 2, "animals:milk")
+core.recipe_shaped("animals:cake", 1,
+    "farm:wheat      animals:milk farm:wheat",
+    "cane:sugar_cane animals:egg  cane:sugar_cane",
+    "-               farm:wheat   -")
+EATS["animals:cheese"] = 4
+EATS["animals:cake"] = 10
+
+local let_go: { [number]: number } = {}   -- id -> until when no trough keeps it
+local clock = 0
 
 local function is_sheep(kind: string): boolean
     return kind == "animals:sheep" or string.find(kind, "^animals:sheep_") ~= nil
+end
+
+local EATS_FROM: { [string]: string } = { cow = "farm:wheat", pig = "animals:seeds", chicken = "animals:seeds" }
+local function food_of(kind: string): string?
+    if is_sheep(kind) then
+        return "farm:wheat"
+    end
+    local k = string.match(kind, "^animals:(%a+)$")
+    return if k then EATS_FROM[k] else nil
 end
 
 core.event.on("core:used_mob", function(ev)
@@ -147,6 +172,10 @@ core.event.on("core:used_mob", function(ev)
         if to ~= kind and core.take_item(ev.player, ev.held, 1) == 1 then
             core.mob_become(ev.target, to)
         end
+    elseif food_of(kind) and ev.held == "timber:stick" then
+        core.mob_keep(ev.target, false)
+        let_go[ev.target] = clock + 600
+        core.notice(ev.player, "Let go: it wanders where it will")
     elseif kind == "animals:cow" and ev.held == "lakes:bucket" then
         if core.take_item(ev.player, "lakes:bucket", 1) == 1 then
             core.give_item(ev.player, "animals:milk", 1)
@@ -180,15 +209,6 @@ core.node_drop(FILLED, TROUGH)
 core.recipe_shaped("animals:trough", 1,
     "timber:planks farm:wheat    timber:planks",
     "timber:planks timber:planks timber:planks")
-
-local EATS_FROM: { [string]: string } = { cow = "farm:wheat", pig = "animals:seeds", chicken = "animals:seeds" }
-local function food_of(kind: string): string?
-    if is_sheep(kind) then
-        return "farm:wheat"
-    end
-    local k = string.match(kind, "^animals:(%a+)$")
-    return if k then EATS_FROM[k] else nil
-end
 
 -- The troughs, by "x,y,z", in storage so a stable outlives a restart.
 local troughs: { [string]: boolean } = {}
@@ -242,6 +262,7 @@ end)
 
 local since = 0
 core.event.on("core:tick", function(ev)
+    clock += ev.dt
     since += ev.dt
     if since < 10 then
         return
@@ -261,7 +282,7 @@ core.event.on("core:tick", function(ev)
                 local by_kind: { [string]: { number } } = {}
                 for _, m in core.mob_ids(tx + 0.5, ty, tz + 0.5, 8, true) do
                     local kind = core.mob_kind(m)
-                    if food_of(kind) then
+                    if food_of(kind) and (let_go[m] or 0) <= clock then
                         core.mob_keep(m, true)
                         by_kind[kind] = by_kind[kind] or {}
                         table.insert(by_kind[kind], m)

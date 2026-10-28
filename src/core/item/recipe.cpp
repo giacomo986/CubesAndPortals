@@ -362,7 +362,16 @@ bool RecipeSet::consume(const ItemRegistry &items, Inventory &grid, int w, int h
 
     for (int i = 0; i < w * h; ++i) {
         if (grid.at(i).empty()) continue;
+        const ItemId was = grid.at(i).item;
         grid.take(i, 1);
+        // Its container back in its square, when it was the last of it there.
+        if (const auto it = m_returns.find(items.get(was).name); it != m_returns.end() && grid.at(i).empty()) {
+            const ItemId back = items.find(it->second);
+            if (back != kNoItem) {
+                grid.slot(i).item  = back;
+                grid.slot(i).count = 1;
+            }
+        }
     }
     return true;
 }

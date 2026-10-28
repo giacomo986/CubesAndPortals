@@ -254,7 +254,7 @@ proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resist
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
 **Allevamento** (`mods/animals`): si tinge una pecora per la lana colorata, si munge una mucca con un
-secchio, una mangiatoia di frumento o semi fa da stalla (tiene gli animali e li fa riprodurre), e un
+secchio (formaggio, torta), una mangiatoia di frumento o semi fa da stalla (tiene gli animali e li fa riprodurre), e un
 robot può badare agli animali.
 
 **Pesca**: cosa abbocca dipende dall'acqua -- persici e carpe nei laghi, trote nei fiumi, merluzzi e
