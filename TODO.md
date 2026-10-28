@@ -646,6 +646,12 @@ the villagers and start with questions (memory: villagers-need-design-first).
 15. More decorative blocks: stained glass, fences, walls, tiles, furniture.
 16. Plaza games on the chess frame (draughts, mill), a scored PvP arena.
 
+To fix after item 14 (asked 2026-10-28): the railways done properly in
+Blender -- straight track, slopes up and down and curves as real models
+(sleepers, rails), not node boxes; a proper cart model; the player's clips
+for getting in and riding, seated in the cart. Use the MCP servers
+(Blender) where they help.
+
 ## Portals and movement
 
 **OPEN-2 -- a crossing may wedge the player in the exit block.** Reported from
