@@ -68,6 +68,8 @@ It is turned about the middle of its cell by the cell's facing byte, like a box 
     loaded: (x: number, y: number, z: number) -> number,
     -- Keeps the columns over that square in memory for thirty seconds, made or read back if they are not, with nobody near: ask again to keep them longer. What a robot working far from every player stands on and walks to. Returns how many columns; 0 where nothing is let go (the single-process client).
     keep_loaded: (x: number, z: number, r: number?) -> number,
+    -- The colour a block was registered with, as 0xRRGGBB; 0 for none. What a player's machine may not know of a block only the server registers: a ghost's colour.
+    node_colour: (id: number) -> number,
     -- How many turns a cell of that block may be in: core.set_facing takes 0 to this minus one. 1 for a block with no front, 4 for an upright one, 6 for a wallmounted one (a face each), 24 for one that lies any way. 0 for no block. What a screwdriver cycles through.
     node_turns: (id: number) -> number,
     -- How lit that cell is now, 0 to 15: the brighter of the light blocks give it and the sky's, the sky's scaled by the hour (full at noon, a fifth at midnight) and none under a world_sky. What a crop needs to grow and a creature to come out is read against this. 0 for a cell not in memory or inside a solid block.
@@ -222,6 +224,10 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     world_storm: (r: number, g: number, b: number) -> (),
     -- Draws a twister in this world's sky: a funnel of the clouds' colour coming down out of them to the ground at x, y, z, wide at the top and narrow at the foot, turning, with dust whirled up round its foot. Up to four at once; false takes that one away. Only drawn, nothing is pulled: what it does is the mod's. Called as it moves. For a world's code on a player's machine.
     storm_funnel: (slot: number, x: number, y: number, z: number, on: boolean?) -> (),
+    -- A block drawn seen through, in a colour, where it would go: a blueprint laid out before it is built. Only drawn, nothing is there. At most 32768 cells. Returns 1, or 0 when refused. For a world's code on a player's machine.
+    ghost_cell: (x: number, y: number, z: number, colour: number) -> number,
+    -- Takes every ghost cell (core.ghost_cell) away. For a world's code on a player's machine.
+    ghost_clear: () -> (),
     -- How much this player sees in the dark: every block and creature drawn at least this bright, whatever the hour or the cave. A potion's, a lamp worn on the head. 0 takes it away. Only drawn: no creature or crop reads it. For a world's code on a player's machine.
     night_sight: (amount: number) -> (),
     -- Weather over this world's sky: the sky and its clouds go grey by this much, the sun's light on the ground weaker and its shadows fainter, the hours kept. 0 takes it away. Only drawn: the light a crop or a creature reads (core.light) is the hour's. Called as it changes, so a mod fades it in. For a world's code on a player's machine.
@@ -454,6 +460,10 @@ On a player's machine, world code included, it answers for that machine's own pl
     held_item: (player: number) -> string,
     -- What a player wears in one worn square of their bag, by name, or an empty string for an empty square, a square that is not one of the five, or somebody who is not in this world.
     worn_item: (player: number, square: string) -> string,
+    -- Which one the thing in a player's hand is: the number a mod gave it with held_set_id, 0 for one nobody numbered or an empty hand. As worn_id, it goes wherever the thing goes. mods/blueprints keeps a blueprint's blocks under it.
+    held_id: (player: number) -> number,
+    -- Numbers the stack in a player's hand (all of it). Returns 1, or 0 for an empty hand, a number out of range or somebody not here.
+    held_set_id: (player: number, id: number) -> number,
     -- Which one a worn thing is: the number a mod gave it with worn_set_id, 0 for one nobody numbered, an empty square or somebody not here. The number goes wherever the thing goes -- a chest, the ground, another player -- and is kept when it is dyed. mods/backpack keeps a backpack's contents under it.
     worn_id: (player: number, square: string) -> number,
     -- Numbers a worn thing, its colours kept. Returns 1, or 0 for an empty square, somebody not here, or a number out of range.
@@ -497,7 +507,7 @@ The player is told: their bag is sent again on the next tick, so what a mod took
     -- The enchantments of what the player holds, two bits a kind: kind k's level is (value // 4^(k-1)) % 4. 0 for none, -1 for an empty hand.
     held_enchant: (player: number) -> number,
     -- Puts that many of that item in a player's bag and returns how many FIT. An partial stack of the item is topped up first, then an empty hand, then the first empty slot -- so taking the held item and giving another swaps what is in the hand. What does not fit is not dropped and not lost: nothing happens to it, and the mod decides -- core.drop_item puts it on the ground where a broken block's stack goes, and doing nothing leaves the player to make room. An engine that dropped it would be deciding for every mod at once.
-    give_item: (player: number, item: string, count: number?) -> number,
+    give_item: (player: number, item: string, count: number?, id: number?) -> number,
     -- What a cell remembers, written down. Survives the world being closed and opened, and is thrown away when the cell becomes air -- breaking a block takes its state with it, so the next block placed there does not inherit it.
 
 Strings, and only strings, on purpose: a pedestal that stores item id 41 is storing whatever 41 means the next time the world is opened, because ids are handed out in registration order. A NAME survives a mod being added. A mod that wants a number writes tostring and reads tonumber, which is a conversion it can see.

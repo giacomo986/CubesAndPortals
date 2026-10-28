@@ -109,9 +109,9 @@ int Inventory::take_by_item(ItemId item, int count)
     return taken;
 }
 
-uint16_t Inventory::give_to_hand(const ItemRegistry &items, ItemId item, uint16_t count)
+uint16_t Inventory::give_to_hand(const ItemRegistry &items, ItemId item, uint16_t count, uint32_t tag)
 {
-    return add(items, item, count, m_selected);
+    return add(items, item, count, m_selected, 0, 0, tag);
 }
 
 bool Inventory::take(int slot, uint16_t count)

@@ -123,6 +123,7 @@ typedef struct script_host {
     int (*node_drop_item)(void *ud, int id, const char *item);
     int (*node_alias)(void *ud, const char *old_name, const char *name);
     int (*node_solid)(void *ud, int id);
+    int (*node_colour)(void *ud, int id);   // its colour, 0xRRGGBB
     int (*node_turns)(void *ud, int id);
     int (*loaded)(void *ud, int x, int y, int z);   // 1 if that cell's blocks are in memory
     int (*keep_loaded)(void *ud, int x, int z, int r);   // columns kept 30 s; 0 off a server
@@ -270,6 +271,10 @@ typedef struct script_host {
     void (*storm_funnel)(void *ud, int slot, double x, double y, double z, int on);   // a twister drawn
     void (*overcast)(void *ud, double amount);   // a grey sky over the hours, 0..1
     void (*night_sight)(void *ud, double amount);   // drawn no darker than this, 0..1
+    int (*held_id)(void *ud, int player);   // core.held_id: the hand's stack's number
+    int (*held_set_id)(void *ud, int player, int id);
+    int (*ghost_cell)(void *ud, int x, int y, int z, int colour);   // a block seen through where it would go
+    void (*ghost_clear)(void *ud);
     int (*node_foliage)(void *ud, int id, int on);   // a block that takes the season's colour
     void (*foliage)(void *ud, int r, int g, int b, double amount);
     void (*mapgen_core)(void *ud, int on);
@@ -371,7 +376,7 @@ typedef struct script_host {
     int (*player_factors)(void *ud, int player, double walk, double dig, double hurt, double regen,
                           const char *source);
     int (*take_tagged)(void *ud, int player, int tag);
-    int (*give_item)(void *ud, int player, const char *item, int count);
+    int (*give_item)(void *ud, int player, const char *item, int count, int id);
     const char *(*held_item)(void *ud, int player);
     // What is worn in one worn square ("head" .. "back"), by name.
     const char *(*worn_item)(void *ud, int player, const char *square);

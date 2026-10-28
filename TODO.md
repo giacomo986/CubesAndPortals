@@ -642,7 +642,34 @@ the villagers and start with questions (memory: villagers-need-design-first).
     the well (405 22 -356). Open: the carry's goal and the explore's place
     are said as coordinates only (no mark on the map); the board's panel
     only shows, it does not take.
-14. Blueprints: copy a build, have the village builder or a robot build it.
+14. Blueprints -- built 2026-10-28 in `mods/blueprints` (design agreed the
+    same day), with mods/villagers and mods/helpers. An empty blueprint (2
+    paper, a lapis: two) used on two corners copies the box between them,
+    at most 32 x 24 high x 32, block and turn, into a blueprint: an item
+    numbered by the engine's new core.give_item `id` / core.held_id /
+    held_set_id, its blocks in the mod's storage (palette + runs, in parts
+    of 3800 bytes). Used, its panel lays it out with its corner on the block
+    clicked, turned to the player's side (villagers' own frame, so the
+    builder agrees), copies it onto an empty one, or takes the layout away.
+    Laid out it is a GHOST on the player's screen (engine: client
+    core.ghost_cell / ghost_clear, drawn with the track pieces' see-through
+    triangles; core.node_colour, as a networked client does not know the
+    colour of a block only the server registers); it shrinks as blocks go
+    in and "The blueprint is built" ends it. Built by hand; by the village's
+    builder ("Build the blueprint I laid out...": inside the village's
+    ground, 4 emeralds + 1 a 40 blocks, wood/stone/earth from the gatherers
+    as for a house, every other block handed over by the player at once --
+    an order of kind "blueprint" whose plan is asked of mods/blueprints by
+    event); or by a robot's new order "Build my blueprint" (blocks from its
+    bag or the chests by its base, from outside the layout, says what it
+    lacks once a minute). Checked with a client: a hut copied with two real
+    clicks (2 x 3 x 3), its panel opened and "Lay it out" clicked, the ghost
+    in the blocks' colours, finished by hand ("built"); the builder built a
+    3 x 3 x 3 planks-and-glass hut at 411 22 -360 (4 glass taken from the
+    player, 6 logs asked, 25/25); a robot built 23 of 25 from a chest that
+    held only 2 of the 4 glass. Open: a robot reaches some four up from the
+    layout's bottom (no scaffolding); the ghost is sent whole again on each
+    change (a big blueprint is many messages).
 15. More decorative blocks: stained glass, fences, walls, tiles, furniture.
 16. Plaza games on the chess frame (draughts, mill), a scored PvP arena.
 

@@ -388,6 +388,14 @@ local api: { Fn } = {
            .. "columns; 0 where nothing is let go (the single-process client).",
     },
     {
+        name = "node_colour",
+        host = "node_colour",
+        ret  = "int",
+        args = { { name = "id", type = "int", doc = "A block id." } },
+        doc = "The colour a block was registered with, as 0xRRGGBB; 0 for none. What a player's "
+           .. "machine may not know of a block only the server registers: a ghost's colour.",
+    },
+    {
         name = "node_turns",
         host = "node_turns",
         ret  = "int",
@@ -1345,6 +1353,25 @@ local api: { Fn } = {
            .. "foot, turning, with dust whirled up round its foot. Up to four at once; false "
            .. "takes that one away. Only drawn, nothing is pulled: what it does is the mod's. "
            .. "Called as it moves. For a world's code on a player's machine.",
+    },
+    {
+        name = "ghost_cell",
+        host = "ghost_cell",
+        ret  = "int",
+        args = {
+            { name = "x", type = "int" }, { name = "y", type = "int" }, { name = "z", type = "int" },
+            { name = "colour", type = "int",
+              doc = "0xRRGGBB (core.node_colour of the block it stands for); 0 takes that cell's ghost away." },
+        },
+        doc = "A block drawn seen through, in a colour, where it would go: a blueprint laid "
+           .. "out before it is built. Only drawn, nothing is there. At most 32768 cells. "
+           .. "Returns 1, or 0 when refused. For a world's code on a player's machine.",
+    },
+    {
+        name = "ghost_clear",
+        host = "ghost_clear",
+        args = {},
+        doc = "Takes every ghost cell (core.ghost_cell) away. For a world's code on a player's machine.",
     },
     {
         name = "night_sight",
@@ -2887,6 +2914,23 @@ local api: { Fn } = {
            .. "in this world.",
     },
     {
+        name = "held_id",
+        host = "held_id",
+        ret  = "int",
+        args = { { name = "player", type = "int" } },
+        doc = "Which one the thing in a player's hand is: the number a mod gave it with "
+           .. "held_set_id, 0 for one nobody numbered or an empty hand. As worn_id, it goes "
+           .. "wherever the thing goes. mods/blueprints keeps a blueprint's blocks under it.",
+    },
+    {
+        name = "held_set_id",
+        host = "held_set_id",
+        ret  = "int",
+        args = { { name = "player", type = "int" }, { name = "id", type = "int", doc = "1 to 131071; 0 none." } },
+        doc = "Numbers the stack in a player's hand (all of it). Returns 1, or 0 for an empty "
+           .. "hand, a number out of range or somebody not here.",
+    },
+    {
         name = "worn_id",
         host = "worn_id",
         ret  = "int",
@@ -3137,6 +3181,9 @@ local api: { Fn } = {
             { name = "player", type = "int" },
             { name = "item", type = "string" },
             { name = "count", type = "int", default = 1 },
+            { name = "id", type = "int", default = 0,
+              doc = "The number the stack goes in with (core.held_id reads it back): which "
+                 .. "blueprint it is. 0 none." },
         },
         doc = "Puts that many of that item in a player's bag and returns how many FIT. An "
            .. "partial stack of the item is topped up first, then an empty hand, then the first "

@@ -181,7 +181,7 @@ public:
     // and put the new one wherever there was room (seen in play, 2026-09-19).
     // take_by_item returns how many came out; give_to_hand what did NOT fit.
     int      take_by_item(ItemId item, int count);
-    uint16_t give_to_hand(const ItemRegistry &items, ItemId item, uint16_t count);
+    uint16_t give_to_hand(const ItemRegistry &items, ItemId item, uint16_t count, uint32_t tag = 0);
 
     // Takes `count` off one slot. Returns false and changes nothing if the slot
     // does not hold that many: a partial spend is how an inventory ends up

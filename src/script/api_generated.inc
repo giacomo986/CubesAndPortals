@@ -277,6 +277,16 @@ int l_keep_loaded(lua_State *L)
     return 1;
 }
 
+// core.node_colour(id: number) -> number
+int l_node_colour(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const int result = (vm && vm->host.node_colour) ? vm->host.node_colour(vm->host.ud, id) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.node_turns(id: number) -> number
 int l_node_turns(lua_State *L)
 {
@@ -957,6 +967,27 @@ int l_storm_funnel(lua_State *L)
     const float z = (float)luaL_checknumber(L, 4);
     const int on = lua_isnoneornil(L, 5) ? 1 : (lua_toboolean(L, 5) ? 1 : 0);
     if (vm && vm->host.storm_funnel) vm->host.storm_funnel(vm->host.ud, slot, x, y, z, on);
+    return 0;
+}
+
+// core.ghost_cell(x: number, y: number, z: number, colour: number) -> number
+int l_ghost_cell(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int x = (int)luaL_checkinteger(L, 1);
+    const int y = (int)luaL_checkinteger(L, 2);
+    const int z = (int)luaL_checkinteger(L, 3);
+    const int colour = (int)luaL_checkinteger(L, 4);
+    const int result = (vm && vm->host.ghost_cell) ? vm->host.ghost_cell(vm->host.ud, x, y, z, colour) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.ghost_clear() -> ()
+int l_ghost_clear(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    if (vm && vm->host.ghost_clear) vm->host.ghost_clear(vm->host.ud);
     return 0;
 }
 
@@ -2365,6 +2396,27 @@ int l_worn_item(lua_State *L)
     return 1;
 }
 
+// core.held_id(player: number) -> number
+int l_held_id(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int player = (int)luaL_checkinteger(L, 1);
+    const int result = (vm && vm->host.held_id) ? vm->host.held_id(vm->host.ud, player) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.held_set_id(player: number, id: number) -> number
+int l_held_set_id(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int player = (int)luaL_checkinteger(L, 1);
+    const int id = (int)luaL_checkinteger(L, 2);
+    const int result = (vm && vm->host.held_set_id) ? vm->host.held_set_id(vm->host.ud, player, id) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.worn_id(player: number, square: string) -> number
 int l_worn_id(lua_State *L)
 {
@@ -2582,14 +2634,15 @@ int l_held_enchant(lua_State *L)
     return 1;
 }
 
-// core.give_item(player: number, item: string, count: number?) -> number
+// core.give_item(player: number, item: string, count: number?, id: number?) -> number
 int l_give_item(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const char *item = (const char *)luaL_checkstring(L, 2);
     const int count = (int)luaL_optinteger(L, 3, 1);
-    const int result = (vm && vm->host.give_item) ? vm->host.give_item(vm->host.ud, player, item, count) : (int)0;
+    const int id = (int)luaL_optinteger(L, 4, 0);
+    const int result = (vm && vm->host.give_item) ? vm->host.give_item(vm->host.ud, player, item, count, id) : (int)0;
     lua_pushinteger(L, result);
     return 1;
 }
@@ -2838,6 +2891,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "loaded");
     lua_pushcfunction(L, l_keep_loaded, "core.keep_loaded");
     lua_setfield(L, -2, "keep_loaded");
+    lua_pushcfunction(L, l_node_colour, "core.node_colour");
+    lua_setfield(L, -2, "node_colour");
     lua_pushcfunction(L, l_node_turns, "core.node_turns");
     lua_setfield(L, -2, "node_turns");
     lua_pushcfunction(L, l_light, "core.light");
@@ -2952,6 +3007,10 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "world_storm");
     lua_pushcfunction(L, l_storm_funnel, "core.storm_funnel");
     lua_setfield(L, -2, "storm_funnel");
+    lua_pushcfunction(L, l_ghost_cell, "core.ghost_cell");
+    lua_setfield(L, -2, "ghost_cell");
+    lua_pushcfunction(L, l_ghost_clear, "core.ghost_clear");
+    lua_setfield(L, -2, "ghost_clear");
     lua_pushcfunction(L, l_night_sight, "core.night_sight");
     lua_setfield(L, -2, "night_sight");
     lua_pushcfunction(L, l_overcast, "core.overcast");
@@ -3164,6 +3223,10 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "held_item");
     lua_pushcfunction(L, l_worn_item, "core.worn_item");
     lua_setfield(L, -2, "worn_item");
+    lua_pushcfunction(L, l_held_id, "core.held_id");
+    lua_setfield(L, -2, "held_id");
+    lua_pushcfunction(L, l_held_set_id, "core.held_set_id");
+    lua_setfield(L, -2, "held_set_id");
     lua_pushcfunction(L, l_worn_id, "core.worn_id");
     lua_setfield(L, -2, "worn_id");
     lua_pushcfunction(L, l_worn_set_id, "core.worn_set_id");

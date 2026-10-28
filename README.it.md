@@ -253,6 +253,10 @@ e un letto. Ogni villaggio ha:
 proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resistenti, gli estranei
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
+**Progetti** (`mods/blueprints`): si copia una costruzione tra due angoli (fino a 32x24x32) su un
+progetto, lo si porta con sé, lo si traccia come un fantasma trasparente e lo si costruisce a mano --
+o lo fa il costruttore del villaggio, o un robot.
+
 **Commissioni**: ogni villaggio ne espone fino a tre su una bacheca accanto al pozzo -- portare ciò che
 manca, procurare un materiale, fabbricare utensili, cacciare di notte, portare un pacco a un altro
 villaggio, esplorare un luogo lontano -- prese e pagate (dalla tesoreria) dal sindaco e dal mercante;

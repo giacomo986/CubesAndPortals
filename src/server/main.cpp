@@ -988,6 +988,29 @@ int host_worn_set_id(void *ud, int player, const char *square, int id)
 
 // core.enchant_held and core.held_enchant: the hand's stack, and only one
 // thing -- a stack of 64 enchanted at once would be 64 enchantments for one.
+int host_held_id(void *ud, int player)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (!s->sessions) return 0;
+    net::Session *sess = s->sessions->find_mutable((net::PeerId)player);
+    if (!sess || sess->scope == net::Scope::Observe) return 0;
+    const ItemStack &st = sess->bag().at(sess->bag().selected());
+    return st.empty() ? 0 : (int)(st.tag & kTagIdMask);
+}
+
+int host_held_set_id(void *ud, int player, int id)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (!s->sessions || id < 0 || (uint32_t)id > kTagIdMask) return 0;
+    net::Session *sess = s->sessions->find_mutable((net::PeerId)player);
+    if (!sess || sess->scope == net::Scope::Observe) return 0;
+    ItemStack &st = sess->bag().slot(sess->bag().selected());
+    if (st.empty()) return 0;
+    st.tag = (st.tag & ~kTagIdMask) | (uint32_t)id;
+    s->bags_touched.insert((uint32_t)player);
+    return 1;
+}
+
 int host_enchant_held(void *ud, int player, int level, int kind)
 {
     ServerState *s = static_cast<ServerState *>(ud);
@@ -1024,7 +1047,7 @@ int host_held_enchant(void *ud, int player)
     return held.empty() ? -1 : held.ench;
 }
 
-int host_give_item(void *ud, int player, const char *item, int count)
+int host_give_item(void *ud, int player, const char *item, int count, int tag)
 {
     ServerState *s = static_cast<ServerState *>(ud);
     if (!s->sessions || !item || count <= 0) return 0;
@@ -1036,7 +1059,7 @@ int host_give_item(void *ud, int player, const char *item, int count)
     if (id == kNoItem) return 0;
 
     const uint16_t asked = count > 65535 ? (uint16_t)65535 : (uint16_t)count;
-    const uint16_t left  = sess->bag().give_to_hand(s->items, id, asked);
+    const uint16_t left  = sess->bag().give_to_hand(s->items, id, asked, (uint32_t)std::clamp(tag, 0, (int)kTagIdMask));
     const int      given = (int)asked - (int)left;
 
     if (given > 0) s->bags_touched.insert((uint32_t)player);
@@ -1661,6 +1684,14 @@ int host_node_drop_item(void *ud, int id_in, const char *item)
 int host_node_solid(void *ud, int id)
 {
     return id > 0 && static_cast<ServerState *>(ud)->registry.is_solid((BlockId)id) ? 1 : 0;
+}
+
+int host_node_colour(void *ud, int id)
+{
+    const NodeRegistry &reg = static_cast<ServerState *>(ud)->registry;
+    if (id <= 0 || (size_t)id >= reg.size()) return 0;
+    const uint8_t *c = reg.get((BlockId)id).colour;
+    return (c[0] << 16) | (c[1] << 8) | c[2];
 }
 
 int host_loaded(void *ud, int x, int y, int z)
@@ -6044,6 +6075,8 @@ int serve_room(int argc, char **argv)
         host.item_returns     = host_item_returns;
         host.worn_id          = host_worn_id;
         host.worn_set_id      = host_worn_set_id;
+        host.held_id          = host_held_id;
+        host.held_set_id      = host_held_set_id;
         host.craft_show      = host_craft_show;
         host.craft_close     = host_craft_close;
         host.damage          = host_damage;
@@ -6073,6 +6106,7 @@ int serve_room(int argc, char **argv)
         host.node_drop_item = host_node_drop_item;
         host.node_alias     = host_node_alias;
         host.node_solid     = host_node_solid;
+        host.node_colour  = host_node_colour;
         host.light          = host_light;
         host.block_light    = host_block_light;
         host.node_turns     = host_node_turns;

@@ -897,6 +897,12 @@ struct Session {
     float storm_rgb[3]{};
     float funnel[16]{};   // core.storm_funnel: four of x, y, z, on
     float overcast = 0.0f;   // core.overcast: how grey the sky of the hour is, 0..1
+    // core.ghost_cell: blocks drawn seen-through where they would go (a
+    // blueprint laid out), and their triangles by block, made again when one
+    // changes.
+    std::unordered_map<uint64_t, int> ghost;   // cell -> 0xRRGGBB
+    std::vector<std::pair<int, std::vector<float>>> ghost_tris;
+    bool ghost_dirty = false;
     float night_sight = 0.0f;   // core.night_sight: nothing drawn darker, 0..1
     float foliage[4] = {1.0f, 1.0f, 1.0f, 0.0f};   // core.foliage: the season's colour, how much
 
@@ -1843,6 +1849,24 @@ int host_worn_set_id(void *ud, int player, const char *square, int id)
     return 1;
 }
 
+int host_held_id(void *ud, int player)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    if (s->bag == nullptr || (ui::PlayerId)player != ui::kLocalPlayer) return 0;
+    const ItemStack &st = s->bag->at(s->bag->selected());
+    return st.empty() ? 0 : (int)(st.tag & kTagIdMask);
+}
+
+int host_held_set_id(void *ud, int player, int id)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    if (s->bag == nullptr || (ui::PlayerId)player != ui::kLocalPlayer || id < 0 || (uint32_t)id > kTagIdMask) return 0;
+    ItemStack &st = s->bag->slot(s->bag->selected());
+    if (st.empty()) return 0;
+    st.tag = (st.tag & ~kTagIdMask) | (uint32_t)id;
+    return 1;
+}
+
 int host_enchant_held(void *ud, int player, int level, int kind)
 {
     Scene *s = static_cast<Scene *>(ud);
@@ -1869,7 +1893,7 @@ int host_held_enchant(void *ud, int player)
     return held.empty() ? -1 : held.ench;
 }
 
-int host_give_item(void *ud, int player, const char *item, int count)
+int host_give_item(void *ud, int player, const char *item, int count, int tag)
 {
     Scene *s = static_cast<Scene *>(ud);
     if (!item || count <= 0 || s->bag == nullptr) return 0;
@@ -1879,7 +1903,7 @@ int host_give_item(void *ud, int player, const char *item, int count)
     if (id == kNoItem) return 0;
 
     const uint16_t asked = count > 65535 ? (uint16_t)65535 : (uint16_t)count;
-    const uint16_t left  = s->bag->give_to_hand(s->act().items, id, asked);
+    const uint16_t left  = s->bag->give_to_hand(s->act().items, id, asked, (uint32_t)std::clamp(tag, 0, (int)kTagIdMask));
     return (int)asked - (int)left;
 }
 
@@ -3149,6 +3173,14 @@ int host_node_drop_item(void *ud, int id_in, const char *item)
 int host_node_solid(void *ud, int id)
 {
     return id > 0 && static_cast<Scene *>(ud)->act().registry.is_solid((BlockId)id) ? 1 : 0;
+}
+
+int host_node_colour(void *ud, int id)
+{
+    const NodeRegistry &reg = static_cast<Scene *>(ud)->act().registry;
+    if (id <= 0 || (size_t)id >= reg.size()) return 0;
+    const uint8_t *c = reg.get((BlockId)id).colour;
+    return (c[0] << 16) | (c[1] << 8) | c[2];
 }
 
 int host_light(void *ud, int x, int y, int z)
@@ -4460,6 +4492,33 @@ void host_overcast(void *ud, double amount)
 {
     if (!std::isfinite(amount)) return;
     static_cast<Scene *>(ud)->act().overcast = (float)std::clamp(amount, 0.0, 1.0);
+}
+
+uint64_t ghost_key(int x, int y, int z)
+{
+    return ((uint64_t)(uint32_t)(x + (1 << 20)) << 42) | ((uint64_t)(uint32_t)(y + (1 << 20)) << 21) |
+           (uint64_t)(uint32_t)(z + (1 << 20));
+}
+
+int host_ghost_cell(void *ud, int x, int y, int z, int colour)
+{
+    Session &w = static_cast<Scene *>(ud)->act();
+    if (colour < 0 || colour > 0xFFFFFF) return 0;
+    if (colour == 0) {
+        w.ghost.erase(ghost_key(x, y, z));
+    } else {
+        if (w.ghost.size() >= 32768) return 0;
+        w.ghost[ghost_key(x, y, z)] = colour;
+    }
+    w.ghost_dirty = true;
+    return 1;
+}
+
+void host_ghost_clear(void *ud)
+{
+    Session &w = static_cast<Scene *>(ud)->act();
+    w.ghost.clear();
+    w.ghost_dirty = true;
 }
 
 void host_night_sight(void *ud, double amount)
@@ -10616,6 +10675,45 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
         s.selection.draw_box(Vec3{(float)ox, (float)oy + lo, (float)oz},
                              Vec3{(float)nx, hi - lo, (float)nz}, colour, projection, view);
     };
+    // A blueprint laid out (core.ghost_cell): each block's faces that no other
+    // ghost covers, seen through, in its own colour.
+    if (s.act().ghost_dirty) {
+        Session &w = s.act();
+        w.ghost_dirty = false;
+        std::unordered_map<int, size_t> group;
+        w.ghost_tris.clear();
+        static const int kFace[6][3] = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
+        for (const auto &[key, id] : w.ghost) {
+            const int x = (int)((key >> 42) & 0x1FFFFF) - (1 << 20), y = (int)((key >> 21) & 0x1FFFFF) - (1 << 20),
+                      z = (int)(key & 0x1FFFFF) - (1 << 20);
+            auto g = group.find(id);
+            if (g == group.end()) {
+                g = group.emplace(id, w.ghost_tris.size()).first;
+                w.ghost_tris.push_back({id, {}});
+            }
+            std::vector<float> &t = w.ghost_tris[g->second].second;
+            for (const auto &f : kFace) {
+                if (w.ghost.count(ghost_key(x + f[0], y + f[1], z + f[2]))) continue;
+                // The face's four corners, on the side it faces.
+                const int a = f[0] != 0 ? 0 : f[1] != 0 ? 1 : 2;   // its axis
+                const int b = (a + 1) % 3, c = (a + 2) % 3;
+                float base[3] = {(float)x, (float)y, (float)z};
+                base[a] += f[a] > 0 ? 1.0f : 0.0f;
+                float p[4][3];
+                for (int k = 0; k < 4; ++k) {
+                    for (int d = 0; d < 3; ++d) p[k][d] = base[d];
+                    p[k][b] += (k == 1 || k == 2) ? 1.0f : 0.0f;
+                    p[k][c] += (k >= 2) ? 1.0f : 0.0f;
+                }
+                for (int k : {0, 1, 2, 0, 2, 3}) t.insert(t.end(), {p[k][0], p[k][1], p[k][2]});
+            }
+        }
+    }
+    for (const auto &[rgb, t] : s.act().ghost_tris) {
+        const float colour[4] = {((rgb >> 16) & 255) / 255.0f, ((rgb >> 8) & 255) / 255.0f, (rgb & 255) / 255.0f, 0.4f};
+        s.selection.draw_tris(t.data(), (int)t.size() / 3, Vec3{0.0f, 0.0f, 0.0f}, colour, projection, view);
+    }
+
     if (s.target.hit && s.hand_block != kAir && s.act().registry.get(s.hand_block).piece.plan != 0) {
         const BlockId     id  = s.hand_block;
         const PieceShape &p   = s.act().registry.get(id).piece;
@@ -18911,6 +19009,8 @@ script_host make_client_host(Scene &scene)
     host.storm_funnel    = host_storm_funnel;
     host.overcast        = host_overcast;
     host.night_sight     = host_night_sight;
+    host.ghost_cell      = host_ghost_cell;
+    host.ghost_clear     = host_ghost_clear;
     host.node_foliage    = host_node_foliage;
     host.foliage         = host_foliage;
     host.mapgen_core     = host_mapgen_core;
@@ -19052,6 +19152,8 @@ script_host make_client_host(Scene &scene)
     host.item_returns     = host_item_returns;
     host.worn_id          = host_worn_id;
     host.worn_set_id      = host_worn_set_id;
+    host.held_id          = host_held_id;
+    host.held_set_id      = host_held_set_id;
     host.craft_show      = host_craft_show;
     host.craft_close     = host_craft_close;
     host.damage          = host_damage;
@@ -19081,6 +19183,7 @@ script_host make_client_host(Scene &scene)
     host.node_drop_item = host_node_drop_item;
     host.node_alias     = host_node_alias;
     host.node_solid     = host_node_solid;
+    host.node_colour  = host_node_colour;
     host.light          = host_light;
     host.block_light    = host_block_light;
     host.node_turns     = host_node_turns;

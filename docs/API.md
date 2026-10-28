@@ -335,6 +335,18 @@ Keeps the columns over that square in memory for thirty seconds, made or read ba
 | `z` | number | — |  |
 | `r` | number | `0` | Cells round (x, z), at most 48. |
 
+## `core.node_colour`
+
+```luau
+core.node_colour(id: number) -> number
+```
+
+The colour a block was registered with, as 0xRRGGBB; 0 for none. What a player's machine may not know of a block only the server registers: a ghost's colour.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `id` | number | — | A block id. |
+
 ## `core.node_turns`
 
 ```luau
@@ -1150,6 +1162,29 @@ Draws a twister in this world's sky: a funnel of the clouds' colour coming down 
 | `y` | number | — | the ground under it: where its foot is |
 | `z` | number | — |  |
 | `on` | boolean | `true` |  |
+
+## `core.ghost_cell`
+
+```luau
+core.ghost_cell(x: number, y: number, z: number, colour: number) -> number
+```
+
+A block drawn seen through, in a colour, where it would go: a blueprint laid out before it is built. Only drawn, nothing is there. At most 32768 cells. Returns 1, or 0 when refused. For a world's code on a player's machine.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `x` | number | — |  |
+| `y` | number | — |  |
+| `z` | number | — |  |
+| `colour` | number | — | 0xRRGGBB (core.node_colour of the block it stands for); 0 takes that cell's ghost away. |
+
+## `core.ghost_clear`
+
+```luau
+core.ghost_clear() -> ()
+```
+
+Takes every ghost cell (core.ghost_cell) away. For a world's code on a player's machine.
 
 ## `core.night_sight`
 
@@ -2722,6 +2757,31 @@ What a player wears in one worn square of their bag, by name, or an empty string
 | `player` | number | — |  |
 | `square` | string | — | "head", "chest", "legs", "feet" or "back": the worn square asked about. |
 
+## `core.held_id`
+
+```luau
+core.held_id(player: number) -> number
+```
+
+Which one the thing in a player's hand is: the number a mod gave it with held_set_id, 0 for one nobody numbered or an empty hand. As worn_id, it goes wherever the thing goes. mods/blueprints keeps a blueprint's blocks under it.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `player` | number | — |  |
+
+## `core.held_set_id`
+
+```luau
+core.held_set_id(player: number, id: number) -> number
+```
+
+Numbers the stack in a player's hand (all of it). Returns 1, or 0 for an empty hand, a number out of range or somebody not here.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `player` | number | — |  |
+| `id` | number | — | 1 to 131071; 0 none. |
+
 ## `core.worn_id`
 
 ```luau
@@ -2978,7 +3038,7 @@ The enchantments of what the player holds, two bits a kind: kind k's level is (v
 ## `core.give_item`
 
 ```luau
-core.give_item(player: number, item: string, count: number?) -> number
+core.give_item(player: number, item: string, count: number?, id: number?) -> number
 ```
 
 Puts that many of that item in a player's bag and returns how many FIT. An partial stack of the item is topped up first, then an empty hand, then the first empty slot -- so taking the held item and giving another swaps what is in the hand. What does not fit is not dropped and not lost: nothing happens to it, and the mod decides -- core.drop_item puts it on the ground where a broken block's stack goes, and doing nothing leaves the player to make room. An engine that dropped it would be deciding for every mod at once.
@@ -2988,6 +3048,7 @@ Puts that many of that item in a player's bag and returns how many FIT. An parti
 | `player` | number | — |  |
 | `item` | string | — |  |
 | `count` | number | `1` |  |
+| `id` | number | `0` | The number the stack goes in with (core.held_id reads it back): which blueprint it is. 0 none. |
 
 ## `core.meta_set`
 

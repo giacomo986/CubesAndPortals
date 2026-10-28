@@ -1678,6 +1678,9 @@ end
 -- needed, from the ground as it was when sold (o.g, o.road), so building is
 -- the same after a restart and a block already right is skipped.
 local function plan_of(o: Order): { { any } }
+    if o.kind == "blueprint" then
+        return AID.bp.plan(o)
+    end
     local out = {}
     local road = false
     local function put(x: number, y: number, z: number, name: string, facing: number?)
@@ -2352,7 +2355,7 @@ end
 -- Everything sold goes the same way: paid for, an order queued, its ground
 -- the buyer's and the village's.
 local function queue(p: number, rk: string, o: Order, price: number, what: string)
-    o.road = if o.kind ~= "floor" and o.kind ~= "garden" then road_of(o) else {}
+    o.road = if o.kind ~= "floor" and o.kind ~= "garden" and o.kind ~= "blueprint" then road_of(o) else {}
     o.need = bill_of(o)
     orders[rk] = orders[rk] or {}
     table.insert(orders[rk], o)
@@ -2529,10 +2532,11 @@ end
 local function show_builder(p: number, rk: string)
     local o, lack = wanting(rk)
     local name = panel_of(p, "builder")
-    core.ui_define(name, 13, if o == nil then 4.6 else 6.0)
+    core.ui_define(name, 13, if o == nil then 6.0 else 7.4)
     if o == nil then
         local busy = (orders[rk] or {})[1]
         core.ui_label(name, 0.4, 0.3, if busy then `Building {busy.buyer}'s {busy.kind}.` else "Nothing to build.")
+        core.ui_button(name, "blueprint", 0.4, 1.4, 12.2, 1.2, "Build the blueprint I laid out...")
         core.ui_button(name, "close", 0.4, 2.8, 12.2, 1.2, "Close")
     else
         core.ui_label(name, 0.4, 0.3, `For {o.buyer}'s {o.kind} the builder still needs:`)
@@ -2543,7 +2547,8 @@ local function show_builder(p: number, rk: string)
         else
             core.ui_button(name, "self", 0.4, 3.2, 12.2, 1.2, "Find it yourself: the workers fetch it")
         end
-        core.ui_button(name, "close", 0.4, 4.6, 12.2, 1.1, "Close")
+        core.ui_button(name, "blueprint", 0.4, 4.6, 12.2, 1.2, "Build the blueprint I laid out...")
+        core.ui_button(name, "close", 0.4, 6.0, 12.2, 1.1, "Close")
     end
     selling[p] = rk
     core.ui_show(name, true, p)
@@ -2607,6 +2612,8 @@ core.event.on("core:ui_click", function(ev)
         extend(ev.player, rk, ev.id:sub(3))
     elseif ev.id == "give" then
         hand_over(ev.player, rk)
+    elseif ev.id == "blueprint" then
+        AID.bp.order(ev.player, rk)
     elseif ev.id == "self" then
         local o, lack = wanting(rk)
         if o ~= nil then
@@ -2925,6 +2932,88 @@ local function put_into(chests: { { number } }, item: string, n: number): number
         left = core.container_add(c[1], c[2], c[3], iid, left)
     end
     return left
+end
+
+-- ------------------------------------------------------------ blueprints
+--
+-- A player's laid-out blueprint (mods/blueprints) built by the builder, as an
+-- order of the kind "blueprint" -- its cells asked of mods/blueprints with
+-- "blueprints:ask" whenever its plan is needed. Inside the village's ground
+-- only. What the gatherers bring (wood, stone, earth: cost_of) the builder
+-- needs as for a house; any other block (glass, wool, an ore block) the
+-- player hands over, all of it, when the order is made; the labour is paid in
+-- emeralds, four and one more for each forty blocks.
+AID.bp = { got = {} :: { [string]: { any } } }
+core.event.on("blueprints:cells", function(ev)
+    local cells = {}
+    for x, y, z, name, f in string.gmatch(ev.cells, "(%-?%d+),(%-?%d+),(%-?%d+),([^,]*),(%d+)") do
+        table.insert(cells, { tonumber(x), tonumber(y), tonumber(z), name, if name == "" then nil else tonumber(f), false })
+    end
+    AID.bp.got[`{ev.id} {ev.x} {ev.y} {ev.z} {ev.t}`] = { cells = cells, w = ev.w, d = ev.d, id = ev.id,
+                                                           x = ev.x, y = ev.y, z = ev.z, t = ev.t, owner = ev.owner }
+    AID.bp.last = AID.bp.got[`{ev.id} {ev.x} {ev.y} {ev.z} {ev.t}`]
+end)
+AID.bp.plan = function(o: Order): { { any } }
+    local id = tonumber(string.match(o.style, "^bp:(%d+)$") or "") or 0
+    local key = `{id} {o.x0} {o.floor} {o.z0} {o.t}`
+    if AID.bp.got[key] == nil then
+        core.event.emit("blueprints:ask", { id = id, x = o.x0, y = o.floor, z = o.z0, t = o.t, owner = o.buyer })
+    end
+    local g = AID.bp.got[key]
+    return if g then g.cells else {}
+end
+AID.bp.order = function(p: number, rk: string)
+    local who = core.player_name(p)
+    if not may_buy(p, rk) then
+        return
+    end
+    AID.bp.last = nil
+    core.event.emit("blueprints:layout", { owner = who })
+    local g = AID.bp.last
+    if g == nil or g.owner ~= who then
+        core.notice(p, "Lay a blueprint out first (use it on the ground where it is to go).")
+        return
+    end
+    local b = villages[rk]
+    local fx2, fz2 = g.x + g.w - 1, g.z + g.d - 1
+    if b == nil or g.x < b.x1 or g.z < b.z1 or fx2 > b.x2 or fz2 > b.z2 then
+        core.notice(p, "The builder builds only on the village's ground.")
+        return
+    end
+    -- What the player brings: every block the gatherers do not.
+    local bring: { [string]: number } = {}
+    local solid = 0
+    for _, c in g.cells do
+        if c[4] ~= "" then
+            solid += 1
+            if cost_of(c[4]) == nil and core.get_block(c[1], c[2], c[3]) ~= id(c[4]) then
+                bring[c[4]] = (bring[c[4]] or 0) + 1
+            end
+        end
+    end
+    local short = {}
+    for name, n in bring do
+        local have = core.bag_count(p, name)
+        if have < n then
+            table.insert(short, `{n - have} {said(name)}`)
+        end
+    end
+    if #short > 0 then
+        core.notice(p, `First bring what the gatherers cannot: {table.concat(short, ", ")}.`)
+        return
+    end
+    local price = 4 + solid // 40
+    if not pay(p, rk, price) then
+        return
+    end
+    for name, n in bring do
+        core.take_item(p, name, n)
+    end
+    local w, d = if g.t % 2 == 0 then g.w else g.d, if g.t % 2 == 0 then g.d else g.w
+    local o: Order = { kind = "blueprint", buyer = who, x0 = g.x, z0 = g.z, t = g.t, floor = g.y,
+                       stage = "gather", g = {}, road = {}, need = {}, have = { wood = 0, stone = 0, earth = 0 },
+                       since = clock, asked = 0, w = w, d = d, style = `bp:{g.id}`, storeys = 1 }
+    queue(p, rk, o, price, "your blueprint")
 end
 
 -- ------------------------------------------------------------ errands

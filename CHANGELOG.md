@@ -13,6 +13,9 @@ Protocollo 110: un client 0.9.0-alpha.4 non entra in un server con i binari.
 - Le pietre del viaggio: una per villaggio accanto al pozzo, fabbricabili per i territori;
   pagando uno smeraldo ogni 200 nodi si apre un portale vero verso una pietra toccata, per
   cinque minuti.
+- I progetti: copiare una costruzione, tracciarla come fantasma, farla costruire a mano, dal
+  costruttore del villaggio o da un robot. Nuove API: `core.held_id`, `core.held_set_id`, `id` in
+  `core.give_item`, `core.ghost_cell`, `core.ghost_clear`, `core.node_colour`.
 - Le commissioni dei villaggi: sei tipi, una bacheca accanto al pozzo, pagate dalla tesoreria,
   uno sconto dal mercante dopo cinque.
 - L'allevamento: pecore tinte (lana colorata), latte (formaggio e torta; il secchio resta), mangiatoie che fanno da stalla, l'ordine

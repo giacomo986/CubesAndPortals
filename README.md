@@ -250,6 +250,10 @@ job, meals and a bed. Every village has:
 owners stand in it. Inside, owners are faster and tougher, strangers weaker; what strangers take
 there is marked stolen.
 
+**Blueprints** (`mods/blueprints`): copy a build between two corners (up to 32x24x32) onto a blueprint,
+carry it, lay it out as a see-through ghost and build it by hand -- or have the village's builder or
+a robot build it.
+
 **Errands**: each village posts up to three on a notice board by its well -- bring what it lacks,
 procure a material, craft tools, hunt at night, carry a parcel to another village, explore a far place --
 taken and paid (from its treasury) at the mayor and the merchant; after five, the merchant gives a discount.

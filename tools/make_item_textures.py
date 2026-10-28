@@ -326,6 +326,28 @@ SHAPES["animals_cake"] = ([
     "................",
 ], {"w": (225, 222, 215), "W": (250, 248, 242), "r": (210, 40, 50), "b": (170, 110, 60), "B": (195, 135, 80)})
 
+# Blueprints (mods/blueprints): a rolled sheet, blank or drawn on in white.
+_BP = [
+    "................",
+    "................",
+    "..bbbbbbbbbbbb..",
+    ".bBBBBBBBBBBBBb.",
+    ".bBwwwwwwBBBBBb.",
+    ".bBwBBBBwBBBBBb.",
+    ".bBwBBBBwwwwwBb.",
+    ".bBwBBBBBBBBwBb.",
+    ".bBwwwwwwwwwwBb.",
+    ".bBBBBBBBBBBBBb.",
+    ".bBBBBBBBBBBBBb.",
+    "..bbbbbbbbbbbbd.",
+    "..............d.",
+    "................",
+    "................",
+    "................",
+]
+SHAPES["blueprints_plan"] = (_BP, {"b": (40, 70, 140), "B": (60, 105, 190), "w": (225, 235, 250), "d": (30, 50, 100)})
+SHAPES["blueprints_empty"] = ([r.replace("w", "B") for r in _BP], {"b": (40, 70, 140), "B": (60, 105, 190), "d": (30, 50, 100)})
+
 # A parcel (mods/villagers): brown paper tied with string.
 SHAPES["villagers_parcel"] = ([
     "................",

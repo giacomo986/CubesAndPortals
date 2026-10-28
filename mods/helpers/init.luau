@@ -36,6 +36,10 @@
 --   Tend animals    shears the sheep about its base, the wool in its bag,
 --                   and feeds two animals of a kind near each other (wheat
 --                   or seeds from its bag or the chests) so they breed
+--   Build my blueprint  its maker's laid-out blueprint (mods/blueprints),
+--                   bottom up: what is in the way dug out, each block from
+--                   its bag or the chests by its base, put with its turn;
+--                   what it has none of it tells its maker, once a minute
 --   Follow me       walks after its maker, and does nothing else
 --
 -- The world anchor (iron, cinnabar and a diamond), given like a tool, keeps
@@ -86,6 +90,7 @@ local ORDERS = {
     { key = "cook", text = "Cook food" },
     { key = "light", text = "Light up" },
     { key = "tend", text = "Tend animals" },
+    { key = "build", text = "Build my blueprint" },
     { key = "follow", text = "Follow me" },
 }
 local ORDER: { [string]: { key: string, text: string, tool: string? } } = {}
@@ -1130,6 +1135,112 @@ WORK.tend = function(r: R): boolean
     return false
 end
 
+-- The layout's cells, as mods/blueprints answers "blueprints:layout".
+local LAYOUT: { last: { any }?, said: { [number]: number } } = { last = nil, said = {} }
+core.event.on("blueprints:cells", function(ev)
+    local cells = {}
+    for x, y, z, name, f in string.gmatch(ev.cells, "(%-?%d+),(%-?%d+),(%-?%d+),([^,]*),(%d+)") do
+        table.insert(cells, { tonumber(x), tonumber(y), tonumber(z), name, tonumber(f) })
+    end
+    LAYOUT.last = { owner = ev.owner, cells = cells }
+end)
+WORK.build = function(r: R): boolean
+    LAYOUT.last = nil
+    core.event.emit("blueprints:layout", { owner = r.owner })
+    local g = LAYOUT.last
+    if g == nil or g.owner ~= r.owner then
+        return false
+    end
+    local missing: { [string]: number } = {}
+    local list = chests(r)
+    -- Every cell is reached from the ground OUTSIDE the layout -- inside, it
+    -- walls itself in -- at most three off its column, by the layout's bottom.
+    -- ponytail: a hand reaches some four up from there; a taller blueprint's
+    -- top waits for scaffolding nobody builds.
+    local base = if #g.cells > 0 then g.cells[1][2] else 0
+    local inside: { [string]: boolean } = {}
+    for _, c in g.cells do
+        inside[`{c[1]},{c[3]}`] = true
+    end
+    local function stand(x: number, z: number): boolean
+        local key = `{x},{base},{z}`
+        if (r.tried[key] or 0) > clock then
+            return false
+        end
+        local px, _, pz = core.mob_pos(r.id)
+        local best, bx, by, bz = math.huge, 0, 0, 0
+        for dx = -3, 3 do
+            for dz = -3, 3 do
+                local cx, cz = x + dx, z + dz
+                if not inside[`{cx},{cz}`] then
+                    for _, sy in { base, base + 1, base - 1 } do
+                        if standable(cx, sy, cz) then
+                            local d = dx * dx + dz * dz + ((cx - (px or cx)) ^ 2 + (cz - (pz or cz)) ^ 2) * 0.01
+                            if d < best then
+                                best, bx, by, bz = d, cx, sy, cz
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        if best == math.huge or not walk(r, bx, by, bz) then
+            r.tried[key] = clock + 90
+            return false
+        end
+        return true
+    end
+    for _, c in g.cells do
+        local x, y, z, name, f = c[1], c[2], c[3], c[4], c[5]
+        local want = if name == "" then AIR else core.node_id(name)
+        local now = core.get_block(x, y, z)
+        if now ~= want and (r.tried[`{x},{base},{z}`] or 0) <= clock then
+            if now ~= AIR then
+                if stand(x, z) then
+                    act(r, "dig", "", 0.6, x, z)
+                    dig(r, x, y, z)
+                    return true
+                end
+            elseif want ~= AIR then
+                if (r.inv[name] or 0) == 0 then
+                    local iid = core.item_id(name)
+                    for _, ch in list do
+                        if iid ~= 0 and core.container_count(ch[1], ch[2], ch[3], iid) > 0 and reach(r, ch[1], ch[2], ch[3]) then
+                            act(r, "gather", "", 1.0, ch[1], ch[3])
+                            add(r, name, core.container_take(ch[1], ch[2], ch[3], iid, 16))
+                            break
+                        end
+                    end
+                end
+                if (r.inv[name] or 0) == 0 then
+                    missing[name] = (missing[name] or 0) + 1
+                elseif stand(x, z) then
+                    act(r, "gather", name, 0.4, x, z)
+                    if core.get_block(x, y, z) == AIR then
+                        core.set_block(x, y, z, want)
+                        core.set_facing(x, y, z, f)
+                        take(r, name, 1)
+                    end
+                    return true
+                end
+            end
+        end
+    end
+    if next(missing) ~= nil and (LAYOUT.said[r.n] or 0) <= clock then
+        LAYOUT.said[r.n] = clock + 60
+        local parts = {}
+        for name, n in missing do
+            table.insert(parts, `{n} {(string.gsub(string.gsub(name, "^.*:", ""), "_", " "))}`)
+        end
+        for _, q in core.players() do
+            if core.player_name(q) == r.owner then
+                core.notice(q, `Your robot needs, for the blueprint: {table.concat(parts, ", ")}`)
+            end
+        end
+    end
+    return false
+end
+
 WORK.follow = function(r: R): boolean
     for _, p in core.players() do
         if core.player_name(p) == r.owner then
@@ -1286,7 +1397,7 @@ end
 
 local function panel(r: R, player: number)
     local name = `helpers:robot{r.n}`
-    core.ui_define(name, 15, 14)
+    core.ui_define(name, 15, 15.6)
     core.ui_label(name, 0.4, 0.3, `Robot {r.n} -- {if r.running then "working" else "stopped"}`)
     core.ui_button(name, "close", 11.0, 0.2, 3.6, 0.8, "Close")
     core.ui_label(name, 0.4, 1.1, "Program, in order:")
@@ -1307,12 +1418,12 @@ local function panel(r: R, player: number)
         table.insert(tools, short(t))
     end
     table.sort(tools)
-    core.ui_label(name, 0.4, 11.2, `Tools: {if #tools > 0 then table.concat(tools, ", ") else "none"}` ..
+    core.ui_label(name, 0.4, 12.8, `Tools: {if #tools > 0 then table.concat(tools, ", ") else "none"}` ..
         `   Carrying: {count(r)}`)
-    core.ui_button(name, "run", 0.4, 12.4, 3.2, 1.0, if r.running then "Stop" else "Run")
-    core.ui_button(name, "clear", 3.8, 12.4, 3.2, 1.0, "Clear")
-    core.ui_button(name, "base", 7.2, 12.4, 3.6, 1.0, "Base here")
-    core.ui_button(name, "pickup", 11.0, 12.4, 3.6, 1.0, "Pick up")
+    core.ui_button(name, "run", 0.4, 14.0, 3.2, 1.0, if r.running then "Stop" else "Run")
+    core.ui_button(name, "clear", 3.8, 14.0, 3.2, 1.0, "Clear")
+    core.ui_button(name, "base", 7.2, 14.0, 3.6, 1.0, "Base here")
+    core.ui_button(name, "pickup", 11.0, 14.0, 3.6, 1.0, "Pick up")
     core.ui_show(name, true, player)
 end
 
