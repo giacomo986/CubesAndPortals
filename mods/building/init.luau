@@ -615,6 +615,32 @@ if serving then
     local PRAIL     = node("building:powered_rail", { 150, 120, 60 }, false, "upright", 0.7, "stone")
     local PRAIL_ON  = node("building:powered_rail_on", { 230, 170, 60 }, false, "upright", 0.7, "stone", 4)
     local SWITCH    = node("building:switch", { 120, 110, 140 }, false, "upright", 0.7, "stone")
+    local SWITCH_ON = node("building:switch_on", { 150, 110, 170 }, false, "upright", 0.7, "stone")
+    -- A rail where the line turns, right or left: two quarter arcs about the
+    -- corner of the side it comes in by and the one it leaves by (-Z), as the
+    -- engine rides it (chute_at). Laid as a rail; swapped in by the line round it.
+    local CORNER_R  = node("building:rail_right", { 175, 175, 180 }, false, "upright", 0.7, "stone")
+    local CORNER_L  = node("building:rail_left", { 175, 175, 180 }, false, "upright", 0.7, "stone")
+    local function arcs(id: number, mirror: boolean, w: number)
+        for _, r in { 0.17, 0.83 } do
+            local n = if r < 0.5 then 4 else 8
+            for i = 0, n do
+                local th = i / n * math.pi / 2
+                local x, z = 1 - r * math.sin(th), r * math.cos(th)
+                if mirror then
+                    x = 1 - x
+                end
+                core.node_box(id, x - w, 0, z - w, x + w, 1 / 16, z + w)
+            end
+        end
+    end
+    arcs(CORNER_R, false, 0.06)
+    arcs(CORNER_L, true, 0.06)
+    arcs(SWITCH_ON, false, 0.06)
+    for _, id in { CORNER_R, CORNER_L } do
+        core.node_drop(id, RAIL)
+    end
+    core.node_drop(SWITCH_ON, SWITCH)
     local RAIL_UP   = node("building:rail_up", { 150, 130, 110 }, false, "upright", 0.7, "stone")
     local RAIL_DOWN = node("building:rail_down", { 150, 130, 110 }, false, "upright", 0.7, "stone")
     for _, id in { PRAIL, PRAIL_ON, SWITCH } do
@@ -632,6 +658,9 @@ if serving then
     core.node_conveyor(PRAIL, 0, 1 / 16, 0, true)
     core.node_conveyor(PRAIL_ON, 11, 1 / 16, 0, true)
     core.node_conveyor(SWITCH, 6, 1 / 16, 0, true)
+    core.node_conveyor(SWITCH_ON, 6, 1 / 16, 0, true)
+    core.node_conveyor(CORNER_R, 6, 1 / 16, 0, true)
+    core.node_conveyor(CORNER_L, 6, 1 / 16, 0, true)
     core.node_conveyor(RAIL_UP, 6, 1 / 16, 1, true)
     core.node_conveyor(RAIL_DOWN, 6, 1 + 1 / 16, -1, true)
     core.node_drop(PRAIL_ON, PRAIL)
@@ -642,10 +671,73 @@ if serving then
     core.recipe_shaped("building:switch", 1, "cinnabar:lever", "building:rail")
     core.recipe_shaped("building:rail_up", 1, "building:rail", "rocks:cobblestone")
     core.recipe_shaped("building:rail_down", 1, "rocks:cobblestone", "building:rail")
+    -- What a plain rail looks like is worked out from the rails round it, as
+    -- the engine rides it: straight on where one lies behind along its run,
+    -- else turned towards a side one -- one running into it first, then one
+    -- lying along that side's axis either way. Every rail, whatever its
+    -- kind, joins the line; only plain ones change shape.
+    local RUN = { { 0, -1 }, { -1, 0 }, { 0, 1 }, { 1, 0 } }
+    local PLAIN = { [RAIL] = true, [CORNER_R] = true, [CORNER_L] = true }
+    local ANY = { [RAIL] = true, [CORNER_R] = true, [CORNER_L] = true, [PRAIL] = true, [PRAIL_ON] = true,
+                  [SWITCH] = true, [SWITCH_ON] = true, [RAIL_UP] = true, [RAIL_DOWN] = true }
+    local function run_at(x: number, y: number, z: number): { number }?
+        if not ANY[core.get_block(x, y, z)] then
+            return nil
+        end
+        return RUN[core.get_facing(x, y, z) % 4 + 1]
+    end
+    local function shape(x: number, y: number, z: number)
+        if not PLAIN[core.get_block(x, y, z)] then
+            return
+        end
+        local f = core.get_facing(x, y, z)
+        local o = RUN[f % 4 + 1]
+        for dy = -1, 1 do
+            local r = run_at(x - o[1], y + dy, z - o[2])
+            if r and r[1] * o[1] + r[2] * o[2] ~= 0 then
+                core.set_block(x, y, z, RAIL)
+                core.set_facing(x, y, z, f)
+                return
+            end
+        end
+        for pass = 1, 2 do
+            for _, s in { 1, -1 } do
+                local px, pz = s * o[2], -s * o[1]
+                for dy = 0, 1 do
+                    local r = run_at(x + px, y + dy, z + pz)
+                    if r and (if pass == 1 then r[1] == -px and r[2] == -pz else r[1] * px + r[2] * pz ~= 0) then
+                        -- In heading -p: a right turn if its right, (p.z, -p.x), is the way out.
+                        local right = pz == o[1] and -px == o[2]
+                        core.set_block(x, y, z, if right then CORNER_R else CORNER_L)
+                        core.set_facing(x, y, z, f)
+                        return
+                    end
+                end
+            end
+        end
+        core.set_block(x, y, z, RAIL)
+        core.set_facing(x, y, z, f)
+    end
+    local function reshape(x: number, y: number, z: number)
+        shape(x, y, z)
+        for _, d in RUN do
+            for dy = -1, 1 do
+                shape(x + d[1], y + dy, z + d[2])
+            end
+        end
+    end
     -- A switch remembers the way it was laid; mods/cinnabar turns it from there.
     core.event.on("core:placed", function(ev)
         if ev.id == SWITCH then
             core.meta_set(ev.x, ev.y, ev.z, "base", tostring(core.get_facing(ev.x, ev.y, ev.z)))
+        end
+        if ANY[ev.id] then
+            reshape(ev.x, ev.y, ev.z)
+        end
+    end)
+    core.event.on("core:broken", function(ev)
+        if ANY[ev.id] then
+            reshape(ev.x, ev.y, ev.z)
         end
     end)
 end

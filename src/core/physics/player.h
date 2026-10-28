@@ -83,6 +83,10 @@ struct Player {
     float body_pitch = 0.0f;
     float body_roll  = 0.0f;
 
+    // Seconds afloat in a boat (MovementRules::boat): the clock its swell
+    // rocks and lifts it by.
+    float swell = 0.0f;
+
     // And where the bottom of its model goes: under the chassis along the
     // chassis's own up, where its wheels are at rest. Not `pos`, the feet the
     // server checks, which are the highest point a wheel touches -- they jump

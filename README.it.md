@@ -254,7 +254,7 @@ proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resist
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
 **Carrelli** (`mods/carts`). Cinque lingotti di ferro fanno un carrello: tasto destro su un binario
-per salire, salto per scendere. I binari curvano e salgono; un binario alimentato spinge a 11 m/s
+per salire, salto per scendere. I binari vanno nei due sensi, curvano e salgono; un binario alimentato spinge a 11 m/s
 quando il cinabro lo accende ed è una stazione quando è spento; uno scambio alimentato gira a destra.
 
 **Barche** (`mods/boats`). Cinque assi fanno una barca: tasto destro sull'acqua per sedersi,

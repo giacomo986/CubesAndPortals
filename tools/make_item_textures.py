@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """The last items that were drawn as their name in the slot: the stick
 (mods/timber), the two buckets (mods/lakes), the palette brush (mods/palette),
-the iron pick (mods/furnace) and the screwdriver (mods/screwdriver); and the
-arm pack (mods/armpack).
+the iron pick (mods/furnace) and the screwdriver (mods/screwdriver); the arm
+pack (mods/armpack); the boat (mods/boats) and the cart (mods/carts).
 
 Drawn the way tools_pick.png is: a 16x16 picture doubled to 32 px, flat
 colours lit on the top-left, and a dark outline round every shape. The iron
@@ -44,6 +44,52 @@ SHAPES = {
         {"o": (255, 140, 20), "j": (92, 94, 100), "a": (176, 182, 192), "k": (48, 52, 60),
          "G": (196, 202, 210), "g": (150, 156, 166), "W": (112, 118, 128), "d": (70, 74, 82),
          "r": (255, 120, 20)},
+    ),
+    # The boat from the side: a plank hull, its gunwale lighter, a seat inside.
+    "boats_boat": (
+        [
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            ".r............r.",
+            ".rr....ss....rr.",
+            ".Lrrrrrrrrrrrrl.",
+            ".LPPPPPPPPPPPPl.",
+            "..PppppppppppP..",
+            "..LPPPPPPPPPPl..",
+            "...ppppppppppp..",
+            "....PPPPPPPP....",
+            "................",
+            "................",
+            "................",
+        ],
+        {"r": (226, 180, 120), "s": (150, 104, 60), "L": (196, 140, 84), "l": (140, 92, 50),
+         "P": (176, 120, 66), "p": (140, 92, 50)},
+    ),
+    # The cart from the side: an iron tub with a rim, on two wheels.
+    "carts_cart": (
+        [
+            "................",
+            "................",
+            "................",
+            "..RRRRRRRRRRRR..",
+            "..GggggggggggW..",
+            "..GgddgddgddgW..",
+            "..GggggggggggW..",
+            "..GgddgddgddgW..",
+            "..GggggggggggW..",
+            "..WWWWWWWWWWWW..",
+            "...kk......kk...",
+            "..kaak....kaak..",
+            "..kaak....kaak..",
+            "...kk......kk...",
+            "................",
+            "................",
+        ],
+        {"R": (220, 224, 232), "G": (196, 202, 210), "g": (150, 156, 166), "W": (112, 118, 128),
+         "d": (96, 100, 110), "k": (48, 52, 60), "a": (130, 134, 142)},
     ),
     "timber_stick": (
         [

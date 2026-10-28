@@ -251,7 +251,7 @@ owners stand in it. Inside, owners are faster and tougher, strangers weaker; wha
 there is marked stolen.
 
 **Carts** (`mods/carts`). Five iron ingots make a cart: right click a rail to sit in it and ride,
-jump to get out. Rails turn corners and climb slopes; a powered rail drives a cart at 11 m/s when
+jump to get out. Rails run both ways, turn corners and climb slopes; a powered rail drives a cart at 11 m/s when
 cinnabar powers it and is a station when not; a powered switch turns a cart right.
 
 **Boats** (`mods/boats`). Five planks make a boat: right click the water to sit in it, row at twice a

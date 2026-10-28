@@ -201,7 +201,8 @@ Belt belt_under(const World &world, const NodeRegistry &reg, float x, float y, f
     return Belt{};
 }
 
-Chute chute_at(const World &world, const NodeRegistry &reg, float x, float y, float z, bool rails)
+Chute chute_at(const World &world, const NodeRegistry &reg, float x, float y, float z, bool rails,
+               float hx, float hz)
 {
     static constexpr int kRun[4][2] = {{0, -1}, {-1, 0}, {0, 1}, {1, 0}};
     const auto chute = [&](int cx, int cy, int cz) {
@@ -211,6 +212,13 @@ Chute chute_at(const World &world, const NodeRegistry &reg, float x, float y, fl
     const auto runs = [&](int cx, int cy, int cz, int dx, int dz) {
         const int f = world.get_facing(cx, cy, cz) & 3;
         return chute(cx, cy, cz) && kRun[f][0] == dx && kRun[f][1] == dz;
+    };
+    // A rail along that axis, either way: what a rail laid back to front, or
+    // one ridden backwards, joins on to.
+    const auto along = [&](int cx, int cy, int cz, int dx, int dz) {
+        const int f = world.get_facing(cx, cy, cz) & 3;
+        return chute(cx, cy, cz) && reg.get(world.get_block(cx, cy, cz)).rail &&
+               kRun[f][0] * dx + kRun[f][1] * dz != 0;
     };
     const int bx = floor_i(x), bz = floor_i(z), top = floor_i(y - 0.05f);
     Chute best;
@@ -225,12 +233,19 @@ Chute chute_at(const World &world, const NodeRegistry &reg, float x, float y, fl
         float ix = ox, iz = oz;
         const int bkx = bx - kRun[f][0], bkz = bz - kRun[f][1];
         const bool behind = runs(bkx, cy + 1, bkz, kRun[f][0], kRun[f][1]) ||
-                            (d.rail && (runs(bkx, cy, bkz, kRun[f][0], kRun[f][1]) ||
-                                        runs(bkx, cy - 1, bkz, kRun[f][0], kRun[f][1])));
-        if (!behind)
+                            (d.rail && (along(bkx, cy, bkz, kRun[f][0], kRun[f][1]) ||
+                                        along(bkx, cy - 1, bkz, kRun[f][0], kRun[f][1]) ||
+                                        along(bkx, cy + 1, bkz, kRun[f][0], kRun[f][1])));
+        // A side that runs into it first -- a switch beside the line it left
+        // turns onto the rail that brought the cart, not the one it would have
+        // gone on to -- then, for a rail, one along that side's axis either way.
+        for (int pass = 0; pass < (d.rail ? 2 : 1) && !behind && ix == ox && iz == oz; ++pass)
             for (int s : {1, -1}) {
                 const int px = s * kRun[f][1], pz = -s * kRun[f][0];   // a side
-                if (runs(bx + px, cy + 1, bz + pz, -px, -pz) || (d.rail && runs(bx + px, cy, bz + pz, -px, -pz))) {
+                const bool in = pass == 0 ? runs(bx + px, cy + 1, bz + pz, -px, -pz) ||
+                                                (d.rail && runs(bx + px, cy, bz + pz, -px, -pz))
+                                          : along(bx + px, cy, bz + pz, px, pz) || along(bx + px, cy + 1, bz + pz, px, pz);
+                if (in) {
                     ix = (float)-px;
                     iz = (float)-pz;
                     break;
@@ -265,6 +280,13 @@ Chute chute_at(const World &world, const NodeRegistry &reg, float x, float y, fl
         c.rise    = d.conveyor_rise;
         c.rail    = d.rail;
         c.on      = true;
+        // A rail ridden the other way: the same line, the way along it and
+        // the slope turned round.
+        if (d.rail && c.tx * hx + c.tz * hz < 0.0f) {
+            c.tx   = -c.tx;
+            c.tz   = -c.tz;
+            c.rise = -c.rise;
+        }
         if (std::fabs(y - c.surface) <= best_gap) {
             best_gap = std::fabs(y - c.surface);
             best     = c;

@@ -78,7 +78,10 @@ Belt belt_under(const World &world, const NodeRegistry &reg, float x, float y, f
 // within kChuteReach of feet at (x, y, z), with its middle line nearest to
 // them, the way along it there (horizontal, length 1), and the bed's height.
 // With `rails`, for a body in a cart, a rail (NodeDef::rail) is one too, and
-// it runs level or up as well, turning where one on its own level runs in.
+// it runs level or up as well, turning where one on its own level runs in --
+// or, failing one, where a rail lies along a side either way. A rail is ridden
+// both ways: (hx, hz), the way the body is going, against its run turns the
+// way along it and its rise round.
 inline constexpr float kChuteSpeed = 3.0f;
 inline constexpr float kChuteReach = 0.35f;
 struct Chute {
@@ -89,7 +92,8 @@ struct Chute {
     float rise = 0.0f;            // over the cell, as NodeDef::conveyor_rise
     bool  rail = false;
 };
-Chute chute_at(const World &world, const NodeRegistry &reg, float x, float y, float z, bool rails = false);
+Chute chute_at(const World &world, const NodeRegistry &reg, float x, float y, float z, bool rails = false,
+               float hx = 0.0f, float hz = 0.0f);
 
 // A ledge a body can hang from: in the column next to it along (dx, dz), a
 // block whose top is `edge`, with two open cells over it -- room to climb up

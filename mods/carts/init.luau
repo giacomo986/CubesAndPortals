@@ -5,7 +5,8 @@
 -- powered rail that is off stops you -- a station: forward pushes off it --
 -- and a powered switch turns you right. Jump gets you off; off the rails for
 -- half a second, the cart goes back in the bag. Everybody sees it, worn on the
--- feet (core.player_wear), and the body sat in it (the drive_idle clip).
+-- feet (core.player_wear), the body sat in it (the drive_idle clip), and hears
+-- the wheels clack over the joints, every two rails.
 
 local CART = "carts:cart"
 core.register_item(CART, 1)
@@ -17,6 +18,7 @@ core.recipe_shaped(CART, 1,
 local RAIL: { [number]: number } = {}   -- rail id -> its top over the cell's floor, mid-cell
 for name, top in { ["building:rail"] = 1 / 16, ["building:powered_rail"] = 1 / 16,
                    ["building:powered_rail_on"] = 1 / 16, ["building:switch"] = 1 / 16,
+                   ["building:switch_on"] = 1 / 16, ["building:rail_right"] = 1 / 16, ["building:rail_left"] = 1 / 16,
                    ["building:rail_up"] = 0.5 + 1 / 16, ["building:rail_down"] = 0.5 + 1 / 16 } do
     RAIL[core.node_id(name)] = top
 end
@@ -26,9 +28,12 @@ local SLOT = 9       -- of core.player_wear's ten; mods/boats has the tenth
 local DERAILED = 10  -- ticks off the rails before the cart is put back in the bag
 
 local riding: { [number]: number } = {}   -- player -> ticks off the rails
+-- Per cart: where it was last tick, and how far it has gone since the last clack.
+local rolled: { [number]: { x: number, z: number, d: number } } = {}
 
 local function leave(p: number)
     riding[p] = nil
+    rolled[p] = nil
     core.body_cart(p, false)
     core.player_wear(p, SLOT, 0)
     core.player_clip(p, "")
@@ -60,6 +65,21 @@ core.event.on("core:used", function(ev)
     core.player_place(p, ev.x + 0.5, ev.y + top, ev.z + 0.5, run[1], 0, run[2])
 end)
 
+-- A clack every two nodes rolled: a joint under the wheels.
+local function roll(p: number, x: number, y: number, z: number)
+    local r = rolled[p]
+    if r == nil then
+        rolled[p] = { x = x, z = z, d = 0 }
+        return
+    end
+    r.d += math.sqrt((x - r.x) ^ 2 + (z - r.z) ^ 2)
+    r.x, r.z = x, z
+    if r.d >= 2 then
+        r.d = r.d % 2
+        core.play_sound("carts:clack", x, y, z)
+    end
+end
+
 core.event.on("core:tick", function()
     if next(riding) == nil then
         return
@@ -71,12 +91,14 @@ core.event.on("core:tick", function()
     for p, n in riding do
         if not here[p] then   -- gone: the cart with them
             riding[p] = nil
+            rolled[p] = nil
             continue
         end
         local x, y, z = core.player_pos(p)
         local fx, fy, fz = math.floor(x), math.floor(y), math.floor(z)
         if RAIL[core.get_block(fx, fy, fz)] or RAIL[core.get_block(fx, fy - 1, fz)] then
             riding[p] = 0
+            roll(p, x, y, z)
         elseif n + 1 >= DERAILED then
             leave(p)
         else

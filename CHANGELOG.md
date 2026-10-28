@@ -8,7 +8,9 @@ un'alpha: [docs/BUILDING.md](docs/BUILDING.md#versioni).
 Protocollo 110: un client 0.9.0-alpha.4 non entra in un server con i binari.
 
 - I carrelli sui binari: curve, salite e discese, binari alimentati dal cinabro (stazioni da
-  spenti), scambi.
+  spenti), scambi. I binari si percorrono nei due sensi e le curve si vedono curve; le ruote
+  fanno rumore sui giunti.
+- La barca dondola sull'onda. Barca e carrello hanno un'icona.
 - I mattoni di pietra si fanno con la pietra liscia: la ricetta vecchia era quella dei mattoni.
 
 - Il sandbox ha il meteo: pioggia, neve nella tundra e sulle vette, temporali con fulmini e

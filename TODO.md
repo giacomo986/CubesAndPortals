@@ -420,8 +420,11 @@ the villagers and start with questions (memory: villagers-need-design-first).
    hulls within 1.5 bounce apart at 4 m/s (core.player_launch), and the oars
    sound every 0.9 s (tools/make_boat_sounds.py). Seen in Xephyr (steering,
    third person); a cow 3.5 ahead pushed a node aside; two clients put 0.9
-   apart drifted 6 apart. Open: a creature sunk under the hull is passed over;
-   a boat is no Jolt body, so it does not tip or rock.
+   apart drifted 6 apart. On a swell since: heave 0.05 (server positions, so
+   everybody sees it; measured 19.61..19.70 about 19.65), roll and pitch 0.06
+   rad and a lean out of a turn -- drawn on the rider's own body only, as
+   body_roll is not sent for a body without a chassis. A creature sunk to the
+   bottom is passed over: it is under the hull, as it would be.
 5. Minecarts -- built 2026-10-28: `mods/carts` and rails in `mods/building`
    (its old decorative rail is now ridable), powered by `mods/cinnabar`.
    Engine: `core.node_conveyor`'s `rail` (NodeDef::rail, protocol 110: bit 32
@@ -435,9 +438,16 @@ the villagers and start with questions (memory: villagers-need-design-first).
    standing (no fall, no rise refusal). Checked in the client: straight,
    corner, slope up, the brake stopping at 6 m/s within a node, a cinnabar
    block beside it sending the cart off, a powered switch turning it right and
-   down a slope; seen in Xephyr sat in the cart. Open: corner and switch cells
-   draw a straight rail; rails run one way only; no rolling sound; a boat or a
-   cart in the bag shows its name, not an icon. Found on the way: the recipe
+   down a slope; seen in Xephyr sat in the cart. Since: corner cells draw two
+   quarter arcs (building:rail_right/_left, swapped in by mods/building from
+   the rails round a rail laid or broken, as the engine rides them) and a
+   powered switch is building:switch_on, a right arc; rails are ridden both
+   ways (chute_at takes the way the body goes, or looks standing, and turns
+   the tangent and the rise round; a corner also joins a side rail lying
+   either way) -- checked: the L track ridden backwards round its corner;
+   wheels clack every two nodes (tools/make_cart_sounds.py); boat and cart
+   have icons (tools/make_item_textures.py). Open: a rail laid by a mod
+   (set_block) keeps its shape until a hand lays or breaks one beside it. Found on the way: the recipe
    clash message now names both results, which showed rocks:stone_bricks never
    craftable (craft:brick's shape) -- now four smooth stone.
 6. Travel portals between villages or territories, with a cost or a rule.

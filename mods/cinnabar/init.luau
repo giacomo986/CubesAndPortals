@@ -318,7 +318,8 @@ local function solve(cx: number, cy: number, cz: number): { Cell }
     local observers = found(cx, cy, cz, { "cinnabar:observer_on" })
     local hoppers = found(cx, cy, cz, { "cinnabar:hopper", "cinnabar:hopper_locked",
                                     "cinnabar:hopper_side", "cinnabar:hopper_side_locked" })
-    local rails = found(cx, cy, cz, { "building:powered_rail", "building:powered_rail_on", "building:switch" })
+    local rails = found(cx, cy, cz, { "building:powered_rail", "building:powered_rail_on", "building:switch",
+                                      "building:switch_on" })
     if #dust + #torches + #repeaters + #comparators + #pistons + #lamps + #hoppers + #rails == 0 then
         return {}
     end
@@ -458,8 +459,8 @@ local function solve(cx: number, cy: number, cz: number): { Cell }
     -- mods/building's powered rail is on, and its switch turned right, beside
     -- power -- as a lamp is lit. A switch's own way is in its meta from when it
     -- was laid. By name: building loads after this mod.
-    local PRAIL, PRAIL_ON, SWITCH = core.node_id("building:powered_rail"), core.node_id("building:powered_rail_on"),
-        core.node_id("building:switch")
+    local PRAIL, PRAIL_ON = core.node_id("building:powered_rail"), core.node_id("building:powered_rail_on")
+    local SWITCH, SWITCH_ON = core.node_id("building:switch"), core.node_id("building:switch_on")
     for _, c in rails do
         local on = (fed[k(c.x, c.y, c.z)] or 0) > 0
         for _, d in ALL6 do
@@ -470,10 +471,12 @@ local function solve(cx: number, cy: number, cz: number): { Cell }
         end
         local facing = core.get_facing(c.x, c.y, c.z)
         local id = core.get_block(c.x, c.y, c.z)
-        if id == SWITCH then
+        if id == SWITCH or id == SWITCH_ON then
+            -- Turned, it is drawn as the right-hand turn it now is.
             local base = tonumber(core.meta_get(c.x, c.y, c.z, "base")) or facing
             local want = if on then (base + 3) % 4 else base
-            if facing ~= want then
+            if facing ~= want or id ~= (if on then SWITCH_ON else SWITCH) then
+                set(c, if on then SWITCH_ON else SWITCH)
                 core.set_facing(c.x, c.y, c.z, want)
             end
         elseif id ~= (if on then PRAIL_ON else PRAIL) then

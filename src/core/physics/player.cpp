@@ -276,7 +276,12 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
     // body flies on with the speed it had. Jump gets off. Round a turn the
     // view turns with the chute.
     if (!input.jump) {
-        Chute c = chute_at(world, reg, player.pos.x, player.pos.y, player.pos.z, rules.cart);
+        // The way it is going, or standing, the way it looks: which way a
+        // rail is ridden.
+        const bool  moving = std::hypot(player.velocity.x, player.velocity.z) > 0.1f;
+        float       hx = moving ? player.velocity.x : std::sin(player.yaw);
+        float       hz = moving ? player.velocity.z : -std::cos(player.yaw);
+        Chute c = chute_at(world, reg, player.pos.x, player.pos.y, player.pos.z, rules.cart, hx, hz);
         if (c.on) {
             const Vec3  from  = player.pos;
             const float now   = std::hypot(player.velocity.x, player.velocity.z);
@@ -297,7 +302,9 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
                 p.x = c.mx + (p.x - c.mx) * keep + c.tx * step;
                 p.z = c.mz + (p.z - c.mz) * keep + c.tz * step;
                 p.y = c.surface;
-                c   = chute_at(world, reg, p.x, p.y, p.z, rules.cart);
+                hx  = c.tx;
+                hz  = c.tz;
+                c   = chute_at(world, reg, p.x, p.y, p.z, rules.cart, hx, hz);
                 if (c.on) p.y = c.surface;
                 last = (p - was) * (1.0f / step);
             }
@@ -344,7 +351,14 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
             drift *= std::exp(-kBoatKeel * dt);
             player.velocity.x = ahead.x * along + side.x * drift;
             player.velocity.z = ahead.z * along + side.z * drift;
-            player.velocity.y = std::clamp(((float)(y + 1) - kBoatDraft - player.pos.y) * 6.0f, -3.0f, 3.0f);
+            // On the swell: a slow lift and drop, a roll and a pitch out of step
+            // with it, and a lean out of a turn at speed.
+            player.swell += dt;
+            const float sw = player.swell;
+            const float lift = kBoatHeave * std::sin(sw * 2.1f);
+            player.body_roll  = kBoatRock * std::sin(sw * 1.3f) - kBoatLean * input.move_right * std::min(1.0f, std::fabs(along) / 4.0f);
+            player.body_pitch = kBoatRock * 0.6f * std::sin(sw * 1.7f + 1.0f);
+            player.velocity.y = std::clamp(((float)(y + 1) - kBoatDraft + lift - player.pos.y) * 6.0f, -3.0f, 3.0f);
             const MoveResult r = move_body(world, reg, player.pos, player.velocity * dt,
                                            player.cb_shift, kStepHeight, box_half(player, rules), box_height(player));
             player.pos       = r.pos;

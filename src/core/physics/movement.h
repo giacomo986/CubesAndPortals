@@ -156,6 +156,11 @@ inline constexpr float kBoatDraft = 0.35f;
 inline constexpr float kBoatGrip  = 1.2f;
 inline constexpr float kBoatKeel  = 4.0f;    // 1/s
 inline constexpr float kBoatTurn  = 1.8f;    // rad/s at full rudder
+// And the swell: the hull lifts and drops this far, and rolls and pitches
+// this much (radians), over a few seconds; a turn leans it out a little more.
+inline constexpr float kBoatHeave = 0.05f;
+inline constexpr float kBoatRock  = 0.06f;
+inline constexpr float kBoatLean  = 0.08f;
 
 // A cart on a rail (MovementRules::cart): brought up to the rail's speed at
 // kRailAccel and down to it at kRailBrake -- a brake rail stops a cart at 6 m/s
