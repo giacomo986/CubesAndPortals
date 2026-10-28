@@ -111,6 +111,7 @@ owner of that name on this world, or the bare name.
 | `/metrics` | logs | Uptime, players and windows per room, the longest gap between ticks |
 | `/weather [clear\|rain\|storm] [MINUTES]` | admin | The sandbox's sky (`mods/weather`): with no word, what it is and how long it lasts; with one, that sky now, for MINUTES or the usual time |
 | `/season [spring\|summer\|autumn\|winter]` | admin | The sandbox's season (`mods/weather`, five days each): with no word, which and what day of it; with one, the first day of that season this year |
+| `/village siege\|feast\|caravan` | admin | Starts one of the villages' events now in the village the admin stands in (`mods/villagers`): a siege warned of now and coming at nightfall, the harvest feast in its square, or a caravan to the nearest other village (none when one is out already or its chests have nothing to spare) |
 
 ### Players
 

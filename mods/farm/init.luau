@@ -74,8 +74,9 @@ core.event.on("farm:rain", function(ev)
 end)
 
 -- The season, told by mods/weather too: in autumn a crop grows half as often,
--- in winter only under a lamp (block light 9 or more: a greenhouse).
-core.event.define("farm:season", { fields = { name = "string" }, cancellable = false })
+-- in winter only under a lamp (block light 9 or more: a greenhouse). Told
+-- again every midnight, with the whole days left of it (0 on its last).
+core.event.define("farm:season", { fields = { name = "string", left = "number" }, cancellable = false })
 local season = "spring"
 core.event.on("farm:season", function(ev)
     season = ev.name

@@ -267,6 +267,12 @@ a robot build it.
 procure a material, craft tools, hunt at night, carry a parcel to another village, explore a far place --
 taken and paid (from its treasury) at the mayor and the merchant; after five, the merchant gives a discount.
 
+**Village events**, rung on the hall's bell and posted on the board: caravans of a merchant and a mule
+carrying real goods to another village (buy from them on the road, or escort them for pay), rare night
+sieges warned of at dusk (three waves against the watch: no villager lost, emeralds for the defenders),
+and the harvest feast on the last day of summer -- stalls and lanterns in the square, food at half
+price, music, fireworks in the evening (`mods/fireworks`).
+
 **Herding** (`mods/animals`): dye a sheep for coloured wool, milk a cow with a bucket (cheese, cake), keep a stable
 with a trough of wheat or seeds that holds the animals and breeds them, and order a robot to tend them.
 

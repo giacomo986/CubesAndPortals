@@ -271,6 +271,12 @@ manca, procurare un materiale, fabbricare utensili, cacciare di notte, portare u
 villaggio, esplorare un luogo lontano -- prese e pagate (dalla tesoreria) dal sindaco e dal mercante;
 dopo cinque, il mercante fa lo sconto.
 
+**Eventi del villaggio**, annunciati dalla campana del municipio e sulla bacheca: carovane di un mercante
+e un mulo che portano merci vere a un altro villaggio (si compra da loro per strada, o si scortano a
+pagamento), rari assedi notturni annunciati al tramonto (tre ondate contro la guardia: nessun abitante
+perso, smeraldi a chi difende) e la festa del raccolto l'ultimo giorno d'estate -- bancarelle e lanterne
+in piazza, cibo a metà prezzo, musica, fuochi d'artificio la sera (`mods/fireworks`).
+
 **Allevamento** (`mods/animals`): si tinge una pecora per la lana colorata, si munge una mucca con un
 secchio (formaggio, torta), una mangiatoia di frumento o semi fa da stalla (tiene gli animali e li fa riprodurre), e un
 robot può badare agli animali.

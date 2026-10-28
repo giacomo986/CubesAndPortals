@@ -407,7 +407,32 @@ the villagers and start with questions (memory: villagers-need-design-first).
    melts in spring. /season for admins. Seen in Xephyr (autumn and winter
    leaves); seasons and winter snow checked headless. The traders' prices
    follow too: food doubles in winter, wood in autumn (checked headless).
-3. Village events: caravans on the roads, night sieges, a harvest feast.
+3. Village events -- built 2026-10-28 in `mods/villagers` (design agreed
+   that day), announced on the notice board, by the hall's bell and in a
+   notice to players near; /village siege|feast|caravan for admins.
+   SIEGES: a night in 7-10 a village with a player near; warned at dusk,
+   three waves (3, 4, 5, more with a crowd) of zombies and skeletons
+   (`villagers:raider`, workers sent with core.mob_attack at the people and
+   core.mob_hunt at players), the watch kept awake and fighting them; none of
+   the village lost pays the players there 5 emeralds and two errands' credit.
+   Checked with a client: three waves fought off by the watch, two villagers
+   lost and said so; the reward path checked headless. CARAVANS: about once
+   a day a merchant and a mule (tools/make_mule_model.py) take a bundle of
+   each of up to three goods the village has two bundles of to the nearest
+   other village 100-2000 away; they walk while a player is within 64-96 and
+   are carried along the line at 2.2 m/s otherwise; right click to buy the
+   cargo or escort it (paid 2 + 1 per 200 nodes, one errand's credit); at
+   night two raiders every 1-2 minutes; killed, the goods drop. Checked with
+   a client: 411,-359 to 625,-417 walked, carried, respawned and delivered.
+   FEAST: the last day of summer (farm:season now carries `left` and is told
+   every midnight): four stalls with awnings and lanterns round the square,
+   the people gathered (4 of them in a test), food at half price, music every
+   12 s, fireworks (new `mods/fireworks`) at 0.76; put away at 0.9. Seen in
+   Xephyr (stalls, people, fireworks). Open: a fresh village's chests rarely
+   have two bundles of anything, so its caravans wait for its workers; the
+   caravan walks a straight line (no roads), lifted over what blocks it after
+   12 s; a stall's awning can land oddly on uneven ground; sounds and music
+   are synthesised (tools/make_village_sounds.py).
 4. Boats -- built 2026-10-28 in `mods/boats` (`core.body_boat`: bit 2 of
    BodyMovement's moves byte, which a 109 client ignores and swims). Five
    planks; right click water with one to sit in it at the top, a shore to step

@@ -166,7 +166,7 @@ if serving then
 
     local function set_season(s: number)
         season = s
-        core.event.emit("farm:season", { name = SEASONS[s].name })
+        core.event.emit("farm:season", { name = SEASONS[s].name, left = DAYS - 1 - day % DAYS })
         local name = SEASONS[s].name
         core.log(`weather: {name}, day {day}`)
         for _, p in core.players() do
@@ -176,7 +176,7 @@ if serving then
     -- At world_ready, not at load: mods that load after this one (the
     -- villagers' prices) listen too.
     core.event.on("core:world_ready", function()
-        core.event.emit("farm:season", { name = SEASONS[season].name })
+        core.event.emit("farm:season", { name = SEASONS[season].name, left = DAYS - 1 - day % DAYS })
     end)
 
     core.event.on("core:tick", function(ev)
@@ -184,6 +184,7 @@ if serving then
         if t < last_t - 0.5 then   -- past midnight, or a night slept through
             day += 1
             core.storage_set("day", tostring(day))
+            core.event.emit("farm:season", { name = SEASONS[season_at()].name, left = DAYS - 1 - day % DAYS })
         end
         last_t = t
         local s = season_at()
