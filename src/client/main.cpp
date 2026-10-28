@@ -8836,8 +8836,11 @@ void add_own_body(Scene &s, const Player &player, uint16_t model)
     // Held in a clip by a mod and dressed by it (a cart, sat in): seen from
     // its posed head as a seat is, its arms where the clip puts them and what
     // it is dressed in round it.
+    // Or sat in one whose name says so ("sit", a chair): seen from its head the
+    // same way. Not every held clip: a rifle held is still seen down the arms.
     const bool posed_in = s.own_clip.empty() && s.conn != nullptr && !s.conn->own_pose().clip.empty() &&
-                          std::any_of(std::begin(b.dress), std::end(b.dress), [](uint16_t m) { return m != 0; });
+                          (std::any_of(std::begin(b.dress), std::end(b.dress), [](uint16_t m) { return m != 0; }) ||
+                           s.conn->own_pose().clip.rfind("sit", 0) == 0);
     s.seat_view = s.act().view_distance <= 0.0f && (s.seat_on || posed_in) && !s.driving_view;
     if (s.seat_view) {
         b.arms_only     = true;

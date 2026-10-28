@@ -683,8 +683,19 @@ the villagers and start with questions (memory: villagers-need-design-first).
     tools/make_voxel_blocks.py's new decor() on its own seed -- the old ones
     came out byte for byte the same, and its rail model no longer overwrites
     tools/make_rail_models.py's. Checked with a client: a showcase by day and
-    by night, every kind drawn, glass seen through. Open: nobody sits on a
-    chair; the lantern is boxes in a framed picture, no model.
+    by night, every kind drawn, glass seen through. Closed after: a right
+    click on a chair sits on it -- the body put on its seat facing away from
+    its back, the robot's new clip "sit" (tools/make_cart_clips.py: thighs
+    level, feet on the floor, hands on the knees; the seat lowered to 0.40,
+    the robot's legs too short for 0.55) until the body moves off it (a
+    second's grace while it is put there: the first try stood up at once);
+    in first person a held clip named "sit..." is seen from the posed head
+    as a cart is, arms on the knees -- only by that name, so a rifle held by
+    a game's mod is still seen down the arms. The lantern is a model
+    (tools/make_lantern_model.py, assets/blender/lantern.blend): an iron
+    base, posts, a stepped roof with a ring round glowing glass and a flame,
+    and hung on a chain of links. Checked with a client: sat on a chair by
+    a real click, seen seated from behind and from the seat.
 16. Plaza games on the chess frame (draughts, mill), a scored PvP arena.
 
 Railways redone 2026-10-28 (asked the same day), in Blender through its MCP

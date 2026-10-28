@@ -7,9 +7,12 @@
 #   cart_ride   two seconds round: sat on the bench at the back of the cart,
 #               knees up, feet on its floor, a hand on each side's rim,
 #               swaying a little with the track
+#   sit         three seconds round: sat on a chair (mods/building), the body's
+#               feet -- its origin -- on the seat 0.40 over the floor, the
+#               legs down to the floor, hands on the knees, breathing
 #
 #   flatpak run org.blender.Blender --background --python "$PWD/tools/make_cart_clips.py"
-#   python3 tools/gltf_add_clips.py mods/robot/robot.gltf ~/kart_assets/cart_body.gltf cart_enter cart_ride
+#   python3 tools/gltf_add_clips.py mods/robot/robot.gltf ~/kart_assets/cart_body.gltf cart_enter cart_ride sit
 #
 # Arms and legs by IK, solved here frame by frame and baked into plain keys,
 # as tools/make_card_hold.py does. The body's feet (its origin) are on the
@@ -74,6 +77,20 @@ def at(keys, s):
         if s <= t1:
             return blend(a, b, smooth((s - t0) / (t1 - t0)))
     return keys[-1][1]
+
+
+SEAT = 0.40   # a chair's seat over the floor
+CHAIR = {"hips": (0.0, -0.08, 0.07), "lean": -0.04, "roll": 0.0,
+         "wrist_R": (0.16, 0.20, 0.10), "wrist_L": (-0.16, 0.20, 0.10),
+         "ankle_R": (0.12, 0.26, ANKLE - SEAT), "ankle_L": (-0.12, 0.26, ANKLE - SEAT)}
+
+
+def sit(s):
+    w = 2 * math.pi * s / 3.0
+    p = dict(CHAIR)
+    p["hips"] = (CHAIR["hips"][0], CHAIR["hips"][1], CHAIR["hips"][2] + 0.004 * math.sin(w))
+    p["lean"] = CHAIR["lean"] + 0.015 * math.sin(w)
+    return p
 
 
 def ride(s):
@@ -195,6 +212,7 @@ def main(export=True):
     rg, targets = rig_up()
     bake(rg, targets, "cart_enter", lambda s: at(ENTER, s), ENTER[-1][0])
     bake(rg, targets, "cart_ride", ride, 2.0)
+    bake(rg, targets, "sit", sit, 3.0)
     for chain in targets:
         for c in list(rg.pose.bones[chain].constraints):
             rg.pose.bones[chain].constraints.remove(c)

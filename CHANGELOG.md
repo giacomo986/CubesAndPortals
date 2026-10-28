@@ -14,7 +14,7 @@ Protocollo 110: un client 0.9.0-alpha.4 non entra in un server con i binari.
   pagando uno smeraldo ogni 200 nodi si apre un portale vero verso una pietra toccata, per
   cinque minuti.
 - Decorazioni: vetro colorato e lastre nei sedici colori, muretti, piastrelle smaltate, a scacchi
-  e di pietra, sedie e tavoli per ogni legno, tappeti, lanterne.
+  e di pietra, sedie (ci si siede) e tavoli per ogni legno, tappeti, lanterne in ferro e vetro.
 - Le ferrovie rifatte in Blender: traversine e rotaie vere, curve ad arco, salite su terrapieno,
   binari alimentati che si accendono, scambi con leva; un vero carrello da miniera; il giocatore ci
   sale scavalcando il bordo e viaggia seduto; in prima persona si vedono il carrello e le mani sui

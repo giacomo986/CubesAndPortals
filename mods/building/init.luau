@@ -29,7 +29,8 @@
 --   tiles       four terracotta of a colour make four glazed tiles; four stone
 --               bricks four stone tiles; white and black concrete a chequer
 --   chairs and tables  one per wood, of its planks and sticks; a chair faces
---               whoever put it down
+--               whoever put it down, and a right click sits on it (the robot's
+--               "sit" clip, tools/make_cart_clips.py) until they move
 --   carpets     two wool of a colour make three, a sixteenth high
 --   lantern     iron round a torch, hanging or standing, light 14
 local WOODS = { "oak", "birch", "spruce", "jungle", "acacia", "dark_oak" }
@@ -301,12 +302,14 @@ if serving then
     end
 
     -- Chairs and tables, one of each per wood.
+    local CHAIRS: { [number]: boolean } = {}
     for _, w in WOODS do
         local chair = node(`building:{w}_chair`, { 160, 130, 80 }, true, "upright", 1.0, "wood")
-        boxes(chair, { { 0.15, 0.45, 0.15, 0.85, 0.55, 0.85 },                        -- seat
-                       { 0.15, 0, 0.15, 0.25, 0.45, 0.25 }, { 0.75, 0, 0.15, 0.85, 0.45, 0.25 },   -- legs
-                       { 0.15, 0, 0.75, 0.25, 0.45, 0.85 }, { 0.75, 0, 0.75, 0.85, 0.45, 0.85 },
-                       { 0.15, 0.55, 0.75, 0.85, 1.1, 0.85 } })                         -- back
+        boxes(chair, { { 0.15, 0.30, 0.15, 0.85, 0.40, 0.85 },                        -- seat
+                       { 0.15, 0, 0.15, 0.25, 0.30, 0.25 }, { 0.75, 0, 0.15, 0.85, 0.30, 0.25 },   -- legs
+                       { 0.15, 0, 0.75, 0.25, 0.30, 0.85 }, { 0.75, 0, 0.75, 0.85, 0.30, 0.85 },
+                       { 0.15, 0.40, 0.75, 0.85, 1.0, 0.85 } })                         -- back
+        CHAIRS[chair] = true
         core.recipe_shaped(`building:{w}_chair`, 2,
             "timber:stick  -",
             `{planks_of(w)} {planks_of(w)}`,
@@ -320,14 +323,46 @@ if serving then
             "timber:stick  -            timber:stick")
     end
 
+    -- Sat on: on its seat facing away from its back, until the body moves off it.
+    local RUN = { { 0, -1 }, { -1, 0 }, { 0, 1 }, { 1, 0 } }
+    local seated: { [number]: { number } } = {}
+    core.event.on("core:used", function(ev)
+        if not CHAIRS[ev.id] or seated[ev.player] then
+            return
+        end
+        ev.cancel = true
+        local run = RUN[core.get_facing(ev.x, ev.y, ev.z) % 4 + 1]
+        core.player_place(ev.player, ev.x + 0.5, ev.y + 0.40, ev.z + 0.5, run[1], -0.1, run[2])
+        core.player_clip(ev.player, "sit")
+        -- The fourth: a second before moving counts, while the body is put there.
+        seated[ev.player] = { ev.x + 0.5, ev.y + 0.40, ev.z + 0.5, 1.0 }
+    end)
+    core.event.on("core:tick", function(ev)
+        for p, at in seated do
+            at[4] -= ev.dt
+            local x, y, z = core.player_pos(p)
+            if at[4] > 0 then
+                continue
+            end
+            if x == nil or (x - at[1]) ^ 2 + (z - at[3]) ^ 2 > 0.3 * 0.3 or math.abs(y - at[2]) > 0.3 then
+                seated[p] = nil
+                if x ~= nil then
+                    core.player_clip(p, "")
+                end
+            end
+        end
+    end)
+
     -- A lantern: iron round a torch, hung under a block or stood on one.
     local LANTERN = node("building:lantern", { 230, 190, 110 }, false, "", 0.6, "stone", 14)
-    boxes(LANTERN, { { 0.3, 0, 0.3, 0.7, 0.45, 0.7 }, { 0.36, 0.45, 0.36, 0.64, 0.52, 0.64 },
-                     { 0.47, 0.52, 0.47, 0.53, 0.62, 0.53 } })
+    boxes(LANTERN, { { 0.33, 0, 0.33, 0.67, 0.5, 0.67 } })
     local HUNG = node("building:lantern_hung", { 230, 190, 110 }, false, "", 0.6, "stone", 14)
-    boxes(HUNG, { { 0.3, 0.38, 0.3, 0.7, 0.83, 0.7 }, { 0.36, 0.83, 0.36, 0.64, 0.9, 0.64 },
-                  { 0.47, 0.9, 0.47, 0.53, 1, 0.53 } })
+    boxes(HUNG, { { 0.33, 0.32, 0.33, 0.67, 0.82, 0.67 }, { 0.47, 0.82, 0.47, 0.53, 1, 0.53 } })
     core.node_drop(HUNG, LANTERN)
+    -- Drawn as models: an iron frame round glowing glass, hung on a chain
+    -- (tools/make_lantern_model.py, assets/blender/lantern.blend).
+    core.node_model(LANTERN, core.register_model("building:lantern", "lantern.gltf"))
+    core.node_model(HUNG, core.register_model("building:lantern_hung", "lantern_hung.gltf"))
     core.recipe_shaped("building:lantern", 1,
         "-                  furnace:iron_ingot -",
         "furnace:iron_ingot torches:torch      furnace:iron_ingot",
