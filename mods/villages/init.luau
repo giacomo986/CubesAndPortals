@@ -1401,6 +1401,14 @@ core.register_mapgen("villages:build", function(ctx)
             end
         end
     end
+    -- And a waystone (mods/travel) beside it, on the square's east side.
+    -- (Where a lamp would stand: on the ground, over the sea and dry.)
+    if owns(ctx, v.x + 3, v.z) then
+        local g = core.terrain_height(v.x + 3, v.z)
+        if g > SEA and not wet(v.x + 3, v.z) then
+            core.set_block(v.x + 3, g, v.z, id("travel:waystone"))
+        end
+    end
 
     for _, l in plan.lamps do
         if owns(ctx, l[1], l[2]) then

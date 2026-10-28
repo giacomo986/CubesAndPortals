@@ -250,6 +250,10 @@ job, meals and a bed. Every village has:
 owners stand in it. Inside, owners are faster and tougher, strangers weaker; what strangers take
 there is marked stolen.
 
+**Waystones** (`mods/travel`). A waystone stands by every village's well, and one can be made
+for a territory: touch one to remember it, then travel from any waystone to those you remember
+for an emerald every 200 nodes.
+
 **Carts** (`mods/carts`). Five iron ingots make a cart: right click a rail to sit in it and ride,
 jump to get out. Rails run both ways, turn corners and climb slopes; a powered rail drives a cart at 11 m/s when
 cinnabar powers it and is a station when not; a powered switch turns a cart right.

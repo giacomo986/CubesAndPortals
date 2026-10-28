@@ -10,6 +10,8 @@ Protocollo 110: un client 0.9.0-alpha.4 non entra in un server con i binari.
 - I carrelli sui binari: curve, salite e discese, binari alimentati dal cinabro (stazioni da
   spenti), scambi. I binari si percorrono nei due sensi e le curve si vedono curve; le ruote
   fanno rumore sui giunti.
+- Le pietre del viaggio: una per villaggio accanto al pozzo, fabbricabili per i territori; si
+  viaggia fra quelle toccate pagando uno smeraldo ogni 200 nodi.
 - La barca dondola sull'onda. Barca e carrello hanno un'icona.
 - I mattoni di pietra si fanno con la pietra liscia: la ricetta vecchia era quella dei mattoni.
 

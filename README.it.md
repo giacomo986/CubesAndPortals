@@ -253,6 +253,10 @@ e un letto. Ogni villaggio ha:
 proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resistenti, gli estranei
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
+**Pietre del viaggio** (`mods/travel`). Ogni villaggio ne ha una accanto al pozzo, e una si
+fabbrica per il proprio territorio: toccarla la fa ricordare, e da qualunque pietra si viaggia verso
+quelle ricordate per uno smeraldo ogni 200 nodi.
+
 **Carrelli** (`mods/carts`). Cinque lingotti di ferro fanno un carrello: tasto destro su un binario
 per salire, salto per scendere. I binari vanno nei due sensi, curvano e salgono; un binario alimentato spinge a 11 m/s
 quando il cinabro lo accende ed è una stazione quando è spento; uno scambio alimentato gira a destra.

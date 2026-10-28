@@ -450,7 +450,21 @@ the villagers and start with questions (memory: villagers-need-design-first).
    (set_block) keeps its shape until a hand lays or breaks one beside it. Found on the way: the recipe
    clash message now names both results, which showed rocks:stone_bricks never
    craftable (craft:brick's shape) -- now four smooth stone.
-6. Travel portals between villages or territories, with a cost or a rule.
+6. Travel -- built 2026-10-28 as waystones (`mods/travel`), not engine
+   portals: the sandbox's mouths are nearly all taken (kMaxMouths 20). Rule
+   and cost chosen without Giacomo (he asked to go on): a waystone works on a
+   village's ground (villages:extent, known before mods/villagers makes it a
+   territory) or a territory, else it goes back to the bag; touched, it is
+   remembered per player name; the panel lists the remembered ones nearest
+   first (8 at most), an emerald every 200 nodes, one at least. Every village
+   laid out since has one by its well (where a lamp would stand); one is made
+   of smooth stone round an emerald and a cinnabar. Whoosh synthesised
+   (tools/make_travel_sounds.py). Checked on a server with a client, seed 1:
+   the stone by the well of the village at -161 116; one laid off any ground
+   given back; one on a territory 300 east attuned; the trip there cost 2
+   emeralds and put the player beside it. Open: villages made before today
+   have no stone (craft one); nothing stops a trip into a stranger's
+   territory -- its own rules apply there.
 7. A map that fills as you go, and a compass home.
 8. Rare structures: desert temples, wrecks, sunken ruins, each a small puzzle.
 9. A deep layer under `depths`: glowing fungi, lava, crystals, a guardian.
