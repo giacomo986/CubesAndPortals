@@ -207,7 +207,7 @@ void ModelRenderer::draw(const Mat4 &projection, const Mat4 &view, const Mat4 &m
         gfx_uniform_set_v4(m_loc_bones, identity, 3);
     }
     if (m_loc_texture >= 0) gfx_uniform_set_int(m_loc_texture, 0);
-    if (m_loc_light >= 0) gfx_uniform_set_f(m_loc_light, light);
+    if (m_loc_light >= 0) gfx_uniform_set_f(m_loc_light, std::max(light, night_sight * 0.55f));
     if (m_loc_alpha >= 0) gfx_uniform_set_f(m_loc_alpha, alpha);
     m_water.set(projection, view);   // before the parts bind their textures to unit 0
 

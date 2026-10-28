@@ -1347,6 +1347,17 @@ local api: { Fn } = {
            .. "Called as it moves. For a world's code on a player's machine.",
     },
     {
+        name = "night_sight",
+        host = "night_sight",
+        args = {
+            { name = "amount", type = "float", doc = "0 none .. 1 the dark as bright as dusk; clamped" },
+        },
+        doc = "How much this player sees in the dark: every block and creature drawn at least "
+           .. "this bright, whatever the hour or the cave. A potion's, a lamp worn on the head. "
+           .. "0 takes it away. Only drawn: no creature or crop reads it. For a world's code on "
+           .. "a player's machine.",
+    },
+    {
         name = "overcast",
         host = "overcast",
         args = {
@@ -2929,11 +2940,16 @@ local api: { Fn } = {
             { name = "dig", type = "float", doc = "Digging, 0.1 to 10." },
             { name = "hurt", type = "float", doc = "Blows taken, after armour, 0 to 10." },
             { name = "regen", type = "float", doc = "Health coming back, 0 (none) to 10." },
+            { name = "source", type = "string", default = "",
+              doc = "Whose these are: a territory's, a potion's. Each source keeps its own four "
+                 .. "and the body gets their product, so a potion drunk on owned ground does "
+                 .. "not undo the ground's, nor the ground the potion's. All four 1 forgets it." },
         },
         doc = "How this player moves, digs, takes blows and heals against everybody else, 1 for "
            .. "as they are: on top of core.body_movement, core.player_regen and their tools, so a "
            .. "mod that slows them for a moment does not undo it. Their client is told walk and "
-           .. "dig. In memory only. Returns 1, or 0 for nobody or a number out of range.",
+           .. "dig. The product of the sources is held to the same ranges. In memory only. "
+           .. "Returns 1, or 0 for nobody or a number out of range.",
     },
     {
         name = "swap_item",

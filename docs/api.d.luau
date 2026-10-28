@@ -222,6 +222,8 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     world_storm: (r: number, g: number, b: number) -> (),
     -- Draws a twister in this world's sky: a funnel of the clouds' colour coming down out of them to the ground at x, y, z, wide at the top and narrow at the foot, turning, with dust whirled up round its foot. Up to four at once; false takes that one away. Only drawn, nothing is pulled: what it does is the mod's. Called as it moves. For a world's code on a player's machine.
     storm_funnel: (slot: number, x: number, y: number, z: number, on: boolean?) -> (),
+    -- How much this player sees in the dark: every block and creature drawn at least this bright, whatever the hour or the cave. A potion's, a lamp worn on the head. 0 takes it away. Only drawn: no creature or crop reads it. For a world's code on a player's machine.
+    night_sight: (amount: number) -> (),
     -- Weather over this world's sky: the sky and its clouds go grey by this much, the sun's light on the ground weaker and its shadows fainter, the hours kept. 0 takes it away. Only drawn: the light a crop or a creature reads (core.light) is the hour's. Called as it changes, so a mod fades it in. For a world's code on a player's machine.
     overcast: (amount: number) -> (),
     -- Marks a block as foliage: it takes the colour core.foliage gives -- leaves that turn in autumn. Only drawn; the world around is drawn again with it. Returns 1, or 0 for an id that is not a block. For a world's code on a player's machine.
@@ -456,8 +458,8 @@ On a player's machine, world code included, it answers for that machine's own pl
     owned_at: (x: number, z: number) -> number,
     -- Makes a player one of the owners of the ground with that number: what they take, break or open there is not marked. Until they leave; a mod says it again when they come back. Returns 1, or 0 for nobody.
     owned_member: (player: number, tag: number, on: boolean) -> number,
-    -- How this player moves, digs, takes blows and heals against everybody else, 1 for as they are: on top of core.body_movement, core.player_regen and their tools, so a mod that slows them for a moment does not undo it. Their client is told walk and dig. In memory only. Returns 1, or 0 for nobody or a number out of range.
-    player_factors: (player: number, walk: number, dig: number, hurt: number, regen: number) -> number,
+    -- How this player moves, digs, takes blows and heals against everybody else, 1 for as they are: on top of core.body_movement, core.player_regen and their tools, so a mod that slows them for a moment does not undo it. Their client is told walk and dig. The product of the sources is held to the same ranges. In memory only. Returns 1, or 0 for nobody or a number out of range.
+    player_factors: (player: number, walk: number, dig: number, hurt: number, regen: number, source: string?) -> number,
     -- What a broken block turns into in the bag (stone to cobblestone), keeping the stack's tag: something stolen stays stolen. Returns how many of `to` fit -- the rest is the mod's to drop -- or -1 when there was no `from` (or nobody).
     swap_item: (player: number, from: string, to: string, n: number) -> number,
     -- What a player carries with that tag, as a FLAT list item id, count, item id, count ... (core.item_name names each), a stack at a time. Empty for nothing, or somebody not in this world.

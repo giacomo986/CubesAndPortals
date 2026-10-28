@@ -141,6 +141,7 @@ bool WorldRenderer::init(NodeRegistry &reg, const MediaSource &media)
     m_loc_classic      = gfx_uniform_location(m_shader, "uClassic");
     m_loc_classic_day  = gfx_uniform_location(m_shader, "uClassicDay");
     m_loc_foliage      = gfx_uniform_location(m_shader, "uFoliage");
+    m_loc_night        = gfx_uniform_location(m_shader, "uNightSight");
     m_water_u.locate(m_shader);
 
     m_shadow_shader = gfx_shader_create(shaders::kShadowVS, shaders::kShadowFS);
@@ -1276,6 +1277,7 @@ void WorldRenderer::bind_world(const Mat4 &projection, const Mat4 &view)
     gfx_uniform_set_f(m_loc_classic, m_classic ? 1.0f : 0.0f);
     gfx_uniform_set_f(m_loc_classic_day, m_classic_day);
     gfx_uniform_set_v4(m_loc_foliage, m_foliage, 1);
+    gfx_uniform_set_f(m_loc_night, m_night_sight);
 
     // The water first, so the unit left active is 0, the one everything
     // drawn after this binds to without saying.

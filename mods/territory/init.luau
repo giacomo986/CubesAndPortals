@@ -674,7 +674,7 @@ if serving then
                 local st = state_of(name, tag)
                 if st ~= s.state then
                     local e = EFFECT[st]
-                    core.player_factors(p, e[1], e[2], e[3], e[4])
+                    core.player_factors(p, e[1], e[2], e[3], e[4], "territory")
                     s.state = st
                 end
                 if tag ~= s.tag then

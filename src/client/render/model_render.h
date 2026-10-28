@@ -30,6 +30,10 @@ namespace cnp {
 
 class ModelRenderer {
 public:
+    // core.night_sight, 0..1: no model drawn darker. One for every renderer,
+    // as the eye is one.
+    static inline float night_sight = 0.0f;
+
     bool init();
     void shutdown();
 

@@ -897,6 +897,7 @@ struct Session {
     float storm_rgb[3]{};
     float funnel[16]{};   // core.storm_funnel: four of x, y, z, on
     float overcast = 0.0f;   // core.overcast: how grey the sky of the hour is, 0..1
+    float night_sight = 0.0f;   // core.night_sight: nothing drawn darker, 0..1
     float foliage[4] = {1.0f, 1.0f, 1.0f, 0.0f};   // core.foliage: the season's colour, how much
 
     // Whether the engine makes this world's ground (core.mapgen_core).
@@ -4454,6 +4455,12 @@ void host_overcast(void *ud, double amount)
     static_cast<Scene *>(ud)->act().overcast = (float)std::clamp(amount, 0.0, 1.0);
 }
 
+void host_night_sight(void *ud, double amount)
+{
+    if (!std::isfinite(amount)) return;
+    static_cast<Scene *>(ud)->act().night_sight = (float)std::clamp(amount, 0.0, 1.0);
+}
+
 int host_node_foliage(void *ud, int id_in, int on)
 {
     Session      &sess = static_cast<Scene *>(ud)->act();
@@ -7393,6 +7400,7 @@ void apply_clocks(Scene &s)
     for (int i = 0; i < s.count(); ++i) {
         Session &w = s.at(i);
         w.world_render.forget_shadows();   // drawn again below for the world the eye is in
+        w.world_render.set_night_sight(w.night_sight);
         if (w.sky_fixed) {
             for (int c = 0; c < 3; ++c) w.sky[c] = w.sky_rgb[c];
             w.world_render.set_daylight(0.0f);
@@ -18845,6 +18853,7 @@ script_host make_client_host(Scene &scene)
     host.world_storm     = host_world_storm;
     host.storm_funnel    = host_storm_funnel;
     host.overcast        = host_overcast;
+    host.night_sight     = host_night_sight;
     host.node_foliage    = host_node_foliage;
     host.foliage         = host_foliage;
     host.mapgen_core     = host_mapgen_core;

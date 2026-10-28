@@ -960,6 +960,15 @@ int l_storm_funnel(lua_State *L)
     return 0;
 }
 
+// core.night_sight(amount: number) -> ()
+int l_night_sight(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const float amount = (float)luaL_checknumber(L, 1);
+    if (vm && vm->host.night_sight) vm->host.night_sight(vm->host.ud, amount);
+    return 0;
+}
+
 // core.overcast(amount: number) -> ()
 int l_overcast(lua_State *L)
 {
@@ -2385,7 +2394,7 @@ int l_owned_member(lua_State *L)
     return 1;
 }
 
-// core.player_factors(player: number, walk: number, dig: number, hurt: number, regen: number) -> number
+// core.player_factors(player: number, walk: number, dig: number, hurt: number, regen: number, source: string?) -> number
 int l_player_factors(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2394,7 +2403,8 @@ int l_player_factors(lua_State *L)
     const float dig = (float)luaL_checknumber(L, 3);
     const float hurt = (float)luaL_checknumber(L, 4);
     const float regen = (float)luaL_checknumber(L, 5);
-    const int result = (vm && vm->host.player_factors) ? vm->host.player_factors(vm->host.ud, player, walk, dig, hurt, regen) : (int)0;
+    const char *source = (const char *)luaL_optstring(L, 6, "");
+    const int result = (vm && vm->host.player_factors) ? vm->host.player_factors(vm->host.ud, player, walk, dig, hurt, regen, source) : (int)0;
     lua_pushinteger(L, result);
     return 1;
 }
@@ -2866,6 +2876,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "world_storm");
     lua_pushcfunction(L, l_storm_funnel, "core.storm_funnel");
     lua_setfield(L, -2, "storm_funnel");
+    lua_pushcfunction(L, l_night_sight, "core.night_sight");
+    lua_setfield(L, -2, "night_sight");
     lua_pushcfunction(L, l_overcast, "core.overcast");
     lua_setfield(L, -2, "overcast");
     lua_pushcfunction(L, l_node_foliage, "core.node_foliage");

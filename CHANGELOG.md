@@ -13,6 +13,9 @@ Protocollo 110: un client 0.9.0-alpha.4 non entra in un server con i binari.
 - Le pietre del viaggio: una per villaggio accanto al pozzo, fabbricabili per i territori;
   pagando uno smeraldo ogni 200 nodi si apre un portale vero verso una pietra toccata, per
   cinque minuti.
+- L'alchimia: un alambicco, le fiasche e cinque pozioni (vista notturna, rapidità, pelle di
+  pietra, guarigione, fretta). Nuove API: `core.night_sight`, e una fonte per
+  `core.player_factors`, così gli effetti di mod diverse si sommano.
 - Le Cavità sotto la roccia madre: caverne luminose, lava, cristalli, lurker e un guardiano.
   Il mondo ora tiene blocchi fino a y -64.
 - Un chunk sotto il giocatore arriva solo dopo quello sopra: niente più caverne viste dall'alto

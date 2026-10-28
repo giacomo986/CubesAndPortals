@@ -1,6 +1,7 @@
 #pragma once
 
 #include "client/gfx/gfx.h"
+#include "client/render/model_render.h"
 #include "client/render/water.h"
 #include "core/math/frustum.h"
 #include "core/media/face_tiles.h"
@@ -295,6 +296,8 @@ public:
 
     // Weather (core.overcast), 0..1: the clouds thicker and grey.
     void set_overcast(float o) { m_cloud_overcast = o; }
+    // core.night_sight, 0..1: no block drawn darker than this, nor any model.
+    void set_night_sight(float n) { m_night_sight = n; ModelRenderer::night_sight = n; }
 
     // A world's twisters (core.storm_funnel): four of x, ground y, z, and 1
     // when there is one, drawn by the cloud pass from the clouds to the ground.
@@ -510,7 +513,8 @@ private:
     // The sun (draw_shadows).
     bool        m_classic     = false;
     float       m_classic_day = 1.0f;
-    int         m_loc_classic = -1, m_loc_classic_day = -1, m_loc_foliage = -1;
+    int         m_loc_classic = -1, m_loc_classic_day = -1, m_loc_foliage = -1, m_loc_night = -1;
+    float       m_night_sight = 0.0f;                         // set_night_sight
     float       m_foliage[4] = {1.0f, 1.0f, 1.0f, 0.0f};   // set_foliage
     SkyLight    m_sky_light{};
     bool        m_has_sky_light = false;

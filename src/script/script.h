@@ -269,6 +269,7 @@ typedef struct script_host {
     void (*world_storm)(void *ud, int r, int g, int b);
     void (*storm_funnel)(void *ud, int slot, double x, double y, double z, int on);   // a twister drawn
     void (*overcast)(void *ud, double amount);   // a grey sky over the hours, 0..1
+    void (*night_sight)(void *ud, double amount);   // drawn no darker than this, 0..1
     int (*node_foliage)(void *ud, int id, int on);   // a block that takes the season's colour
     void (*foliage)(void *ud, int r, int g, int b, double amount);
     void (*mapgen_core)(void *ud, int on);
@@ -359,7 +360,8 @@ typedef struct script_host {
     int (*owned_cell)(void *ud, int x, int z, int tag);
     int (*owned_at)(void *ud, int x, int z);
     int (*owned_member)(void *ud, int player, int tag, int on);
-    int (*player_factors)(void *ud, int player, double walk, double dig, double hurt, double regen);
+    int (*player_factors)(void *ud, int player, double walk, double dig, double hurt, double regen,
+                          const char *source);
     int (*take_tagged)(void *ud, int player, int tag);
     int (*give_item)(void *ud, int player, const char *item, int count);
     const char *(*held_item)(void *ud, int player);

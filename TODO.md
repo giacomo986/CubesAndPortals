@@ -550,7 +550,22 @@ the villagers and start with questions (memory: villagers-need-design-first).
    four blows. Open, not the hollows': for ~4 s after a teleport, cave walls
    of chunks whose nearer neighbours have not arrived show black in the sky
    (seen the same without mods/deep).
-10. Alchemy: a still, potions (night sight, speed, water breathing).
+10. Alchemy -- built 2026-10-28 in `mods/alchemy` (side both). Flasks (3 of
+    glass), filled by right clicking water or a full cauldron; a still (3
+    copper, 3 bricks, a glass) brews a flask of water and an ingredient in
+    10 s, glowing and bubbling, and puts the potion on top. Drunk like food,
+    3 minutes, the flask back: night sight (glowcap), swiftness (sugar cane,
+    walk 1.4), stoneskin (crystal shard, blows 0.5), mending (melon, regen 3),
+    haste (amethyst, dig 1.6); a HUD list top right with what is left. Water
+    breathing dropped: the engine has no drowning. Engine: core.night_sight
+    (client; blocks and models drawn no darker than 0.55 x amount), and
+    core.player_factors takes a `source` -- each source keeps its own four
+    and the body gets their product (mods/territory passes "territory"), so a
+    potion on owned ground does not undo the ground. Checked with a client at
+    midnight: brewed by right click, drunk, the night lit up, both timers on
+    the HUD. Open: effects are in memory (gone on a restart or a leave); a
+    still brewing when the server stops finishes when next right clicked; the
+    0.55 floor was not looked at again after lowering it from 0.8.
 11. Fishing widened: fish by biome, bought by the frog fishers.
 12. Herding widened: dyed wool, milk, stables, a robot order to tend animals.
 13. Errands from the mayor and the merchant, paid from the treasury.

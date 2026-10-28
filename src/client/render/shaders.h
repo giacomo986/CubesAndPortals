@@ -271,6 +271,7 @@ in vec3  vWorld;
 
 uniform sampler2D uTexture;
 uniform vec4      uFoliage;      // core.foliage: the season's colour, and how much of it
+uniform float     uNightSight;   // core.night_sight: nothing darker than this
 uniform float     uAtlasTiles;   // tiles per row in the fallback atlas
 
 // The sun or the moon (core/world/daylight.h SkyLight), and its shadow map.
@@ -349,7 +350,7 @@ void main()
     float ndl = max(dot(n, uSunDir), 0.0);
     float sun = (ndl > 0.0 && vSky > 0.0) ? sun_shadow(vWorld, n) : 0.0;
     vec3  sky = vSky * (uAmbient * kFaceAmbient[vFace] + uSunColor * (ndl * sun));
-    vec3  lit = max(sky, vLamp * kLampTint);
+    vec3  lit = max(max(sky, vLamp * kLampTint), vec3(uNightSight * 0.55));
     vec3  rgb = texel.rgb * vAo * (kLightFloor + (1.0 - kLightFloor) * min(lit, vec3(1.0)));
     if (uClassic > 0.5) rgb = texel.rgb * vClassic;
 

@@ -253,6 +253,9 @@ e un letto. Ogni villaggio ha:
 proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resistenti, gli estranei
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
+**Alchimia** (`mods/alchemy`). Un alambicco distilla una fiasca d'acqua e un ingrediente in una
+pozione: vista notturna, rapidità, pelle di pietra, guarigione, fretta -- tre minuti ciascuna.
+
 **Cavità** (`mods/deep`). Sotto la roccia madre di alcune regioni c'è un paese di caverne sigillato,
 a cui si scende da una voragine con i pioli: funghi e muschio luminosi, cristalli, laghi di lava, e un
 altare il cui guardiano si sveglia quando ci si avvicina. Nelle caverne si aggirano lurker pallidi.

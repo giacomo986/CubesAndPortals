@@ -3,7 +3,8 @@
 (mods/timber), the two buckets (mods/lakes), the palette brush (mods/palette),
 the iron pick (mods/furnace) and the screwdriver (mods/screwdriver); the arm
 pack (mods/armpack); the boat (mods/boats), the cart (mods/carts), and the
-compass and the map (mods/maps); the shard (mods/relics).
+compass and the map (mods/maps); the shard (mods/relics); the flask and its
+potions (mods/alchemy), one bottle in the colour of what is in it.
 
 Drawn the way tools_pick.png is: a 16x16 picture doubled to 32 px, flat
 colours lit on the top-left, and a dark outline round every shape. The iron
@@ -254,6 +255,40 @@ SHAPES = {
          "w": (226, 186, 140), "W": (170, 128, 86)},
     ),
 }
+
+# The flask (mods/alchemy): a round glass bottle with a cork, and what fills it
+# up to the shoulder ("L" its liquid, "l" darker, "h" a glint). Empty, the
+# liquid cells are the glass's own pale colour.
+FLASK = [
+    "................",
+    "......kkkk......",
+    "......kKKk......",
+    ".......gg.......",
+    ".......gg.......",
+    "......gLLg......",
+    ".....gLLLLg.....",
+    "....gLhLLLLg....",
+    "...gLhLLLLLLg...",
+    "...gLLLLLLLlg...",
+    "...gLLLLLLLlg...",
+    "...gLLLLLLllg...",
+    "....gLLLLllg....",
+    ".....gggggg.....",
+    "................",
+    "................",
+]
+LIQUIDS = {
+    "flask": ((205, 225, 230), (170, 195, 205)),
+    "flask_water": ((70, 130, 220), (40, 90, 170)),
+    "night_sight": ((80, 215, 230), (40, 150, 170)),
+    "swiftness": ((240, 220, 90), (190, 160, 40)),
+    "stoneskin": ((170, 120, 240), (120, 80, 190)),
+    "mending": ((235, 80, 90), (170, 40, 55)),
+    "haste": ((240, 150, 60), (190, 100, 30)),
+}
+for _name, (_l, _d) in LIQUIDS.items():
+    SHAPES["alchemy_" + _name] = (FLASK, {"k": (150, 105, 60), "K": (190, 140, 85), "g": (215, 235, 240),
+                                          "L": _l, "l": _d, "h": (250, 255, 255)})
 
 
 def draw(rows, colours):

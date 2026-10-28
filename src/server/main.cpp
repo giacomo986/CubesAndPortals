@@ -853,7 +853,8 @@ int host_owned_member(void *ud, int player, int tag, int on)
 // core.player_factors. Walk is folded into the body's own numbers, so its
 // client predicts by them and the validator checks by them; core.body_movement
 // scales what it is given by the factor in force (host_body_movement).
-int host_player_factors(void *ud, int player, double walk, double dig, double hurt, double regen)
+int host_player_factors(void *ud, int player, double walk, double dig, double hurt, double regen,
+                        const char *source)
 {
     ServerState *s = static_cast<ServerState *>(ud);
     if (!(walk >= 0.25 && walk <= 4.0) || !(dig >= 0.1 && dig <= 10.0) ||
@@ -862,6 +863,24 @@ int host_player_factors(void *ud, int player, double walk, double dig, double hu
     if (!s->sessions || player <= 0) return 0;
     net::Session *sess = s->sessions->find_mutable((net::PeerId)player);
     if (!sess || sess->scope == net::Scope::Observe) return 0;
+
+    // This source's four, then the product of them all, in the same ranges.
+    const std::string from = source ? source : "";
+    if (walk == 1.0 && dig == 1.0 && hurt == 1.0 && regen == 1.0)
+        sess->factor_sources.erase(from);
+    else
+        sess->factor_sources[from] = {(float)walk, (float)dig, (float)hurt, (float)regen};
+    walk = dig = hurt = regen = 1.0;
+    for (const auto &[_, f] : sess->factor_sources) {
+        walk *= f[0];
+        dig *= f[1];
+        hurt *= f[2];
+        regen *= f[3];
+    }
+    walk  = std::clamp(walk, 0.25, 4.0);
+    dig   = std::clamp(dig, 0.1, 10.0);
+    hurt  = std::clamp(hurt, 0.0, 10.0);
+    regen = std::clamp(regen, 0.0, 10.0);
     sess->hurt_factor  = (float)hurt;
     sess->regen_factor = (float)regen;
     if (sess->walk_factor == (float)walk && sess->dig_factor == (float)dig) return 1;

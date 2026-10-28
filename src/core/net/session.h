@@ -18,8 +18,10 @@
 #include "core/portal/portal_traverse.h"
 #include "core/ui/panel.h"
 
+#include <array>
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -317,6 +319,9 @@ struct Session {
     float dig_before   = 1.0f;
     float hurt_factor  = 1.0f;
     float regen_factor = 1.0f;
+    // Each source's four (core.player_factors' `source`); the four above are
+    // their product.
+    std::map<std::string, std::array<float, 4>> factor_sources;
     // Owned ground this player is one of the owners of (core.owned_member):
     // what they take there is not marked.
     std::vector<uint32_t> owner_of;
