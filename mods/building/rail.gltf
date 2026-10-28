@@ -1,120 +1,312 @@
 {
- "asset": {
-  "version": "2.0",
-  "generator": "cubes-and-portals tools/make_voxel_blocks.py"
- },
- "scene": 0,
- "scenes": [
-  {
-   "nodes": [
-    0
-   ]
-  }
- ],
- "nodes": [
-  {
-   "name": "rail",
-   "mesh": 0
-  }
- ],
- "meshes": [
-  {
-   "name": "rail",
-   "primitives": [
-    {
-     "attributes": {
-      "POSITION": 0,
-      "NORMAL": 1,
-      "TEXCOORD_0": 2
-     },
-     "indices": 3,
-     "material": 0
-    }
-   ]
-  }
- ],
- "materials": [
-  {
-   "name": "rail",
-   "doubleSided": true,
-   "alphaMode": "MASK",
-   "pbrMetallicRoughness": {
-    "baseColorTexture": {
-     "index": 0
-    },
-    "metallicFactor": 0,
-    "roughnessFactor": 1
-   }
-  }
- ],
- "textures": [
-  {
-   "source": 0
-  }
- ],
- "images": [
-  {
-   "uri": "rail.png"
-  }
- ],
- "buffers": [
-  {
-   "byteLength": 140,
-   "uri": "data:application/octet-stream;base64,AAAAAArXozwAAIA/AAAAAAAAgD8AAAAAAAAAAAAAgD8AAIA/CtejPAAAgD8AAAAAAACAPwAAAAAAAIA/AACAPwAAgD8K16M8AAAAAAAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAArXozwAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAAEAAgAAAAIAAwA="
-  }
- ],
- "bufferViews": [
-  {
-   "buffer": 0,
-   "byteOffset": 0,
-   "byteLength": 128,
-   "byteStride": 32,
-   "target": 34962
-  },
-  {
-   "buffer": 0,
-   "byteOffset": 128,
-   "byteLength": 12,
-   "target": 34963
-  }
- ],
- "accessors": [
-  {
-   "bufferView": 0,
-   "byteOffset": 0,
-   "componentType": 5126,
-   "count": 4,
-   "type": "VEC3",
-   "min": [
-    0,
-    0.02,
-    0
-   ],
-   "max": [
-    1,
-    0.02,
-    1
-   ]
-  },
-  {
-   "bufferView": 0,
-   "byteOffset": 12,
-   "componentType": 5126,
-   "count": 4,
-   "type": "VEC3"
-  },
-  {
-   "bufferView": 0,
-   "byteOffset": 24,
-   "componentType": 5126,
-   "count": 4,
-   "type": "VEC2"
-  },
-  {
-   "bufferView": 1,
-   "componentType": 5123,
-   "count": 6,
-   "type": "SCALAR"
-  }
- ]
+	"asset":{
+		"generator":"Khronos glTF Blender I/O v5.2.39",
+		"version":"2.0"
+	},
+	"scene":0,
+	"scenes":[
+		{
+			"name":"Scene",
+			"nodes":[
+				0
+			]
+		}
+	],
+	"nodes":[
+		{
+			"mesh":0,
+			"name":"rail"
+		}
+	],
+	"materials":[
+		{
+			"doubleSided":true,
+			"name":"Rail_steel",
+			"pbrMetallicRoughness":{
+				"baseColorFactor":[
+					0.41999998688697815,
+					0.4300000071525574,
+					0.46000000834465027,
+					1
+				],
+				"metallicFactor":0.8500000238418579,
+				"roughnessFactor":0.44999998807907104
+			}
+		},
+		{
+			"doubleSided":true,
+			"name":"Rail_head",
+			"pbrMetallicRoughness":{
+				"baseColorFactor":[
+					0.699999988079071,
+					0.7099999785423279,
+					0.7400000095367432,
+					1
+				],
+				"metallicFactor":0.8999999761581421,
+				"roughnessFactor":0.25
+			}
+		},
+		{
+			"doubleSided":true,
+			"name":"Rail_sleeper",
+			"pbrMetallicRoughness":{
+				"baseColorFactor":[
+					0.36000001430511475,
+					0.23999999463558197,
+					0.15000000596046448,
+					1
+				],
+				"metallicFactor":0,
+				"roughnessFactor":0.8999999761581421
+			}
+		},
+		{
+			"doubleSided":true,
+			"name":"Rail_plate",
+			"pbrMetallicRoughness":{
+				"baseColorFactor":[
+					0.1599999964237213,
+					0.15000000596046448,
+					0.15000000596046448,
+					1
+				],
+				"metallicFactor":0.800000011920929,
+				"roughnessFactor":0.6000000238418579
+			}
+		}
+	],
+	"meshes":[
+		{
+			"name":"rail",
+			"primitives":[
+				{
+					"attributes":{
+						"POSITION":0,
+						"NORMAL":1
+					},
+					"indices":2,
+					"material":0
+				},
+				{
+					"attributes":{
+						"POSITION":3,
+						"NORMAL":4
+					},
+					"indices":5,
+					"material":1
+				},
+				{
+					"attributes":{
+						"POSITION":6,
+						"NORMAL":7
+					},
+					"indices":8,
+					"material":2
+				},
+				{
+					"attributes":{
+						"POSITION":9,
+						"NORMAL":10
+					},
+					"indices":11,
+					"material":3
+				}
+			]
+		}
+	],
+	"accessors":[
+		{
+			"bufferView":0,
+			"componentType":5126,
+			"count":576,
+			"max":[
+				0.8640000224113464,
+				0.04800000041723251,
+				1
+			],
+			"min":[
+				0.13599997758865356,
+				0.026000000536441803,
+				0
+			],
+			"type":"VEC3"
+		},
+		{
+			"bufferView":1,
+			"componentType":5126,
+			"count":576,
+			"type":"VEC3"
+		},
+		{
+			"bufferView":2,
+			"componentType":5123,
+			"count":1608,
+			"type":"SCALAR"
+		},
+		{
+			"bufferView":3,
+			"componentType":5126,
+			"count":288,
+			"max":[
+				0.8520000576972961,
+				0.0625,
+				1
+			],
+			"min":[
+				0.14799998700618744,
+				0.04800000041723251,
+				0
+			],
+			"type":"VEC3"
+		},
+		{
+			"bufferView":4,
+			"componentType":5126,
+			"count":288,
+			"type":"VEC3"
+		},
+		{
+			"bufferView":5,
+			"componentType":5123,
+			"count":792,
+			"type":"SCALAR"
+		},
+		{
+			"bufferView":6,
+			"componentType":5126,
+			"count":120,
+			"max":[
+				0.9600000381469727,
+				0.026000000536441803,
+				0.9599999785423279
+			],
+			"min":[
+				0.03999999165534973,
+				0,
+				0.04000000283122063
+			],
+			"type":"VEC3"
+		},
+		{
+			"bufferView":7,
+			"componentType":5126,
+			"count":120,
+			"type":"VEC3"
+		},
+		{
+			"bufferView":8,
+			"componentType":5123,
+			"count":180,
+			"type":"SCALAR"
+		},
+		{
+			"bufferView":9,
+			"componentType":5126,
+			"count":240,
+			"max":[
+				0.8800000548362732,
+				0.03199999779462814,
+				0.9350000023841858
+			],
+			"min":[
+				0.11999998986721039,
+				0.025999998673796654,
+				0.06499999761581421
+			],
+			"type":"VEC3"
+		},
+		{
+			"bufferView":10,
+			"componentType":5126,
+			"count":240,
+			"type":"VEC3"
+		},
+		{
+			"bufferView":11,
+			"componentType":5123,
+			"count":360,
+			"type":"SCALAR"
+		}
+	],
+	"bufferViews":[
+		{
+			"buffer":0,
+			"byteLength":6912,
+			"byteOffset":0,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":6912,
+			"byteOffset":6912,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":3216,
+			"byteOffset":13824,
+			"target":34963
+		},
+		{
+			"buffer":0,
+			"byteLength":3456,
+			"byteOffset":17040,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":3456,
+			"byteOffset":20496,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":1584,
+			"byteOffset":23952,
+			"target":34963
+		},
+		{
+			"buffer":0,
+			"byteLength":1440,
+			"byteOffset":25536,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":1440,
+			"byteOffset":26976,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":360,
+			"byteOffset":28416,
+			"target":34963
+		},
+		{
+			"buffer":0,
+			"byteLength":2880,
+			"byteOffset":28776,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":2880,
+			"byteOffset":31656,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":720,
+			"byteOffset":34536,
+			"target":34963
+		}
+	],
+	"buffers":[
+		{
+			"byteLength":35256,
+			"uri":"rail.bin"
+		}
+	]
 }

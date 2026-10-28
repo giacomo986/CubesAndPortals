@@ -664,6 +664,14 @@ if serving then
     core.node_conveyor(RAIL_UP, 6, 1 / 16, 1, true)
     core.node_conveyor(RAIL_DOWN, 6, 1 + 1 / 16, -1, true)
     core.node_drop(PRAIL_ON, PRAIL)
+    -- Drawn as models (tools/make_rail_models.py, assets/blender/rails.blend):
+    -- sleepers, steel rails, the curves and the embankments; the boxes above
+    -- stay what is aimed at and stood on.
+    for id, file in { [PRAIL] = "powered_rail", [PRAIL_ON] = "powered_rail_on", [SWITCH] = "switch",
+                      [SWITCH_ON] = "switch_on", [CORNER_R] = "rail_right", [CORNER_L] = "rail_left",
+                      [RAIL_UP] = "rail_up", [RAIL_DOWN] = "rail_down" } do
+        core.node_model(id, core.register_model(`building:{file}`, `{file}.gltf`))
+    end
     core.recipe_shaped("building:powered_rail", 6,
         "furnace:gold_ingot -            furnace:gold_ingot",
         "furnace:gold_ingot timber:stick furnace:gold_ingot",

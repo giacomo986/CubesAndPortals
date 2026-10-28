@@ -253,6 +253,9 @@ e un letto. Ogni villaggio ha:
 proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resistenti, gli estranei
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
+**Ferrovie** (`mods/building`, `mods/carts`): binari, curve, salite, binari alimentati e scambi come
+veri modelli; un carrello da miniera in cui si sale e si viaggia seduti.
+
 **Progetti** (`mods/blueprints`): si copia una costruzione tra due angoli (fino a 32x24x32) su un
 progetto, lo si porta con sé, lo si traccia come un fantasma trasparente e lo si costruisce a mano --
 o lo fa il costruttore del villaggio, o un robot.

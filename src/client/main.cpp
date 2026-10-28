@@ -8753,6 +8753,13 @@ void add_own_body(Scene &s, const Player &player, uint16_t model)
     b.livery     = net::g_client_livery;
     std::copy(std::begin(s.own_dress), std::end(s.own_dress), std::begin(b.dress));
     std::copy(std::begin(s.own_dress_tint), std::end(s.own_dress_tint), std::begin(b.dress_tint));
+    // And what a mod on the server put on it (OwnPose), where world code here did not.
+    if (s.conn != nullptr)
+        for (int k = 0; k < 10; ++k)
+            if (b.dress[k] == 0) {
+                b.dress[k]      = s.conn->own_pose().model[k];
+                b.dress_tint[k] = s.conn->own_pose().tint[k];
+            }
     for (int k = 0; k < Inventory::kWorn && s.hotbar.items != nullptr; ++k) {
         const size_t i = (size_t)(Inventory::kDefaultSlots + k);
         if (i < s.hotbar.slots.size() && !s.hotbar.slots[i].empty()) {
@@ -8777,7 +8784,7 @@ void add_own_body(Scene &s, const Player &player, uint16_t model)
         own.velocity  = player.velocity;
         // Not over a clip a mod holds the body in: a click in a jeep's seat
         // is the mod's shot, and the body went on digging instead of sitting.
-        if (s.working && s.own_clip.empty()) {
+        if (s.working && s.own_clip.empty() && (s.conn == nullptr || s.conn->own_pose().clip.empty())) {
             const std::string material =
                 s.target.hit ? s.act().registry.get(s.act().world.get_block(s.target.x, s.target.y,
                                                                             s.target.z)).material
@@ -8786,8 +8793,11 @@ void add_own_body(Scene &s, const Player &player, uint16_t model)
         }
         // A clip a mod holds this body in (core.player_clip): seated in a
         // machine, holding cards -- what everybody else already sees it play.
+        // Or one a mod on the server holds it in (OwnPose), where world code here holds none.
+        const std::string &held_clip =
+            s.own_clip.empty() && s.conn != nullptr ? s.conn->own_pose().clip : s.own_clip;
         animate_body(s.act(), kOwnBody, b, player.pos, model, &own,
-                     s.own_clip.empty() ? nullptr : s.own_clip.c_str(), player.crouching, player.lying);
+                     held_clip.empty() ? nullptr : held_clip.c_str(), player.crouching, player.lying);
     }
     // Moved in first person too: the arms bob by how far the body has walked.
     // Driving, the body is drawn at the eye as well, headless, and the eye

@@ -622,6 +622,12 @@ enum class MsgType : uint8_t {
     // question as a malformed hello, which the list reads as "up, nothing more".
     StatusQuery = 48,    // client -> server, channel 0, instead of a Hello
     Status      = 49,    // server -> client, channel 0
+
+    // "This is how a mod holds your body" (protocol 110): the clip
+    // (core.player_clip) and what is worn (core.player_wear) of the player's
+    // own body, which the entities never carry -- they skip yourself -- so a
+    // rider seen from behind sits in the cart everybody else sees them in.
+    OwnPose = 50,        // server -> client, channel 3
 };
 
 // Players per world, decided in DESIGN.md, and the reason the entity message
@@ -2314,6 +2320,15 @@ struct Dress {
 
     std::vector<uint8_t> encode() const;
     static bool decode(ByteReader &r, Dress &out);
+};
+
+struct OwnPose {
+    std::string clip;              // "" none, at most kMaxClipName
+    uint16_t    model[10] = {};    // ecs::kDressSlots
+    uint16_t    tint[10]  = {};
+
+    std::vector<uint8_t> encode() const;
+    static bool decode(ByteReader &r, OwnPose &out);
 };
 
 struct Chat {

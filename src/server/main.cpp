@@ -2139,6 +2139,7 @@ int host_player_clip(void *ud, int player, const char *clip)
     }
     if (c.empty()) sess->avatar.remove<ecs::Posed>();
     else sess->avatar.set<ecs::Posed>({c});
+    sess->pose_owed = true;
     return 1;
 }
 
@@ -2160,6 +2161,7 @@ int host_player_wear(void *ud, int player, int slot, int model, int tint)
     d.model[slot - 1] = (uint16_t)model;
     d.tint[slot - 1]  = model != 0 ? (uint16_t)tint : 0;
     sess->avatar.set<ecs::Dressed>(d);
+    sess->pose_owed = true;
     return 1;
 }
 
@@ -8748,6 +8750,9 @@ int serve_room(int argc, char **argv)
             // already checking the new ones.
             for (const net::PeerId peer : sessions.movement_to_send())
                 transport.send(peer, net::Channel::Event, sessions.movement_message(peer), true);
+            // And how a mod holds a body, to that body's own player (OwnPose).
+            for (const net::PeerId peer : sessions.pose_to_send())
+                transport.send(peer, net::Channel::Event, sessions.pose_message(peer), true);
 
             // And what time it is here. To OBSERVERS as well as to players:
             // somebody looking into this world through a portal is looking at

@@ -2810,6 +2810,33 @@ std::vector<PeerId> ServerSessions::movement_to_send()
     return owed;
 }
 
+std::vector<PeerId> ServerSessions::pose_to_send()
+{
+    std::vector<PeerId> owed;
+    for (auto &kv : m_sessions) {
+        Session &s = kv.second;
+        if (s.state != SessionState::Ready || s.scope != Scope::Enter || !s.pose_owed) continue;
+        s.pose_owed = false;
+        owed.push_back(kv.first);
+    }
+    return owed;
+}
+
+std::vector<uint8_t> ServerSessions::pose_message(PeerId peer) const
+{
+    OwnPose m;
+    const Session *s = find(peer);
+    if (s != nullptr && s->avatar.is_alive()) {
+        if (const ecs::Posed *p = s->avatar.try_get<ecs::Posed>()) m.clip = p->clip;
+        if (const ecs::Dressed *d = s->avatar.try_get<ecs::Dressed>())
+            for (int k = 0; k < ecs::kDressSlots && k < 10; ++k) {
+                m.model[k] = d->model[k];
+                m.tint[k]  = d->tint[k];
+            }
+    }
+    return m.encode();
+}
+
 std::vector<uint8_t> ServerSessions::movement_message(PeerId peer) const
 {
     const Session *s = find(peer);

@@ -673,11 +673,30 @@ the villagers and start with questions (memory: villagers-need-design-first).
 15. More decorative blocks: stained glass, fences, walls, tiles, furniture.
 16. Plaza games on the chess frame (draughts, mill), a scored PvP arena.
 
-To fix after item 14 (asked 2026-10-28): the railways done properly in
-Blender -- straight track, slopes up and down and curves as real models
-(sleepers, rails), not node boxes; a proper cart model; the player's clips
-for getting in and riding, seated in the cart. Use the MCP servers
-(Blender) where they help.
+Railways redone 2026-10-28 (asked the same day), in Blender through its MCP
+server: tools/make_rail_models.py (assets/blender/rails.blend) makes the nine
+rail blocks' models -- wooden sleepers with tie plates, steel rails of a
+foot-web-head section swept along the run, the corners as real quarter arcs
+on the engine's own (radii 0.17 and 0.83), the slopes on a stone embankment,
+the powered rail's centre contact dark when off and glowing when on (gold
+rails), the switch both ways with a ground lever and a green/amber disc --
+the boxes stay what is aimed at. tools/make_cart_model.py makes a mine cart:
+a bucket wider at the top, two bands, corner straps, a rolled rim, a bench at
+the back, chassis, axle boxes, four flanged wheels on the rails' gauge, hooks.
+tools/make_cart_clips.py adds two robot clips by IK, baked:
+cart_enter (1.2 s: a hand on the rim, the right leg over, then the left,
+down onto the bench) and cart_ride (seated, feet on the floor, hands on the
+rims, a sway), added to mods/robot/robot.gltf by gltf_add_clips.py; mods/carts
+plays the one then the other. Found on the way: a player never saw their own
+body as a server mod held it -- the entities skip yourself, so a rider in
+third person stood beside an empty seat; new message OwnPose (protocol 110,
+unreleased) sends a body's core.player_clip and core.player_wear to its own
+client, which draws them where its own world code says nothing (boats, karts
+of the games, cards held by a server mod all benefit). Checked with a client:
+the track seen as models, a ride from a real click: climbing in, then seated,
+over the rails and the powered rail. Open: models arrive some ten seconds
+after joining, till then rails are not drawn at all (the block-model has no
+box fallback while loading); no first-person seated camera.
 
 ## Portals and movement
 

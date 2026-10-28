@@ -272,6 +272,8 @@ struct Session {
     MovementRules movement_before;
     double        movement_since = -1.0;
     bool          movement_owed  = false;
+    // Its clip or dress changed by a mod: OwnPose owed to its own client.
+    bool          pose_owed      = false;
 
     // Which numbers `movement` are (BodyMovement::gen, 0 from the welcome),
     // and the last few before them with when each stopped being the body's: a
@@ -1108,6 +1110,9 @@ public:
     // Whose movement changed since this was last asked, and the message that
     // tells them -- the vitals' shape.
     std::vector<PeerId>  movement_to_send();
+    // The players whose own pose (OwnPose) is owed them, and the message.
+    std::vector<PeerId>  pose_to_send();
+    std::vector<uint8_t> pose_message(PeerId peer) const;
     std::vector<uint8_t> movement_message(PeerId peer) const;
 
     // What a claim from this body is checked against: the world's limits, with

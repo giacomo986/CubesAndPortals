@@ -250,6 +250,9 @@ job, meals and a bed. Every village has:
 owners stand in it. Inside, owners are faster and tougher, strangers weaker; what strangers take
 there is marked stolen.
 
+**Railways** (`mods/building`, `mods/carts`): track, curves, slopes, powered rails and switches as
+proper models; a mine cart you climb into and ride seated.
+
 **Blueprints** (`mods/blueprints`): copy a build between two corners (up to 32x24x32) onto a blueprint,
 carry it, lay it out as a see-through ghost and build it by hand -- or have the village's builder or
 a robot build it.

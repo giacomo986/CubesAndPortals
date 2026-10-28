@@ -13,6 +13,10 @@ Protocollo 110: un client 0.9.0-alpha.4 non entra in un server con i binari.
 - Le pietre del viaggio: una per villaggio accanto al pozzo, fabbricabili per i territori;
   pagando uno smeraldo ogni 200 nodi si apre un portale vero verso una pietra toccata, per
   cinque minuti.
+- Le ferrovie rifatte in Blender: traversine e rotaie vere, curve ad arco, salite su terrapieno,
+  binari alimentati che si accendono, scambi con leva; un vero carrello da miniera; il giocatore ci
+  sale scavalcando il bordo e viaggia seduto. Un giocatore ora vede anche su di sé la posa e ciò che
+  indossa per una mod del server (messaggio OwnPose).
 - I progetti: copiare una costruzione, tracciarla come fantasma, farla costruire a mano, dal
   costruttore del villaggio o da un robot. Nuove API: `core.held_id`, `core.held_set_id`, `id` in
   `core.give_item`, `core.ghost_cell`, `core.ghost_clear`, `core.node_colour`.

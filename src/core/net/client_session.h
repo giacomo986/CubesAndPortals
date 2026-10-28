@@ -652,6 +652,8 @@ public:
     long body_movements() const { return m_body_movements; }
     // How much faster than its tool this body digs (BodyMovement::dig).
     float dig_factor() const { return m_dig; }
+    // How a mod on the server holds this player's own body (OwnPose).
+    const OwnPose &own_pose() const { return m_own_pose; }
 
     // Asks the server to put an opening on the face of a block. Reliable, and
     // it goes out immediately rather than being rate limited: a placement is
@@ -993,6 +995,7 @@ private:
     uint32_t m_epoch_heard = 0;   // the newest placement's, taken or not
     uint8_t  m_gen   = 0;
     float    m_dig   = 1.0f;
+    OwnPose  m_own_pose;
 
     // What a body that drives did, numbered: m_drive_first is the number of
     // the first one still kept, and m_drive_sent where each of the last few

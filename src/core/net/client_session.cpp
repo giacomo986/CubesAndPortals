@@ -782,6 +782,15 @@ void ClientSession::handle(const std::vector<uint8_t> &data, double now, uint8_t
         break;
     }
 
+    case MsgType::OwnPose: {
+        if (m_state != ClientState::Playing) break;
+        ByteReader pr(data.data(), data.size());
+        OwnPose    p;
+        if (!OwnPose::decode(pr, p)) break;
+        m_own_pose = p;
+        break;
+    }
+
     case MsgType::Vitals: {
         if (m_state != ClientState::Playing) break;
 

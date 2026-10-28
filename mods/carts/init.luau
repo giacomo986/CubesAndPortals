@@ -5,8 +5,10 @@
 -- powered rail that is off stops you -- a station: forward pushes off it --
 -- and a powered switch turns you right. Jump gets you off; off the rails for
 -- half a second, the cart goes back in the bag. Everybody sees it, worn on the
--- feet (core.player_wear), the body sat in it (the drive_idle clip), and hears
--- the wheels clack over the joints, every two rails.
+-- feet (core.player_wear), the body climbing in (the cart_enter clip, a
+-- second and a fifth) and then sat on its bench (cart_ride), and hears the
+-- wheels clack over the joints, every two rails. The cart, the clips and the
+-- rails are tools/make_cart_model.py, make_cart_clips.py and make_rail_models.py.
 
 local CART = "carts:cart"
 core.register_item(CART, 1)
@@ -28,12 +30,15 @@ local SLOT = 9       -- of core.player_wear's ten; mods/boats has the tenth
 local DERAILED = 10  -- ticks off the rails before the cart is put back in the bag
 
 local riding: { [number]: number } = {}   -- player -> ticks off the rails
+local ENTER = 1.2                          -- seconds of cart_enter
+local seated: { [number]: number } = {}   -- player -> seconds until cart_ride
 -- Per cart: where it was last tick, and how far it has gone since the last clack.
 local rolled: { [number]: { x: number, z: number, d: number } } = {}
 
 local function leave(p: number)
     riding[p] = nil
     rolled[p] = nil
+    seated[p] = nil
     core.body_cart(p, false)
     core.player_wear(p, SLOT, 0)
     core.player_clip(p, "")
@@ -60,7 +65,8 @@ core.event.on("core:used", function(ev)
     riding[p] = 0
     core.body_cart(p, true)
     core.player_wear(p, SLOT, MODEL)
-    core.player_clip(p, "drive_idle")
+    core.player_clip(p, "cart_enter")
+    seated[p] = ENTER
     local run = RUN[core.get_facing(ev.x, ev.y, ev.z) % 4 + 1]
     core.player_place(p, ev.x + 0.5, ev.y + top, ev.z + 0.5, run[1], 0, run[2])
 end)
@@ -80,9 +86,19 @@ local function roll(p: number, x: number, y: number, z: number)
     end
 end
 
-core.event.on("core:tick", function()
+core.event.on("core:tick", function(ev)
     if next(riding) == nil then
         return
+    end
+    for p, left in seated do
+        if left - ev.dt <= 0 then
+            seated[p] = nil
+            if riding[p] then
+                core.player_clip(p, "cart_ride")
+            end
+        else
+            seated[p] = left - ev.dt
+        end
     end
     local here = {}
     for _, p in core.players() do
@@ -92,6 +108,7 @@ core.event.on("core:tick", function()
         if not here[p] then   -- gone: the cart with them
             riding[p] = nil
             rolled[p] = nil
+            seated[p] = nil
             continue
         end
         local x, y, z = core.player_pos(p)

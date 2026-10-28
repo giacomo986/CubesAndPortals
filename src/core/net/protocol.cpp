@@ -2556,6 +2556,30 @@ bool Dress::decode(ByteReader &r, Dress &out)
     return r.done() && out.livery < kLiveryMax;
 }
 
+std::vector<uint8_t> OwnPose::encode() const
+{
+    ByteWriter w;
+    w.u8((uint8_t)MsgType::OwnPose);
+    w.str(clip);
+    for (int k = 0; k < 10; ++k) {
+        w.u16(model[k]);
+        w.u16(tint[k]);
+    }
+    return w.data();
+}
+
+bool OwnPose::decode(ByteReader &r, OwnPose &out)
+{
+    out = OwnPose{};
+    if (r.u8() != (uint8_t)MsgType::OwnPose) return false;
+    if (!r.str(out.clip, kMaxClipName)) return false;
+    for (int k = 0; k < 10; ++k) {
+        out.model[k] = r.u16();
+        out.tint[k]  = r.u16();
+    }
+    return r.done();
+}
+
 std::vector<uint8_t> Chat::encode() const
 {
     ByteWriter w;
@@ -2807,6 +2831,7 @@ MsgType peek_type(const void *data, size_t size)
     case MsgType::Dress:
     case MsgType::StatusQuery:
     case MsgType::Status:
+    case MsgType::OwnPose:
         return (MsgType)t;
     }
 
