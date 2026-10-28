@@ -220,6 +220,10 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     storm_funnel: (slot: number, x: number, y: number, z: number, on: boolean?) -> (),
     -- Weather over this world's sky: the sky and its clouds go grey by this much, the sun's light on the ground weaker and its shadows fainter, the hours kept. 0 takes it away. Only drawn: the light a crop or a creature reads (core.light) is the hour's. Called as it changes, so a mod fades it in. For a world's code on a player's machine.
     overcast: (amount: number) -> (),
+    -- Marks a block as foliage: it takes the colour core.foliage gives -- leaves that turn in autumn. Only drawn; the world around is drawn again with it. Returns 1, or 0 for an id that is not a block. For a world's code on a player's machine.
+    node_foliage: (id: number, on: boolean?) -> number,
+    -- The season's colour on every block marked by core.node_foliage: its picture's brightness in this colour, mixed in by `amount`. Called as it changes, so a mod fades it. For a world's code on a player's machine.
+    foliage: (r: number, g: number, b: number, amount: number) -> (),
     -- false: the engine makes no ground of its own (core:terrain) and the world is whatever the mods' stages (register_mapgen) write into air. The region the engine had already made before the mods loaded is emptied first. Only while the mod loads; afterwards it is refused and said.
     mapgen_core: (on: boolean) -> (),
     -- Only the stages (register_mapgen) of the mods named this way make this world's ground, one mod per call; the stages of every other mod loaded here are dropped and said. Without a call every stage runs. For a world that loads the sandbox's mods for their items -- the Inferno -- without their lakes, trees and ores. Only while the mod loads.

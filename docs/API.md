@@ -1136,6 +1136,34 @@ Weather over this world's sky: the sky and its clouds go grey by this much, the 
 |---|---|---|---|
 | `amount` | number | — | 0 a clear sky .. 1 a heavy one; clamped |
 
+## `core.node_foliage`
+
+```luau
+core.node_foliage(id: number, on: boolean?) -> number
+```
+
+Marks a block as foliage: it takes the colour core.foliage gives -- leaves that turn in autumn. Only drawn; the world around is drawn again with it. Returns 1, or 0 for an id that is not a block. For a world's code on a player's machine.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `id` | number | — | The block, by its id (core.node_id). |
+| `on` | boolean | `true` |  |
+
+## `core.foliage`
+
+```luau
+core.foliage(r: number, g: number, b: number, amount: number) -> ()
+```
+
+The season's colour on every block marked by core.node_foliage: its picture's brightness in this colour, mixed in by `amount`. Called as it changes, so a mod fades it. For a world's code on a player's machine.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `r` | number | — | 0..255: the colour foliage turns, over its own shading |
+| `g` | number | — |  |
+| `b` | number | — |  |
+| `amount` | number | — | 0 its own colour .. 1 all the season's |
+
 ## `core.mapgen_core`
 
 ```luau

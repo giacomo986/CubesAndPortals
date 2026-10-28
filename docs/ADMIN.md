@@ -110,6 +110,7 @@ owner of that name on this world, or the bare name.
 | `/backup` | backup | Copy every world file now |
 | `/metrics` | logs | Uptime, players and windows per room, the longest gap between ticks |
 | `/weather [clear\|rain\|storm] [MINUTES]` | admin | The sandbox's sky (`mods/weather`): with no word, what it is and how long it lasts; with one, that sky now, for MINUTES or the usual time |
+| `/season [spring\|summer\|autumn\|winter]` | admin | The sandbox's season (`mods/weather`, five days each): with no word, which and what day of it; with one, the first day of that season this year |
 
 ### Players
 

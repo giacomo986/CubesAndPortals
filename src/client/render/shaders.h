@@ -26,6 +26,7 @@ layout(location = 4) in float aTex;      // texture layer
 layout(location = 5) in float aFlow;     // a liquid's picture runs: 0 still, 1..8, 9 down
 layout(location = 6) in float aLamp;     // brightness of the lamps here, already turned to the face, 0..255
 layout(location = 7) in float aClassic;  // the classic look's light: sun in the high nibble, block in the low
+layout(location = 8) in float aFoliage;  // 1: takes the season's colour (core.foliage)
 
 uniform mat4 uProjection;
 uniform mat4 uView;
@@ -41,6 +42,7 @@ out float vLamp;                         // the lamps' light on it, 0..1
 out float vAo;
 flat out float vTex;
 flat out int   vFace;
+flat out float vFoliage;
 out vec3  vWorld;                        // for the water the eye looks through
 
 out float gl_ClipDistance[5];
@@ -71,6 +73,7 @@ void main()
     vLamp = aLamp / 255.0;
     vAo   = kAoShade[ao];
     vFace = face;
+    vFoliage = aFoliage;
 
     vUV    = aUV;
     vTex   = aTex + 256.0 * float(bits >> 5);   // the tile's high bits ride in face_ao
@@ -263,9 +266,11 @@ in float vLamp;
 in float vAo;
 flat in float vTex;
 flat in int   vFace;
+flat in float vFoliage;
 in vec3  vWorld;
 
 uniform sampler2D uTexture;
+uniform vec4      uFoliage;      // core.foliage: the season's colour, and how much of it
 uniform float     uAtlasTiles;   // tiles per row in the fallback atlas
 
 // The sun or the moon (core/world/daylight.h SkyLight), and its shadow map.
@@ -331,6 +336,10 @@ void main()
     vec2 uv = (vec2(col, row) + clamp(tile, 0.002, 0.998)) / uAtlasTiles;
 
     vec4 texel = texture(uTexture, uv);
+    if (vFoliage > 0.5) {
+        float lum = dot(texel.rgb, vec3(0.3, 0.55, 0.15));
+        texel.rgb = mix(texel.rgb, min(lum * uFoliage.rgb, vec3(1.0)), uFoliage.a);
+    }
 
     // The sky's light: what this point sees of the sky, lit by the sky itself
     // and by the sun where the sun reaches. Block light does not dim at night;

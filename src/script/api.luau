@@ -1323,6 +1323,31 @@ local api: { Fn } = {
            .. "player's machine.",
     },
     {
+        name = "node_foliage",
+        host = "node_foliage",
+        ret  = "int",
+        args = {
+            { name = "id", type = "int", doc = "The block, by its id (core.node_id)." },
+            { name = "on", type = "bool", default = true },
+        },
+        doc = "Marks a block as foliage: it takes the colour core.foliage gives -- leaves that "
+           .. "turn in autumn. Only drawn; the world around is drawn again with it. Returns 1, or "
+           .. "0 for an id that is not a block. For a world's code on a player's machine.",
+    },
+    {
+        name = "foliage",
+        host = "foliage",
+        args = {
+            { name = "r", type = "int", doc = "0..255: the colour foliage turns, over its own shading" },
+            { name = "g", type = "int" },
+            { name = "b", type = "int" },
+            { name = "amount", type = "float", doc = "0 its own colour .. 1 all the season's" },
+        },
+        doc = "The season's colour on every block marked by core.node_foliage: its picture's "
+           .. "brightness in this colour, mixed in by `amount`. Called as it changes, so a mod "
+           .. "fades it. For a world's code on a player's machine.",
+    },
+    {
         name = "mapgen_core",
         host = "mapgen_core",
         args = {

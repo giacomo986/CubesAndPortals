@@ -100,6 +100,10 @@ struct NodeDef {
     // in the alpha pass. Never solid and never opaque while this is set.
     bool    liquid       = false;
 
+    // Takes the season's colour (core.node_foliage, core.foliage): leaves that
+    // turn in autumn. Only drawn: set on a player's machine by the world's code.
+    bool    foliage      = false;
+
     // How full a cell of it is, in eighths: 8 is a whole cell, and less is a
     // surface lower than the top of the cell. A mod's water is a source (8) and
     // levels of water running off it (1..7), and this is how a client that

@@ -38,7 +38,7 @@ gfx_vertexlayout world_layout()
 {
     gfx_vertexlayout l{};
     l.stride     = (int)sizeof(Vertex);
-    l.attr_count = 7;
+    l.attr_count = 8;
     //                    loc  n  type          normalised  offset
     l.attrs[0] = gfx_attr{  0, 3, GFX_ATTR_U8,  false,      0};   // position 0..32
     l.attrs[1] = gfx_attr{  1, 1, GFX_ATTR_U8,  false,      3};   // face | ao
@@ -47,6 +47,7 @@ gfx_vertexlayout world_layout()
     l.attrs[4] = gfx_attr{  4, 1, GFX_ATTR_U8,  false,      7};   // texture layer
     l.attrs[5] = gfx_attr{  6, 1, GFX_ATTR_U8,  false,      8};   // lamp brightness
     l.attrs[6] = gfx_attr{  7, 1, GFX_ATTR_U8,  false,      9};   // the classic look's packed light
+    l.attrs[7] = gfx_attr{  8, 1, GFX_ATTR_U8,  false,     11};   // takes the season's colour
     return l;
 }
 
@@ -139,6 +140,7 @@ bool WorldRenderer::init(NodeRegistry &reg, const MediaSource &media)
     m_loc_shadow_texel = gfx_uniform_location(m_shader, "uShadowTexel");
     m_loc_classic      = gfx_uniform_location(m_shader, "uClassic");
     m_loc_classic_day  = gfx_uniform_location(m_shader, "uClassicDay");
+    m_loc_foliage      = gfx_uniform_location(m_shader, "uFoliage");
     m_water_u.locate(m_shader);
 
     m_shadow_shader = gfx_shader_create(shaders::kShadowVS, shaders::kShadowFS);
@@ -1273,6 +1275,7 @@ void WorldRenderer::bind_world(const Mat4 &projection, const Mat4 &view)
     gfx_uniform_set_mat4(m_loc_shadow_vp, m_shadow_vp.m);
     gfx_uniform_set_f(m_loc_classic, m_classic ? 1.0f : 0.0f);
     gfx_uniform_set_f(m_loc_classic_day, m_classic_day);
+    gfx_uniform_set_v4(m_loc_foliage, m_foliage, 1);
 
     // The water first, so the unit left active is 0, the one everything
     // drawn after this binds to without saying.

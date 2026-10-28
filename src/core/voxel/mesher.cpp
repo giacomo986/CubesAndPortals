@@ -570,6 +570,7 @@ void mesh_snapshot_into(const ChunkSnapshot &snap, const NodeRegistry &reg,
                             quad[c].lamp    = start.lamp[c];
                             quad[c].classic = start.classic;
                             quad[c].tex     = (uint8_t)(start.tex & 0xFF);
+                            quad[c].foliage = reg.get(start.block).foliage ? 1 : 0;
                         }
 
                         // Winding. The corner order above traces the rectangle

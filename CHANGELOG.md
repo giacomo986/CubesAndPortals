@@ -7,6 +7,8 @@ un'alpha: [docs/BUILDING.md](docs/BUILDING.md#versioni).
 
 - Il sandbox ha il meteo: pioggia, neve nella tundra e sulle vette, temporali con fulmini e
   tuono. La pioggia innaffia i campi.
+- Le stagioni: foglie che cambiano colore, campi fermi d'inverno senza lampade, neve
+  ovunque d'inverno.
 
 ## 0.9.0-alpha.4 — 2026-10-27
 

@@ -36,7 +36,8 @@ struct Vertex {
     uint8_t tex;          // texture layer's low eight bits, from the node definition
     uint8_t lamp;         // block light reaching this corner, as brightness 0..255
     uint8_t classic;      // the face's light as it was: the packed byte of the cell it looks into
-    uint8_t pad[2];
+    uint8_t flow    = 0;  // a liquid's (PartVertex has its own); unused on a cube
+    uint8_t foliage = 0;  // 1 on a block that takes the season's colour (NodeDef::foliage)
 };
 
 static_assert(sizeof(Vertex) == 12, "vertex layout is a contract with world_render.cpp");

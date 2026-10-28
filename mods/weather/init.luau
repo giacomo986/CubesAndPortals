@@ -1,10 +1,11 @@
 --!strict
--- weather: rain, snow where it is cold, and storms with lightning.
+-- weather: rain, snow where it is cold, storms with lightning, and seasons.
 --
--- The server keeps one sky for the world: clear for ten to twenty minutes,
--- then rain (or, one time in four, a storm) for three to eight. What falls on
--- a player is the sky over their biome: snow in the tundra and on the peaks,
--- nothing in the desert, rain anywhere else. Every two seconds it tells each
+-- The server keeps one sky for the world: clear for a while, then rain (or a
+-- storm) for three to eight minutes; how long it stays clear and how often it
+-- storms is the season's (SEASONS). What falls on a player is the sky over
+-- their biome: snow in the tundra and on the peaks -- and everywhere in
+-- winter -- nothing in the desert, rain anywhere else. Every two seconds it tells each
 -- player's machine what falls there; the machine draws it round the body
 -- (core.render.box, stopped by whatever is overhead) and greys its sky
 -- (core.overcast), fading both in and out.
@@ -15,8 +16,24 @@
 -- sees, thunder from where it fell, eight points off anybody within three
 -- nodes of it.
 --
+-- Seasons: five days each (a hundred minutes at the engine's day), counted
+-- across a restart in the mod's storage. The leaves turn with them -- each
+-- machine marks them (core.node_foliage) and colours them (core.foliage),
+-- fading from the last season's colour over the first day -- the fields slow
+-- in autumn and stop in winter unless a lamp lights them (farm:season), and
+-- in winter the snow settles everywhere but the desert and melts in spring.
+--
 --   /weather [clear|rain|storm] [minutes]   -- admin: the sky now, or for how long
-local CLEAR_MIN, CLEAR_MAX = 600, 1200   -- seconds
+--   /season [spring|summer|autumn|winter]   -- admin: the season now, or set it
+local DAYS = 5   -- a season
+local SEASONS = {   -- clear between showers (s), one shower in `storm` a storm, leaves' colour
+    { name = "spring", clear = { 300, 720 },  storm = 5, leaf = { 255, 255, 255, 0 } },
+    { name = "summer", clear = { 720, 1500 }, storm = 2, leaf = { 70, 150, 40, 0.25 } },
+    { name = "autumn", clear = { 480, 960 },  storm = 5, leaf = { 240, 120, 30, 0.85 } },
+    { name = "winter", clear = { 480, 960 },  storm = 8, leaf = { 150, 125, 95, 0.75 } },
+}
+local FOLIAGE = { "trees:leaves", "woods:birch_leaves", "woods:jungle_leaves", "woods:acacia_leaves",
+                  "woods:dark_oak_leaves" }   -- spruce stays green
 local WET_MIN, WET_MAX = 180, 480
 local BOLT_MIN, BOLT_MAX = 6, 18
 local BOLT_HURT, BOLT_REACH = 8, 3
@@ -29,11 +46,17 @@ local drawing = side ~= "server"
 -- What this machine draws: rain, snow, storm, dry or none, and the last bolt.
 local falling = "none"
 local bolt_x, bolt_y, bolt_z, bolt_age = 0, 0, 0, 99
+local season, season_frac = 1, 0   -- which of SEASONS, and how far through it, 0..1
 
 local function heard(text: string)
     local kind = string.match(text, "^w (%a+)$")
     if kind then
         falling = kind
+        return
+    end
+    local s, f = string.match(text, "^s (%d) (%S+)$")
+    if s then
+        season, season_frac = tonumber(s) or 1, tonumber(f) or 0
         return
     end
     local x, y, z = string.match(text, "^b (%S+) (%S+) (%S+)$")
@@ -47,9 +70,21 @@ if serving then
     local LAYER = core.register_node("weather:snow", 244, 248, 252, false, 0, "", 0, 0.15, "soil")
     core.node_box(LAYER, 0.0, 0.0, 0.0, 1.0, 0.125, 1.0)
 
+    local day = tonumber(core.storage_get("day")) or 0
+    local last_t = core.time_of_day()
     local sky = "clear"
-    local left = math.random(CLEAR_MIN, CLEAR_MAX)
+    local left = 0
     local told: { [number]: string } = {}
+    local told_season: { [number]: string } = {}
+
+    local function season_at(): (number, number)
+        return (day // DAYS) % 4 + 1, ((day % DAYS) + core.time_of_day()) / DAYS
+    end
+    season = season_at()
+    left = math.random(SEASONS[season].clear[1], SEASONS[season].clear[2])
+    local function winter(): boolean
+        return season == 4
+    end
     local since, bolt_in = 0, BOLT_MAX
 
     local function send(p: number, text: string)
@@ -74,10 +109,10 @@ if serving then
             return "none"
         end
         local b = core.biome(x, z)
-        if SNOWS[b] then
-            return "snow"
-        elseif b == "core:desert" then
+        if b == "core:desert" then
             return "dry"
+        elseif SNOWS[b] or winter() then
+            return "snow"
         end
         return sky
     end
@@ -119,7 +154,8 @@ if serving then
     local function settle(px: number, py: number, pz: number)
         for _ = 1, 6 do
             local x, z = math.floor(px) + math.random(-24, 24), math.floor(pz) + math.random(-24, 24)
-            if SNOWS[core.biome(x, z)] then
+            local b = core.biome(x, z)
+            if SNOWS[b] or (winter() and b ~= "core:desert") then
                 local gy, id = ground(x, math.floor(py), z, 24, 16)
                 if gy and id ~= LAYER and core.node_solid(id) == 1 then
                     core.set_block(x, gy + 1, z, LAYER)
@@ -128,13 +164,35 @@ if serving then
         end
     end
 
+    local function set_season(s: number)
+        season = s
+        core.event.emit("farm:season", { name = SEASONS[s].name })
+        local name = SEASONS[s].name
+        core.log(`weather: {name}, day {day}`)
+        for _, p in core.players() do
+            core.notice(p, string.upper(string.sub(name, 1, 1)) .. string.sub(name, 2) .. " begins")
+        end
+    end
+    core.event.emit("farm:season", { name = SEASONS[season].name })
+
     core.event.on("core:tick", function(ev)
+        local t = core.time_of_day()
+        if t < last_t - 0.5 then   -- past midnight, or a night slept through
+            day += 1
+            core.storage_set("day", tostring(day))
+        end
+        last_t = t
+        local s = season_at()
+        if s ~= season then
+            set_season(s)
+        end
         left -= ev.dt
         if left <= 0 then
+            local is = SEASONS[season]
             if sky == "clear" then
-                set_sky(if math.random(4) == 1 then "storm" else "rain", math.random(WET_MIN, WET_MAX))
+                set_sky(if math.random(is.storm) == 1 then "storm" else "rain", math.random(WET_MIN, WET_MAX))
             else
-                set_sky("clear", math.random(CLEAR_MIN, CLEAR_MAX))
+                set_sky("clear", math.random(is.clear[1], is.clear[2]))
             end
         end
         since += ev.dt
@@ -144,8 +202,15 @@ if serving then
         end
         since = 0
         local now: { [number]: string } = {}
+        local now_season: { [number]: string } = {}
+        local _, frac = season_at()
+        local season_text = `s {season} {math.floor(frac * 50) / 50}`
         local stormy: { number } = {}
         for _, p in core.players() do
+            now_season[p] = season_text
+            if told_season[p] ~= season_text then
+                send(p, season_text)
+            end
             local x, y, z = core.player_pos(p)
             if x and y and z then
                 local kind = falls(math.floor(x), math.floor(z))
@@ -160,7 +225,7 @@ if serving then
                 end
             end
         end
-        told = now
+        told, told_season = now, now_season
         if bolt_in <= 0 then
             bolt_in = math.random(BOLT_MIN, BOLT_MAX)
             if #stormy > 0 then
@@ -169,9 +234,9 @@ if serving then
         end
     end)
 
-    -- Snow carried out of the cold melts.
+    -- Snow out of the cold melts, and winter's snow in the spring.
     core.register_abm("weather:melt", { "weather:snow" }, 30.0, 4, function(cell)
-        if not SNOWS[core.biome(cell.x, cell.z)] then
+        if not winter() and not SNOWS[core.biome(cell.x, cell.z)] then
             core.set_block(cell.x, cell.y, cell.z, 0)
         end
     end)
@@ -186,14 +251,34 @@ if serving then
             core.chat(ev.player, `Weather: {sky}, {math.ceil(left / 60)} min left.`)
         elseif what == "clear" or what == "rain" or what == "storm" then
             local n = tonumber(mins)
+            local is = SEASONS[season]
             set_sky(what, if n then n * 60
-                elseif what == "clear" then math.random(CLEAR_MIN, CLEAR_MAX)
+                elseif what == "clear" then math.random(is.clear[1], is.clear[2])
                 else math.random(WET_MIN, WET_MAX))
             bolt_in = 2
             core.chat(ev.player, `Weather: {sky} for {math.ceil(left / 60)} min.`)
         else
             core.chat(ev.player, "Usage: /weather [clear|rain|storm] [minutes]")
         end
+    end)
+
+    core.command("season", "[spring|summer|autumn|winter] -- the season now, or set it", "admin")
+    core.event.on("core:command", function(ev)
+        if ev.name ~= "season" then
+            return
+        end
+        local what = string.match(ev.args, "^%s*(%a*)%s*$")
+        for i, s in SEASONS do
+            if s.name == what then
+                day = (day // (DAYS * 4)) * DAYS * 4 + (i - 1) * DAYS
+                core.storage_set("day", tostring(day))
+            end
+        end
+        if what ~= nil and what ~= "" and SEASONS[season_at()].name ~= what then
+            core.chat(ev.player, "Usage: /season [spring|summer|autumn|winter]")
+            return
+        end
+        core.chat(ev.player, `Season: {SEASONS[season_at()].name}, day {day % DAYS + 1} of {DAYS}.`)
     end)
 end
 
@@ -230,8 +315,29 @@ if drawing then
         return v - math.floor(v)
     end
 
+    for _, n in FOLIAGE do
+        local id = core.node_id(n)
+        if id > 0 then
+            core.node_foliage(id)
+        end
+    end
+    -- The leaves' colour: the last season's, into this one's over its first fifth.
+    local leaf = { 255, 255, 255, 0 }
+    local function leaf_target(): { number }
+        local from = SEASONS[(season + 2) % 4 + 1].leaf
+        local to = SEASONS[season].leaf
+        local k = math.min(1, season_frac / 0.2)
+        return { from[1] + (to[1] - from[1]) * k, from[2] + (to[2] - from[2]) * k,
+                 from[3] + (to[3] - from[3]) * k, from[4] + (to[4] - from[4]) * k }
+    end
+
     local refresh = 0
     core.event.on("core:tick", function(ev)
+        local want_leaf = leaf_target()
+        for c = 1, 4 do
+            leaf[c] += (want_leaf[c] - leaf[c]) * math.min(1, ev.dt * 0.5)
+        end
+        core.foliage(math.floor(leaf[1]), math.floor(leaf[2]), math.floor(leaf[3]), leaf[4])
         clock += ev.dt
         bolt_age += ev.dt
         local want = GREY[falling] or 0

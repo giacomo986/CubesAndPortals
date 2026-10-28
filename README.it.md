@@ -256,7 +256,10 @@ più deboli; quello che gli estranei prendono lì è marcato rubato.
 **Meteo** (`mods/weather`). Cielo sereno, poi pioggia o temporale per qualche minuto: il cielo
 e le nuvole si fanno grigi, la pioggia cade attorno a te e si ferma sui tetti, i campi a cielo
 aperto vengono innaffiati. Nella tundra e sulle vette nevica e la neve si posa; nel deserto
-non cade niente. Un temporale colpisce il suolo vicino ai giocatori, con il tuono.
+non cade niente. Un temporale colpisce il suolo vicino ai giocatori, con il tuono. Stagioni di
+cinque giorni: d'autunno le foglie si fanno arancioni e d'inverno spente (l'abete resta verde),
+l'estate ha più temporali e la primavera più pioggia, i campi rallentano d'autunno e d'inverno
+crescono solo sotto le lampade, e d'inverno nevica ovunque tranne nel deserto.
 
 **Creature.** Zombie e scheletri arcieri escono al buio e bruciano al sole; maiali, mucche, pecore
 e galline pascolano, si riproducono e crescono; un cane e un gatto si addomesticano e seguono chi

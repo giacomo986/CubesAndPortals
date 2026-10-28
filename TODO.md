@@ -398,7 +398,15 @@ the villagers and start with questions (memory: villagers-need-design-first).
    mod); core.light is not dimmed, so creatures do not come out in a storm;
    thunder is synthesised (tools/make_weather_sounds.py), the sfx model is
    gated.
-2. Seasons: long cycles that change crops, leaves and the merchants' prices.
+2. Seasons -- built 2026-10-28 in `mods/weather` (`core.node_foliage`,
+   `core.foliage`: a vertex byte and a tint in the world shader). Five days
+   a season, the day counted in the mod's storage. Leaves (not spruce) fade
+   to orange in autumn, drab in winter; clear spells and storm odds by
+   season; autumn crops half as often, winter only under lamp light 9+
+   (farm:season); winter snows on every biome but the desert, and its snow
+   melts in spring. /season for admins. Seen in Xephyr (autumn and winter
+   leaves); seasons and winter snow checked headless. Open: the merchants'
+   prices by season -- villagers, needs Giacomo's design first.
 3. Village events: caravans on the roads, night sieges, a harvest feast.
 4. Boats on the sea, the rivers and the lakes.
 5. Minecarts on rails worked by cinnabar, with switches and stations.

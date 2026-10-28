@@ -897,6 +897,7 @@ struct Session {
     float storm_rgb[3]{};
     float funnel[16]{};   // core.storm_funnel: four of x, y, z, on
     float overcast = 0.0f;   // core.overcast: how grey the sky of the hour is, 0..1
+    float foliage[4] = {1.0f, 1.0f, 1.0f, 0.0f};   // core.foliage: the season's colour, how much
 
     // Whether the engine makes this world's ground (core.mapgen_core).
     bool core_mapgen = true;
@@ -4436,6 +4437,30 @@ void host_overcast(void *ud, double amount)
     static_cast<Scene *>(ud)->act().overcast = (float)std::clamp(amount, 0.0, 1.0);
 }
 
+int host_node_foliage(void *ud, int id_in, int on)
+{
+    Session      &sess = static_cast<Scene *>(ud)->act();
+    const BlockId id   = (BlockId)id_in;
+    if (id == kAir || id >= sess.registry.size()) return 0;
+    NodeDef d = sess.registry.get(id);
+    if (d.foliage != (on != 0)) {
+        d.foliage = on != 0;
+        sess.registry.register_node(d);
+        sess.world.mark_all_dirty();
+    }
+    return 1;
+}
+
+void host_foliage(void *ud, int r, int g, int b, double amount)
+{
+    if (!std::isfinite(amount)) return;
+    float *f = static_cast<Scene *>(ud)->act().foliage;
+    f[0] = (float)std::clamp(r, 0, 255) / 255.0f * 2.2f;   // over the picture's brightness, which is dim
+    f[1] = (float)std::clamp(g, 0, 255) / 255.0f * 2.2f;
+    f[2] = (float)std::clamp(b, 0, 255) / 255.0f * 2.2f;
+    f[3] = (float)std::clamp(amount, 0.0, 1.0);
+}
+
 void host_mapgen_core(void *ud, int on)
 {
     Session &w = static_cast<Scene *>(ud)->act();
@@ -7386,6 +7411,7 @@ void apply_clocks(Scene &s)
                                   w.storm ? w.storm_rgb : nullptr);
         w.world_render.set_funnels(w.funnel);
         w.world_render.set_overcast(w.overcast);
+        w.world_render.set_foliage(w.foliage);
     }
 }
 
@@ -18802,6 +18828,8 @@ script_host make_client_host(Scene &scene)
     host.world_storm     = host_world_storm;
     host.storm_funnel    = host_storm_funnel;
     host.overcast        = host_overcast;
+    host.node_foliage    = host_node_foliage;
+    host.foliage         = host_foliage;
     host.mapgen_core     = host_mapgen_core;
     host.portal_place    = host_portal_place;
     host.register_abm    = host_register_abm;

@@ -241,6 +241,12 @@ public:
     // a straight line over a floor of 15%, a night floor of 22%, no sun and no
     // shadows, and bodies at full light.
     void set_classic(bool on) { m_classic = on; }
+
+    // The season's colour on foliage (core.foliage): rgb, and how much, 0..1.
+    void set_foliage(const float f[4])
+    {
+        for (int c = 0; c < 4; ++c) m_foliage[c] = f[c];
+    }
     bool classic() const { return m_classic; }
 
     // How bright to draw something another shader draws, standing in a cell
@@ -504,7 +510,8 @@ private:
     // The sun (draw_shadows).
     bool        m_classic     = false;
     float       m_classic_day = 1.0f;
-    int         m_loc_classic = -1, m_loc_classic_day = -1;
+    int         m_loc_classic = -1, m_loc_classic_day = -1, m_loc_foliage = -1;
+    float       m_foliage[4] = {1.0f, 1.0f, 1.0f, 0.0f};   // set_foliage
     SkyLight    m_sky_light{};
     bool        m_has_sky_light = false;
     gfx_shader  m_shadow_shader{0};

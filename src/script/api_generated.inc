@@ -946,6 +946,29 @@ int l_overcast(lua_State *L)
     return 0;
 }
 
+// core.node_foliage(id: number, on: boolean?) -> number
+int l_node_foliage(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
+    const int result = (vm && vm->host.node_foliage) ? vm->host.node_foliage(vm->host.ud, id, on) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.foliage(r: number, g: number, b: number, amount: number) -> ()
+int l_foliage(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int r = (int)luaL_checkinteger(L, 1);
+    const int g = (int)luaL_checkinteger(L, 2);
+    const int b = (int)luaL_checkinteger(L, 3);
+    const float amount = (float)luaL_checknumber(L, 4);
+    if (vm && vm->host.foliage) vm->host.foliage(vm->host.ud, r, g, b, amount);
+    return 0;
+}
+
 // core.mapgen_core(on: boolean) -> ()
 int l_mapgen_core(lua_State *L)
 {
@@ -2818,6 +2841,10 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "storm_funnel");
     lua_pushcfunction(L, l_overcast, "core.overcast");
     lua_setfield(L, -2, "overcast");
+    lua_pushcfunction(L, l_node_foliage, "core.node_foliage");
+    lua_setfield(L, -2, "node_foliage");
+    lua_pushcfunction(L, l_foliage, "core.foliage");
+    lua_setfield(L, -2, "foliage");
     lua_pushcfunction(L, l_mapgen_core, "core.mapgen_core");
     lua_setfield(L, -2, "mapgen_core");
     lua_pushcfunction(L, l_mapgen_only, "core.mapgen_only");

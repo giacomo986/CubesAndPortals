@@ -269,6 +269,8 @@ typedef struct script_host {
     void (*world_storm)(void *ud, int r, int g, int b);
     void (*storm_funnel)(void *ud, int slot, double x, double y, double z, int on);   // a twister drawn
     void (*overcast)(void *ud, double amount);   // a grey sky over the hours, 0..1
+    int (*node_foliage)(void *ud, int id, int on);   // a block that takes the season's colour
+    void (*foliage)(void *ud, int r, int g, int b, double amount);
     void (*mapgen_core)(void *ud, int on);
     // Only these mods' stages make the ground (core.mapgen_only), one per call.
     void (*mapgen_only)(void *ud, const char *mod);

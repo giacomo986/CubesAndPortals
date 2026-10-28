@@ -73,6 +73,14 @@ core.event.on("farm:rain", function(ev)
     raining = ev.on
 end)
 
+-- The season, told by mods/weather too: in autumn a crop grows half as often,
+-- in winter only under a lamp (block light 9 or more: a greenhouse).
+core.event.define("farm:season", { fields = { name = "string" }, cancellable = false })
+local season = "spring"
+core.event.on("farm:season", function(ev)
+    season = ev.name
+end)
+
 local function rained_on(x: number, y: number, z: number): boolean
     if not raining or core.biome(x, z) == "core:desert" then
         return false
@@ -104,6 +112,8 @@ core.register_abm("farm:grow", { "farm:wheat_0", "farm:wheat_1", "farm:wheat_2",
             return
         end
         if id == RIPE or core.light(cell.x, cell.y, cell.z) < 9
+            or (season == "winter" and core.block_light(cell.x, cell.y, cell.z) < 9)
+            or (season == "autumn" and math.random(2) == 1)
             or (not watered(cell.x, cell.y - 1, cell.z) and math.random(2) == 1) then
             return
         end
