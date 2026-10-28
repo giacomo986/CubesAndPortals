@@ -382,6 +382,38 @@ sandbox 24-25, the chambers atrium 670-2400. That one red is the display,
 not the client; on the real GPU it does not apply. The other reds of a kart
 lap were the checks': fixed the same day.
 
+## The sandbox: what comes next (planned 2026-10-28)
+
+Asked: put every suggestion on the plan and start. In order; 3 and 13 touch
+the villagers and start with questions (memory: villagers-need-design-first).
+1. Weather -- built 2026-10-28 (`mods/weather`, `core.overcast`). One sky
+   per world: clear 10-20 min, then rain (one time in four a storm) 3-8 min;
+   snow in tundra/peaks, nothing in the desert. Drawn round the body (450
+   drops, 600 in a storm, 360 flakes, stopped by what is overhead), sky and
+   clouds greyed by core.overcast. Rain waters soil under the open sky
+   (farm:rain); snow settles a layer near players (87 layers in 12 s, forced
+   in a test); a storm strikes every 6-18 s near a player, 8 points within 3
+   nodes. /weather for admins. Seen in Xephyr (rain, storm, snow). Open: the
+   bolt not caught in a screenshot; no rain sound (no looping sound for a
+   mod); core.light is not dimmed, so creatures do not come out in a storm;
+   thunder is synthesised (tools/make_weather_sounds.py), the sfx model is
+   gated.
+2. Seasons: long cycles that change crops, leaves and the merchants' prices.
+3. Village events: caravans on the roads, night sieges, a harvest feast.
+4. Boats on the sea, the rivers and the lakes.
+5. Minecarts on rails worked by cinnabar, with switches and stations.
+6. Travel portals between villages or territories, with a cost or a rule.
+7. A map that fills as you go, and a compass home.
+8. Rare structures: desert temples, wrecks, sunken ruins, each a small puzzle.
+9. A deep layer under `depths`: glowing fungi, lava, crystals, a guardian.
+10. Alchemy: a still, potions (night sight, speed, water breathing).
+11. Fishing widened: fish by biome, bought by the frog fishers.
+12. Herding widened: dyed wool, milk, stables, a robot order to tend animals.
+13. Errands from the mayor and the merchant, paid from the treasury.
+14. Blueprints: copy a build, have the village builder or a robot build it.
+15. More decorative blocks: stained glass, fences, walls, tiles, furniture.
+16. Plaza games on the chess frame (draughts, mill), a scored PvP arena.
+
 ## Portals and movement
 
 **OPEN-2 -- a crossing may wedge the player in the exit block.** Reported from

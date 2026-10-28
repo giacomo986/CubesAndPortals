@@ -937,6 +937,15 @@ int l_storm_funnel(lua_State *L)
     return 0;
 }
 
+// core.overcast(amount: number) -> ()
+int l_overcast(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const float amount = (float)luaL_checknumber(L, 1);
+    if (vm && vm->host.overcast) vm->host.overcast(vm->host.ud, amount);
+    return 0;
+}
+
 // core.mapgen_core(on: boolean) -> ()
 int l_mapgen_core(lua_State *L)
 {
@@ -2807,6 +2816,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "world_storm");
     lua_pushcfunction(L, l_storm_funnel, "core.storm_funnel");
     lua_setfield(L, -2, "storm_funnel");
+    lua_pushcfunction(L, l_overcast, "core.overcast");
+    lua_setfield(L, -2, "overcast");
     lua_pushcfunction(L, l_mapgen_core, "core.mapgen_core");
     lua_setfield(L, -2, "mapgen_core");
     lua_pushcfunction(L, l_mapgen_only, "core.mapgen_only");

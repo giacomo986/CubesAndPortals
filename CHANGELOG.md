@@ -3,6 +3,11 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.md](docs/BUILDING.md#versioni).
 
+## Non ancora uscito
+
+- Il sandbox ha il meteo: pioggia, neve nella tundra e sulle vette, temporali con fulmini e
+  tuono. La pioggia innaffia i campi.
+
 ## 0.9.0-alpha.4 — 2026-10-27
 
 Protocollo 109, come la 0.9.0-alpha.2: gioca con i suoi server e legge i suoi mondi. La

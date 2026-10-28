@@ -250,6 +250,11 @@ job, meals and a bed. Every village has:
 owners stand in it. Inside, owners are faster and tougher, strangers weaker; what strangers take
 there is marked stolen.
 
+**Weather** (`mods/weather`). Clear skies, then rain or a storm for a few minutes: the sky
+and the clouds go grey, rain falls round you and stops at roofs, the fields under the open sky
+are watered. In the tundra and on the peaks it snows and the snow settles; in the desert
+nothing falls. A storm strikes the ground near players, with thunder.
+
 **Creatures.** Zombies and skeleton archers come out in the dark and burn in the sun; pigs, cows,
 sheep and chickens graze, breed and grow; a dog and a cat can be tamed and follow you
 (`mods/mobs`, `mods/animals`, `mods/pets`).

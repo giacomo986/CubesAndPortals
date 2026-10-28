@@ -424,6 +424,7 @@ uniform float uMoon;       // 1 when uSunDir is the moon's
 uniform vec4  uStorm;      // core.world_storm: its colour, and w 1 when there is one
 uniform vec4  uFunnel[4];  // core.storm_funnel: x, ground y, z, and w 1 when there is one
 uniform float uRange;      // how far the world is drawn: a funnel past it would stand over nothing
+uniform float uOvercast;   // core.overcast: 0..1, the layer thicker and grey
 
 out vec4 fragColor;
 )" CNP_WATER_GLSL R"(
@@ -508,7 +509,7 @@ float column(vec2 xz)
             }
         }
     }
-    return smoothstep(0.44, 0.72, s);
+    return smoothstep(0.44 - 0.3 * uOvercast, 0.72 - 0.2 * uOvercast, s);
 }
 
 // A world's own twister, funnel k (uFunnel): from the clouds' belly down to
@@ -624,6 +625,8 @@ void march(vec3 o, vec3 d, vec2 t, int n, bool below, ivec2 tw)
             low = uStorm.rgb * 0.35;
             top = min(uStorm.rgb * 1.25 + vec3(0.25, 0.12, 0.05), vec3(1.0));
         }
+        low = mix(low, vec3(0.30, 0.32, 0.35), uOvercast);
+        top = mix(top, vec3(0.58, 0.60, 0.63), uOvercast);
         rgb  += keep * a * mix(low, top, lit);
         keep *= 1.0 - a;
         if (keep < 0.03) return;

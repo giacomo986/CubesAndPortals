@@ -253,6 +253,11 @@ e un letto. Ogni villaggio ha:
 proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resistenti, gli estranei
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
+**Meteo** (`mods/weather`). Cielo sereno, poi pioggia o temporale per qualche minuto: il cielo
+e le nuvole si fanno grigi, la pioggia cade attorno a te e si ferma sui tetti, i campi a cielo
+aperto vengono innaffiati. Nella tundra e sulle vette nevica e la neve si posa; nel deserto
+non cade niente. Un temporale colpisce il suolo vicino ai giocatori, con il tuono.
+
 **Creature.** Zombie e scheletri arcieri escono al buio e bruciano al sole; maiali, mucche, pecore
 e galline pascolano, si riproducono e crescono; un cane e un gatto si addomesticano e seguono chi
 li ha presi (`mods/mobs`, `mods/animals`, `mods/pets`).

@@ -65,10 +65,30 @@ core.event.on("core:used", function(ev)
     end
 end)
 
+-- Rain, told by mods/weather (which may not be in this world): soil under the
+-- open sky is watered while it lasts, outside the desert where none falls.
+core.event.define("farm:rain", { fields = { on = "boolean" }, cancellable = false })
+local raining = false
+core.event.on("farm:rain", function(ev)
+    raining = ev.on
+end)
+
+local function rained_on(x: number, y: number, z: number): boolean
+    if not raining or core.biome(x, z) == "core:desert" then
+        return false
+    end
+    for dy = 2, 24 do
+        if core.get_block(x, y + dy, z) ~= 0 then
+            return false
+        end
+    end
+    return true
+end
+
 -- Water within four cells of the soil, on its level, as the classic block game's farmland
--- wants it.
+-- wants it; or rain.
 local function watered(x: number, y: number, z: number): boolean
-    return #core.find_nodes(x - 4, y, z - 4, x + 4, y, z + 4, "lakes:water") > 0
+    return #core.find_nodes(x - 4, y, z - 4, x + 4, y, z + 4, "lakes:water") > 0 or rained_on(x, y, z)
 end
 
 -- Every 30 s one crop in three goes up a stage: 90 s a stage on average with

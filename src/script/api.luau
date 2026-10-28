@@ -1311,6 +1311,18 @@ local api: { Fn } = {
            .. "Called as it moves. For a world's code on a player's machine.",
     },
     {
+        name = "overcast",
+        host = "overcast",
+        args = {
+            { name = "amount", type = "float", doc = "0 a clear sky .. 1 a heavy one; clamped" },
+        },
+        doc = "Weather over this world's sky: the sky and its clouds go grey by this much, the "
+           .. "sun's light on the ground weaker and its shadows fainter, the hours kept. 0 takes "
+           .. "it away. Only drawn: the light a crop or a creature reads (core.light) is the "
+           .. "hour's. Called as it changes, so a mod fades it in. For a world's code on a "
+           .. "player's machine.",
+    },
+    {
         name = "mapgen_core",
         host = "mapgen_core",
         args = {

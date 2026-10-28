@@ -109,6 +109,7 @@ owner of that name on this world, or the bare name.
 | `/announce TEXT` | announce | A notice on every screen |
 | `/backup` | backup | Copy every world file now |
 | `/metrics` | logs | Uptime, players and windows per room, the longest gap between ticks |
+| `/weather [clear\|rain\|storm] [MINUTES]` | admin | The sandbox's sky (`mods/weather`): with no word, what it is and how long it lasts; with one, that sky now, for MINUTES or the usual time |
 
 ### Players
 

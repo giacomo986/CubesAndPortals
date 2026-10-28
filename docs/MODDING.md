@@ -593,6 +593,7 @@ core.render.pass(nome, ordine, fn)               -- solo su un client
 core.render.box(x, y, z, w, h, d, r, g, b, a)    -- solo dentro un pass
 core.render.model(id, x, y, z, yaw?, scala?, pitch?, roll?)   -- un modello del mondo, solo dentro un pass
 core.render.fx(tipo, x, y, z, misura?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- un effetto di luce, solo dentro un pass
+core.overcast(quanto)                            -- cielo e nuvole grigi, 0..1: il meteo (mods/weather)
 
 core.hud.pass(nome, ordine, fn)                  -- sullo schermo, una volta per frame
 core.hud.text(x, y, testo, size?, align?, r, g, b, a)

@@ -896,6 +896,7 @@ struct Session {
     bool  storm = false;
     float storm_rgb[3]{};
     float funnel[16]{};   // core.storm_funnel: four of x, y, z, on
+    float overcast = 0.0f;   // core.overcast: how grey the sky of the hour is, 0..1
 
     // Whether the engine makes this world's ground (core.mapgen_core).
     bool core_mapgen = true;
@@ -4429,6 +4430,12 @@ void host_storm_funnel(void *ud, int slot, double x, double y, double z, int on)
     f[3] = on ? 1.0f : 0.0f;
 }
 
+void host_overcast(void *ud, double amount)
+{
+    if (!std::isfinite(amount)) return;
+    static_cast<Scene *>(ud)->act().overcast = (float)std::clamp(amount, 0.0, 1.0);
+}
+
 void host_mapgen_core(void *ud, int on)
 {
     Session &w = static_cast<Scene *>(ud)->act();
@@ -7358,14 +7365,27 @@ void apply_clocks(Scene &s)
             for (int c = 0; c < 3; ++c)
                 w.sky[c] = 0.15f * w.sky[c] + 0.85f * std::min(1.0f, w.storm_rgb[c] * (0.25f + 1.1f * lum));
         }
-        w.world_render.set_daylight(sunlight_at(w.time_of_day), daylight_at(w.time_of_day));
-        const SkyLight sun = sky_light_at(w.time_of_day);
+        // Weather (core.overcast): the sky towards a grey of its own brightness,
+        // the sun weaker and its shadows fainter; the sky's ambient light much less.
+        const float o = w.overcast;
+        if (o > 0.0f) {
+            const float lum = 0.3f * w.sky[0] + 0.55f * w.sky[1] + 0.15f * w.sky[2];
+            for (int c = 0; c < 3; ++c) w.sky[c] += (lum * 0.62f - w.sky[c]) * 0.95f * o;
+        }
+        w.world_render.set_daylight(sunlight_at(w.time_of_day) * (1.0f - 0.45f * o),
+                                    daylight_at(w.time_of_day) * (1.0f - 0.3f * o));
+        SkyLight sun = sky_light_at(w.time_of_day);
+        for (int c = 0; c < 3; ++c) {
+            sun.direct[c]  *= 1.0f - 0.85f * o;
+            sun.ambient[c] *= 1.0f - 0.25f * o;
+        }
         w.world_render.set_sky_light(&sun);
         // Still while a gate captures: its frames compare a view against a
         // reference taken a few frames apart.
         w.world_render.set_clouds(true, w.sky, g_capture_rt.id ? 0.0f : (float)w.wind,
                                   w.storm ? w.storm_rgb : nullptr);
         w.world_render.set_funnels(w.funnel);
+        w.world_render.set_overcast(w.overcast);
     }
 }
 
@@ -18781,6 +18801,7 @@ script_host make_client_host(Scene &scene)
     host.world_sky       = host_world_sky;
     host.world_storm     = host_world_storm;
     host.storm_funnel    = host_storm_funnel;
+    host.overcast        = host_overcast;
     host.mapgen_core     = host_mapgen_core;
     host.portal_place    = host_portal_place;
     host.register_abm    = host_register_abm;

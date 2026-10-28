@@ -268,6 +268,7 @@ typedef struct script_host {
     // A tinted sky that keeps its sun, under whirling clouds of that colour.
     void (*world_storm)(void *ud, int r, int g, int b);
     void (*storm_funnel)(void *ud, int slot, double x, double y, double z, int on);   // a twister drawn
+    void (*overcast)(void *ud, double amount);   // a grey sky over the hours, 0..1
     void (*mapgen_core)(void *ud, int on);
     // Only these mods' stages make the ground (core.mapgen_only), one per call.
     void (*mapgen_only)(void *ud, const char *mod);

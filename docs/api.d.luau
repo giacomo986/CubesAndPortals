@@ -218,6 +218,8 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     world_storm: (r: number, g: number, b: number) -> (),
     -- Draws a twister in this world's sky: a funnel of the clouds' colour coming down out of them to the ground at x, y, z, wide at the top and narrow at the foot, turning, with dust whirled up round its foot. Up to four at once; false takes that one away. Only drawn, nothing is pulled: what it does is the mod's. Called as it moves. For a world's code on a player's machine.
     storm_funnel: (slot: number, x: number, y: number, z: number, on: boolean?) -> (),
+    -- Weather over this world's sky: the sky and its clouds go grey by this much, the sun's light on the ground weaker and its shadows fainter, the hours kept. 0 takes it away. Only drawn: the light a crop or a creature reads (core.light) is the hour's. Called as it changes, so a mod fades it in. For a world's code on a player's machine.
+    overcast: (amount: number) -> (),
     -- false: the engine makes no ground of its own (core:terrain) and the world is whatever the mods' stages (register_mapgen) write into air. The region the engine had already made before the mods loaded is emptied first. Only while the mod loads; afterwards it is refused and said.
     mapgen_core: (on: boolean) -> (),
     -- Only the stages (register_mapgen) of the mods named this way make this world's ground, one mod per call; the stages of every other mod loaded here are dropped and said. Without a call every stage runs. For a world that loads the sandbox's mods for their items -- the Inferno -- without their lakes, trees and ores. Only while the mod loads.
@@ -486,7 +488,7 @@ Returns 0 when the write is refused -- a field name or value too long, more than
     chat: (player: number, text: string) -> number,
     -- Declares a chat command, /name, for this mod. When a player types it, this mod and only this mod hears core:command with the player, the name and the rest of the line; the mod answers with core.chat. A player below `perm` is told no and the mod hears nothing. Returns 0 for a bad name, one the engine keeps (help, list, the admin commands), one another mod already declared, or a `perm` nobody has heard of. The single-process client ignores `perm`: its one player owns the world.
     command: (name: string, help: string, perm: string?) -> number,
-    -- 1 when this player's role on this server reaches `perm`, else 0. Roles go guest (no identity), player, helper, moderator, admin, owner, and are given with /role (a role given for one room counts in that room). In the single-process client its one player owns the world: always 1.
+    -- 1 when this player's role on this server reaches `perm`, else 0. Roles go guest (no identity), player, helper, moderator, admin, owner, and are given with /role. In the single-process client its one player owns the world: always 1.
     has_perm: (player: number, perm: string) -> number,
     -- This player's role on this server: guest, player, helper, moderator, admin or owner; empty for nobody. "owner" in the single-process client.
     role: (player: number) -> string,
@@ -494,7 +496,7 @@ Returns 0 when the write is refused -- a field name or value too long, more than
     page_register: (name: string, title: string, perm: string?) -> number,
     -- Puts a page on one player's screen, laid out by the engine: wrapped text, buttons, tables, fields, and back/next when it runs past one screen. A link's target says what a click does: `page:NAME` opens another page, `cmd:/line` runs a chat command as that player (their role decides, as if they had typed it), and `act:ID` tells this mod core:page_action. A field's target has `{text}` replaced by what was typed, on Enter. After a cmd: link the page is opened again, so it shows what the command changed. ESC or x closes it. Returns 0 for nobody to show it to or markup too long. In the single-process client the page is shown the same way; in a connected world's code, always 0: its pages are the server's.
     page_show: (player: number, name: string, markup: string) -> number,
-    -- 1 when this player's chat is held (/mute). The engine already holds what a muted player's command, page action, click or mod message makes a mod say to anybody else, then or later: a core.chat, core.notice or page line carrying three of their words in a row (twelve letters or more, or all they said) goes to them alone, while they are muted and for an hour after. This is for an answer that says why, as /msg gives, and for a relay that should not wait for that. 0 in the single-process client.
+    -- 1 when this player's chat is held (/mute). The engine already holds what a muted player's command makes a mod core.chat to anybody else; this is for an answer that says why, as /msg gives. 0 in the single-process client.
     is_muted: (player: number) -> number,
     -- What this mod keeps across a restart: a string under a name, the mod's own -- another mod cannot read or write it. Saved in the world file with the chunks, only the keys that changed; a server with no world file, and the single-process client, keep it until they stop.
 

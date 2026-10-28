@@ -1124,6 +1124,18 @@ Draws a twister in this world's sky: a funnel of the clouds' colour coming down 
 | `z` | number | — |  |
 | `on` | boolean | `true` |  |
 
+## `core.overcast`
+
+```luau
+core.overcast(amount: number) -> ()
+```
+
+Weather over this world's sky: the sky and its clouds go grey by this much, the sun's light on the ground weaker and its shadows fainter, the hours kept. 0 takes it away. Only drawn: the light a crop or a creature reads (core.light) is the hour's. Called as it changes, so a mod fades it in. For a world's code on a player's machine.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `amount` | number | — | 0 a clear sky .. 1 a heavy one; clamped |
+
 ## `core.mapgen_core`
 
 ```luau
@@ -2900,7 +2912,7 @@ Declares a chat command, /name, for this mod. When a player types it, this mod a
 core.has_perm(player: number, perm: string) -> number
 ```
 
-1 when this player's role on this server reaches `perm`, else 0. Roles go guest (no identity), player, helper, moderator, admin, owner, and are given with /role (a role given for one room counts in that room). In the single-process client its one player owns the world: always 1.
+1 when this player's role on this server reaches `perm`, else 0. Roles go guest (no identity), player, helper, moderator, admin, owner, and are given with /role. In the single-process client its one player owns the world: always 1.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2953,7 +2965,7 @@ Puts a page on one player's screen, laid out by the engine: wrapped text, button
 core.is_muted(player: number) -> number
 ```
 
-1 when this player's chat is held (/mute). The engine already holds what a muted player's command, page action, click or mod message makes a mod say to anybody else, then or later: a core.chat, core.notice or page line carrying three of their words in a row (twelve letters or more, or all they said) goes to them alone, while they are muted and for an hour after. This is for an answer that says why, as /msg gives, and for a relay that should not wait for that. 0 in the single-process client.
+1 when this player's chat is held (/mute). The engine already holds what a muted player's command makes a mod core.chat to anybody else; this is for an answer that says why, as /msg gives. 0 in the single-process client.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
