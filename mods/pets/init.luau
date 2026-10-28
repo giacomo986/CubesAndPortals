@@ -45,6 +45,38 @@ core.register_item(ROD, 1, "", 0, 1.0, "")
 core.register_item(FISH, 64, "", 0, 1.0, "")
 -- Cooked in a furnace (mods/furnace), or by the inhabitants (mods/villagers).
 core.register_item("pets:cooked_fish", 64, "", 0, 1.0, "")
+
+-- What bites depends on the water the float is on (core.biome of its column):
+-- perch ("pets:fish") and carp in a lake, trout in a river, cod and eels in
+-- the sea, tuna out on the ocean, and anywhere, now and then, a goldfish.
+-- Every one cooks to a cooked fish; the toad fishers buy them all.
+local KINDS = { "carp", "trout", "cod", "eel", "tuna", "goldfish" }
+for _, k in KINDS do
+    core.register_item("pets:" .. k, 64, "", 0, 1.0, "")
+    core.register_model(`pets:{k}_held`, `{k}_held.gltf`)   -- tools/make_fish_models.py
+end
+local WATERS: { [string]: { { any } } } = {   -- kind, weight
+    lake  = { { "fish", 70 }, { "carp", 30 } },
+    river = { { "trout", 70 }, { "fish", 30 } },
+    sea   = { { "cod", 70 }, { "eel", 30 } },
+    ocean = { { "tuna", 50 }, { "cod", 50 } },
+}
+local WATER_OF = { ["core:lake"] = "lake", ["core:river"] = "river", ["core:gorge"] = "river",
+                   ["core:sea"] = "sea", ["core:beach"] = "sea", ["core:ocean"] = "ocean" }
+local function catch(x: number, z: number): string
+    if math.random() < 0.03 then
+        return "goldfish"
+    end
+    local list = WATERS[WATER_OF[core.biome(x, z)] or "lake"]
+    local r = math.random() * 100
+    for _, k in list do
+        r -= k[2]
+        if r <= 0 then
+            return k[1]
+        end
+    end
+    return list[1][1]
+end
 core.register_model("pets:cooked_fish_held", "fish_held.gltf")
 core.recipe_shaped(ROD, 1,
     "-             -             timber:stick",
@@ -154,8 +186,11 @@ core.event.on("core:used", function(ev)
     if c ~= nil then
         local biting = c.bite_until > 0 and clock < c.bite_until
         reel_in(ev.player)
-        if biting and core.give_item(ev.player, FISH, 1) > 0 then
-            core.notice(ev.player, "A fish!")
+        if biting then
+            local kind = catch(c.x, c.z)
+            if core.give_item(ev.player, "pets:" .. kind, 1) > 0 then
+                core.notice(ev.player, if kind == "fish" then "A perch!" else `A {kind}!`)
+            end
         end
         return
     end

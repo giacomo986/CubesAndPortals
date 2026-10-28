@@ -21,6 +21,8 @@ local FOOD: { [string]: { number } } = {
     ["animals:cooked_pork"] = { 8, 12.8 }, ["animals:steak"] = { 8, 12.8 },
     ["animals:pork"] = { 3, 1.8 }, ["animals:beef"] = { 3, 1.8 },
     ["animals:fried_egg"] = { 4, 4.8 }, ["animals:egg"] = { 2, 1.2 }, ["pets:fish"] = { 2, 0.4 },
+    ["pets:carp"] = { 2, 0.4 }, ["pets:trout"] = { 2, 0.4 }, ["pets:cod"] = { 2, 0.4 }, ["pets:eel"] = { 2, 0.4 },
+    ["pets:tuna"] = { 3, 0.6 },
     ["plants:melon_slice"] = { 2, 1.2 },
 }
 local WALK, SPRINT, JUMP, DIG, HIT, HEAL = 0.01, 0.1, 0.05, 0.005, 0.1, 6

@@ -103,7 +103,9 @@ local SMELTS = {
     { "animals:pork", "animals:cooked_pork", 0.35 },
     { "animals:beef", "animals:steak", 0.35 },
     { "animals:egg", "animals:fried_egg", 0.35 },
-    { "pets:fish", "pets:cooked_fish", 0.35 },
+    { "pets:fish", "pets:cooked_fish", 0.35 }, { "pets:carp", "pets:cooked_fish", 0.35 },
+    { "pets:trout", "pets:cooked_fish", 0.35 }, { "pets:cod", "pets:cooked_fish", 0.35 },
+    { "pets:eel", "pets:cooked_fish", 0.35 }, { "pets:tuna", "pets:cooked_fish", 0.35 },
     -- Any log, to charcoal (mods/woods's, mods/trees's, when they are loaded).
     { "timber:log", "furnace:charcoal", 0.15 }, { "timber:mossy_log", "furnace:charcoal", 0.15 },
     { "trees:trunk", "furnace:charcoal", 0.15 },

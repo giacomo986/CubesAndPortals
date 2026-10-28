@@ -253,6 +253,9 @@ e un letto. Ogni villaggio ha:
 proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resistenti, gli estranei
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
+**Pesca**: cosa abbocca dipende dall'acqua -- persici e carpe nei laghi, trote nei fiumi, merluzzi e
+anguille in mare, tonni nell'oceano, un raro pesce rosso ovunque -- e i pescatori-rana li comprano.
+
 **Alchimia** (`mods/alchemy`). Un alambicco distilla una fiasca d'acqua e un ingrediente in una
 pozione: vista notturna, rapidità, pelle di pietra, guarigione, fretta, respirare sott'acqua -- tre minuti
 ciascuna. Sott'acqua l'aria dura quindici secondi (`mods/breath`).

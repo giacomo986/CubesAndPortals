@@ -250,6 +250,9 @@ job, meals and a bed. Every village has:
 owners stand in it. Inside, owners are faster and tougher, strangers weaker; what strangers take
 there is marked stolen.
 
+**Fishing**: what bites depends on the water -- perch and carp in lakes, trout in rivers, cod and
+eels in the sea, tuna on the ocean, a rare goldfish anywhere -- and the toad fishers buy them.
+
 **Alchemy** (`mods/alchemy`). A still brews a flask of water and an ingredient into a potion: night
 sight, swiftness, stoneskin, mending, haste, water breathing -- three minutes each. Under water
 the air lasts fifteen seconds (`mods/breath`).

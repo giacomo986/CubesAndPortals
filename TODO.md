@@ -571,7 +571,18 @@ the villagers and start with questions (memory: villagers-need-design-first).
     the HUD. Open: effects are in memory (gone on a restart or a leave); a
     still brewing when the server stops finishes when next right clicked; the
     0.55 floor was not looked at again after lowering it from 0.8.
-11. Fishing widened: fish by biome, bought by the frog fishers.
+11. Fishing widened -- built 2026-10-28 in `mods/pets`: what bites is by
+    the core.biome of the float's column -- lake 70 perch / 30 carp, river
+    and gorge 70 trout / 30 perch, sea and beach 70 cod / 30 eel, ocean 50
+    tuna / 50 cod -- and a goldfish 3% anywhere. Each its own icon and held
+    model (tools/make_fish_models.py, the fish recoloured); all cook to a
+    cooked fish (furnace, villagers' cooks), all are food (tuna 3). The toad
+    fisher buys them: carp 6, trout and cod 4, eel 3, tuna 2 for an emerald,
+    a goldfish 4 emeralds (the season's and stock's price rules apply).
+    Checked headless: 1000 catches at a column of each water came out at the
+    weights (sea 663 cod, 306 eel, 31 goldfish...). Open: not fished with a
+    client after the change (the cast and bite are as before); the toad
+    villagers themselves still bring up perch only.
 12. Herding widened: dyed wool, milk, stables, a robot order to tend animals.
 13. Errands from the mayor and the merchant, paid from the treasury.
 14. Blueprints: copy a build, have the village builder or a robot build it.

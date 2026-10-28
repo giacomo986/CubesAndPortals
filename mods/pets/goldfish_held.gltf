@@ -1,0 +1,241 @@
+{
+ "asset": {
+  "generator": "Khronos glTF Blender I/O v5.2.39",
+  "version": "2.0"
+ },
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "Scene",
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "mesh": 0,
+   "name": "pets_fish_held"
+  }
+ ],
+ "materials": [
+  {
+   "name": "Fish",
+   "pbrMetallicRoughness": {
+    "baseColorFactor": [
+     0.98,
+     0.62,
+     0.12,
+     1
+    ],
+    "metallicFactor": 0,
+    "roughnessFactor": 0.800000011920929
+   }
+  },
+  {
+   "name": "Fin",
+   "pbrMetallicRoughness": {
+    "baseColorFactor": [
+     1.0,
+     0.82,
+     0.3,
+     1
+    ],
+    "metallicFactor": 0,
+    "roughnessFactor": 0.800000011920929
+   }
+  },
+  {
+   "name": "Eye",
+   "pbrMetallicRoughness": {
+    "baseColorFactor": [
+     0.07999999821186066,
+     0.07999999821186066,
+     0.10000000149011612,
+     1
+    ],
+    "metallicFactor": 0,
+    "roughnessFactor": 0.800000011920929
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "pets_fish_held",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1
+     },
+     "indices": 2,
+     "material": 0
+    },
+    {
+     "attributes": {
+      "POSITION": 3,
+      "NORMAL": 4
+     },
+     "indices": 5,
+     "material": 1
+    },
+    {
+     "attributes": {
+      "POSITION": 6,
+      "NORMAL": 7
+     },
+     "indices": 8,
+     "material": 2
+    }
+   ]
+  }
+ ],
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 360,
+   "max": [
+    0.04399999976158142,
+    0.0279999990016222,
+    0.04800000041723251
+   ],
+   "min": [
+    -0.04399999976158142,
+    -0.0279999990016222,
+    -0.12799999117851257
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 360,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "componentType": 5123,
+   "count": 504,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5126,
+   "count": 36,
+   "max": [
+    0.07000000029802322,
+    0.003000000026077032,
+    0.09000000357627869
+   ],
+   "min": [
+    -0.03999999910593033,
+    -0.003000000026077032,
+    -0.07500000298023224
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 4,
+   "componentType": 5126,
+   "count": 36,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 5,
+   "componentType": 5123,
+   "count": 48,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 6,
+   "componentType": 5126,
+   "count": 84,
+   "max": [
+    0.018928203731775284,
+    0.03200000151991844,
+    -0.10199999809265137
+   ],
+   "min": [
+    0.005071794614195824,
+    0.01599999889731407,
+    -0.11800000071525574
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 7,
+   "componentType": 5126,
+   "count": 84,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 8,
+   "componentType": 5123,
+   "count": 108,
+   "type": "SCALAR"
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 4320,
+   "byteOffset": 0,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 4320,
+   "byteOffset": 4320,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 1008,
+   "byteOffset": 8640,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 432,
+   "byteOffset": 9648,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 432,
+   "byteOffset": 10080,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 96,
+   "byteOffset": 10512,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 1008,
+   "byteOffset": 10608,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 1008,
+   "byteOffset": 11616,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 216,
+   "byteOffset": 12624,
+   "target": 34963
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 12840,
+   "uri": "fish_held.bin"
+  }
+ ]
+}

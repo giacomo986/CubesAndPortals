@@ -398,7 +398,9 @@ end
 
 local FOODS = { "pets:cooked_fish", "farm:bread", "plants:melon_slice", "animals:steak",
                 "animals:cooked_pork", "animals:fried_egg" }
-local COOKS = { ["pets:fish"] = "pets:cooked_fish", ["animals:beef"] = "animals:steak",
+local COOKS = { ["pets:fish"] = "pets:cooked_fish", ["pets:carp"] = "pets:cooked_fish",
+                ["pets:trout"] = "pets:cooked_fish", ["pets:cod"] = "pets:cooked_fish",
+                ["pets:eel"] = "pets:cooked_fish", ["pets:tuna"] = "pets:cooked_fish", ["animals:beef"] = "animals:steak",
                 ["animals:pork"] = "animals:cooked_pork", ["animals:egg"] = "animals:fried_egg" }
 local HUNGRY_EVERY = 400   -- seconds: a third of a day
 
@@ -2611,7 +2613,11 @@ local GOODS = {   -- item, how many a bundle, base price in emeralds
 local TRADES = {   -- job -> what it sells, what it buys (item, a bundle, base price)
     farmer = { { { "farm:wheat", 12, 1 }, { "farm:bread", 4, 1 } }, { { "animals:seeds", 16, 1 }, { "farm:hoe", 1, 2 },
                                                                        { "furnace:iron_hoe", 1, 5 }, { "furnace:diamond_hoe", 1, 15 } } },
-    fisher = { { { "pets:cooked_fish", 4, 1 }, { "pets:fish", 6, 1 } }, { { "farm:bread", 4, 1 } } },
+    -- And buys every fish a player brings: the far waters' dearer, a goldfish
+    -- dearest of all.
+    fisher = { { { "pets:cooked_fish", 4, 1 }, { "pets:fish", 6, 1 } },
+               { { "farm:bread", 4, 1 }, { "pets:carp", 6, 1 }, { "pets:trout", 4, 1 },
+                 { "pets:cod", 4, 1 }, { "pets:eel", 3, 1 }, { "pets:tuna", 2, 1 }, { "pets:goldfish", 1, 4 } } },
     forager = { { { "plants:melon_slice", 8, 1 }, { "plants:brown_mushroom", 4, 1 }, { "plants:red_mushroom", 4, 1 },
                   { "animals:seeds", 16, 1 } }, { { "farm:bread", 4, 1 } } },
     woodcutter = { { { "trees:trunk", 8, 1 }, { "timber:planks", 32, 1 } }, { { "trees:sapling", 4, 1 }, { "tools:axe", 1, 3 },
