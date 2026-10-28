@@ -147,11 +147,15 @@ inline constexpr float kSwimSink    = 2.5f;
 inline constexpr float kSwimRise    = 3.5f;
 
 // A body in a boat (MovementRules::boat), on a liquid: held with its feet this
-// far under the top of it, pushed by the keys at its sprint and drifting at
-// this grip -- a hull slides on. Up to its sprint, so the validator's budgets
-// hold it as they hold a run.
+// far under the top of it. W and S row it along its heading -- ahead up to its
+// sprint, astern up to half its walk -- gathering and losing way at the grip,
+// A and D turn it (and the view with it), and the keel takes a sideways drift
+// off at kBoatKeel. Up to its sprint, so the validator's budgets hold it as
+// they hold a run.
 inline constexpr float kBoatDraft = 0.35f;
 inline constexpr float kBoatGrip  = 1.2f;
+inline constexpr float kBoatKeel  = 4.0f;    // 1/s
+inline constexpr float kBoatTurn  = 1.8f;    // rad/s at full rudder
 
 // How a body moves in ONE world: what its mods declared, or the numbers above
 // when they declared nothing (TODO.md OPEN-44, DESIGN.md M13).

@@ -1628,8 +1628,8 @@ end)
 ```
 
 Una barca è `core.body_boat(player, true)`: su un liquido il corpo galleggia coi
-piedi 0.35 sotto il pelo e i tasti lo spingono alla sua `sprint`, scivolando; fuori
-dall'acqua cammina. Lo scafo e la posa sono del mod (`core.player_wear`,
+piedi 0.35 sotto il pelo, W/S remano lungo la prua (avanti fino alla `sprint`), A/D
+sterzano e la chiglia toglie la deriva laterale; fuori dall'acqua cammina. Lo scafo e la posa sono del mod (`core.player_wear`,
 `core.player_clip(p, "drive_idle")`): `mods/boats`.
 
 `core.drive` e `core.body_width` dicono come guida **il mondo**, e vanno chiamate

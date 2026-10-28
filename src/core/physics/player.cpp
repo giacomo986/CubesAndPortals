@@ -325,10 +325,19 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         if (!reg.is_liquid(world.get_block(x, y, z))) --y;   // feet just over it
         if (reg.is_liquid(world.get_block(x, y, z))) {
             for (int up = 0; up < 16 && reg.is_liquid(world.get_block(x, y + 1, z)); ++up) ++y;
-            const Vec3 h = approach(Vec3{player.velocity.x, 0.0f, player.velocity.z},
-                                    wish * rules.sprint, kBoatGrip, dt);
-            player.velocity.x = h.x;
-            player.velocity.z = h.z;
+            // Steered, not strafed: the rudder turns the heading, the oars
+            // push along it, and the keel stops it going sideways.
+            player.yaw += input.move_right * kBoatTurn * dt;
+            const Vec3  ahead{std::sin(player.yaw), 0.0f, -std::cos(player.yaw)};
+            const Vec3  side{std::cos(player.yaw), 0.0f, std::sin(player.yaw)};
+            const float row  = input.move_forward >= 0.0f ? input.move_forward * rules.sprint
+                                                          : input.move_forward * rules.walk * 0.5f;
+            float along = player.velocity.x * ahead.x + player.velocity.z * ahead.z;
+            float drift = player.velocity.x * side.x + player.velocity.z * side.z;
+            along += (row - along) * (1.0f - std::exp(-kBoatGrip * dt));
+            drift *= std::exp(-kBoatKeel * dt);
+            player.velocity.x = ahead.x * along + side.x * drift;
+            player.velocity.z = ahead.z * along + side.z * drift;
             player.velocity.y = std::clamp(((float)(y + 1) - kBoatDraft - player.pos.y) * 6.0f, -3.0f, 3.0f);
             const MoveResult r = move_body(world, reg, player.pos, player.velocity * dt,
                                            player.cb_shift, kStepHeight, box_half(player, rules), box_height(player));

@@ -414,9 +414,14 @@ the villagers and start with questions (memory: villagers-need-design-first).
    out, or run aground for half a second: back in the bag. The body floats 0.35
    under the top and goes at its sprint, twice a swim, drifting (grip 1.2). The
    hull is worn on the root bone, the body sits in drive_idle (a mod clip now
-   wins over the swim clip). Seen in Xephyr (third person, moving); landing
-   checked in the client. Open: the hull turns with the view and strafes, it
-   is no Jolt body; nothing hits mobs or other boats; no paddle sound.
+   wins over the swim clip). Steered: A/D turn the heading (and the view) at
+   1.8 rad/s, W/S row along it, the keel takes off sideways drift (4/s). Under
+   way it shoves creatures in the cell off the bow aside (core.push_mobs), two
+   hulls within 1.5 bounce apart at 4 m/s (core.player_launch), and the oars
+   sound every 0.9 s (tools/make_boat_sounds.py). Seen in Xephyr (steering,
+   third person); a cow 3.5 ahead pushed a node aside; two clients put 0.9
+   apart drifted 6 apart. Open: a creature sunk under the hull is passed over;
+   a boat is no Jolt body, so it does not tip or rock.
 5. Minecarts on rails worked by cinnabar, with switches and stations.
 6. Travel portals between villages or territories, with a cost or a rule.
 7. A map that fills as you go, and a compass home.

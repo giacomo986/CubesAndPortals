@@ -10,7 +10,8 @@ un'alpha: [docs/BUILDING.md](docs/BUILDING.md#versioni).
 - Le stagioni: foglie che cambiano colore, campi fermi d'inverno senza lampade, neve
   ovunque d'inverno. I mercanti raddoppiano il cibo d'inverno e la legna d'autunno.
 - Le barche: cinque assi, tasto destro sull'acqua per salire, su una riva per scendere. Vanno
-  al doppio del nuoto.
+  al doppio del nuoto, sterzano con A e D, scansano le creature, rimbalzano fra loro e si
+  sentono i remi.
 
 ## 0.9.0-alpha.4 — 2026-10-27
 

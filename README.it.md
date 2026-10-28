@@ -253,8 +253,8 @@ e un letto. Ogni villaggio ha:
 proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resistenti, gli estranei
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
-**Barche** (`mods/boats`). Cinque assi fanno una barca: tasto destro sull'acqua per sedersi e
-andare al doppio del nuoto, tasto destro su una riva (o arenarsi) per scendere con la barca nella borsa.
+**Barche** (`mods/boats`). Cinque assi fanno una barca: tasto destro sull'acqua per sedersi,
+remare al doppio del nuoto e sterzare con A e D (scansa le creature e rimbalza sulle altre barche), tasto destro su una riva (o arenarsi) per scendere con la barca nella borsa.
 
 **Meteo** (`mods/weather`). Cielo sereno, poi pioggia o temporale per qualche minuto: il cielo
 e le nuvole si fanno grigi, la pioggia cade attorno a te e si ferma sui tetti, i campi a cielo
