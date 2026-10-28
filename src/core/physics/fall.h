@@ -32,7 +32,7 @@ inline constexpr float kSafeFall = 3.0f;
 // without a menu this engine does not have. Sixteen nodes under the bottom of
 // the world: far enough that it is not reached by mistake, near enough that the
 // fall is over in a second.
-inline constexpr float kBelowWorld = -16.0f;
+inline constexpr float kBelowWorld = -80.0f;   // under kWorldBottom (core/worldgen/worldgen.h), -64, where mods/deep builds
 
 // One point per node past the free three, rounded down.
 //

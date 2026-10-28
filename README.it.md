@@ -253,6 +253,10 @@ e un letto. Ogni villaggio ha:
 proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resistenti, gli estranei
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
+**Cavità** (`mods/deep`). Sotto la roccia madre di alcune regioni c'è un paese di caverne sigillato,
+a cui si scende da una voragine con i pioli: funghi e muschio luminosi, cristalli, laghi di lava, e un
+altare il cui guardiano si sveglia quando ci si avvicina.
+
 **Reliquie** (`mods/relics`). Rari templi nel deserto, relitti e rovine sommerse, ognuno con un
 piccolo enigma davanti al forziere: glifi da girare come mostra la parete, i passi del diario di bordo
 da contare e scavare, frammenti da rimettere sui piedistalli.

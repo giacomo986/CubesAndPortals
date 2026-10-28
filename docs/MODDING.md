@@ -1427,6 +1427,10 @@ core.register_mapgen("miniera:vene", function(ctx)
 end)
 ```
 
+**Sotto la roccia madre (y 0) c'è spazio fino a y -64** (`kWorldBottom`): il motore non
+ci genera niente, ma uno stage può costruirci, e quei blocchi si illuminano, si salvano e si
+inviano come gli altri; un corpo muore solo sotto y -80. `mods/deep` ci mette le sue cavità.
+
 **Il mondo non ha bordo, e uno stage gira una volta per colonna** di chunk
 (32×32 blocchi, tutta l'altezza), quando qualcuno ci si avvicina per la prima
 volta. Quello che scrive fuori dalla sua colonna viene **scartato** senza

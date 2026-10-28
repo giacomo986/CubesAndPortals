@@ -515,7 +515,28 @@ the villagers and start with questions (memory: villagers-need-design-first).
    in Xephyr inside the temple hall, the wreck from above, the ruin's
    pillars and pedestals. Open: the nearest relic is some 3 km from the
    spawn on seed 1; the map does not show relics.
-9. A deep layer under `depths`: glowing fungi, lava, crystals, a guardian.
+9. The Hollows -- built 2026-10-28 in `mods/deep`, UNDER the bedrock: the
+   engine now lets a world hold blocks down to y -64 (kWorldBottom; a
+   column's light box goes down there only where it has chunks below 0, so a
+   world without them pays nothing) and a body dies under -80, not -16 (the
+   old line killed anybody below -16). Not under every column: one square of
+   512 in two has a hollow, 80 round its middle, y -61..-1, walled and floored
+   with bedrock -- a deep layer everywhere would double every column's chunks
+   on disk and on the wire. A sinkhole at its middle: a five-wide shaft from
+   the surface through the bedrock, rungs down its north wall, a pool at -28
+   on a floor three thick. Caverns from value noise on two lattices (Luau, no
+   noise API), lava under -51, glowcaps (light 14) and glow moss (8) on
+   floors, crystals (12) on ceilings giving shards. A tunnel to an arena 40
+   off with an altar: a player within 18 wakes the guardian (the zombie's
+   rig 1.5 times as big in slate and crystal, tools/make_guardian_model.py,
+   its sounds pitched down; 160 health, 5 a blow); beaten, it drops its heart
+   and the altar stays quiet (storage). Checked on a server with a client,
+   seed 1, hollow at 338 -92: 126 glowcaps and 86 crystals by its middle,
+   stood in the lit chamber at -28 (health full), the guardian woke and
+   killed an unarmed player in four blows, a blast beat it and the heart was
+   dropped. Open: a hollow's columns take ~50 ms each in Luau, and while they
+   stream, a hollow seen from afar shows its caves through surface chunks not
+   sent yet for a few seconds; no mob but the guardian lives down there.
 10. Alchemy: a still, potions (night sight, speed, water breathing).
 11. Fishing widened: fish by biome, bought by the frog fishers.
 12. Herding widened: dyed wool, milk, stables, a robot order to tend animals.

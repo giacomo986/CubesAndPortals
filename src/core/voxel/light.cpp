@@ -1,4 +1,5 @@
 #include "core/voxel/light.h"
+#include "core/worldgen/worldgen.h"
 
 #include <algorithm>
 #include <climits>
@@ -39,7 +40,13 @@ void compute_column_lighting(World &world, const NodeRegistry &reg, int cx, int 
     const int x0 = cx * kChunkSize, z0 = cz * kChunkSize;
     const int x1 = x0 + kChunkSize - 1, z1 = z0 + kChunkSize - 1;
     const int r  = kMaxLight;
-    light_box(world, reg, x0 - r, 0, z0 - r, x1 + r, height - 1, z1 + r, x0, z0, x1, z1);
+    // Down under y 0 only where this column has blocks there (kWorldBottom): a
+    // box twice as tall for every column of a world with nothing below its
+    // bedrock is the whole cost of lighting, twice.
+    int bottom = 0;
+    for (int cy = kWorldBottom / kChunkSize; cy < 0 && bottom == 0; ++cy)
+        if (world.find_chunk(ChunkPos{cx, cy, cz}) != nullptr) bottom = cy * kChunkSize;
+    light_box(world, reg, x0 - r, bottom, z0 - r, x1 + r, height - 1, z1 + r, x0, z0, x1, z1);
 }
 
 namespace {

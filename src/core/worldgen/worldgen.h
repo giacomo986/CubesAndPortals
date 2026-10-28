@@ -32,6 +32,11 @@ namespace cnp {
 // not optional.
 inline constexpr int kWorldHeight = 64;
 
+// And how far under y 0 a world may hold blocks: the engine's terrain stops at
+// its bedrock on 0, and a mod's stage may build below it (mods/deep). Lit,
+// kept and sent like any other cell.
+inline constexpr int kWorldBottom = -64;
+
 // Height of the flat plaza the portals stand on, and the level players spawn
 // at. Shared for the same reason: the client places its scene on it and the
 // server generates it.

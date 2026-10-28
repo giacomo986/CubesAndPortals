@@ -250,6 +250,10 @@ job, meals and a bed. Every village has:
 owners stand in it. Inside, owners are faster and tougher, strangers weaker; what strangers take
 there is marked stolen.
 
+**Hollows** (`mods/deep`). Under the bedrock of some regions lies a sealed cavern country, reached
+by a sinkhole with rungs down its side: glowing fungi and moss, crystals, lava lakes, and an altar
+whose guardian wakes when you come near.
+
 **Relics** (`mods/relics`). Rare desert temples, wrecks and sunken ruins, each a small puzzle in
 front of its chest: glyphs to set as the wall shows, a logbook's paces to count and dig, shards to
 put back on their pedestals.
