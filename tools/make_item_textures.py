@@ -3,7 +3,7 @@
 (mods/timber), the two buckets (mods/lakes), the palette brush (mods/palette),
 the iron pick (mods/furnace) and the screwdriver (mods/screwdriver); the arm
 pack (mods/armpack); the boat (mods/boats), the cart (mods/carts), and the
-compass and the map (mods/maps).
+compass and the map (mods/maps); the shard (mods/relics).
 
 Drawn the way tools_pick.png is: a 16x16 picture doubled to 32 px, flat
 colours lit on the top-left, and a dark outline round every shape. The iron
@@ -137,6 +137,28 @@ SHAPES = {
         ],
         {"p": (180, 150, 100), "P": (232, 216, 170), "g": (110, 160, 80), "b": (80, 130, 200),
          "r": (200, 40, 30)},
+    ),
+    # A shard of a relic: a sliver of sea-green glass with a light in it.
+    "relics_shard": (
+        [
+            "................",
+            "................",
+            ".........c......",
+            "........cC......",
+            ".......cCC......",
+            "......cCwC......",
+            ".....cCwCC......",
+            ".....cCCCd......",
+            "....cCCCCd......",
+            "....cCCCd.......",
+            "...cCCCdd.......",
+            "...cCCdd........",
+            "....cdd.........",
+            "................",
+            "................",
+            "................",
+        ],
+        {"c": (90, 190, 170), "C": (120, 230, 205), "w": (230, 255, 250), "d": (50, 130, 120)},
     ),
     "timber_stick": (
         [

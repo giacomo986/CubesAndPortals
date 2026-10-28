@@ -250,6 +250,10 @@ job, meals and a bed. Every village has:
 owners stand in it. Inside, owners are faster and tougher, strangers weaker; what strangers take
 there is marked stolen.
 
+**Relics** (`mods/relics`). Rare desert temples, wrecks and sunken ruins, each a small puzzle in
+front of its chest: glyphs to set as the wall shows, a logbook's paces to count and dig, shards to
+put back on their pedestals.
+
 **Map and compass** (`mods/maps`). A compass held points home, to your bed or the spawn; a map
 held shows the land round you where you have been, kept by the server across sessions.
 

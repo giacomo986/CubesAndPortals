@@ -253,6 +253,10 @@ e un letto. Ogni villaggio ha:
 proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resistenti, gli estranei
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
+**Reliquie** (`mods/relics`). Rari templi nel deserto, relitti e rovine sommerse, ognuno con un
+piccolo enigma davanti al forziere: glifi da girare come mostra la parete, i passi del diario di bordo
+da contare e scavare, frammenti da rimettere sui piedistalli.
+
 **Mappa e bussola** (`mods/maps`). La bussola in mano punta a casa, al letto o allo spawn; la mappa
 in mano mostra il terreno attorno dove si è già stati, tenuto dal server fra una sessione e l'altra.
 

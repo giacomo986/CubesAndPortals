@@ -498,7 +498,23 @@ the villagers and start with questions (memory: villagers-need-design-first).
    water, and the same map after a restart. Open: the land as generated, not
    as built (no trees, houses or roads); the compass alone and the bed's home
    not looked at in a screenshot.
-8. Rare structures: desert temples, wrecks, sunken ruins, each a small puzzle.
+8. Rare structures -- built 2026-10-28 in `mods/relics`: one square of 384
+   in two may hold one, chosen by the ground at a point of it (seed 1: 17
+   temples, 36 wrecks, 19 ruins in 441 squares). A desert temple (stepped
+   sandstone, a hall lit by two torches): turn four floor glyphs to the
+   colours of the four wall tiles and the seal over the vault gives way. A
+   wreck on a shallow sea floor: its logbook gives the paces from the mast to
+   a chest buried two deep. A sunken ruin: break three urns for shards, set
+   one on each pedestal and the chamber's seal breaks. Seals, tiles, glyphs
+   and pedestals dig with nothing (dig_level 99). Loot: emeralds, gold, iron,
+   lapis, now and then diamonds. The seed is kept from the first stage (no
+   API gives it). Synthesised grind (tools/make_relic_sounds.py), a shard icon.
+   Checked on a server with a client, seed 1: the temple at 60 -2865 (seal
+   opened, chest with 8 emeralds), the wreck at 999 -3314 (logbook read,
+   chest where it says), the ruin at 1238 -3186 (3 urns, seal broken); seen
+   in Xephyr inside the temple hall, the wreck from above, the ruin's
+   pillars and pedestals. Open: the nearest relic is some 3 km from the
+   spawn on seed 1; the map does not show relics.
 9. A deep layer under `depths`: glowing fungi, lava, crystals, a guardian.
 10. Alchemy: a still, potions (night sight, speed, water breathing).
 11. Fishing widened: fish by biome, bought by the frog fishers.
