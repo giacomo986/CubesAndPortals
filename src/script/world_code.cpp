@@ -178,6 +178,7 @@ script_host world_code_host(script_host full)
     h.item_dye        = nullptr;
     h.drive           = no_drive;
     h.body_drive      = no_body_drive;
+    h.body_boat       = nullptr;
     h.body_width      = nullptr;
     h.eye_height      = nullptr;
     h.parkour         = nullptr;

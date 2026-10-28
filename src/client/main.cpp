@@ -2596,6 +2596,14 @@ int host_body_drive(void *ud, int player, double accel, double brake, double tur
     return 1;
 }
 
+// core.body_boat for the one body here; the server's is in src/server/main.cpp.
+int host_body_boat(void *ud, int player, int on)
+{
+    if ((ui::PlayerId)player != ui::kLocalPlayer) return 0;
+    static_cast<Scene *>(ud)->act().movement.boat = on != 0;
+    return 1;
+}
+
 int host_ecs_component(void *ud, const char *name, const char *const *fields, int count,
                        char *err, size_t err_size)
 {
@@ -8260,7 +8268,7 @@ void animate_body(Session &w, uint64_t key, Body &b, Vec3 feet, uint16_t rider,
         name = wall > 0 ? "wall_run_right" : "wall_run_left";
     // Somebody else low and fast is sliding.
     else if (!own && crouching && m.speed > 4.5f && w.movement.parkour) name = "power_slide";
-    else if (wet)                            name = m.speed > 0.5f ? "swim" : "swim_idle";
+    else if (wet && !working)                name = m.speed > 0.5f ? "swim" : "swim_idle";
     else if (e->model.clip("slide") >= 0 && slides(w, feet)) name = "slide";
     else if (own ? own->flying : flying)     name = "fly_hover";   // fly blended in by fly_lean
     else if (own && own->working)            name = own->working;
@@ -18916,6 +18924,7 @@ script_host make_client_host(Scene &scene)
     host.movement      = host_movement;
     host.body_movement = host_body_movement;
     host.body_drive    = host_body_drive;
+    host.body_boat     = host_body_boat;
     host.notice        = host_notice;
     host.chat          = host_chat;
     host.command       = host_command;

@@ -1921,7 +1921,8 @@ std::vector<uint8_t> BodyMovement::encode() const
     w.f32(rules.length);
     w.f32(rules.rise);
     w.f32(rules.eye);
-    w.u8((rules.parkour ? 1 : 0) | (rules.ledges ? 0 : 2));
+    // Bit 2 a boat, which a 109 client ignores: it swims there instead.
+    w.u8((rules.parkour ? 1 : 0) | (rules.ledges ? 0 : 2) | (rules.boat ? 4 : 0));
     w.u8(gen);
     w.f32(dig);
     return w.data();
@@ -1949,6 +1950,7 @@ bool BodyMovement::decode(ByteReader &r, BodyMovement &out)
     const uint8_t moves = r.u8();
     out.rules.parkour = (moves & 1) != 0;
     out.rules.ledges  = (moves & 2) == 0;
+    out.rules.boat    = (moves & 4) != 0;
     out.gen           = r.u8();
     out.dig           = r.f32();
 

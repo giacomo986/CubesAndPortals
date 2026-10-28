@@ -867,6 +867,19 @@ A world where everybody drives says core.drive instead, once, and one where you 
 | `width` | number | `0.6` | Nodes across, as core.body_width. |
 | `length` | number | `0` | Nodes nose to tail while it drives; 0 is as long as it is wide. |
 
+## `core.body_boat`
+
+```luau
+core.body_boat(player: number, on: boolean?) -> number
+```
+
+Puts ONE player in a boat, or out of it, at any time like core.body_movement. On a liquid the body then floats with its feet a third of a node under the top and the keys push it at its sprint, drifting as a hull does; jump does nothing. Off a liquid it walks as ever: getting out, and what the boat looks like (core.player_wear, core.player_clip), are the mod's. Returns 1, or 0 for a player who is not in this world.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `player` | number | — | The id every event carries in its `player` field. |
+| `on` | boolean | `true` | false puts them back to swimming. |
+
 ## `core.register_item`
 
 ```luau

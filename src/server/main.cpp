@@ -2317,6 +2317,19 @@ int host_body_drive(void *ud, int player, double accel, double brake, double tur
     return 1;
 }
 
+// One body in a boat, or out of it (core.body_boat). The client's copy is
+// host_body_boat in src/client/main.cpp.
+int host_body_boat(void *ud, int player, int on)
+{
+    ServerState        *s    = static_cast<ServerState *>(ud);
+    const net::Session *body =
+        (player > 0 && s->sessions != nullptr) ? s->sessions->find((net::PeerId)player) : nullptr;
+    if (body == nullptr) return 0;
+    MovementRules rules = body->movement;
+    rules.boat          = on != 0;
+    return s->sessions->set_body_movement((net::PeerId)player, rules, s->now) ? 1 : 0;
+}
+
 int host_net_send(void *ud, int player, const char *text)
 {
     ServerState      *s    = static_cast<ServerState *>(ud);
@@ -5741,6 +5754,7 @@ int serve_room(int argc, char **argv)
         host.body_movement = host_body_movement;
         host.drive         = host_drive;
         host.body_drive    = host_body_drive;
+        host.body_boat     = host_body_boat;
         host.side          = host_side;
         host.player_name   = host_player_name;
         host.player_key    = host_player_key;

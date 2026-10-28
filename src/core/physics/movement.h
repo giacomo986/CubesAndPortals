@@ -146,6 +146,13 @@ inline constexpr float kSwimGravity = 0.2f;
 inline constexpr float kSwimSink    = 2.5f;
 inline constexpr float kSwimRise    = 3.5f;
 
+// A body in a boat (MovementRules::boat), on a liquid: held with its feet this
+// far under the top of it, pushed by the keys at its sprint and drifting at
+// this grip -- a hull slides on. Up to its sprint, so the validator's budgets
+// hold it as they hold a run.
+inline constexpr float kBoatDraft = 0.35f;
+inline constexpr float kBoatGrip  = 1.2f;
+
 // How a body moves in ONE world: what its mods declared, or the numbers above
 // when they declared nothing (TODO.md OPEN-44, DESIGN.md M13).
 //
@@ -214,6 +221,11 @@ struct MovementRules {
     // stuck halfway up one, says no.
     bool ledges = true;
 
+    // In a boat (core.body_boat): on a liquid the body floats on top of it
+    // and goes at its sprint instead of swimming (core/physics/player.cpp).
+    // One body's, never a world's: only BodyMovement carries it.
+    bool boat = false;
+
     bool drives() const { return accel > 0.0f; }
 
     // Whether a body here may leave the ground for longer than a jump. Nobody
@@ -235,6 +247,7 @@ inline void keep_body(MovementRules &to, const MovementRules &from)
     to.eye    = from.eye;
     to.parkour = from.parkour;
     to.ledges  = from.ledges;
+    to.boat    = from.boat;
 }
 
 // What a body in a parkour world may do beyond walking (MovementRules::parkour),

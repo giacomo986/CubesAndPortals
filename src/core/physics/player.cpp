@@ -318,6 +318,26 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
     // horizontal velocity is at half the pace, the body sinks slowly and jump held
     // lifts it. The numbers are core/physics/movement.h's, which the server's
     // validator is under too.
+    // In a boat on the liquid's top: held there, a hull drifting at the sprint.
+    if (rules.boat && box_in_liquid(world, reg, body_box(player.pos, rules.width * 0.5f))) {
+        const int x = (int)std::floor(player.pos.x), z = (int)std::floor(player.pos.z);
+        int y = (int)std::floor(player.pos.y);
+        if (!reg.is_liquid(world.get_block(x, y, z))) --y;   // feet just over it
+        if (reg.is_liquid(world.get_block(x, y, z))) {
+            for (int up = 0; up < 16 && reg.is_liquid(world.get_block(x, y + 1, z)); ++up) ++y;
+            const Vec3 h = approach(Vec3{player.velocity.x, 0.0f, player.velocity.z},
+                                    wish * rules.sprint, kBoatGrip, dt);
+            player.velocity.x = h.x;
+            player.velocity.z = h.z;
+            player.velocity.y = std::clamp(((float)(y + 1) - kBoatDraft - player.pos.y) * 6.0f, -3.0f, 3.0f);
+            const MoveResult r = move_body(world, reg, player.pos, player.velocity * dt,
+                                           player.cb_shift, kStepHeight, box_half(player, rules), box_height(player));
+            player.pos       = r.pos;
+            player.on_ground = r.on_ground;
+            return;
+        }
+    }
+
     if (box_in_liquid(world, reg, body_box(player.pos, rules.width * 0.5f))) {
         const Vec3 h = approach(Vec3{player.velocity.x, 0.0f, player.velocity.z},
                                 wish * (speed * kSwimPace), kSwimGrip, dt);

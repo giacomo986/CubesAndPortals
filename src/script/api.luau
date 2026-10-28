@@ -1022,6 +1022,20 @@ local api: { Fn } = {
            .. "core.body_width refuse, and a player who is not in this world.",
     },
     {
+        name = "body_boat",
+        host = "body_boat",
+        ret  = "int",
+        args = {
+            { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
+            { name = "on", type = "bool", default = true, doc = "false puts them back to swimming." },
+        },
+        doc = "Puts ONE player in a boat, or out of it, at any time like core.body_movement. On a "
+           .. "liquid the body then floats with its feet a third of a node under the top and the "
+           .. "keys push it at its sprint, drifting as a hull does; jump does nothing. Off a "
+           .. "liquid it walks as ever: getting out, and what the boat looks like (core.player_wear, "
+           .. "core.player_clip), are the mod's. Returns 1, or 0 for a player who is not in this world.",
+    },
+    {
         name = "register_item",
         host = "register_item",
         ret  = "int",

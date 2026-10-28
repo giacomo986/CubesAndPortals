@@ -408,7 +408,15 @@ the villagers and start with questions (memory: villagers-need-design-first).
    leaves); seasons and winter snow checked headless. The traders' prices
    follow too: food doubles in winter, wood in autumn (checked headless).
 3. Village events: caravans on the roads, night sieges, a harvest feast.
-4. Boats on the sea, the rivers and the lakes.
+4. Boats -- built 2026-10-28 in `mods/boats` (`core.body_boat`: bit 2 of
+   BodyMovement's moves byte, which a 109 client ignores and swims). Five
+   planks; right click water with one to sit in it at the top, a shore to step
+   out, or run aground for half a second: back in the bag. The body floats 0.35
+   under the top and goes at its sprint, twice a swim, drifting (grip 1.2). The
+   hull is worn on the root bone, the body sits in drive_idle (a mod clip now
+   wins over the swim clip). Seen in Xephyr (third person, moving); landing
+   checked in the client. Open: the hull turns with the view and strafes, it
+   is no Jolt body; nothing hits mobs or other boats; no paddle sound.
 5. Minecarts on rails worked by cinnabar, with switches and stations.
 6. Travel portals between villages or territories, with a cost or a rule.
 7. A map that fills as you go, and a compass home.

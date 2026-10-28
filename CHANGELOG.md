@@ -9,6 +9,8 @@ un'alpha: [docs/BUILDING.md](docs/BUILDING.md#versioni).
   tuono. La pioggia innaffia i campi.
 - Le stagioni: foglie che cambiano colore, campi fermi d'inverno senza lampade, neve
   ovunque d'inverno. I mercanti raddoppiano il cibo d'inverno e la legna d'autunno.
+- Le barche: cinque assi, tasto destro sull'acqua per salire, su una riva per scendere. Vanno
+  al doppio del nuoto.
 
 ## 0.9.0-alpha.4 — 2026-10-27
 

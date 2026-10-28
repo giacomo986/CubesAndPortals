@@ -250,6 +250,9 @@ job, meals and a bed. Every village has:
 owners stand in it. Inside, owners are faster and tougher, strangers weaker; what strangers take
 there is marked stolen.
 
+**Boats** (`mods/boats`). Five planks make a boat: right click the water to sit in it and row at
+twice a swim, right click a shore (or run aground) to step out with it back in the bag.
+
 **Weather** (`mods/weather`). Clear skies, then rain or a storm for a few minutes: the sky
 and the clouds go grey, rain falls round you and stops at roofs, the fields under the open sky
 are watered. In the tundra and on the peaks it snows and the snow settles; in the desert

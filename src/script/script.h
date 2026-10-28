@@ -653,6 +653,9 @@ typedef struct script_host {
     int (*body_drive)(void *ud, int player, double accel, double brake, double turn, double drag,
                       double width, double length);
 
+    // And whether ONE body is in a boat (core.body_boat), sent as body_movement is.
+    int (*body_boat)(void *ud, int player, int on);
+
     // How wide a body is in this world, and how long when it drives
     // (core.body_width): the same moment and the same welcome.
     int (*body_width)(void *ud, double width, double length);
