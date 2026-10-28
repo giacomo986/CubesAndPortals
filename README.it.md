@@ -259,7 +259,8 @@ aperto vengono innaffiati. Nella tundra e sulle vette nevica e la neve si posa; 
 non cade niente. Un temporale colpisce il suolo vicino ai giocatori, con il tuono. Stagioni di
 cinque giorni: d'autunno le foglie si fanno arancioni e d'inverno spente (l'abete resta verde),
 l'estate ha più temporali e la primavera più pioggia, i campi rallentano d'autunno e d'inverno
-crescono solo sotto le lampade, e d'inverno nevica ovunque tranne nel deserto.
+crescono solo sotto le lampade, e d'inverno nevica ovunque tranne nel deserto. I mercanti fanno pagare il doppio il cibo d'inverno e la legna
+d'autunno.
 
 **Creature.** Zombie e scheletri arcieri escono al buio e bruciano al sole; maiali, mucche, pecore
 e galline pascolano, si riproducono e crescono; un cane e un gatto si addomesticano e seguono chi

@@ -256,7 +256,8 @@ are watered. In the tundra and on the peaks it snows and the snow settles; in th
 nothing falls. A storm strikes the ground near players, with thunder. Seasons of five days each:
 the leaves turn orange in autumn and dull in winter (spruce stays green), summer storms more,
 spring rains more, the fields slow in autumn and in winter grow only under lamps, and in winter
-it snows everywhere but the desert.
+it snows everywhere but the desert. Traders charge double for food in winter and for wood in
+autumn.
 
 **Creatures.** Zombies and skeleton archers come out in the dark and burn in the sun; pigs, cows,
 sheep and chickens graze, breed and grow; a dog and a cat can be tamed and follow you

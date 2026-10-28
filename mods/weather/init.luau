@@ -173,7 +173,11 @@ if serving then
             core.notice(p, string.upper(string.sub(name, 1, 1)) .. string.sub(name, 2) .. " begins")
         end
     end
-    core.event.emit("farm:season", { name = SEASONS[season].name })
+    -- At world_ready, not at load: mods that load after this one (the
+    -- villagers' prices) listen too.
+    core.event.on("core:world_ready", function()
+        core.event.emit("farm:season", { name = SEASONS[season].name })
+    end)
 
     core.event.on("core:tick", function(ev)
         local t = core.time_of_day()

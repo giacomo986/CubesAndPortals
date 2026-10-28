@@ -405,8 +405,8 @@ the villagers and start with questions (memory: villagers-need-design-first).
    season; autumn crops half as often, winter only under lamp light 9+
    (farm:season); winter snows on every biome but the desert, and its snow
    melts in spring. /season for admins. Seen in Xephyr (autumn and winter
-   leaves); seasons and winter snow checked headless. Open: the merchants'
-   prices by season -- villagers, needs Giacomo's design first.
+   leaves); seasons and winter snow checked headless. The traders' prices
+   follow too: food doubles in winter, wood in autumn (checked headless).
 3. Village events: caravans on the roads, night sieges, a harvest feast.
 4. Boats on the sea, the rivers and the lakes.
 5. Minecarts on rails worked by cinnabar, with switches and stations.

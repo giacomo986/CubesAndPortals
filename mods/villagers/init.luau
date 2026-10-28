@@ -2652,8 +2652,23 @@ local function stock_of(chests: { { number } }, item: string): number
     return n
 end
 
+-- The season (mods/weather, through farm:season) doubles what it makes
+-- scarce: food in winter, when the fields stop, and wood in autumn, before it.
+local DEAR = {
+    winter = { ["farm:bread"] = true, ["farm:wheat"] = true, ["pets:cooked_fish"] = true, ["pets:fish"] = true,
+               ["animals:steak"] = true, ["plants:melon_slice"] = true },
+    autumn = { ["trees:trunk"] = true, ["timber:planks"] = true },
+}
+local season = "spring"
+core.event.on("farm:season", function(ev)
+    season = ev.name
+end)
+
 local function price_of(good: { any }, stock: number): number
     local f = math.clamp(good[2] * 4 / math.max(stock, 1), 0.5, 2)
+    if DEAR[season] and DEAR[season][good[1]] then
+        f *= 2
+    end
     return math.max(1, math.floor(good[3] * f + 0.5))
 end
 
