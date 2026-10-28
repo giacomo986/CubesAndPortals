@@ -745,8 +745,13 @@ model shows some seconds after joining, as the models arrive.
     standing (wins, knock-downs) kept. Engine: core.body_player(id), whose
     body core:hit's target is. Checked with two clients: a knocked b down with
     a sword -- a 1, b back 9 from the gong --, the round ended with a the
-    winner and the standing "a=1,1". Open: no score shown on the screen
-    between the half-minute notices; the ring is not marked on the ground.
+    winner and the standing "a=1,1". Closed after: mods/arena is side both;
+    each second the server tells every player of the gongs within 48 and,
+    to those in a ring during a round, a line -- the time left and the score
+    -- drawn over the view; the client draws each ring's edge on the ground
+    (64 marks on the top of what is solid there), faint, orange in a round.
+    Checked with a client: the rings of the plaza's gong and a test one seen,
+    and "Arena: 177 s -- a 2, b 1" over the view in a round.
 
 Railways redone 2026-10-28 (asked the same day), in Blender through its MCP
 server: tools/make_rail_models.py (assets/blender/rails.blend) makes the nine
