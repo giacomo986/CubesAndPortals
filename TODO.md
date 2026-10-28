@@ -482,7 +482,22 @@ the villagers and start with questions (memory: villagers-need-design-first).
    on time. Open: a body thrown in by core.player_launch went through the
    plane without crossing (walking crosses); at more than 32 wanted at once,
    the farthest pair may have one end live and the other not.
-7. A map that fills as you go, and a compass home.
+7. Map and compass -- built 2026-10-28 in `mods/maps` (side both). A compass
+   (four iron round a cinnabar) held shows a dial at the top: N turning with
+   the view, a needle home -- the bed last slept in (new event bed:home from
+   mods/bed) or the world's spawn -- and the distance. A map (eight paper
+   round a compass) held shows 512 x 512 nodes round its holder, north up, a
+   pixel 8 nodes, only where they have been (48 nodes round each place),
+   with the dial beside it. The server keeps it: a tile of 16 x 16 pixels, a
+   character each (0 unseen, else a palette colour: three water depths, three
+   heights of each climate from core.biome / terrain_height / water_level),
+   a storage key a tile and pages of tile names per player, a tile a message
+   (a message carries 512 bytes, a stored value 4096). Coloured on the server:
+   a connected client has no generator (its core.terrain_height is 0). Seen
+   on a server with a client: a route walked shows peaks, tundra, plains and
+   water, and the same map after a restart. Open: the land as generated, not
+   as built (no trees, houses or roads); the compass alone and the bed's home
+   not looked at in a screenshot.
 8. Rare structures: desert temples, wrecks, sunken ruins, each a small puzzle.
 9. A deep layer under `depths`: glowing fungi, lava, crystals, a guardian.
 10. Alchemy: a still, potions (night sight, speed, water breathing).

@@ -253,6 +253,9 @@ e un letto. Ogni villaggio ha:
 proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resistenti, gli estranei
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
+**Mappa e bussola** (`mods/maps`). La bussola in mano punta a casa, al letto o allo spawn; la mappa
+in mano mostra il terreno attorno dove si è già stati, tenuto dal server fra una sessione e l'altra.
+
 **Pietre del viaggio** (`mods/travel`). Ogni villaggio ne ha una accanto al pozzo, e una si
 fabbrica per il proprio territorio: toccarla la fa ricordare, e da qualunque pietra si paga uno
 smeraldo ogni 200 nodi per aprire un portale verso una di quelle ricordate, attraversabile da tutti

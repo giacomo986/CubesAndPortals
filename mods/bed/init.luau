@@ -101,6 +101,14 @@ local function get_up(p: number)
     core.player_lie(p, false)
 end
 
+-- Where a player comes back, for whoever else wants to know (mods/maps' compass):
+-- told when a bed sets it, when it is given back on joining, and with `on` false
+-- when the bed is gone.
+core.event.define("bed:home", {
+    fields = { player = "number", x = "number", y = "number", z = "number", on = "boolean" },
+    cancellable = false,
+})
+
 core.event.on("core:used", function(ev)
     local fx, fy, fz, bx, bz = foot_of(ev.x, ev.y, ev.z)
     if fx == nil or fy == nil or fz == nil or bx == nil or bz == nil then
@@ -109,6 +117,7 @@ core.event.on("core:used", function(ev)
     ev.cancel = true
     core.player_spawn(ev.player, fx + 0.5, fy + 1, fz + 0.5)
     core.storage_set(key(ev.player), `{fx} {fy} {fz}`)
+    core.event.emit("bed:home", { player = ev.player, x = fx, y = fy, z = fz, on = true })
 
     -- The middle of the two cells, on the mattress.
     local mx, my, mz = fx + 0.5 + bx * 0.5, fy + TALL, fz + 0.5 + bz * 0.5
@@ -140,6 +149,7 @@ core.event.on("core:pre_break", function(ev)
         if x == fx and y == fy and z == fz then
             core.player_spawn(p, 0, 0, 0, false)
             core.storage_set(key(p), "")
+            core.event.emit("bed:home", { player = p, x = 0, y = 0, z = 0, on = false })
             core.notice(p, "Your bed is gone")
         end
         local l = lying[p]
@@ -199,6 +209,7 @@ core.event.on("core:tick", function(ev)
                 -- A column not loaded yet may well hold the bed.
                 if core.loaded(x, y, z) == 0 or core.get_block(x, y, z) == BED then
                     core.player_spawn(p, x + 0.5, y + 1, z + 0.5)
+                    core.event.emit("bed:home", { player = p, x = x, y = y, z = z, on = true })
                 else
                     core.storage_set(key(p), "")
                 end

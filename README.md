@@ -250,6 +250,9 @@ job, meals and a bed. Every village has:
 owners stand in it. Inside, owners are faster and tougher, strangers weaker; what strangers take
 there is marked stolen.
 
+**Map and compass** (`mods/maps`). A compass held points home, to your bed or the spawn; a map
+held shows the land round you where you have been, kept by the server across sessions.
+
 **Waystones** (`mods/travel`). A waystone stands by every village's well, and one can be made
 for a territory: touch one to remember it, then pay an emerald every 200 nodes to open a portal
 from any waystone to one you remember, for anybody to walk through, for five minutes. A world

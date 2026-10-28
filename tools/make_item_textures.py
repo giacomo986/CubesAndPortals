@@ -2,7 +2,8 @@
 """The last items that were drawn as their name in the slot: the stick
 (mods/timber), the two buckets (mods/lakes), the palette brush (mods/palette),
 the iron pick (mods/furnace) and the screwdriver (mods/screwdriver); the arm
-pack (mods/armpack); the boat (mods/boats) and the cart (mods/carts).
+pack (mods/armpack); the boat (mods/boats), the cart (mods/carts), and the
+compass and the map (mods/maps).
 
 Drawn the way tools_pick.png is: a 16x16 picture doubled to 32 px, flat
 colours lit on the top-left, and a dark outline round every shape. The iron
@@ -90,6 +91,52 @@ SHAPES = {
         ],
         {"R": (220, 224, 232), "G": (196, 202, 210), "g": (150, 156, 166), "W": (112, 118, 128),
          "d": (96, 100, 110), "k": (48, 52, 60), "a": (130, 134, 142)},
+    ),
+    # The compass: an iron case, its face, a needle red to the north.
+    "maps_compass": (
+        [
+            "................",
+            "................",
+            ".....GGGGGG.....",
+            "....GWWWWWWg....",
+            "...GWwwwwwwWg...",
+            "...GWwwwrwwWg...",
+            "...GWwwrrrwWg...",
+            "...GWwwwkwwWg...",
+            "...GWwwwswwWg...",
+            "...GWwwsssWWg...",
+            "...GWwwwwwwWg...",
+            "....gWWWWWWg....",
+            ".....gggggg.....",
+            "................",
+            "................",
+            "................",
+        ],
+        {"G": (196, 202, 210), "g": (112, 118, 128), "W": (150, 156, 166), "w": (236, 232, 214),
+         "r": (220, 40, 30), "k": (40, 40, 44), "s": (170, 170, 176)},
+    ),
+    # The map: a sheet of parchment, a coast, a river and a red cross.
+    "maps_map": (
+        [
+            "................",
+            "..pppppppppppp..",
+            "..pPPPPPPPPPPp..",
+            "..pPgggPPPbbPp..",
+            "..pPggggPbbbPp..",
+            "..pPgggbbbbPPp..",
+            "..pPPgbbbPPPPp..",
+            "..pPPbbPPrPrPp..",
+            "..pPbbPPPPrPPp..",
+            "..pPbPPPPrPrPp..",
+            "..pPPPPPPPPPPp..",
+            "..pPPggPPPPPPp..",
+            "..pPgggPPPPPPp..",
+            "..pPPPPPPPPPPp..",
+            "..pppppppppppp..",
+            "................",
+        ],
+        {"p": (180, 150, 100), "P": (232, 216, 170), "g": (110, 160, 80), "b": (80, 130, 200),
+         "r": (200, 40, 30)},
     ),
     "timber_stick": (
         [

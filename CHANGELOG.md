@@ -13,6 +13,7 @@ Protocollo 110: un client 0.9.0-alpha.4 non entra in un server con i binari.
 - Le pietre del viaggio: una per villaggio accanto al pozzo, fabbricabili per i territori;
   pagando uno smeraldo ogni 200 nodi si apre un portale vero verso una pietra toccata, per
   cinque minuti.
+- La bussola che punta a casa e la mappa che si riempie esplorando.
 - I portali non hanno più un massimo per mondo: il server tiene attivi i 32 più vicini ai
   giocatori. Le cornici di portale non finiscono più a 16.
 - La barca dondola sull'onda. Barca e carrello hanno un'icona.
