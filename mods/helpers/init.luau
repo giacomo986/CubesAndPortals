@@ -33,6 +33,9 @@
 --                   lights each cell once (where the ground allows; else
 --                   where a torch lights the most still dark), so the
 --                   creatures of the night stay away
+--   Tend animals    shears the sheep about its base, the wool in its bag,
+--                   and feeds two animals of a kind near each other (wheat
+--                   or seeds from its bag or the chests) so they breed
 --   Follow me       walks after its maker, and does nothing else
 --
 -- The world anchor (iron, cinnabar and a diamond), given like a tool, keeps
