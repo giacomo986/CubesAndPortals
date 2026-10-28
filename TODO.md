@@ -618,7 +618,30 @@ the villagers and start with questions (memory: villagers-need-design-first).
     square held lakes:bucket x1 after). A stick on a kept animal lets it go
     (no trough keeps it for 10 minutes): two kept cows, one let go, the
     player 300 away for 30 s, one cow left when back.
-13. Errands from the mayor and the merchant, paid from the treasury.
+13. Errands -- built 2026-10-28 in `mods/villagers` (design agreed the same
+    day). At most three a village, posted only when the treasury can pay,
+    their pay set aside when taken: the merchant's "bring" (what the
+    village's chests are short of, two bundles) and "procure" (diamonds,
+    crystal shards, lapis...), the mayor's "craft" (an iron pick, a bow, 32
+    torches...), "hunt" (3-6 creatures of the night killed in the village at
+    night, counted on core:hit), "carry" (a parcel to another village the
+    world has made, paid on arriving within 32 of its middle) and "explore"
+    (stand within 12 of a place 300-600 away, then tell the mayor). Seen on a
+    notice board (villagers:board: by every new village's well, or crafted
+    from planks, paper and a stick), taken and handed in at the mayor's and
+    merchant's panels ("Errands..."). One at a time; a day each; not taken it
+    goes, taken and not done it goes back on the board with its pay back in
+    the treasury, nothing else lost. Each done is counted per village and
+    player; from five, the merchant sells at a fifth off. Checked on a server
+    with a client, village at 411 -356: errands posted (bring 64 cobblestone,
+    explore, hunt, craft, procure); a bring taken and handed in (treasury 32
+    -> 29 set aside, 3 emeralds paid, the cobblestone into its chests); an
+    explore done by standing there; a carry to the village at 625 -417 paid
+    on arrival; a hunt of one done by killing a zombie at night with a
+    sword; the board and the mayor's errands panel on screen; the board by
+    the well (405 22 -356). Open: the carry's goal and the explore's place
+    are said as coordinates only (no mark on the map); the board's panel
+    only shows, it does not take.
 14. Blueprints: copy a build, have the village builder or a robot build it.
 15. More decorative blocks: stained glass, fences, walls, tiles, furniture.
 16. Plaza games on the chess frame (draughts, mill), a scored PvP arena.

@@ -326,6 +326,26 @@ SHAPES["animals_cake"] = ([
     "................",
 ], {"w": (225, 222, 215), "W": (250, 248, 242), "r": (210, 40, 50), "b": (170, 110, 60), "B": (195, 135, 80)})
 
+# A parcel (mods/villagers): brown paper tied with string.
+SHAPES["villagers_parcel"] = ([
+    "................",
+    "................",
+    "................",
+    "...pppppspppp...",
+    "..pPPPPPsPPPPp..",
+    "..pPPPPPsPPPPp..",
+    "..pPPPPsSsPPPp..",
+    "..ssssssSssssp..",
+    "..pPPPPsSsPPPp..",
+    "..pPPPPPsPPPPp..",
+    "..pPPPPPsPPPPp..",
+    "..pdddddsddddp..",
+    "...pppppspppp...",
+    "................",
+    "................",
+    "................",
+], {"p": (150, 105, 60), "P": (190, 145, 95), "d": (160, 115, 70), "s": (235, 225, 200), "S": (250, 245, 230)})
+
 # A bucket of milk (mods/animals): the bucket of water, white.
 SHAPES["animals_milk"] = (SHAPES["lakes_bucket_water"][0], dict(SHAPES["lakes_bucket_water"][1], b=(245, 244, 236)))
 

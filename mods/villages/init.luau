@@ -1409,6 +1409,13 @@ core.register_mapgen("villages:build", function(ctx)
             core.set_block(v.x + 3, g, v.z, id("travel:waystone"))
         end
     end
+    -- And the notice board of its errands (mods/villagers) on the west side.
+    if owns(ctx, v.x - 3, v.z) and id("villagers:board") ~= 0 then
+        local g = core.terrain_height(v.x - 3, v.z)
+        if g > SEA and not wet(v.x - 3, v.z) then
+            core.set_block(v.x - 3, g, v.z, id("villagers:board"))
+        end
+    end
 
     for _, l in plan.lamps do
         if owns(ctx, l[1], l[2]) then

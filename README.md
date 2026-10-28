@@ -250,6 +250,10 @@ job, meals and a bed. Every village has:
 owners stand in it. Inside, owners are faster and tougher, strangers weaker; what strangers take
 there is marked stolen.
 
+**Errands**: each village posts up to three on a notice board by its well -- bring what it lacks,
+procure a material, craft tools, hunt at night, carry a parcel to another village, explore a far place --
+taken and paid (from its treasury) at the mayor and the merchant; after five, the merchant gives a discount.
+
 **Herding** (`mods/animals`): dye a sheep for coloured wool, milk a cow with a bucket (cheese, cake), keep a stable
 with a trough of wheat or seeds that holds the animals and breeds them, and order a robot to tend them.
 
