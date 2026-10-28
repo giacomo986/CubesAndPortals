@@ -73,6 +73,12 @@ std::vector<ChunkPos> PlayerInterest::next(const World                         &
                 if (world.find_chunk(p) == nullptr) continue;   // nothing generated there
                 if (sendable && !sendable(p)) continue;         // not lit yet
 
+                // Below the player, only after the chunk over it. Sent first, a
+                // cave -- or a hollow under the bedrock, mods/deep -- is seen
+                // from afar through the hole where its ground has not arrived.
+                const ChunkPos over{p.x, p.y + 1, p.z};
+                if (p.y < c.y && m_sent.count(over) == 0 && world.find_chunk(over) != nullptr) continue;
+
                 // Distance to the nearest point of the chunk, not to its
                 // middle. Measuring to the middle put the chunk the player is
                 // standing in behind three of its neighbours whenever they

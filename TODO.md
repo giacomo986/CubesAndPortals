@@ -534,9 +534,22 @@ the villagers and start with questions (memory: villagers-need-design-first).
    seed 1, hollow at 338 -92: 126 glowcaps and 86 crystals by its middle,
    stood in the lit chamber at -28 (health full), the guardian woke and
    killed an unarmed player in four blows, a blast beat it and the heart was
-   dropped. Open: a hollow's columns take ~50 ms each in Luau, and while they
-   stream, a hollow seen from afar shows its caves through surface chunks not
-   sent yet for a few seconds; no mob but the guardian lives down there.
+   dropped. Closed after: a hollow's column took ~61 ms more than a plain
+   one, now ~21 (the plain one costs ~29): the noise is blended in the plane
+   once per lattice layer and down the column after, and what grows is read
+   from the column's own array, not back through get_block -- of the 21, ~8
+   are the set_block calls. A chunk below the player is now sent only after
+   the one over it (src/core/net/interest.cpp), so a hollow is no longer seen
+   from above through ground not arrived yet. The guardian came out of the
+   dark like any creature (no spawn_on); now "deep:never". LURKERS live
+   there: the zombie's rig at 0.85 in pale skin and teal eyes (14 health,
+   3 m/s, 2 a blow, drop a glowcap), put by the mod on cave-floor slate 12..30
+   from a player in a hollow, at most 4 within 32 -- the engine's own spawning
+   wants light 7 or less, which the glowcaps leave almost nowhere. Checked:
+   four lurkers round the chamber within 15 s, the guardian still kills in
+   four blows. Open, not the hollows': for ~4 s after a teleport, cave walls
+   of chunks whose nearer neighbours have not arrived show black in the sky
+   (seen the same without mods/deep).
 10. Alchemy: a still, potions (night sight, speed, water breathing).
 11. Fishing widened: fish by biome, bought by the frog fishers.
 12. Herding widened: dyed wool, milk, stables, a robot order to tend animals.

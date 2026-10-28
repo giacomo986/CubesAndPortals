@@ -38,8 +38,16 @@ core.register_item("deep:heart", 1)
 
 local GUARDIAN = core.register_model("deep:guardian", "guardian.gltf")
 -- Slower than a walk, hits like two zombies (four blows down a player without
--- armour), takes a long fight.
-core.register_mob("deep:guardian", GUARDIAN, 160, 2.0, "melee", 5, 2.4, 1.2, "deep:shard", 12)
+-- armour), takes a long fight. Never out of the dark on its own: only its
+-- altar wakes it.
+core.register_mob("deep:guardian", GUARDIAN, 160, 2.0, "melee", 5, 2.4, 1.2, "deep:shard", 12,
+                  0, false, 0, false, "deep:never")
+-- What lives down here: lurkers, pale and quick. Not out of the dark as other
+-- creatures come: the glowcaps leave little of a hollow at light 7 or less,
+-- so this mod puts them on its slate round whoever is down here (below).
+core.register_mob("deep:lurker", core.register_model("deep:lurker", "lurker.gltf"), 14, 3.0, "melee",
+                  2, 1.6, 0.8, "deep:glowcap", 1, 0, false, 0, false, "deep:never")
+local LURKERS = 4    -- at most, within 32 of a player in a hollow
 
 local SQUARE = 512
 local R = 80         -- a hollow's reach from its middle, wall included
@@ -88,30 +96,37 @@ local function at(i: number, j: number, k: number, salt: number): number
     return hash(i * 7919 + j, k, salt) / 4294967296
 end
 
--- The noise of one lattice size over this column, as a function of x, y, z.
-local function lattice(ctx, sx: number, sy: number, sz: number, salt: number)
-    local cache: { [number]: number } = {}
-    return function(x: number, y: number, z: number): number
-        local fx, fy, fz = x / sx, y / sy, z / sz
-        local i, j, k = math.floor(fx), math.floor(fy), math.floor(fz)
-        local u, v, w = fx - i, fy - j, fz - k
-        u, v, w = u * u * (3 - 2 * u), v * v * (3 - 2 * v), w * w * (3 - 2 * w)
-        local function c(a: number, b: number, d: number): number
-            local key = ((a + 4096) * 512 + (b + 256)) * 8192 + (d + 4096)
-            local val = cache[key]
-            if val == nil then
-                val = at(a, b, d, salt)
-                cache[key] = val
-            end
-            return val
+-- The noise of one lattice size (sx, sy, sz) down one column, BOTTOM..TOP,
+-- into out[y]. Down a column only y moves, so the lattice is blended in the
+-- plane once per lattice layer and every cell is one blend between two
+-- layers. `cache` keeps the lattice points the stage's other columns share.
+local function column_noise(x: number, z: number, sx: number, sy: number, sz: number, salt: number,
+                            cache: { [number]: number }, out: { number })
+    local fx, fz = x / sx, z / sz
+    local i, k = math.floor(fx), math.floor(fz)
+    local u, w = fx - i, fz - k
+    u, w = u * u * (3 - 2 * u), w * w * (3 - 2 * w)
+    local function c(a: number, b: number, d: number): number
+        local key = ((a + 4096) * 512 + (b + 256)) * 8192 + (d + 4096)
+        local val = cache[key]
+        if val == nil then
+            val = at(a, b, d, salt)
+            cache[key] = val
         end
-        local x00 = c(i, j, k) + (c(i + 1, j, k) - c(i, j, k)) * u
-        local x10 = c(i, j + 1, k) + (c(i + 1, j + 1, k) - c(i, j + 1, k)) * u
-        local x01 = c(i, j, k + 1) + (c(i + 1, j, k + 1) - c(i, j, k + 1)) * u
-        local x11 = c(i, j + 1, k + 1) + (c(i + 1, j + 1, k + 1) - c(i, j + 1, k + 1)) * u
-        local y0 = x00 + (x10 - x00) * v
-        local y1 = x01 + (x11 - x01) * v
-        return y0 + (y1 - y0) * w
+        return val
+    end
+    local layer: { [number]: number } = {}
+    for j = math.floor(BOTTOM / sy), math.floor(TOP / sy) + 1 do
+        local x0 = c(i, j, k) + (c(i + 1, j, k) - c(i, j, k)) * u
+        local x1 = c(i, j, k + 1) + (c(i + 1, j, k + 1) - c(i, j, k + 1)) * u
+        layer[j] = x0 + (x1 - x0) * w
+    end
+    for y = BOTTOM, TOP do
+        local fy = y / sy
+        local j = math.floor(fy)
+        local v = fy - j
+        v = v * v * (3 - 2 * v)
+        out[y - BOTTOM + 1] = layer[j] + (layer[j + 1] - layer[j]) * v
     end
 end
 
@@ -141,29 +156,36 @@ core.register_mapgen("deep:hollows", function(ctx)
     end
     local bedrock, lava = core.node_id("core:bedrock"), core.node_id("rocks:lava")
     local water, rungs = core.node_id("lakes:water"), core.node_id("timber:rungs")
-    local small = lattice(ctx, 8, 6, 8, ctx.seed + 0x5A1)
-    local big = lattice(ctx, 24, 12, 24, ctx.seed + 0xB16)
+    local cache_small, cache_big = {}, {}
+    local small, big, col = table.create(TOP - BOTTOM + 1, 0), table.create(TOP - BOTTOM + 1, 0), table.create(TOP - BOTTOM + 1, 0)
+    local salt_small, salt_big, salt_grow = ctx.seed + 0x5A1, ctx.seed + 0xB16, ctx.seed + 0x6E0
 
     for z = ctx.min_z, ctx.max_z do
         for x = ctx.min_x, ctx.max_x do
             local d = math.sqrt((x - hol.x) ^ 2 + (z - hol.z) ^ 2)
             if d <= R then
                 local wall = d > R - WALL
+                local shaft = math.abs(x - hol.x) <= 2 and math.abs(z - hol.z) <= 2
                 local shut = (d / (R - WALL)) ^ 4 * 0.6            -- caves close towards the edge
                 local da = math.sqrt((x - hol.ax) ^ 2 + (z - hol.az) ^ 2)
                 local tunnel = to_segment(x, z, hol.x, hol.z, hol.ax, hol.az)
+                local caves = not wall and 1 - shut > 0.56         -- noise can open a cell here
+                if caves then
+                    column_noise(x, z, 24, 12, 24, salt_big, cache_big, big)
+                    column_noise(x, z, 8, 6, 8, salt_small, cache_small, small)
+                end
+                local drop = (ARENA_Y - 4 - CHAMBER) * math.clamp(1 - (d / ARENA_OFF), 0, 1)
                 for y = BOTTOM, TOP do
                     local id = SLATE
                     if wall or y == BOTTOM then
                         id = bedrock
                     else
-                        local n = big(x, y, z) * 0.65 + small(x, y, z) * 0.35 - shut
-                        local open = n > 0.56 and y >= BOTTOM + 3 and y <= TOP - 3
+                        local open = caves and y >= BOTTOM + 3 and y <= TOP - 3
+                            and big[y - BOTTOM + 1] * 0.65 + small[y - BOTTOM + 1] * 0.35 - shut > 0.56
                         -- The chamber under the sinkhole, the arena, and the tunnel between.
                         if (d <= 7 and y >= CHAMBER and y <= CHAMBER + 7 - math.floor(d / 2))
                             or (da * da + ((y - ARENA_Y) * 1.6) ^ 2 <= ARENA_R * ARENA_R and y >= ARENA_Y - 4)
-                            or (tunnel <= 1.6 and y >= CHAMBER + (ARENA_Y - 4 - CHAMBER) * math.clamp(1 - (d / ARENA_OFF), 0, 1)
-                                and y <= CHAMBER + 2 + (ARENA_Y - 4 - CHAMBER) * math.clamp(1 - (d / ARENA_OFF), 0, 1)) then
+                            or (tunnel <= 1.6 and y >= CHAMBER + drop and y <= CHAMBER + 2 + drop) then
                             open = true
                         end
                         -- A floor of three under the chamber and its pool: a body
@@ -175,11 +197,37 @@ core.register_mapgen("deep:hollows", function(ctx)
                             id = if y <= LAVA_BELOW then lava else 0
                         end
                     end
-                    core.set_block(x, y, z, id)
+                    col[y - BOTTOM + 1] = id
+                end
+                -- What grows: on floors, glowcaps and moss; on ceilings, crystals.
+                if not wall and not shaft then
+                    for y = BOTTOM + 2, TOP - 1 do
+                        local n = y - BOTTOM + 1
+                        if col[n] == 0 then
+                            -- A cheap hash: what grows needs no better.
+                            local r = bit32.bxor(x * 73856093, y * 19349663, z * 83492791, salt_grow) % 100
+                            if col[n - 1] == SLATE then
+                                if r < 7 then
+                                    col[n] = GLOWCAP
+                                elseif r < 40 then
+                                    col[n] = MOSS
+                                end
+                            elseif col[n + 1] == SLATE and r < 3 then
+                                col[n] = CRYSTAL
+                            end
+                        end
+                    end
+                end
+                if x == hol.ax and z == hol.az then
+                    col[ARENA_Y - 4 - BOTTOM + 1] = SLATE
+                    col[ARENA_Y - 3 - BOTTOM + 1] = ALTAR
+                end
+                for y = BOTTOM, TOP do
+                    core.set_block(x, y, z, col[y - BOTTOM + 1])
                 end
                 -- The sinkhole: open from the surface down to the chamber,
                 -- through the bedrock, a pool at its foot.
-                if math.abs(x - hol.x) <= 2 and math.abs(z - hol.z) <= 2 then
+                if shaft then
                     local g = core.terrain_height(x, z)
                     for y = CHAMBER, g + 2 do
                         core.set_block(x, y, z, if y <= CHAMBER + 2 then water else 0)
@@ -196,40 +244,29 @@ core.register_mapgen("deep:hollows", function(ctx)
             end
         end
     end
-
-    -- What grows: on floors, glowcaps and moss; on ceilings, crystals.
-    for z = ctx.min_z, ctx.max_z do
-        for x = ctx.min_x, ctx.max_x do
-            local d = math.sqrt((x - hol.x) ^ 2 + (z - hol.z) ^ 2)
-            if d <= R - WALL and not (math.abs(x - hol.x) <= 2 and math.abs(z - hol.z) <= 2) then
-                for y = BOTTOM + 2, TOP - 1 do
-                    if core.get_block(x, y, z) == 0 then
-                        local below, above = core.get_block(x, y - 1, z), core.get_block(x, y + 1, z)
-                        local r = hash(x * 13 + y, z, ctx.seed + 0x6E0) % 100
-                        if below == SLATE then
-                            if r < 7 then
-                                core.set_block(x, y, z, GLOWCAP)
-                            elseif r < 40 then
-                                core.set_block(x, y, z, MOSS)
-                            end
-                        elseif above == SLATE and r < 3 then
-                            core.set_block(x, y, z, CRYSTAL)
-                        end
-                    end
-                end
-            end
-            if math.abs(x - hol.ax) <= 0 and math.abs(z - hol.az) <= 0 then
-                core.set_block(x, ARENA_Y - 4, z, SLATE)
-                core.set_block(x, ARENA_Y - 3, z, ALTAR)
-            end
-        end
-    end
 end)
 
 -- ------------------------------------------------------------ the guardian
 
 local function hollow_at(x: number, z: number): Hollow?
     return hollow_of(math.floor(x / SQUARE), math.floor(z / SQUARE), SEED)
+end
+
+-- A lurker somewhere 12 to 30 off on the slate of a cave floor, if one of a
+-- few tries finds such a floor. The engine sends it away when nobody is near.
+local function lurk(x: number, y: number, z: number)
+    for _ = 1, 4 do
+        local a, r = math.random() * 2 * math.pi, 12 + math.random() * 18
+        local lx, lz = math.floor(x + math.cos(a) * r), math.floor(z + math.sin(a) * r)
+        for ly = math.floor(y) + 8, math.floor(y) - 12, -1 do
+            local here = core.get_block(lx, ly, lz)
+            if (here == 0 or here == MOSS) and core.get_block(lx, ly + 1, lz) == 0
+                and core.get_block(lx, ly - 1, lz) == SLATE then
+                core.spawn_mob("deep:lurker", lx + 0.5, ly, lz + 0.5)
+                return
+            end
+        end
+    end
 end
 
 local awake: { [string]: number } = {}   -- an arena's key -> its guardian's id
@@ -244,7 +281,10 @@ core.event.on("core:tick", function(ev)
         local x, y, z = core.player_pos(p)
         if x and y < 0 then
             local h = hollow_at(x, z)
-            if h then
+            if h and (x - h.x) ^ 2 + (z - h.z) ^ 2 < (R - WALL) ^ 2 then
+                if math.random() < 0.25 and core.monsters_near(x, y, z, 32) < LURKERS then
+                    lurk(x, y, z)
+                end
                 local key = `{h.ax},{h.az}`
                 local near = (x - h.ax) ^ 2 + (z - h.az) ^ 2 + (y - ARENA_Y) ^ 2 <= 18 * 18
                 local id = awake[key]

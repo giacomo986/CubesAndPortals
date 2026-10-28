@@ -252,7 +252,7 @@ there is marked stolen.
 
 **Hollows** (`mods/deep`). Under the bedrock of some regions lies a sealed cavern country, reached
 by a sinkhole with rungs down its side: glowing fungi and moss, crystals, lava lakes, and an altar
-whose guardian wakes when you come near.
+whose guardian wakes when you come near. Pale lurkers roam the caves.
 
 **Relics** (`mods/relics`). Rare desert temples, wrecks and sunken ruins, each a small puzzle in
 front of its chest: glyphs to set as the wall shows, a logbook's paces to count and dig, shards to
