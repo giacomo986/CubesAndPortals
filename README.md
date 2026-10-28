@@ -250,6 +250,9 @@ job, meals and a bed. Every village has:
 owners stand in it. Inside, owners are faster and tougher, strangers weaker; what strangers take
 there is marked stolen.
 
+**Herding** (`mods/animals`): dye a sheep for coloured wool, milk a cow with a bucket, keep a stable
+with a trough of wheat or seeds that holds the animals and breeds them, and order a robot to tend them.
+
 **Fishing**: what bites depends on the water -- perch and carp in lakes, trout in rivers, cod and
 eels in the sea, tuna on the ocean, a rare goldfish anywhere -- and the toad fishers buy them.
 

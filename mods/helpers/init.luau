@@ -82,6 +82,7 @@ local ORDERS = {
     { key = "sort", text = "Sort chests" },
     { key = "cook", text = "Cook food" },
     { key = "light", text = "Light up" },
+    { key = "tend", text = "Tend animals" },
     { key = "follow", text = "Follow me" },
 }
 local ORDER: { [string]: { key: string, text: string, tool: string? } } = {}
@@ -117,7 +118,8 @@ local IRON_ONLY = { ["ore:gold"] = true, ["ore:cinnabar_ore"] = true, ["ore:diam
                     ["ore:emerald_ore"] = true }
 local CHESTS = { "chest:box", "chest:double_l", "chest:double_r" }
 local FURNACES = { "furnace:furnace", "furnace:lit" }
-local RAW = { "pets:fish", "animals:beef", "animals:pork", "animals:egg" }
+local RAW = { "pets:fish", "pets:carp", "pets:trout", "pets:cod", "pets:eel", "pets:tuna",
+              "animals:beef", "animals:pork", "animals:egg" }
 local COOKED = { "pets:cooked_fish", "animals:steak", "animals:cooked_pork", "animals:fried_egg" }
 local FUEL = { "ore:coal", "furnace:charcoal", "timber:planks", "trees:trunk", "timber:log" }
 
@@ -1041,6 +1043,83 @@ WORK.cook = function(r: R): boolean
                     act(r, "gather", name, 1.0, fx, fz)
                     take(r, name, n - core.container_add(fx, fy, fz, iid, n, role))
                     return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- The animals round its base (mods/animals): every grown sheep shorn, the
+-- wool in its bag; and, with wheat or seeds in its bag or a chest, two of a
+-- kind that eats it put in love while there are fewer than eight of that
+-- kind. A sheep or a pair it has seen to is left alone a while.
+local FOOD_OF = { ["animals:cow"] = "farm:wheat", ["animals:pig"] = "animals:seeds",
+                  ["animals:chicken"] = "animals:seeds" }
+WORK.tend = function(r: R): boolean
+    local herd: { [string]: { number } } = {}
+    for _, m in core.mob_ids(r.bx + 0.5, r.by, r.bz + 0.5, RANGE, true) do
+        local kind = core.mob_kind(m)
+        if string.find(kind, "^animals:sheep") then
+            FOOD_OF[kind] = "farm:wheat"
+        end
+        if FOOD_OF[kind] then
+            herd[kind] = herd[kind] or {}
+            table.insert(herd[kind], m)
+        end
+    end
+    local function go(m: number): boolean
+        local x, y, z = core.mob_pos(m)
+        return x ~= nil and reach(r, math.floor(x), math.floor(y + 0.01), math.floor(z))
+    end
+    for kind, list in herd do
+        if string.find(kind, "^animals:sheep") then
+            for _, m in list do
+                if (r.tried[`shear {m}`] or 0) <= clock and go(m) then
+                    r.tried[`shear {m}`] = clock + 120
+                    local x, _, z = core.mob_pos(m)
+                    act(r, "gather", "", 1.0, math.floor(x or r.bx), math.floor(z or r.bz))
+                    local n = core.mob_shear_now(m, false)
+                    if n > 0 then
+                        add(r, if kind == "animals:sheep" then "animals:wool"
+                            else `colors:{string.sub(kind, #"animals:sheep_" + 1)}_wool`, n)
+                        return true
+                    end
+                end
+            end
+        end
+    end
+    for kind, list in herd do
+        local food = FOOD_OF[kind]
+        if #list >= 2 and #list < 8 and (r.tried[`feed {kind}`] or 0) <= clock then
+            if (r.inv[food] or 0) < 2 then
+                local iid = core.item_id(food)
+                for _, c in chests(r) do
+                    if iid ~= 0 and core.container_count(c[1], c[2], c[3], iid) >= 2 and reach(r, c[1], c[2], c[3]) then
+                        act(r, "gather", "", 1.0, c[1], c[3])
+                        add(r, food, core.container_take(c[1], c[2], c[3], iid, 8))
+                        break
+                    end
+                end
+            end
+            if (r.inv[food] or 0) >= 2 then
+                r.tried[`feed {kind}`] = clock + 60
+                -- Two within six of each other, both fed from where it stands
+                -- by the first: fed apart, one's love is over before the
+                -- other's starts.
+                for i = 1, #list - 1 do
+                    local ax, _, az = core.mob_pos(list[i])
+                    for j = i + 1, #list do
+                        local bx, _, bz = core.mob_pos(list[j])
+                        if ax and bx and (ax - bx) ^ 2 + (az - bz) ^ 2 < 36 and go(list[i]) then
+                            act(r, "gather", food, 1.0, math.floor(ax), math.floor(az))
+                            local fed = core.mob_love(list[i]) + core.mob_love(list[j])
+                            take(r, food, fed)
+                            if fed > 0 then
+                                return true
+                            end
+                        end
+                    end
                 end
             end
         end

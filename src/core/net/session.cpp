@@ -1266,6 +1266,16 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
             } else if (use_body(s, req.target, req.slot, now, why)) {
                 a.reply_channel = (uint8_t)Channel::Event;
                 a.reply         = inventory_message(peer);
+            } else if (flecs::entity t = m_ecs.entity((flecs::entity_t)req.target);
+                       t.is_alive() && t.has<ecs::Mob>() && s.scope == Scope::Enter &&
+                       t.try_get<ecs::Position>() != nullptr &&
+                       in_reach(s, t, *t.try_get<ecs::Position>(), why)) {
+                // A creature the engine did nothing with: its mod's to answer
+                // (a cow milked, a sheep dyed), as for a worker.
+                const ItemStack &held = s.bag().at(req.slot < Inventory::kHotbar ? req.slot : 0);
+                a.has_used_mob = true;
+                a.used_mob     = (uint32_t)req.target;
+                a.used_held    = held.empty() ? kNoItem : held.item;
             } else if (++s.hits_refused == 1 || s.hits_refused % 100 == 0) {
                 a.log = "'" + s.name + "' used nothing (" + std::to_string(s.hits_refused) +
                         " so far): " + why;

@@ -3780,11 +3780,11 @@ int host_mobs_near(void *ud, double x, double y, double z, double r, float *out,
                        : 0;
 }
 
-int host_mob_ids(void *ud, double x, double y, double z, double r, int *out, int max)
+int host_mob_ids(void *ud, double x, double y, double z, double r, int all, int *out, int max)
 {
     ServerState *s = static_cast<ServerState *>(ud);
     return s->sessions ? cnp::ecs::mob_ids(s->sessions->ecs(), s->mob_kinds, (float)x, (float)y,
-                                           (float)z, (float)r, out, max)
+                                           (float)z, (float)r, all != 0, out, max)
                        : 0;
 }
 
@@ -3965,6 +3965,43 @@ int host_mob_remove(void *ud, int id)
 {
     ServerState *s = static_cast<ServerState *>(ud);
     return s->sessions ? cnp::ecs::mob_remove(s->sessions->ecs(), (uint32_t)id) : 0;
+}
+
+const char *host_mob_kind(void *ud, int id)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    static std::string name;
+    name = s->sessions ? cnp::ecs::mob_kind_name(s->sessions->ecs(), s->mob_kinds, (uint32_t)id) : "";
+    return name.c_str();
+}
+
+int host_mob_love(void *ud, int id)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    return s->sessions ? cnp::ecs::mob_love(s->sessions->ecs(), (uint32_t)id, s->now) : 0;
+}
+
+int host_mob_keep(void *ud, int id, int on)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    return s->sessions ? cnp::ecs::mob_keep(s->sessions->ecs(), (uint32_t)id, on != 0) : 0;
+}
+
+int host_mob_shear_now(void *ud, int id, int drop)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    return s->sessions ? cnp::ecs::mob_shear_now(s->sessions->ecs(), (uint32_t)id, s->now, drop != 0) : 0;
+}
+
+int host_mob_become(void *ud, int id, const char *kind)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    return s->sessions && kind ? cnp::ecs::mob_become(s->sessions->ecs(), s->mob_kinds, (uint32_t)id, kind) : 0;
+}
+
+int host_mob_voice(void *ud, const char *name, const char *voice)
+{
+    return name && voice ? cnp::ecs::mob_voice(static_cast<ServerState *>(ud)->mob_kinds, name, voice) : 0;
 }
 
 int host_mob_face(void *ud, int id, double x, double z)
@@ -5876,6 +5913,12 @@ int serve_room(int argc, char **argv)
         host.mob_act        = host_mob_act;
         host.mob_face       = host_mob_face;
     host.mob_remove     = host_mob_remove;
+    host.mob_kind       = host_mob_kind;
+    host.mob_love       = host_mob_love;
+    host.mob_keep       = host_mob_keep;
+    host.mob_shear_now  = host_mob_shear_now;
+    host.mob_become     = host_mob_become;
+    host.mob_voice      = host_mob_voice;
     host.mob_hurt       = host_mob_hurt;
     host.mob_place      = host_mob_place;
     host.mob_ride       = host_mob_ride;
@@ -7955,7 +7998,7 @@ int serve_room(int argc, char **argv)
                     sessions.ecs().set<cnp::ecs::MobVoice>({[&s](uint16_t kind, const char *what, Vec3 at) {
                         if (kind >= s.mob_kinds.size() || s.mod_sounds.size() >= 256) return;
                         net::Sound snd;
-                        snd.name = s.mob_kinds[kind].name + "_" + what;
+                        snd.name = s.mob_kinds[kind].voice_name() + "_" + what;
                         snd.x = at.x; snd.y = at.y; snd.z = at.z;
                         if (net::sound_name_ok(snd.name)) s.mod_sounds.push_back(snd.encode());
                     }});

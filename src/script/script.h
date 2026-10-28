@@ -302,13 +302,20 @@ typedef struct script_host {
     int (*push_mobs)(void *ud, int x, int y, int z, int dx, int dy, int dz);
     int (*monsters_near)(void *ud, double x, double y, double z, double r);
     int (*mobs_near)(void *ud, double x, double y, double z, double r, float *out, int max);
-    int (*mob_ids)(void *ud, double x, double y, double z, double r, int *out, int max);
+    int (*mob_ids)(void *ud, double x, double y, double z, double r, int all, int *out, int max);
     int (*mob_pos)(void *ud, int id, float *x, float *y, float *z);
     int (*mob_goto)(void *ud, int id, int x, int y, int z);
     int (*mob_going)(void *ud, int id);
     int (*mob_act)(void *ud, int id, const char *clip, const char *item);
     int (*mob_face)(void *ud, int id, double x, double z);
     int (*mob_remove)(void *ud, int id);
+    // A herder's (core.mob_kind, mob_love, mob_keep, mob_shear_now).
+    const char *(*mob_kind)(void *ud, int id);
+    int (*mob_love)(void *ud, int id);
+    int (*mob_keep)(void *ud, int id, int on);
+    int (*mob_shear_now)(void *ud, int id, int drop);
+    int (*mob_become)(void *ud, int id, const char *kind);
+    int (*mob_voice)(void *ud, const char *name, const char *voice);
     int (*mob_hurt)(void *ud, int id, int damage, double from_x, double from_z);
     int (*mob_place)(void *ud, int id, double x, double y, double z);
     // A worker carried on a mod's thing at x, y, z in its frame; thing 0 lets go.

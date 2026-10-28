@@ -13,6 +13,9 @@ Protocollo 110: un client 0.9.0-alpha.4 non entra in un server con i binari.
 - Le pietre del viaggio: una per villaggio accanto al pozzo, fabbricabili per i territori;
   pagando uno smeraldo ogni 200 nodi si apre un portale vero verso una pietra toccata, per
   cinque minuti.
+- L'allevamento: pecore tinte (lana colorata), latte, mangiatoie che fanno da stalla, l'ordine
+  "Bada agli animali" per il robot. Nuove API: `core.mob_kind`, `mob_love`, `mob_keep`,
+  `mob_shear_now`, `mob_become`, `mob_voice`; `core:used_mob` anche sugli animali.
 - La pesca per acqua: persici, carpe, trote, merluzzi, anguille, tonni e un raro pesce rosso;
   tutti si cuociono e il pescatore-rana li compra.
 - L'alchimia: un alambicco, le fiasche e cinque pozioni (vista notturna, rapidità, pelle di

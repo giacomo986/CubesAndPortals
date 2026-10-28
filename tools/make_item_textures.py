@@ -4,7 +4,8 @@
 the iron pick (mods/furnace) and the screwdriver (mods/screwdriver); the arm
 pack (mods/armpack); the boat (mods/boats), the cart (mods/carts), and the
 compass and the map (mods/maps); the shard (mods/relics); the flask and its
-potions (mods/alchemy), one bottle in the colour of what is in it.
+potions (mods/alchemy), one bottle in the colour of what is in it; the
+bucket of milk (mods/animals).
 
 Drawn the way tools_pick.png is: a 16x16 picture doubled to 32 px, flat
 colours lit on the top-left, and a dark outline round every shape. The iron
@@ -287,6 +288,9 @@ LIQUIDS = {
     "haste": ((240, 150, 60), (190, 100, 30)),
     "water_breathing": ((60, 200, 160), (30, 140, 110)),
 }
+# A bucket of milk (mods/animals): the bucket of water, white.
+SHAPES["animals_milk"] = (SHAPES["lakes_bucket_water"][0], dict(SHAPES["lakes_bucket_water"][1], b=(245, 244, 236)))
+
 for _name, (_l, _d) in LIQUIDS.items():
     SHAPES["alchemy_" + _name] = (FLASK, {"k": (150, 105, 60), "K": (190, 140, 85), "g": (215, 235, 240),
                                           "L": _l, "l": _d, "h": (250, 255, 255)})

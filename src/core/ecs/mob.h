@@ -80,6 +80,10 @@ struct MobKind {
     // Comes out of the dark only standing on this block (a cinder on a
     // fortress's bricks); empty is anywhere.
     std::string spawn_on;
+    // Whose sounds it makes (core.mob_voice): "<voice>_say" and so on, its own
+    // name when empty -- a dyed sheep bleats as a sheep.
+    std::string voice;
+    const std::string &voice_name() const { return voice.empty() ? name : voice; }
     // How far off it notices a player and goes for them (core.mob_sight).
     float       notice = 16.0f;
     // The part of its blows and arrows armour does not take (core.mob_pierce),
@@ -203,7 +207,7 @@ int mobs_near(flecs::world &w, const std::vector<MobKind> &kinds, float x, float
               float r, float *out, int max);
 // The same creatures by id (the low 32 bits of the entity), nearest first;
 // returns how many. And where one of them is, false once it is gone.
-int  mob_ids(flecs::world &w, const std::vector<MobKind> &kinds, float x, float y, float z, float r,
+int  mob_ids(flecs::world &w, const std::vector<MobKind> &kinds, float x, float y, float z, float r, bool all,
              int *out, int max);
 bool mob_pos(flecs::world &w, uint32_t id, float *x, float *y, float *z);
 // Those within r walk and strike at `factor` of their pace until now + seconds
@@ -228,6 +232,23 @@ int mob_act(flecs::world &w, const std::vector<MobKind> &kinds, uint32_t id, con
             ItemId held);
 int mob_face(flecs::world &w, uint32_t id, float x, float z);
 int mob_remove(flecs::world &w, uint32_t id);
+
+// For a herder's mod (mods/animals, mods/helpers), any creature by id:
+//   mob_kind_name  its kind's name, "" for none
+//   mob_love       in love as if fed (feed_mob's rules but the food); 1 if so
+//   mob_keep       a wild pet kept or let go (Tame::kept); 1 if it is one
+//   mob_shear_now  shorn as if by its shears (shear_mob): how much fleece,
+//                  left on the ground unless `drop` is false; 0 if not shorn
+std::string mob_kind_name(flecs::world &w, const std::vector<MobKind> &kinds, uint32_t id);
+int mob_love(flecs::world &w, uint32_t id, double now);
+int mob_keep(flecs::world &w, uint32_t id, bool on);
+int mob_shear_now(flecs::world &w, uint32_t id, double now, bool drop);
+// A creature turned into another kind where it stands (core.mob_become),
+// keeping its health, age, fleece's regrowth and stable: a sheep dyed. Only
+// between kinds that fight alike. 1 if it was.
+int mob_become(flecs::world &w, const std::vector<MobKind> &kinds, uint32_t id, const std::string &kind);
+// Who a kind sounds like (core.mob_voice). 1 if it is a kind.
+int mob_voice(std::vector<MobKind> &kinds, const std::string &name, const std::string &voice);
 int mob_place(flecs::world &w, uint32_t id, float x, float y, float z);
 // One creature's time between blows or arrows, as a share of its kind's.
 int mob_blow_every(flecs::world &w, uint32_t id, float factor);
@@ -300,6 +321,9 @@ struct Tame {
     uint16_t    model = 0;       // worn once tamed
     std::string owner;           // empty: wild
     bool        sitting = false;
+    // Wild and KEPT (core.mob_keep): a stable's, never sent away and saved
+    // with the world as the tamed are (its line's owner is "*").
+    bool        kept = false;
 };
 
 // The tamed pets, one line each -- "kind x y z sitting owner" -- for the world
@@ -318,7 +342,7 @@ bool use_pet(flecs::entity e, const std::string &who, ItemId held, bool &took, s
 // A player used `held` on a creature that is shorn with it (core.mob_shear):
 // its fleece is left on the ground, it wears its shorn model until it grows
 // back, and it panics. False when it is not that item, or already shorn.
-bool shear_mob(flecs::world &w, flecs::entity e, ItemId held, double now);
+bool shear_mob(flecs::world &w, flecs::entity e, ItemId held, double now, bool drop = true);
 
 // A creature that is shorn (core.mob_shear): its kind's shearing, on the
 // body so a right click needs no table of kinds.

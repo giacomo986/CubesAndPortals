@@ -1252,7 +1252,7 @@ int l_mobs_near(lua_State *L)
     return 1;
 }
 
-// core.mob_ids(x: number, y: number, z: number, r: number) -> { number }
+// core.mob_ids(x: number, y: number, z: number, r: number, all: boolean?) -> { number }
 int l_mob_ids(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1260,8 +1260,9 @@ int l_mob_ids(lua_State *L)
     const float y = (float)luaL_checknumber(L, 2);
     const float z = (float)luaL_checknumber(L, 3);
     const float r = (float)luaL_checknumber(L, 4);
+    const int all = lua_isnoneornil(L, 5) ? 0 : (lua_toboolean(L, 5) ? 1 : 0);
     int buffer[32] = {0};
-    const int written = (vm && vm->host.mob_ids) ? vm->host.mob_ids(vm->host.ud, x, y, z, r, buffer, 32) : 0;
+    const int written = (vm && vm->host.mob_ids) ? vm->host.mob_ids(vm->host.ud, x, y, z, r, all, buffer, 32) : 0;
     const int count = written < 0 ? 0 : (written > 32 ? 32 : written);
     lua_createtable(L, count, 0);
     for (int i = 0; i < count; ++i) {
@@ -1379,6 +1380,70 @@ int l_mob_remove(lua_State *L)
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int result = (vm && vm->host.mob_remove) ? vm->host.mob_remove(vm->host.ud, id) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.mob_kind(id: number) -> string
+int l_mob_kind(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const char *result = (vm && vm->host.mob_kind) ? vm->host.mob_kind(vm->host.ud, id) : nullptr;
+    lua_pushstring(L, result ? result : "");
+    return 1;
+}
+
+// core.mob_love(id: number) -> number
+int l_mob_love(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const int result = (vm && vm->host.mob_love) ? vm->host.mob_love(vm->host.ud, id) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.mob_keep(id: number, on: boolean?) -> number
+int l_mob_keep(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
+    const int result = (vm && vm->host.mob_keep) ? vm->host.mob_keep(vm->host.ud, id, on) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.mob_shear_now(id: number, drop: boolean?) -> number
+int l_mob_shear_now(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const int drop = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
+    const int result = (vm && vm->host.mob_shear_now) ? vm->host.mob_shear_now(vm->host.ud, id, drop) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.mob_become(id: number, kind: string) -> number
+int l_mob_become(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const char *kind = (const char *)luaL_checkstring(L, 2);
+    const int result = (vm && vm->host.mob_become) ? vm->host.mob_become(vm->host.ud, id, kind) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.mob_voice(name: string, voice: string) -> number
+int l_mob_voice(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_checkstring(L, 1);
+    const char *voice = (const char *)luaL_checkstring(L, 2);
+    const int result = (vm && vm->host.mob_voice) ? vm->host.mob_voice(vm->host.ud, name, voice) : (int)0;
     lua_pushinteger(L, result);
     return 1;
 }
@@ -2940,6 +3005,18 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "mob_unseen");
     lua_pushcfunction(L, l_mob_remove, "core.mob_remove");
     lua_setfield(L, -2, "mob_remove");
+    lua_pushcfunction(L, l_mob_kind, "core.mob_kind");
+    lua_setfield(L, -2, "mob_kind");
+    lua_pushcfunction(L, l_mob_love, "core.mob_love");
+    lua_setfield(L, -2, "mob_love");
+    lua_pushcfunction(L, l_mob_keep, "core.mob_keep");
+    lua_setfield(L, -2, "mob_keep");
+    lua_pushcfunction(L, l_mob_shear_now, "core.mob_shear_now");
+    lua_setfield(L, -2, "mob_shear_now");
+    lua_pushcfunction(L, l_mob_become, "core.mob_become");
+    lua_setfield(L, -2, "mob_become");
+    lua_pushcfunction(L, l_mob_voice, "core.mob_voice");
+    lua_setfield(L, -2, "mob_voice");
     lua_pushcfunction(L, l_mob_hurt, "core.mob_hurt");
     lua_setfield(L, -2, "mob_hurt");
     lua_pushcfunction(L, l_mob_face, "core.mob_face");

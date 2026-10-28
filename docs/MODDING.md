@@ -1288,7 +1288,9 @@ core.mob_remove(id)                    -- via subito, senza morte: il mod lo rip
 ```
 
 Un tasto destro su un lavoratore arriva al mod come `core:used_mob`
-(`player, target, held`). L'oggetto in mano si disegna come quello di un
+(`player, target, held`); così anche su qualunque altra creatura con cui il
+motore non ha fatto nulla (né tosata, né nutrita, né addomesticata): una mucca
+munta, una pecora tinta. `core.mob_kind(target)` dice che creatura è. L'oggetto in mano si disegna come quello di un
 giocatore: il modello `<item>_held` sull'osso `hand_R`, o l'osso `tool_<nome>`
 del modello stesso. `core.node_yield(id)` dice cosa dà un blocco rotto, per chi
 scava al posto di un giocatore. `mods/villagers` e `mods/helpers` sono gli esempi.

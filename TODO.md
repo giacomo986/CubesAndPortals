@@ -587,7 +587,30 @@ the villagers and start with questions (memory: villagers-need-design-first).
     of the table inside fish(): villagers is at Luau's 200 locals); a toad
     made by hand by a pond on the plains brought up perch and carp and
     cooked them.
-12. Herding widened: dyed wool, milk, stables, a robot order to tend animals.
+12. Herding widened -- built 2026-10-28 in `mods/animals` and
+    `mods/helpers`. Engine: core:used_mob now also for any creature the
+    engine did nothing with; core.mob_kind, mob_love (in love as if fed),
+    mob_keep (a wild animal kept: never sent away, saved with the world as
+    a tamed pet is, line owner "*"; its young kept too), mob_shear_now (with
+    `drop` false the caller takes the fleece), mob_become (another kind in
+    place, keeping health, age, shearing and stable), mob_voice (a kind
+    using another's sounds); core.mob_ids takes `all` for the animals too.
+    Dyed sheep: a dye on a sheep turns it that colour (15 kinds
+    animals:sheep_<colour>, tools/make_dyed_sheep.py recolours the models),
+    shorn they give that wool, their lambs are theirs, white dye undoes it.
+    Milk: a bucket on a cow; drunk, 4 health and the bucket back. A trough
+    (5 planks and a wheat) is a stable: filled with wheat or seeds (16), every
+    10 s it keeps the animals within 8 and puts two of a kind that eats it in
+    love, until 8 of that kind. Robot order "Tend animals": shears the sheep
+    round its base into its bag, and feeds two near each other from its bag
+    or a chest. Checked with a client: a sheep dyed red, then shorn (red
+    wool on the ground); a bucket of milk from a cow; two cows at a trough
+    made a calf, 8 wheat down to 4, and all four were still there after the
+    player spent 20 s 300 nodes away; a robot sheared a white and a blue
+    sheep (2 + 2 wool in its bag) and fed two cows into a calf. Seen on the
+    way, not fixed: for ~10 s after joining, creatures are drawn as boxes
+    while the client loads the 456 models. Open: no cake or cheese from the
+    milk; a kept animal can only be let go by a mod (core.mob_keep false).
 13. Errands from the mayor and the merchant, paid from the treasury.
 14. Blueprints: copy a build, have the village builder or a robot build it.
 15. More decorative blocks: stained glass, fences, walls, tiles, furniture.

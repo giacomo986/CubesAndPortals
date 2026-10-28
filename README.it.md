@@ -253,6 +253,10 @@ e un letto. Ogni villaggio ha:
 proprietari ci stanno dentro. Lì dentro i proprietari sono più veloci e resistenti, gli estranei
 più deboli; quello che gli estranei prendono lì è marcato rubato.
 
+**Allevamento** (`mods/animals`): si tinge una pecora per la lana colorata, si munge una mucca con un
+secchio, una mangiatoia di frumento o semi fa da stalla (tiene gli animali e li fa riprodurre), e un
+robot può badare agli animali.
+
 **Pesca**: cosa abbocca dipende dall'acqua -- persici e carpe nei laghi, trote nei fiumi, merluzzi e
 anguille in mare, tonni nell'oceano, un raro pesce rosso ovunque -- e i pescatori-rana li comprano.
 

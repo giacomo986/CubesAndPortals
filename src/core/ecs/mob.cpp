@@ -476,6 +476,7 @@ int add_mob_kind(std::vector<MobKind> &kinds, const MobKind &k)
                 kinds[i].grow       = was.grow;
                 kinds[i].hearts_model = was.hearts_model;
             }
+            if (k.voice.empty()) kinds[i].voice = was.voice;
             if (k.lay_name.empty()) {
                 kinds[i].lay_name = was.lay_name;
                 kinds[i].lay      = was.lay;
@@ -596,11 +597,11 @@ int mobs_near(flecs::world &w, const std::vector<MobKind> &kinds, float x, float
 }
 
 int mob_ids(flecs::world &w, const std::vector<MobKind> &kinds, float x, float y, float z, float r,
-            int *out, int max)
+            bool all, int *out, int max)
 {
     std::vector<std::pair<float, uint32_t>> found;
     w.each([&](flecs::entity e, const Position &p, const Brain &b, Mob) {
-        if (b.kind >= kinds.size() || !fights(kinds[b.kind])) return;
+        if (b.kind >= kinds.size() || (!all && !fights(kinds[b.kind]))) return;
         const float dx = p.x - x, dy = p.y - y, dz = p.z - z;
         const float d2 = dx * dx + dy * dy + dz * dz;
         if (d2 <= r * r) found.push_back({d2, (uint32_t)e.id()});
@@ -743,6 +744,68 @@ int mob_remove(flecs::world &w, uint32_t id)
     if (worker(w, id, e) == nullptr) return 0;
     e.destruct();
     return 1;
+}
+
+std::string mob_kind_name(flecs::world &w, const std::vector<MobKind> &kinds, uint32_t id)
+{
+    const flecs::entity e = w.get_alive(id);
+    const Brain *b = e.is_valid() && e.has<Mob>() ? e.try_get<Brain>() : nullptr;
+    return b != nullptr && b->kind < kinds.size() ? kinds[b->kind].name : std::string();
+}
+
+int mob_love(flecs::world &w, uint32_t id, double now)
+{
+    const flecs::entity e = w.get_alive(id);
+    const Breed *f = e.is_valid() ? e.try_get<Breed>() : nullptr;
+    return f != nullptr && feed_mob(e, f->food, now) ? 1 : 0;
+}
+
+int mob_keep(flecs::world &w, uint32_t id, bool on)
+{
+    const flecs::entity e = w.get_alive(id);
+    Tame *t = e.is_valid() && e.has<Mob>() ? e.try_get_mut<Tame>() : nullptr;
+    if (t == nullptr || !t->owner.empty()) return 0;
+    t->kept = on;
+    return 1;
+}
+
+int mob_shear_now(flecs::world &w, uint32_t id, double now, bool drop)
+{
+    const flecs::entity e = w.get_alive(id);
+    const Fleece *f = e.is_valid() ? e.try_get<Fleece>() : nullptr;
+    if (f == nullptr) return 0;
+    const int count = f->count;
+    return shear_mob(w, e, f->shears, now, drop) ? count : 0;
+}
+
+int mob_become(flecs::world &w, const std::vector<MobKind> &kinds, uint32_t id, const std::string &kind)
+{
+    const flecs::entity e = w.get_alive(id);
+    Brain *b = e.is_valid() && e.has<Mob>() ? e.try_get_mut<Brain>() : nullptr;
+    if (b == nullptr || b->kind >= kinds.size()) return 0;
+    for (size_t i = 0; i < kinds.size(); ++i) {
+        const MobKind &k = kinds[i];
+        if (k.name != kind || k.fight != kinds[b->kind].fight) continue;
+        b->kind = (uint16_t)i;
+        if (b->grown_at <= 0.0) e.set<Drops>({k.drop, k.drop_count, k.lay, k.extra, k.extra_max});
+        if (k.breed != kNoItem) e.set<Breed>({k.breed});
+        if (k.shear != kNoItem) e.set<Fleece>({k.shear, k.fleece, k.fleece_count, k.shorn_model, k.regrow});
+        // What it wears: shorn stays shorn, a young one its young model.
+        const uint16_t model = b->grown_at > 0.0 ? k.baby_model : b->shorn_until > 0.0 ? k.shorn_model : k.model;
+        if (model != 0) e.set<Wears>({model});
+        return 1;
+    }
+    return 0;
+}
+
+int mob_voice(std::vector<MobKind> &kinds, const std::string &name, const std::string &voice)
+{
+    for (MobKind &k : kinds)
+        if (k.name == name) {
+            k.voice = voice;
+            return 1;
+        }
+    return 0;
 }
 
 int mob_blow_every(flecs::world &w, uint32_t id, float factor)
@@ -1007,11 +1070,11 @@ std::vector<std::string> pets_to_lines(flecs::world &w, const std::vector<MobKin
 {
     std::vector<std::string> out;
     w.each([&](const Position &p, const Brain &b, const Tame &t) {
-        if (t.owner.empty() || b.kind >= kinds.size()) return;
+        if ((t.owner.empty() && !t.kept) || b.kind >= kinds.size()) return;
         char buf[96];
         std::snprintf(buf, sizeof(buf), " %.2f %.2f %.2f %d ", (double)p.x, (double)p.y,
                       (double)p.z, t.sitting ? 1 : 0);
-        out.push_back(kinds[b.kind].name + buf + t.owner);
+        out.push_back(kinds[b.kind].name + buf + (t.owner.empty() ? std::string("*") : t.owner));
     });
     return out;
 }
@@ -1033,7 +1096,12 @@ int pets_from_lines(flecs::world &w, const std::vector<MobKind> &kinds,
             Tame *t = e.try_get_mut<Tame>();
             t->owner   = line.substr((size_t)used);
             t->sitting = sitting != 0;
-            if (t->model != 0) e.set<Wears>({t->model});
+            if (t->owner == "*") {   // a kept wild one (mob_keep)
+                t->owner.clear();
+                t->kept = true;
+            } else if (t->model != 0) {
+                e.set<Wears>({t->model});
+            }
             ++made;
             break;
         }
@@ -1067,7 +1135,7 @@ bool use_pet(flecs::entity e, const std::string &who, ItemId held, bool &took, s
     return true;
 }
 
-bool shear_mob(flecs::world &w, flecs::entity e, ItemId held, double now)
+bool shear_mob(flecs::world &w, flecs::entity e, ItemId held, double now, bool drop)
 {
     Brain          *b = e.try_get_mut<Brain>();
     const Position *p = e.try_get<Position>();
@@ -1082,7 +1150,7 @@ bool shear_mob(flecs::world &w, flecs::entity e, ItemId held, double now)
     b->scared   = true;
     b->scared_x = p->x - std::sin(b->heading);
     b->scared_z = p->z + std::cos(b->heading);
-    if (f->wool != kNoItem) {
+    if (f->wool != kNoItem && drop) {
         ItemStack stack;
         stack.item  = f->wool;
         stack.count = f->count;
@@ -1122,6 +1190,10 @@ void spawn_young(flecs::world &w, const std::vector<MobKind> &kinds, uint16_t ki
     b.spread      = std::max(0.1f, k.spread * 0.5f);
     e.set<Drops>({kNoItem, 1, kNoItem});
     if (k.baby_model != 0) e.set<Wears>({k.baby_model});
+    // Born in a stable, kept as its parent is.
+    const flecs::entity pe = w.get_alive(parent);
+    const Tame *pt = pe.is_valid() ? pe.try_get<Tame>() : nullptr;
+    if (Tame *t = e.try_get_mut<Tame>(); t != nullptr && pt != nullptr) t->kept = pt->kept;
 }
 
 } // namespace
@@ -1715,7 +1787,7 @@ SpawnResult spawn_and_despawn(flecs::world &w, const World &world, const NodeReg
         // A pet with an owner is theirs, near or not.
         // ponytail: kept for as long as the server runs, and not saved with
         // the world; a Tame in the save when pets must outlive a restart.
-        if (const Tame *tame = e.try_get<Tame>(); tame && !tame->owner.empty()) return;
+        if (const Tame *tame = e.try_get<Tame>(); tame && (!tame->owner.empty() || tame->kept)) return;
         if (e.has<Act>()) return;   // a worker is its mod's to remove
         for (const Target &t : targets) {
             const float dx = t.x - p.x, dy = t.y - p.y, dz = t.z - p.z;

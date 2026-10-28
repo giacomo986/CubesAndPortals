@@ -4563,11 +4563,11 @@ int host_mobs_near(void *ud, double x, double y, double z, double r, float *out,
                     : 0;
 }
 
-int host_mob_ids(void *ud, double x, double y, double z, double r, int *out, int max)
+int host_mob_ids(void *ud, double x, double y, double z, double r, int all, int *out, int max)
 {
     Scene *s = static_cast<Scene *>(ud);
     return s->drops ? ecs::mob_ids(*s->drops, s->act().mob_kinds, (float)x, (float)y, (float)z,
-                                   (float)r, out, max)
+                                   (float)r, all != 0, out, max)
                     : 0;
 }
 
@@ -4670,6 +4670,43 @@ int host_mob_remove(void *ud, int id)
 {
     Scene *s = static_cast<Scene *>(ud);
     return s->drops ? ecs::mob_remove(*s->drops, (uint32_t)id) : 0;
+}
+
+const char *host_mob_kind(void *ud, int id)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    static std::string name;
+    name = s->drops ? ecs::mob_kind_name(*s->drops, s->act().mob_kinds, (uint32_t)id) : "";
+    return name.c_str();
+}
+
+int host_mob_love(void *ud, int id)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    return s->drops ? ecs::mob_love(*s->drops, (uint32_t)id, s->drop_clock) : 0;
+}
+
+int host_mob_keep(void *ud, int id, int on)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    return s->drops ? ecs::mob_keep(*s->drops, (uint32_t)id, on != 0) : 0;
+}
+
+int host_mob_shear_now(void *ud, int id, int drop)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    return s->drops ? ecs::mob_shear_now(*s->drops, (uint32_t)id, s->drop_clock, drop != 0) : 0;
+}
+
+int host_mob_become(void *ud, int id, const char *kind)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    return s->drops && kind ? ecs::mob_become(*s->drops, s->act().mob_kinds, (uint32_t)id, kind) : 0;
+}
+
+int host_mob_voice(void *ud, const char *name, const char *voice)
+{
+    return name && voice ? ecs::mob_voice(static_cast<Scene *>(ud)->act().mob_kinds, name, voice) : 0;
 }
 
 int host_mob_face(void *ud, int id, double x, double z)
@@ -18439,9 +18476,22 @@ int run_interactive(Scene &s, double seconds)
                                        ecs::feed_mob(demo_ecs.entity(aimed), hand, demo_clock);
                     if (shorn) bag.wear_slot(s.act().items, bag.selected(), 1);
                     if (fed) bag.take_from(bag.selected(), 1);
-                    if (!shorn && !fed && ecs::use_pet(demo_ecs.entity(aimed), g_self_name,
-                                               held.empty() ? kNoItem : held.item, took, why) && took)
-                        bag.take_from(bag.selected(), 1);
+                    const bool petted = !shorn && !fed &&
+                                        ecs::use_pet(demo_ecs.entity(aimed), g_self_name,
+                                                     held.empty() ? kNoItem : held.item, took, why);
+                    if (petted && took) bag.take_from(bag.selected(), 1);
+                    // Nothing the engine does: its mod's to answer (a cow milked).
+                    if (!shorn && !fed && !petted) {
+                        const std::string name = held.empty() ? std::string() : s.act().items.get(held.item).name;
+                        script_field uf[3] = {
+                            {"player", SCRIPT_V_NUMBER, (double)ui::kLocalPlayer, nullptr, 0},
+                            {"target", SCRIPT_V_NUMBER, (double)(uint32_t)aimed, nullptr, 0},
+                            {"held", SCRIPT_V_STRING, 0.0, name.c_str(), 0},
+                        };
+                        std::string use_err;
+                        if (!s.act().mods.events().emit("core:used_mob", uf, 3, nullptr, use_err))
+                            std::fprintf(stderr, "emit core:used_mob: %s\n", use_err.c_str());
+                    }
                     used_body = true;
                 }
             }
@@ -18588,7 +18638,7 @@ int run_interactive(Scene &s, double seconds)
                 demo_ecs.set<ecs::MobVoice>({[&s](uint16_t kind, const char *what, Vec3 at) {
                     const std::vector<ecs::MobKind> &kinds = s.act().mob_kinds;
                     if (kind < kinds.size())
-                        play_at(s, s.sounds.named(kinds[kind].name + "_" + what), at, s.active);
+                        play_at(s, s.sounds.named(kinds[kind].voice_name() + "_" + what), at, s.active);
                 }});
             ecs::step_mobs(
                 demo_ecs, w.world, w.registry, w.mob_kinds, targets, dt, demo_clock,
@@ -18881,6 +18931,12 @@ script_host make_client_host(Scene &scene)
     host.mob_act        = host_mob_act;
     host.mob_face       = host_mob_face;
     host.mob_remove     = host_mob_remove;
+    host.mob_kind       = host_mob_kind;
+    host.mob_love       = host_mob_love;
+    host.mob_keep       = host_mob_keep;
+    host.mob_shear_now  = host_mob_shear_now;
+    host.mob_become     = host_mob_become;
+    host.mob_voice      = host_mob_voice;
     host.mob_place      = host_mob_place;
     host.slow_mobs      = host_slow_mobs;
     host.engine_hud     = host_engine_hud;

@@ -1683,6 +1683,8 @@ local api: { Fn } = {
         args = {
             { name = "x", type = "float" }, { name = "y", type = "float" }, { name = "z", type = "float" },
             { name = "r", type = "float", doc = "How far, in nodes." },
+            { name = "all", type = "bool", default = false,
+              doc = "true: every creature, the animals and workers too (core.mob_kind tells them apart)." },
         },
         doc = "The creatures core.mobs_near finds, by id, nearest first; at most 32. An id "
            .. "stays the same creature while it lives, so a mod can follow the one it chose "
@@ -1802,6 +1804,65 @@ local api: { Fn } = {
         args = { { name = "id", type = "int" } },
         doc = "Takes a worker out of the world at once, leaving nothing and playing no death: "
            .. "its mod taking it back. Returns 1, or 0 for one that is gone or not a worker.",
+    },
+    {
+        name = "mob_kind",
+        host = "mob_kind",
+        ret  = "string",
+        args = { { name = "id", type = "int" } },
+        doc = "What kind a creature is, by the name it was registered under (register_mob), "
+           .. "or an empty string for one that is gone or no creature. What a mod answering "
+           .. "core:used_mob reads to know a cow from a sheep.",
+    },
+    {
+        name = "mob_love",
+        host = "mob_love",
+        ret  = "int",
+        args = { { name = "id", type = "int" } },
+        doc = "Puts a creature in love as if a player had fed it its food (core.mob_breed): "
+           .. "only a grown one, not in love already and not within five minutes of its last "
+           .. "young. A trough, a robot tending a pen. Returns 1 if it is in love now.",
+    },
+    {
+        name = "mob_keep",
+        host = "mob_keep",
+        ret  = "int",
+        args = { { name = "id", type = "int" }, { name = "on", type = "bool", default = true } },
+        doc = "Keeps a wild animal (a \"pet\" kind nobody owns): it is not sent away when no "
+           .. "player is near, and it is saved with the world as a tamed pet is -- a stable's. "
+           .. "Its young are kept too. false lets it go wild again. Returns 1, or 0 for one "
+           .. "that is not a wild pet.",
+    },
+    {
+        name = "mob_shear_now",
+        host = "mob_shear_now",
+        ret  = "int",
+        args = { { name = "id", type = "int" },
+                 { name = "drop", type = "bool", default = true,
+                   doc = "false: nothing on the ground, the caller gives the fleece (a robot's bag)." } },
+        doc = "Shears a creature as its shears would (core.mob_shear): its fleece on the "
+           .. "ground at its feet, its shorn model until it grows back. Returns how many of "
+           .. "its fleece that was, or 0 for one that is not shorn or is shorn already.",
+    },
+    {
+        name = "mob_become",
+        host = "mob_become",
+        ret  = "int",
+        args = { { name = "id", type = "int" }, { name = "kind", type = "string", doc = "A kind from register_mob." } },
+        doc = "Turns a creature into another kind where it stands, keeping its health, its "
+           .. "age, how long until its fleece is back and whether a stable keeps it: a sheep "
+           .. "dyed. What it leaves, how it is shorn and bred and what it wears become the new "
+           .. "kind's. Only between kinds that fight alike. Returns 1, or 0 when refused.",
+    },
+    {
+        name = "mob_voice",
+        host = "mob_voice",
+        ret  = "int",
+        args = { { name = "name", type = "string", doc = "A kind from register_mob." },
+                 { name = "voice", type = "string", doc = "Another kind, whose sound files it uses." } },
+        doc = "Whose sounds a kind makes: \"herding:sheep_red\" with the voice "
+           .. "\"animals:sheep\" plays mods/animals/sheep_say.ogg and the rest. Returns 1, or 0 "
+           .. "for a kind nobody registered.",
     },
     {
         name = "mob_hurt",

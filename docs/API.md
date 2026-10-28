@@ -1486,7 +1486,7 @@ Where the creatures that fight (as core.monsters_near counts them) have their fe
 ## `core.mob_ids`
 
 ```luau
-core.mob_ids(x: number, y: number, z: number, r: number) -> { number }
+core.mob_ids(x: number, y: number, z: number, r: number, all: boolean?) -> { number }
 ```
 
 The creatures core.mobs_near finds, by id, nearest first; at most 32. An id stays the same creature while it lives, so a mod can follow the one it chose with core.mob_pos.
@@ -1497,6 +1497,7 @@ The creatures core.mobs_near finds, by id, nearest first; at most 32. An id stay
 | `y` | number | — |  |
 | `z` | number | — |  |
 | `r` | number | — | How far, in nodes. |
+| `all` | boolean | `false` | true: every creature, the animals and workers too (core.mob_kind tells them apart). |
 
 ## `core.mob_pos`
 
@@ -1621,6 +1622,82 @@ Takes a worker out of the world at once, leaving nothing and playing no death: i
 | argomento | tipo | default | note |
 |---|---|---|---|
 | `id` | number | — |  |
+
+## `core.mob_kind`
+
+```luau
+core.mob_kind(id: number) -> string
+```
+
+What kind a creature is, by the name it was registered under (register_mob), or an empty string for one that is gone or no creature. What a mod answering core:used_mob reads to know a cow from a sheep.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `id` | number | — |  |
+
+## `core.mob_love`
+
+```luau
+core.mob_love(id: number) -> number
+```
+
+Puts a creature in love as if a player had fed it its food (core.mob_breed): only a grown one, not in love already and not within five minutes of its last young. A trough, a robot tending a pen. Returns 1 if it is in love now.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `id` | number | — |  |
+
+## `core.mob_keep`
+
+```luau
+core.mob_keep(id: number, on: boolean?) -> number
+```
+
+Keeps a wild animal (a "pet" kind nobody owns): it is not sent away when no player is near, and it is saved with the world as a tamed pet is -- a stable's. Its young are kept too. false lets it go wild again. Returns 1, or 0 for one that is not a wild pet.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `id` | number | — |  |
+| `on` | boolean | `true` |  |
+
+## `core.mob_shear_now`
+
+```luau
+core.mob_shear_now(id: number, drop: boolean?) -> number
+```
+
+Shears a creature as its shears would (core.mob_shear): its fleece on the ground at its feet, its shorn model until it grows back. Returns how many of its fleece that was, or 0 for one that is not shorn or is shorn already.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `id` | number | — |  |
+| `drop` | boolean | `true` | false: nothing on the ground, the caller gives the fleece (a robot's bag). |
+
+## `core.mob_become`
+
+```luau
+core.mob_become(id: number, kind: string) -> number
+```
+
+Turns a creature into another kind where it stands, keeping its health, its age, how long until its fleece is back and whether a stable keeps it: a sheep dyed. What it leaves, how it is shorn and bred and what it wears become the new kind's. Only between kinds that fight alike. Returns 1, or 0 when refused.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `id` | number | — |  |
+| `kind` | string | — | A kind from register_mob. |
+
+## `core.mob_voice`
+
+```luau
+core.mob_voice(name: string, voice: string) -> number
+```
+
+Whose sounds a kind makes: "herding:sheep_red" with the voice "animals:sheep" plays mods/animals/sheep_say.ogg and the rest. Returns 1, or 0 for a kind nobody registered.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — | A kind from register_mob. |
+| `voice` | string | — | Another kind, whose sound files it uses. |
 
 ## `core.mob_hurt`
 

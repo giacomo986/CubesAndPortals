@@ -267,7 +267,7 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     -- Where the creatures that fight (as core.monsters_near counts them) have their feet within r of x, y, z, the nearest first, as a FLAT list x, y, z, x, y, z ...; at most 32. What a click on a creature, or a spell that leaps from one to the next, aims with.
     mobs_near: (x: number, y: number, z: number, r: number) -> { number },
     -- The creatures core.mobs_near finds, by id, nearest first; at most 32. An id stays the same creature while it lives, so a mod can follow the one it chose with core.mob_pos.
-    mob_ids: (x: number, y: number, z: number, r: number) -> { number },
+    mob_ids: (x: number, y: number, z: number, r: number, all: boolean?) -> { number },
     -- Where that creature's feet are, or NOTHING once it is dead or gone.
     mob_pos: (id: number) -> (number?, number?, number?),
     -- Sends a worker (register_mob with fight "worker") to that cell, along a way core.find_path finds, opening doors if its kind does; it stops in the middle of it. Where there is no way it walks as near as it can and keeps trying: core.mob_going says when it is there. Returns 1, or 0 for one that is gone or not a worker.
@@ -286,6 +286,18 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     mob_unseen: (id: number, player: number) -> number,
     -- Takes a worker out of the world at once, leaving nothing and playing no death: its mod taking it back. Returns 1, or 0 for one that is gone or not a worker.
     mob_remove: (id: number) -> number,
+    -- What kind a creature is, by the name it was registered under (register_mob), or an empty string for one that is gone or no creature. What a mod answering core:used_mob reads to know a cow from a sheep.
+    mob_kind: (id: number) -> string,
+    -- Puts a creature in love as if a player had fed it its food (core.mob_breed): only a grown one, not in love already and not within five minutes of its last young. A trough, a robot tending a pen. Returns 1 if it is in love now.
+    mob_love: (id: number) -> number,
+    -- Keeps a wild animal (a "pet" kind nobody owns): it is not sent away when no player is near, and it is saved with the world as a tamed pet is -- a stable's. Its young are kept too. false lets it go wild again. Returns 1, or 0 for one that is not a wild pet.
+    mob_keep: (id: number, on: boolean?) -> number,
+    -- Shears a creature as its shears would (core.mob_shear): its fleece on the ground at its feet, its shorn model until it grows back. Returns how many of its fleece that was, or 0 for one that is not shorn or is shorn already.
+    mob_shear_now: (id: number, drop: boolean?) -> number,
+    -- Turns a creature into another kind where it stands, keeping its health, its age, how long until its fleece is back and whether a stable keeps it: a sheep dyed. What it leaves, how it is shorn and bred and what it wears become the new kind's. Only between kinds that fight alike. Returns 1, or 0 when refused.
+    mob_become: (id: number, kind: string) -> number,
+    -- Whose sounds a kind makes: "herding:sheep_red" with the voice "animals:sheep" plays mods/animals/sheep_say.ogg and the rest. Returns 1, or 0 for a kind nobody registered.
+    mob_voice: (name: string, voice: string) -> number,
     -- One creature, by id, loses `damage` as core.shoot would take it off and is knocked back: a mod's own bullet that picked its target itself, such as a team's that passes its friends. Returns 2 when that killed it, 1 when struck, 0 for one that is gone or already dead. On a server.
     mob_hurt: (id: number, damage: number, from_x: number, from_z: number) -> number,
     -- Turns a worker to look at x, z: the water it fishes, the furnace it cooks at.
