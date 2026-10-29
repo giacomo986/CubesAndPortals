@@ -483,9 +483,32 @@ end
 
 -- ------------------------------------------------------------ paths
 
+-- Paths join the settlements into a NETWORK (2026-10-29): two are joined
+-- when no third is nearer to both than they are to each other -- so each has
+-- two or three neighbours and from any one the others can be walked to -- and
+-- one with none such is joined to its nearest. A path is found on a coarse
+-- grid (path_between), then pulled straight where the land lets it and
+-- rounded at its bends, and paved by the land it crosses: sandstone in the
+-- desert, cobblestone near a town, gravel in the cold and up high, beaten
+-- earth elsewhere, its edges ragged. A signpost stands where it leaves each
+-- end, saying where it goes and how far; a milestone with a lantern every
+-- 100 nodes, and lanterns on posts near the villages.
+--
+-- A world whose paths were laid before keeps the old ones (storage "path
+-- version" 1): each settlement to its nearest, the grid's points as found,
+-- beaten earth -- or its new paths would end at the edge of what was made.
+
 -- A path: the points it turns at, first and last where it leaves the two
--- settlements, and every cell it paves as { x, z, height }.
-type Path = { points: { { number } }, cells: { [string]: { number } } }
+-- settlements, every cell it paves as { x, z, height }, the way along it a
+-- point every 4 nodes (for caravans, mods/villagers), and what stands beside
+-- it: { x, z, kind, text, facing, height }.
+type Path = { points: { { number } }, cells: { [string]: { number } }, line: { { number } },
+              deco: { { any } }, a: Village, b: Village, len: number }
+
+local PATHS_V = 2
+local function said_of(v: Village): string
+    return `the {if v.town then "town" else "village"} at {v.x} {v.z}`
+end
 
 
 local PATH: { [string]: Path | false } = {}
@@ -512,6 +535,9 @@ end
 -- the other.
 local CELL = 8
 local MARGIN = 96
+-- Paths that may still be worked out now: a route asked for in a tick (not
+-- a column being made) works out two at most, and leaves the rest for later.
+local ALLOW = math.huge
 
 local function path_between(a: Village, b: Village, seed: number): Path?
     if a.rx > b.rx or (a.rx == b.rx and a.rz > b.rz) then
@@ -522,6 +548,10 @@ local function path_between(a: Village, b: Village, seed: number): Path?
     if cached ~= nil then
         return if cached then cached else nil
     end
+    if ALLOW <= 0 then
+        return nil
+    end
+    ALLOW -= 1
 
     local ax, az = door_of(a, b, seed)
     local bx, bz = door_of(b, a, seed)
@@ -623,6 +653,49 @@ local function path_between(a: Village, b: Village, seed: number): Path?
         end
         table.insert(pts, 1, { ax, az })
 
+        if PATHS_V >= 2 then
+            -- Pulled straight across the grid's cells where the land lets it
+            -- (nothing it cannot cross, no water the found way did not cross, a
+            -- climb of 2 at most in 4 nodes), 48 nodes at most at a time, so it
+            -- still winds with the land; then its bends rounded off twice.
+            local function clear(p: { number }, q: { number }): boolean
+                local n = math.max(1, math.ceil(math.sqrt((q[1] - p[1]) ^ 2 + (q[2] - p[2]) ^ 2) / 4))
+                local last = nil
+                for t = 0, n do
+                    local x = math.floor(p[1] + (q[1] - p[1]) * t / n)
+                    local z = math.floor(p[2] + (q[2] - p[2]) * t / n)
+                    local i = cell(x, z)
+                    local g = ground(i)
+                    if g < 0 or (damp[i] and t > 0 and t < n) or (last and math.abs(g - last) > 2) then
+                        return false
+                    end
+                    last = g
+                end
+                return true
+            end
+            local pulled = { pts[1] }
+            local i = 1
+            while i < #pts do
+                local j = math.min(#pts, i + 6)
+                while j > i + 1 and not clear(pts[i], pts[j]) do
+                    j -= 1
+                end
+                table.insert(pulled, pts[j])
+                i = j
+            end
+            for _ = 1, 2 do
+                local round = { pulled[1] }
+                for k = 1, #pulled - 1 do
+                    local p, q = pulled[k], pulled[k + 1]
+                    table.insert(round, { p[1] * 0.75 + q[1] * 0.25, p[2] * 0.75 + q[2] * 0.25 })
+                    table.insert(round, { p[1] * 0.25 + q[1] * 0.75, p[2] * 0.25 + q[2] * 0.75 })
+                end
+                table.insert(round, pulled[#pulled])
+                pulled = round
+            end
+            pts = pulled
+        end
+
         -- Two wide along the points, except inside a house of either end.
         local houses: { Rect } = {}
         for _, v in { a, b } do
@@ -633,27 +706,90 @@ local function path_between(a: Village, b: Village, seed: number): Path?
             end
         end
         local cells: { [string]: { number } } = {}
+        local function put(cx: number, cz: number)
+            for _, r in houses do
+                if cx >= r.x0 and cx <= r.x1 and cz >= r.z0 and cz <= r.z1 then
+                    return
+                end
+            end
+            cells[`{cx},{cz}`] = { cx, cz }
+        end
+        -- The way along it, a point every 4 nodes, and how long it is.
+        local line: { { number } } = {}
+        local len, next_at = 0, 0
         for k = 1, #pts - 1 do
             local px, pz, qx, qz = pts[k][1], pts[k][2], pts[k + 1][1], pts[k + 1][2]
-            local steps = math.ceil(math.sqrt((qx - px) ^ 2 + (qz - pz) ^ 2) * 2)
+            local seg = math.sqrt((qx - px) ^ 2 + (qz - pz) ^ 2)
+            local steps = math.max(1, math.ceil(seg * 2))
             for t = 0, steps do
-                local x = math.floor(px + (qx - px) * t / steps)
-                local z = math.floor(pz + (qz - pz) * t / steps)
-                for _, c in { { x, z }, { x + 1, z }, { x, z + 1 } } do
-                    local inside = false
-                    for _, r in houses do
-                        if c[1] >= r.x0 and c[1] <= r.x1 and c[2] >= r.z0 and c[2] <= r.z1 then
-                            inside = true
+                local x, z = px + (qx - px) * t / steps, pz + (qz - pz) * t / steps
+                if PATHS_V >= 2 then
+                    -- About 2.3 wide, to 3.5 here and there: a ragged edge.
+                    for dz = -2, 2 do
+                        for dx = -2, 2 do
+                            local cx, cz = math.floor(x) + dx, math.floor(z) + dz
+                            local d = math.sqrt((cx + 0.5 - x) ^ 2 + (cz + 0.5 - z) ^ 2)
+                            if d <= 1.15 or (d <= 1.75 and hash(cx, cz, 0x5EED) % 3 ~= 0) then
+                                put(cx, cz)
+                            end
                         end
                     end
-                    if not inside then
-                        cells[`{c[1]},{c[2]}`] = { c[1], c[2] }
-                    end
+                else
+                    local cx, cz = math.floor(x), math.floor(z)
+                    put(cx, cz)
+                    put(cx + 1, cz)
+                    put(cx, cz + 1)
+                end
+                local here = len + seg * t / steps
+                if here >= next_at then
+                    table.insert(line, { math.floor(x) + 0.5, math.floor(z) + 0.5, here })
+                    next_at += 4
+                end
+            end
+            len += seg
+        end
+        table.insert(line, { bx + 0.5, bz + 0.5, len })
+        carve(cells)
+        found = { points = pts, cells = cells, line = line, deco = {}, a = a, b = b, len = len }
+        if PATHS_V >= 2 then
+            -- What stands beside it, to its right going from a to b, 2.6 out.
+            local deco = found.deco
+            local function beside(k: number, kind: string, text: string, back: boolean)
+                local p, q = line[math.max(1, k - 1)], line[math.min(#line, k + 1)]
+                local ux, uz = q[1] - p[1], q[2] - p[2]
+                local l = math.sqrt(ux * ux + uz * uz)
+                if l < 0.01 then
+                    return
+                end
+                local nx, nz = -uz / l, ux / l
+                if back then
+                    nx, nz = -nx, -nz
+                end
+                local sx, sz = math.floor(line[k][1] + nx * 2.6), math.floor(line[k][2] + nz * 2.6)
+                local on = cells[`{math.floor(line[k][1])},{math.floor(line[k][2])}`]
+                if cells[`{sx},{sz}`] or on == nil then
+                    return
+                end
+                -- Facing the way, as a sign is turned to whoever put it up.
+                local facing = if math.abs(nx) > math.abs(nz) then (if nx > 0 then 3 else 1)
+                               else (if nz > 0 then 2 else 0)
+                table.insert(deco, { sx, sz, kind, text, facing, on[3] })
+            end
+            local n = #line
+            if n >= 6 then
+                beside(3, "sign", `To {said_of(b)}: {math.floor(len)} nodes`, false)
+                beside(n - 2, "sign", `To {said_of(a)}: {math.floor(len)} nodes`, true)
+            end
+            for k = 2, n - 1 do
+                local at = line[k][3]
+                local mile = math.floor(at / 100) ~= math.floor(line[k - 1][3] / 100)
+                if mile and at > 30 and len - at > 30 then
+                    beside(k, "mile", "", k % 2 == 0)
+                elseif (at < 40 or len - at < 40) and k % 4 == 0 and k > 4 and k < n - 4 then
+                    beside(k, "lamp", "", k % 8 == 0)
                 end
             end
         end
-        carve(cells)
-        found = { points = pts, cells = cells }
         core.log(`villages: path {a.x} {a.z} to {b.x} {b.z}, {#pts} points`)
     end
     PATH[key] = found
@@ -661,6 +797,32 @@ local function path_between(a: Village, b: Village, seed: number): Path?
 end
 
 local LINK: { [string]: Path | false } = {}
+local LINKS: { [string]: { Path } } = {}
+
+-- Whether two settlements are neighbours in the network: no third nearer to
+-- both than they are to each other, among those within two regions of
+-- either -- the same answer whichever of the two asks.
+local function linked(a: Village, b: Village, seed: number): boolean
+    local d = (a.x - b.x) ^ 2 + (a.z - b.z) ^ 2
+    if d > 720 * 720 then
+        return false
+    end
+    local looked: { [Village]: boolean } = {}
+    for _, e in { a, b } do
+        for dz = -2, 2 do
+            for dx = -2, 2 do
+                local w = village_of(e.rx + dx, e.rz + dz, seed)
+                if w and w ~= a and w ~= b and not looked[w] then
+                    looked[w] = true
+                    if (a.x - w.x) ^ 2 + (a.z - w.z) ^ 2 < d and (b.x - w.x) ^ 2 + (b.z - w.z) ^ 2 < d then
+                        return false
+                    end
+                end
+            end
+        end
+    end
+    return true
+end
 
 -- A settlement's path: to the nearest one in the eight regions round it that a
 -- path can reach without crossing the peaks.
@@ -690,9 +852,163 @@ local function link(v: Village, seed: number): Path?
             break
         end
     end
-    LINK[key] = found
+    if found or ALLOW > 0 then
+        LINK[key] = found
+    end
     return if found then found else nil
 end
+
+-- A settlement's paths in the network (link, for a world that keeps the old
+-- ones): to each neighbour in the eight regions round it that is linked and
+-- that a path reaches; its nearest when there is none.
+-- With `ctx` (a column being made), only the paths that may cross it are
+-- worked out -- each is worked out once and kept, but a column has a budget.
+local function links(v: Village, seed: number, ctx: any?): { Path }
+    local key = `{v.rx},{v.rz}`
+    local cached = LINKS[key]
+    if cached then
+        return cached
+    end
+    local out: { Path } = {}
+    local whole, any = true, false
+    if PATHS_V >= 2 then
+        for dz = -1, 1 do
+            for dx = -1, 1 do
+                local o = village_of(v.rx + dx, v.rz + dz, seed)
+                if o and o ~= v and linked(v, o, seed) then
+                    any = true
+                    local near = ctx == nil or (
+                        math.min(v.x, o.x) - MARGIN - 64 <= ctx.max_x and math.max(v.x, o.x) + MARGIN + 64 >= ctx.min_x
+                        and math.min(v.z, o.z) - MARGIN - 64 <= ctx.max_z and math.max(v.z, o.z) + MARGIN + 64 >= ctx.min_z)
+                    if near then
+                        local p = path_between(v, o, seed)
+                        if p then
+                            table.insert(out, p)
+                        elseif ALLOW <= 0 then
+                            whole = false   -- not worked out yet
+                        end
+                    else
+                        whole = false
+                    end
+                end
+            end
+        end
+    end
+    -- None such (or the old paths): to its nearest.
+    if not any then
+        local p = link(v, seed)
+        if p then
+            table.insert(out, p)
+        end
+    end
+    if whole then
+        LINKS[key] = out
+    end
+    return out
+end
+
+-- The way between two settlements along the network, as the points of the
+-- paths walked one after another; the fewest paths, then the shortest, three
+-- at most. nil when the network does not join them.
+local function route(a: Village, b: Village, seed: number): { { number } }?
+    local best: { Path }? = nil
+    local best_len = math.huge
+    local function walk(v: Village, via: { Path }, len: number)
+        if v == b then
+            if len < best_len then
+                best, best_len = table.clone(via), len
+            end
+            return
+        end
+        if #via >= 3 or len >= best_len then
+            return
+        end
+        for _, p in links(v, seed) do
+            local o = if p.a == v then p.b else p.a
+            if table.find(via, p) == nil then
+                table.insert(via, p)
+                walk(o, via, len + p.len)
+                table.remove(via)
+            end
+        end
+    end
+    walk(a, {}, 0)
+    if best == nil then
+        return nil
+    end
+    local out: { { number } } = {}
+    local at = a
+    for _, p in best do
+        local from, to, step = 1, #p.line, 1
+        if p.b == at then
+            from, to, step = #p.line, 1, -1
+        end
+        for k = from, to, step do
+            table.insert(out, { p.line[k][1], p.line[k][2] })
+        end
+        at = if p.a == at then p.b else p.a
+    end
+    return out
+end
+
+-- Asked for by mods/villagers' caravans: the way from one region's
+-- settlement to another's, told back at once as "x,z;x,z;..." ("" for none).
+core.event.define("villages:route_ask", { fields = { rx1 = "number", rz1 = "number", rx2 = "number", rz2 = "number" },
+                                         cancellable = false })
+core.event.define("villages:route", { fields = { rx1 = "number", rz1 = "number", rx2 = "number", rz2 = "number",
+                                               points = "string" }, cancellable = false })
+core.event.on("villages:route_ask", function(ev)
+    local seed = SEED
+    local a = seed and village_of(ev.rx1, ev.rz1, seed :: number)
+    local b = seed and village_of(ev.rx2, ev.rz2, seed :: number)
+    ALLOW = 2
+    local pts = if a and b then route(a, b, seed :: number) else nil
+    ALLOW = math.huge
+    local parts = {}
+    for _, q in pts or {} do
+        table.insert(parts, `{math.floor(q[1])},{math.floor(q[2])}`)
+    end
+    core.event.emit("villages:route", { rx1 = ev.rx1, rz1 = ev.rz1, rx2 = ev.rx2, rz2 = ev.rz2,
+                                        points = table.concat(parts, ";") })
+end)
+
+-- A signpost's words, written into the sign once its cell is there to write
+-- in: kept until then ("x,y,z" -> text), in storage once it is read.
+local SIGNS_DUE: { [string]: string } = {}
+local function keep_signs()
+    if not ready then
+        return
+    end
+    local parts = {}
+    for k, t in SIGNS_DUE do
+        table.insert(parts, `{k}|{t}`)
+    end
+    core.storage_set("signs due", table.concat(parts, ";"))
+end
+local signs_at = 0.0
+core.event.on("core:tick", function(ev)
+    signs_at += ev.dt
+    if signs_at < 2 or next(SIGNS_DUE) == nil then
+        return
+    end
+    signs_at = 0
+    local sign = id("building:oak_standing_sign")
+    local done = false
+    for k, t in SIGNS_DUE do
+        local x, y, z = string.match(k, "^(-?%d+),(-?%d+),(-?%d+)$")
+        local cx, cy, cz = tonumber(x) :: number, tonumber(y) :: number, tonumber(z) :: number
+        if core.loaded(cx, cy, cz) == 1 then
+            if core.get_block(cx, cy, cz) == sign and core.meta_get(cx, cy, cz, "text") == "" then
+                core.meta_set(cx, cy, cz, "text", t)
+            end
+            SIGNS_DUE[k] = nil
+            done = true
+        end
+    end
+    if done then
+        keep_signs()
+    end
+end)
 
 -- ------------------------------------------------------------ building blocks
 
@@ -704,6 +1020,7 @@ end
 local STEPS_OF = {
     ["gravel:gravel"] = "gravel", ["rocks:cobblestone"] = "cobblestone",
     ["rocks:smooth_stone"] = "smooth_stone", ["rocks:coarse_dirt"] = "coarse_dirt", ["timber:planks"] = "oak",
+    ["rocks:sandstone"] = "sandstone",
 }
 
 -- A cell of a street or a path with its surface at h (see carve): its top
@@ -962,6 +1279,25 @@ end
 
 core.event.on("core:world_ready", function()
     ready = true
+    local pv = tonumber(core.storage_get("path version"))
+    if pv == nil then
+        -- A world with settlements already laid out has the old paths.
+        pv = if core.storage_get("extents") ~= "" then 1 else 2
+        core.storage_set("path version", tostring(pv))
+    end
+    if pv ~= PATHS_V then
+        PATHS_V = pv
+        table.clear(PATH)
+        table.clear(LINK)
+        table.clear(LINKS)
+    end
+    for part in string.gmatch(core.storage_get("signs due"), "[^;]+") do
+        local k, t = string.match(part, "^([^|]+)|(.*)$")
+        if k and t then
+            SIGNS_DUE[k] = t
+        end
+    end
+    keep_signs()
     local early: { Village } = {}
     for _, plan in PLAN do
         table.insert(early, plan.v)
@@ -1320,14 +1656,15 @@ core.register_mapgen("villages:build", function(ctx)
     for dz = -2, 2 do
         for dx = -2, 2 do
             local v = village_of(rx + dx, rz + dz, seed)
-            local p = if v then link(v, seed) else nil
-            if p and not drawn[p] then
-                drawn[p] = true
-                for _, c in p.cells do
-                    if c[1] >= ctx.min_x - 1 and c[1] <= ctx.max_x + 1 and c[2] >= ctx.min_z - 1
-                        and c[2] <= ctx.max_z + 1 then
-                        table.insert(cells, c)
-                        path_of_cell[c] = p.cells
+            for _, p in (if v then links(v, seed, ctx) else {}) do
+                if not drawn[p] then
+                    drawn[p] = true
+                    for _, c in p.cells do
+                        if c[1] >= ctx.min_x - 1 and c[1] <= ctx.max_x + 1 and c[2] >= ctx.min_z - 1
+                            and c[2] <= ctx.max_z + 1 then
+                            table.insert(cells, c)
+                            path_of_cell[c] = p.cells
+                        end
                     end
                 end
             end
@@ -1348,9 +1685,77 @@ core.register_mapgen("villages:build", function(ctx)
         end
     end
     local dirt = id("rocks:coarse_dirt")
+    local towns: { Village } = {}
+    if PATHS_V >= 2 then
+        for dz = -1, 1 do
+            for dx = -1, 1 do
+                local t = village_of(rx + dx, rz + dz, seed)
+                if t and t.town then
+                    table.insert(towns, t)
+                end
+            end
+        end
+    end
+    -- The surface by the land: sandstone in the desert, cobblestone within 80
+    -- of a town, gravel in the cold, on the beach and up high, beaten earth.
+    local function surface(x: number, z: number, h: number): number
+        if PATHS_V < 2 then
+            return dirt
+        end
+        for _, t in towns do
+            if (t.x - x) ^ 2 + (t.z - z) ^ 2 < 80 * 80 then
+                return id("rocks:cobblestone")
+            end
+        end
+        local b = core.biome(x, z)
+        if b == "core:desert" then
+            return id("rocks:sandstone")
+        elseif b == "core:tundra" or b == "core:beach" or h > 48 then
+            return id("gravel:gravel")
+        end
+        return dirt
+    end
     for _, c in cells do
         local p = path_of_cell[c] or {}
-        pave(ctx, c[1], c[2], dirt, c[3], p)
+        pave(ctx, c[1], c[2], surface(c[1], c[2], c[3]), c[3], p)
+    end
+
+    -- What stands beside the paths: signposts, milestones, lanterns.
+    for p in drawn do
+        for _, d in p.deco do
+            local x, z, kind = d[1], d[2], d[3]
+            if owns(ctx, x, z) then
+                -- At the path's own level: on a footing of cobblestone where the
+                -- land falls away, cut into the bank where it rises.
+                local g, y = core.terrain_height(x, z), d[6]
+                if math.abs(g - y) <= 4 and not wet(x, z) then
+                    local function at(dy: number, name: string)
+                        core.set_block(x, y + dy, z, id(name))
+                    end
+                    for fy = g, y - 1 do
+                        core.set_block(x, fy, z, id("rocks:cobblestone"))
+                    end
+                    for dy = 0, 3 do
+                        core.set_block(x, y + dy, z, 0)
+                    end
+                    if kind == "sign" then
+                        at(0, "building:oak_fence")
+                        at(1, "building:oak_standing_sign")
+                        core.set_facing(x, y + 1, z, d[5])
+                        SIGNS_DUE[`{x},{y + 1},{z}`] = d[4]
+                        keep_signs()
+                    elseif kind == "mile" then
+                        at(0, "rocks:smooth_stone")
+                        at(1, "building:cobblestone_wall")
+                        at(2, "building:lantern")
+                    else
+                        at(0, "building:oak_fence")
+                        at(1, "building:oak_fence")
+                        at(2, "building:lantern")
+                    end
+                end
+            end
+        end
     end
 
     local v = village_of(rx, rz, seed)

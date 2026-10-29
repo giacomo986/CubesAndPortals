@@ -13,6 +13,11 @@
 -- core.water_level) as it is seen, so the map shows the land as it was made and
 -- not what was built on it since. A core.storage key a tile, and pages of the
 -- tiles' names per player; their machine is sent a tile a message.
+--
+-- A ROUTE marked for a player (maps:route, from a mod: mods/villagers'
+-- caravans tell the way to their village) is drawn on the map as a dotted
+-- red line to a flag, the land along it shown as seen; three at most, kept
+-- per player ("routes:<name>"), each gone once its end is reached.
 
 local side    = core.side()
 local serving = side ~= "client"
@@ -53,6 +58,7 @@ end
 
 local seen: { [number]: number } = {}   -- this player's pixels, by pk: their colour
 local home_x, home_z = 0, 0
+local routes: { [string]: { { number } } } = {}   -- this player's, by label: points x, z
 local function pk(px: number, pz: number): number
     return (px + 32768) * 65536 + (pz + 32768)
 end
@@ -70,6 +76,15 @@ local function heard(text: string)
                 end
             end
         end
+    elseif kind == "r" then   -- a route: "label|x,z;x,z;..." ("label|" drops it)
+        local label, pts = string.match(rest or "", "^([^|]*)|(.*)$")
+        if label then
+            local list = {}
+            for x, z in string.gmatch(pts, "(-?%d+),(-?%d+)") do
+                table.insert(list, { tonumber(x) :: number, tonumber(z) :: number })
+            end
+            routes[label] = if #list > 0 then list else nil
+        end
     elseif kind == "h" then
         local x, z = string.match(rest or "", "^(-?[%d.]+) (-?[%d.]+)$")
         home_x, home_z = tonumber(x) or 0, tonumber(z) or 0
@@ -77,6 +92,9 @@ local function heard(text: string)
 end
 
 -- ------------------------------------------------------------ the server
+
+core.event.define("maps:route", { fields = { player = "number", label = "string", points = "string" },
+                                  cancellable = false })
 
 if serving then
     core.net.open()
@@ -153,6 +171,35 @@ if serving then
         end
     end
 
+    -- Routes: per player name, label -> "x,z;x,z;...".
+    local marked: { [string]: { [string]: string } } = {}
+    local function keep_routes(name: string)
+        local parts = {}
+        for label, pts in marked[name] or {} do
+            table.insert(parts, `{label}|{pts}`)
+        end
+        core.storage_set(`routes:{name}`, table.concat(parts, "#"))
+    end
+    local function routes_of(name: string): { [string]: string }
+        local m = marked[name]
+        if m == nil then
+            m = {}
+            for part in string.gmatch(core.storage_get(`routes:{name}`), "[^#]+") do
+                local label, pts = string.match(part, "^([^|]*)|(.*)$")
+                if label then
+                    m[label] = pts
+                end
+            end
+            marked[name] = m
+        end
+        return m
+    end
+    local function ends_of(pts: string): (number?, number?)
+        local x, z = string.match(pts, "(-?%d+),(-?%d+)$")
+        return tonumber(x), tonumber(z)
+    end
+    local reveal: (number, number, number) -> () = function(_, _, _) end
+
     local function join(p: number): Seen
         local s: Seen = { tiles = {}, names = {}, dirty = {}, name = core.player_name(p) }
         local page = 1
@@ -171,7 +218,74 @@ if serving then
         end
         tell(p, s, s.names)
         send(p, home_of(p))
+        for label, pts in routes_of(s.name) do
+            send(p, `r {label}|{pts}`)
+        end
         return s
+    end
+
+    core.event.on("maps:route", function(ev)
+        local name = core.player_name(ev.player)
+        local m = routes_of(name)
+        if m[ev.label] == nil then
+            local n = 0
+            for _ in m do
+                n += 1
+            end
+            if n >= 3 then
+                local first = next(m)
+                m[first :: string] = nil
+                send(ev.player, `r {first}|`)
+            end
+        end
+        m[ev.label] = ev.points
+        keep_routes(name)
+        send(ev.player, `r {ev.label}|{ev.points}`)
+        -- The land along it shown, 2 pixels either side.
+        local lx, lz = nil, nil
+        for x, z in string.gmatch(ev.points, "(-?%d+),(-?%d+)") do
+            local px, pz = math.floor((tonumber(x) :: number) / PIXEL), math.floor((tonumber(z) :: number) / PIXEL)
+            if px ~= lx or pz ~= lz then
+                reveal(ev.player, px, pz)
+                lx, lz = px, pz
+            end
+        end
+    end)
+
+    -- Every pixel within r of (cx, cz) seen by p, and the tiles it changed sent.
+    local function see(p: number, s: Seen, cx: number, cz: number, r: number)
+        local changed: { [string]: boolean } = {}
+        for dz = -r, r do
+            for dx = -r, r do
+                if dx * dx + dz * dz <= r * r then
+                    local px, pz = cx + dx, cz + dz
+                    local tx, tz = px // TILE, pz // TILE
+                    local t = `{tx},{tz}`
+                    local codes = s.tiles[t]
+                    if codes == nil then
+                        codes = table.create(TILE * TILE, 0)
+                        s.tiles[t] = codes
+                        table.insert(s.names, t)
+                    end
+                    local i = (pz - tz * TILE) * TILE + (px - tx * TILE) + 1
+                    if codes[i] == 0 then
+                        codes[i] = paint(px, pz)
+                        changed[t] = true
+                        s.dirty[t] = true
+                    end
+                end
+            end
+        end
+        local names = {}
+        for t in changed do
+            table.insert(names, t)
+        end
+        tell(p, s, names)
+    end
+    reveal = function(p: number, cx: number, cz: number)
+        local s = players[p] or join(p)
+        players[p] = s
+        see(p, s, cx, cz, 2)
     end
 
     local since, saved = 0, 0
@@ -188,35 +302,18 @@ if serving then
             local s = players[p] or join(p)
             players[p] = s
             local x, _, z = core.player_pos(p)
-            if x then
-                local cx, cz = math.floor(x / PIXEL), math.floor(z / PIXEL)
-                local changed: { [string]: boolean } = {}
-                for dz = -SEEN, SEEN do
-                    for dx = -SEEN, SEEN do
-                        if dx * dx + dz * dz <= SEEN * SEEN then
-                            local px, pz = cx + dx, cz + dz
-                            local tx, tz = px // TILE, pz // TILE
-                            local t = `{tx},{tz}`
-                            local codes = s.tiles[t]
-                            if codes == nil then
-                                codes = table.create(TILE * TILE, 0)
-                                s.tiles[t] = codes
-                                table.insert(s.names, t)
-                            end
-                            local i = (pz - tz * TILE) * TILE + (px - tx * TILE) + 1
-                            if codes[i] == 0 then
-                                codes[i] = paint(px, pz)
-                                changed[t] = true
-                                s.dirty[t] = true
-                            end
-                        end
+            if x and z then
+                see(p, s, math.floor(x / PIXEL), math.floor(z / PIXEL), SEEN)
+                -- A route's end reached: off the map.
+                local m = routes_of(s.name)
+                for label, pts in m do
+                    local ex, ez = ends_of(pts)
+                    if ex and ez and (ex - x) ^ 2 + (ez - z) ^ 2 < 40 * 40 then
+                        m[label] = nil
+                        keep_routes(s.name)
+                        send(p, `r {label}|`)
                     end
                 end
-                local names = {}
-                for t in changed do
-                    table.insert(names, t)
-                end
-                tell(p, s, names)
             end
         end
         for p, s in players do
@@ -224,6 +321,7 @@ if serving then
                 save(s)
                 players[p] = nil
                 homes[p] = nil
+                marked[s.name] = nil
             end
         end
         if saved >= 10 then
@@ -329,6 +427,15 @@ if drawing then
             if cx >= 0 and cx <= SIZE and cz >= 0 and cz <= SIZE then
                 core.hud.rect(left + cx / aspect, top + cz, s, s, r, g, b, 255)
             end
+        end
+        -- Routes: a dotted red line, and a flag at the end.
+        for _, pts in routes do
+            for k = 1, #pts, 2 do
+                mark(pts[k][1], pts[k][2], 170, 40, 30, cell * 0.8)
+            end
+            local e = pts[#pts]
+            mark(e[1], e[2], 60, 30, 20, cell * 2.6)
+            mark(e[1], e[2], 240, 200, 60, cell * 1.6)
         end
         mark(home_x, home_z, 200, 30, 30, cell * 2.4)
         mark(x, z, 20, 20, 20, cell * 2.2)

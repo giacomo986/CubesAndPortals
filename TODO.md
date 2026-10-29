@@ -439,6 +439,34 @@ the villagers and start with questions (memory: villagers-need-design-first).
    and 5 coal (seed 1), under a bundle and a half of anything, so it sends
    no caravan until its workers fill its chests -- kept so: its goods are
    real; sounds and music are synthesised (tools/make_village_sounds.py).
+   Caravans from villages not yet visited and the paths' network -- built
+   2026-10-29 (design agreed that day). PATHS (`mods/villages`): two
+   settlements are joined when no third within two regions is nearer to
+   both (one with none to its nearest); the A* grid's points pulled straight
+   (48 nodes at most, no new water, a climb of 2 in 4) and rounded twice;
+   2.3 to 3.5 wide with ragged edges; sandstone in the desert, cobblestone
+   within 80 of a town, gravel in the tundra, on beaches and over 48, beaten
+   earth else; a signpost at each end ("To the village at 631 -416: 183
+   nodes", written once its cell is loaded: "signs due" in storage), a
+   milestone with a lantern every 100 nodes, lanterns on posts within 40 of
+   the villages, all at the path's level (a cobblestone footing, or cut into
+   the bank). A column works out only the paths whose box reaches it (the
+   whole network round spawn overran the mapgen budget). A world laid out
+   before keeps the old paths ("path version" 1). Seen in Xephyr: gravel
+   winding through the tundra's spruce, a milestone, lanterns, the sign read.
+   CARAVANS IN: now and then (or /village incoming) a caravan sets off for a
+   lived-in village with a player near from a village 100-900 away nobody
+   has been to, joined by the paths, with three goods its land is known for
+   (EV.TYPICAL by biome and height); every caravan walks its route along the
+   paths (villages:route_ask: three paths at most, two worked out per ask)
+   and is carried along it out of sight. "Ask the way": the direction and
+   distance aloud, and the route from the player to that village drawn on
+   their map (maps:route: a red dotted line to a flag, the land along it
+   shown; three at most, gone on arriving). Checked: -170,127 to 411,-356,
+   772 nodes over three paths, its body walking the path, "95 nodes to the
+   south-west" said and drawn. Open: no signpost at crossings away from a
+   village (paths meet at the villages, mostly); a sign where the path's end
+   is a bridge is left out.
 4. Boats -- built 2026-10-28 in `mods/boats` (`core.body_boat`: bit 2 of
    BodyMovement's moves byte, which a 109 client ignores and swims). Five
    planks; right click water with one to sit in it at the top, a shore to step

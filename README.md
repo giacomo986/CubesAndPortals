@@ -235,7 +235,8 @@ with clouds you can fly over. Underground there are abandoned mines and crypts w
 stairway back up.
 
 **Villages** (`mods/villages`, `mods/villagers`). Villages and towns with a square, streets,
-houses, fields, a forge and lamps, joined by paths that cross rivers on bridges. They are
+houses, fields, a forge and lamps, joined into a network of winding paths -- gravel, sandstone,
+cobblestone or beaten earth by the land, with signposts, milestones, lanterns and bridges. They are
 inhabited by three species: human farmers, frog fishers and mole gatherers, each with a home, a
 job, meals and a bed. Every village has:
 
@@ -270,6 +271,7 @@ taken and paid (from its treasury) at the mayor and the merchant; after five, th
 **Village events**, rung on the hall's bell and posted on the board: caravans of a merchant and a mule
 carrying real goods to another village (buy from them on the road, or escort them for pay), rare night
 sieges warned of at dusk (three waves against the watch: no villager lost, emeralds for the defenders),
+caravans from villages you have not seen yet (their merchant shows you the way, on your map too),
 and the harvest feast on the last day of summer -- stalls and lanterns in the square, food at half
 price, music, fireworks in the evening (`mods/fireworks`).
 

@@ -13,6 +13,11 @@ Protocollo 110: un client 0.9.0-alpha.4 non entra in un server con i binari.
 - Le pietre del viaggio: una per villaggio accanto al pozzo, fabbricabili per i territori;
   pagando uno smeraldo ogni 200 nodi si apre un portale vero verso una pietra toccata, per
   cinque minuti.
+- Sentieri fra i villaggi rifatti: una rete (ogni villaggio ai vicini), curve morbide, fondo per
+  terreno (arenaria, ciottoli, ghiaia, terra battuta) con bordi irregolari, cartelli alle uscite,
+  pietre miliari con lanterna ogni 100 blocchi. I mondi già esplorati tengono i sentieri vecchi.
+- Carovane da villaggi non ancora visitati, con i prodotti della loro terra, lungo i sentieri; il
+  mercante indica la strada a voce e la segna sulla mappa. `/village incoming`.
 - Eventi dei villaggi: carovane mercante e mulo fra i villaggi (si compra o si scorta), assedi
   notturni rari con preavviso e ricompensa, festa del raccolto a fine estate con bancarelle, musica
   e fuochi d'artificio (nuovo `mods/fireworks`). Annunci con la campana e sulla bacheca;

@@ -3518,6 +3518,13 @@ end
 --            its arrival; at night monsters come for it, and killed, its
 --            goods are left where it fell. Arrived, its goods go into the
 --            other village's chests and its price into its own treasury.
+--            Caravans COME too, now and then, from a village near that nobody
+--            has been to yet, with what its land is known for (EV.TYPICAL:
+--            sandstone and cactus from the desert, spruce and leather from the
+--            cold...). Every caravan walks the paths between the villages
+--            (mods/villages' network, villages:route_ask), carried along them
+--            too; its merchant tells the way to its village, aloud and on the
+--            player's map (mods/maps' maps:route).
 --   FEAST    the last day of summer (farm:season's `left`): stalls and
 --            lanterns in the square (the board's, by the well), the people
 --            gathered there, food at half price, music (music.ogg) and in
@@ -3528,7 +3535,8 @@ end
 type Siege = { wave: number, next: number, lost: number, started: boolean, fought: { [string]: boolean } }
 type Feast = { x: number, y: number, z: number, put: { { number } }, fired: boolean, played: number }
 type Caravan = { from: string, to: string, x: number, y: number, z: number, goods: { [string]: number },
-                 m: number, mule: number, escort: string, best: number, best_at: number, att_at: number }
+                 m: number, mule: number, escort: string, best: number, best_at: number, att_at: number,
+                 route: { { number } }?, k: number }
 AID.ev = { news = {} :: { [string]: { { any } } }, siege = {} :: { [string]: Siege },
            raiders = {} :: { [number]: { any } }, feast = {} :: { [string]: Feast }, caravans = {} :: { Caravan },
            asked = {} :: { [string]: number }, talk = {} :: { [number]: Caravan }, left = 99 }
@@ -3956,7 +3964,7 @@ core.event.on("core:world_ready", function()
             end
             table.insert(EV.caravans, { from = f[1], to = f[2], x = tonumber(f[3]) :: number, y = tonumber(f[4]) :: number,
                                         z = tonumber(f[5]) :: number, goods = goods, m = 0, mule = 0, escort = f[7] or "",
-                                        best = math.huge, best_at = 0, att_at = 0 })
+                                        best = math.huge, best_at = 0, att_at = 0, k = 1 })
         end
     end
 end)
@@ -4031,7 +4039,7 @@ EV.send = function(rk: string): boolean
         end
     end
     table.insert(EV.caravans, { from = rk, to = to, x = mxp, y = myp, z = mzp, goods = goods, m = 0, mule = 0,
-                                escort = "", best = math.huge, best_at = clock, att_at = 0 })
+                                escort = "", best = math.huge, best_at = clock, att_at = 0, k = 1 })
     EV.save_caravans()
     local things = {}
     for item, n in goods do
@@ -4043,16 +4051,190 @@ EV.send = function(rk: string): boolean
     return true
 end
 
-EV.value = function(c: Caravan): number
-    local v = 0
-    for item, n in c.goods do
-        for _, g in GOODS do
+-- What a village's land is known for, by its middle's climate: what a
+-- caravan from a village nobody has been to brings (item, a bundle, price).
+EV.TYPICAL = {
+    ["core:desert"] = { { "rocks:sandstone", 32, 1 }, { "plants:cactus", 8, 1 }, { "core:sand", 32, 1 },
+                        { "ore:raw_gold", 1, 1 } },
+    ["core:tundra"] = { { "woods:spruce_log", 8, 1 }, { "animals:leather", 4, 1 }, { "animals:wool", 8, 1 },
+                        { "pets:cooked_fish", 4, 1 } },
+    ["core:beach"] = { { "pets:cooked_fish", 4, 1 }, { "pets:fish", 6, 1 }, { "core:sand", 32, 1 },
+                       { "rocks:cobblestone", 32, 1 } },
+    high = { { "ore:raw_iron", 3, 1 }, { "ore:coal", 8, 1 }, { "rocks:cobblestone", 32, 1 }, { "core:stone", 24, 1 } },
+    other = { { "farm:wheat", 12, 1 }, { "farm:bread", 4, 1 }, { "trees:trunk", 8, 1 }, { "animals:wool", 8, 1 },
+              { "animals:steak", 4, 1 } },
+}
+-- A good by its item: the merchant's (GOODS) or a land's.
+EV.good = function(item: string): { any }?
+    for _, g in GOODS do
+        if g[1] == item then
+            return g
+        end
+    end
+    for _, list in EV.TYPICAL do
+        for _, g in list do
             if g[1] == item then
-                v += math.ceil(n / g[2]) * g[3]
+                return g
             end
         end
     end
+    return nil
+end
+
+EV.value = function(c: Caravan): number
+    local v = 0
+    for item, n in c.goods do
+        local g = EV.good(item)
+        if g then
+            v += math.ceil(n / g[2]) * g[3]
+        end
+    end
     return v
+end
+
+-- The way between two villages along the paths (mods/villages), a point
+-- every 4 nodes; {} where the paths do not join them.
+EV.got = ""
+core.event.on("villages:route", function(ev)
+    EV.got = ev.points
+end)
+EV.way = function(from: string, to: string): { { number } }
+    local ax, az = string.match(from, "^(-?%d+),(-?%d+)$")
+    local bx, bz = string.match(to, "^(-?%d+),(-?%d+)$")
+    local out = {}
+    if ax and bx then
+        EV.got = ""
+        core.event.emit("villages:route_ask", { rx1 = tonumber(ax) :: number, rz1 = tonumber(az) :: number,
+                                               rx2 = tonumber(bx) :: number, rz2 = tonumber(bz) :: number })
+        for x, z in string.gmatch(EV.got, "(-?%d+),(-?%d+)") do
+            table.insert(out, { tonumber(x) :: number + 0.5, tonumber(z) :: number + 0.5 })
+        end
+    end
+    return out
+end
+EV.route_of = function(c: Caravan): { { number } }
+    if c.route == nil then
+        local r = EV.way(c.from, c.to)
+        -- On it from the point nearest where the caravan is.
+        local best, bd = 1, math.huge
+        for k, q in r do
+            local d = (q[1] - c.x) ^ 2 + (q[2] - c.z) ^ 2
+            if d < bd then
+                best, bd = k, d
+            end
+        end
+        c.route, c.k = r, best
+    end
+    return c.route :: { { number } }
+end
+-- Where a caravan heads: `ahead` points on along its route, or the
+-- village's middle off the end of it (or with none).
+EV.aim = function(c: Caravan, ahead: number): (number, number)
+    local r = EV.route_of(c)
+    while c.k <= #r and (r[c.k][1] - c.x) ^ 2 + (r[c.k][2] - c.z) ^ 2 < 36 do
+        c.k += 1
+    end
+    if c.k > #r then
+        local tx, tz = EV.middle(c.to)
+        return tx or c.x, tz or c.z
+    end
+    local q = r[math.min(#r, c.k + ahead)]
+    return q[1], q[2]
+end
+-- How far it has still to go, along its route.
+EV.remaining = function(c: Caravan, d: number): number
+    local r = c.route
+    if r == nil or c.k > #r then
+        return d
+    end
+    return (#r - c.k) * 4 + math.sqrt((r[c.k][1] - c.x) ^ 2 + (r[c.k][2] - c.z) ^ 2)
+end
+
+-- A caravan from a village near that nobody has been to, to this one (lived
+-- in, a player near): true when one set off.
+EV.incoming = function(rk: string): boolean
+    for _, c in EV.caravans do
+        if c.to == rk then
+            return false
+        end
+    end
+    local mx, mz = EV.middle(rk)
+    if mx == nil or mz == nil then
+        return false
+    end
+    local can = {}
+    for other, k in E.known do
+        local d = math.sqrt((k[1] - mx) ^ 2 + (k[2] - mz) ^ 2)
+        if villages[other] == nil and d >= 100 and d < 900 then
+            table.insert(can, other)
+        end
+    end
+    while #can > 0 do
+        local from = table.remove(can, math.random(#can))
+        local r = EV.way(from, rk)
+        if #r > 0 then
+            local k = E.known[from]
+            local h = core.terrain_height(k[1], k[2])
+            local land = EV.TYPICAL[core.biome(k[1], k[2])] or (if h > 40 then EV.TYPICAL.high else EV.TYPICAL.other)
+            local list = table.clone(land)
+            local goods, things = {}, {}
+            for _ = 1, 3 do
+                if #list == 0 then
+                    break
+                end
+                local g = table.remove(list, math.random(#list))
+                if core.item_id(g[1]) ~= 0 then
+                    goods[g[1]] = g[2]
+                    table.insert(things, `{g[2]} {said(g[1])}`)
+                end
+            end
+            if next(goods) == nil then
+                return false
+            end
+            table.insert(EV.caravans, { from = from, to = rk, x = r[1][1], y = core.terrain_height(r[1][1], r[1][2]),
+                                        z = r[1][2], goods = goods, m = 0, mule = 0, escort = "", best = math.huge,
+                                        best_at = clock, att_at = 0, route = r, k = 1 })
+            EV.save_caravans()
+            table.sort(things)
+            core.log(`villagers: a caravan sets off from the village at {k[1]} {k[2]} for {rk}, `
+                .. `{#r * 4} nodes along the paths, with {table.concat(things, ", ")}`)
+            return true
+        end
+    end
+    return false
+end
+
+-- The way to a caravan's own village, told to a player: aloud, and on
+-- their map.
+EV.tell_way = function(p: number, c: Caravan)
+    local fx, fz = EV.middle(c.from)
+    local px, _, pz = core.player_pos(p)
+    if fx == nil or fz == nil or px == nil or pz == nil then
+        return
+    end
+    local dx, dz = fx - px, fz - pz
+    local dirs = { "north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west" }
+    local dir = dirs[math.floor((math.atan2(dx, -dz) / (2 * math.pi) * 8 + 0.5)) % 8 + 1]
+    local far = math.floor(math.sqrt(dx * dx + dz * dz))
+    local back = EV.way(c.to, c.from)
+    if #back > 0 then
+        -- From where the player stands: the route's point nearest them on.
+        local best, bd = 1, math.huge
+        for k, q in back do
+            local d = (q[1] - px) ^ 2 + (q[2] - pz) ^ 2
+            if d < bd then
+                best, bd = k, d
+            end
+        end
+        local parts = { `{math.floor(px)},{math.floor(pz)}` }
+        for k = best, #back do
+            table.insert(parts, `{math.floor(back[k][1])},{math.floor(back[k][2])}`)
+        end
+        table.insert(parts, `{fx},{fz}`)
+        core.event.emit("maps:route", { player = p, label = `village {c.from}`, points = table.concat(parts, ";") })
+    end
+    core.notice(p, `"Our village is {far} nodes to the {dir}, at {fx} {fz}. `
+        .. (if #back > 0 then `Keep to the path: I have marked it on your map."` else `There is no path: go by the sun."`))
 end
 
 EV.bodies_off = function(c: Caravan)
@@ -4162,12 +4344,17 @@ EV.roads = function(dt: number)
             table.remove(EV.caravans, i)
             continue
         end
-        local dx, dz = tx - c.x, tz - c.z
-        local d = math.sqrt(dx * dx + dz * dz)
+        local d = math.sqrt((tx - c.x) ^ 2 + (tz - c.z) ^ 2)
         if d < 12 then
             EV.arrive(i, c, tx, tz)
             continue
         end
+        -- Its heading: along its route, a little ahead while it walks.
+        local hx, hz = EV.aim(c, if c.m ~= 0 then 2 else 0)
+        local dx, dz = hx - c.x, hz - c.z
+        local hd = math.max(0.01, math.sqrt(dx * dx + dz * dz))
+        dx, dz = dx / hd, dz / hd
+        local left = EV.remaining(c, d)
         if c.m ~= 0 then
             local x, y, z = core.mob_pos(c.m)
             if x == nil or y == nil or z == nil then
@@ -4183,11 +4370,11 @@ EV.roads = function(dt: number)
                 EV.bodies_off(c)
                 continue
             end
-            if d < c.best - 1 then
-                c.best, c.best_at = d, clock
+            if left < c.best - 1 then
+                c.best, c.best_at = left, clock
             elseif clock - c.best_at > 12 then
                 -- Stuck: over whatever is in the way.
-                local nx, nz = math.floor(x + dx / d * 5), math.floor(z + dz / d * 5)
+                local nx, nz = math.floor(x + dx * 5), math.floor(z + dz * 5)
                 local ny = EV.ground(nx, math.floor(y), nz)
                 if ny then
                     core.mob_place(c.m, nx + 0.5, ny, nz + 0.5)
@@ -4196,14 +4383,21 @@ EV.roads = function(dt: number)
                 c.best_at = clock
             end
             if core.mob_going(c.m) == 0 then
-                EV.onward(c.m, x, y, z, dx / d, dz / d, math.min(d, 10))
+                -- On the path where it has one; else the way it can find.
+                local gx, gz = math.floor(hx), math.floor(hz)
+                local gy = if c.k <= #(c.route or {}) then EV.ground(gx, math.floor(y), gz) else nil
+                if gy and math.abs(gy - y) <= 6 then
+                    core.mob_goto(c.m, gx, gy, gz)
+                else
+                    EV.onward(c.m, x, y, z, dx, dz, math.min(hd, 10))
+                end
             end
             if c.mule ~= 0 then
                 local ux, uy, uz = core.mob_pos(c.mule)
                 if ux == nil or uy == nil or uz == nil then
                     c.mule = 0
                 elseif (ux - x) ^ 2 + (uz - z) ^ 2 > 3 * 3 and core.mob_going(c.mule) == 0 then
-                    local bx, bz = math.floor(x - dx / d * 2), math.floor(z - dz / d * 2)
+                    local bx, bz = math.floor(x - dx * 2), math.floor(z - dz * 2)
                     core.mob_goto(c.mule, bx, EV.ground(bx, math.floor(y), bz) or math.floor(y), bz)
                 end
             end
@@ -4222,9 +4416,9 @@ EV.roads = function(dt: number)
                 end
             end
         else
-            local step = math.min(d, 2.2 * dt)
-            c.x += dx / d * step
-            c.z += dz / d * step
+            local step = math.min(hd, 2.2 * dt)
+            c.x += dx * step
+            c.z += dz * step
             local x, z = math.floor(c.x), math.floor(c.z)
             if EV.seen(c.x, c.z, 64) and core.loaded(x, math.floor(c.y), z) == 1 then
                 local y = EV.ground(x, math.floor(c.y), z)
@@ -4235,9 +4429,9 @@ EV.roads = function(dt: number)
                 if y then
                     c.y = y
                     c.m = core.spawn_mob("villagers:merchant", x + 0.5, y, z + 0.5)
-                    local bx, bz = math.floor(c.x - dx / d * 2), math.floor(c.z - dz / d * 2)
+                    local bx, bz = math.floor(c.x - dx * 2), math.floor(c.z - dz * 2)
                     c.mule = core.spawn_mob("villagers:mule", bx + 0.5, EV.ground(bx, y, bz) or y, bz + 0.5)
-                    c.best, c.best_at = d, clock
+                    c.best, c.best_at = left, clock
                 end
             end
         end
@@ -4248,16 +4442,16 @@ end
 EV.show = function(p: number, c: Caravan)
     local rows = {}
     for item, n in c.goods do
-        for _, g in GOODS do
-            if g[1] == item and n >= g[2] then
-                table.insert(rows, { g, price_of(g, n) })
-            end
+        local g = EV.good(item)
+        if g and n >= g[2] then
+            table.insert(rows, { g, price_of(g, n) })
         end
     end
     local name = panel_of(p, "caravan")
     local tx, tz = EV.middle(c.to)
-    core.ui_define(name, 15, 4.8 + #rows * 1.2)
-    core.ui_label(name, 0.4, 0.3, `A caravan on its way to the village at {tx} {tz}.`)
+    local fx, fz = EV.middle(c.from)
+    core.ui_define(name, 15, 6.2 + #rows * 1.2)
+    core.ui_label(name, 0.4, 0.3, `A caravan from the village at {fx} {fz}, on its way to the one at {tx} {tz}.`)
     for i, r in rows do
         core.ui_button(name, `b {i}`, 0.4, 0.2 + i * 1.2, 14.2, 1.1, `Buy {r[1][2]} {said(r[1][1])}: {ems(r[2])}`)
     end
@@ -4270,7 +4464,8 @@ EV.show = function(p: number, c: Caravan)
     else
         core.ui_button(name, "escort", 0.4, y, 14.2, 1.1, "Escort it (paid when it gets there)")
     end
-    core.ui_button(name, "close", 0.4, y + 1.4, 14.2, 1.1, "Close")
+    core.ui_button(name, "way", 0.4, y + 1.4, 14.2, 1.1, "Ask the way to its village")
+    core.ui_button(name, "close", 0.4, y + 2.8, 14.2, 1.1, "Close")
     EV.talk[p] = c
     EV.rows = EV.rows or {}
     EV.rows[p] = rows
@@ -4293,6 +4488,10 @@ core.event.on("core:ui_click", function(ev)
     core.ui_show(ev.panel, false, ev.player)
     local c = EV.talk[ev.player]
     if c == nil or table.find(EV.caravans, c) == nil then
+        return
+    end
+    if ev.id == "way" then
+        EV.tell_way(ev.player, c)
         return
     end
     if ev.id == "escort" and c.escort == "" then
@@ -4326,7 +4525,7 @@ end)
 
 -- ------------------------------------------------------------ the clock
 
-core.command("village", "siege|feast|caravan -- start one now in the village you stand in", "admin")
+core.command("village", "siege|feast|caravan|incoming -- start one now in the village you stand in", "admin")
 core.event.on("core:command", function(ev)
     if ev.name ~= "village" then
         return
@@ -4344,8 +4543,12 @@ core.event.on("core:command", function(ev)
         if not EV.send(rk) then
             core.chat(ev.player, "No caravan: none to go to, one out already, or nothing to spare.")
         end
+    elseif what == "incoming" then
+        if not EV.incoming(rk) then
+            core.chat(ev.player, "No caravan: no village near unvisited and joined by the paths, or one coming already.")
+        end
     else
-        core.chat(ev.player, "Usage: /village siege|feast|caravan")
+        core.chat(ev.player, "Usage: /village siege|feast|caravan|incoming")
     end
 end)
 
@@ -4385,8 +4588,12 @@ core.event.on("core:tick", function(ev)
     if clock >= sent then
         sent = clock + 60
         for rk in villages do
-            if math.random(20) == 1 and #EV.near(rk, 64) > 0 then
-                EV.send(rk)
+            if #EV.near(rk, 64) > 0 then
+                if math.random(20) == 1 then
+                    EV.send(rk)
+                elseif math.random(20) == 1 then
+                    EV.incoming(rk)
+                end
             end
         end
     end
