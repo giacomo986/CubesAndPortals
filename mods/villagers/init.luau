@@ -3834,11 +3834,33 @@ EV.begin_feast = function(rk: string)
     -- Four stalls round the square, a table with a lantern on it under an
     -- awning of wool on two posts, and a lantern on a post at each corner.
     local AWNING = { "colors:red_wool", "colors:white_wool", "colors:yellow_wool", "colors:blue_wool" }
-    for k, d in { { 6, 0 }, { -6, 0 }, { 0, 6 }, { 0, -6 } } do
-        local x, z = f.x + d[1], f.z + d[2]
-        local y = EV.ground(x, f.y, z)
+    -- Only on ground level with the square, the three cells across clear
+    -- three high: not on a roof, a slope or against a wall; nearer or
+    -- further out where it is not.
+    local function fits(x: number, y: number, z: number, ax: number, az: number): boolean
+        if math.abs(y - f.y) > 2 then
+            return false
+        end
+        for s = -1, 1 do
+            local cx, cz = x + ax * s, z + az * s
+            if not standable(cx, y, cz) or core.get_block(cx, y + 2, cz) ~= 0 then
+                return false
+            end
+        end
+        return true
+    end
+    for k, d in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+        local ax, az = if d[1] == 0 then 1 else 0, if d[1] == 0 then 0 else 1
+        local x, y, z = 0, nil, 0
+        for _, r in { 6, 5, 7, 4, 8 } do
+            x, z = f.x + d[1] * r, f.z + d[2] * r
+            y = EV.ground(x, f.y, z)
+            if y and fits(x, y, z, ax, az) then
+                break
+            end
+            y = nil
+        end
         if y then
-            local ax, az = if d[1] == 0 then 1 else 0, if d[1] == 0 then 0 else 1
             put(x, y, z, "building:oak_table")
             put(x, y + 1, z, "building:lantern")
             for _, s in { -1, 1 } do
@@ -3853,7 +3875,7 @@ EV.begin_feast = function(rk: string)
     for _, d in { { 4, 4 }, { -4, 4 }, { 4, -4 }, { -4, -4 } } do
         local x, z = f.x + d[1], f.z + d[2]
         local y = EV.ground(x, f.y, z)
-        if y then
+        if y and math.abs(y - f.y) <= 2 then
             put(x, y, z, "building:oak_fence")
             put(x, y + 1, z, "building:lantern")
         end
@@ -3982,7 +4004,7 @@ EV.send = function(rk: string): boolean
     local dst = if tx and villages[to] and core.loaded(tx, villages[to].y, tz) == 1 then village_chests(to) else nil
     local can = {}
     for _, g in GOODS do
-        if stock_of(src, g[1]) >= g[2] * 2 and (dst == nil or stock_of(dst, g[1]) < g[2]) then
+        if stock_of(src, g[1]) >= g[2] + (g[2] + 1) // 2 and (dst == nil or stock_of(dst, g[1]) < g[2]) then
             table.insert(can, g)
         end
     end
@@ -3992,7 +4014,8 @@ EV.send = function(rk: string): boolean
             break
         end
         local g = table.remove(can, math.random(#can))
-        local n = take_from(src, g[1], g[2])
+        -- What it has over a bundle, kept at home: a bundle at most.
+        local n = take_from(src, g[1], math.min(g[2], stock_of(src, g[1]) - g[2]))
         if n > 0 then
             goods[g[1]], any = n, true
         end
@@ -4106,6 +4129,30 @@ EV.seen = function(x: number, z: number, r: number): boolean
     return false
 end
 
+-- The next stretch of the road: a cell `far` ahead that a way on foot (no
+-- swimming) reaches, straight on if it can, else turning off by up to 75
+-- degrees either side -- round a lake, a cliff, a wood -- and the one
+-- straight on, to be lifted over, when none does.
+EV.onward = function(id: number, x: number, y: number, z: number, ux: number, uz: number, far: number)
+    local fx, fy, fz = math.floor(x), math.floor(y + 0.01), math.floor(z)
+    local first = nil
+    for _, a in { 0, 0.45, -0.45, 0.9, -0.9, 1.3, -1.3 } do
+        local cx, cz = ux * math.cos(a) - uz * math.sin(a), ux * math.sin(a) + uz * math.cos(a)
+        local nx, nz = math.floor(x + cx * far), math.floor(z + cz * far)
+        local ny = EV.ground(nx, fy, nz)
+        if ny and math.abs(ny - fy) <= 5 then
+            first = first or { nx, ny, nz }
+            if #core.find_path(fx, fy, fz, nx, ny, nz, 2, 1, 3, false, 2000) > 0 then
+                core.mob_goto(id, nx, ny, nz)
+                return
+            end
+        end
+    end
+    if first then
+        core.mob_goto(id, first[1], first[2], first[3])
+    end
+end
+
 -- Every second: on along the road, walking when seen, carried on when not.
 EV.roads = function(dt: number)
     for i = #EV.caravans, 1, -1 do
@@ -4144,15 +4191,12 @@ EV.roads = function(dt: number)
                 local ny = EV.ground(nx, math.floor(y), nz)
                 if ny then
                     core.mob_place(c.m, nx + 0.5, ny, nz + 0.5)
+                    core.log(`villagers: a caravan to {c.to} lifted on at {nx} {ny} {nz}`)
                 end
                 c.best_at = clock
             end
             if core.mob_going(c.m) == 0 then
-                local nx, nz = math.floor(x + dx / d * math.min(d, 10)), math.floor(z + dz / d * math.min(d, 10))
-                local ny = EV.ground(nx, math.floor(y), nz)
-                if ny then
-                    core.mob_goto(c.m, nx, ny, nz)
-                end
+                EV.onward(c.m, x, y, z, dx / d, dz / d, math.min(d, 10))
             end
             if c.mule ~= 0 then
                 local ux, uy, uz = core.mob_pos(c.mule)

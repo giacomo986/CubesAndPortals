@@ -417,9 +417,9 @@ the villagers and start with questions (memory: villagers-need-design-first).
    the village lost pays the players there 5 emeralds and two errands' credit.
    Checked with a client: three waves fought off by the watch, two villagers
    lost and said so; the reward path checked headless. CARAVANS: about once
-   a day a merchant and a mule (tools/make_mule_model.py) take a bundle of
-   each of up to three goods the village has two bundles of to the nearest
-   other village 100-2000 away; they walk while a player is within 64-96 and
+   a day a merchant and a mule (tools/make_mule_model.py) take what the
+   village has over a bundle (at least half a bundle more, a bundle at most)
+   of up to three goods to the nearest other village 100-2000 away; they walk while a player is within 64-96 and
    are carried along the line at 2.2 m/s otherwise; right click to buy the
    cargo or escort it (paid 2 + 1 per 200 nodes, one errand's credit); at
    night two raiders every 1-2 minutes; killed, the goods drop. Checked with
@@ -428,11 +428,17 @@ the villagers and start with questions (memory: villagers-need-design-first).
    every midnight): four stalls with awnings and lanterns round the square,
    the people gathered (4 of them in a test), food at half price, music every
    12 s, fireworks (new `mods/fireworks`) at 0.76; put away at 0.9. Seen in
-   Xephyr (stalls, people, fireworks). Open: a fresh village's chests rarely
-   have two bundles of anything, so its caravans wait for its workers; the
-   caravan walks a straight line (no roads), lifted over what blocks it after
-   12 s; a stall's awning can land oddly on uneven ground; sounds and music
-   are synthesised (tools/make_village_sounds.py).
+   Xephyr (stalls, people, fireworks). Since (2026-10-29): the caravan's next
+   stretch is a cell 10 ahead that core.find_path reaches on foot, straight
+   on or turning off up to 75 degrees (round lakes, cliffs, woods), and it is
+   lifted on only when stuck 12 s; 411,-359 to 625,-417 walked whole on one
+   body, never lifted, and the escort paid 3 on arriving. A stall goes up
+   only on ground within 2 of the square with its three cells clear three
+   high, 4-8 out (no more awnings on roofs or slopes; seen in Xephyr). The
+   mule seen in the game. Open: a village just made has 4 bread, 10 wheat
+   and 5 coal (seed 1), under a bundle and a half of anything, so it sends
+   no caravan until its workers fill its chests -- kept so: its goods are
+   real; sounds and music are synthesised (tools/make_village_sounds.py).
 4. Boats -- built 2026-10-28 in `mods/boats` (`core.body_boat`: bit 2 of
    BodyMovement's moves byte, which a 109 client ignores and swims). Five
    planks; right click water with one to sit in it at the top, a shore to step
