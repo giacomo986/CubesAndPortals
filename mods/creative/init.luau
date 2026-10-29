@@ -79,7 +79,9 @@ if serving then
         end
         local now = {}
         -- Until the squares are full rather than SHOW items on: one that no
-        -- container takes (a backpack) would leave a hole.
+        -- container takes would leave a hole. (The packs worn on the back go
+        -- in: a carried container refuses them except in a catalogue's
+        -- squares, Inventory::add -- they were missing until 2026-10-29.)
         for i = r * COLS + 1, #list do
             if #now >= SHOW then
                 break

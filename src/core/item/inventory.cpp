@@ -43,7 +43,10 @@ uint16_t Inventory::add(const ItemRegistry &items, ItemId item, uint16_t count, 
                         uint16_t used, uint8_t ench, uint32_t tag, unsigned roles)
 {
     if (item == kNoItem || count == 0) return 0;
-    if (!takes(items, item)) return count;
+    // Into a catalogue's squares only (mods/creative, carried for each player)
+    // a pack is fine: a copy is taken out of one and what goes back is gone,
+    // so no backpack can end up inside itself.
+    if (roles != (1u << kRoleSource) && !takes(items, item)) return count;
 
     const uint16_t cap = items.max_stack(item);
 

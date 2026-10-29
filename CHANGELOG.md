@@ -13,6 +13,8 @@ Protocollo 110: un client 0.9.0-alpha.4 non entra in un server con i binari.
 - Le pietre del viaggio: una per villaggio accanto al pozzo, fabbricabili per i territori;
   pagando uno smeraldo ogni 200 nodi si apre un portale vero verso una pietra toccata, per
   cinque minuti.
+- Il pannello creativo mostra di nuovo zaino, jetpack e armpack: un contenitore portato rifiutava
+  tutto ciò che si porta sulla schiena, anche nelle caselle del catalogo.
 - Sentieri fra i villaggi rifatti: una rete (ogni villaggio ai vicini), curve morbide, fondo per
   terreno (arenaria, ciottoli, ghiaia, terra battuta) con bordi irregolari, cartelli alle uscite,
   pietre miliari con lanterna ogni 100 blocchi. I mondi già esplorati tengono i sentieri vecchi.
