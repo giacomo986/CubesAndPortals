@@ -287,10 +287,12 @@ end
 local PLAZA = core.plaza() ~= nil
 
 -- For other mods (villagers' directions): the sites round a point.
---   core.event.emit("gates:ask", { x = .., z = .., r = .., tag = "..." })
--- answers at once with gates:sites { tag, list = "room d x z;room d x z;..." };
--- on a plaza nothing answers.
-core.event.define("gates:ask", { fields = { x = "number", z = "number", r = "number", tag = "string" },
+--   core.event.emit("gates:ask", { x = .., z = .., r = .., tag = "...", player = p })
+-- answers at once with gates:sites { tag, list = "room d x z;room d x z;..." },
+-- leaving out the sites that player has done (0: nobody's); on a plaza
+-- nothing answers.
+core.event.define("gates:ask", { fields = { x = "number", z = "number", r = "number", tag = "string",
+                                            player = "number" },
                                  cancellable = false })
 core.event.define("gates:sites", { fields = { tag = "string", list = "string" }, cancellable = false })
 
@@ -681,6 +683,13 @@ end)
 -- What was won behind a site (mods/keys): in a chest by the site come back by,
 -- or the nearest one.
 core.event.on("keys:reward", function(ev)
+    -- The sites done, kept so directions leave them out.
+    local key = "done:" .. who(ev.player)
+    local done = core.shared_storage_get(key)
+    for site in string.gmatch(ev.list, "%S+ %d+ %d (%S+);") do
+        if not string.find(done, site .. ";", 1, true) then done ..= site .. ";" end
+    end
+    core.shared_storage_set(key, done)
     local s = came_from[who(ev.player)]
     if s == nil then
         local x, _, z = core.player_pos(ev.player)
@@ -691,8 +700,11 @@ end)
 
 core.event.on("gates:ask", function(ev)
     local parts = {}
+    local done = if (ev.player or 0) > 0 then core.shared_storage_get("done:" .. who(ev.player)) else ""
     for _, s in sites_near(ev.x, ev.z, math.min(ev.r, 3000)) do
-        table.insert(parts, `{s.room} {s.d} {s.x} {s.z}`)
+        if not string.find(done, s.id .. ";", 1, true) then
+            table.insert(parts, `{s.room} {s.d} {s.x} {s.z}`)
+        end
     end
     core.event.emit("gates:sites", { tag = ev.tag, list = table.concat(parts, ";") })
 end)

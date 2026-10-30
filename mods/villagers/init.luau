@@ -2345,10 +2345,11 @@ AID.pt = {
 core.event.on("gates:sites", function(ev)
     if ev.tag == "villagers" then AID.pt.heard = ev.list end
 end)
--- The portals within r of (x, z), nearest first, none closer than 24.
-function AID.pt.near(x: number, z: number, r: number): { Portal }
+-- The portals within r of (x, z), nearest first, none closer than 24, none
+-- player p has done.
+function AID.pt.near(x: number, z: number, r: number, p: number?): { Portal }
     AID.pt.heard = ""
-    core.event.emit("gates:ask", { x = x, z = z, r = r, tag = "villagers" })
+    core.event.emit("gates:ask", { x = x, z = z, r = r, tag = "villagers", player = p or 0 })
     local out: { Portal } = {}
     for room, d, sx, sz in string.gmatch(AID.pt.heard, "([^;%s]+) (%d+) (%-?%d+) (%-?%d+)") do
         local px, pz = tonumber(sx) or 0, tonumber(sz) or 0
@@ -2376,7 +2377,7 @@ end
 function AID.pt.tell(p: number)
     local px, _, pz = core.player_pos(p)
     if px == nil or pz == nil then return end
-    local s = AID.pt.near(px, pz, 1200)[1]
+    local s = AID.pt.near(px, pz, 1200, p)[1]
     if s == nil then
         core.notice(p, "\"No portal I know of, this side of the mountains.\"")
         return
@@ -2390,7 +2391,7 @@ end
 function AID.pt.price(p: number): number?
     local px, _, pz = core.player_pos(p)
     if px == nil or pz == nil then return nil end
-    local s = AID.pt.near(px, pz, 1200)[1]
+    local s = AID.pt.near(px, pz, 1200, p)[1]
     return if s then 2 + s.d else nil
 end
 
@@ -4583,7 +4584,7 @@ core.event.on("core:ui_click", function(ev)
     end
     if ev.id == "news" then
         local fx, fz = EV.middle(c.from)
-        local s = if fx and fz then AID.pt.near(fx, fz, 800)[1] else nil
+        local s = if fx and fz then AID.pt.near(fx, fz, 800, ev.player)[1] else nil
         core.notice(ev.player, if s and fx and fz then `"{AID.pt.rumour(s, fx, fz, "our village")}"`
             else "\"Nothing new on the road. Wolves, rain.\"")
         return
@@ -5734,7 +5735,7 @@ core.event.on("core:used_mob", function(ev)
             core.notice(ev.player, `A {v.kind}, {what[JOB[v.kind]]}` ..
                 (if #things > 0 then `, carrying {table.concat(things, ", ")}` else ""))
             if x ~= nil and z ~= nil and math.random() < 1 / 3 then
-                local s = AID.pt.near(x, z, 600)[1]
+                local s = AID.pt.near(x, z, 600, ev.player)[1]
                 if s then core.notice(ev.player, `"{AID.pt.rumour(s, x, z, "here")}"`) end
             end
             local home = village_at(v.hx, v.hz)
