@@ -2561,6 +2561,12 @@ if serving then
     -- (assault_core's poles: x, z, the cloth's lowest cell); and where the
     -- allies come back once it is theirs.
     A.GARRISON = { 8, 11, 14, 18 }
+    -- Come in by a survival site (mods/keys' keys:level): 10% more in every
+    -- garrison a step of its d, set by the first to come before the first fort.
+    A.more = 1.0
+    core.event.on("keys:level", function(ev)
+        if (A.fort or 0) <= 1 then A.more = math.max(A.more, 1 + 0.1 * (ev.d - 1)) end
+    end)
     A.AREA = { { 50, 78, 236, 264 }, { 42, 86, 466, 496 }, { 30, 98, 686, 720 }, { 26, 102, 876, 936 } }
     A.POLE = { { MID, 250, GROUND + 4 }, { MID, 483, GROUND + 11 }, { MID, 710, GROUND + 8 }, { MID, 905, GROUND + 5 } }
     -- Out on the open ground north of each, on the road on to the next (the
@@ -3213,7 +3219,7 @@ if serving then
 
     function A.man(k: number)
         A.fort, A.progress = k, 0
-        local n = A.GARRISON[k] + 2 * math.max(0, #core.players() - 1)
+        local n = math.ceil(A.GARRISON[k] * A.more) + 2 * math.max(0, #core.players() - 1)
         local a = A.AREA[k]
         local roles = { "watch", "cover", "rush", "cover", "at", "watch" }
         for i = 1, n do
@@ -4098,6 +4104,7 @@ if serving then
         A.head = nil
         if A.giant and A.giant.id then core.ecs.clip(A.giant.id, "death") end
         for p in players do
+            core.event.emit("keys:earned", { player = p, key = "assalto" })
             core.shared_storage_set("assalto:" .. core.player_name(p), "1")
             if not A.done[p] then core.player_place(p, 170.5 + math.random(-3, 3), GROUND, 16.5, -1, 0, 0) end
             core.heal(p, 20)

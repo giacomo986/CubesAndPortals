@@ -78,6 +78,11 @@ if serving then
     -- The trial for the Chiave dell'Assedio (mods/keys): seven waves, then the
     -- Guardian of the reactor (tools/make_fps_boss.py); its death gives the key.
     local LAST_WAVE = 7
+    -- Come in by a survival site (mods/keys' keys:level), the base is that
+    -- site's level: 3 + d / 2 waves and 10% more demons in each a step of d,
+    -- the same base and the same Guardian. The first to come into an empty
+    -- base sets it; empty again, it is the trial's seven.
+    local last_wave, more = LAST_WAVE, 1.0
     for name in GUNS do
         core.register_item(`yafps_game:{name}`, 1, "", 0, 1.0, "")
         core.register_model(`yafps_game:{name}_held`, `{name}_held.gltf`)
@@ -186,10 +191,10 @@ if serving then
                 table.insert(to_spawn, kind)
             end
         end
-        add("ghoul", math.min(2 + wave, 8))
-        add("imp", math.min(wave, 6))
-        add("pinky", math.min(wave // 2, 4))
-        add("gazer", math.min((wave - 1) // 2, 3))
+        add("ghoul", math.ceil(math.min(2 + wave, 8) * more))
+        add("imp", math.ceil(math.min(wave, 6) * more))
+        add("pinky", math.ceil(math.min(wave // 2, 4) * more))
+        add("gazer", math.ceil(math.min((wave - 1) // 2, 3) * more))
         -- Shuffled, so a wave does not come through a kind at a time.
         for i = #to_spawn, 2, -1 do
             local j = math.random(1, i)
@@ -243,6 +248,7 @@ if serving then
             -- starts from the first wave.
             wave, state, next_at, to_spawn = 0, "rest", clock + 5, {}
             guardian = 0   -- the engine lets it go with the rest
+            last_wave, more = LAST_WAVE, 1.0
             return
         end
         if state == "done" then
@@ -253,7 +259,7 @@ if serving then
             return
         end
         if state == "rest" then
-            if clock >= next_at and wave >= LAST_WAVE then
+            if clock >= next_at and wave >= last_wave then
                 guardian = core.spawn_mob("yafps_game:guardian", CENTRE + 34, GROUND, CENTRE + 7)
                 if guardian ~= 0 then
                     state = "guardian"
@@ -286,6 +292,13 @@ if serving then
             tell(0, `clear {wave}`)
         end
     end
+
+    core.event.on("keys:level", function(ev)
+        if wave == 0 then
+            last_wave, more = 3 + ev.d // 2, 1 + 0.1 * (ev.d - 1)
+            core.log(`yafps_game: a site's level, d {ev.d}: {last_wave} waves, x{more} demons`)
+        end
+    end)
 
     -- ---------------------------------------------------------------- shooting
 

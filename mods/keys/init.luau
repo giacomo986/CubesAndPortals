@@ -179,6 +179,7 @@ core.event.on("keys:earned", function(ev)
         done(ev.player, lv)
         if lv.d < 4 then return end
     end
+    if TITLE[ev.key] == nil then return end   -- the front's and the assault's: no key
     local got = passed(ev.player)
     if got[ev.key] then return end
     got[ev.key] = true
@@ -373,20 +374,9 @@ if #EXITS > 0 then HUB = false end
 
 if not HUB and #EXITS > 0 then
     local by_altar: { [number]: boolean } = {}
-    local here: { [number]: boolean } = {}
     local home: { number }? = nil   -- where the way out stands for the world's own trial
     local out_at = ""               -- where it stands now
     core.event.on("core:tick", function(_)
-        -- Who came in since the last tick, and by which site.
-        local now: { [number]: boolean } = {}
-        for _, p in core.players() do
-            now[p] = true
-            if not here[p] then arrived(p) end
-        end
-        for p in here do
-            if not now[p] then level_of[p] = nil end
-        end
-        here = now
         -- Not in the laboratory, whose way out ends the game, not a trial;
         -- nor in the assault, whose way out is its own (assault_game).
         if core.node_id("lab:seal") ~= 0 or core.node_id("assault_core:seal") ~= 0 then return end
@@ -438,6 +428,23 @@ if not HUB and #EXITS > 0 then
             if by and not by_altar[p] then at_altar(p) end
             by_altar[p] = by
         end
+    end)
+end
+
+-- Who came into a themed world since the last tick, and by which site: in
+-- every one, the front's too, which has no way out of its own.
+if not HUB then
+    local here: { [number]: boolean } = {}
+    core.event.on("core:tick", function(_)
+        local now: { [number]: boolean } = {}
+        for _, p in core.players() do
+            now[p] = true
+            if not here[p] then arrived(p) end
+        end
+        for p in here do
+            if not now[p] then level_of[p] = nil end
+        end
+        here = now
     end)
 end
 

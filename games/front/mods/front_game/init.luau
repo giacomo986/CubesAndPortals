@@ -58,6 +58,15 @@ local CAPTURE_R = 10
 -- on it. They walk point to point a waypoint at a time (the engine's path
 -- search looks at 600 cells), and shoot what they see.
 local BOTS_PER_TEAM = 8
+-- Come in by a survival site (mods/keys' keys:level): 4 + d / 2 to a team and
+-- 100 + 10 d tickets, set by the first to come into an empty field; a round
+-- won by a player's team is that site's level done (keys:earned).
+local level_d = 0
+if core.side() ~= "client" then
+    core.event.on("keys:level", function(ev)
+        if level_d == 0 then level_d = ev.d end
+    end)
+end
 local BOT_SIGHT  = 48
 
 local side    = core.side()
@@ -212,6 +221,9 @@ if serving then
         tell(0, `tickets {tickets[1]} {tickets[2]}`)
         if tickets[t] == 0 then
             over_at = clock + 10
+            for p, s in players do
+                if s.team == 3 - t then core.event.emit("keys:earned", { player = p, key = "front" }) end
+            end
             tell(0, `msg {TEAM_NAME[3 - t]} WINS THE ROUND`)
             core.log(`front_game: {TEAM_NAME[3 - t]} wins`)
         end
@@ -1002,7 +1014,8 @@ if serving then
         -- Somebody in the world, fighting or watching from the gallery.
         local anybody = #core.players() > 0
         for t = 1, 2 do
-            local want = if anybody and over_at == 0 then math.max(0, BOTS_PER_TEAM - team_count(t)) else 0
+            local per = if level_d > 0 then 4 + level_d // 2 else BOTS_PER_TEAM
+            local want = if anybody and over_at == 0 then math.max(0, per - team_count(t)) else 0
             if count[t] < want then
                 spawn_bot(t)   -- one a tick, so they come out one after another
             elseif count[t] > want then
@@ -2567,7 +2580,9 @@ if serving then
     local function step_round()
         if over_at > 0 and clock >= over_at then
             over_at = 0
-            tickets = { TICKETS, TICKETS }
+            if next(players) == nil then level_d = 0 end
+            local t = if level_d > 0 then 100 + 10 * level_d else TICKETS
+            tickets = { t, t }
             owner, progress = { 0, 0, 0 }, { 0, 0, 0 }
             for i = 1, 3 do flag(i) end
             tell(0, `tickets {tickets[1]} {tickets[2]}`)

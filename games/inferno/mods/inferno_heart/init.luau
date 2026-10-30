@@ -134,6 +134,14 @@ end
 -- has come into the open hall comes back after dying at its gate, not at the
 -- arrival (a trial's checkpoint).
 local guardian, fought, anybody_was = 0, false, false
+-- Come in by a survival site (mods/keys' keys:level), the heart is that site's
+-- level: the guardian rises with d - 1 of the fortress's own beside it, brutes
+-- and wraiths in turn. Set by the first to come before the fight; gone when
+-- the fire goes out.
+local level_d = 1
+core.event.on("keys:level", function(ev)
+    if not fought then level_d = math.max(level_d, ev.d) end
+end)
 local fighters: { [number]: boolean } = {}
 core.event.on("core:tick", function(_)
     local players = core.players()
@@ -144,6 +152,7 @@ core.event.on("core:tick", function(_)
             set_gate(false)
             guardian, fought, anybody_was = 0, false, false
             fighters = {}
+            level_d = 1
         end
         return
     end
@@ -175,6 +184,11 @@ core.event.on("core:tick", function(_)
             guardian = core.spawn_mob("inferno_heart:guardian", MX + 0.5, FLOOR + 1, MZ + 0.5)
             if guardian ~= 0 then
                 fought = true
+                for i = 1, level_d - 1 do
+                    local a = i * 2.4
+                    core.spawn_mob(if i % 2 == 0 then "inferno:wraith" else "inferno:brute",
+                                   MX + 0.5 + math.cos(a) * 4, FLOOR + 1, MZ + 0.5 + math.sin(a) * 4)
+                end
                 core.notice(0, "Dal cerchio di fuoco si leva il guardiano del cuore.")
                 core.log("inferno_heart: the guardian rises")
             end
