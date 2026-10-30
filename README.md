@@ -226,6 +226,35 @@ tunnel and the credits. After that the sandbox stays free, and two more worlds o
   fortresses, a shop, allies and builders, a boss who grows into a giant, and an escape by jeep
   through a lava tunnel.
 
+### Survival: the worlds scattered over the land
+
+"Mode: Survival" on the title menu's new-world page (`cnp_server --survival` on the sandbox room,
+`tools/track.sh --survival`) makes the same game without a plaza:
+
+- **No plaza, a random spawn.** The ground is the noise everywhere; a player starts on dry, level
+  land the seed picks up to 2500 from the middle, under open sky if there is any within 64. No
+  catalogue (C), not even for the owner (`/perm creative owner` gives it back), and a death leaves
+  the bag in a grave where it happened, drawn on the map (`mods/grave`).
+- **Portals scattered over the land** (`mods/gates`): five cells of 256 in six have one, a gate in
+  its world's look with an arch beside it for the way back and a row of ten lamps over it -- as many
+  lit as its difficulty, 1 to 10, which grows a step every 300 nodes from the spawn. One of every
+  world stands within 950 of the spawn, easy; the laboratory is 1500 to 2200 out, locked by the
+  seven keys as on the plaza; the front and the assault, past 1500, open after the ending.
+- **A level of its own behind each portal** (`mods/keys` gives each site a slot of its world):
+  the parkour builds a course from its stations and new jumps and pillars, 3 + d of them, gaps
+  sized to the body's jump; the backrooms an exit room 48 + 24 d away, in Level 1's dark from d 4;
+  the arena, the Inferno's heart, the front and the assault scale their waves, guardians, bots and
+  garrisons by d; the track, the arpg lands and the test chambers play their own trial at that d.
+  Every level's way out is closed, near where it starts and hidden behind its own wall under a dark
+  lamp; done, the wall falls, the lamp lights, and a shortcut brings the player back to it.
+- **Rewards and keys.** Back at the portal, a chest holds what that world gives (emeralds and rails
+  from the track, gold and obsidian from the Inferno, arrows and armour from the arena, ...), 40%
+  more for each step of d, a quarter of it for a level done before, now and then something rare. A
+  world's key comes only from a level of d 4 or more.
+- **Directions** (`mods/villagers`): a villager now and then tells of the nearest portal, vaguely
+  (what it looks like, which way, near or far, how those who went came back); a caravan, of one near
+  the village it comes from; the mayor, for 2 + d emeralds, exactly, with the way on the map.
+
 ### The sandbox
 
 **The land.** An endless world: plains, deserts, tundra and mountains a few hundred blocks wide,

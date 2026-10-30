@@ -7,6 +7,14 @@ un'alpha: [docs/BUILDING.md](docs/BUILDING.md#versioni).
 
 Protocollo 110: un client 0.9.0-alpha.4 non entra in un server con i binari.
 
+- Modalità **survival** (menu nuovo mondo, `--survival`): niente piazza, spawn casuale su terra,
+  i mondi a tema dietro portali sparsi con difficoltà 1-10 che cresce con la distanza, un livello
+  per ogni portale (parkour e backrooms generati; arena, inferno, fronte e assalto scalati), uscita
+  nascosta che si apre a livello finito, cassa di ricompensa al ritorno, chiavi solo da difficoltà
+  4, laboratorio in un punto casuale. Dicerie e indicazioni (a pagamento dal sindaco) sui portali
+  vicini. Niente catalogo creativo e borsa in una tomba alla morte. Nuove API `core.seed`,
+  `core.plaza`, `core.bag_to_container`, evento `core:died`; `/perm PERMESSO nobody`.
+- Il catalogo (C) chiede il permesso `creative` (moderatore in su; nel mondo proprio il proprietario).
 - I carrelli sui binari: curve, salite e discese, binari alimentati dal cinabro (stazioni da
   spenti), scambi. I binari si percorrono nei due sensi e le curve si vedono curve; le ruote
   fanno rumore sui giunti.
