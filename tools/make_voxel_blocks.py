@@ -752,6 +752,12 @@ def main():
     for kind, file in (("oak", "timber_planks"), ("spruce", "woods_spruce_planks"),
                        ("dark_oak", "woods_dark_oak_planks"), ("sandstone", "rocks_sandstone")):
         alias(f"steps:{kind}_stair", file)
+    # Blocks of the first tests that wear a picture another block already has
+    # (tools/make_terrain_textures.py draws the rest), and flowing water.
+    alias("craft:brick", "rocks_brick")
+    alias("tools:granite", "rocks_granite")
+    for level in range(1, 7):
+        alias(f"lakes:flow{level}", "lakes_water")
     with open(os.path.join(TEX, "pack.txt"), "w") as f:
         f.write("# Blocks that wear another block's picture, written by tools/make_voxel_blocks.py.\n")
         f.write("\n".join(PACK) + "\n")
