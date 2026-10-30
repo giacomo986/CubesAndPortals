@@ -83,6 +83,9 @@ if serving then
     -- the same base and the same Guardian. The first to come into an empty
     -- base sets it; empty again, it is the trial's seven.
     local last_wave, more = LAST_WAVE, 1.0
+    -- And 15% more health a step of d (core.mob_health), from register_mob's.
+    local sturdier = 1.0
+    local HP = { ghoul = 14, imp = 26, pinky = 70, gazer = 130, guardian = 700 }
     for name in GUNS do
         core.register_item(`yafps_game:{name}`, 1, "", 0, 1.0, "")
         core.register_model(`yafps_game:{name}_held`, `{name}_held.gltf`)
@@ -248,7 +251,7 @@ if serving then
             -- starts from the first wave.
             wave, state, next_at, to_spawn = 0, "rest", clock + 5, {}
             guardian = 0   -- the engine lets it go with the rest
-            last_wave, more = LAST_WAVE, 1.0
+            last_wave, more, sturdier = LAST_WAVE, 1.0, 1.0
             return
         end
         if state == "done" then
@@ -261,6 +264,7 @@ if serving then
         if state == "rest" then
             if clock >= next_at and wave >= last_wave then
                 guardian = core.spawn_mob("yafps_game:guardian", CENTRE + 34, GROUND, CENTRE + 7)
+                if guardian ~= 0 and sturdier > 1 then core.mob_health(guardian, math.floor(HP.guardian * sturdier)) end
                 if guardian ~= 0 then
                     state = "guardian"
                     tell(0, `gate {CENTRE + 34} {GROUND} {CENTRE + 7}`)
@@ -276,7 +280,8 @@ if serving then
             if clock >= next_at then
                 local kind = table.remove(to_spawn)
                 local g = GATES[math.random(1, #GATES)]
-                core.spawn_mob(`yafps_game:{kind}`, CENTRE + g[1], GROUND, CENTRE + g[2])
+                local m = core.spawn_mob(`yafps_game:{kind}`, CENTRE + g[1], GROUND, CENTRE + g[2])
+                if m ~= 0 and sturdier > 1 then core.mob_health(m, math.floor(HP[kind] * sturdier)) end
                 tell(0, `gate {CENTRE + g[1]} {GROUND} {CENTRE + g[2]}`)
                 next_at = clock + 0.7
             end
@@ -296,6 +301,7 @@ if serving then
     core.event.on("keys:level", function(ev)
         if wave == 0 then
             last_wave, more = 3 + ev.d // 2, 1 + 0.1 * (ev.d - 1)
+            sturdier = 1 + 0.15 * (ev.d - 1)
             core.log(`yafps_game: a site's level, d {ev.d}: {last_wave} waves, x{more} demons`)
         end
     end)

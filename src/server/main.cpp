@@ -4049,6 +4049,14 @@ int host_mob_hurt(void *ud, int id, int damage, double from_x, double from_z)
                        : 0;
 }
 
+int host_mob_health(void *ud, int id, int hp)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    return s->sessions ? cnp::ecs::mob_health(s->sessions->ecs(), (uint32_t)id,
+                                              (uint16_t)std::clamp(hp, 1, 60000))
+                       : 0;
+}
+
 int host_mob_remove(void *ud, int id)
 {
     ServerState *s = static_cast<ServerState *>(ud);
@@ -6136,6 +6144,7 @@ int serve_room(int argc, char **argv)
         host.player_factors = host_player_factors;
         host.take_tagged   = host_take_tagged;
         host.bag_to_container = host_bag_to_container;
+        host.mob_health = host_mob_health;
         host.give_item     = host_give_item;
         host.meta_set      = host_meta_set;
         host.meta_get      = host_meta_get;

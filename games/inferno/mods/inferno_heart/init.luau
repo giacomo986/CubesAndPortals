@@ -184,6 +184,8 @@ core.event.on("core:tick", function(_)
             guardian = core.spawn_mob("inferno_heart:guardian", MX + 0.5, FLOOR + 1, MZ + 0.5)
             if guardian ~= 0 then
                 fought = true
+                -- And 15% sturdier a step of d (register_mob made it 120).
+                if level_d > 1 then core.mob_health(guardian, math.floor(120 * (1 + 0.15 * (level_d - 1)))) end
                 for i = 1, level_d - 1 do
                     local a = i * 2.4
                     core.spawn_mob(if i % 2 == 0 then "inferno:wraith" else "inferno:brute",

@@ -187,6 +187,10 @@ bool shoot_bodies(flecs::world &w, Vec3 from, Vec3 dir, float max, uint16_t dama
 // it, 1 when struck, 0 for one that is gone or already dead.
 int mob_hurt(flecs::world &w, uint32_t id, uint16_t damage, float from_x, float from_z);
 
+// A living creature's health and its whole, set to hp (core.mob_health): one
+// kind made sturdier where a mod wants it. 1, or 0 for one gone or dead.
+int mob_health(flecs::world &w, uint32_t id, uint16_t hp);
+
 // A burst (core.blast): every such body with its middle within r of the
 // centre loses `damage`, half of it at the edge, and a creature is thrown
 // away from it. Returns how many it killed.

@@ -1500,6 +1500,17 @@ int l_item_returns(lua_State *L)
     return 1;
 }
 
+// core.mob_health(id: number, hp: number) -> number
+int l_mob_health(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const int hp = (int)luaL_checkinteger(L, 2);
+    const int result = (vm && vm->host.mob_health) ? vm->host.mob_health(vm->host.ud, id, hp) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.mob_hurt(id: number, damage: number, from_x: number, from_z: number) -> number
 int l_mob_hurt(lua_State *L)
 {
@@ -3138,6 +3149,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "mob_voice");
     lua_pushcfunction(L, l_item_returns, "core.item_returns");
     lua_setfield(L, -2, "item_returns");
+    lua_pushcfunction(L, l_mob_health, "core.mob_health");
+    lua_setfield(L, -2, "mob_health");
     lua_pushcfunction(L, l_mob_hurt, "core.mob_hurt");
     lua_setfield(L, -2, "mob_hurt");
     lua_pushcfunction(L, l_mob_face, "core.mob_face");

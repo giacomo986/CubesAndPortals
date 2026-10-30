@@ -1909,6 +1909,18 @@ local api: { Fn } = {
            .. "Returns 1.",
     },
     {
+        name = "mob_health",
+        host = "mob_health",
+        ret  = "int",
+        args = {
+            { name = "id", type = "int", doc = "From core.spawn_mob or core.mob_ids." },
+            { name = "hp", type = "int", doc = "1 to 60000: what it has now, and its whole." },
+        },
+        doc = "Sets one living creature's health and its whole to hp: one of a kind made sturdier "
+           .. "than core.register_mob made it, as a harder level's guardian. Returns 1, or 0 for "
+           .. "one that is gone or dead. On a server.",
+    },
+    {
         name = "mob_hurt",
         host = "mob_hurt",
         ret  = "int",

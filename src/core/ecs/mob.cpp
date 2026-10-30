@@ -977,6 +977,16 @@ int mob_hurt(flecs::world &w, uint32_t id, uint16_t damage, float from_x, float 
     return struck(e, damage, from_x, from_z, *p) ? 2 : 1;
 }
 
+int mob_health(flecs::world &w, uint32_t id, uint16_t hp)
+{
+    flecs::entity e = w.get_alive(id);
+    if (!e.is_valid() || !e.has<Mob>()) return 0;
+    const Health *h = e.try_get<Health>();
+    if (h == nullptr || !h->alive() || hp == 0) return 0;
+    e.set<Health>(Health{hp, hp});
+    return 1;
+}
+
 int blast_bodies(flecs::world &w, Vec3 centre, float r, uint16_t damage)
 {
     std::vector<std::pair<flecs::entity_t, uint16_t>> hit;
