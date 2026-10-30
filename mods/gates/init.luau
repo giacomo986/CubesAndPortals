@@ -286,6 +286,14 @@ end
 
 local PLAZA = core.plaza() ~= nil
 
+-- For other mods (villagers' directions): the sites round a point.
+--   core.event.emit("gates:ask", { x = .., z = .., r = .., tag = "..." })
+-- answers at once with gates:sites { tag, list = "room d x z;room d x z;..." };
+-- on a plaza nothing answers.
+core.event.define("gates:ask", { fields = { x = "number", z = "number", r = "number", tag = "string" },
+                                 cancellable = false })
+core.event.define("gates:sites", { fields = { tag = "string", list = "string" }, cancellable = false })
+
 if PLAZA then
     -- Where the gates past the first two stand, by room: round the spawn, which is
     -- in front of the first opening (40.5 21 44.5, facing +Z).
@@ -681,12 +689,6 @@ core.event.on("keys:reward", function(ev)
     if s then reward(ev.player, s, ev.list) end
 end)
 
--- For other mods (villagers' directions): the sites round a point.
---   core.event.emit("gates:ask", { x = .., z = .., r = .., tag = "..." })
--- answers at once with gates:sites { tag, list = "room d x z;room d x z;..." }.
-core.event.define("gates:ask", { fields = { x = "number", z = "number", r = "number", tag = "string" },
-                                 cancellable = false })
-core.event.define("gates:sites", { fields = { tag = "string", list = "string" }, cancellable = false })
 core.event.on("gates:ask", function(ev)
     local parts = {}
     for _, s in sites_near(ev.x, ev.z, math.min(ev.r, 3000)) do

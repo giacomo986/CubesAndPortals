@@ -2317,9 +2317,87 @@ local function panel_of(p: number, who: string): string
 end
 local selling: { [number]: string } = {}   -- player -> the village they talk to
 
+-- ================================================================= portals
+--
+-- What villagers know of the portals scattered over a world without a plaza
+-- (mods/gates' sites, asked with gates:ask): a worker now and then tells of
+-- the nearest, vaguely -- what it looks like, which way, near or far, and
+-- whether those who went came back; a caravan, of one near the village it
+-- comes from; the mayor, for 2 + d emeralds, exactly, and draws the way on
+-- the player's map (maps:route).
+type Portal = { room: string, d: number, x: number, z: number }
+-- In AID, as the rest: the file is at Luau's 200 locals.
+AID.pt = {
+    LOOK = {
+        pista = "an arch chequered black and white, like a race's start",
+        inferno = "a frame of obsidian on scorched ground",
+        arena = "a steel door striped yellow and black, a red light over it",
+        arpg = "a ruined brick arch among graves",
+        chambers = "a wall of white panels with a door in it",
+        backrooms = "a doorway in a wall of yellow wallpaper",
+        parkour = "an orange and black scaffold with a bar over it",
+        laboratorio = "a dead frame of dark steel with seven pedestals before it",
+        front = "a bunker door between sandbags and two flags",
+        assalto = "a gate of black basalt with violet fire on its towers",
+    } :: { [string]: string },
+    heard = "",
+}
+core.event.on("gates:sites", function(ev)
+    if ev.tag == "villagers" then AID.pt.heard = ev.list end
+end)
+-- The portals within r of (x, z), nearest first, none closer than 24.
+function AID.pt.near(x: number, z: number, r: number): { Portal }
+    AID.pt.heard = ""
+    core.event.emit("gates:ask", { x = x, z = z, r = r, tag = "villagers" })
+    local out: { Portal } = {}
+    for room, d, sx, sz in string.gmatch(AID.pt.heard, "([^;%s]+) (%d+) (%-?%d+) (%-?%d+)") do
+        local px, pz = tonumber(sx) or 0, tonumber(sz) or 0
+        if (px - x) ^ 2 + (pz - z) ^ 2 >= 24 * 24 then
+            table.insert(out, { room = room, d = tonumber(d) or 1, x = px, z = pz })
+        end
+    end
+    table.sort(out, function(a, b) return (a.x - x) ^ 2 + (a.z - z) ^ 2 < (b.x - x) ^ 2 + (b.z - z) ^ 2 end)
+    return out
+end
+function AID.pt.bearing(dx: number, dz: number): string
+    local dirs = { "north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west" }
+    return dirs[math.floor((math.atan2(dx, -dz) / (2 * math.pi) * 8 + 0.5)) % 8 + 1]
+end
+-- Vague: what it looks like, which way from (x, z), near or far, and how it went.
+function AID.pt.rumour(s: Portal, x: number, z: number, from: string): string
+    local far = math.sqrt((s.x - x) ^ 2 + (s.z - z) ^ 2)
+    local how = if far < 200 then "not far" elseif far < 500 then "a good walk" else "far"
+    local fear = if s.d >= 7 then " Nobody who went in has come back the same."
+        elseif s.d >= 4 then " Those who went in came back hurt, when they came back."
+        else " Children dare each other to go near it."
+    return `They say there is {AID.pt.LOOK[s.room] or "a strange door"} {how} to the {AID.pt.bearing(s.x - x, s.z - z)} of {from}.{fear}`
+end
+-- Exact, and on the map.
+function AID.pt.tell(p: number)
+    local px, _, pz = core.player_pos(p)
+    if px == nil or pz == nil then return end
+    local s = AID.pt.near(px, pz, 1200)[1]
+    if s == nil then
+        core.notice(p, "\"No portal I know of, this side of the mountains.\"")
+        return
+    end
+    core.event.emit("maps:route", { player = p, label = "portal",
+                                    points = `{math.floor(px)},{math.floor(pz)};{s.x},{s.z}` })
+    core.notice(p, `"{AID.pt.LOOK[s.room] or "A strange door"}, {math.floor(math.sqrt((s.x - px) ^ 2 + (s.z - pz) ^ 2))} `
+        .. `nodes to the {AID.pt.bearing(s.x - px, s.z - pz)}, at {s.x} {s.z}. I have marked it on your map."`)
+end
+-- What the nearest portal's exact place costs from here: 2 + its d, or nil.
+function AID.pt.price(p: number): number?
+    local px, _, pz = core.player_pos(p)
+    if px == nil or pz == nil then return nil end
+    local s = AID.pt.near(px, pz, 1200)[1]
+    return if s then 2 + s.d else nil
+end
+
 local function show_mayor(p: number, rk: string)
     local name = panel_of(p, "mayor")
-    core.ui_define(name, 13, 10.4)
+    local price = AID.pt.price(p)
+    core.ui_define(name, 13, if price then 11.8 else 10.4)
     local waiting = #(orders[rk] or {})
     core.ui_label(name, 0.4, 0.3, "The mayor: land in this village, for emeralds.")
     core.ui_label(name, 0.4, 1.0, (if waiting > 0 then `The builder has {waiting} order(s) before yours.`
@@ -2329,7 +2407,12 @@ local function show_mayor(p: number, rk: string)
     core.ui_button(name, "extend", 0.4, 4.7, 12.2, 1.2, "More for the house you have here...")
     core.ui_button(name, "guard", 0.4, 6.1, 12.2, 1.2, `A guard for your territory, a day: {GUARD_DAY} emeralds`)
     core.ui_button(name, "errands", 0.4, 7.5, 12.2, 1.2, "Errands for the village...")
-    core.ui_button(name, "close", 0.4, 8.9, 12.2, 1.1, "Not now")
+    local y = 8.9
+    if price then
+        core.ui_button(name, "portal", 0.4, y, 12.2, 1.2, `Where exactly is the nearest portal? {price} emeralds`)
+        y += 1.4
+    end
+    core.ui_button(name, "close", 0.4, y, 12.2, 1.1, "Not now")
     selling[p] = rk
     core.ui_show(name, true, p)
 end
@@ -2609,6 +2692,9 @@ core.event.on("core:ui_click", function(ev)
         end
     elseif ev.id == "errands" then
         AID.err.show(ev.player, rk, "mayor")
+    elseif ev.id == "portal" then
+        local price = AID.pt.price(ev.player)
+        if price and pay(ev.player, rk, price) then AID.pt.tell(ev.player) end
     elseif ev.id == "lot" then
         sell(ev.player, rk, "lot")
     elseif ev.id == "house" then
@@ -4450,7 +4536,7 @@ EV.show = function(p: number, c: Caravan)
     local name = panel_of(p, "caravan")
     local tx, tz = EV.middle(c.to)
     local fx, fz = EV.middle(c.from)
-    core.ui_define(name, 15, 6.2 + #rows * 1.2)
+    core.ui_define(name, 15, 7.6 + #rows * 1.2)
     core.ui_label(name, 0.4, 0.3, `A caravan from the village at {fx} {fz}, on its way to the one at {tx} {tz}.`)
     for i, r in rows do
         core.ui_button(name, `b {i}`, 0.4, 0.2 + i * 1.2, 14.2, 1.1, `Buy {r[1][2]} {said(r[1][1])}: {ems(r[2])}`)
@@ -4465,7 +4551,8 @@ EV.show = function(p: number, c: Caravan)
         core.ui_button(name, "escort", 0.4, y, 14.2, 1.1, "Escort it (paid when it gets there)")
     end
     core.ui_button(name, "way", 0.4, y + 1.4, 14.2, 1.1, "Ask the way to its village")
-    core.ui_button(name, "close", 0.4, y + 2.8, 14.2, 1.1, "Close")
+    core.ui_button(name, "news", 0.4, y + 2.8, 14.2, 1.1, "News from the road")
+    core.ui_button(name, "close", 0.4, y + 4.2, 14.2, 1.1, "Close")
     EV.talk[p] = c
     EV.rows = EV.rows or {}
     EV.rows[p] = rows
@@ -4492,6 +4579,13 @@ core.event.on("core:ui_click", function(ev)
     end
     if ev.id == "way" then
         EV.tell_way(ev.player, c)
+        return
+    end
+    if ev.id == "news" then
+        local fx, fz = EV.middle(c.from)
+        local s = if fx and fz then AID.pt.near(fx, fz, 800)[1] else nil
+        core.notice(ev.player, if s and fx and fz then `"{AID.pt.rumour(s, fx, fz, "our village")}"`
+            else "\"Nothing new on the road. Wolves, rain.\"")
         return
     end
     if ev.id == "escort" and c.escort == "" then
@@ -5639,6 +5733,10 @@ core.event.on("core:used_mob", function(ev)
             end
             core.notice(ev.player, `A {v.kind}, {what[JOB[v.kind]]}` ..
                 (if #things > 0 then `, carrying {table.concat(things, ", ")}` else ""))
+            if x ~= nil and z ~= nil and math.random() < 1 / 3 then
+                local s = AID.pt.near(x, z, 600)[1]
+                if s then core.notice(ev.player, `"{AID.pt.rumour(s, x, z, "here")}"`) end
+            end
             local home = village_at(v.hx, v.hz)
             if home ~= nil and TRADES[JOB[v.kind]] ~= nil then
                 show_trade(ev.player, home, JOB[v.kind])
