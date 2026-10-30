@@ -554,6 +554,53 @@ local function who(p: number): string
     return if key ~= "" then key else "name:" .. core.player_name(p)
 end
 
+-- What a level done behind a site gives, by its world: some of what that
+-- world is about, base counts at d 1, 40% more a step of d, a quarter of it
+-- for a level done before; and a rare thing, 5% a step of d (a quarter of that
+-- again done before). Queued by mods/keys in shared "reward:<who>" as
+-- "room d first site;" and put in a chest by the site when its player is back.
+local REWARD: { [string]: { base: { { any } }, rare: { any } } } = {
+    pista = { base = { { "ore:emerald", 3 }, { "building:rail", 8 } }, rare = { "carts:cart", 1 } },
+    inferno = { base = { { "furnace:gold_ingot", 3 }, { "infernoportal:obsidian", 4 } }, rare = { "ore:diamond", 1 } },
+    arena = { base = { { "archery:arrow", 12 }, { "armor:iron_helmet", 1 } }, rare = { "armor:iron_chestplate", 1 } },
+    arpg = { base = { { "ore:lapis", 6 }, { "ore:emerald", 2 } }, rare = { "ore:diamond", 2 } },
+    chambers = { base = { { "furnace:iron_ingot", 4 }, { "conveyor:belt", 6 } }, rare = { "furnace:gold_ingot", 4 } },
+    backrooms = { base = { { "furnace:iron_ingot", 2 }, { "ore:coal", 6 }, { "animals:steak", 3 } }, rare = { "ore:diamond", 2 } },
+    parkour = { base = { { "ore:emerald", 3 }, { "farm:bread", 4 } }, rare = { "jetpack:jetpack", 1 } },
+    front = { base = { { "furnace:iron_ingot", 6 }, { "ore:emerald", 4 } }, rare = { "ore:diamond", 2 } },
+    assalto = { base = { { "ore:emerald", 8 }, { "furnace:gold_ingot", 4 } }, rare = { "ore:diamond", 3 } },
+}
+
+-- The chest by a site (two along -z from the gate) with what was won there.
+local function reward(p: number, s: Site, pending: string)
+    local CHEST = id("chest:box")
+    if CHEST == 0 then return end
+    local x, y, z = s.x + 3, s.y, s.z - 3
+    core.set_block(x, y, z, CHEST)
+    core.container_make(x, y, z, 27)
+    local said = {}
+    for room, d, first in string.gmatch(pending, "(%S+) (%d+) (%d) [^;]*;") do
+        local r = REWARD[room]
+        if r == nil then continue end
+        local dd = tonumber(d) or 1
+        local share = if first == "1" then 1 else 0.25
+        for _, b in r.base do
+            local n = math.max(1, math.floor(b[2] * (1 + 0.4 * (dd - 1)) * share + 0.5))
+            local item = id(b[1])
+            if item ~= 0 then core.container_add(x, y, z, item, n) end
+        end
+        if math.random() < 0.05 * dd * share then
+            local item = id(r.rare[1])
+            if item ~= 0 then core.container_add(x, y, z, item, r.rare[2]) end
+            table.insert(said, "qualcosa di raro")
+        end
+    end
+    core.log(`gates: a reward for {core.player_name(p)} at {x} {y} {z}: {pending}`)
+    core.notice(p, "La ricompensa e' nella cassa accanto al portale"
+        .. (if #said > 0 then ", con " .. said[1] .. "." else "."))
+end
+
+local came_from: { [string]: Site? } = {} -- the site each player last came back by
 local at_site: { [string]: Site } = {}   -- each room's mouth: the site it is at now
 local away: { [string]: Site } = {}      -- the site of somebody gone through, by who
 local near: { [number]: Site } = {}      -- the site each player here stands at, if any
@@ -590,6 +637,7 @@ core.event.on("core:tick", function(ev)
             if gone and (id == nil or id == gone.id) and (x - gone.x) ^ 2 + (z - gone.z) ^ 2 > 12 * 12 then
                 core.player_place(p, gone.x + 3.5, gone.y, gone.z + 0.5, -1, 0, 0)
             end
+            came_from[me] = gone
             away[me] = nil
         end
         for _, s in sites_near(x, z, NEAR) do
@@ -620,6 +668,17 @@ core.event.on("core:tick", function(ev)
         local cur = at_site[room]
         if cur == nil or cur.id ~= w.site.id then place(room, w.site) end
     end
+end)
+
+-- What was won behind a site (mods/keys): in a chest by the site come back by,
+-- or the nearest one.
+core.event.on("keys:reward", function(ev)
+    local s = came_from[who(ev.player)]
+    if s == nil then
+        local x, _, z = core.player_pos(ev.player)
+        if x then s = sites_near(x, z, NEAR)[1] end
+    end
+    if s then reward(ev.player, s, ev.list) end
 end)
 
 -- For other mods (villagers' directions): the sites round a point.

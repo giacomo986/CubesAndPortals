@@ -140,6 +140,12 @@ end
 
 -- =================================================================== key altars
 
+-- The level each player here came for by a survival site, and what is done
+-- when it is done: both in "levels" below, the trial's handler asks first.
+type Level = { site: string, d: number, room: string, slot: number, done: boolean? }
+local level_of: { [number]: Level } = {}
+local done: (number, Level) -> () = function(_, _) end
+
 -- A trial does not hand its key over: it says it is passed with
 --   core.event.emit("keys:earned", { player = p, key = "parkour" })
 -- and the key waits on an altar beside the world's way out (every way out is
@@ -167,6 +173,12 @@ core.event.define("keys:earned", {
     cancellable = false,
 })
 core.event.on("keys:earned", function(ev)
+    -- By a survival site: the world's own trial stood in for its level.
+    local lv = level_of[ev.player]
+    if lv then
+        done(ev.player, lv)
+        if lv.d < 4 then return end
+    end
     local got = passed(ev.player)
     if got[ev.key] then return end
     got[ev.key] = true
@@ -191,17 +203,147 @@ end)
 -- Somebody come up to the altar: the key if the trial is passed, else said
 -- what is missing.
 local function at_altar(player: number)
+    local any = false
     for w in passed(player) do
+        any = true
         if core.bag_count(player, item_of(w)) == 0 then
             core.give_item(player, item_of(w), 1)
             core.notice(player, `Hai preso la {TITLE[w]}. /diario per leggere la pagina dell'ingegnere.`)
         end
-        return
     end
-    core.notice(player, "Un incavo a forma di chiave, vuoto. La prova non e' ancora superata.")
+    if not any then
+        core.notice(player, "Un incavo a forma di chiave, vuoto. La prova non e' ancora superata.")
+    end
 end
 core.event.on("core:pre_break", function(ev)
     if ev.id == ALTAR then ev.cancel = true end
+end)
+
+-- ===================================================================== levels
+--
+-- Behind a survival site (mods/gates) a world builds a level of its own for
+-- that site, at a difficulty d of 1 to 10. Who walked in carries the site
+-- (core.player_carried "site=<id> d=<d> s=<seed> t=<room>"); here it gets a
+-- SLOT, a square of the world 2048 across kept for that site (shared storage
+-- "inst:<site>"), slot 0 being the world's own trial where it always was. Then
+--   keys:level { player, slot, d, seed, ox, oz }   -- cancellable
+-- asks the world to build the slot's level from (ox, oz) and take the player
+-- there: a world that does cancels it, and answers
+--   keys:start { player, slot, ex, ey, ez }
+-- with its way out: a hole one wide and two high at (ex, ey, ez), facing +x,
+-- 8 to 20 from where the level starts and hidden -- the two cells at ex + 1
+-- are the level's own wall, and the cell over them a dark lamp (keys:hint),
+-- the one sign of it. A world that does not answer keeps the player in its
+-- own trial, which counts the same.
+--   keys:cleared { player, slot }
+-- says the level is done: the wall opens, the lamp lights, the way out (this
+-- world's first mouth back to the sandbox, moved there) unseals for that
+-- player, a reward waits for them at their site (shared "reward:<who>",
+-- mods/gates hands it over), and the world's key is theirs if d >= 4 -- or
+-- whatever d in the world's own trial reached from the plaza.
+
+local HINT = core.register_node("keys:hint", 70, 74, 66, true, 0, "", 0, 0, "stone")
+local HINT_LIT = core.register_node("keys:hint_lit", 120, 230, 140, true, 12, "", 0, 0, "stone")
+core.event.define("keys:level", {
+    fields = { player = "number", slot = "number", d = "number", seed = "number", ox = "number", oz = "number" },
+    cancellable = true,
+})
+core.event.define("keys:start", {
+    fields = { player = "number", slot = "number", ex = "number", ey = "number", ez = "number" },
+    cancellable = false,
+})
+core.event.define("keys:cleared", { fields = { player = "number", slot = "number" }, cancellable = false })
+
+local exit_of: { [number]: { number } } = {}   -- each slot's way out, once its world said
+
+local function cleared(site: string, player: number): boolean
+    return core.shared_storage_get(`cleared:{site}:{who(player)}`) ~= ""
+end
+
+-- A slot's way out, said by its world (and kept, for after a restart).
+local function exit_at(slot: number): { number }?
+    local e = exit_of[slot]
+    if e == nil then
+        local x, y, z = string.match(core.storage_get(`exit:{slot}`), "(-?%d+),(-?%d+),(-?%d+)")
+        if x then
+            e = { tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0 }
+            exit_of[slot] = e
+        end
+    end
+    return e
+end
+
+-- Somebody arrived: a slot for the site they came by, and its world asked.
+local function arrived(player: number)
+    local line = core.player_carried(player)
+    local site = string.match(line, "site=([^ ]+)")
+    local d = tonumber(string.match(line, "d=(%d+)") or "")
+    local seed = tonumber(string.match(line, "s=(%d+)") or "") or 0
+    local room = string.match(line, "t=([^ ]+)") or ""
+    if site == nil or d == nil then
+        level_of[player] = nil
+        return
+    end
+    local slot = tonumber(core.shared_storage_get("inst:" .. site))
+    if slot == nil then
+        slot = (tonumber(core.shared_storage_get("inst:next:" .. room)) or 1)
+        core.shared_storage_set("inst:next:" .. room, tostring(slot + 1))
+        core.shared_storage_set("inst:" .. site, tostring(slot))
+    end
+    level_of[player] = { site = site, d = d, room = room, slot = slot }
+    local ox, oz = 8192 + (slot % 16) * 2048, (slot // 16) * 2048
+    local taken = core.event.emit("keys:level",
+        { player = player, slot = slot, d = d, seed = seed, ox = ox, oz = oz })
+    core.log(`keys: {core.player_name(player)} by {site} (d {d}): slot {slot}, `
+        .. (if taken then "its level" else "the world's own trial"))
+end
+
+core.event.on("keys:start", function(ev)
+    exit_of[ev.slot] = { ev.ex, ev.ey, ev.ez }
+    core.storage_set(`exit:{ev.slot}`, `{ev.ex},{ev.ey},{ev.ez}`)
+    -- Hidden: the level's wall stands in front of it, the dark lamp over --
+    -- lit, and the wall gone, once anybody has opened it.
+    local open = core.storage_get(`opened:{ev.slot}`) == "1"
+    core.set_block(ev.ex + 1, ev.ey + 2, ev.ez, if open then HINT_LIT else HINT)
+    if open then
+        core.set_block(ev.ex + 1, ev.ey, ev.ez, 0)
+        core.set_block(ev.ex + 1, ev.ey + 1, ev.ez, 0)
+    end
+end)
+
+done = function(player: number, lv: Level)
+    if lv.done then return end   -- a trial may say it twice
+    lv.done = true
+    local first = not cleared(lv.site, player)
+    core.log(`keys: {core.player_name(player)} has done {lv.site} (d {lv.d}, slot {lv.slot})`)
+    core.shared_storage_set(`cleared:{lv.site}:{who(player)}`, "1")
+    local pending = core.shared_storage_get("reward:" .. who(player))
+    core.shared_storage_set("reward:" .. who(player),
+        pending .. `{lv.room} {lv.d} {if first then 1 else 0} {lv.site};`)
+    local e = exit_at(lv.slot)
+    if e then
+        core.set_block(e[1] + 1, e[2], e[3], 0)
+        core.set_block(e[1] + 1, e[2] + 1, e[3], 0)
+        core.set_block(e[1] + 1, e[2] + 2, e[3], HINT_LIT)
+        core.storage_set(`opened:{lv.slot}`, "1")
+        core.play_sound("keys:rumble", e[1] + 0.5, e[2] + 1, e[3] + 0.5)
+    end
+    local own = if TITLE[lv.room] then lv.room else ""
+    if lv.d >= 4 and own ~= "" and core.bag_count(player, item_of(own)) == 0 then
+        core.give_item(player, item_of(own), 1)
+        core.notice(player, `Livello superato. Hai la {TITLE[own]}; la ricompensa ti aspetta al portale.`)
+    elseif lv.d < 4 then
+        core.notice(player, "Livello superato. La ricompensa ti aspetta al portale; le chiavi sono "
+            .. "nei livelli di difficolta' 4 e oltre.")
+    else
+        core.notice(player, "Livello superato. La ricompensa ti aspetta al portale.")
+    end
+    core.notice(player, "Qualcosa si e' aperto vicino all'ingresso.")
+end
+
+core.event.on("keys:cleared", function(ev)
+    local lv = level_of[ev.player]
+    if lv and lv.slot == ev.slot then done(ev.player, lv) end
 end)
 
 -- =================================================================== ways out
@@ -231,23 +373,63 @@ if #EXITS > 0 then HUB = false end
 
 if not HUB and #EXITS > 0 then
     local by_altar: { [number]: boolean } = {}
+    local here: { [number]: boolean } = {}
+    local home: { number }? = nil   -- where the way out stands for the world's own trial
+    local out_at = ""               -- where it stands now
     core.event.on("core:tick", function(_)
+        -- Who came in since the last tick, and by which site.
+        local now: { [number]: boolean } = {}
+        for _, p in core.players() do
+            now[p] = true
+            if not here[p] then arrived(p) end
+        end
+        for p in here do
+            if not now[p] then level_of[p] = nil end
+        end
+        here = now
         -- Not in the laboratory, whose way out ends the game, not a trial;
         -- nor in the assault, whose way out is its own (assault_game).
         if core.node_id("lab:seal") ~= 0 or core.node_id("assault_core:seal") ~= 0 then return end
+        -- The way out goes to the hidden niche of the level of whoever is
+        -- nearest one, or back where the world's own trial has it.
+        local k = EXITS[1]
+        if home == nil then
+            local h = { core.get_portal(k, 0), core.get_portal(k, 1), core.get_portal(k, 2) }
+            home, out_at = h, `{h[1]},{h[2]},{h[3]}`
+        end
+        local want, best = home :: { number }, math.huge
+        for _, p in core.players() do
+            local px, _, pz = core.player_pos(p)
+            local lv = level_of[p]
+            local e = if lv and lv.slot > 0 then exit_at(lv.slot) else nil
+            if px and e then
+                local dd = (px - e[1]) ^ 2 + (pz - e[3]) ^ 2
+                if dd < best then want, best = { e[1] + 0.5, e[2] + 1, e[3] + 0.5 }, dd end
+            end
+        end
+        local key = `{want[1]},{want[2]},{want[3]}`
+        if key ~= out_at and core.portal_place(k, want[1], want[2], want[3], 1, 1, 0.5, 1.0) == 1 then
+            out_at = key
+        end
         for _, p in core.players() do
             local x, y, z = core.player_pos(p)
             if x == nil then continue end
-            local won = next(passed(p)) ~= nil
+            local lv = level_of[p]
+            local won = if lv then cleared(lv.site, p) else next(passed(p)) ~= nil
             for _, k in EXITS do core.portal_seal(p, k, not won) end
             -- The altar, one forward and two to the side of each way out (all
             -- face +x), put back while anybody is near: a world's own stages
             -- write over what is set before its columns are made.
             local by = false
-            for _, k in EXITS do
-                local ax = math.floor(core.get_portal(k, 0)) + 1
-                local ay = math.floor(core.get_portal(k, 1)) - 1
-                local az = math.floor(core.get_portal(k, 2)) + 2
+            for i, k in EXITS do
+                -- Where the way out stands for the world's own trial, even
+                -- while the first one is at a level's niche.
+                local hx = if i == 1 and home then home[1] else core.get_portal(k, 0)
+                local hy = if i == 1 and home then home[2] else core.get_portal(k, 1)
+                local hz = if i == 1 and home then home[3] else core.get_portal(k, 2)
+                local ax = math.floor(hx) + 1
+                local ay = math.floor(hy) - 1
+                local az = math.floor(hz) + 2
                 if (x - ax) ^ 2 + (z - az) ^ 2 < 40 * 40 and core.get_block(ax, ay, az) ~= ALTAR then
                     core.set_block(ax, ay, az, ALTAR)
                 end
@@ -316,6 +498,28 @@ if HUB then
             local x, y, z = core.get_portal(a.k, 0), core.get_portal(a.k, 1), core.get_portal(a.k, 2)
             placed += core.portal_place(a.k, x, y, z, 0, -1, 0.5, 1.0)
         end
+    end)
+end
+
+-- What was won behind the sites, handed to mods/gates (which knows where the
+-- sites are) as a player comes back into the sandbox:
+--   keys:reward { player, list = "room d first site;..." }
+core.event.define("keys:reward", { fields = { player = "number", list = "string" }, cancellable = false })
+if HUB then
+    local seen: { [number]: boolean } = {}
+    core.event.on("core:tick", function(_)
+        local now: { [number]: boolean } = {}
+        for _, p in core.players() do
+            now[p] = true
+            if not seen[p] then
+                local pending = core.shared_storage_get("reward:" .. who(p))
+                if pending ~= "" then
+                    core.shared_storage_set("reward:" .. who(p), "")
+                    core.event.emit("keys:reward", { player = p, list = pending })
+                end
+            end
+        end
+        seen = now
     end)
 end
 
