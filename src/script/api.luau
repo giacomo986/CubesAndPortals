@@ -3138,6 +3138,21 @@ local api: { Fn } = {
            .. "returns how many things it took. Giving back what was stolen.",
     },
     {
+        name = "bag_to_container",
+        host = "bag_to_container",
+        ret  = "int",
+        args = {
+            { name = "player", type = "int" },
+            { name = "x", type = "int" },
+            { name = "y", type = "int" },
+            { name = "z", type = "int" },
+        },
+        doc = "Moves the 36 squares of a player's bag into the container at that cell, every "
+           .. "stack as it is (worn, enchanted, tagged); the worn squares stay on them. What "
+           .. "does not fit stays in the bag. Returns how many stacks moved: what a grave does "
+           .. "with a death. Make the container first (core.container_make).",
+    },
+    {
         name = "bag_count",
         host = "bag_count",
         ret  = "int",

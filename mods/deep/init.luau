@@ -59,7 +59,13 @@ local TOP, BOTTOM = -1, -61
 local LAVA_BELOW = -51
 local CHAMBER = -28  -- the sinkhole's floor
 local ARENA_Y, ARENA_R, ARENA_OFF = -40, 10, 40
-local PLAZA_LO, PLAZA_HI = 20, 100
+local PLAZA_LO: number, PLAZA_HI: number = math.huge, -math.huge
+do   -- core.plaza(): nil in a world without one (survival), with nothing to keep clear
+    local lo, hi = core.plaza()
+    if lo and hi then
+        PLAZA_LO, PLAZA_HI = lo, hi
+    end
+end
 
 local function mul32(a: number, b: number): number
     local hi = math.floor(a / 65536)

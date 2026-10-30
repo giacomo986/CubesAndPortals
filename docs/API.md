@@ -2993,6 +2993,21 @@ Takes every stack with that tag out of a player's bag, worn squares included, an
 | `player` | number | — |  |
 | `tag` | number | — | 1 to 131071. |
 
+## `core.bag_to_container`
+
+```luau
+core.bag_to_container(player: number, x: number, y: number, z: number) -> number
+```
+
+Moves the 36 squares of a player's bag into the container at that cell, every stack as it is (worn, enchanted, tagged); the worn squares stay on them. What does not fit stays in the bag. Returns how many stacks moved: what a grave does with a death. Make the container first (core.container_make).
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `player` | number | — |  |
+| `x` | number | — |  |
+| `y` | number | — |  |
+| `z` | number | — |  |
+
 ## `core.bag_count`
 
 ```luau

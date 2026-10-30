@@ -23,7 +23,13 @@ local REACH = 2
 
 -- The engine's plaza, x and z from 20 to 100: flat by construction, and where
 -- the portals, the spawn and every mod's scene stand.
-local PLAZA_LO, PLAZA_HI = 20, 100
+local PLAZA_LO: number, PLAZA_HI: number = math.huge, -math.huge
+do   -- core.plaza(): nil in a world without one (survival), with nothing to keep clear
+    local lo, hi = core.plaza()
+    if lo and hi then
+        PLAZA_LO, PLAZA_HI = lo, hi
+    end
+end
 
 -- mods/lakes fills the ground below this with water, and a tree does not grow
 -- at the bottom of a lake.

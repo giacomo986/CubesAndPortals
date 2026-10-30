@@ -125,7 +125,7 @@ if serving then
 
         -- The box is the sandbox's set piece: the Inferno loads this mod for
         -- the catalogue (C), and mods/guard's square is what makes a world the sandbox.
-        if core.node_id("guard:cloud") ~= 0 then
+        if core.node_id("guard:cloud") ~= 0 and core.plaza() ~= nil then
             core.set_block(BX, BY, BZ, BOX)
         end
         core.log(`creative: {#items} item(s), box at {BX} {BY} {BZ}`)

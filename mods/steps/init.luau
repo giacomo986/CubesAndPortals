@@ -146,8 +146,9 @@ end
 -- stored chunks.
 core.event.on("core:world_ready", function()
     -- The sandbox's set piece only: the Inferno loads this mod for what it
-    -- holds, and mods/guard's square is what makes a world the sandbox.
-    if core.node_id("guard:cloud") == 0 then
+    -- holds, and mods/guard's square is what makes a world the sandbox; a
+    -- survival one has no plaza to put it on.
+    if core.node_id("guard:cloud") == 0 or core.plaza() == nil then
         return
     end
     -- Three slabs in a row, which is a ledge to step onto rather than one block

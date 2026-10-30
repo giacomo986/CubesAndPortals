@@ -62,7 +62,9 @@ local function build_tower()
         .. `placed {placed} blocks (core:stone is {STONE}, core:frame is {FRAME})`)
 end
 
-build_tower()
+if core.plaza() ~= nil then   -- on the plaza, and only where there is one
+    build_tower()
+end
 
 -- Called once per frame by the host.
 function on_step(dt: number)

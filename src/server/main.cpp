@@ -936,6 +936,32 @@ int host_take_tagged(void *ud, int player, int tag)
     return taken;
 }
 
+int host_bag_to_container(void *ud, int player, int x, int y, int z)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (!s->sessions) return 0;
+    net::Session *sess = s->sessions->find_mutable((net::PeerId)player);
+    Inventory    *box  = s->containers.find(ContainerAt{x, y, z});
+    if (!sess || sess->scope == net::Scope::Observe || !box) return 0;
+    int moved = 0;
+    for (int i = 0; i < Inventory::kDefaultSlots && i < sess->bag().size(); ++i) {
+        if (sess->bag().at(i).empty()) continue;
+        const ItemStack out  = sess->bag().take_from(i);
+        const uint16_t  left = box->add(s->items, out.item, out.count, -1, out.used, out.ench, out.tag);
+        if (left > 0) {
+            ItemStack &back = sess->bag().slot(i);
+            back            = out;
+            back.count      = left;
+        }
+        moved += left < out.count ? 1 : 0;
+    }
+    if (moved > 0) {
+        s->bags_touched.insert((uint32_t)player);
+        s->containers.touched(ContainerAt{x, y, z});
+    }
+    return moved;
+}
+
 // core.held_item: the square the player chose (their Hold), by name.
 const char *host_held_item(void *ud, int player)
 {
@@ -6108,6 +6134,7 @@ int serve_room(int argc, char **argv)
         host.owned_member  = host_owned_member;
         host.player_factors = host_player_factors;
         host.take_tagged   = host_take_tagged;
+        host.bag_to_container = host_bag_to_container;
         host.give_item     = host_give_item;
         host.meta_set      = host_meta_set;
         host.meta_get      = host_meta_get;

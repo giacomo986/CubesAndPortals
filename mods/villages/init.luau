@@ -45,7 +45,13 @@ local function rim(x: number, z: number): number
     end
     return r
 end
-local PLAZA_LO, PLAZA_HI = 20, 100
+local PLAZA_LO: number, PLAZA_HI: number = math.huge, -math.huge
+do   -- core.plaza(): nil in a world without one (survival), with nothing to keep clear
+    local lo, hi = core.plaza()
+    if lo and hi then
+        PLAZA_LO, PLAZA_HI = lo, hi
+    end
+end
 local SEED: number? = nil   -- the world's, as the first column was handed it; /paese needs it
 
 local function mul32(a: number, b: number): number
@@ -104,8 +110,8 @@ local function village_of(rx: number, rz: number, seed: number): Village?
 
     local v: Village? = nil
     local h = hash(rx, rz, seed + 0x71A6E)
-    -- One region in three, and never the one the plaza is in.
-    if h % 3 == 0 and not (rx == 0 and rz == 0) then
+    -- One region in three, and never the one the plaza is in (when there is one).
+    if h % 3 == 0 and not (rx == 0 and rz == 0 and PLAZA_LO <= PLAZA_HI) then
         local x = rx * REGION + 80 + bit32.rshift(h, 4) % 97
         local z = rz * REGION + 80 + bit32.rshift(h, 12) % 97
         local biome = core.biome(x, z)

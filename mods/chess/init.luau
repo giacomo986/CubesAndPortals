@@ -1206,6 +1206,7 @@ if serving then
         -- Only where there is a square: mods/guard's, the sandbox's. The
         -- Inferno loads this mod for what it holds, not for a table at its door.
         ready, laid = true, core.storage_get("plaza") == "1" or core.node_id("guard:cloud") == 0
+            or core.plaza() == nil
     end)
     core.event.on("core:tick", function(_)
         local sx, sy, sz = core.world_spawn()

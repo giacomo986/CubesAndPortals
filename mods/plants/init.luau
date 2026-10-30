@@ -154,7 +154,13 @@ local function hash(x: number, z: number, salt: number): number
 end
 
 -- The engine's plaza, kept clear as mods/trees keeps it.
-local PLAZA_LO, PLAZA_HI = 20, 100
+local PLAZA_LO: number, PLAZA_HI: number = math.huge, -math.huge
+do   -- core.plaza(): nil in a world without one (survival), with nothing to keep clear
+    local lo, hi = core.plaza()
+    if lo and hi then
+        PLAZA_LO, PLAZA_HI = lo, hi
+    end
+end
 
 core.register_mapgen("plants:grow", function(ctx)
     local GRASS = core.node_id("core:grass")

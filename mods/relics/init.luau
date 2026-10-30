@@ -41,7 +41,13 @@ core.node_drop_item(URN, "relics:shard")
 
 local SQUARE = 384   -- a multiple of 32: a column is in one square only
 local MARGIN = 48    -- how far inside its square a relic stands
-local PLAZA_LO, PLAZA_HI = 20, 100
+local PLAZA_LO: number, PLAZA_HI: number = math.huge, -math.huge
+do   -- core.plaza(): nil in a world without one (survival), with nothing to keep clear
+    local lo, hi = core.plaza()
+    if lo and hi then
+        PLAZA_LO, PLAZA_HI = lo, hi
+    end
+end
 
 local function mul32(a: number, b: number): number
     local hi = math.floor(a / 65536)

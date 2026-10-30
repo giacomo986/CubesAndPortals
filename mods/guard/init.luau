@@ -26,8 +26,10 @@ local refusals = 0
 -- Priority 10: late enough that a mod wanting the last word can sit at 20, low
 -- enough to run before anything that only watches. Stating the number is the
 -- point -- load order is not an ordering.
+local PLAZA = core.plaza() ~= nil   -- a survival world has no plaza to guard
+
 core.event.on("core:pre_place", 10, function(ev)
-    if ev.x >= X0 and ev.x <= X1 and ev.z >= Z0 and ev.z <= Z1 then
+    if PLAZA and ev.x >= X0 and ev.x <= X1 and ev.z >= Z0 and ev.z <= Z1 then
         ev.cancel = true
         refusals += 1
         core.log(`refused a block at {ev.x} {ev.y} {ev.z} -- the plaza is protected`)

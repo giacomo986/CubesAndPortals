@@ -377,6 +377,7 @@ typedef struct script_host {
     int (*player_factors)(void *ud, int player, double walk, double dig, double hurt, double regen,
                           const char *source);
     int (*take_tagged)(void *ud, int player, int tag);
+    int (*bag_to_container)(void *ud, int player, int x, int y, int z);
     int (*give_item)(void *ud, int player, const char *item, int count, int id);
     const char *(*held_item)(void *ud, int player);
     // What is worn in one worn square ("head" .. "back"), by name.

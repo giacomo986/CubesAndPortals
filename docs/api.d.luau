@@ -496,6 +496,8 @@ On a player's machine, world code included, it answers for that machine's own pl
     bag_tagged: (player: number, tag: number) -> { number },
     -- Takes every stack with that tag out of a player's bag, worn squares included, and returns how many things it took. Giving back what was stolen.
     take_tagged: (player: number, tag: number) -> number,
+    -- Moves the 36 squares of a player's bag into the container at that cell, every stack as it is (worn, enchanted, tagged); the worn squares stay on them. What does not fit stays in the bag. Returns how many stacks moved: what a grave does with a death. Make the container first (core.container_make).
+    bag_to_container: (player: number, x: number, y: number, z: number) -> number,
     -- How many of that item a player's bag holds, worn squares included, without taking any: 0 for none, an unknown item or somebody who is not in this world.
     bag_count: (player: number, item: string) -> number,
     -- Takes that many of that item out of a player's bag and returns how many it actually took -- fewer than asked when they did not have that many, and 0 when they had none.

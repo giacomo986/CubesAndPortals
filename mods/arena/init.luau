@@ -291,7 +291,7 @@ if serving then
     end)
 
     -- One by the spawn's square, once a world, across from the chess table.
-    local laid = core.storage_get("plaza") == "1"
+    local laid = core.storage_get("plaza") == "1" or core.plaza() == nil
     core.event.on("core:tick", function()
         if laid then
             return

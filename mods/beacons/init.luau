@@ -38,7 +38,9 @@ local function build()
         .. `os.clock at load {string.format("%.3f", started)}s (spike:copper is {COPPER})`)
 end
 
-build()
+if core.plaza() ~= nil then   -- on the plaza, and only where there is one
+    build()
+end
 
 -- An event from another mod, handled in this VM. beacons has never heard of
 -- core:pre_place: it hears that guard refused something, and answers by lighting

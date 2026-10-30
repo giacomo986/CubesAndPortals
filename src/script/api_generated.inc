@@ -2612,6 +2612,19 @@ int l_take_tagged(lua_State *L)
     return 1;
 }
 
+// core.bag_to_container(player: number, x: number, y: number, z: number) -> number
+int l_bag_to_container(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int player = (int)luaL_checkinteger(L, 1);
+    const int x = (int)luaL_checkinteger(L, 2);
+    const int y = (int)luaL_checkinteger(L, 3);
+    const int z = (int)luaL_checkinteger(L, 4);
+    const int result = (vm && vm->host.bag_to_container) ? vm->host.bag_to_container(vm->host.ud, player, x, y, z) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.bag_count(player: number, item: string) -> number
 int l_bag_count(lua_State *L)
 {
@@ -3293,6 +3306,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "bag_tagged");
     lua_pushcfunction(L, l_take_tagged, "core.take_tagged");
     lua_setfield(L, -2, "take_tagged");
+    lua_pushcfunction(L, l_bag_to_container, "core.bag_to_container");
+    lua_setfield(L, -2, "bag_to_container");
     lua_pushcfunction(L, l_bag_count, "core.bag_count");
     lua_setfield(L, -2, "bag_count");
     lua_pushcfunction(L, l_take_item, "core.take_item");

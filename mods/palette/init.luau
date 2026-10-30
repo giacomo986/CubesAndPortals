@@ -51,7 +51,9 @@ local function build()
     end
 end
 
-build()
+if core.plaza() ~= nil then   -- on the plaza, and only where there is one
+    build()
+end
 
 -- And one item that is not a block, which is the other half of M2's exit test
 -- ("20 blocchi e un item"). The twenty blocks above each got an item form of
