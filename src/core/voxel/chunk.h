@@ -219,6 +219,10 @@ public:
         if (d) m_unsaved = true;
     }
 
+    // A new mesh and nothing else: a neighbour arrived, this chunk's cells
+    // did not change, and the world file's copy of it is still good.
+    void set_mesh_dirty() { m_dirty = true; }
+
     // Changed since the world file last had it (see World::take_unsaved).
     bool unsaved() const { return m_unsaved; }
     void set_saved() { m_unsaved = false; }
@@ -291,6 +295,7 @@ public:
     Chunk &ensure_uniform_chunk(ChunkPos p, BlockId id);
 
     void mark_dirty(ChunkPos p);
+    void mark_mesh_dirty(ChunkPos p);   // a new mesh, not a save (Chunk::set_mesh_dirty)
     void mark_dirty_around(int x, int y, int z);
     void mark_all_dirty();
 

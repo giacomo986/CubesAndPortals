@@ -478,7 +478,14 @@ void install_chunk(World &world, std::unique_ptr<Chunk> chunk)
         dst.set_uniform_light(chunk->uniform_light());
         dst.set_uniform_facing(chunk->uniform_facing());
     }
-    world.mark_dirty(p);
+    // And every chunk round it: one meshed while this was missing drew its
+    // border against air -- a lake's side as a wall standing in the water,
+    // along a chunk's edge, for as long as nothing else touched that chunk.
+    // The edges and corners too, for ambient occlusion and a liquid's corners.
+    for (int dz = -1; dz <= 1; ++dz)
+        for (int dy = -1; dy <= 1; ++dy)
+            for (int dx = -1; dx <= 1; ++dx)
+                if (dx != 0 || dy != 0 || dz != 0) world.mark_mesh_dirty(ChunkPos{p.x + dx, p.y + dy, p.z + dz});
 }
 
 } // namespace net

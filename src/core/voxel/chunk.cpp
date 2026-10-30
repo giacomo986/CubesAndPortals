@@ -145,6 +145,11 @@ void World::mark_dirty(ChunkPos p)
     if (Chunk *c = find_chunk(p)) c->set_dirty(true);
 }
 
+void World::mark_mesh_dirty(ChunkPos p)
+{
+    if (Chunk *c = find_chunk(p)) c->set_mesh_dirty();
+}
+
 void World::mark_dirty_around(int x, int y, int z)
 {
     const ChunkPos base = chunk_of(x, y, z);
