@@ -51,8 +51,9 @@ if serving then
     -- The course, as boxes of cells, ends included: { x0, y0, z0, x1, y1, z1, block }.
     -- The floor's top cell is y 20 on the plaza, so a body stands at 21.
     local BOXES: { { number } } = {}
+    local into = BOXES   -- where box() writes: the course, or a level being planned
     local function box(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, b: number)
-        table.insert(BOXES, { math.min(x0, x1), math.min(y0, y1), math.min(z0, z1),
+        table.insert(into, { math.min(x0, x1), math.min(y0, y1), math.min(z0, z1),
                               math.max(x0, x1), math.max(y0, y1), math.max(z0, z1), b })
     end
     -- A floor of concrete from x0 to x1 with hazard along both long edges.
@@ -208,8 +209,8 @@ if serving then
         "La cima.",
     }
 
-    core.register_mapgen("parkour:course", function(ctx)
-        for _, b in BOXES do
+    local function apply(list: { { number } }, ctx: any)
+        for _, b in list do
             local x0, x1 = math.max(b[1], ctx.min_x), math.min(b[4], ctx.max_x)
             local z0, z1 = math.max(b[3], ctx.min_z), math.min(b[6], ctx.max_z)
             if x0 <= x1 and z0 <= z1 then
@@ -221,6 +222,138 @@ if serving then
                     end
                 end
             end
+        end
+    end
+
+    -- ============================================================ levels
+    --
+    -- A survival site's level (mods/keys: keys:level), in its slot's square
+    -- from (ox, oz): the stations above as pieces, plus plain jumps and
+    -- pillars, shuffled by the site's seed, 3 + d of them, climbing -x from a
+    -- start floor at LF. The body's numbers (parkour_core: jump 8, gravity
+    -- 25, sprint 8) make a level jump 5.1 nodes and one a node up 3.8; a
+    -- gap here is at most 60% of that at d 1 and 85% at d 10. A pad starts
+    -- each piece. The summit says the level is done and puts the player back
+    -- at the start, in front of its way out: a niche 12 behind where they
+    -- began, hidden behind two cells of concrete under a dark lamp.
+    local LF = 30
+    type Plan = { boxes: { { number } }, pads: { { number } }, hints: { string }, start: { number },
+                  back: { number }, exit: { number } }
+    local PLANS: { [number]: Plan } = {}
+
+    local function lcg(seed: number): () -> number
+        local st = seed % 2147483647
+        if st <= 0 then st += 2147483646 end
+        return function()
+            st = (st * 48271) % 2147483647
+            return st / 2147483647
+        end
+    end
+
+    local function plan_of(slot: number): Plan?
+        local hit = PLANS[slot]
+        if hit then return hit end
+        local d, seed = string.match(core.storage_get(`slot:{slot}`), "(%d+) (%d+)")
+        if d == nil then return nil end
+        local dd, rnd = tonumber(d) or 1, lcg((tonumber(seed) or 1) + slot * 7919)
+        local ox, oz = 8192 + (slot % 16) * 2048 + 1024, (slot // 16) * 2048 + 1024
+        local plan: Plan = { boxes = {}, pads = {}, hints = {}, start = { ox + 2, LF, oz },
+                             back = { ox + 16, LF, oz }, exit = { ox + 12, LF + 1, oz } }
+        into = plan.boxes
+        local reach = 0.6 + 0.25 * (dd - 1) / 9
+        local flat, up = math.max(2, math.floor(5.1 * reach)), math.max(2, math.floor(3.8 * reach))
+
+        -- The start: a floor from the first piece to past the niche, the
+        -- niche in a block of concrete (its hole at exit, facing +x).
+        floor(ox - 6, ox + 20, LF, oz - 4, oz + 4)
+        box(ox + 10, LF + 1, oz - 2, ox + 13, LF + 4, oz + 2, CONCRETE)
+        box(ox + 12, LF + 1, oz, ox + 12, LF + 2, oz, AIR)
+        box(ox + 11, LF + 1, oz, ox + 11, LF + 2, oz, FRAME)
+
+        -- The pieces: a plain jump, a jump a node up, three pillars apart.
+        local function jump(xs: number, F: number, zc: number): (number, number)
+            local n = 2 + math.floor(rnd() * (flat - 1))
+            floor(xs - 2, xs, F, zc - 2, zc + 2)
+            floor(xs - 6 - n, xs - 3 - n, F, zc - 2, zc + 2)
+            return xs - 7 - n, F
+        end
+        local function step(xs: number, F: number, zc: number): (number, number)
+            local n = 1 + math.floor(rnd() * up)
+            floor(xs - 2, xs, F, zc - 2, zc + 2)
+            floor(xs - 6 - n, xs - 3 - n, F + 1, zc - 2, zc + 2)
+            return xs - 7 - n, F + 1
+        end
+        local function pillars(xs: number, F: number, zc: number): (number, number)
+            floor(xs - 2, xs, F, zc - 2, zc + 2)
+            local x = xs - 2
+            for _ = 1, 3 do
+                x -= 1 + math.floor(rnd() * (flat - 1))
+                box(x, F, zc, x, F, zc, CONCRETE)
+            end
+            floor(x - 1 - flat // 2 - 4, x - 1 - flat // 2, F, zc - 2, zc + 2)
+            return x - flat // 2 - 6, F
+        end
+        local PIECES: { { any } } = {
+            { jump, "Un salto: prendi la rincorsa." },
+            { step, "Un salto verso l'alto." },
+            { pillars, "Pilastri: un blocco alla volta." },
+            { wallrun, "Corsa sul muro: salta accanto al muro e tieni avanti." },
+            { slide, "Scivolata: corri e premi crouch." },
+            { backflip, "Capriola: spalle al gradino, indietro e salta." },
+            { chimney, "Il camino: salta da un muro all'altro." },
+            { rope, "La corda: tasto destro sulla trave." },
+        }
+        -- The easy three first at d 1 and 2; every piece once before any twice.
+        local count = math.min(12, 3 + dd)
+        local order = {}
+        local pool = {}
+        while #order < count do
+            if #pool == 0 then
+                for i = 1, (if dd <= 2 then 3 elseif dd <= 4 then 6 else #PIECES) do table.insert(pool, i) end
+            end
+            table.insert(order, table.remove(pool, 1 + math.floor(rnd() * #pool)))
+        end
+        local tx, tf, tz = ox - 7, LF, oz
+        floor(tx - 1, tx, tf, tz - 2, tz + 2)
+        for _, i in order do
+            local piece = PIECES[i]
+            table.insert(plan.pads, { tx + 1, tf, tz })
+            table.insert(plan.hints, piece[2])
+            local fn = piece[1] :: (number, number, number) -> (number, number)
+            tx, tf = fn(tx, tf, tz)
+            floor(tx, tx, tf, tz - 2, tz + 2)
+        end
+        floor(tx - 8, tx, tf, tz - 2, tz + 2)
+        table.insert(plan.pads, { tx - 4, tf, tz })
+        table.insert(plan.hints, "La cima.")
+        table.insert(plan.pads, 1, plan.start)
+        table.insert(plan.hints, 1, "Il percorso va verso ovest; la cima ti riportera' qui.")
+        for _, p in plan.pads do box(p[1], p[2], p[3], p[1], p[2], p[3], PAD) end
+        into = BOXES
+        PLANS[slot] = plan
+        return plan
+    end
+
+    -- Which level each player here is in.
+    local level_slot: { [number]: number } = {}
+    core.event.on("keys:level", function(ev)
+        core.storage_set(`slot:{ev.slot}`, `{ev.d} {ev.seed}`)
+        local plan = plan_of(ev.slot)
+        if plan == nil then return end
+        ev.cancel = true
+        level_slot[ev.player] = ev.slot
+        local s = plan.start
+        core.player_place(ev.player, s[1] + 0.5, s[2] + 1, s[3] + 0.5, -1, 0, 0)
+        core.player_spawn(ev.player, s[1] + 0.5, s[2] + 1, s[3] + 0.5, true)
+        local e = plan.exit
+        core.event.emit("keys:start", { player = ev.player, slot = ev.slot, ex = e[1], ey = e[2], ez = e[3] })
+    end)
+
+    core.register_mapgen("parkour:course", function(ctx)
+        apply(BOXES, ctx)
+        if ctx.min_x >= 8192 then
+            local plan = plan_of((ctx.min_x - 8192) // 2048 + 16 * (ctx.min_z // 2048))
+            if plan then apply(plan.boxes, ctx) end
         end
     end)
 
@@ -245,31 +378,44 @@ if serving then
             here[p] = true
             local x, y, z = core.player_pos(p)
             if x == nil then continue end
+            local slot = level_slot[p]
+            local plan = if slot then plan_of(slot) else nil
+            local pads = if plan then plan.pads else PADS
             if reached[p] == nil then
                 reached[p] = 1
                 -- Exactly one, however many they came with.
                 core.take_item(p, GUN, 99)
                 core.give_item(p, GUN, 1)
-                core.notice(p, HINTS[1])
+                core.notice(p, if plan then plan.hints[1] else HINTS[1])
             end
-            for i, pad in PADS do
+            for i, pad in pads do
                 if i ~= reached[p] and math.abs(x - (pad[1] + 0.5)) < 1.2 and math.abs(z - (pad[3] + 0.5)) < 1.2
                     and math.abs(y - (pad[2] + 1)) < 0.6 then
                     reached[p] = i
-                    core.notice(p, HINTS[i])
-                    -- The summit: the trial passed, its key on the altar (mods/keys).
-                    if i == #PADS then
+                    core.notice(p, if plan then plan.hints[i] else HINTS[i])
+                    if i == #pads and plan and slot then
+                        -- A level's summit: done, and back to its start, the
+                        -- way out now open behind where they began.
+                        core.event.emit("keys:cleared", { player = p, slot = slot })
+                        local b = plan.back
+                        core.player_place(p, b[1] + 0.5, b[2] + 1, b[3] + 0.5, -1, 0, 0)
+                        reached[p] = 1
+                    elseif i == #pads then
+                        -- The summit: the trial passed, its key on the altar (mods/keys).
                         core.event.emit("keys:earned", { player = p, key = "parkour" })
                     end
                 end
             end
-            if y < 12 then
-                local pad = PADS[reached[p]]
+            if y < 12 or (plan and y < LF - 12) then
+                local pad = pads[reached[p]]
                 core.player_place(p, pad[1] + 0.5, pad[2] + 1, pad[3] + 0.5, -1, 0, 0)
             end
         end
         for p in reached do
-            if not here[p] then reached[p] = nil end
+            if not here[p] then
+                reached[p] = nil
+                level_slot[p] = nil
+            end
         end
     end)
 end
