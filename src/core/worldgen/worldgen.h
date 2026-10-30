@@ -168,6 +168,10 @@ void mapgen_set_column(MapgenContext &ctx, ColumnPos column);
 // things on the ground without re-deriving the noise.
 int mapgen_terrain_height(const MapgenContext &ctx, int x, int z);
 
+// The plaza's lowest and highest x (and z, the same), or false for a world
+// without one (BiomeSet::plaza).
+bool mapgen_plaza(const BiomeSet &biomes, int *lo, int *hi);
+
 // Where the water stands over a column: the y of the first cell above it --
 // kSea (18) over the sea, a river or a lake down low, a lake's own level up in
 // the hills -- or the terrain height where the column is dry. mods/lakes fills

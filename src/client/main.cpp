@@ -3509,6 +3509,18 @@ int host_register_lbm(void *ud, const char *name, const char *const *nodes, int 
                                     err_size);
 }
 
+int host_world_seed(void *ud)
+{
+    Session &sess = static_cast<Scene *>(ud)->act();
+    return sess.mapgen_ctx ? (int)(sess.mapgen_ctx->seed & 0x7fffffffu) : 0;
+}
+
+int host_plaza(void *ud, int *lo, int *hi)
+{
+    Session &sess = static_cast<Scene *>(ud)->act();
+    return sess.mapgen_ctx && mapgen_plaza(*sess.mapgen_ctx->biomes, lo, hi) ? 1 : 0;
+}
+
 int host_terrain_height(void *ud, int x, int z)
 {
     Session &sess = static_cast<Scene *>(ud)->act();
@@ -9506,6 +9518,10 @@ struct TitleMenu {
     size_t                  first = 0;   // the first world listed
     std::string             name  = "New World";
     std::string             seed;
+    // The new world's kind: the plaza and its portals, or survival (no plaza, a
+    // spawn somewhere on the land, the worlds behind portals scattered over
+    // it). Written to the world's `mode` file when it is first served.
+    bool                    survival = false;
     std::string             address;     // what is typed into the list of servers
     std::vector<ServerRow>  servers;
     bool                    hosting   = false;   // the world list is picking a world to HOST
@@ -9769,14 +9785,18 @@ ui::Panel title_panel(const TitleMenu &m, bool debug)
 
     case MenuPage::NewWorld:
         p.w = 10.0f;
-        p.h = 8.3f;
+        p.h = 9.6f;
         panel_label(p, "Create a new world", 0.5f, 0.0f);
         panel_label(p, "Name", 0.5f, 1.2f);
         panel_add(p, ui::ElemKind::Field, "name", m.name, 0.5f, 2.2f, 9.0f);
         panel_label(p, "Seed (none for a random one)", 0.5f, 3.5f);
         panel_add(p, ui::ElemKind::Field, "seed", m.seed, 0.5f, 4.5f, 9.0f);
-        panel_button(p, "create", "Create", 0.5f, 5.8f, 9.0f);
-        panel_button(p, "back", "Back", 0.5f, 7.1f, 9.0f);
+        panel_button(p, "mode",
+                     m.survival ? "Mode: Survival -- portals scattered over the land"
+                                : "Mode: Sandbox -- the plaza and its portals",
+                     0.5f, 5.8f, 9.0f);
+        panel_button(p, "create", "Create", 0.5f, 7.1f, 9.0f);
+        panel_button(p, "back", "Back", 0.5f, 8.4f, 9.0f);
         break;
 
     case MenuPage::EditWorld:
@@ -10151,11 +10171,14 @@ MenuChoice title_menu(Scene &s, TitleMenu &m, bool &debug)
             m.first += kWorldsShown;
         } else if (id == "new") {
             m.page = MenuPage::NewWorld;
+        } else if (id == "mode") {
+            m.survival = !m.survival;
         } else if (id.rfind("world:", 0) == 0) {
             const SavedWorld &w = m.worlds[std::strtoul(id.c_str() + 6, nullptr, 10)];
             m.dir        = worlds_dir() + "/" + w.name;
             m.world_seed = w.seed;
             m.chose_row  = SIZE_MAX;
+            m.survival   = false;   // a world made before `mode` is a sandbox
             return MenuChoice::World;
         } else if (id.rfind("edit:", 0) == 0) {
             m.editing        = std::strtoul(id.c_str() + 5, nullptr, 10);
@@ -10231,6 +10254,14 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
     std::error_code ec;
     std::filesystem::create_directories(dir, ec);
     std::ofstream(dir + "/seed") << seed << "\n";
+    // The kind is the world's for good: written once, when it is made, and
+    // read back every start after.
+    std::string mode;
+    if (!(std::ifstream(dir + "/mode") >> mode)) {
+        mode = m.survival ? "survival" : "sandbox";
+        std::ofstream(dir + "/mode") << mode << "\n";
+    }
+    const bool survival = mode == "survival";
 
     const std::string prog = server_program();
     if (prog.empty()) {
@@ -10375,6 +10406,13 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
                               "--room", "assalto", "--mods", assault_mods.c_str(),
                               "--portal-to", "@sandbox/16", "--portal-to", "@sandbox/16"})
             args.push_back(a);
+    }
+    // The sandbox's own flag, never every room's: right after its --room, or
+    // at the end of a lone world's.
+    if (survival) {
+        auto at = std::find_if(args.begin(), args.end(),
+                               [](const char *a) { return std::strcmp(a, "sandbox") == 0; });
+        args.insert(at == args.end() ? at : at + 1, "--survival");
     }
     const int rooms_up = rooms ? 11 : 1;   // "listening on UDP" once per room
 
@@ -19062,6 +19100,8 @@ script_host make_client_host(Scene &scene)
     host.register_lbm    = host_register_lbm;
     host.terrain_height  = host_terrain_height;
     host.water_level     = host_water_level;
+    host.world_seed      = host_world_seed;
+    host.plaza           = host_plaza;
     host.biome           = host_biome;
     host.node_liquid     = host_node_liquid;
     host.register_model = host_register_model;

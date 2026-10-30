@@ -4089,6 +4089,9 @@ void ServerSessions::kill_body(Session &s, double now)
     // used to be here is what let a body below the world be killed and healed
     // on every claim without ever being moved.
     MovementState &at = s.authority();
+    s.died_at[0] = at.x;
+    s.died_at[1] = at.y;
+    s.died_at[2] = at.z;
     at.x = s.has_bed ? s.bed[0] : m_spawn.x;
     at.y = s.has_bed ? s.bed[1] : m_spawn.y;
     at.z = s.has_bed ? s.bed[2] : m_spawn.z;
@@ -4274,6 +4277,9 @@ std::vector<ServerSessions::Death> ServerSessions::deaths_to_serve()
         d.back.look_y = 0.0f;
         d.back.look_z = 1.0f;
         d.back.reason = "you died";
+        d.at[0] = s.died_at[0];
+        d.at[1] = s.died_at[1];
+        d.at[2] = s.died_at[2];
         d.back.epoch  = placed(s, Vec3{d.back.x, d.back.y, d.back.z}, Vec3{},
                                std::atan2(d.back.look_x, -d.back.look_z), true);
         dead.push_back(d);

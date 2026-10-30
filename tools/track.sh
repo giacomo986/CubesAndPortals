@@ -6,6 +6,7 @@
 #
 #   tools/track.sh                # un server con undici stanze e un client nel sandbox
 #   tools/track.sh --fresh        # butta via i mondi salvati; l'assalto con 100000 crediti
+#   tools/track.sh --survival     # niente piazza, spawn sulla terra, portali sparsi (worlds/track-survival/)
 #   tools/track.sh -- --shot 20   # quello dopo -- va al client
 #
 # Le aperture del sandbox: 0 (40.5 ... 44.5, guarda +Z) la pista, 1 (60.5 ...
@@ -29,13 +30,15 @@ NAME="${NAME:-${USER:-giocatore}}"
 HERE="${CNP_TRACK_DIR:-$ROOT/worlds/track}"
 
 FRESH=0
+SURVIVAL=()
 CLIENT_ARGS=()
 while [ $# -gt 0 ]; do
     case "$1" in
         --fresh) FRESH=1 ;;
+        --survival) SURVIVAL=(--survival); HERE="${CNP_TRACK_DIR:-$ROOT/worlds/track-survival}" ;;
         --)      shift; CLIENT_ARGS=("$@"); break ;;
-        -h|--help) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-        *) echo "track.sh: non conosco '$1' (--fresh, -- ARGOMENTI DEL CLIENT)"; exit 2 ;;
+        -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        *) echo "track.sh: non conosco '$1' (--fresh, --survival, -- ARGOMENTI DEL CLIENT)"; exit 2 ;;
     esac
     shift
 done
@@ -94,7 +97,7 @@ trap 'exit 130' INT TERM
 echo "== avvio il server (sandbox, pista, inferno, arena, arpg, camere di prova, backrooms, parkour, laboratorio, fronte e assalto) sulla porta $PORT"
 # --ticks 0: senza, un server in ascolto si ferma dopo 50 s.
 "$SRV" --listen "$PORT" --ticks 0 --seed "$SEED" --portals \
-    --room sandbox --mods "$ROOT/mods" --world-file "$HERE/sandbox.world" \
+    --room sandbox ${SURVIVAL[@]+"${SURVIVAL[@]}"} --mods "$ROOT/mods" --world-file "$HERE/sandbox.world" \
         --portal-to @pista/0 --portal-to @inferno/0 --portal-to @arena/0 --portal-to @arpg/0 \
         --portal-to @chambers/0 --portal-to @backrooms/0 --portal-to @parkour/0 \
         --portal-to @laboratorio/0 \

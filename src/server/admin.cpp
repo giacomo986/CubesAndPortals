@@ -340,6 +340,11 @@ bool outranks(const Who &caller, const Who &target)
     return caller.console || role_of(caller) > role_of(target);
 }
 
+// Above the owner: a permission put there is nobody's (/perm creative
+// nobody). Only ever a permission's role, never a player's -- parse_role does
+// not know the word, so /role cannot hand it out.
+constexpr Role kNobody = (Role)((int)Role::Owner + 1);
+
 struct PermRow {
     const char *perm;
     Role        role;
@@ -586,12 +591,15 @@ void cmd_perm(const Who &c, const Args &a, const Hooks &, std::vector<std::strin
     for (const PermRow &p : kPerms)
         if (a.name == p.perm) known = &p;
     Role want;
-    if (!known || a.words.size() < 2 || !parse_role(a.words[1], want)) {
-        out.push_back("/perm PERMISSION ROLE -- /perm alone lists them");
+    const bool nobody = a.words.size() >= 2 && a.words[1] == "nobody";
+    if (nobody) want = kNobody;
+    if (!known || a.words.size() < 2 || (!nobody && !parse_role(a.words[1], want))) {
+        out.push_back("/perm PERMISSION ROLE -- /perm alone lists them; ROLE nobody shuts it to all");
         return;
     }
-    // Nobody hands a permission down past where they could still use it.
-    if (!c.console && want > role_of(c)) {
+    // Nobody hands a permission down past where they could still use it --
+    // shutting one to everybody takes nothing from anyone it was not for.
+    if (!c.console && !nobody && want > role_of(c)) {
         out.push_back("You cannot put a permission above your own role.");
         return;
     }
@@ -1363,6 +1371,7 @@ void rcon_client(Sock c, std::string password)
 
 const char *role_name(Role r)
 {
+    if (r == kNobody) return "nobody";
     switch (r) {
     case Role::Guest:     return "guest";
     case Role::Player:    return "player";
@@ -1389,7 +1398,8 @@ bool perm_role(const std::string &perm, Role &out)
     for (const PermRow &p : kPerms)
         if (perm == p.perm) {
             Row r;
-            if (!(find("perm", perm, r) && parse_role(r.value, out))) out = p.role;
+            if (find("perm", perm, r) && r.value == "nobody") out = kNobody;
+            else if (!(find("perm", perm, r) && parse_role(r.value, out))) out = p.role;
             return true;
         }
     return parse_role(perm, out);
@@ -1467,6 +1477,12 @@ void close()
 }
 
 void set_owner(const std::string &name) { g_owner = name; }
+
+void default_perm(const std::string &perm, const std::string &role)
+{
+    Row r;
+    if (!find("perm", perm, r)) put("perm", perm, perm, role, "server", 0);
+}
 
 bool set_webhook(const std::string &url)
 {

@@ -37,4 +37,13 @@ Vec3 spawn_in_front(const World &world, const NodeRegistry &reg, const Portal &p
 // sets a spawn itself, so it never once asked what a server without one does.
 Vec3 spawn_in_plaza(const World &world, const NodeRegistry &reg, int extent);
 
+struct MapgenContext;
+
+// And in a world with no plaza (--survival): a dry, level place on the land
+// the seed picks, from the ground function alone -- the columns need not exist
+// yet. spawn_free then moves it out of whatever the mods built there once they
+// do.
+Vec3 spawn_on_land(const MapgenContext &ctx);
+Vec3 spawn_free(const World &world, const NodeRegistry &reg, Vec3 at);
+
 } // namespace cnp

@@ -2221,6 +2221,28 @@ int l_world_spawn(lua_State *L)
     return 3;
 }
 
+// core.seed() -> number
+int l_seed(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int result = (vm && vm->host.world_seed) ? vm->host.world_seed(vm->host.ud) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.plaza() -> (number?, number?)
+int l_plaza(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    int out1 = (int)0;
+    int out2 = (int)0;
+    const int answered = (vm && vm->host.plaza) ? vm->host.plaza(vm->host.ud, &out1, &out2) : 0;
+    if (!answered) return 0;
+    lua_pushinteger(L, out1);
+    lua_pushinteger(L, out2);
+    return 2;
+}
+
 // core.player_name(player: number) -> string
 int l_player_name(lua_State *L)
 {
@@ -3209,6 +3231,10 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "player_key");
     lua_pushcfunction(L, l_world_spawn, "core.world_spawn");
     lua_setfield(L, -2, "world_spawn");
+    lua_pushcfunction(L, l_seed, "core.seed");
+    lua_setfield(L, -2, "seed");
+    lua_pushcfunction(L, l_plaza, "core.plaza");
+    lua_setfield(L, -2, "plaza");
     lua_pushcfunction(L, l_player_name, "core.player_name");
     lua_setfield(L, -2, "player_name");
     lua_pushcfunction(L, l_player_carry, "core.player_carry");

@@ -424,8 +424,12 @@ Returns NOTHING for a player who is not in this world, so `local x, y, z = core.
     player_pos: (player: number) -> (number?, number?, number?),
     -- The fingerprint of the key that player proved at the door, or an empty string for somebody who came without one (or is not here). On a world with a file a name belongs to the key that first joined under it, so a name with a key behind it is an identity; a mod that hands out something to keep -- land, say -- asks for one.
     player_key: (player: number) -> string,
-    -- Where a player arrives in this world, and comes back after dying without a bed.
+    -- Where a player arrives in this world, and comes back after dying without a bed. On a server it answers while the mods load too in a world without a plaza (--survival), whose spawn is known before they do; elsewhere only once it runs.
     world_spawn: () -> (number?, number?, number?),
+    -- This world's seed, its low 31 bits, anywhere and at any time -- a mapgen stage's ctx.seed is the whole of it. For a mod that places things as a function of the seed outside a stage, and wants the same answer every start. 0 where there is no generator.
+    seed: () -> number,
+    -- The flat square the portal gates stand on, as the lowest and highest x (and z) of it -- 20, 100 -- or nil in a world without one (--survival) or a process that does not generate the world. What a mod asks instead of which mode a world is in: something kept off the plaza, or built on it, follows the answer.
+    plaza: () -> (number?, number?),
     -- The name that player joined with, or an empty string for somebody who is not in this world. A label and not an identity -- two players may pick the same one -- but it is what a mod can show on a screen, and what it can keep a lap time under across a rejoin: the id is a connection's, and a rejoin is a new connection.
     player_name: (player: number) -> string,
     -- A line this world keeps about a player's body, on a server of several rooms: when the player walks into an opening that leads to another room of the same server, the line goes with them and that room reads it with core.player_carried -- a lap in progress, or by which way out they left. A body that drives goes too, still driving, at its speed, into a room that knows the model it wears. In memory only. Returns 0 for a player with no body here, or a line too long.

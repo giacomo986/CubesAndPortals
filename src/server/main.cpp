@@ -334,6 +334,10 @@ struct ServerState {
     int      extent = 128;
     int      height = kWorldHeight;
     uint32_t seed   = 1;
+    // The spawn of a world without a plaza, known before the mods load (and
+    // before there are sessions to ask): core.world_spawn answers it then.
+    Vec3 early_spawn{};
+    bool early_spawn_known = false;
 
     // Which columns are in memory, and what coming in, being lit and being let
     // go of does to them (TODO.md OPEN-35, OPEN-38; core/storage/column_keeper.h).
@@ -1112,10 +1116,27 @@ const char *host_player_key(void *ud, int player)
 int host_world_spawn(void *ud, float *x, float *y, float *z)
 {
     ServerState *s = static_cast<ServerState *>(ud);
-    if (!s->sessions || !x || !y || !z) return 0;
+    if (!x || !y || !z) return 0;
+    if (!s->sessions) {
+        if (!s->early_spawn_known) return 0;
+        *x = s->early_spawn.x; *y = s->early_spawn.y; *z = s->early_spawn.z;
+        return 1;
+    }
     const net::SpawnPoint &at = s->sessions->spawn();
     *x = at.x; *y = at.y; *z = at.z;
     return 1;
+}
+
+int host_world_seed(void *ud)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    return s->mapgen_ctx ? (int)(s->mapgen_ctx->seed & 0x7fffffffu) : 0;
+}
+
+int host_plaza(void *ud, int *lo, int *hi)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    return s->mapgen_ctx && mapgen_plaza(*s->mapgen_ctx->biomes, lo, hi) ? 1 : 0;
 }
 
 // A mod's line about a body (core.player_carry): kept on the session while the
@@ -5695,6 +5716,12 @@ int serve_room(int argc, char **argv)
     // a hole in somebody's plaza.
     bool        portals  = false;
 
+    // --survival: no plaza; the spawn is a dry place on the land the seed
+    // picks (spawn_on_land), and the mods find the portal sites themselves
+    // (core.plaza() is nil). The world's mode is this and only this: a mod
+    // reads the plaza, never the mode.
+    bool        survival = false;
+
     // Whether a player has to say who they are. DESIGN.md 4.4. Off by default,
     // which is the LAN case; on, nobody joins without a key they hold.
     bool        require_identity = false;
@@ -5780,6 +5807,8 @@ int serve_room(int argc, char **argv)
             key_file = argv[++i];
         else if (std::strcmp(argv[i], "--portals") == 0)
             portals = true;
+        else if (std::strcmp(argv[i], "--survival") == 0)
+            survival = true;
         else if (std::strcmp(argv[i], "--require-identity") == 0)
             require_identity = true;
         else if (std::strcmp(argv[i], "--no-observers") == 0)
@@ -5883,15 +5912,37 @@ int serve_room(int argc, char **argv)
     // its edge. Everything past the ring is made when somebody goes there
     // (TODO.md OPEN-35).
     const int  region       = columns_across(s.extent);
-    const int  startup_cols = (region + 2) * (region + 2);
+    // And in a survival world the 3 x 3 columns round the spawn, which is
+    // somewhere else: made with the region so the mods' stages run on them
+    // too and the spawn can be moved out of a tree they planted.
+    std::vector<ColumnPos> spawn_cols;
+    int        startup_cols = (region + 2) * (region + 2);
     const auto each_startup = [&](const std::function<void(ColumnPos)> &fn) {
         for (int cz = -1; cz <= region; ++cz)
             for (int cx = -1; cx <= region; ++cx) fn(ColumnPos{cx, cz});
+        for (const ColumnPos c : spawn_cols) fn(c);
     };
 
     const auto t_gen = std::chrono::steady_clock::now();
     Mapgen mapgen;
     s.mapgen = &mapgen;
+    mapgen.biomes().plaza = !survival;
+    Vec3 land_spawn{};
+    if (survival) {
+        land_spawn = spawn_on_land(mapgen_make_context(s.world, s.registry, mapgen.biomes(), seed, s.height));
+        const int sx = (int)std::floor(land_spawn.x / (float)kChunkSize);
+        const int sz = (int)std::floor(land_spawn.z / (float)kChunkSize);
+        for (int dz = -1; dz <= 1; ++dz)
+            for (int dx = -1; dx <= 1; ++dx) {
+                const ColumnPos c{sx + dx, sz + dz};
+                if (c.x < -1 || c.x > region || c.z < -1 || c.z > region) spawn_cols.push_back(c);
+            }
+        startup_cols += (int)spawn_cols.size();
+        s.early_spawn       = land_spawn;
+        s.early_spawn_known = true;
+        std::printf("        survival: no plaza, spawn at %.1f %.1f %.1f\n", land_spawn.x, land_spawn.y,
+                    land_spawn.z);
+    }
     each_startup([&](ColumnPos c) {
         mapgen.generate_column(s.world, s.registry, seed, c, s.height);
         s.keeper.mark_generated(c, 0);
@@ -6021,6 +6072,8 @@ int serve_room(int argc, char **argv)
         host.player_name   = host_player_name;
         host.player_key    = host_player_key;
         host.world_spawn   = host_world_spawn;
+        host.world_seed    = host_world_seed;
+        host.plaza         = host_plaza;
         host.player_carry   = host_player_carry;
         host.player_carried = host_player_carried;
         host.body_taken     = host_body_taken;
@@ -6221,6 +6274,17 @@ int serve_room(int argc, char **argv)
             landed.fields = {{"x", SCRIPT_V_NUMBER}, {"y", SCRIPT_V_NUMBER}, {"z", SCRIPT_V_NUMBER},
                              {"id", SCRIPT_V_NUMBER}, {"fell", SCRIPT_V_NUMBER}};
             s.mods.events().define(landed, err);
+        }
+        {
+            // A player died at x y z and has already been put back at their
+            // bed or the spawn; the bag is still on them (kill_body says why),
+            // so a mod that wants a death to cost it takes it here.
+            EventSchema died;
+            died.name   = "core:died";
+            died.owner  = "core";
+            died.fields = {{"player", SCRIPT_V_NUMBER}, {"x", SCRIPT_V_NUMBER}, {"y", SCRIPT_V_NUMBER},
+                           {"z", SCRIPT_V_NUMBER}};
+            s.mods.events().define(died, err);
         }
 
         // A right click on a block within reach, whatever is in the hand.
@@ -6921,9 +6985,9 @@ int serve_room(int argc, char **argv)
         first_opening.half_w      = 0.5f;
         first_opening.half_h      = 1.0f;
 
-        const Vec3 spawn_at = portals
-                                  ? spawn_in_front(s.world, s.registry, first_opening, 4.0f)
-                                  : spawn_in_plaza(s.world, s.registry, extent);
+        const Vec3 spawn_at = survival ? spawn_free(s.world, s.registry, land_spawn)
+                              : portals  ? spawn_in_front(s.world, s.registry, first_opening, 4.0f)
+                                         : spawn_in_plaza(s.world, s.registry, extent);
 
         RoomTransport       transport;
         net::ServerSessions sessions(config, net::SpawnPoint{spawn_at.x, spawn_at.y, spawn_at.z});
@@ -8099,6 +8163,17 @@ int serve_room(int argc, char **argv)
 
             for (const net::ServerSessions::Death &d : sessions.deaths_to_serve()) {
                 transport.send(d.peer, net::Channel::Event, d.back.encode(), true);
+                {
+                    script_field f[4] = {
+                        {"player", SCRIPT_V_NUMBER, (double)d.peer, nullptr, 0},
+                        {"x", SCRIPT_V_NUMBER, (double)d.at[0], nullptr, 0},
+                        {"y", SCRIPT_V_NUMBER, (double)d.at[1], nullptr, 0},
+                        {"z", SCRIPT_V_NUMBER, (double)d.at[2], nullptr, 0},
+                    };
+                    bool        ignored = false;
+                    std::string err;
+                    s.mods.events().emit("core:died", f, 4, &ignored, err);
+                }
                 const net::Session *who = sessions.find(d.peer);
                 if (!quiet)
                     std::printf("        '%s' died and was put back at %.1f %.1f %.1f\n",
@@ -9087,6 +9162,11 @@ int main(int argc, char **argv)
             admin::set_owner(owner);
             std::printf("server: '%s' owns this server\n", owner.c_str());
         }
+        // A survival world has no catalogue, not even its owner's: /perm
+        // creative owner gives it back.
+        for (const auto &room : rooms)
+            if (std::find(room.second.begin(), room.second.end(), "--survival") != room.second.end())
+                admin::default_perm("creative", "nobody");
         admin::start_console();
 
         // RCON: the same commands from a script on this machine.

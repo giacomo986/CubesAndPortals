@@ -70,6 +70,9 @@ Each command asks for a permission, and each permission wants a least role. The 
 | owner | `perms`, `federation` |
 
 `/perm PERMISSION ROLE` (owner) moves a permission to another role; `/perm` lists them.
+`/perm PERMISSION nobody` shuts it to everybody, the owner too (only the console is above it).
+A survival world (`--survival`) starts with `creative` at `nobody`: no catalogue (C) for anyone;
+`/perm creative owner` (from the console) gives it back.
 A role's own name is a permission too (`moderator`), for a mod that has no better word.
 
 Mods: `core.command(name, help, perm)` gates a mod's command; `core.has_perm(player, perm)`
@@ -205,6 +208,7 @@ webhook = https://example.org/hooks/server
 | `--max-players N` `--require-identity` `--no-observers` | Seats; players must have a key; no portal windows from other worlds |
 | `--report FILE` `--since 7d` `--json` | No server: what a world file remembers, printed; `--json` as one JSON object |
 | `--names` `--free-name NAME` | No server: who owns each name; let one go |
+| `--survival` | One room's (the sandbox's): no plaza, the spawn on dry land the seed picks, the themed worlds behind portals scattered over the land; `creative` starts at `nobody`. The title menu's "Mode: Survival" writes `survival` to the world's `mode` file and passes it; `tools/track.sh --survival` too |
 
 The rest of the flags (world, mods, portals, rooms) are in the [README](../README.md#server-cnp_server).
 

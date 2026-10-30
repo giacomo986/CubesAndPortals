@@ -56,6 +56,11 @@ bool set_webhook(const std::string &url);
 // The name check already makes a name its first key's on a kept world.
 void set_owner(const std::string &name);
 
+// A permission's role for this world when nobody has set one with /perm: what
+// a world of another kind starts with (--survival: "creative" is "nobody").
+// Kept in the store like a /perm, so /perm changes it afterwards.
+void default_perm(const std::string &perm, const std::string &role);
+
 // A player as the store sees them: online, at the door, or remembered.
 struct Who {
     std::string name;

@@ -413,6 +413,9 @@ typedef struct script_host {
     // core.player_key: the fingerprint of the key a player proved, or "".
     const char *(*player_key)(void *ud, int player);
     int (*world_spawn)(void *ud, float *x, float *y, float *z);
+    // core.seed and core.plaza: the generator's, 0 when there is none.
+    int (*world_seed)(void *ud);
+    int (*plaza)(void *ud, int *lo, int *hi);
     // A mod's line about a body, which goes along when the body drives into
     // another room of the server (core.player_carry, core.player_carried).
     int         (*player_carry)(void *ud, int player, const char *text);

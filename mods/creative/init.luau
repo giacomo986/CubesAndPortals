@@ -98,6 +98,12 @@ if serving then
     end
 
     open_for = function(player: number)
+        -- The server's to say: a survival world shuts it to everybody (its
+        -- "creative" is "nobody" until /perm says otherwise).
+        if core.has_perm(player, "creative") == 0 then
+            core.notice(player, "Il catalogo non e' aperto a te in questo mondo.")
+            return
+        end
         -- Emptied first: a carried container is saved with the world, and what
         -- a catalogue held before a restart is not in `held` to be taken out.
         core.container_clear(player, Y, BOX)

@@ -87,6 +87,13 @@ public:
     // Index of a biome by name, or size() if there is none.
     size_t find(const std::string &name) const;
 
+    // Whether the world has the flat plaza at x,z 20..100 that the portal
+    // gates stand on. Kept here because the ground is a function of the set
+    // and the seed and nothing else, and this is the one thing that changes
+    // it: a survival world (--survival) has no plaza and spawns somewhere on
+    // the land instead (spawn_on_land).
+    bool plaza = true;
+
 private:
     std::vector<BiomeDef> m_biomes;
 };

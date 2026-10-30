@@ -306,6 +306,8 @@ struct Session {
     // a tick, and three call sites each building a Teleport is three chances to
     // build a different one.
     bool death_owed = false;
+    // And where it died, for core:died: kill_body moves the body at once.
+    float died_at[3] = {0.0f, 0.0f, 0.0f};
 
     // Where a mod said this body comes back after dying (core.player_spawn):
     // a bed. Instead of the world's spawn while set.
@@ -1153,6 +1155,7 @@ public:
     struct Death {
         PeerId   peer = 0;
         Teleport back;
+        float    at[3] = {0.0f, 0.0f, 0.0f};   // where it died
     };
     std::vector<Death> deaths_to_serve();
 

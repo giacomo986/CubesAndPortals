@@ -47,9 +47,9 @@ void stage_terrain(MapgenContext &ctx)
 
 namespace {
 
-bool in_plaza(int x, int z)
+bool in_plaza(const BiomeSet &biomes, int x, int z)
 {
-    return x >= kPlazaX0 && x <= kPlazaX1 && z >= kPlazaZ0 && z <= kPlazaZ1;
+    return biomes.plaza && x >= kPlazaX0 && x <= kPlazaX1 && z >= kPlazaZ0 && z <= kPlazaZ1;
 }
 
 // mods/lakes fills every cell below this with water. The engine does not put
@@ -98,7 +98,7 @@ struct Ground {
 Ground ground_base(const BiomeSet &biomes, uint32_t seed, int x, int z, int height)
 {
     Ground g;
-    if (in_plaza(x, z)) {
+    if (in_plaza(biomes, x, z)) {
         g.plaza = 1.0f;
         return g;
     }
@@ -111,7 +111,8 @@ Ground ground_base(const BiomeSet &biomes, uint32_t seed, int x, int z, int heig
 
     const int   dx = (x < kPlazaX0) ? kPlazaX0 - x : (x > kPlazaX1 ? x - kPlazaX1 : 0);
     const int   dz = (z < kPlazaZ0) ? kPlazaZ0 - z : (z > kPlazaZ1 ? z - kPlazaZ1 : 0);
-    const int   d  = (dx > dz) ? dx : dz;
+    // No plaza: as far from one as anywhere can be.
+    const int   d  = !biomes.plaza ? 1 << 20 : (dx > dz) ? dx : dz;
     const float near_plaza = 1.0f - smooth01(0.0f, 420.0f, (float)d);
 
     float c = fbm(x, z, 640, seed ^ 0xC0A57u);
@@ -209,7 +210,7 @@ Tarn tarn_in(const BiomeSet &biomes, uint32_t seed, int gx, int gz, int height)
         }
         t.level = lowest - 1;
         t.any   = t.level >= kSea + 5 && mid.ocean < 0.02f && mid.river < 0.02f && mid.plaza == 0.0f &&
-                !in_plaza(t.cx, t.cz);
+                !in_plaza(biomes, t.cx, t.cz);
     }
     known.emplace(key, t);
     return t;
@@ -248,7 +249,7 @@ size_t mapgen_biome_at(const BiomeSet &biomes, uint32_t seed, int x, int z)
     // The plaza is plains whatever the noise says. The portal gates stand on
     // it, and a scene that moves because this seed happened to roll a desert is
     // a scene that fails a gate for a reason nobody can read.
-    if (in_plaza(x, z)) {
+    if (in_plaza(biomes, x, z)) {
         const size_t plains = biomes.find("core:plains");
         return (plains < biomes.size()) ? plains : 0;
     }
@@ -274,6 +275,15 @@ size_t mapgen_biome_at(const BiomeSet &biomes, uint32_t seed, int x, int z)
 BiomeShape mapgen_shape_at(const BiomeSet &biomes, uint32_t seed, int x, int z)
 {
     return biomes.shape(biome_temperature(x, z, seed), biome_humidity(x, z, seed));
+}
+
+bool mapgen_plaza(const BiomeSet &biomes, int *lo, int *hi)
+{
+    static_assert(kPlazaX0 == kPlazaZ0 && kPlazaX1 == kPlazaZ1, "the plaza is square");
+    if (!biomes.plaza) return false;
+    *lo = kPlazaX0;
+    *hi = kPlazaX1;
+    return true;
 }
 
 int mapgen_terrain_height(const MapgenContext &ctx, int x, int z)

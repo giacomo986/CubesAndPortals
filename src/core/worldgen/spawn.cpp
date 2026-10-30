@@ -3,7 +3,10 @@
 #include <cstdio>
 
 #include "core/physics/movement.h"
+#include "core/worldgen/noise.h"
 #include "core/worldgen/worldgen.h"
+
+#include <cmath>
 
 namespace cnp {
 
@@ -77,6 +80,46 @@ Vec3 spawn_in_plaza(const World &world, const NodeRegistry &reg, int extent)
     const float mid = (float)extent * 0.5f + 0.5f;
     return free_beside(world, reg, Vec3{mid, (float)kGroundTop, mid},
                        Vec3{1.0f, 0.0f, 0.0f});
+}
+
+Vec3 spawn_on_land(const MapgenContext &ctx)
+{
+    // A point the seed picks, up to 2500 from the middle of the world, and
+    // from there out in rings 16 apart until a column is dry, over the sea by
+    // two, not a shore, and level with the ground 3 either side of it. A
+    // function of the seed and the ground alone, so nothing is stored: the
+    // same world finds the same place every start.
+    const uint32_t h  = noise_hash(0x5EA, 0x5EED, ctx.seed);
+    const float    a  = (float)(h % 3600u) * (6.2831853f / 3600.0f);
+    const float    r  = (float)((h >> 12) % 2500u);
+    const int      x0 = (int)std::lround(std::cos(a) * r), z0 = (int)std::lround(std::sin(a) * r);
+    const size_t   beach = ctx.biomes->find("core:beach");
+    const auto dry = [&](int x, int z) {
+        const int top = mapgen_terrain_height(ctx, x, z);
+        return mapgen_water_level(ctx, x, z) == top && top >= 20 &&
+               mapgen_biome_at(*ctx.biomes, ctx.seed, x, z) != beach;
+    };
+    for (int ring = 0; ring <= 40; ++ring) {
+        const int steps = ring == 0 ? 1 : ring * 8;
+        for (int k = 0; k < steps; ++k) {
+            const float t = 6.2831853f * (float)k / (float)steps;
+            const int   x = x0 + (int)std::lround(std::cos(t) * 16.0f * (float)ring);
+            const int   z = z0 + (int)std::lround(std::sin(t) * 16.0f * (float)ring);
+            if (!dry(x, z) || !dry(x + 3, z) || !dry(x - 3, z) || !dry(x, z + 3) || !dry(x, z - 3)) continue;
+            const int top = mapgen_terrain_height(ctx, x, z);
+            if (std::abs(mapgen_terrain_height(ctx, x + 3, z) - top) > 2 ||
+                std::abs(mapgen_terrain_height(ctx, x, z + 3) - top) > 2)
+                continue;
+            return Vec3{(float)x + 0.5f, (float)top, (float)z + 0.5f};
+        }
+    }
+    std::printf("spawn: no dry level ground within 640 of the seed's point; spawning there anyway\n");
+    return Vec3{(float)x0 + 0.5f, (float)mapgen_terrain_height(ctx, x0, z0), (float)z0 + 0.5f};
+}
+
+Vec3 spawn_free(const World &world, const NodeRegistry &reg, Vec3 at)
+{
+    return free_beside(world, reg, at, Vec3{1.0f, 0.0f, 0.0f});
 }
 
 } // namespace cnp

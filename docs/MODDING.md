@@ -432,6 +432,7 @@ Il core usa lo stesso bus, con gli stessi schemi, senza percorsi privilegiati
 | `core:page_action` | `player, page, id, text` | no — solo al mod che ha mostrato la pagina |
 | `core:input` | `action, player` | sì — solo su un client |
 | `core:far_moved` | `index, x, y, z, axis, sign, half_w, half_h` | no — solo su un server a stanze |
+| `core:died` | `player, x, y, z` | no — solo su un server; il corpo è già tornato al letto o allo spawn, x y z è dove è morto |
 
 `core:used` è un click destro su un blocco a portata, **con qualsiasi cosa in
 mano**. Nomina il blocco colpito, non la faccia accanto, ed è emesso **prima**

@@ -2560,7 +2560,23 @@ The fingerprint of the key that player proved at the door, or an empty string fo
 core.world_spawn() -> (number?, number?, number?)
 ```
 
-Where a player arrives in this world, and comes back after dying without a bed.
+Where a player arrives in this world, and comes back after dying without a bed. On a server it answers while the mods load too in a world without a plaza (--survival), whose spawn is known before they do; elsewhere only once it runs.
+
+## `core.seed`
+
+```luau
+core.seed() -> number
+```
+
+This world's seed, its low 31 bits, anywhere and at any time -- a mapgen stage's ctx.seed is the whole of it. For a mod that places things as a function of the seed outside a stage, and wants the same answer every start. 0 where there is no generator.
+
+## `core.plaza`
+
+```luau
+core.plaza() -> (number?, number?)
+```
+
+The flat square the portal gates stand on, as the lowest and highest x (and z) of it -- 20, 100 -- or nil in a world without one (--survival) or a process that does not generate the world. What a mod asks instead of which mode a world is in: something kept off the plaza, or built on it, follows the answer.
 
 ## `core.player_name`
 
