@@ -6,6 +6,7 @@
 #include "core/worldgen/noise.h"
 #include "core/worldgen/worldgen.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace cnp {
@@ -119,6 +120,26 @@ Vec3 spawn_on_land(const MapgenContext &ctx)
 
 Vec3 spawn_free(const World &world, const NodeRegistry &reg, Vec3 at)
 {
+    // Out from the point in rings, the first cell standing on something with
+    // nothing over it for eight: on the land the mods have planted, under a
+    // tree is in its leaves, and in a wood the open sky is a clearing up to 64
+    // away. The ground of each column within 3 of the point's, so the top of a
+    // tree is not taken for it.
+    const auto open = [&](float x, float y, float z) {
+        if (inside_solid(world, reg, x, y, z) || !inside_solid(world, reg, x, y - 0.5f, z)) return false;
+        for (int up = 1; up <= 8; ++up)
+            if (inside_solid(world, reg, x, y + (float)up, z)) return false;
+        return true;
+    };
+    for (int r = 0; r <= 64; ++r)
+        for (int dz = -r; dz <= r; ++dz)
+            for (int dx = -r; dx <= r; ++dx) {
+                if (std::max(std::abs(dx), std::abs(dz)) != r) continue;
+                const float x = at.x + (float)dx, z = at.z + (float)dz;
+                for (int dy = -3; dy <= 2; ++dy)
+                    if (open(x, std::floor(at.y) + (float)dy, z))
+                        return Vec3{x, std::floor(at.y) + (float)dy, z};
+            }
     return free_beside(world, reg, at, Vec3{1.0f, 0.0f, 0.0f});
 }
 

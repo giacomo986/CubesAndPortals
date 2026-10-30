@@ -5938,9 +5938,10 @@ int serve_room(int argc, char **argv)
     // its edge. Everything past the ring is made when somebody goes there
     // (TODO.md OPEN-35).
     const int  region       = columns_across(s.extent);
-    // And in a survival world the 3 x 3 columns round the spawn, which is
+    // And in a survival world the 5 x 5 columns round the spawn, which is
     // somewhere else: made with the region so the mods' stages run on them
-    // too and the spawn can be moved out of a tree they planted.
+    // too and the spawn can be moved out of a wood they planted (spawn_free
+    // looks 64 out for open sky).
     std::vector<ColumnPos> spawn_cols;
     int        startup_cols = (region + 2) * (region + 2);
     const auto each_startup = [&](const std::function<void(ColumnPos)> &fn) {
@@ -5958,8 +5959,8 @@ int serve_room(int argc, char **argv)
         land_spawn = spawn_on_land(mapgen_make_context(s.world, s.registry, mapgen.biomes(), seed, s.height));
         const int sx = (int)std::floor(land_spawn.x / (float)kChunkSize);
         const int sz = (int)std::floor(land_spawn.z / (float)kChunkSize);
-        for (int dz = -1; dz <= 1; ++dz)
-            for (int dx = -1; dx <= 1; ++dx) {
+        for (int dz = -2; dz <= 2; ++dz)
+            for (int dx = -2; dx <= 2; ++dx) {
                 const ColumnPos c{sx + dx, sz + dz};
                 if (c.x < -1 || c.x > region || c.z < -1 || c.z > region) spawn_cols.push_back(c);
             }

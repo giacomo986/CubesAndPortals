@@ -284,6 +284,8 @@ if HUB then
         local x = SPOT[r]
         if x == nil then continue end
         table.insert(ARCHES, { k = k, room = r })
+        -- No plaza (survival): mods/gates puts each arch beside its world's site.
+        if core.plaza() == nil then continue end
         local y, z = 21, 96
         -- The frame round a hole one wide and two high, the opening's size at
         -- the far end; a floor out in front of it.
@@ -306,7 +308,7 @@ if HUB then
 
     -- Turned to face the plaza (-z) once the openings exist: set_portal only
     -- moves a centre. Asked again until it takes.
-    local placed = 0
+    local placed = if core.plaza() == nil then #ARCHES else 0
     core.event.on("core:tick", function(_)
         if placed >= #ARCHES then return end
         placed = 0
