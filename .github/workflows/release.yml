@@ -59,8 +59,8 @@ jobs:
         with: {name: macos, path: build-mac/dist/*.dmg}
 
   # On a tag only: the tag must be the version the code says it is
-  # (src/core/version.h), and the packages become a GitHub Release, marked
-  # pre-release while the version is an alpha.
+  # (src/core/version.h), and the packages become the latest GitHub Release,
+  # its notes only that version's section of CHANGELOG.md.
   publish:
     if: startsWith(github.ref, 'refs/tags/')
     needs: [linux, windows, macos]
@@ -71,10 +71,12 @@ jobs:
       - run: |
           v="$(sed -n 's/.*kEngineVersion = "\([^"]*\)".*/\1/p' src/core/version.h)"
           [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME, code says v$v"; exit 1; }
+          awk -v h="## $v " 'index($0,h)==1{on=1;next} on&&/^## /{exit} on' CHANGELOG.md > notes.md
+          [ -s notes.md ] || { echo "CHANGELOG.md has no section for $v"; exit 1; }
       - uses: actions/download-artifact@v4
         with: {path: packages, merge-multiple: true}
       - uses: softprops/action-gh-release@v2
         with:
           files: packages/*
           make_latest: true
-          body_path: CHANGELOG.md
+          body_path: notes.md
