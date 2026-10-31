@@ -233,12 +233,13 @@ if serving then
     -- start floor at LF. The body's numbers (parkour_core: jump 8, gravity
     -- 25, sprint 8) make a level jump 5.1 nodes and one a node up 3.8; a
     -- gap here is at most 60% of that at d 1 and 85% at d 10. A pad starts
-    -- each piece. The summit says the level is done and puts the player back
-    -- at the start, in front of its way out: a niche 12 behind where they
-    -- began, hidden behind two cells of concrete under a dark lamp.
+    -- each piece. The summit's pad says the level is done; past it a doorway
+    -- (a portal of this world, core.portal_open) leads down to the start,
+    -- by the block whose far side hides the way out: a niche 12 behind where
+    -- they began, behind two cells of concrete under a dark lamp.
     local LF = 30
     type Plan = { boxes: { { number } }, pads: { { number } }, hints: { string }, start: { number },
-                  back: { number }, exit: { number } }
+                  back: { number }, exit: { number }, top: { number } }
     local PLANS: { [number]: Plan } = {}
 
     local function lcg(seed: number): () -> number
@@ -258,7 +259,7 @@ if serving then
         local dd, rnd = tonumber(d) or 1, lcg((tonumber(seed) or 1) + slot * 7919)
         local ox, oz = 8192 + (slot % 16) * 2048 + 1024, (slot // 16) * 2048 + 1024
         local plan: Plan = { boxes = {}, pads = {}, hints = {}, start = { ox + 2, LF, oz },
-                             back = { ox + 16, LF, oz }, exit = { ox + 12, LF + 1, oz } }
+                             back = { ox + 6, LF + 1, oz + 3 }, exit = { ox + 12, LF + 1, oz }, top = {} }
         into = plan.boxes
         local reach = 0.6 + 0.25 * (dd - 1) / 9
         local flat, up = math.max(2, math.floor(5.1 * reach)), math.max(2, math.floor(3.8 * reach))
@@ -323,9 +324,15 @@ if serving then
             tx, tf = fn(tx, tf, tz)
             floor(tx, tx, tf, tz - 2, tz + 2)
         end
-        floor(tx - 8, tx, tf, tz - 2, tz + 2)
+        floor(tx - 10, tx, tf, tz - 2, tz + 2)
         table.insert(plan.pads, { tx - 4, tf, tz })
-        table.insert(plan.hints, "La cima.")
+        table.insert(plan.hints, "La cima. La porta davanti riporta giu'.")
+        -- The two doorways of the way down, both facing +x: one at the summit's
+        -- end, one on the start floor by the niche's block.
+        doorway(tx - 9, tf + 1, tz, true)
+        doorway(plan.back[1], plan.back[2], plan.back[3], true)
+        plan.top = { tx - 9, tf + 1, tz }
+        core.log(`parkour: slot {slot}, d {dd}: {count} pieces, the summit's pad at {tx - 4} {tf} {tz}`)
         table.insert(plan.pads, 1, plan.start)
         table.insert(plan.hints, 1, "Il percorso va verso ovest; la cima ti riportera' qui.")
         for _, p in plan.pads do box(p[1], p[2], p[3], p[1], p[2], p[3], PAD) end
@@ -394,11 +401,17 @@ if serving then
                     reached[p] = i
                     core.notice(p, if plan then plan.hints[i] else HINTS[i])
                     if i == #pads and plan and slot then
-                        -- A level's summit: done, and back to its start, the
-                        -- way out now open behind where they began.
+                        -- A level's summit: done; the doorway past it leads
+                        -- down to the start, where the way out has opened.
                         core.event.emit("keys:cleared", { player = p, slot = slot })
-                        local b = plan.back
-                        core.player_place(p, b[1] + 0.5, b[2] + 1, b[3] + 0.5, -1, 0, 0)
+                        -- Opened only now, a portal leading both ways: before,
+                        -- the start's doorway would have been the way up. The
+                        -- same centre is the same portal, so a second time
+                        -- opens nothing new.
+                        local t, b = plan.top, plan.back
+                        local a = core.portal_open(t[1] + 0.5, t[2] + 1, t[3] + 0.5, 1, 1, 0, 0.5, 1.0)
+                        local z = core.portal_open(b[1] + 0.5, b[2] + 1, b[3] + 0.5, 1, 1, 0, 0.5, 1.0)
+                        if a >= 0 and z >= 0 then core.portal_link(a, z) end
                         reached[p] = 1
                     elseif i == #pads then
                         -- The summit: the trial passed, its key on the altar (mods/keys).
