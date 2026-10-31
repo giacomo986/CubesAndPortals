@@ -119,7 +119,11 @@ if serving then
     -- Inside a mapgen stage only the column being made is written (`making`),
     -- so the chambers are lit with it; outside one, a door, anywhere.
     local making: any = nil
+    -- Along x, where build() writes: 0 for the chambers, a site's copy's
+    -- start for its copy (CH0 + slot * CHW, below).
+    local OFF = 0
     local function put(x: number, y: number, z: number, b: number)
+        x += OFF
         local m = making
         if m == nil or (x >= m.min_x and x <= m.max_x and z >= m.min_z and z <= m.max_z) then
             core.set_block(x, y, z, b)
@@ -133,6 +137,7 @@ if serving then
     -- front of its portal in a world built again at its start.
     local turned_later: { { number } } = {}
     local function put_turned(x: number, y: number, z: number, b: number, f: number)
+        x += OFF
         local m = making
         if m ~= nil then
             if x >= m.min_x and x <= m.max_x and z >= m.min_z and z <= m.max_z then
@@ -160,6 +165,7 @@ if serving then
     end
 
     local function fill(x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, b: number)
+        x0, x1 = x0 + OFF, x1 + OFF
         local m = making
         if m ~= nil then
             x0, x1 = math.max(x0, m.min_x), math.min(x1, m.max_x)
@@ -457,12 +463,26 @@ if serving then
 
     -- The chambers are made as their columns are, a mapgen stage: lit with
     -- the column, there however far a player is.
+    -- A survival site's copy of the chambers (see "a site's chambers"): the
+    -- whole row again, CHW apart from CH0 on, slot by slot.
+    local CH0, CHW = 20000, 300
+    local copies: { [number]: boolean } = {}
     core.register_mapgen("chambers_game:chambers", function(ctx)
-        if ctx.max_x < -2 or ctx.min_x > ROOMS[#ROOMS].x1 + 2 or ctx.max_z < -2 or ctx.min_z > 13 then
+        if ctx.max_z < -2 or ctx.min_z > 13 then
             return
         end
         making = ctx
-        build()
+        if not (ctx.max_x < -2 or ctx.min_x > ROOMS[#ROOMS].x1 + 2) then
+            build()
+        end
+        for slot in copies do
+            local o = CH0 + slot * CHW
+            if not (ctx.max_x < o - 4 or ctx.min_x > o + ROOMS[#ROOMS].x1 + 4) then
+                OFF = o
+                build()
+                OFF = 0
+            end
+        end
         making = nil
     end)
 
@@ -511,18 +531,31 @@ if serving then
                name: string }
     local players: { [number]: P } = {}
 
+    -- A room by its key: k in the chambers, k + 100 * slot in a site's copy.
+    local function copy_of(x: number): number
+        return if x >= CH0 - 4 then (x - CH0 + 4) // CHW else -1
+    end
     local function room_of(x: number): number
+        local slot = copy_of(x)
+        local o = if slot >= 0 then CH0 + slot * CHW else 0
         for k, r in ROOMS do
-            if x >= r.x0 - 1 and x <= r.x1 + 2.5 then
-                return k
+            if x - o >= r.x0 - 1 and x - o <= r.x1 + 2.5 then
+                return if slot >= 0 then k + 100 * slot else k
             end
         end
         return 0
     end
+    local function base_of(key: number): (number, number)   -- the room's k, its copy's offset
+        if key >= 100 then
+            return key % 100, CH0 + (key // 100) * CHW
+        end
+        return key, 0
+    end
 
-    local function start_of(k: number): (number, number, number)
+    local function start_of(key: number): (number, number, number)
+        local k, o = base_of(key)
         local r = ROOMS[k]
-        return r.x0 + 1.5, FL, 6.0
+        return r.x0 + 1.5 + o, FL, 6.0
     end
 
     local function guns_of(p: number): (boolean, boolean)
@@ -927,10 +960,114 @@ if serving then
                     core.portal_link(f.idx, fixed[f.pair].idx)
                 end
             end
-            core.portal_link(fixed.c3_orange.idx, -1)
+            for _, f in fixed do
+                if not f.pair then core.portal_link(f.idx, -1) end
+            end
             fixed_open = true
         end
     end
+
+    -- ------------------------------------------------- a site's chambers
+    --
+    -- Come by a survival site (mods/keys' keys:level): a copy of the whole
+    -- row of chambers of its own, CHW apart from CH0 by slot, built by the
+    -- same build() moved along x, its buttons, vents, plates, pedestals, push
+    -- buttons, fixed portals and doors copied the same way into the tables
+    -- the tick walks. The level is a stretch of it: 2 + d / 2 chambers, further
+    -- along the harder it is (d 1 the first ones, d 10 the last), the guns its
+    -- first one needs in hand. Its way out is behind the west wall of the
+    -- first, under a dark lamp; the room past the last is the level done, and
+    -- a portal there leads back to the first.
+    local base = { buttons = table.clone(buttons), vents = table.clone(vents), plates = table.clone(plates),
+                   pedestals = table.clone(pedestals), pushes = table.clone(PUSHES), fixed = table.clone(fixed) }
+    local function make_copy(slot: number)
+        if copies[slot] then return end
+        copies[slot] = true
+        local o = CH0 + slot * CHW
+        for k = 1, #ROOMS - 1 do
+            doors[k + 100 * slot] = { x = ROOMS[k].x1 + 1 + o, open = false, want = false, frame = 0, next = 0 }
+        end
+        for _, b in base.buttons do
+            table.insert(buttons, { x = b.x + o, y = b.y, z = b.z, door = b.door + 100 * slot, pressed = false })
+        end
+        for _, v in base.vents do
+            table.insert(vents, { x = v.x + o, z = v.z, top = v.top, room = v.room + 100 * slot, cube = 0 })
+        end
+        for _, pl in base.plates do
+            table.insert(plates, { x = pl.x + o, z = pl.z, vx = pl.vx, vy = pl.vy, vz = pl.vz })
+        end
+        for _, pd in base.pedestals do
+            table.insert(pedestals, { x = pd.x + o, z = pd.z, gives = pd.gives, takes = pd.takes, level = pd.level })
+        end
+        for _, b in base.pushes do
+            table.insert(PUSHES, { x = b.x + o, y = b.y, z = b.z, door = b.door + 100 * slot, time = b.time })
+        end
+        for name, f in base.fixed do
+            fixed[`{name}_{slot}`] = { x = f.x + o, y = f.y, z = f.z, axis = f.axis, sign = f.sign, idx = -1,
+                                       pair = if f.pair then `{f.pair}_{slot}` else nil }
+        end
+        fixed_open = false
+        -- Built now, the columns not made yet waiting for their writes; and by
+        -- the stage for any made later.
+        OFF = o
+        build()
+        OFF = 0
+    end
+
+    type Level = { slot: number, first: number, done_at: number, done: boolean }
+    local level_of: { [number]: Level } = {}
+    local function level_done(p: number, lv: Level)
+        if lv.done then return end
+        lv.done = true
+        core.event.emit("keys:cleared", { player = p, slot = lv.slot })
+        local _, o = base_of(lv.done_at)
+        local r = ROOMS[lv.done_at % 100]
+        local f = ROOMS[lv.first % 100]
+        local a = core.portal_open(r.x0 + o + 1.5, FL + 1, 9.5, 1, 1, 0, 0.5, 1.0)
+        local b = core.portal_open(f.x0 + o + 1.5, FL + 1, 9.5, 1, 1, 0, 0.5, 1.0)
+        if a >= 0 and b >= 0 then core.portal_link(a, b) end
+        core.notice(p, "Prova superata. Un portale riporta alla prima camera: li' qualcosa si e' aperto.")
+    end
+    core.event.on("keys:level", function(ev)
+        local known = core.storage_get("copies")
+        if not string.find(";" .. known, `;{ev.slot};`, 1, true) then
+            core.storage_set("copies", known .. `{ev.slot};`)
+        end
+        make_copy(ev.slot)
+        ev.cancel = true
+        local count = math.clamp(2 + ev.d // 2, 2, 7)
+        local a = 2 + math.floor((ev.d - 1) * (10 - count) / 9)
+        local first, done_at = a + 100 * ev.slot, a + count + 100 * ev.slot
+        level_of[ev.player] = { slot = ev.slot, first = first, done_at = done_at, done = false }
+        -- The guns the first chamber of the stretch wants: 03 gives the blue,
+        -- 04 both (rooms 4 and 5).
+        local s = players[ev.player]
+        if a >= 5 and core.bag_count(ev.player, "chambers_game:gun_blue") + core.bag_count(ev.player, "chambers_game:gun") == 0 then
+            core.give_item(ev.player, if a >= 6 then "chambers_game:gun" else "chambers_game:gun_blue", 1)
+            if s then s.level = if a >= 6 then 2 else 1 end
+        end
+        -- The way out: a block of metal outside the west wall, its hole at
+        -- (x0 - 2, FL, 9) facing +x, behind two cells of that wall.
+        local o = CH0 + ev.slot * CHW
+        local r = ROOMS[a]
+        local x0 = r.x0 + o
+        for x = x0 - 4, x0 - 2 do
+            for z = 8, 10 do
+                for y = FL - 1, FL + 3 do core.set_block(x, y, z, METAL) end
+            end
+        end
+        core.set_block(x0 - 2, FL, 9, 0)
+        core.set_block(x0 - 2, FL + 1, 9, 0)
+        local sx, sy, sz = start_of(first)
+        core.player_place(ev.player, sx, sy, sz, 1, 0, 0)
+        core.player_spawn(ev.player, sx, sy, sz, true)
+        core.event.emit("keys:start", { player = ev.player, slot = ev.slot, ex = x0 - 2, ey = FL, ez = 9 })
+        core.notice(ev.player, `Camere di prova: {count}, dalla {ROOMS[a].name}.`)
+        core.log(`chambers_game: slot {ev.slot}, d {ev.d}: rooms {a} to {a + count - 1}`)
+    end)
+    core.event.on("core:world_ready", function()
+        for slot in string.gmatch(core.storage_get("copies"), "(%d+);") do make_copy(tonumber(slot) :: number) end
+    end)
 
     -- On each player and each cube whether it is on a button.
     local function on_button(b: Button, x: number, y: number, z: number): boolean
@@ -970,7 +1107,11 @@ if serving then
     -- the last.
     local NEAR_DOORS = { 1, 2, 4, 6, 10 }
     local function step_doors()
-        for _, k in NEAR_DOORS do
+        local keys_near = table.clone(NEAR_DOORS)
+        for slot in copies do
+            for _, k in NEAR_DOORS do table.insert(keys_near, k + 100 * slot) end
+        end
+        for _, k in keys_near do
             local d = doors[k]
             if d ~= nil then
                 local near = false
@@ -996,14 +1137,17 @@ if serving then
                 continue
             end
             local k = room_of(x)
-            if k ~= 0 and k ~= s.room and x >= ROOMS[k].x0 then
+            local bk, bo = base_of(k)
+            if k ~= 0 and k ~= s.room and x - bo >= ROOMS[bk].x0 then
                 s.room = k
-                if ROOMS[k].name ~= "" then
-                    core.notice(p, ROOMS[k].name)
+                if ROOMS[bk].name ~= "" then
+                    core.notice(p, ROOMS[bk].name)
                 end
                 if k == #ROOMS then
                     core.event.emit("keys:earned", { player = p, key = "chambers" })
                 end
+                local lv = level_of[p]
+                if lv and k == lv.done_at then level_done(p, lv) end
                 local sx, sy, sz = start_of(k)
                 core.player_spawn(p, sx, sy, sz)
                 for _, v in vents do
