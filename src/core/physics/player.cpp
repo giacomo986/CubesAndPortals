@@ -421,7 +421,9 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         if (player.on_ground) {
             player.wall_side = 0;
             player.used_dx = player.used_dz = 0;
+            player.corner    = 0.0f;
         }
+        player.corner = std::max(0.0f, player.corner - dt);
         // Jump on a rope lets go of it, with a little lift.
         if (player.roped && jump_pressed) {
             player.roped      = false;
@@ -455,6 +457,27 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         // it goes on low, at a crouch.
         if (player.low && player.slide <= 0.0f && room) player.low = false;
 
+        if (!player.on_ground && !player.roped && !kicked && jump_pressed && player.corner > 0.0f &&
+            touches(world, reg, player, half, player.corner_dx, player.corner_dz, kKickReach)) {
+            // Round an inside corner: the run that met the wall across its
+            // way goes on along that wall, level, away from the first one --
+            // the way that is open -- at the speed it had.
+            const float tx = (float)-player.used_dx, tz = (float)-player.used_dz;
+            const float v  = std::max(hspeed, kWallRunMin);
+            player.velocity.x = tx * v;
+            player.velocity.z = tz * v;
+            player.velocity.y = 0.0f;
+            player.wall_dx    = player.corner_dx;
+            player.wall_dz    = player.corner_dz;
+            // Its right, facing the way it now runs: (-tz, tx).
+            player.wall_side  = (float)player.corner_dx * -tz + (float)player.corner_dz * tx > 0.0f ? 1 : -1;
+            player.wall_run   = 0.0f;
+            player.used_dx    = player.corner_dx;
+            player.used_dz    = player.corner_dz;
+            player.corner     = 0.0f;
+            on_wall           = true;
+            kicked            = true;
+        }
         if (!player.on_ground && !player.roped && !kicked) {
             // Jump against a wall in the air: kicked off it, away and up --
             // between two walls, from one to the other and higher each time.
@@ -614,7 +637,17 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         const Vec3  moved = r.pos - before;
         const float went  = std::hypot(moved.x, moved.z);
         player.wall_run += went;
-        if (went < 0.5f * std::hypot(player.velocity.x, player.velocity.z) * dt) player.wall_side = 0;
+        if (went < 0.5f * std::hypot(player.velocity.x, player.velocity.z) * dt) {
+            // Stopped: by a wall across the way, an inside corner a jump turns.
+            const int ax = player.wall_dx != 0 ? 0 : (player.velocity.x < 0.0f ? -1 : 1);
+            const int az = player.wall_dx != 0 ? (player.velocity.z < 0.0f ? -1 : 1) : 0;
+            if (touches(world, reg, player, half, ax, az, kKickReach)) {
+                player.corner    = kCornerTime;
+                player.corner_dx = ax;
+                player.corner_dz = az;
+            }
+            player.wall_side = 0;
+        }
     }
 
     // On a rope: the hands no further from where it holds than its length --

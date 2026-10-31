@@ -11,6 +11,19 @@
 --      to the other, higher each time, up onto the lower wall's top
 --   5  a pit eighteen wide under a steel beam: the rope gun (right button)
 --      hooks the beam, the swing crosses it; jump or left lets go
+--   6  a pit thirty-seven wide under two beams: hook the first, let go at
+--      the top of the swing and hook the second before falling
+--   7  a wall along the right and one across the way at its end, over a
+--      pit: run along the first and jump where it meets the second, an
+--      inside corner -- the run turns onto the second, away from the first,
+--      and lands round the corner
+--   8  two beams round a corner: the first across the way, the second along
+--      it and off to the left, which swings the line +z
+--   9  three beams in an S: across, along off to the left, across again,
+--      which swings the line +z and back to -x
+--  10  three beams in a U: across, along off to the left, across off to the
+--      right, which swings the line +z and round to +x; the way on goes back
+--      west from the landing, under them
 --
 -- An orange pad starts every station. Fallen into the void, a player is put
 -- back on the last pad they stood on. A doorway on the plaza and another at
@@ -164,18 +177,100 @@ if serving then
         box(xs - 6, F + 1, zc + 3, xs - 3, F + 5, zc + 3, BRICK)
         return xs - 10, F
     end
+    local function beam(x: number, F: number, zc: number)
+        box(x - 3, F + 13, zc - 6, x, F + 14, zc + 9, STEEL)
+        box(x - 2, F - 9, zc - 6, x - 1, F + 12, zc - 6, STEEL)
+        box(x - 2, F - 9, zc + 9, x - 1, F + 12, zc + 9, STEEL)
+    end
     local function rope(xs: number, F: number, zc: number): (number, number)
-        box(xs - 11, F + 13, zc - 6, xs - 8, F + 14, zc + 9, STEEL)
-        box(xs - 10, F - 9, zc - 6, xs - 9, F + 12, zc - 6, STEEL)
-        box(xs - 10, F - 9, zc + 9, xs - 9, F + 12, zc + 9, STEEL)
+        beam(xs - 8, F, zc)
         floor(xs - 31, xs - 19, F, zc - 2, zc + 2)
         return xs - 32, F
     end
+    -- Two of the rope's beams, the second where the first's swing lands, and
+    -- the landing as far past it.
+    local function rope2(xs: number, F: number, zc: number): (number, number)
+        beam(xs - 8, F, zc)
+        beam(xs - 27, F, zc)
+        floor(xs - 50, xs - 38, F, zc - 2, zc + 2)
+        return xs - 51, F
+    end
+    -- Beams in a line that turns. Laid out as they were tried, in the engine's
+    -- physics with the body looking at the next beam (the keys pump the
+    -- swing the way it looks), by search over when each rope is shot and let
+    -- go: from the takeoff at xs, each beam { u, w, along } at xs + u - 1,
+    -- zc + w -- across the way (along z) or along it (x) -- 16 long, 4 wide,
+    -- its underside at F + 13, on two posts at its ends.
+    local function beams(xs: number, F: number, zc: number, list: { { any } })
+        for _, b in list do
+            local cx, cz = xs + math.floor(b[1]) - 1, zc + math.floor(b[2])
+            if b[3] then
+                box(cx - 8, F + 13, cz - 2, cx + 7, F + 14, cz + 1, STEEL)
+                box(cx - 8, F - 9, cz - 1, cx - 8, F + 12, cz, STEEL)
+                box(cx + 7, F - 9, cz - 1, cx + 7, F + 12, cz, STEEL)
+            else
+                box(cx - 2, F + 13, cz - 8, cx + 1, F + 14, cz + 7, STEEL)
+                box(cx - 1, F - 9, cz - 8, cx, F + 12, cz - 8, STEEL)
+                box(cx - 1, F - 9, cz + 7, cx, F + 12, cz + 7, STEEL)
+            end
+        end
+    end
+    -- Two round a corner: 1392 of 8464 timings land; the first beam alone, none.
+    local function rope_corner(xs: number, F: number, zc: number): (number, number, number)
+        beams(xs, F, zc, { { -9.5, 0.5, false }, { -25, 11, true } })
+        floor(xs - 30, xs - 22, F, zc + 21, zc + 31)
+        floor(xs - 42, xs - 31, F, zc + 24, zc + 28)
+        return xs - 43, F, zc + 26
+    end
+    -- Three in an S: 337 of 4096 land; the first two alone, none.
+    local function rope_s(xs: number, F: number, zc: number): (number, number, number)
+        beams(xs, F, zc, { { -9.5, 0.5, false }, { -25, 11, true }, { -41, 21, false } })
+        floor(xs - 64, xs - 52, F, zc + 18, zc + 24)
+        return xs - 65, F, zc + 21
+    end
+    -- Three in a U: 358 of 4096 land; the first two alone, none. The landing
+    -- faces +x, and the way on goes back west from it.
+    local function rope_u(xs: number, F: number, zc: number): (number, number, number)
+        beams(xs, F, zc, { { -9.5, 0.5, false }, { -25, 11, true }, { -13, 25, false } })
+        floor(xs - 4, xs + 8, F, zc + 22, zc + 28)
+        floor(xs - 26, xs - 5, F, zc + 23, zc + 27)
+        return xs - 27, F, zc + 25
+    end
+    -- Round an inside corner (core.parkour: a run stopped by a wall across
+    -- its way turns onto it at a jump): the takeoff, the first wall along the
+    -- right (zc - 3) from beside it to the second, across the way at xs - 10;
+    -- the landing round the corner, past the second wall's end, and the way
+    -- on from there five further +z. Tried in the engine's physics: jumped at
+    -- the takeoff's edge or two before it, the run meets the corner inside its
+    -- five nodes and lands at zc + 6.
+    local function corner(xs: number, F: number, zc: number): (number, number, number)
+        floor(xs - 4, xs, F, zc - 2, zc + 2)
+        box(xs - 10, F + 1, zc - 3, xs - 2, F + 5, zc - 3, BRICK)
+        box(xs - 10, F + 1, zc - 2, xs - 10, F + 5, zc + 2, BRICK)
+        floor(xs - 9, xs - 4, F, zc + 3, zc + 8)
+        floor(xs - 21, xs - 10, F, zc + 3, zc + 7)
+        return xs - 22, F, zc + 5
+    end
 
-    -- From the landing south onto the tower's line (z -5), past the doorway.
-    floor(-100, -89, 29, -8, -1)
+    -- 6 and 7 on from the rope's landing (z 0 .. 5): the two beams, then the
+    -- corner, which leaves the way five further +z; the tower from there.
+    floor(-102, -102, 29, 0, 4)
+    local cx = rope2(-102, 29, 2)
+    floor(cx, cx, 29, 0, 4)
+    local CORNER = { cx + 1, 29, 2 }
+    local tx, tf, tz = corner(cx, 29, 2)
+    -- 8 and 9: the beams round a corner, then in an S.
+    floor(tx, tx, tf, tz - 2, tz + 2)
+    local ROPE_CORNER = { tx + 1, tf, tz }
+    tx, tf, tz = rope_corner(tx, tf, tz)
+    floor(tx, tx, tf, tz - 2, tz + 2)
+    local ROPE_S = { tx + 1, tf, tz }
+    tx, tf, tz = rope_s(tx, tf, tz)
+    -- 10: the beams in a U.
+    floor(tx, tx, tf, tz - 2, tz + 2)
+    local ROPE_U = { tx + 1, tf, tz }
+    tx, tf, tz = rope_u(tx, tf, tz)
     local TOWER: { { number } } = {}   -- each station's start: { x, floor, z }
-    local tx, tf, tz = -101, 29, -5
     for _, station in { chimney, wallrun, backflip, chimney, slide, rope, chimney } do
         table.insert(TOWER, { tx + 1, tf, tz })
         floor(tx, tx, tf, tz - 2, tz + 2)
@@ -188,7 +283,8 @@ if serving then
 
     -- The pads, where a fall puts a player back: { x, y the floor, z }.
     local PADS: { { number } } = {
-        { 0, 20, 2 }, { -27, 20, 0 }, { -40, 20, 0 }, { -53, 22, 0 }, { -67, 29, 2 }, { -92, 29, 2 },
+        { 0, 20, 2 }, { -27, 20, 0 }, { -40, 20, 0 }, { -53, 22, 0 }, { -67, 29, 2 }, { -92, 29, 2 }, CORNER,
+        ROPE_CORNER, ROPE_S, ROPE_U,
     }
     for _, t in TOWER do table.insert(PADS, t) end
     table.insert(PADS, SUMMIT)
@@ -202,8 +298,12 @@ if serving then
         "Capriola all'indietro: dai le spalle al gradino, tieni indietro e salta.",
         "Salto dal muro: salta contro un muro e risalta per rimbalzare sull'altro, sempre più su.",
         "Rope gun: tasto destro sulla trave d'acciaio per agganciarti, avanti per oscillare, salto per staccarti.",
-        "La torre: sette prove in salita. In cima c'e' la Chiave della Vetta.",
-        "Torre 1/7: il camino. Salta da un muro all'altro.",
+        "Doppia corda: aggancia la prima trave, staccati in alto e aggancia la seconda prima di cadere.",
+        "Corsa sull'angolo: corri sul muro a destra; dove sbatti contro l'altro muro salta, e la corsa gira.",
+        "Corda ad angolo: dalla prima trave guarda la seconda, a sinistra; la seconda ti gira verso l'approdo.",
+        "Corda a S: tre travi, la seconda a sinistra e la terza di nuovo dritta; guarda sempre la prossima.",
+        "Corda a U: tre travi, la seconda a sinistra e la terza a destra, che ti riporta indietro; poi la strada torna a ovest.",
+        "La torre: sette prove in salita, in cima la Chiave della Vetta. 1/7: il camino, salta da un muro all'altro.",
         "Torre 2/7: corsa sul muro.",
         "Torre 3/7: capriola all'indietro sul gradino.",
         "Torre 4/7: di nuovo il camino, piu' in alto.",
@@ -327,6 +427,11 @@ if serving then
             { rope, "La corda: tasto destro sulla trave." },
             { bounce, "Il pad verde ti lancia in alto: prendi la rincorsa." },
             { crumble, "Le lastre cedono sotto i piedi: non fermarti." },
+            { rope2, "Doppia corda: dalla prima trave staccati in alto e aggancia la seconda." },
+            { corner, "Corsa sull'angolo: muro a destra, contro l'angolo salta." },
+            { rope_corner, "Corda ad angolo: dalla prima trave guarda la seconda, a sinistra." },
+            { rope_s, "Corda a S: tre travi; guarda sempre la prossima." },
+            { rope_u, "Corda a U: tre travi, l'ultima ti riporta indietro; guarda sempre la prossima." },
         }
         -- The easy three first at d 1 and 2; every piece once before any twice.
         local count = math.min(12, 3 + dd)
@@ -346,8 +451,10 @@ if serving then
             local piece = PIECES[i]
             table.insert(plan.pads, { tx + 1, tf, tz })
             table.insert(plan.hints, piece[2])
-            local fn = piece[1] :: (number, number, number) -> (number, number)
-            tx, tf = fn(tx, tf, tz)
+            local fn = piece[1] :: (number, number, number) -> (number, number, number?)
+            local nz
+            tx, tf, nz = fn(tx, tf, tz)
+            tz = nz or tz
             floor(tx, tx, tf, tz - 2, tz + 2)
         end
         floor(tx - 10, tx, tf, tz - 2, tz + 2)

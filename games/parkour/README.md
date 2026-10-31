@@ -2,7 +2,7 @@
 
 *[Leggi in italiano](README.it.md)*
 
-A course hanging in the sky, five stations in a row along -x, each one a move of the engine's
+A course hanging in the sky, ten stations in a row along -x, each one a move of the engine's
 parkour (`core.parkour`, `core.rope`). Two mods: `mods/parkour_core` (server only: the robot and
 how it moves) and `mods/parkour` (`side = both`: the course on the server, the rope gun on the
 client).
@@ -27,10 +27,22 @@ into the void (below y 12) goes back to the last pad touched.
 | 3 | -50 .. -41 | a step 2 high | back to the step, back + jump: a backflip |
 | 4 | -60 .. -51 | two walls 2 apart, 10 and 7 high | jump against one wall and jump again: kicks up to the top of the lower wall, at 30 |
 | 5 | -88 .. -71 | a pit 18 wide under a steel beam at 42 | rope gun (right) on the beam, forward to swing, jump to let go on the far side |
+| 6 | -140 .. -103 | a pit 37 wide under two beams at 42, 19 apart | hook the first, let go high in the swing, hook the second before falling, let go over the landing |
+| 7 | -163 .. -153 | a brick wall on the right and one across the way at its end, over a pit | run along the right wall; where it meets the one across, jump: the run turns onto that one (an inside corner) and lands round it, the way on 5 further +z |
+| 8 | -217 .. -175 | two beams round a corner: the first across the way, the second along it, off to the left | from the first look at the second; its swing turns the line +z onto the landing, the way on 26 further +z |
+| 9 | -282 .. -218 | three beams in an S: across, along off to the left, across again | look at the next beam each time; landing 21 further +z |
+| 10 | -310 .. -275 | three beams in a U: across, along off to the left, across off to the right | look at the next beam each time; the last swings you back +x onto the landing, and the way on goes west from it, under the beams, 25 further +z |
+
+Station 6 tried in the engine's physics, by search over the timings (rope after the jump, hold,
+release, second rope, hold): 6011 of 22218 land, all of them on both beams. Station 7: jumped at
+the takeoff's edge or two nodes before it, the run meets the corner inside its five nodes, turns
+at the jump and lands at z +6; without the jump the body falls. Stations 8 and 9 tried the same
+way, the body looking at the next beam (the keys pump the swing the way it looks): 1392 of 8464
+timings land on 8, 337 of 4096 on 9 and 358 of 4096 on 10, and none with a beam left out.
 
 ## The tower and the Key of the Summit
 
-From the rope's landing (pad 6) a walkway leads south and the tower begins: the five moves again,
+From the U's way on (pad 11) the tower begins: the five moves again,
 one after another and climbing, with the same cells as the stations above (so the same jumps).
 Each station has its pad, and whoever falls goes back to the last one touched.
 
@@ -44,7 +56,7 @@ Each station has its pad, and whoever falls goes back to the last one touched.
 | 6 | rope, beam at 58 | 45 |
 | 7 | chimney | 45 → 52 |
 
-At the top (x -243 .. -233, z -5) the summit's pad gives the **Key of the Summit**
+At the top (x -452 .. -442, z 79) the summit's pad gives the **Key of the Summit**
 (`keys:parkour`, mods/keys) to whoever does not carry it already, and the doorway back to the
 sandbox is there (the world's second portal, moved from the rope's landing).
 
@@ -54,7 +66,8 @@ Behind a survival site (mods/keys' `keys:level`) the course is the site's own, i
 the stations above as pieces, plus a plain jump, a jump a node up, three pillars, a bounce pad and
 slabs that give way, shuffled by the site's seed, 3 + d of them, with gaps sized to the body's
 jump (60% of it at d 1, 85% at d 10). The summit's pad says the level is done, and a doorway past
-it leads down to the start, where the hidden way out has opened.
+it leads down to the start, where the hidden way out has opened. The two beams, the corner and
+the beams round a corner, in an S and in a U come in from d 7, with every piece.
 
 ## The rope gun
 
