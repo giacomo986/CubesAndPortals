@@ -389,12 +389,25 @@ if serving then
         end
     end
 
+    -- What was heard this last second: a shot or a blast of `team` at x, z,
+    -- loud as far as r. A bot of the other team within r that sees nobody
+    -- turns that way and looks round for whoever it was (bot_think).
+    M.HEAR_SHOT, M.HEAR_SNIPER, M.HEAR_BLAST = 45, 70, 80
+    M.SEARCH = 6   -- seconds a bot goes on looking round once it has heard or been hit
+    M.SEARCH_LEASH = 8   -- the furthest from its post it steps while looking
+    local noises = {}
+    local function noise(team: number, x: number, z: number, r: number)
+        table.insert(noises, { team = team, x = x, z = z, r = r, t = clock })
+        if #noises > 16 then table.remove(noises, 1) end
+    end
+
     -- A blast at x, y, z thrown by `by` of `team`: the hole, then everybody of
     -- the other team within reach -- less at the edge, less behind a wall --
     -- and its thrower, by half.
     local function explode(x: number, y: number, z: number, r: number, reach: number, dmg: number,
                            by: number, team: number, weapon: string)
         carve(x, y, z, r)
+        noise(team, x, z, M.HEAR_BLAST)
         tell(0, string.format("boom %.2f %.2f %.2f %.1f", x, y, z, r))
         core.play_sound(if r >= 3 then "assault_game:boom" else "assault_game:boom_small", x, y, z)
         local targets = enemies(team)
@@ -530,6 +543,7 @@ if serving then
                 tell(p, if dead then "hit 2" elseif dmg > g.damage then "hit 1" else "hit 0")
             end
         end
+        noise(s.team, o[1], o[3], if gun == "sniper" then M.HEAR_SNIPER else M.HEAR_SHOT)
         tell(0, string.format("shot %.2f %.2f %.2f %.2f %.2f %.2f %d", o[1], o[2], o[3],
                               e[1], e[2], e[3], if best then 1 else 0))
     end
@@ -952,12 +966,52 @@ if serving then
         else
             M.bot_clip(id, b, "")
             if b.role == "cover" and M.cover(id, b, x, y, z) then return end
-            -- Shot at from where it was not looking: it turns that way.
+            -- A shot or a blast of the other side close enough to hear, not
+            -- heard before: as good as being shot at from there -- for one at
+            -- a post; one on its way would be stopped by every shot. Looking
+            -- round, it goes for the newest once each look.
+            if b.post and not b.alert and (b.search == nil or clock >= (b.look_at or 0)) then
+                for i = #noises, 1, -1 do
+                    local n = noises[i]
+                    if clock - n.t > 1 or n.t <= (b.heard_t or -1) then break end
+                    if n.team ~= b.team and (n.x - x) ^ 2 + (n.z - z) ^ 2 < n.r * n.r then
+                        b.alert, b.heard_t = { n.x, n.z, n.t }, n.t
+                        break
+                    end
+                end
+            end
+            -- Shot at or heard from where it was not looking: it turns that
+            -- way, then, one at a post, looks round about there for a while.
             if b.alert and clock - b.alert[3] < 2 then
                 M.face(id, b, b.alert[1], b.alert[2])
+                if b.post then b.search = { b.alert[1], b.alert[2], clock + M.SEARCH } end
+                b.look_at = clock + 1 + math.random() * 0.6
                 b.alert = nil
                 core.mob_goto(id, math.floor(x), math.floor(y), math.floor(z))
                 return
+            end
+            if b.search then
+                if clock >= b.search[3] then
+                    b.search = nil
+                elseif clock >= (b.look_at or 0) then
+                    -- Up to 70 degrees either side of where it came from.
+                    b.look_at = clock + 1 + math.random() * 0.6
+                    local a = math.atan2(b.search[1] - x, -(b.search[2] - z)) + (math.random() * 2 - 1) * 1.2
+                    -- Now and then a few steps that way, to see better, never
+                    -- further than M.SEARCH_LEASH from its post: when the
+                    -- looking is over it walks back there.
+                    local step = 2 + math.random() * 3
+                    local gx, gz = x + math.sin(a) * step, z - math.cos(a) * step
+                    if math.random() < 0.5 and (gx - b.post[1]) ^ 2 + (gz - b.post[2]) ^ 2 < M.SEARCH_LEASH ^ 2 then
+                        core.mob_goto(id, math.floor(gx), feet_at(math.floor(gx), math.floor(gz)), math.floor(gz))
+                    else
+                        M.face(id, b, x + math.sin(a) * 5, z - math.cos(a) * 5)
+                        core.mob_goto(id, math.floor(x), math.floor(y), math.floor(z))
+                    end
+                    return
+                else
+                    return
+                end
             end
             -- The watch stops every few seconds and looks somewhere else.
             if b.role == "watch" then
