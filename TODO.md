@@ -382,27 +382,22 @@ sandbox 24-25, the chambers atrium 670-2400. That one red is the display,
 not the client; on the real GPU it does not apply. The other reds of a kart
 lap were the checks': fixed the same day.
 
-**Survival mode (built 2026-10-30; design in the plan agreed that day).** A world made with
+**Survival mode (built 2026-10-30/31; design in the plan agreed on the 30th).** A world made with
 "Mode: Survival" has no plaza, a random spawn, the worlds behind portals scattered over the land
-(mods/gates), a level per portal (mods/keys' slots), rewards, keys only from d >= 4, directions
-from villagers and caravans, no catalogue and a grave on death. Measured: seeds 1, 42, 777 have
-110, 122, 121 sites within 2000 of the spawn, every world within 1000, mean d 1.0 under 300, 2.2 at
-300-600, 3.9 at 900-1200, 6.2 at 1500-1800. Played in Xephyr one site at a time (scratch commands
-standing in for finishing a level): chambers, parkour, backrooms, arena. Open:
-- The test chambers, the arpg lands and the track have no level of their own: behind a site they
-  play their own trial, made harder by d (2026-10-31: the engineer's time, the lands' levels, the
-  push buttons' time). The chambers need their rooms as templates, which means their absolute
-  coordinates (doors, buttons, vents, plates) per slot.
-- The catalogue of new pieces (plan 5b) is built only for the parkour's jumps, steps and pillars.
-- One mouth per world: two players at two sites of the same world at once, the second finds its
-  gate dark until the first walks away. An engine pool of mouths (as schedule_portals) lifts it.
-- The backrooms' way back to the start room is a placement, not a piece (the parkour's is a
-  doorway since 2026-10-31).
-- Pins on the map for portals seen are not built (a route each would push out the player's three).
-  Done 2026-10-31: health scaled by d (core.mob_health) in the arena and the heart; directions
-  leave out the portals done; an exploring errand pays with a portal's place; a spawn in a wood
-  gets a clearing.
-- Still to play: two clients, and a whole level finished by hand at d 4+ for its key.
+(mods/gates, two mouths a world), a level per portal (mods/keys' slots) in every world, rewards,
+keys only from d >= 4, directions from villagers, caravans and errands, pins on the map, no
+catalogue and a grave on death. Measured: seeds 1, 42, 777 have 110, 122, 121 sites within 2000 of
+the spawn, every world within 1000, mean d 1.0 under 300, 2.2 at 300-600, 3.9 at 900-1200, 6.2 at
+1500-1800. Played in Xephyr site by site, with scratch commands standing in for finishing a level,
+and with two clients through two chambers' sites at once. Open:
+- No level finished by hand from start to end: the arena's waves, the circuit's three laps, the
+  arpg lord, the chambers' puzzles are untried with a player's hands; the backrooms' doorway back
+  and the parkour's bounce pads and slabs were not walked.
+- The chambers' level is a stretch of a copy of their row, not new rooms: templates mixed and
+  mirrored, and the catalogue's new mechanics (dissolving fields, angled panels, light bridges,
+  beams, gels, turrets), are not built. Neither are the Inferno's, the arpg's, the front's and the
+  assault's new pieces (plan 5b); the track has its own pieces in its circuits.
+- The parkour's bounce pad throws by a fixed launch (13 on, 13 up), measured by reckoning only.
 
 ## The sandbox: what comes next (planned 2026-10-28)
 
