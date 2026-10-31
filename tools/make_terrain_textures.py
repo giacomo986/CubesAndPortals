@@ -155,11 +155,16 @@ def leaves(base, rng):
 
 
 def water(rng):
-    img = ground((52, 104, 178), rng, 0.92, 1.06)
-    for _ in range(9):
+    """See-through, as glass is: a light blue a little shaken, at about a
+    third, and a few ripples of brighter, less clear blue."""
+    img = Image.new("RGBA", (16, 16))
+    for y in range(16):
+        for x in range(16):
+            img.putpixel((x, y), shade((70, 130, 200), rng.uniform(0.94, 1.05)) + (int(rng.uniform(84, 100)),))
+    for _ in range(8):
         x, y = rng.randrange(16), rng.randrange(16)
         for dx in range(rng.randint(2, 4)):
-            img.putpixel(((x + dx) % 16, y), (96, 150, 214))
+            img.putpixel(((x + dx) % 16, y), (170, 210, 240, 150))
     return img
 
 

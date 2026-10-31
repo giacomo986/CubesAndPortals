@@ -127,8 +127,11 @@ Vec3 spawn_free(const World &world, const NodeRegistry &reg, Vec3 at)
     // tree is not taken for it.
     const auto open = [&](float x, float y, float z) {
         if (inside_solid(world, reg, x, y, z) || !inside_solid(world, reg, x, y - 0.5f, z)) return false;
-        for (int up = 1; up <= 8; ++up)
-            if (inside_solid(world, reg, x, y + (float)up, z)) return false;
+        // Anything over the head, not only what a body bumps into: leaves let
+        // a body through and still are a roof.
+        for (int up = 2; up <= 8; ++up)
+            if (world.get_block((int)std::floor(x), (int)std::floor(y) + up, (int)std::floor(z)) != kAir)
+                return false;
         return true;
     };
     for (int r = 0; r <= 64; ++r)

@@ -7026,6 +7026,24 @@ int serve_room(int argc, char **argv)
                               : portals  ? spawn_in_front(s.world, s.registry, first_opening, 4.0f)
                                          : spawn_in_plaza(s.world, s.registry, extent);
 
+        // A survival spawn with no open sky within 64 -- the middle of a wide
+        // wood -- gets a clearing: three by three, eight up, whatever the
+        // mods planted there.
+        if (survival) {
+            bool sky = true;
+            for (int up = 2; up <= 8 && sky; ++up)
+                sky = s.world.get_block((int)std::floor(spawn_at.x), (int)std::floor(spawn_at.y) + up,
+                                        (int)std::floor(spawn_at.z)) == kAir;
+            if (!sky) {
+                const int sx = (int)std::floor(spawn_at.x), sy = (int)std::floor(spawn_at.y),
+                          sz = (int)std::floor(spawn_at.z);
+                for (int dz = -1; dz <= 1; ++dz)
+                    for (int dx = -1; dx <= 1; ++dx)
+                        for (int y = sy; y <= sy + 9; ++y) s.world.set_block(sx + dx, y, sz + dz, kAir);
+                std::printf("        survival: a clearing cut over the spawn, in a wood\n");
+            }
+        }
+
         RoomTransport       transport;
         net::ServerSessions sessions(config, net::SpawnPoint{spawn_at.x, spawn_at.y, spawn_at.z});
 
