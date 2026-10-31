@@ -1,68 +1,73 @@
-# Il percorso di parkour
+# The parkour course
 
-Un percorso sospeso nel cielo, cinque stazioni in fila lungo -x, ognuna una
-mossa del parkour del motore (`core.parkour`, `core.rope`). Due mod:
-`mods/parkour_core` (solo server: il robot e come si muove) e `mods/parkour`
-(`side = both`: il percorso sul server, la rope gun sul client).
+*[Leggi in italiano](README.it.md)*
 
-## Come ci si arriva
+A course hanging in the sky, five stations in a row along -x, each one a move of the engine's
+parkour (`core.parkour`, `core.rope`). Two mods: `mods/parkour_core` (server only: the robot and
+how it moves) and `mods/parkour` (`side = both`: the course on the server, the rope gun on the
+client).
 
-`tools/track.sh` (o il menù del titolo) avvia il sandbox con otto stanze; il
-settimo cancello della piazza, un'impalcatura a strisce arancioni e nere con
-una scala di blocchi grigi e una corda appesa, sta a 16.5 21 52.5
-(`mods/gates`). Si esce sulla piazza del percorso, davanti alla porta di
-ritorno; un'altra porta di ritorno è in cima alla torre. All'arrivo si riceve la rope
-gun (una sola, quante se ne avessero).
+## How to get there
 
-## Le stazioni
+`tools/track.sh` (or the title menu) starts the sandbox with its rooms; the plaza's seventh gate,
+a scaffold striped orange and black with a staircase of grey blocks and a hanging rope, stands at
+16.5 21 52.5 (`mods/gates`). You come out on the course's plaza, in front of the doorway home;
+another doorway home is at the top of the tower. On arrival you are given the rope gun (one, however
+many you had). In a survival world every parkour site has a course of its own (see below).
 
-Ogni stazione comincia con un pad arancione: chi ci sta sopra legge cosa fare,
-e chi cade nel vuoto (sotto y 12) torna sull'ultimo pad toccato.
+## The stations
 
-| | dove (x) | cosa | come |
+Each station starts with an orange pad: whoever stands on it reads what to do, and whoever falls
+into the void (below y 12) goes back to the last pad touched.
+
+| | where (x) | what | how |
 |---|---|---|---|
-| 1 | -22 .. -15 | fossa larga 8, muro di mattoni a destra | rincorsa, salto accanto al muro, avanti tenuto: 5 nodi sul muro (un salto di corsa ne fa 5) |
-| 2 | -35 .. -32 | muro con un buco alto 1 | corsa e crouch: scivolata |
-| 3 | -50 .. -41 | gradino alto 2 | spalle al gradino, indietro + salto: capriola |
-| 4 | -60 .. -51 | due muri a 2, alti 10 e 7 | salto contro un muro e di nuovo salto: rimbalzi fino in cima al muro basso, a 30 |
-| 5 | -88 .. -71 | fossa larga 18 sotto una trave d'acciaio a 42 | rope gun (destro) sulla trave, avanti per oscillare, salto per staccarsi sull'altra sponda |
+| 1 | -22 .. -15 | a pit 8 wide, a brick wall on the right | run up, jump beside the wall, hold forward: 5 nodes along the wall (a running jump clears 5) |
+| 2 | -35 .. -32 | a wall with a hole 1 high | run and crouch: a slide |
+| 3 | -50 .. -41 | a step 2 high | back to the step, back + jump: a backflip |
+| 4 | -60 .. -51 | two walls 2 apart, 10 and 7 high | jump against one wall and jump again: kicks up to the top of the lower wall, at 30 |
+| 5 | -88 .. -71 | a pit 18 wide under a steel beam at 42 | rope gun (right) on the beam, forward to swing, jump to let go on the far side |
 
-## La torre e la Chiave della Vetta
+## The tower and the Key of the Summit
 
-Dall'approdo della corda (pad 6) si scende a sud su una passerella e comincia
-la torre: le cinque mosse di nuovo, una dopo l'altra e in salita, con le stesse
-celle delle stazioni sopra (quindi gli stessi salti). Ogni stazione ha il suo
-pad, e chi cade torna sull'ultimo toccato.
+From the rope's landing (pad 6) a walkway leads south and the tower begins: the five moves again,
+one after another and climbing, with the same cells as the stations above (so the same jumps).
+Each station has its pad, and whoever falls goes back to the last one touched.
 
-| | stazione | pavimento |
+| | station | floor |
 |---|---|---|
-| 1 | camino | 29 → 36 |
-| 2 | corsa sul muro | 36 |
-| 3 | capriola sul gradino | 36 → 38 |
-| 4 | camino | 38 → 45 |
-| 5 | scivolata | 45 |
-| 6 | corda, trave a 58 | 45 |
-| 7 | camino | 45 → 52 |
+| 1 | chimney | 29 → 36 |
+| 2 | wall run | 36 |
+| 3 | backflip onto the step | 36 → 38 |
+| 4 | chimney | 38 → 45 |
+| 5 | slide | 45 |
+| 6 | rope, beam at 58 | 45 |
+| 7 | chimney | 45 → 52 |
 
-In cima (x -243 .. -233, z -5) il pad della cima dà la **Chiave della Vetta**
-(`keys:parkour`, mods/keys) a chi non la porta già, e la porta di ritorno al
-sandbox è lì (il secondo portale del mondo, spostato dall'approdo della corda).
+At the top (x -243 .. -233, z -5) the summit's pad gives the **Key of the Summit**
+(`keys:parkour`, mods/keys) to whoever does not carry it already, and the doorway back to the
+sandbox is there (the world's second portal, moved from the rope's landing).
 
-## La rope gun
+## A survival site's course
 
-Tasto destro: spara la corda dove si guarda (fino a 40 nodi) e ci si appende.
-Avanti e indietro spingono l'oscillazione, crouch dà corda, sprint la
-riprende, salto o tasto sinistro si stacca. La corda è disegnata come una fila
-di cubetti arancioni dalle mani al punto d'aggancio.
+Behind a survival site (mods/keys' `keys:level`) the course is the site's own, in its slot:
+the stations above as pieces, plus a plain jump, a jump a node up, three pillars, a bounce pad and
+slabs that give way, shuffled by the site's seed, 3 + d of them, with gaps sized to the body's
+jump (60% of it at d 1, 85% at d 10). The summit's pad says the level is done, and a doorway past
+it leads down to the start, where the hidden way out has opened.
 
-## Come è fatto
+## The rope gun
 
-- Il percorso è una lista di scatole di celle (`box`), scritta da uno stage di
-  mapgen (`parkour:course`) colonna per colonna, tagliata ai bordi di ognuna;
-  niente terreno del motore (`core.mapgen_core(false)`).
-- Texture: `tools/make_parkour_textures.py`. La rope gun in mano e la sua icona:
+Right button: shoots the rope where you look (up to 40 nodes) and hangs you on it. Forward and back
+pump the swing, crouch lets rope out, sprint takes it in, jump or the left button lets go. The rope
+is drawn as a row of small orange cubes from the hands to the hook.
+
+## How it is made
+
+- The course is a list of boxes of cells (`box`), written by a mapgen stage (`parkour:course`)
+  column by column, clipped to each one's edges; no engine terrain (`core.mapgen_core(false)`).
+- Textures: `tools/make_parkour_textures.py`. The rope gun in hand and its icon:
   `tools/make_rope_gun.py` (Blender, assets/blender/rope_gun.blend).
-- Le clip del robot (corsa sul muro a destra e a sinistra, salto dal muro,
-  scivolata, capriola, oscillazione sulla corda) sono in
-  assets/blender/robot18.blend e aggiunte a `mods/robot/robot.gltf` con
-  `tools/gltf_add_clips.py`.
+- The robot's clips (wall runs to the right and to the left, the kick off a wall, the slide, the
+  backflip, the swing on the rope) are in assets/blender/robot18.blend and added to
+  `mods/robot/robot.gltf` with `tools/gltf_add_clips.py`.
