@@ -1,192 +1,164 @@
-# L'assalto
+# The assault
 
-L'assalto finale alla dimensione di Basoalth, da giocare insieme. Due mod:
-`mods/assault_core` (solo server: la valle, le fortezze, la sala del nucleo,
-il tunnel della fuga) e `mods/assault_game` (`side = both`: le fasi, i
-crediti e il negozio, la sala, Basoalth, la fuga sul server; HUD ed effetti
-sul client). Armi, granate, bot e mezzi sono quelli del fronte
-(`games/front`, `front_game`), copiati e voltati al gioco contro il computer.
+*[Leggi in italiano](README.it.md)*
 
-## Come ci si arriva
+The final assault on Basoalth's dimension, played together. Two mods: `mods/assault_core` (server
+only: the valley, the fortresses, the core's hall, the escape tunnel) and `mods/assault_game`
+(`side = both`: the phases, the credits and the shop, the hall, Basoalth, the escape on the server;
+the HUD and effects on the client). Weapons, grenades, bots and machines are the front's
+(`games/front`, `front_game`), copied and turned to a game against the computer.
 
-`tools/track.sh` (o il menù del titolo) avvia il sandbox con undici stanze;
-la porta dell'assalto, un cancello di basalto nero con due braci viola, sta a
-90.5 21 76.5 (`mods/gates`, diciassettesima bocca del sandbox: il motore ne
-regge venti dal protocollo 107). Come il fronte, nel gioco finito si apre solo
-a chi ha battuto l'Ospite nel laboratorio; per ora `FRONT_OPEN = true` in
-`mods/keys/init.luau` lascia aperti tutti e due.
+## How to get there
 
-Il mondo non si salva (nessun `--world-file`): quando nessuno ci è più stato
-per mezzo minuto le sue colonne tornano come le fa il mapgen, e la dimensione
-è di nuovo intera. Lo stato della partita si azzera 20 s dopo che l'ultimo
-se n'è andato.
+`tools/track.sh` (or the title menu) starts the sandbox with its rooms; the assault's door, a gate
+of black basalt with two violet embers, stands at 90.5 21 76.5 (`mods/gates`, the sandbox's
+seventeenth mouth). Like the front, in the finished game it opens only to whoever has beaten the
+Host in the laboratory (`FRONT_OPEN = true` in `mods/keys/init.luau` opens both, to try them;
+`false` is the game as it ships). In a survival world the assault stands behind portals scattered
+past 1500 from the spawn, shut until the ending; every garrison has 10% more for each step of the
+site's difficulty, and the victory is the level done.
 
-**Provare solo la fuga**: `tools/escape.sh` avvia un server col solo mondo
-dell'assalto e un client; tre secondi dopo che si è dentro, `tools/assault_escape`
-salta fortezze e sala (evento `assault:to_escape`): si è nella sala, il nucleo
-si spezza, Basoalth si alza, il pavimento crolla e le jeep aspettano nel tunnel.
-Ricomincia ogni volta che qualcuno rientra in un mondo vuoto.
+The world is not saved (no `--world-file`): when nobody has been there for half a minute its
+columns go back to what the mapgen makes, and the dimension is whole again. The match's state is
+reset 20 s after the last player leaves.
 
-## La valle
+**Trying only the escape**: `tools/escape.sh` starts a server with only the assault's world and a
+client; three seconds after you are in, `tools/assault_escape` skips the fortresses and the hall
+(event `assault:to_escape`): you are in the hall, the core breaks, Basoalth rises, the floor
+collapses and the jeeps wait in the tunnel. It starts again every time somebody comes back into an
+empty world.
 
-128 nodi di larghezza, 1080 verso nord; a est un crepaccio di magma lungo
-il quale corre il tunnel della fuga. Tutt'attorno, fino a 110 nodi fuori,
-una catena di montagne che sale allontanandosi (fino a 48 sopra il terreno)
-e nove vulcani: un cono alto 66-90, un cratere pieno di magma e tre colate
-che scendono ondeggiando verso la valle (`VOLCANOES` in `assault_core`).
-Un fiume di lava attraversa la valle fra il bastione e la batteria (z 590-
-610, ondeggia): scende da una gola nelle montagne a ovest, corre tre blocchi
-sotto il terreno fra argini di basalto e cade nel crepaccio a est. Si passa
-sul ponte della strada (9 di larghezza, parapetti e lampade) o, ai lati
-(x 22 e 104), saltando su tre isolotti di basalto, uno o due blocchi
-l'uno dall'altro. La lava (`assault_core:lava`) uccide giocatori e soldati
-e distrugge i mezzi; i bot alla guida la evitano. Il cielo è
-rosso (`core.world_storm`, protocollo 108): il sole c'è ancora, ma le nuvole
-sono del colore del cielo e girano in vortici qua e là: ognuno ruota tutto
-intero (un giro ogni mezzo minuto circa) avvolto in due bracci a spirale, con
-un occhio sereno al centro. Alcuni minacciano un tornado: una parete scura al
-centro e sotto un imbuto che scende verso la valle e risale (fino a 44, mai a
-terra), ogni minuto e mezzo circa. Costo: con llvmpipe in Xephyr il campo
-passa da 25.7 a 21 FPS.
+## The valley
 
-| fase | dove (x, z) | cos'è | terre attorno | guarnigione (1 giocatore, +2 per ognuno in più) |
+128 nodes wide, 1080 to the north; to the east a magma rift along which the escape tunnel runs.
+All round, up to 110 nodes out, a chain of mountains rising as it goes away (up to 48 over the
+ground) and nine volcanoes: a cone 66-90 high, a crater full of magma and three flows winding down
+towards the valley (`VOLCANOES` in `assault_core`). A lava river crosses the valley between the
+bastion and the battery (z 590-610, winding): it comes down a gorge in the western mountains, runs
+three blocks below the ground between basalt banks and falls into the rift to the east. It is
+crossed on the road's bridge (9 wide, parapets and lamps) or, at the sides (x 22 and 104), by
+jumping across three basalt islets one or two blocks apart. The lava (`assault_core:lava`) kills
+players and soldiers and destroys machines; bots driving avoid it. The sky is red
+(`core.world_storm`, protocol 108): the sun is still there, but the clouds are the sky's colour and
+turn in vortices here and there: each turns whole (a turn every half minute or so) wrapped in two
+spiral arms, with a clear eye in the middle. Some threaten a tornado: a dark wall in the middle and
+under it a funnel coming down towards the valley and going back up (down to 44, never to the
+ground), every minute and a half or so. Cost: with llvmpipe in Xephyr the camp goes from 25.7 to
+21 FPS.
+
+| phase | where (x, z) | what | the land round it | garrison (1 player, +2 for each more) |
 |---|---|---|---|---|
-| campo | 64, 22 | cortile di cemento, la porta d'arrivo, le casse | prato | -- |
-| 1 l'avamposto | 64, 250 | palizzata di tronchi, due torrette, una capanna | palude morta: fango, pozze, canne, alberi secchi | 8, due mitragliatrici |
-| 2 il bastione | 64, 480 | mura di pietra, torri, un mastio | foresta bruciata: cenere, tronchi carbonizzati, braci | 11, due mitragliatrici, due mortai, un carro |
-| 3 la batteria | 64, 710 | tre bunker, trincee, due obici, contraerea | distesa di cristalli viola e luminosi | 14, due mitragliatrici, un elicottero |
-| 4 la fortezza | 64, 905 | mura di basalto alte 12 (indistruttibili), il cancello da far saltare | basalto spaccato dal magma, costole d'osso | 18, due carri, mortai, contraerea, un elicottero |
-| la sala | 64, 976 | dietro la fortezza: quattro piloni, il nucleo, il trono | -- | ondate da porte nei muri laterali |
+| camp | 64, 22 | a concrete yard, the arrival door, the crates | meadow | -- |
+| 1 the outpost | 64, 250 | a log palisade, two turrets, a hut | dead marsh: mud, pools, reeds, dry trees | 8, two machine guns |
+| 2 the bastion | 64, 480 | stone walls, towers, a keep | burnt forest: ash, charred trunks, embers | 11, two machine guns, two mortars, a tank |
+| 3 the battery | 64, 710 | three bunkers, trenches, two howitzers, anti-aircraft | a field of glowing violet crystals | 14, two machine guns, a helicopter |
+| 4 the fortress | 64, 905 | basalt walls 12 high (indestructible), the gate to blow up | basalt split by magma, ribs of bone | 18, two tanks, mortars, anti-aircraft, a helicopter |
+| the hall | 64, 976 | behind the fortress: four pylons, the core, the throne | -- | waves from doors in the side walls |
 
-La legione è di tre specie, scelte per come combattono: **zombi** (dietro i
-ripari, lenti, 28 di vita), **demoni** (all'assalto, veloci, 18) e
-**cyborg** (di guardia col fucile di precisione e col lanciarazzi, 26).
+The legion is of three kinds, chosen for how they fight: **zombies** (behind cover, slow, 28
+health), **demons** (on the attack, fast, 18) and **cyborgs** (on watch with the sniper rifle and
+the rocket launcher, 26).
 
-## Come si gioca
+## How it plays
 
-* **Una fortezza** si prende stando alla sua bandiera (10 nodi) senza
-  nessuno della legione entro 20: la presa sale di 10 al secondo per ogni
-  alleato, fino a tre. Presa, la bandiera diventa blu, chi resta della
-  guarnigione scappa, la base si sposta lì (si rinasce lì, le casse
-  ricaricano) e si arma la successiva. Il cancello della fortezza va fatto
-  saltare con granate, razzi o un carro.
-* **Crediti**: una cassa sola per tutti. Un nemico ucciso da un giocatore 10,
-  da un bot alleato 5, una fortezza 150, un pilone 100; e un rifornimento
-  lento, 5 ogni 5 secondi finché si combatte (fortezze e sala).
-* **La base** è sul terreno aperto a nord dell'ultima fortezza presa, sulla
-  strada per la successiva: lì si rinasce, le casse ricaricano, i soldati
-  alleati caduti tornano a ondate ogni 15 s e i mezzi alleati (anche quelli
-  comprati) hanno ognuno il suo posto nel parcheggio. Un mezzo alleato senza
-  giocatori a bordo, fermo per 40 s lontano dal parcheggio (incastrato,
-  in una buca), torna nel parcheggio. L'avamposto e il bastione hanno un
-  varco anche a nord, le trincee della batteria uno sulla strada.
-* **Negozio** (B entro 30 nodi dalla base): cinque soldati in più (150, fino a
-  100), un costruttore (120, fino a 6), mitragliatrice leggera (120), fucile di
-  precisione (120) e lanciarazzi (200) a tutti; potenziamenti a livelli, ogni
-  livello più caro del precedente: armi +15% di danno (150, x1.6, fino a 8),
-  mezzi +25% di resistenza (180, x1.6, fino a 6), corazza antiesplosione -15%
-  (140, x1.7, fino a 4); jeep (100), carro (350), elicottero (500). Si parte
-  con fucile, pistola, granate, quattro soldati e due costruttori.
-* **Zone bonus**: ai lati di ogni fortezza (x 10 e 118) una radura con un
-  faro, tenuta da tre della legione; il suo fascio di luce si vede da
-  lontano, viola o blu. Presa (stando al faro senza nemici entro 14), +50
-  crediti e +3 a ogni rifornimento. Un alleato su tre va a prenderle da sé.
-* **Contrattacchi**: ogni 100-140 s, mentre si combatte per una fortezza, ne
-  esce una jeep (due con più giocatori, o a volte) piena di soldati nuovi
-  che punta alla vostra base, li fa scendere lì e combattono.
-* **Costruttori**: alleati disarmati e più resistenti (50 di vita), con la
-  chiave inglese: vanno ai crateri dietro la fronte (basi prese, strada) e
-  li rimettono com'erano. Due all'inizio, altri nel negozio (fino a 6). Metà
-  pensa prima a costruire per la fortezza da prendere: una scala sulla faccia
-  sud di ciò che sta a 12 e 22 nodi dal centro (muro, torre o bunker alto
-  3-16 con spazio sopra) e quattro nidi di sacchi 25 nodi davanti all'area.
-  Un costruttore fermo 3 s fa un passo di lato; un lavoro che non raggiunge
-  in 25 s lo lascia per 45 s; il lavoro di uno morto torna libero. Provato:
-  all'avamposto due scale e quattro nidi.
-* **Caserme**: soldati alleati e costruttori escono da una caserma di tavole
-  21 nodi a ovest della base, porta a est. Quella del campo c'è sempre; le
-  altre appaiono quando la base si sposta lì (`assault:barracks`), e da
-  allora mapgen e riparazioni le contano come parte della dimensione. Aperto:
-  non provato che un client entrato dopo veda quelle delle basi prese.
-* **Il cancello**: davanti al cancello della fortezza, entro 30 nodi, un
-  alleato a piedi alla volta va fino a 7 nodi e fa esplodere una granata
-  nella cella di cancello più vicina che resta al centro, ogni 3.5 s; se in
-  15 s non ci riesce passa a un altro. Provato: aperto in circa 45 s.
-  `ponytail`: la granata è messa nel cancello, non lanciata (lanciata
-  rimbalzava indietro, posata ai piedi cadeva nel cratere).
-* **Rinascita**: chi muore (colpito, esploso, caduto, nel magma) torna con
-  tutte le armi comprate e caricatori, riserve e granate pieni. Le morti date
-  dal motore si riconoscono dal salto al punto di rinascita.
-* **Tornado**: mentre si combatte per una fortezza, ogni 45-85 s (il primo
-  dopo 30) ne scende uno, al massimo due insieme, sul terreno aperto fra la
-  base e la fortezza; vaga a 1.5-2.5 m/s per 45-75 s. Entro 14 nodi risucchia
-  e fa girare giocatori, soldati di tutte e due le parti e mezzi (i carri
-  appena); al centro (3.5) lancia in alto e fuori e toglie 7, ogni 2 s.
-  Provato: un giocatore sale di 4.4 nodi, è sbalzato di 10, risucchiato e
-  morto al terzo lancio; quattro soldati morti in pochi secondi. Il lancio
-  di un giocatore resta sotto i 16 m/s per asse (`net::Push::kMax`). Lo
-  disegna il passo delle nuvole (`core.storm_funnel`): un imbuto dal ventre
-  delle nuvole a terra, polvere alla base. Costo: con llvmpipe in Xephyr due
-  tornado vicini portano il campo a 11 FPS (21 senza).
-* **Da passeggero** (sedile senza arma del mezzo) si spara con la propria
-  arma e i tasti 1-9 la scelgono; cambiano sedile solo al volante o a
-  un'arma del mezzo. All'inizio di ogni tentativo di fuga le armi di tutti
-  sono di nuovo piene (sulla strada non ci sono casse).
-* **Crediti di prova**: `tools/track.sh --fresh` mette nella stanza anche
-  `tools/assault_test`, e ogni partita parte con 100000 crediti.
-* **Sui mezzi**: chi non guida e non sta a un'arma del mezzo spara con la
-  sua (giocatori e bot), e mira col destro. I bot seduti sono portati dal
-  motore (`core.mob_ride`) insieme al mezzo.
-* **La sala**: i quattro piloni nutrono lo scudo del nucleo; abbattuti, il
-  nucleo resta scoperto 18 s, poi i piloni si riaccendono più forti.
-  Basoalth tira sfere dal trono, che un colpo spegne.
-* **L'ascesa**: rotto il nucleo, Basoalth ne prende l'energia, cresce fino a
-  34 metri e sfonda il tetto; poi il pavimento della sala crolla e tutti
-  cadono (senza danno: la vita torna piena prima e dopo) fra cumuli di
-  macerie, al fondo del tunnel della fuga.
-* **La fuga**: tre jeep al fondo del tunnel, uno guida e gli altri sparano;
-  da soli un bot guida o tiene la mitragliatrice. Il tunnel (`assault_core`,
-  `TUBE`; `A.PATH` in `assault_game`) è largo 24 e alto 44, perché il
-  gigante ci cammina in piedi: a nord sotto il garage, a est sotto il
-  crinale, poi giù per il crepaccio in curve a destra e a sinistra (15 curve
-  ad angolo retto, piane per 12 nodi attorno a ogni angolo), salite e
-  discese fra -2 e 10 (mai più di un blocco ogni 8 nodi), fino alla roccia
-  con la porta di uscita, all'aperto. Lampade lungo le pareti. È un
-  canale di scolo della lava: la strada è larga 13 al centro, ai lati fino
-  alle pareti scorre il magma due blocchi più in basso (le curve sono strada
-  da parete a parete, così chi taglia la curva non ci cade); chi ci finisce,
-  a piedi o in jeep, è perso. Dopo 14 s il
-  gigante si muove e il pavimento crolla dietro di lui (9 m/s, fino a 14,
-  +6 se si è più di 50 m avanti); ogni pochi secondi un pugno apre una buca
-  su un lato (segnata in rosso 1.6 s prima), e le sue sfere inseguono le
-  jeep. Ogni colpo su di lui lo frena (una mitragliatrice che lo tiene sotto
-  tiro lo porta a circa tre quarti del passo, due a meno di due terzi, mai
-  sotto il 40%; la testa conta doppio) e abbastanza colpi alla testa lo
-  fanno barcollare 3.5 s. Presi tutti: si rifà solo il pavimento (in circa
-  un secondo), le jeep tornano 2 s dopo e si riprova dal fondo del tunnel.
-  Una jeep sulla roccia in fondo, e la porta di casa si apre a tutti.
-* **Trappole nel tunnel**: ogni 110 m circa, a rotazione, un obiettivo da
-  colpire, rifatto a ogni tentativo (anche i bot a bordo ci sparano, al
-  momento giusto: i massi subito, la valvola con lui entro 150 m, il
-  serbatoio entro 55):
-  la **valvola** del magma su una parete (40 di vita) apre un getto di lava
-  attraverso il tunnel per 25 s, e Basoalth che ci passa va al 45% per 5 s;
-  il **grappolo di massi** sotto il soffitto (60) crolla nei canali, e lui
-  ci inciampa e barcolla 4 s; il **serbatoio di gas** in un canale (50)
-  esplode subito, e se lui è entro 40 m lo frena molto e lo fa barcollare
-  2.5 s (troppo presto, è sprecato). Per ognuna Basoalth ha la sua
-  animazione (`tools/make_assault_models.py -- --giant`): nella lava
-  pesta i piedi e si batte le gambe con la testa all'indietro (burn), sui
-  massi si piega in avanti fino a terra e si rialza (trip), il serbatoio lo
-  sbalza indietro e lui alza le braccia davanti alla faccia (blast). Provato colpendo ognuno a 25 m: con un
-  bot alla guida si arriva a circa 900 m invece di 500.
-  Provato con un bot alla guida e nessuno che spara: circa 1100 dei 1440 m
-  prima di essere presi (500 prima che i gradini avessero rampe lunghe tre
-  celle, `core/physics/craft.cpp`).
+* **A fortress** is taken by standing at its flag (10 nodes) with nobody of the legion within 20:
+  the capture rises by 10 a second for each ally, up to three. Taken, the flag turns blue, what is
+  left of the garrison runs, the base moves there (you respawn there, the crates refill) and the
+  next one arms itself. A fortress's gate has to be blown up with grenades, rockets or a tank.
+* **Credits**: one purse for everybody. An enemy killed by a player 10, by an allied bot 5, a
+  fortress 150, a pylon 100; and a slow supply, 5 every 5 seconds while the fighting is on
+  (fortresses and hall).
+* **The base** is on the open ground north of the last fortress taken, on the road to the next:
+  there you respawn, the crates refill, fallen allied soldiers come back in waves every 15 s and
+  allied machines (bought ones too) each have their place in the car park. An allied machine with
+  no players aboard, standing for 40 s away from the car park (stuck, in a hole), goes back to it.
+  The outpost and the bastion have a gap to the north too, the battery's trenches one on the road.
+* **Shop** (B within 30 nodes of the base): five soldiers more (150, up to 100), a builder (120, up
+  to 6), the light machine gun (120), the sniper rifle (120) and the rocket launcher (200) for
+  everybody; upgrades in levels, each dearer than the last: weapons +15% damage (150, x1.6, up to
+  8), machines +25% toughness (180, x1.6, up to 6), blast armour -15% (140, x1.7, up to 4); a jeep
+  (100), a tank (350), a helicopter (500). You start with rifle, pistol, grenades, four soldiers and
+  two builders.
+* **Bonus zones**: at the sides of each fortress (x 10 and 118) a clearing with a beacon, held by
+  three of the legion; its beam is seen from afar, violet or blue. Taken (standing at the beacon
+  with no enemy within 14), +50 credits and +3 to every supply. One ally in three goes to take them
+  on its own.
+* **Counterattacks**: every 100-140 s, while the fighting for a fortress is on, a jeep comes out of
+  it (two with more players, or sometimes) full of fresh soldiers making for your base, drops them
+  there and they fight.
+* **Builders**: unarmed and tougher allies (50 health), with the wrench: they go to the craters
+  behind the front (bases taken, the road) and put them back as they were. Two at the start, more
+  in the shop (up to 6). Half of them see first to building for the fortress to take: a ladder on
+  the south face of what stands 12 and 22 nodes from the middle (a wall, tower or bunker 3-16 high
+  with room on top) and four nests of sandbags 25 nodes before the area. A builder standing still
+  for 3 s takes a step aside; a job it cannot reach in 25 s it leaves for 45 s; a dead one's job is
+  free again. Tried: at the outpost two ladders and four nests.
+* **Barracks**: allied soldiers and builders come out of a plank barracks 21 nodes west of the
+  base, its door to the east. The camp's is always there; the others appear when the base moves
+  there (`assault:barracks`), and from then on mapgen and repairs count them as part of the
+  dimension. Open: not tried whether a client that came in later sees those of the bases taken.
+* **The gate**: before the fortress's gate, within 30 nodes, one ally on foot at a time goes up to
+  7 nodes and sets off a grenade in the nearest gate cell left in the middle, every 3.5 s; if it
+  does not manage in 15 s another takes over. Tried: open in about 45 s. `ponytail`: the grenade
+  is put in the gate, not thrown (thrown it bounced back, laid at the feet it fell into the crater).
+* **Respawn**: whoever dies (shot, blown up, fallen, in the magma) comes back with every weapon
+  bought and magazines, reserves and grenades full. The deaths the engine gives are recognised by
+  the jump to the respawn point.
+* **Tornadoes**: while the fighting for a fortress is on, every 45-85 s (the first after 30) one
+  comes down, at most two at once, on the open ground between the base and the fortress; it wanders
+  at 1.5-2.5 m/s for 45-75 s. Within 14 nodes it sucks in and spins players, soldiers of both sides
+  and machines (tanks barely); at its middle (3.5) it throws up and out and takes 7, every 2 s.
+  Tried: a player rises 4.4 nodes, is thrown 10, sucked in and dead at the third throw; four
+  soldiers dead in a few seconds. A player's throw stays under 16 m/s an axis (`net::Push::kMax`).
+  The cloud pass draws it (`core.storm_funnel`): a funnel from the clouds' belly to the ground,
+  dust at its foot. Cost: with llvmpipe in Xephyr two tornadoes near bring the camp to 11 FPS (21
+  without).
+* **As a passenger** (a seat without the machine's weapon) you shoot with your own weapon and
+  1-9 choose it; they change seat only at the wheel or at a weapon of the machine. At the start of
+  every escape attempt everybody's weapons are full again (there are no crates on the road).
+* **Test credits**: `tools/track.sh --fresh` puts `tools/assault_test` in the room too, and every
+  match starts with 100000 credits.
+* **In machines**: whoever is not driving and not at a weapon of the machine shoots with their own
+  (players and bots), and aims with the right button. Seated bots are carried by the engine
+  (`core.mob_ride`) along with the machine.
+* **The hall**: the four pylons feed the core's shield; brought down, the core is open for 18 s,
+  then the pylons light up again, stronger. Basoalth throws orbs from the throne, which a shot puts
+  out.
+* **The rise**: the core broken, Basoalth takes its energy, grows to 34 metres and breaks through
+  the roof; then the hall's floor collapses and everybody falls (unhurt: health comes back full
+  before and after) among heaps of rubble, to the bottom of the escape tunnel.
+* **The escape**: three jeeps at the bottom of the tunnel, one drives and the others shoot; alone,
+  a bot drives or takes the machine gun. The tunnel (`assault_core`, `TUBE`; `A.PATH` in
+  `assault_game`) is 24 wide and 44 high, because the giant walks in it upright: north under the
+  garage, east under the ridge, then down the rift in turns to the right and to the left (15
+  right-angled turns, level for 12 nodes round each corner), rises and falls between -2 and 10
+  (never more than a block every 8 nodes), to the rock with the way out, in the open. Lamps along
+  the walls. It is a drain for the lava: the road is 13 wide in the middle, at the sides up to the
+  walls the magma runs two blocks lower (the turns are road from wall to wall, so whoever cuts the
+  corner does not fall in); whoever ends up in it, on foot or in a jeep, is lost. After 14 s the
+  giant moves and the floor collapses behind him (9 m/s, up to 14, +6 when one is more than 50 m
+  ahead); every few seconds a punch opens a hole on one side (marked red 1.6 s before), and his
+  orbs chase the jeeps. Every hit on him slows him (a machine gun keeping him under fire brings him
+  to about three quarters of his pace, two to under two thirds, never under 40%; the head counts
+  double) and enough hits on the head make him stagger for 3.5 s. All caught: only the floor is
+  made again (in about a second), the jeeps come back 2 s later and you try again from the bottom of
+  the tunnel. A jeep on the rock at the end, and the door home opens for everybody.
+* **Traps in the tunnel**: every 110 m or so, in turn, a target to hit, made again at every
+  attempt (bots aboard shoot at them too, at the right moment: the boulders at once, the valve with
+  him within 150 m, the tank within 55): the magma **valve** on a wall (40 health) opens a jet of
+  lava across the tunnel for 25 s, and Basoalth passing through it goes at 45% for 5 s; the
+  **cluster of boulders** under the ceiling (60) falls into the channels, and he trips on it and
+  staggers 4 s; the **gas tank** in a channel (50) explodes at once, and if he is within 40 m it
+  slows him a lot and makes him stagger 2.5 s (too early, it is wasted). For each Basoalth has his
+  animation (`tools/make_assault_models.py -- --giant`): in the lava he stamps his feet and beats
+  his legs with his head thrown back (burn), on the boulders he bends forward to the ground and gets
+  up again (trip), the tank throws him back and he raises his arms before his face (blast). Tried
+  by hitting each at 25 m: with a bot driving you get to about 900 m instead of 500. Tried with a
+  bot driving and nobody shooting: about 1100 of the 1440 m before being caught (500 before the
+  steps had ramps three cells long, `core/physics/craft.cpp`).
 
-## I modelli
+## The models
 
-`tools/make_assault_models.py` (Blender): zombi, demoni e cyborg, Basoalth e
-il gigante, il nucleo, i piloni. Il resto è del fronte
-(`tools/make_front_models.py`) e del laboratorio (sfere e scudo,
-`tools/make_ospite.py`).
+`tools/make_assault_models.py` (Blender): zombies, demons and cyborgs, Basoalth and the giant, the
+core, the pylons. The rest is the front's (`tools/make_front_models.py`) and the laboratory's (orbs
+and shield, `tools/make_ospite.py`).
