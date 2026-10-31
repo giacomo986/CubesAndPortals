@@ -306,7 +306,7 @@ Questo è il 70% dello sforzo grafico, e raylib **non** te lo dà:
   **pacchetto** e non una costante — 32 px per l'arte di questo repo, 128 px per un pacchetto CC0
   scaricato, senza ritoccare un file. Il passaggio a texture array eredita la stessa regola: una
   dimensione per pacchetto, decisa leggendo i file prima di allocare
-  ([`TEXTURE_PACKS.md`](TEXTURE_PACKS.md)).
+  ([`TEXTURE_PACKS.md`](TEXTURE_PACKS.it.md)).
 - **Luce**: propagazione flood-fill sole+blocco per chunk (modello classico dei giochi a blocchi, 4 bit
   ciascuna), impacchettata nel vertice; ricalcolo incrementale sul piazzamento blocco.
 - **Culling**: frustum per chunk + **cave culling** (visibilità di attraversamento per chunk,
@@ -1322,7 +1322,7 @@ e il rischio n.1 qui sopra, che lo scope mitiga in modo più debole di come face
 ciascuna con i propri limiti dichiarati; M10 sospesa; M11 annullata; M12 continua; M13 aperta e
 senza stima. I difetti aperti sono in `TODO.md`, le misure e lo storico in `docs/archive/`
 (dal 2026-09-13, quando i test sono stati ridotti a 13 e la documentazione riscritta sullo stato
-attuale: [`ARCHITECTURE.md`](ARCHITECTURE.md)).
+attuale: [`ARCHITECTURE.md`](ARCHITECTURE.it.md)).
 
 **Prossimi passi, in ordine:**
 

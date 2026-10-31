@@ -51,7 +51,7 @@ in tutte e due le lingue.
 abitanti e la loro economia, animali e mostri, circuiti, scacchi e carte), ci sono i sette mondi
 dietro i portali della piazza, il laboratorio finale, altri due mondi dopo di esso, e il
 multiplayer. Molte cose sono ancora incomplete o grezze: cosa manca e cosa non va è in
-[`TODO.md`](TODO.md), cosa cambia a ogni versione in [`CHANGELOG.md`](CHANGELOG.md).
+[`TODO.md`](TODO.md), cosa cambia a ogni versione in [`CHANGELOG.md`](CHANGELOG.it.md).
 
 Finché il gioco è in alpha una versione nuova può non leggere i mondi salvati con la
 precedente, né giocare con i suoi server: quando succede il changelog lo dice.
@@ -133,7 +133,7 @@ I test si lanciano con `ctest --test-dir build` (13 test, pochi secondi).
 I pacchetti per chi gioca si costruiscono con gli script di `tools/dist/` e finiscono in
 `<cartella di build>/dist/`. Il pacchetto Windows si compila **da Linux** con zig, quello macOS
 **su un Mac**. Tutti i dettagli (opzioni di CMake, pacchetti, versioni) sono in
-[`docs/BUILDING.md`](docs/BUILDING.md).
+[`docs/BUILDING.md`](docs/BUILDING.it.md).
 
 ## Contribuire
 
@@ -143,10 +143,10 @@ Il progetto è aperto a tutti, e si può aiutare in molti modi:
   si aspettava, sistema operativo e versione del gioco (in basso a destra nel menù), e se
   possibile il log;
 - **tradurre**: una lingua nuova è un file nuovo in `assets/lang/` (vedi `it.txt`);
-- **fare mod, mondi e texture pack**: [`docs/MODDING.md`](docs/MODDING.md),
-  [`docs/API.md`](docs/API.md) e [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.md); i sorgenti
+- **fare mod, mondi e texture pack**: [`docs/MODDING.md`](docs/MODDING.it.md),
+  [`docs/API.md`](docs/API.md) e [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.it.md); i sorgenti
   Blender dei modelli sono in [`assets/blender/`](assets/blender/README.md);
-- **lavorare sull'engine**: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) spiega come è fatto il
+- **lavorare sull'engine**: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.it.md) spiega come è fatto il
   codice e dove va una feature nuova; [`TODO.md`](TODO.md) elenca quello che manca.
 
 Come si propone una modifica:
@@ -216,9 +216,9 @@ mondo che c'è dietro (`mods/gates`), portano a sette mondi, tutti stanze dello 
   cresce con chi gioca, cubi, pulsanti e pedane di lancio.
 - **Le backrooms** (`games/backrooms`): tre livelli infiniti con scale, buchi, piscine, scivoli e
   due creature; casse rare contengono la via del ritorno. Guida in
-  [`games/backrooms/README.md`](games/backrooms/README.md).
+  [`games/backrooms/README.md`](games/backrooms/README.it.md).
 - **Il parkour** (`games/parkour`): corsa sui muri, rimbalzi, scivolate, capriole e rope gun.
-  Guida in [`games/parkour/README.md`](games/parkour/README.md).
+  Guida in [`games/parkour/README.md`](games/parkour/README.it.md).
 
 **Le sette chiavi** (`mods/keys`, la fine del gioco). L'ingegnere che ha costruito i portali ha
 chiuso l'Ospite nel laboratorio e ha diviso la serratura in sette chiavi, una in ogni mondo,
@@ -419,13 +419,13 @@ ciascuna. Il catalogo creativo (C) ha una casella di ricerca.
   reload (F5), event bus tipizzato, ECS scriptabile, ABM/LBM, stage del mapgen, blocchi a scatole
   o disegnati come modello, movimento per mondo e per corpo, pacchetti `.cnpmod` con versioni e
   dipendenze. Un mondo può mandare **codice Luau al client**, in una sandbox senza file né rete, e
-  il giocatore può rifiutarlo. Guida in [`docs/MODDING.md`](docs/MODDING.md).
+  il giocatore può rifiutarlo. Guida in [`docs/MODDING.md`](docs/MODDING.it.md).
 - **Salvataggio.** SQLite: chunk, casse, borse, posizione dei giocatori e memoria dei mod. Si
   scrive solo quello che è cambiato, in una transazione sola, e il server salva quando lo si
   ferma con Ctrl+C. I blocchi sono salvati per nome, così aggiungere un mod non costringe mai a
   ricominciare il mondo.
 
-Il piano completo e le sue decisioni sono in [`docs/DESIGN.md`](docs/DESIGN.md).
+Il piano completo e le sue decisioni sono in [`docs/DESIGN.md`](docs/DESIGN.it.md).
 
 ## Giocare e testare: riferimento
 
@@ -553,8 +553,8 @@ L'elenco completo è in `main()` di [`src/client/main.cpp`](src/client/main.cpp)
 | `--max-per-address N` | Al massimo N giocatori dallo stesso indirizzo |
 | `--watchdog S` | Una stanza che non finisce un tick in S secondi fa uscire il server con lo stack stampato, perché `tools/serve.sh` lo riavvii |
 | `--federation PORTA` | Server amici (`/friend`): righe firmate e cifrate su questa porta TCP, con la chiave dei biglietti (`--ticket-key`, o MONDO.sign) |
-| `--rules-file FILE` `--no-update-check` | Regole che ogni giocatore accetta prima di giocare; niente domanda a GitHub su una release più nuova ([`docs/ADMIN.md`](docs/ADMIN.md)) |
-| `--webhook URL` | Azioni admin, avvio, arresto e segnalazioni mandati lì in POST come JSON ([`docs/ADMIN.md`](docs/ADMIN.md#webhooks)) |
+| `--rules-file FILE` `--no-update-check` | Regole che ogni giocatore accetta prima di giocare; niente domanda a GitHub su una release più nuova ([`docs/ADMIN.md`](docs/ADMIN.it.md)) |
+| `--webhook URL` | Azioni admin, avvio, arresto e segnalazioni mandati lì in POST come JSON ([`docs/ADMIN.md`](docs/ADMIN.it.md#webhook)) |
 | `--report FILE` `--since 7d` `--json` | Senza server: cosa ricorda un file del mondo -- giocatori, tempo di gioco, massimo insieme, ingressi per ora, stanze, chi è stato respinto, azioni dello staff, riavvii e crash, attraversamenti da altri server |
 | `--portals` `--portal-to HOST:PORT[/N]` | Una coppia di aperture gestita dal server; `--portal-to` dice dove porta la prima (e da quale apertura `N` si esce); ripetuto, la seconda, la terza e la quarta |
 | `--ticket-key FILE` `--portal-peer-key HEX` `--trust HEX` `--require-ticket` | Ticket firmati per attraversare fra server |
@@ -571,7 +571,7 @@ visite e `--report`, `/inspect` e `/rollback` di quello che un giocatore ha camb
 webhook, `/bag` e `/give`, e server amici che condividono ban, presenza, una chat e un solo
 zaino per ogni giocatore.
 
-**Ogni comando, permesso, flag e chiave di `server.conf` è in [`docs/ADMIN.md`](docs/ADMIN.md)** (in inglese).
+**Ogni comando, permesso, flag e chiave di `server.conf` è in [`docs/ADMIN.md`](docs/ADMIN.it.md)** (in inglese).
 `/help` in gioco elenca quelli che puoi usare.
 
 `tools/serve.sh -l logs build-release/src/server/cnp_server --config server.conf` tiene un
@@ -585,7 +585,7 @@ server acceso tra riavvii e crash, con un log al giorno.
 | `tools/track.sh` (`--fresh`) | Un server con il sandbox e tutti i mondi come stanze, come lo avvia il menù del titolo (mondi e log in `worlds/track/`) |
 | `tools/arpg.sh`, `tools/fps.sh`, `tools/chambers.sh` (`--fresh`) | Il sandbox e un mondo solo, per lavorare su quel mondo |
 | `build/tools/cnp_modpack pack mods/ore` | Un mod in un file `.cnpmod`, che si carica da `mods/` come una directory |
-| `tools/dist/package-*.sh` | I pacchetti per Linux, Windows e macOS ([`docs/BUILDING.md`](docs/BUILDING.md)) |
+| `tools/dist/package-*.sh` | I pacchetti per Linux, Windows e macOS ([`docs/BUILDING.md`](docs/BUILDING.it.md)) |
 | `build/tools/cnp_netshape` | Relay UDP con ritardo e perdita, per provare link lenti |
 | `build/tools/libcnp_clock_skew.so` | `LD_PRELOAD` che sposta l'orologio di un processo, per i ticket |
 | `tools/admin.sh` (`-p PORTA`) | Un comando admin a un server avviato, via RCON; la password in `CNP_RCON_PASSWORD` |
@@ -615,14 +615,14 @@ perché di ciascuno è in [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 
 ## Documentazione
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): come è fatto il codice oggi e dove si mette una
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.it.md): come è fatto il codice oggi e dove si mette una
   feature nuova.
-- [`docs/DESIGN.md`](docs/DESIGN.md): analisi di fattibilità, decisioni, piano a milestone,
+- [`docs/DESIGN.md`](docs/DESIGN.it.md): analisi di fattibilità, decisioni, piano a milestone,
   rischi.
-- [`docs/MODDING.md`](docs/MODDING.md): scrivere un mod; [`docs/API.md`](docs/API.md): l'API
+- [`docs/MODDING.md`](docs/MODDING.it.md): scrivere un mod; [`docs/API.md`](docs/API.md): l'API
   Luau, generata da `src/script/api.luau`.
-- [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.md): fare un texture pack.
-- [`docs/BUILDING.md`](docs/BUILDING.md): compilare, pacchetti, versioni e il repository Flatpak.
+- [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.it.md): fare un texture pack.
+- [`docs/BUILDING.md`](docs/BUILDING.it.md): compilare, pacchetti, versioni e il repository Flatpak.
 - [`TODO.md`](TODO.md) (in inglese): cosa manca e cosa non va.
 - [`docs/archive/`](docs/archive/README.md): lo storico, milestone per milestone, con le misure.
 

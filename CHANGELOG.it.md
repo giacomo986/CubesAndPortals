@@ -99,7 +99,7 @@ Protocollo 109, come la 0.9.0-alpha.2: gioca con i suoi server e legge i suoi mo
 
 - Chi tiene un server ha un'amministrazione completa: ruoli, ban, kick, mute, lista d'accesso,
   console, RCON, riavvii programmati, manutenzione, messaggio del giorno, regole da accettare,
-  rollback dei blocchi, backup e webhook. Il manuale è [docs/ADMIN.md](docs/ADMIN.md).
+  rollback dei blocchi, backup e webhook. Il manuale è [docs/ADMIN.md](docs/ADMIN.it.md).
 - I server amici condividono ban, presenza, chat e lo zaino: chi passa da un portale verso un
   amico porta con sé lo stesso zaino.
 - La lista Multiplayer mostra giocatori, versione e messaggio del giorno di ogni server.

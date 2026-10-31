@@ -1192,7 +1192,7 @@ che è sparito con gli id è cercare un **orientamento** — il vecchio
 più a `find_nodes`, non quattro nomi.
 
 Il pacchetto di texture dipinge le facce per nome — `mymod:forno:front` — senza
-sapere niente dei giri: vedi [TEXTURE_PACKS.md](TEXTURE_PACKS.md).
+sapere niente dei giri: vedi [TEXTURE_PACKS.md](TEXTURE_PACKS.it.md).
 
 ### Un corpo con una faccia
 
