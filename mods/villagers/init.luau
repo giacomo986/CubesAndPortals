@@ -3427,6 +3427,15 @@ E.finish = function(p: number, e: Errand, rk: string)
     E.credit(rk, who, 1)
     core.notice(p, `Done: {ems(e.pay)}. Thank you.`)
     core.log(`villagers: {rk}: {who} did an errand ({e.kind}) for {e.pay}`)
+    -- Somebody who went far for the village is told, as well, where the
+    -- nearest portal they have not done stands (none on a plaza).
+    if e.kind == "explore" then
+        local px, _, pz = core.player_pos(p)
+        if px and pz and AID.pt.near(px, pz, 1200, p)[1] then
+            core.notice(p, "\"And since you like the road -- one more thing, for nothing.\"")
+            AID.pt.tell(p)
+        end
+    end
 end
 
 E.click = function(p: number, id: number)
