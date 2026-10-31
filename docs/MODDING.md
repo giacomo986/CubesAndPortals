@@ -1,364 +1,334 @@
-# Scrivere un mod
+# Writing a mod
 
-Stato: M2 in corso. Questo documento descrive quello che **funziona oggi**, non
-quello che è previsto; per il piano completo vedi `DESIGN.md` §5 e §6.
+*[Leggi in italiano](MODDING.it.md)*
 
-Un mod è una directory dentro `mods/` con due file:
+Status: M2 under way. This document describes what **works today**, not what is planned; for the
+whole plan see `DESIGN.md` §5 and §6.
+
+A mod is a directory inside `mods/` with two files:
 
 ```
 mods/beacons/
-    mod.conf      <- il manifest
-    init.luau     <- il codice
+    mod.conf      <- the manifest
+    init.luau     <- the code
 ```
 
-Nessuna toolchain. `init.luau` è un file di testo che si apre in un editor e
-gira. `--!strict` in cima abilita i tipi, ma non è richiesto (DESIGN.md §5.5).
+No toolchain. `init.luau` is a text file you open in an editor and it runs. `--!strict` at the top
+turns types on, but it is not required (DESIGN.md §5.5).
 
 ---
 
 ## mod.conf
 
-Formato `chiave = valore`, righe che iniziano con `#` sono commenti.
+`key = value` format, lines starting with `#` are comments.
 
-| chiave | default | significato |
+| key | default | meaning |
 |---|---|---|
-| `name` | — (obbligatoria) | nome del mod, e namespace dei suoi blocchi |
-| `version` | `0.0.0` | `1`, `1.2` o `1.2.3`; quello che manca è zero |
-| `api` | la più vecchia servita | numero intero della API mod per cui il mod è scritto |
-| `description` | vuoto | una riga |
-| `entry` | `init.luau` | file caricato |
-| `enabled` | `true` | `false` = presente ma non caricato |
-| `capabilities` | vuoto | elenco separato da virgole, vedi sotto |
-| `depends` | vuoto | mod che devono essere caricati prima, con o senza versione |
-| `memory_kb` | 32768 | tetto dell'heap della VM |
-| `interrupt_budget` | 2000000 | safepoint per singola chiamata |
+| `name` | — (required) | the mod's name, and the namespace of its blocks |
+| `version` | `0.0.0` | `1`, `1.2` or `1.2.3`; what is missing is zero |
+| `api` | the oldest served | the whole number of the mod API the mod is written for |
+| `description` | empty | one line |
+| `entry` | `init.luau` | the file loaded |
+| `enabled` | `true` | `false` = there but not loaded |
+| `capabilities` | empty | a comma-separated list, see below |
+| `depends` | empty | mods that must be loaded first, with or without a version |
+| `memory_kb` | 32768 | the ceiling of the VM's heap |
+| `interrupt_budget` | 2000000 | safepoints a single call |
 
-**Una chiave sconosciuta è un errore di caricamento, non un avviso.** Scritto
-`capabilties = os` per sbaglio, il mod non parte: un manifest che si legge come
-"nessuna capability" per via di un refuso è esattamente il modo in cui un
-sistema di permessi finisce per mentire.
+**An unknown key is a load error, not a warning.** With `capabilties = os` written by mistake, the
+mod does not start: a manifest that reads as "no capabilities" because of a typo is exactly how a
+permission system ends up lying.
 
-Una directory senza `mod.conf` non è un mod che ottiene tutto: non è un mod.
+A directory without `mod.conf` is not a mod that gets everything: it is not a mod.
 
 ---
 
-## Versioni
+## Versions
 
-`version` è **tre numeri**, non una stringa libera: `1`, `1.2` e `1.2.3` sono
-tutte versioni, e quello che non è scritto vale zero. Tutto il resto — una
-lettera, un componente vuoto, un quarto numero — è un errore di caricamento.
+`version` is **three numbers**, not a free string: `1`, `1.2` and `1.2.3` are all versions, and
+what is not written counts as zero. Everything else -- a letter, an empty component, a fourth
+number -- is a load error.
 
-Il motivo è che una versione serve per essere **confrontata**. Come stringa
-`1.10` viene prima di `1.9`, che è il contrario di quello che chiede chi scrive
-`>= 1.9`.
+The reason is that a version is there to be **compared**. As a string `1.10` comes before `1.9`,
+which is the opposite of what whoever writes `>= 1.9` asks for.
 
-### `depends`, con o senza versione
+### `depends`, with or without a version
 
 ```
 depends = spike >= 0.2, guard
 ```
 
-Un nome da solo significa "qualsiasi versione", ed è quello che ogni `depends`
-di questo repository voleva dire prima che le versioni fossero confrontabili.
-Gli operatori sono cinque: `>=`, `>`, `=`, `<=`, `<`. Spazi a piacere:
-`spike>=0.2`, `spike >=0.2` e `spike >= 0.2` sono la stessa cosa.
+A name alone means "any version", and that is what every `depends` in this repository meant before
+versions could be compared. The operators are five: `>=`, `>`, `=`, `<=`, `<`. Spaces as you like:
+`spike>=0.2`, `spike >=0.2` and `spike >= 0.2` are the same thing.
 
-Due rifiuti diversi, perché sono due problemi diversi:
+Two different refusals, because they are two different problems:
 
 ```
 mod 'beacons' not loaded: depends on 'spike', which is not loaded
 mod 'beacons' not loaded: depends on spike >= 2.0.0, and the one loaded is 0.2.0
 ```
 
-Il primo manda a installare un mod, il secondo ad aggiornare quello che c'è.
-Dire il primo quando la verità è il secondo è un pomeriggio perso.
+The first sends you to install a mod, the second to update the one there is. Saying the first when
+the truth is the second is an afternoon lost.
 
-### `api`, cioè per quale motore è scritto il mod
+### `api`, that is which engine the mod is written for
 
-`api` è **un numero intero**, non una versione. Dice per quale versione della API
-mod il mod è stato scritto. Questa build ne serve una sola — `api = 1` — e
-rifiuta qualsiasi altra:
+`api` is **a whole number**, not a version. It says which version of the mod API the mod was
+written for. This build serves only one -- `api = 1` -- and refuses any other:
 
 ```
 mod 'futuro' not loaded: written for mod API 2, and this build serves 1 to 1
 ```
 
-Un mod che non lo dichiara viene preso per la **più vecchia** che questa build
-serve. È l'unica assunzione che non possa promuovere di nascosto un mod vecchio
-su una API nuova: il giorno in cui la più vecchia servita sale, quel mod viene
-rifiutato e gli viene detto di dichiarare cosa vuole, invece di fallire alla
-riga 40.
+A mod that does not declare it is taken for the **oldest** this build serves. It is the only
+assumption that cannot quietly promote an old mod onto a new API: the day the oldest served goes
+up, that mod is refused and told to declare what it wants, instead of failing at line 40.
 
-La riga di log lo dice, e dice anche quando non gliel'ha detto nessuno:
+The log line says it, and says too when nobody told it:
 
 ```
 mod 'cave' 0.1.0 (api 1) loaded, capabilities: none
 mod 'vecchio' 0.1.0 (api 1, assumed) loaded, capabilities: none
 ```
 
-La stessa regola vale al reload: un `mod.conf` modificato in una API che questa
-build non serve **non** viene caricato, e continua a girare la versione di prima.
+The same rule holds on reload: a `mod.conf` changed to an API this build does not serve is **not**
+loaded, and the version from before goes on running.
 
 ---
 
-## Cose che accadono alle celle da sole
+## Things that happen to cells by themselves
 
-Due tipi, e non sono la stessa cosa:
+Two kinds, and they are not the same thing:
 
 ```lua
--- ABM: ogni `interval` secondi, ogni cella caricata che contiene uno di questi
--- blocchi ha una probabilità di uno su `chance` che l'azione parta.
+-- ABM: every `interval` seconds, every loaded cell holding one of these
+-- blocks has a chance of one in `chance` of the action going off.
 core.register_abm("timber:moss", {"timber:log"}, 2.0, 4, function(cell)
     core.set_block(cell.x, cell.y, cell.z, MOSSY)
 end)
 
--- LBM: una volta per cella corrispondente **quando il chunk viene caricato**, e
--- mai più. È quello che serve per sistemare un mondo scritto da una versione
--- vecchia del mod.
+-- LBM: once per matching cell **when the chunk is loaded**, and never
+-- again. It is what is needed to fix a world written by an old version
+-- of the mod.
 core.register_lbm("timber:clean", {"timber:mossy_log"}, function(cell)
     core.set_block(cell.x, cell.y, cell.z, LOG)
 end)
 ```
 
-L'azione riceve **una tabella** — `cell.x`, `cell.y`, `cell.z`, `cell.id` — che
-è la forma di ogni handler di questo engine, da un evento a uno stage di mapgen.
-L'elenco dei blocchi può essere una tabella o una stringa sola.
+The action receives **a table** -- `cell.x`, `cell.y`, `cell.z`, `cell.id` -- which is the shape
+of every handler of this engine, from an event to a mapgen stage. The list of blocks can be a
+table or a single string.
 
-**Si registrano mentre il mod carica**, come `core.register_mapgen`: chiederne
-uno da un handler di tick è rifiutato, perché sarebbe un modificatore che non
-gira mai. Un nome già preso è rifiutato, e ABM e LBM condividono lo spazio dei
-nomi. Un `interval` non positivo o una `chance` sotto uno sono rifiutati. Un
-blocco che nessun mod ha registrato **disabilita** quel modificatore e lo dice
-in log nominando il nome: un ABM su un blocco che non esiste spazzerebbe il
-mondo per sempre senza trovare niente.
+**They are registered while the mod loads**, like `core.register_mapgen`: asking for one from a
+tick handler is refused, because it would be a modifier that never runs. A name already taken is
+refused, and ABMs and LBMs share the namespace. An `interval` that is not positive or a `chance`
+under one are refused. A block no mod has registered **disables** that modifier and says so in the
+log naming it: an ABM on a block that does not exist would sweep the world for ever finding
+nothing.
 
-**Cosa costa, e perché non può far tardare il tick.** Un mondo da 512 sono 512
-chunk e 16,7 milioni di celle. Un ABM non le legge: ogni chunk porta un bit per
-id di blocco *modulo 64*, quindi un chunk che non può contenere i blocchi
-dell'ABM viene saltato con un AND. Quello che resta viene letto cella per cella,
-e ogni step ha un **budget di 2 ms**: se la spazzata non ci sta, si ferma dov'è
-e riprende al tick dopo, e l'intervallo riparte solo da una spazzata
-**finita**. Un mod che chiede più di così gira più lentamente di quanto ha
-chiesto invece di far tardare il server, e il log lo dice:
+**What it costs, and why it cannot make the tick late.** A world of 512 is 512 chunks and 16.7
+million cells. An ABM does not read them: every chunk carries a bit per block id *modulo 64*, so a
+chunk that cannot hold the ABM's blocks is skipped with an AND. What is left is read cell by cell,
+and each step has a **budget of 2 ms**: if the sweep does not fit, it stops where it is and resumes
+at the next tick, and the interval restarts only from a **finished** sweep. A mod asking for more
+than that runs slower than it asked instead of making the server late, and the log says so:
 
 ```
 modifiers: 3 action(s) over 262144 cell(s) in 0.008 s, 0 sweep(s) still going
   timber:moss           3 fired of     262144 tested, 0.008 s
 ```
 
-**Determinismo.** La probabilità è un **hash** di seme, numero della spazzata e
-coordinate della cella, non un generatore il cui stato dipende da come il budget
-ha tagliato la spazzata. Due run dello stesso seme fanno la stessa cosa, e i
-chunk si visitano in ordine ordinato per lo stesso motivo.
+**Determinism.** The chance is a **hash** of the seed, the sweep's number and the cell's
+coordinates, not a generator whose state depends on how the budget cut the sweep. Two runs of the
+same seed do the same thing, and the chunks are visited in sorted order for the same reason.
 
-**Un'azione che va in errore costa il suo mod**, come un handler di evento, e
-quel modificatore non viene più chiamato. Gli altri continuano nello stesso
-step.
+**An action that errors costs its mod**, like an event handler, and that modifier is not called
+again. The others go on in the same step.
 
-**Quello che un LBM non garantisce:** se il budget finisce a metà dei
-modificatori di un chunk, quel chunk torna in coda e quelli che avevano già
-girato ci girano di nuovo. Un LBM va scritto in modo che girare due volte su una
-cella già sistemata sia innocuo — che è cosa vuol dire «caricamento» per un
-modificatore che può essere interrotto.
+**What an LBM does not promise:** if the budget runs out halfway through a chunk's modifiers, that
+chunk goes back in the queue and those that had already run run there again. An LBM has to be
+written so that running twice on a cell already fixed is harmless -- which is what "loading" means
+for a modifier that can be interrupted.
 
 ---
+## Blocks that turn
 
-## Blocchi che si girano
+A block declares **what the cell's facing byte means**, and it means nothing if it does not
+declare it:
 
-Un blocco dichiara **cosa significa** il byte di orientamento della cella, e
-non significa niente se non lo dichiara:
-
-| `turn` | valori | cosa è |
+| `turn` | values | what it is |
 |---|---|---|
-| — (niente) | 0 | non si gira |
-| `upright` | 0..3 | quarti di giro attorno alla verticale: una cassa, una fornace |
-| `facedir` | 0..23 | una qualsiasi delle ventiquattro orientazioni di un cubo: un tronco coricato, una scala |
-| `wallmounted` | 0..5 | la **faccia** verso cui punta il davanti: una scaletta, un cartello |
+| — (nothing) | 0 | does not turn |
+| `upright` | 0..3 | quarter turns about the vertical: a chest, a furnace |
+| `facedir` | 0..23 | any of a cube's twenty-four orientations: a log lying down, a stair |
+| `wallmounted` | 0..5 | the **face** the front points to: a ladder, a sign |
 
 ```lua
 local LOG = core.register_node("timber:log", 126, 92, 54, true, 0, "facedir", 0, 1.6, "wood")
 core.set_block(x, y, z, LOG)
-core.set_facing(x, y, z, 12)     -- coricato lungo x
+core.set_facing(x, y, z, 12)     -- lying along x
 ```
 
-`facedir` è `asse * 4 + giro`, dove l'asse dice **dove finisce il +Y del
-blocco** — 0 +Y, 1 +Z, 2 -Z, 3 +X, 4 -X, 5 -Y — e il giro sono quarti di giro
-attorno a quel nuovo alto. **0..3 sono esattamente i quattro giri che
-esistevano**, perché l'asse 0 non inclina niente: ogni byte in ogni file di
-mondo mantiene il significato che aveva. L'ordine degli assi è quello di
-`param2` facedir dell'engine di partenza, che è l'engine da cui questo progetto viene: una
-convenzione già provata, presa perché è buona. Il layer di compatibilità per cui
-era stata scelta non si fa più (DESIGN.md §7.5), e l'ordine resta comunque questo
-— cambiarlo adesso vorrebbe dire riscrivere il byte di ogni cella girata in ogni
-file di mondo.
+`facedir` is `axis * 4 + turn`, where the axis says **where the block's +Y ends up** -- 0 +Y,
+1 +Z, 2 -Z, 3 +X, 4 -X, 5 -Y -- and the turn is quarter turns about that new up. **0..3 are
+exactly the four turns that existed**, because axis 0 tilts nothing: every byte in every world
+file keeps the meaning it had. The axes' order is the starting engine's facedir `param2`, the
+engine this project comes from: a convention already tried, taken because it is good. The
+compatibility layer it was chosen for is not being made any more (DESIGN.md §7.5), and the order
+stays this one anyway -- changing it now would mean rewriting the byte of every turned cell in
+every world file.
 
-`wallmounted` è un **indice di faccia** in quest'ordine: 0 +X, 1 -X, 2 +Y,
-3 -Y, 4 +Z, 5 -Z. Una cella che nessuno ha girato vale 0, cioè +X; il
-piazzamento scrive sempre la faccia cliccata, quindi lo si vede solo su una
-cella scritta con `core.set_block` e mai girata.
+`wallmounted` is a **face index** in this order: 0 +X, 1 -X, 2 +Y, 3 -Y, 4 +Z, 5 -Z. A cell
+nobody turned is 0, that is +X; placing always writes the clicked face, so it shows only on a cell
+written with `core.set_block` and never turned.
 
-**Il piazzamento dà quattro giri, non ventiquattro.** Un blocco `upright` o
-`facedir` messo giù da un giocatore si gira verso di lui, dalla sua
-**posizione** (il server ha quella e non lo sguardo); un `wallmounted` punta
-fuori dalla faccia che è stata cliccata. Le altre venti orientazioni esistono
-per un mod — `core.set_facing` — e per l'attrezzo che un giorno girerà una cella
-già piazzata.
+**Placing gives four turns, not twenty-four.** An `upright` or `facedir` block put down by a
+player turns towards them, from their **position** (the server has that and not the look); a
+`wallmounted` one points out of the face that was clicked. The other twenty orientations exist for
+a mod -- `core.set_facing` -- and for the tool that turns a cell already placed (`mods/screwdriver`).
 
-**Un byte che il blocco non ammette viene rifiutato**, non mascherato: una
-cassa girata a 7 è un errore di chi scrive il mod, e `core.set_facing` lo dice
-in log con il nome del mod. Al disegno, una cella con un byte che il suo blocco
-non ammette si disegna **non girata** invece di leggere fuori da una tabella.
+**A byte the block does not allow is refused**, not masked: a chest turned to 7 is the mod
+writer's mistake, and `core.set_facing` says so in the log with the mod's name. When drawing, a
+cell with a byte its block does not allow is drawn **unturned** instead of reading outside a
+table.
 
-**L'id non cambia mai.** Un blocco che si gira è **un** blocco: l'id che
-`register_node` ha restituito è quello che c'è nel mondo comunque sia girato,
-quindi un handler confronta `ev.id` direttamente.
+**The id never changes.** A block that turns is **one** block: the id `register_node` returned is
+the one in the world however it is turned, so a handler compares `ev.id` directly.
 
-**Le parti si girano con lo stesso giro delle facce.** Un blocco fatto di scatole
-(`core.node_box`) coricato ha le scatole ruotate dalla stessa matrice che decide
-quale immagine va su quale faccia: forma e immagini non possono dissentire su
-come è messo.
+**Parts turn with the faces' turn.** A block made of boxes (`core.node_box`) lying down has its
+boxes turned by the same matrix that decides which image goes on which face: shape and images
+cannot disagree about how it is set.
 
 ---
 
-## Un mod come un file solo
+## A mod as a single file
 
-Una directory non è una cosa che si possa dare a qualcuno: niente dice quali
-file ne fanno parte, niente dice che sono arrivati tutti, e niente si può
-controllare prima di eseguire il Lua di un altro. Un **pacchetto** è quel file.
+A directory is not a thing you can hand to somebody: nothing says which files belong to it,
+nothing says they all arrived, and nothing can be checked before running somebody else's Lua. A
+**package** is that file.
 
 ```sh
-cnp_modpack pack   mods/ore            # ore-0.1.0.cnpmod, dal mod.conf che c'è dentro
-cnp_modpack list   ore-0.1.0.cnpmod    # cosa contiene, e se è integro
+cnp_modpack pack   mods/ore            # ore-0.1.0.cnpmod, from the mod.conf inside
+cnp_modpack list   ore-0.1.0.cnpmod    # what it holds, and whether it is whole
 cnp_modpack unpack ore-0.1.0.cnpmod ./ore
 ```
 
-Un `.cnpmod` messo nella cartella dei mod si carica come una directory:
+A `.cnpmod` put in the mods' folder loads like a directory:
 
 ```
 mods/
-    cave/                 <- una directory
-    ore-0.1.0.cnpmod      <- un pacchetto
+    cave/                 <- a directory
+    ore-0.1.0.cnpmod      <- a package
 ```
 
-Il motore lo verifica **intero**, lo scompatta in una cartella di appoggio e da
-lì in poi è un mod come gli altri — stesso manifest, stesso ordine, stessi
-rifiuti. Mezzo mod è peggio di nessun mod: registrerebbe metà dei suoi blocchi e
-lascerebbe un mondo pieno di quelli, e chi lo guarda non può sapere quale metà.
+The engine checks it **whole**, unpacks it into a staging folder and from there on it is a mod
+like the others -- the same manifest, the same order, the same refusals. Half a mod is worse than
+no mod: it would register half its blocks and leave a world full of them, and whoever looks at it
+cannot know which half.
 
-Il formato, per intero, sta in [`src/modpack/mod_package.h`](../src/modpack/mod_package.h).
-Quello che conta sapendo scrivere mod:
+The format, in full, is in [`src/modpack/mod_package.h`](../src/modpack/mod_package.h). What
+matters when writing mods:
 
-- **Il nome del mod non è scritto sul pacchetto**: sta nel `mod.conf` dentro,
-  che è l'unico posto da cui si legge un manifest. Il nome del *file* lo decide
-  il tool a partire da lì. Un nome fuori è un nome che può mentire.
-- **Un pacchetto è canonico**: i file sono ordinati per percorso e i loro byte
-  sono contigui, quindi impacchettare due volte lo stesso mod dà lo stesso file
-  byte per byte. Misurato: `mods/ore` dà lo stesso `.cnpmod` a ogni giro.
-- **Un percorso che esce dal mod è rifiutato** — `..`, un percorso assoluto, una
-  barra rovesciata, due punti — e lo è tre volte: quando il pacchetto si scrive,
-  quando si legge e quando si scompatta.
-- **Cosa non c'è dentro**: i file che iniziano con un punto, a ogni livello. Un
-  `.git` non fa parte di un mod.
-- **Un pacchetto non si ricarica a caldo.** L'hot reload guarda i tempi di
-  modifica dei file scompattati, che non cambiano: si edita una directory, si
-  spedisce un pacchetto.
-- **Due mod non possono avere lo stesso nome.** Un pacchetto accanto alla
-  directory dello stesso mod sono due copie che registrano gli stessi blocchi:
-  la seconda viene rifiutata dicendo da dove viene la prima.
+- **The mod's name is not written on the package**: it is in the `mod.conf` inside, the only place
+  a manifest is read from. The tool decides the *file*'s name from there. A name outside is a name
+  that can lie.
+- **A package is canonical**: the files are sorted by path and their bytes are contiguous, so
+  packing the same mod twice gives the same file byte for byte. Measured: `mods/ore` gives the same
+  `.cnpmod` every time.
+- **A path that leaves the mod is refused** -- `..`, an absolute path, a backslash, a colon -- and
+  three times: when the package is written, when it is read and when it is unpacked.
+- **What is not inside**: files starting with a dot, at every level. A `.git` is not part of a mod.
+- **A package is not hot reloaded.** Hot reload watches the unpacked files' modification times,
+  which do not change: you edit a directory, you ship a package.
+- **Two mods cannot have the same name.** A package beside the directory of the same mod is two
+  copies registering the same blocks: the second is refused saying where the first comes from.
 
 ---
 
-## Capability
+## Capabilities
 
-Luau parte già molto più piccolo di Lua: **non esistono** `io`, `package`,
-`loadstring`, `dofile`, `os.execute`, `os.getenv`. Non c'è niente da rimuovere
-perché non c'erano. Quello che resta e che un mod non ottiene per default:
+Luau starts much smaller than Lua already: `io`, `package`, `loadstring`, `dofile`,
+`os.execute`, `os.getenv` **do not exist**. There is nothing to remove because they were never
+there. What is left and a mod does not get by default:
 
-| capability | cosa concede | stato |
+| capability | what it grants | status |
 |---|---|---|
-| `os` | `os.clock`, `os.date`, `os.difftime`, `os.time` | concessa |
-| `debug` | la tabella `debug` | concessa |
-| `native`, `exec`, `fs:read <dir>`, `net:http <host>` | — | **rifiutate**: questa build non le concede a nessuno |
+| `os` | `os.clock`, `os.date`, `os.difftime`, `os.time` | granted |
+| `debug` | the `debug` table | granted |
+| `native`, `exec`, `fs:read <dir>`, `net:http <host>` | — | **refused**: this build grants them to nobody |
 
-Una capability sconosciuta è un errore di caricamento. Una dichiarata ma non
-concedibile è un errore di caricamento **con il nome dentro il messaggio** — non
-un caricamento riuscito con una sorpresa a runtime.
+An unknown capability is a load error. One declared but not grantable is a load error **with its
+name in the message** -- not a successful load with a surprise at run time.
 
-Le globali non concesse vengono **rimosse dalla tabella globale prima che la
-sandbox venga congelata** e prima che una riga di mod giri. Non sono nascoste né
-vuote: sono assenti. Un mod può verificarlo da sé:
+The globals not granted are **removed from the global table before the sandbox is frozen** and
+before a line of the mod runs. They are not hidden nor empty: they are absent. A mod can check it
+itself:
 
 ```lua
-assert(os == nil, "questo mod non ha dichiarato os")
+assert(os == nil, "this mod did not declare os")
 ```
 
-`os` è dietro una capability perché il tick deve poter essere deterministico per
-seed + input (DESIGN.md §5.7), e un mod che legge l'orologio non lo è.
+`os` is behind a capability because the tick must be able to be deterministic for seed + input
+(DESIGN.md §5.7), and a mod that reads the clock is not.
 
 ---
 
-## Una VM per mod
+## A VM per mod
 
-Ogni mod ha la sua `lua_State`, la sua quota di memoria e il suo budget di
-interruzione. Le conseguenze sono verificate da `tests/script_isolation_test.cpp`
-(gira in `ctest`, senza GPU):
+Each mod has its own `lua_State`, its own memory quota and its own interrupt budget. The
+consequences are checked by `tests/script_isolation_test.cpp` (it runs in `ctest`, without a GPU):
 
-- Un mod che va in **loop infinito** viene interrotto (`script exceeded its
-  interrupt budget`) e disabilitato. Gli altri continuano a girare **nello stesso
-  tick**.
-- Un mod che **esaurisce la memoria** riceve un errore Lua, non fa morire il
-  processo. È la lezione del mondo 512 di M1, dove l'OOM killer arrivò prima.
-- Le **globali non sono condivise**: due mod possono avere entrambi `elapsed` e
-  `on_step` senza vedersi.
-- Un mod che fallisce viene disabilitato una volta, non ritentato ogni frame.
+- A mod in an **infinite loop** is interrupted (`script exceeded its interrupt budget`) and
+  disabled. The others go on running **in the same tick**.
+- A mod that **runs out of memory** gets a Lua error, it does not kill the process. It is the
+  lesson of M1's 512 world, where the OOM killer came first.
+- **Globals are not shared**: two mods can both have `elapsed` and `on_step` without seeing each
+  other.
+- A mod that fails is disabled once, not retried every frame.
 
-Il timeout di 60 s sul test non è burocrazia: se l'interrupt smette di scattare,
-il test non fallisce — gira per sempre dentro il `while true do end` del mod
-cattivo. Verificato mettendo a zero quel budget.
+The 60 s timeout on the test is not red tape: if the interrupt stops firing, the test does not
+fail -- it runs for ever inside the bad mod's `while true do end`. Checked by setting that budget
+to zero.
 
 ---
 
-## Ordine di caricamento
+## Load order
 
-Alfabetico, poi riordinato per `depends`. Serve davvero: `beacons` viene prima di
-`spike` in ordine alfabetico, e alla prima esecuzione con due mod
-`core.node_id("spike:copper")` ha restituito `0`. Con `depends = spike` restituisce
-l'id giusto.
+Alphabetical, then reordered by `depends`. It really matters: `beacons` comes before `spike` in
+alphabetical order, and at the first run with two mods `core.node_id("spike:copper")` returned
+`0`. With `depends = spike` it returns the right id.
 
-Una dipendenza assente è un rifiuto che la nomina. Un ciclo non blocca il
-caricamento: i mod coinvolti vengono rifiutati uno per uno, ciascuno dicendo cosa
-stava aspettando.
+A missing dependency is a refusal that names it. A cycle does not block loading: the mods
+involved are refused one by one, each saying what it was waiting for.
 
 ---
 
 ## Hot reload
 
-Modifica un file di un mod e salva: entro mezzo secondo il mod viene ricaricato,
-**senza riavviare il gioco e senza rigenerare il mondo**. `F5` forza il reload di
-tutti i mod.
+Change a file of a mod and save: within half a second the mod is reloaded, **without restarting
+the game and without generating the world again**. `F5` forces a reload of every mod.
 
-Cosa garantisce il reload:
+What reload promises:
 
-- **Il codice nuovo gira, quello vecchio sparisce.** VM nuova, globali nuove.
-- **Una versione che non compila non ti costa il mod.** La VM nuova viene
-  costruita e fatta girare *prima* che la vecchia venga distrutta: se fallisce,
-  continua a girare la versione che funzionava, e l'errore va in log.
-- **Gli id dei blocchi restano gli stessi.** Il mondo è pieno di quei blocchi;
-  rinumerarli vorrebbe dire riscrivere ogni chunk.
-- **Un blocco che il mod non definisce più diventa orfano**: id conservato,
-  texture magenta acceso, ancora solido (nessuno deve cadere attraverso un
-  pavimento che c'era). Lo stesso patto che fanno i classici giochi a blocchi.
-- **Le capability non si allargano da sole.** Il manifest viene riletto e
-  rivalutato: aggiungere `capabilities = native` e salvare fa fallire il reload,
-  non lo concede.
-- **Gli altri mod non vengono toccati**: stessa VM, stesso stato, nessun tick
-  perso.
+- **The new code runs, the old one goes.** A new VM, new globals.
+- **A version that does not compile does not cost you the mod.** The new VM is built and run
+  *before* the old one is destroyed: if it fails, the version that worked goes on running, and
+  the error goes to the log.
+- **Block ids stay the same.** The world is full of those blocks; renumbering them would mean
+  rewriting every chunk.
+- **A block the mod no longer defines becomes an orphan**: id kept, bright magenta texture, still
+  solid (nobody should fall through a floor that was there). The same deal the classic block games
+  make.
+- **Capabilities do not widen by themselves.** The manifest is read and weighed again: adding
+  `capabilities = native` and saving makes the reload fail, it does not grant it.
+- **The other mods are not touched**: the same VM, the same state, no tick lost.
 
-### Stato che sopravvive al reload
+### State that survives reload
 
 ```lua
 function on_save(): string
-    return tostring(counter)      -- il mod decide cosa sia il suo stato
+    return tostring(counter)      -- the mod decides what its state is
 end
 
 function on_load(state: string?)
@@ -366,16 +336,16 @@ function on_load(state: string?)
 end
 ```
 
-Una stringa, non una tabella: un serializzatore generico dovrebbe avere
-un'opinione su funzioni, cicli e userdata, e sarebbe sbagliata su tutte e tre.
-Il limite è 64 KB, e superarlo è un errore — non un troncamento silenzioso.
+A string, not a table: a generic serializer would have to have an opinion about functions, cycles
+and userdata, and would be wrong about all three. The limit is 64 KB, and going over it is an
+error -- not a silent truncation.
 
 ---
 
-## Event bus tipizzato
+## Typed event bus
 
-Lo schema di un evento si **dichiara**. Emettere un campo sbagliato è un errore
-che nomina il campo, non un `nil` che qualcuno legge tre handler dopo.
+An event's schema is **declared**. Emitting a wrong field is an error naming the field, not a
+`nil` somebody reads three handlers later.
 
 ```lua
 core.event.define("guard:alarm", {
@@ -385,555 +355,504 @@ core.event.define("guard:alarm", {
 
 core.event.on("core:pre_place", 10, function(ev)
     if ev.x >= 36 and ev.x <= 46 then
-        ev.cancel = true                       -- annulla
+        ev.cancel = true                       -- cancel
     elseif ev.id == core.node_id("core:grass") then
-        ev.id = core.node_id("core:stone")     -- modifica
+        ev.id = core.node_id("core:stone")     -- change
     end
 end)
 
 core.event.emit("guard:alarm", { x = 40, y = 21, z = 40 })
 ```
 
-Tipi ammessi nei campi: `number`, `string`, `boolean`. Tre, non uno qualunque:
-un bus che trasporta qualsiasi cosa è un bus il cui schema non significa niente.
+Types allowed in fields: `number`, `string`, `boolean`. Three, not anything: a bus that carries
+anything is a bus whose schema means nothing.
 
-- **Priorità**: numero, default 0, si esegue dal più basso al più alto; a parità
-  vince chi si è registrato prima. Dichiararla è il punto — l'ordine di
-  caricamento non è un ordine.
-- **Annullare** ferma gli handler *successivi*. Chi veniva prima ha già parlato.
-- **Modificare** il payload lo cambia per gli handler dopo **e per il motore**:
-  `core:pre_place` con `ev.id` riscritto piazza il blocco riscritto.
-- **Cross-VM**: un mod emette, un altro ascolta, nessuno dei due chiama l'altro.
-- Un handler che va in errore **disabilita il suo mod e basta**: l'evento
-  prosegue verso gli altri handler.
-- Ascoltare un evento che nessuno ha dichiarato è un errore di caricamento che
-  lo nomina. Ridichiarare l'evento di un altro mod è rifiutato.
+- **Priority**: a number, default 0, run from the lowest to the highest; on a tie whoever
+  registered first wins. Declaring it is the point -- load order is not an order.
+- **Cancelling** stops the *following* handlers. Whoever came before has already spoken.
+- **Changing** the payload changes it for the handlers after **and for the engine**:
+  `core:pre_place` with `ev.id` rewritten places the rewritten block.
+- **Cross-VM**: a mod emits, another listens, neither calls the other.
+- A handler that errors **disables its own mod and that is all**: the event goes on to the other
+  handlers.
+- Listening to an event nobody declared is a load error that names it. Declaring another mod's
+  event again is refused.
+- An event emitted needs **all** its fields (`event 'gates:ask' takes 5 field(s), got 4`).
 
-### Eventi del motore
+### Engine events
 
-Il core usa lo stesso bus, con gli stessi schemi, senza percorsi privilegiati
-(DESIGN.md §6.3).
+The core uses the same bus, with the same schemas, with no privileged paths (DESIGN.md §6.3).
 
-| evento | campi | annullabile |
+| event | fields | cancellable |
 |---|---|---|
-| `core:pre_place` | `x, y, z, id, player` | sì |
+| `core:pre_place` | `x, y, z, id, player` | yes |
 | `core:placed` | `x, y, z, id, player` | no |
-| `core:pre_break` | `x, y, z, id, player` | sì |
+| `core:pre_break` | `x, y, z, id, player` | yes |
 | `core:broken` | `x, y, z, id, player` | no |
 | `core:ui_click` | `panel, id, player, text` | no |
-| `core:used` | `x, y, z, id, player, held` | sì |
+| `core:used` | `x, y, z, id, player, held` | yes |
 | `core:tick` | `dt` | no |
 | `core:hit` | `player, target, damage, killed` | no |
 | `core:watched` | `x, y, z` | no |
 | `core:world_ready` | — | no |
 | `core:net_message` | `player, mod, text` | no |
-| `core:command` | `player, name, args` | no — solo al mod che l'ha dichiarato |
-| `core:page_open` | `player, page` | no — solo al mod che ha registrato la pagina |
-| `core:page_action` | `player, page, id, text` | no — solo al mod che ha mostrato la pagina |
-| `core:input` | `action, player` | sì — solo su un client |
-| `core:far_moved` | `index, x, y, z, axis, sign, half_w, half_h` | no — solo su un server a stanze |
-| `core:died` | `player, x, y, z` | no — solo su un server; il corpo è già tornato al letto o allo spawn, x y z è dove è morto |
+| `core:command` | `player, name, args` | no — only to the mod that declared it |
+| `core:page_open` | `player, page` | no — only to the mod that registered the page |
+| `core:page_action` | `player, page, id, text` | no — only to the mod that showed the page |
+| `core:input` | `action, player` | yes — only on a client |
+| `core:far_moved` | `index, x, y, z, axis, sign, half_w, half_h` | no — only on a server of rooms |
+| `core:died` | `player, x, y, z` | no — only on a server; the body is already back at its bed or the spawn, x y z is where it died |
 
-`core:used` è un click destro su un blocco a portata, **con qualsiasi cosa in
-mano**. Nomina il blocco colpito, non la faccia accanto, ed è emesso **prima**
-del piazzamento: un handler che mette `ev.cancel = true` ha **reclamato** il
-click, e il piazzamento dietro non avviene. È così che un baule si apre con un
-blocco in mano invece di costringere a posarlo — e senza quel `cancel` lo stesso
-click aprirebbe il baule e costruirebbe sopra. Con **Shift** premuto e un blocco
-in mano che si può posare, `core:used` non viene emesso: il click piazza e basta,
-anche contro un baule o un tavolo.
+`core:used` is a right click on a block within reach, **with anything in hand**. It names the block
+hit, not the face beside it, and it is emitted **before** placing: a handler that sets
+`ev.cancel = true` has **claimed** the click, and the placing behind it does not happen. That is how
+a chest opens with a block in hand instead of making you put it away -- and without that `cancel`
+the same click would open the chest and build on top of it. With **Shift** held and a placeable
+block in hand, `core:used` is not emitted: the click places and that is all, against a chest or a
+table too.
 
-`held` è quello che chi ha cliccato **aveva in mano**, per nome, vuoto a mani
-vuote — e `id` è il blocco **cliccato**. Un pedestal che leggeva `id` per sapere
-cosa gli veniva offerto stava leggendo sé stesso. Il click è l'unico momento in
-cui il motore sa cosa c'è in mano: `Inventory` tiene uno slot selezionato, ma sul
-server viene scritto solo quando un piazzamento riesce, quindi fra due
-piazzamenti è lo slot dell'ultimo e non la mano. Per questo `held` sta
-sull'evento e non è una chiamata `core.held_item(player)` che risponderebbe con
-qualcosa di vero un po' di tempo fa.
+`held` is what whoever clicked **had in hand**, by name, empty for an empty hand -- and `id` is the
+block **clicked**. A pedestal that read `id` to know what it was being offered was reading itself.
+The click is the only moment the engine knows what is in hand: `Inventory` keeps a selected slot,
+but on the server it is written only when a placing succeeds, so between two placings it is the
+last one's slot and not the hand. That is why `held` is on the event and not a call
+`core.held_item(player)` that would answer with something true a while ago.
 
-`text` è quello che il giocatore ha scritto in un campo (`core.ui_field`) quando
-ha premuto Invio, `""` per un bottone: testo di un client, fino a 128 byte, da
-trattare come non fidato.
+`text` is what the player wrote in a field (`core.ui_field`) when they pressed Enter, `""` for a
+button: a client's text, up to 128 bytes, to be treated as untrusted.
 
-`player` è chi l'ha fatto: un numero da ripassare a `core.ui_show` per mettere
-un pannello su **quello** schermo e su nessun altro. Un mod non se lo inventa e
-non tiene una tabella di giocatori. Nel client in un solo processo il campo c'è
-lo stesso e vale sempre lo stesso valore, così un mod scritto per un server gira
-lì senza sapere dove sta.
+`player` is who did it: a number to pass back to `core.ui_show` to put a panel on **that** screen
+and on no other. A mod does not make it up and does not keep a table of players. In the
+single-process client the field is there just the same and always has the same value, so a mod
+written for a server runs there without knowing where it is.
 
-`core:tick` è l'hook di tick per chi preferisce sottoscriversi invece di
-definire una globale `on_step`. Dal 2026-10-06 arriva anche al codice di un mondo
-sulla macchina di un giocatore collegato, una volta per frame col suo `dt` (un
-orologio da mostrare, un primo messaggio al server appena c'è); `on_step` e il
-resto restano del server. Un mod `both` che registra un tick solo per il server lo
-mette dentro `if serving`. Un emit senza handler costa una ricerca hash e
-un vettore vuoto.
+`core:tick` is the tick hook for whoever prefers to subscribe instead of defining an `on_step`
+global. Since 2026-10-06 it also reaches a world's code on a connected player's machine, once a
+frame with its `dt` (a clock to show, a first message to the server as soon as there is one);
+`on_step` and the rest stay the server's. A `both` mod that registers a tick for the server only
+puts it inside `if serving`. An emit with no handler costs a hash lookup and an empty vector.
 
-`core:world_ready` è **dove va messo tutto ciò che guarda il mondo**, e non è
-una comodità. Un mod si carica **prima** che il file del mondo venga aperto — il
-file viene controllato contro la tabella dei blocchi *finale*, quindi non si può
-aprire finché ogni mod non ha registrato i suoi — perciò un mod che legge il
-mondo mentre si carica sta leggendo quello che ha fatto il mapgen, non quello
-salvato. Un clock che leggeva il proprio conteggio al caricamento leggeva zero
-ogni volta, e vedendo che non c'era niente ricostruiva sopra ciò che stava per
-essergli caricato addosso. `core:world_ready` è il motore che dice: adesso il
-mondo è quello che sarà. Viene emesso una volta sola, e anche su un server senza
-file del mondo — un mod che lo aspetta non deve aspettarlo per sempre.
+`core:world_ready` is **where everything that looks at the world goes**, and it is not a
+convenience. A mod is loaded **before** the world file is opened -- the file is checked against
+the *final* block table, so it cannot be opened until every mod has registered its own -- so a mod
+reading the world while it loads is reading what the mapgen made, not what was saved. A clock that
+read its own count at load read zero every time, and seeing nothing there built again over what was
+about to be loaded on top of it. `core:world_ready` is the engine saying: now the world is what it
+will be. It is emitted once only, and also on a server with no world file -- a mod waiting for it
+must not wait for ever.
 
-`core:net_message` è quello che è arrivato **sul canale di un mod** — vedi
-`core.net` più sotto. Il campo `mod` è il canale riletto come nome. L'evento
-arriva **solo agli handler del mod di quel canale** (dal 2026-09-25): un messaggio
-mandato da `hunger` non lo sente `enchant`. Prima arrivava a tutti, e sul client
-le barre di `mods/hunger` e `mods/enchant` si scambiavano i valori.
+`core:net_message` is what arrived **on a mod's channel** -- see `core.net` below. The `mod` field
+is the channel read back as a name. The event reaches **only the handlers of that channel's mod**
+(since 2026-09-25): a message sent by `hunger` is not heard by `enchant`. Before, it reached
+everybody, and on the client the bars of `mods/hunger` and `mods/enchant` swapped their values.
 
-`core:hit` è un colpo di un giocatore **andato a segno** su un corpo (una
-creatura, un'entità di un mod con salute): `target` è l'id del corpo, `damage` i
-punti tolti, `killed` se era l'ultimo. Emesso dopo il fatto, sul server e nel
-client che è server di sé stesso. `mods/hunger` lo conta come fatica,
-`mods/enchant` come esperienza per un'uccisione.
+`core:hit` is a player's blow **that landed** on a body (a creature, a mod's entity with health):
+`target` is the body's id, `damage` the points taken, `killed` whether it was the last. Emitted
+after the fact, on the server and in the client that is its own server. `mods/hunger` counts it as
+exertion, `mods/enchant` as experience for a kill.
 
-`core:far_moved`: un'apertura di un'altra stanza dello stesso server, che porta
-all'apertura `index` di questo mondo, è stata spostata con `core.portal_place`;
-gli altri campi sono la sua nuova forma. Arriva all'inizio del tick successivo.
-Serve a spostare anche questo capo (`games/inferno` costruisce così il telaio
-corrispondente). Un server su un altro indirizzo non lo sente. Le colonne attorno
-a ogni apertura vengono sempre generate, anche senza giocatori vicini.
+`core:far_moved`: an opening of another room of the same server, leading to this world's opening
+`index`, was moved with `core.portal_place`; the other fields are its new shape. It arrives at the
+start of the next tick. It is there to move this end too (`games/inferno` builds the matching frame
+that way). A server at another address does not hear it. The columns round every opening are always
+generated, even with no players near.
 
-`core:watched` è una scrittura su una cella che il mod ha chiesto di osservare con
-`core.watch_cell` — vedi più sotto. Arriva all'inizio del tick successivo, una
-volta per cella per tick.
+`core:watched` is a write to a cell the mod asked to watch with `core.watch_cell` -- see below. It
+arrives at the start of the next tick, once a cell a tick.
 
-Limite noto: se una versione di un mod chiama `define` e poi fallisce il
-caricamento, lo schema modificato resta. Gli handler no — quelli vengono tolti
-con la VM che li aveva registrati (senza quel passaggio il processo va in
-segfault al primo emit dopo un reload; verificato).
+`core:died`: a player died at `x, y, z` and has already been put back at their bed or the spawn,
+the bag still on them (`ServerSessions::kill_body` says why); a mod that wants a death to cost it
+takes it here (`mods/grave`, `core.bag_to_container`).
+
+Known limit: if a version of a mod calls `define` and then fails to load, the changed schema stays.
+The handlers do not -- they are taken away with the VM that registered them (without that step the
+process segfaults at the first emit after a reload; checked).
 
 ---
 
-## L'API disponibile oggi
+## The API available today
 
-**Riferimento completo: [API.md](API.md)** — generato, con firme, tipi e default.
-Per il type checker dell'editor: [api.d.luau](api.d.luau).
+**Complete reference: [API.md](API.md)** -- generated, with signatures, types and defaults. For
+the editor's type checker: [api.d.luau](api.d.luau).
 
 ```lua
 core.set_block(x, y, z, id)
 core.get_block(x, y, z) -> id
-core.register_node(nome, r?, g?, b?, solido?, luce?, girevole?, livello?, durezza?) -> id
-core.node_id(nome) -> id            -- 0 se non esiste
-core.node_name(id) -> nome
-core.set_facing(x, y, z, giro)      -- 0 .. core.node_turns(id) - 1
-core.node_turns(id) -> n            -- 1, 4, 6 o 24: quanti giri ha quel blocco
-core.loaded(x, y, z) -> 1 | 0       -- 0: colonna non in memoria, get_block legge aria
-core.light(x, y, z) -> 0..15        -- luce ora: dei blocchi, o del cielo per l'ora
-core.get_facing(x, y, z) -> giro
-core.set_portal(indice, x, y, z)    -- sul server: le aperture del mondo, solo mentre i mod caricano
-core.portal_open(x, y, z, asse, verso, giro, mezza_l, mezza_a, colore?) -> id|-1  -- sul server, quando ascolta: -1 prima, riprovare; quanti se ne vuole: le 32 aperture vanno ai più vicini ai giocatori
-                                    -- colore: com'è chiusa finché non porta da nessuna parte: 0 verde (fissa, default), 1 blu, 2 arancione (portal gun)
-core.portal_close(x, y, z) -> 0..15|-1                             -- per centro, non per indice
-core.portal_link(a, b) -> 1|0       -- a e b portano l'una all'altra; b = -1 scollega a
-core.log(messaggio)
-core.play_sound("mod:cosa", x, y, z) -> 1|0  -- a tutti nel mondo; file mods/<mod>/<cosa>.ogg sul client
+core.register_node(name, r?, g?, b?, solid?, light?, turn?, level?, hardness?) -> id
+core.node_id(name) -> id            -- 0 if it does not exist
+core.node_name(id) -> name
+core.set_facing(x, y, z, turn)      -- 0 .. core.node_turns(id) - 1
+core.node_turns(id) -> n            -- 1, 4, 6 or 24: how many turns that block has
+core.loaded(x, y, z) -> 1 | 0       -- 0: column not in memory, get_block reads air
+core.light(x, y, z) -> 0..15        -- light now: the blocks', or the sky's for the hour
+core.get_facing(x, y, z) -> turn
+core.set_portal(index, x, y, z)     -- on the server: the world's openings, only while mods load
+core.portal_open(x, y, z, axis, sign, turn, half_w, half_h, colour?) -> id|-1  -- on the server, when it listens: -1 before, try again; as many as you like: the 32 openings go to those nearest the players
+                                    -- colour: how it looks shut while it leads nowhere: 0 green (fixed, default), 1 blue, 2 orange (portal gun)
+core.portal_close(x, y, z) -> 0..15|-1                             -- by centre, not by index
+core.portal_link(a, b) -> 1|0       -- a and b lead to each other; b = -1 unlinks a
+core.log(message)
+core.play_sound("mod:thing", x, y, z) -> 1|0  -- to everybody in the world; file mods/<mod>/<thing>.ogg on the client
 
-core.take_item(player, nome, quanti?) -> presi   -- fino a `quanti`, dice quanti
-core.give_item(player, nome, quanti?) -> entrati -- quello che non entra resta al mod
+core.take_item(player, name, count?) -> taken    -- up to `count`, says how many
+core.give_item(player, name, count?) -> fitted   -- what does not fit stays the mod's
+core.bag_to_container(player, x, y, z) -> moved  -- the bag's 36 squares, as they are, into a container
 
-core.players() -> { id }                         -- chi ha un corpo in questo mondo
-core.player_pos(id) -> (x, y, z) | nil           -- i PIEDI, o niente se non c'e'
-core.player_name(id) -> nome                     -- "" se non c'e'; resta uguale a un rientro, l'id no
-core.player_look(id) -> (dx, dy, dz) | nil       -- dove guarda, lunghezza 1
-core.player_place(id, x, y, z, dx?, dy?, dz?) -> 1 | 0  -- sposta e gira un corpo, come un portale
-core.ride(id, host, x?, y?, z?) -> 1 | 0         -- seduto sul corpo di host; host 0 = scende
-core.monsters_near(x, y, z, r) -> n              -- creature che combattono entro r
-core.raycast(x, y, z, dx, dy, dz, max?) -> (bx, by, bz, distanza) | nil
+core.players() -> { id }                         -- who has a body in this world
+core.player_pos(id) -> (x, y, z) | nil           -- the FEET, or nothing if not there
+core.player_name(id) -> name                     -- "" if not there; stays the same on coming back, the id does not
+core.player_look(id) -> (dx, dy, dz) | nil       -- where they look, length 1
+core.player_place(id, x, y, z, dx?, dy?, dz?) -> 1 | 0  -- moves and turns a body, like a portal
+core.ride(id, host, x?, y?, z?) -> 1 | 0         -- seated on host's body; host 0 = gets off
+core.monsters_near(x, y, z, r) -> n              -- fighting creatures within r
+core.mob_health(id, hp) -> 1 | 0                 -- a creature's health and its whole
+core.raycast(x, y, z, dx, dy, dz, max?) -> (bx, by, bz, distance) | nil
 
-core.meta_set(x, y, z, chiave, valore) -> 1 | 0   -- valore vuoto = cancella
-core.meta_get(x, y, z, chiave) -> stringa        -- "" se non c'è niente
-core.storage_set(chiave, valore) -> 1 | 0         -- del mod, nel world file; vuoto = cancella
-core.storage_get(chiave) -> stringa              -- "" se non c'è niente
-core.shared_storage_set(chiave, valore) -> 1 | 0  -- lo stesso, uno per tutte le stanze
-core.shared_storage_get(chiave) -> stringa
-core.notice(player, testo) -> 1 | 0              -- una frase sullo schermo; 0 = tutti
-core.chat(player, testo) -> 1 | 0                -- una riga nella chat (T); 0 = tutti
-core.command(nome, aiuto, perm?) -> 1 | 0       -- dichiara /nome; arriva come core:command
-core.has_perm(player, perm) -> 1 | 0            -- il ruolo del giocatore arriva a perm?
-core.role(player) -> stringa                     -- guest, player, helper, moderator, admin, owner
-core.is_muted(player) -> 1 | 0                   -- la sua chat è bloccata (/mute)?
-core.page_register(nome, titolo, perm?) -> 1 | 0 -- una pagina che /page NOME apre
-core.page_show(player, nome, markup) -> 1 | 0    -- mostra una pagina a un giocatore
+core.meta_set(x, y, z, key, value) -> 1 | 0      -- empty value = delete
+core.meta_get(x, y, z, key) -> string            -- "" if there is nothing
+core.storage_set(key, value) -> 1 | 0            -- the mod's, in the world file; empty = delete
+core.storage_get(key) -> string                  -- "" if there is nothing
+core.shared_storage_set(key, value) -> 1 | 0     -- the same, one for every room (still the mod's own)
+core.shared_storage_get(key) -> string
+core.notice(player, text) -> 1 | 0               -- a sentence on the screen; 0 = everybody
+core.chat(player, text) -> 1 | 0                 -- a line in the chat (T); 0 = everybody
+core.command(name, help, perm?) -> 1 | 0        -- declares /name; arrives as core:command
+core.has_perm(player, perm) -> 1 | 0            -- does the player's role reach perm?
+core.role(player) -> string                      -- guest, player, helper, moderator, admin, owner
+core.is_muted(player) -> 1 | 0                   -- is their chat held (/mute)?
+core.page_register(name, title, perm?) -> 1 | 0  -- a page that /page NAME opens
+core.page_show(player, name, markup) -> 1 | 0    -- shows a page to a player
 
-core.find_nodes(x1,y1,z1, x2,y2,z2, nome) -> { x,y,z, x,y,z, ... }
+core.find_nodes(x1,y1,z1, x2,y2,z2, name) -> { x,y,z, x,y,z, ... }
 
-core.register_mapgen(nome, fn)                   -- al caricamento, non dopo
-core.terrain_height(x, z) -> y                   -- il suolo secondo il generatore
-core.water_level(x, z) -> y                      -- fin dove sta l'acqua: 18 sul mare, un lago in quota il suo;
-                                                 -- il suolo dove la colonna è asciutta, 0 senza generatore
-core.biome(x, z) -> nome                         -- il clima della colonna, secondo il generatore:
-                                                 -- core:plains/desert/tundra/peaks, o dove il suolo sta
-                                                 -- rispetto al mare: core:ocean/sea/river/lake/beach,
-                                                 -- o core:gorge
-core.node_liquid(id, opacità?) -> 1 | 0          -- ci si nuota dentro, e ci passa la luce
+core.register_mapgen(name, fn)                   -- at load, not after
+core.terrain_height(x, z) -> y                   -- the ground according to the generator
+core.water_level(x, z) -> y                      -- how high the water stands: 18 over the sea, a high lake its own;
+                                                 -- the ground where the column is dry, 0 with no generator
+core.biome(x, z) -> name                         -- the column's climate, according to the generator:
+                                                 -- core:plains/desert/tundra/peaks, or where the ground is
+                                                 -- relative to the sea: core:ocean/sea/river/lake/beach,
+                                                 -- or core:gorge
+core.seed() -> n                                 -- the world's seed (its low 31 bits), anywhere
+core.plaza() -> lo, hi | nil                     -- the plaza's bounds, nil in a world without one
+core.world_spawn() -> x, y, z | nil              -- where a player arrives
+core.node_liquid(id, opacity?) -> 1 | 0          -- you swim in it, and light goes through it
 
-core.container_take(x, y, z, item, quanti?) -> presi  -- da un contenitore, dal primo slot
+core.container_take(x, y, z, item, count?) -> taken  -- from a container, from the first slot
 
-core.ecs.component(nome, { "campo", ... })       -- campi numerici, dichiarati
-core.ecs.phase(nome, ordine)                     -- un punto nel tick, e un numero
-core.ecs.system(nome, fase, componente, fn)      -- fn(batch), una volta per molte
-core.ecs.spawn(componente, x, y, z) -> id | nil
-core.ecs.set(id, campo, valore) -> bool          -- "x"/"y"/"z" o un campo del mod
-core.ecs.get(id, campo) -> numero | nil
+core.ecs.component(name, { "field", ... })       -- numeric fields, declared
+core.ecs.phase(name, order)                      -- a point in the tick, and a number
+core.ecs.system(name, phase, component, fn)      -- fn(batch), once for many
+core.ecs.spawn(component, x, y, z) -> id | nil
+core.ecs.set(id, field, value) -> bool           -- "x"/"y"/"z" or a mod's field
+core.ecs.get(id, field) -> number | nil
 core.ecs.kill(id) -> bool
-core.ecs.clip(id, nome) -> bool                  -- una clip del suo modello; "" la ridà al movimento
-core.ecs.box(id, mezza, alta) -> bool            -- quanto è grande per un colpo
-core.ecs.count(componente) -> quante
+core.ecs.clip(id, name) -> bool                  -- a clip of its model; "" hands it back to movement
+core.ecs.box(id, half, high) -> bool             -- how big it is for a blow
+core.ecs.count(component) -> how many
 
-core.net.open() -> canale | nil                  -- al caricamento, non dopo
-core.net.send(player, testo) -> bool             -- 0 = tutti in questo mondo
+core.net.open() -> channel | nil                 -- at load, not after
+core.net.send(player, text) -> bool              -- 0 = everybody in this world
 
-core.render.pass(nome, ordine, fn)               -- solo su un client
-core.render.box(x, y, z, w, h, d, r, g, b, a)    -- solo dentro un pass
-core.render.model(id, x, y, z, yaw?, scala?, pitch?, roll?)   -- un modello del mondo, solo dentro un pass
-core.render.fx(tipo, x, y, z, misura?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- un effetto di luce, solo dentro un pass
-core.overcast(quanto)                            -- cielo e nuvole grigi, 0..1: il meteo (mods/weather)
-core.node_foliage(id, on?)                       -- un blocco che prende il colore della stagione
-core.foliage(r, g, b, quanto)                    -- il colore della stagione sul fogliame, 0..1
+core.render.pass(name, order, fn)                -- only on a client
+core.render.box(x, y, z, w, h, d, r, g, b, a)    -- only inside a pass
+core.render.model(id, x, y, z, yaw?, scale?, pitch?, roll?)   -- a model of the world, only inside a pass
+core.render.fx(kind, x, y, z, size?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- a light effect, only inside a pass
+core.overcast(how_much)                          -- grey sky and clouds, 0..1: the weather (mods/weather)
+core.node_foliage(id, on?)                       -- a block that takes the season's colour
+core.foliage(r, g, b, how_much)                  -- the season's colour on the foliage, 0..1
 
-core.hud.pass(nome, ordine, fn)                  -- sullo schermo, una volta per frame
-core.hud.text(x, y, testo, size?, align?, r, g, b, a)
-core.hud.rect(x, y, w, h, r, g, b, a)            -- solo dentro un hud pass
-core.hud.image(nome, x, y, w, h, a)              -- un PNG dei media del mondo
-core.hud.item(nome, x, y, lato)                  -- il quadrato di un oggetto, come nella borsa
-core.hud.mouse() -> x, y                         -- il cursore, in frazioni dello schermo
+core.hud.pass(name, order, fn)                   -- on the screen, once a frame
+core.hud.text(x, y, text, size?, align?, r, g, b, a)
+core.hud.rect(x, y, w, h, r, g, b, a)            -- only inside a hud pass
+core.hud.image(name, x, y, w, h, a)              -- a PNG of the world's media
+core.hud.item(name, x, y, side)                  -- an item's square, as in the bag
+core.hud.mouse() -> x, y                         -- the cursor, in fractions of the screen
 
-core.event.define(nome, { fields = {...}, cancellable = bool })
-core.event.on(nome, priorità?, funzione) -> ref
-core.event.emit(nome, { campi }) -> annullato
+core.event.define(name, { fields = {...}, cancellable = bool })
+core.event.on(name, priority?, function) -> ref
+core.event.emit(name, { fields }) -> cancelled
 ```
 
-`register_node` restituisce l'id assegnato: **un mod non vede mai un numero che
-non ha chiesto**, e nessuna parte del motore sa più qual è l'id della pietra.
-Registrare due volte lo stesso nome restituisce lo stesso id — è l'aggancio su
-cui poggia l'hot reload.
+`register_node` returns the id assigned: **a mod never sees a number it did not ask for**, and no
+part of the engine knows any more what stone's id is. Registering the same name twice returns the
+same id -- it is the hook hot reload rests on.
 
-`on_step(dt)`, se definita come globale, viene chiamata una volta per frame;
-`on_save`/`on_load` servono al reload. Un mod senza `on_step` non paga niente
-per frame se non la ricerca della globale.
+`on_step(dt)`, if defined as a global, is called once a frame; `on_save`/`on_load` serve the
+reload. A mod without `on_step` pays nothing a frame but the global's lookup.
 
-`meta_set`/`meta_get` sono **quello che una cella ricorda**: sopravvive alla
-chiusura del mondo, e sparisce quando la cella diventa aria — rompere un blocco
-si porta via il suo stato, così il blocco piazzato dopo non eredita quello di
-prima. Cambiare *id* invece non lo cancella: un pulsante che passa da su a giù è
-la stessa cella con lo stesso stato.
+`meta_set`/`meta_get` are **what a cell remembers**: it survives closing the world, and goes when
+the cell turns to air -- breaking a block takes its state with it, so the block placed after does
+not inherit the one before's. Changing the *id* does not clear it: a button going from up to down
+is the same cell with the same state.
 
-**Stringhe, e solo stringhe**, di proposito. Un pedestal che salva l'id 41 sta
-salvando qualunque cosa voglia dire 41 la prossima volta che il mondo si apre,
-perché gli id sono assegnati in ordine di registrazione; un **nome** sopravvive
-all'aggiunta di un mod. Chi vuole un numero scrive `tostring` e legge `tonumber`,
-che è una conversione che si vede. Limiti: nome del campo 1–64 byte, valore ≤ 256
-byte, 16 campi per cella, 65536 celle per mondo — rifiutati, non troncati, con il
-motivo nel log.
+**Strings, and only strings**, on purpose. A pedestal that saves id 41 is saving whatever 41 means
+the next time the world opens, because ids are assigned in order of registration; a **name**
+survives a mod being added. Whoever wants a number writes `tostring` and reads `tonumber`, which is
+a conversion you can see. Limits: field name 1-64 bytes, value ≤ 256 bytes, 16 fields a cell, 65536
+cells a world -- refused, not truncated, with the reason in the log.
 
-`storage_set`/`storage_get` sono **quello che un mod ricorda**, non legato a una
-cella: stringhe sotto un nome, solo del mod che le scrive, salvate nel world file
-con i chunk (solo le chiavi cambiate). Il file si legge dopo che i mod hanno
-caricato, quindi si rilegge da `core:world_ready` in poi. Senza world file, e nel
-client che gioca da solo, durano finché il processo gira; il codice che un mondo
-manda al client non ne ha (0 e ""). Limiti: chiave 1–64 byte, valore ≤ 4096 byte,
-4 MiB di chiavi e valori per mod (fino al 2026-09-28 erano 1024 chiavi). `games/track` ci tiene il giro migliore di ogni giocatore
-(`best:<nome>`) e la classifica (`board`).
+`storage_set`/`storage_get` are **what a mod remembers**, not tied to a cell: strings under a name,
+only the writing mod's, saved in the world file with the chunks (only the keys changed). The file
+is read after the mods have loaded, so read it again from `core:world_ready` on. With no world
+file, and in the client playing alone, they last as long as the process runs; the code a world
+sends to the client has none (0 and ""). Limits: key 1-64 bytes, value ≤ 4096 bytes, 4 MiB of keys
+and values per mod (until 2026-09-28 it was 1024 keys). `games/track` keeps every player's best lap
+there (`best:<name>`) and the board (`board`).
 
-`shared_storage_set`/`shared_storage_get` sono lo stesso, ma **uno per tutte le
-stanze** del server: nel world file della prima (`--room`, il sandbox), che ogni
-stanza legge e scrive. Ci va quello che è del giocatore ovunque sia -- la fame
-(`hunger`), l'esperienza (`enchant`), le chiavi viste (`keys`), il contatore che
-numera gli zaini (`backpack`) -- e non quello che è di un posto (un letto, un
-tavolo), che resta in `storage_set`. Un valore tenuto in memoria va riletto
-quando il giocatore torna: nel frattempo può essere cambiato in un'altra stanza.
-Su un server di un mondo solo è lo stesso archivio di `storage_set`. Il contenuto
-di uno zaino (un container portato, sotto `kCarriedBelow`, al numero dello
-zaino) lo sposta il server stesso nella stanza dove entra chi lo porta.
+`shared_storage_set`/`shared_storage_get` are the same, but **one for every room** of the server:
+in the first one's world file (`--room`, the sandbox), which every room reads and writes. What
+belongs to the player wherever they are goes there -- hunger (`hunger`), experience (`enchant`),
+the keys seen (`keys`), the counter numbering backpacks (`backpack`) -- and not what belongs to a
+place (a bed, a table), which stays in `storage_set`. A value held in memory must be read again
+when the player comes back: in the meantime it may have changed in another room. On a server of a
+single world it is the same store as `storage_set`. A backpack's contents (a carried container,
+below `kCarriedBelow`, at the backpack's number) are moved by the server itself into the room the
+carrier enters.
 
-`notice` mette una frase sullo schermo di un giocatore per qualche secondo, dove
-va il motivo di una modifica rifiutata. Serve a chi **cambia** quello che il
-giocatore ha fatto invece di rifiutarlo: un mod che sostituisce il blocco piazzato
-(`ev.id = ...`) deve dirlo, o il giocatore vede un blocco che non aveva in mano.
+`notice` puts a sentence on a player's screen for a few seconds, where the reason for a refused
+change goes. It is for whoever **changes** what the player did instead of refusing it: a mod that
+replaces the block placed (`ev.id = ...`) must say so, or the player sees a block they did not have
+in hand.
 
-Un handler che scrive nel payload una chiave che l'evento non ha — `ev.cancelled`
-invece di `ev.cancel` — viene segnalato nel log, una volta per mod, evento e chiave.
+A handler that writes into the payload a key the event does not have -- `ev.cancelled` instead of
+`ev.cancel` -- is reported in the log, once per mod, event and key.
 
-`players`/`player_pos` sono **chi c'è e dov'è**. Due chiamate e non una: «chi c'è»
-e «dov'è quello» sono domande diverse, e una sola che restituisse una lista di
-posizioni risponderebbe al pulsante e lascerebbe a bocca asciutta il pedestal,
-che deve dare qualcosa a un giocatore **con un nome**. Gli osservatori — un
-portale che guarda dentro — **non ci sono**: non hanno avatar né inventario
-(DESIGN §4.4), quindi non c'è nessuno da mettere su un pulsante.
+`players`/`player_pos` are **who is here and where**. Two calls and not one: "who is here" and
+"where is that one" are different questions, and a single one returning a list of positions would
+answer the button and leave the pedestal empty-handed, which has to give something to a player
+**with a name**. Observers -- a portal looking in -- **are not here**: they have no avatar or
+inventory (DESIGN §4.4), so there is nobody to put on a button.
 
-`player_pos` restituisce **i piedi**, ed è la posizione che l'autorità del
-movimento ha *accettato*, non l'ultima rivendicata da un client. Per chi non è
-in questo mondo non restituisce niente:
+`player_pos` returns **the feet**, and it is the position the movement authority *accepted*, not
+the last one a client claimed. For someone not in this world it returns nothing:
 
 ```lua
 local x, y, z = core.player_pos(id)
-if x == nil then continue end   -- se n'è andato fra le due chiamate
+if x == nil then continue end   -- they left between the two calls
 ```
 
-Non `0, 0, 0`: l'origine è un posto vero, e un mod che ci misurasse una distanza
-troverebbe tutti in piedi sul pulsante nell'angolo del mondo.
+Not `0, 0, 0`: the origin is a real place, and a mod measuring a distance there would find everyone
+standing on the button in the corner of the world.
 
-Queste due sono anche le prime a usare **due forme di ritorno nuove** del
-generatore — una lista e più valori. Prima di M8 `core.*` era «scalari dentro,
-uno scalare fuori», e l'alternativa era scriverle come cinque chiamate
-(`player_count`, `player_at`, `player_x/y/z`) dove ne bastano due.
+These two are also the first to use **two new return shapes** of the generator -- a list and
+several values. Before M8 `core.*` was "scalars in, one scalar out", and the alternative was writing
+them as five calls (`player_count`, `player_at`, `player_x/y/z`) where two do.
 
-`take_item`/`give_item` sono **la borsa di un giocatore**, per nome e non per id
-per la stessa ragione di `meta_*`. Tutt'e due restituiscono **quanti se ne sono
-mossi davvero**, che è l'unica risposta onesta: una borsa può non avere quello
-che si chiede, e può essere piena. Quello che non entra con `give_item` **non
-viene lasciato cadere e non si perde**: non gli succede niente, e decide il mod —
-`core.drop_item` lo mette per terra dove finisce la pila di un blocco rotto, e
-non fare niente lascia al giocatore il compito di fare spazio. Un motore che lo
-buttasse deciderebbe per tutti i mod insieme. Chi le usa viene avvisato: la borsa
-gli viene rimandata al tick dopo, così non continua a essere disegnato con in
-mano quello che un mod gli ha tolto.
+`take_item`/`give_item` are **a player's bag**, by name and not by id for the same reason as
+`meta_*`. Both return **how many actually moved**, which is the only honest answer: a bag may not
+have what is asked, and it may be full. What does not fit with `give_item` **is not dropped and not
+lost**: nothing happens to it, and the mod decides -- `core.drop_item` puts it on the ground where a
+broken block's stack lands, and doing nothing leaves it to the player to make room. An engine that
+threw it away would decide for every mod at once. The player is told: the bag is sent to them again
+the next tick, so they are not drawn holding what a mod took away.
 
-`find_nodes` sono **le celle che un mod non ha piazzato**: l'equivalente di un LBM
-dell'engine di partenza. Un mod che ha messo giù i propri blocchi poteva anche solo ricordarsi
-dove; questo serve per quelli che ha messo giù un *giocatore*, o il mapgen. Triple
-piatte e non una tabella per cella, che sarebbe un'allocazione per cella
-sull'unica chiamata che si fa su tutta una regione: `#trovati // 3` è quante sono.
+`find_nodes` is **the cells a mod did not place**: the equivalent of the starting engine's LBM. A mod
+that put down its own blocks could just remember where; this is for the ones a *player* put down,
+or the mapgen. Flat triples and not a table per cell, which would be an allocation per cell on the
+one call made over a whole region: `#found // 3` is how many there are.
 
-Due limiti, dichiarati e non nascosti. Tornano al massimo **512 posizioni**,
-quindi una ricerca che ne restituisce esattamente 512 probabilmente ne ha trovate
-di più e va rifatta su una scatola più piccola. E una scatola di più di **un
-milione di celle** viene **rifiutata**: la ricerca gira dentro il tick, e il
-budget di interrupt che ferma un mod impazzito conta i safepoint nella VM, non il
-tempo che il motore spende per conto del mod. Anche un **nome che nessuno ha
-registrato** viene rifiutato invece di rispondere «non ce ne sono»: un refuso che
-risponde zero è un mod che non fa niente e una segnalazione che dice che la
-ricerca è rotta. Tutt'e due i rifiuti tornano una **lista vuota** — in una lista
-non c'è posto per una frase — e la ragione va nel log.
+Two limits, declared and not hidden. At most **512 positions** come back, so a search returning
+exactly 512 probably found more and should be redone on a smaller box. And a box of more than **a
+million cells** is **refused**: the search runs inside the tick, and the interrupt budget that stops
+a runaway mod counts safepoints in the VM, not the time the engine spends on the mod's behalf. A
+**name nobody registered** is refused too instead of answering "there are none": a typo that
+answers zero is a mod that does nothing and a report saying the search is broken. Both refusals
+return an **empty list** -- a list has no room for a sentence -- and the reason goes in the log.
 
-### Entità che il mod possiede: `core.ecs`
+### Entities the mod owns: `core.ecs`
 
 ```lua
-core.ecs.component("torretta:pallino", { "vx", "vy", "vz", "eta" })
-core.ecs.phase("torretta:moto", 100)
-core.ecs.phase("torretta:colpo", 200)
+core.ecs.component("turret:pellet", { "vx", "vy", "vz", "age" })
+core.ecs.phase("turret:motion", 100)
+core.ecs.phase("turret:impact", 200)
 
-core.ecs.system("torretta:vola", "torretta:moto", "torretta:pallino", function(b)
+core.ecs.system("turret:fly", "turret:motion", "turret:pellet", function(b)
     for i = 1, b.n do
         b.x[i] += b.vx[i] * b.dt
-        b.eta[i] += b.dt
+        b.age[i] += b.dt
     end
 end)
 
-local e = core.ecs.spawn("torretta:pallino", 32.5, 22.0, 32.5)
+local e = core.ecs.spawn("turret:pellet", 32.5, 22.0, 32.5)
 core.ecs.set(e, "vx", 0.4)
 ```
 
-Il batch `b` che arriva a un sistema ha `b.n` (quante entità), `b.dt`, `b.tick`,
-`b.id` e una **colonna per campo**: `b.x`, `b.y`, `b.z` e i campi del componente.
-Sono array, si indicizzano da 1, e **quello che ci si scrive dentro viene
-riletto**: un sistema che ha mosso qualcosa l'ha mossa.
+The batch `b` a system receives has `b.n` (how many entities), `b.dt`, `b.tick`, `b.id` and **a
+column per field**: `b.x`, `b.y`, `b.z` and the component's fields. They are arrays, indexed from
+1, and **what is written into them is read back**: a system that moved something has moved it.
 
-Tre cose che questo fa e una tabella Lua scorsa in `on_step` no:
+Three things this does and a Lua table walked in `on_step` does not:
 
-- **sono le entità del motore.** Un pallino è un'entità nel mondo dove stanno i
-  mob e le pile per terra. Un secondo magazzino sarebbe due spazi di id per una
-  cosa sola.
-- **una chiamata per molte entità.** 512 entità, una chiamata. Una chiamata per
-  entità spende più tempo ad attraversare il confine che dentro.
-- **fasi ordinate da un numero.** Due mod che non si sono mai visti girano in un
-  ordine dichiarato invece che nell'ordine in cui si sono caricati. I numeri si
-  lasciano larghi apposta: chi vuole girare in mezzo a due non deve chiedere a
-  nessuno di rinumerare.
+- **they are the engine's entities.** A pellet is an entity in the world where mobs and stacks on
+  the ground live. A second store would be two id spaces for one thing.
+- **one call for many entities.** 512 entities, one call. A call per entity spends more time
+  crossing the boundary than inside.
+- **phases ordered by a number.** Two mods that have never met run in a declared order instead of
+  the order they loaded in. Leave the numbers wide on purpose: whoever wants to run between two
+  must not have to ask anyone to renumber.
 
-Limiti, dichiarati: un sistema nomina **un** componente e riceve chi ce l'ha —
-non c'è join fra due, e chi ne vuole un secondo lo legge per id, che è una
-chiamata per entità e restituisce esattamente quello che il batch serviva a
-evitare. I campi sono **numeri**; le stringhe stanno su una cella (`meta_set`) o
-dentro il mod. Un batch è al massimo **4096** entità, quindi un mod che ne ha di
-più riceve più chiamate. E le entità vivono nel mondo che possiede la tabella
-delle sessioni: un server offline (`--ticks` senza `--listen`) non ne ha.
+Limits, declared: a system names **one** component and gets whoever has it -- there is no join
+between two, and whoever wants a second reads it by id, which is a call per entity and gives back
+exactly what the batch was there to avoid. Fields are **numbers**; strings live on a cell
+(`meta_set`) or inside the mod. A batch is at most **4096** entities, so a mod with more gets more
+calls. And entities live in the world that owns the session table: an offline server (`--ticks`
+without `--listen`) has none.
 
-Una fase dichiarata due volte con **due numeri diversi** è un errore che nomina
-tutt'e due i mod: tenere il primo in silenzio metterebbe uno dei due in un ordine
-che non ha chiesto senza dirglielo mai.
+A phase declared twice with **two different numbers** is an error naming both mods: keeping the
+first silently would put one of the two in an order it did not ask for without ever telling it.
 
-### Un canale per mod: `core.net`
+### A channel per mod: `core.net`
 
 ```lua
-local canale = core.net.open()          -- mentre il mod si carica, non dopo
+local channel = core.net.open()         -- while the mod loads, not after
 core.event.on("core:net_message", function(ev)
-    core.net.send(ev.player, `ricevuto: {ev.text}`)
+    core.net.send(ev.player, `received: {ev.text}`)
 end)
 ```
 
-Il messaggio **non porta il nome del mod**: il nome è il **canale**, che è quello
-che l'handshake ha distribuito. Un nome nel payload sarebbe una seconda risposta
-a «di chi è questo».
+The message **does not carry the mod's name**: the name is the **channel**, which is what the
+handshake handed out. A name in the payload would be a second answer to "whose is this".
 
-Chiesto al **caricamento**, perché i numeri escono nel welcome: un mod che
-chiedesse dopo il primo client collegato avrebbe un numero che a quel client non è
-mai stato detto, e `core.net.open` in quel caso non risponde niente e lo scrive nel
-log. Un messaggio è una stringa di al massimo **512 byte**.
+Asked for at **load**, because the numbers go out in the welcome: a mod asking after the first
+client connected would have a number that client was never told, and `core.net.open` in that case
+answers nothing and writes it in the log. A message is a string of at most **512 bytes**.
 
-Dal lato client il numero è **del server**: `core.net.open` non risponde niente
-finché non c'è una connessione, e un mod client non ne ha bisogno — manda con
-`core.net.send` e sente con `core:net_message`. Il `player` è ignorato da quella
-parte, perché un client parla al server e basta.
+On the client side the number is **the server's**: `core.net.open` answers nothing until there is a
+connection, and a client mod does not need it -- it sends with `core.net.send` and hears with
+`core:net_message`. `player` is ignored on that side, because a client talks to the server and
+that is all.
 
-### Disegnare: `core.render`
+### Drawing: `core.render`
 
 ```lua
-core.render.pass("ologramma:luce", 100, function()
+core.render.pass("hologram:light", 100, function()
     core.render.box(34.5, 22.0, 32.5, 1.5, 1.5, 1.5, 255, 0, 255, 255)
 end)
 ```
 
-Un **pass** non è l'evento `core:tick`: un handler di tick gira *fra* i frame,
-senza camera montata e senza niente in cui disegnare, e gira una volta per frame —
-mentre un portale disegna questo mondo di nuovo da un'altra camera. Un ologramma
-disegnato da un tick sarebbe assente attraverso ogni apertura. Un pass gira dentro
-il render, **una volta per camera**, e disegnare è l'unica cosa che può fare:
-`core.render.box` fuori da un pass è rifiutata e lo dice.
+A **pass** is not the `core:tick` event: a tick handler runs *between* frames, with no camera set
+and nothing to draw into, and it runs once a frame -- while a portal draws this world again from
+another camera. A hologram drawn from a tick would be missing through every opening. A pass runs
+inside the render, **once per camera**, and drawing is the only thing it can do: `core.render.box`
+outside a pass is refused and says so.
 
-`core.render.model(id, x, y, z, yaw, scala)` disegna nello stesso punto del
-frame un modello del mondo (un id di `core.model_id`), fermo nella sua posa di
-riposo, con i piedi in `x, y, z` e girato di `yaw` attorno alla verticale (e prima,
-se dati, inclinato di `pitch` attorno alla sua x e di `roll` attorno alla sua z:
-una carta tenuta in mano, `mods/cards`): una
-cosa che solo questa macchina sa dove sta, come il cubo in mano a un giocatore
-di `games/chambers` (che il server non gli manda, `core.mob_unseen`). Restituisce
-false per un modello che questo client non ha.
+`core.render.model(id, x, y, z, yaw, scale)` draws at the same point of the frame a model of the
+world (an id from `core.model_id`), still in its rest pose, feet at `x, y, z` and turned by `yaw`
+about the vertical (and first, if given, tilted by `pitch` about its x and `roll` about its z: a
+card held in hand, `mods/cards`): something only this machine knows the place of, like the cube in
+a player's hands in `games/chambers` (which the server does not send them, `core.mob_unseen`).
+Returns false for a model this client does not have.
 
-`core.render.fx(tipo, x, y, z, misura, r, g, b, a, t)` disegna un **effetto di
-luce** con gli shader del motore (`src/client/render/fx_render.cpp`): si somma a
-quello che c'è dietro, i muri lo coprono e non copre gli altri effetti. `tipo` è
-`"glow"` (un bagliore), `"flame"` (una fiamma che sale), `"ring"` (un'onda d'urto
-stesa a terra), `"frost"` (schegge di ghiaccio a terra), `"bolt"` (un fulmine da
-`x, y, z` a `x2, y2, z2`), `"slash"` (l'arco di un fendente), `"sparks"`
-(scintille che volano via), `"vortex"` (un vortice) o `"jet"` (una fiamma che
-esce da `x, y, z` verso `x2, y2, z2`, il nitro dei kart). `misura` è il raggio in
-nodi (per il fulmine la sua larghezza), `t` quanto della sua vita è passato, da 0
-a 1: lo shader cresce, spazza e sfuma con quello, e il mod conta solo il tempo.
-Restituisce false per un tipo che non c'è.
+`core.render.fx(kind, x, y, z, size, r, g, b, a, t)` draws a **light effect** with the engine's
+shaders (`src/client/render/fx_render.cpp`): it adds to what is behind, walls cover it and it does
+not cover other effects. `kind` is `"glow"`, `"flame"` (a rising flame), `"ring"` (a shock wave
+laid on the ground), `"frost"` (ice shards on the ground), `"bolt"` (lightning from `x, y, z` to
+`x2, y2, z2`), `"slash"` (a sword stroke's arc), `"sparks"` (sparks flying off), `"vortex"` or
+`"jet"` (a flame leaving `x, y, z` towards `x2, y2, z2`, the karts' nitro). `size` is the radius in
+nodes (for the bolt its width), `t` how much of its life has passed, 0 to 1: the shader grows,
+sweeps and fades with it, and the mod only counts time. Returns false for a kind that does not
+exist.
 
-Il numero ordina i pass **fra di loro**, non contro il disegno del motore: c'è un
-punto solo nel frame dove i mod disegnano, dopo il mondo opaco e i corpi e prima
-delle aperture.
+The number orders passes **among themselves**, not against the engine's drawing: there is a single
+point in the frame where mods draw, after the opaque world and the bodies and before the openings.
 
-Solo su un client. Su un server `core.render.pass` dice «questo processo non
-disegna» invece di fallire genericamente.
+Client only. On a server `core.render.pass` says "this process does not draw" instead of failing
+generically.
 
-Quello che **non c'è ancora**: un `core.ecs` che sappia unire due componenti.
-Le entità di un mod visibili agli altri giocatori ci sono: `core.ecs.visible`,
-sotto.
+What **is not there yet**: a `core.ecs` that can join two components. A mod's entities visible to
+other players are there: `core.ecs.visible`, below.
 
-### Un blocco che vuole un attrezzo
+### A block that wants a tool
 
-`register_node(..., dig_level = 2)` dichiara un blocco che **non esce** se in
-mano non c'è almeno un attrezzo di livello 2. Non «esce più lentamente»: non
-esce, per quanto si tenga premuto. `register_item(..., dig_level = 3)` dichiara
-l'attrezzo dall'altra parte.
+`register_node(..., dig_level = 2)` declares a block that **does not come out** unless at least a
+level-2 tool is in hand. Not "comes out more slowly": it does not come out, however long you hold.
+`register_item(..., dig_level = 3)` declares the tool on the other side.
 
 ```lua
-local DURO   = core.register_node("mymod:duro", 90, 90, 110, true, 0, false, 2)
-local PUNTA  = core.register_item("mymod:punta", 1, "", 3)
+local HARD  = core.register_node("mymod:hard", 90, 90, 110, true, 0, false, 2)
+local POINT = core.register_item("mymod:point", 1, "", 3)
 ```
 
-Zero è la **mano nuda**, ed è quello che vale per ogni blocco e ogni oggetto che
-non dice niente — cioè tutto quello che esisteva prima che i livelli esistessero.
+Zero is the **bare hand**, and it is what holds for every block and item that says nothing -- that
+is, everything that existed before levels did.
 
-È un **livello e non un tipo**: un'ascia di livello 2 scava la pietra come un
-piccone di livello 2. I gruppi sono un'altra cosa e più grande; il livello è la
-metà che fa una progressione.
+It is a **level, not a kind**: a level-2 axe digs stone like a level-2 pickaxe. Groups are another,
+bigger thing; the level is the half that makes a progression.
 
-Ed è separato da `breakable`, che è un no diverso: il pavimento del mondo non è
-un blocco molto duro, è il pavimento, e non esce per nessun attrezzo che possa
-mai esistere. Per questo il rifiuto per l'attrezzo dice cosa serve — «that needs
-a level 2 tool, and this one is level 0» — e quello del pavimento no: mandare
-qualcuno a cercare un attrezzo migliore per la roccia di fondo è mandarlo a
-cercare una cosa che non c'è.
+And it is separate from `breakable`, which is a different no: the world's floor is not a very hard
+block, it is the floor, and it does not come out for any tool that could ever exist. That is why the
+refusal for the tool says what is needed -- "that needs a level 2 tool, and this one is level 0" --
+and the floor's does not: sending someone to look for a better tool for bedrock is sending them to
+look for something that does not exist.
 
-### Un blocco che ci mette del tempo
+### A block that takes time
 
-`register_node(..., dig_level, hardness)` dice quanti **secondi** ci vuole a
-mano nuda; `register_item(..., dig_level, dig_speed)` dice quante volte più
-veloce scava un attrezzo. Zero secondi è istantaneo, ed è quello che vale per
-ogni blocco che non dice niente.
+`register_node(..., dig_level, hardness)` says how many **seconds** it takes by bare hand;
+`register_item(..., dig_level, dig_speed)` says how many times faster a tool digs. Zero seconds is
+instant, and it is what holds for every block that says nothing.
 
 ```lua
-core.register_node("mymod:granito", 120, 120, 130, true, 0, false, 2, 4.0)
-core.register_item("mymod:punta", 1, "", 3, 4.0)   -- quattro volte più veloce
+core.register_node("mymod:granite", 120, 120, 130, true, 0, false, 2, 4.0)
+core.register_item("mymod:point", 1, "", 3, 4.0)   -- four times faster
 ```
 
-Chi scava tiene premuto. **L'orologio è del server**: il primo colpo su una
-cella avvia lo scavo, quello dopo i secondi la rompe, e in mezzo non succede
-niente — due messaggi per uno scavo, non sessanta, e un client che si affretta
-manda il secondo colpo troppo presto e non ottiene nulla. Spostare la mira o
-lasciare il pulsante ricomincia da capo, e così fa un blocco che cambia sotto.
+Whoever digs holds the button. **The clock is the server's**: the first hit on a cell starts the
+dig, the one after the seconds breaks it, and nothing happens in between -- two messages for a dig,
+not sixty, and a client that hurries sends the second hit too early and gets nothing. Moving the aim
+or letting go starts again from scratch, and so does a block changing underneath.
 
-Sotto il mirino compare una barra mentre lo scavo va. A zero non si disegna
-niente, quindi un blocco istantaneo non la fa mai comparire.
+A bar appears under the crosshair while the dig goes. At zero nothing is drawn, so an instant block
+never makes it appear.
 
-**I blocchi del motore dichiarano i loro secondi**: la pietra 1,5, il legno del
-telaio 0,9, il vetro 0,35, e la terra, la sabbia e la neve sotto il mezzo
-secondo. Nessuno di loro chiede un attrezzo — `dig_level` resta 0 su tutti,
-perché gli attrezzi sono contenuto e stanno in un mod, e un blocco del motore
-che ne pretendesse uno sarebbe un blocco che nessuno può scavare con i mod
-spenti. La roccia di fondo non ha durezza affatto: una durata non è un rifiuto,
-e un pavimento reso impassabile dall'essere molto lento è un pavimento che
-qualcuno buca in un pomeriggio.
+**The engine's blocks declare their seconds**: stone 1.5, frame wood 0.9, glass 0.35, and dirt,
+sand and snow under half a second. None of them asks for a tool -- `dig_level` stays 0 on all,
+because tools are content and live in a mod, and an engine block that demanded one would be a block
+nobody can dig with mods off. Bedrock has no hardness at all: a duration is not a refusal, and a
+floor made impassable by being very slow is a floor someone drills through in an afternoon.
 
-### Un attrezzo è per un tipo di lavoro
+### A tool is for one kind of work
 
-`register_node(..., material)` dice di cosa il blocco è **fatto**;
-`register_item(..., digs)` dice per cosa l'attrezzo **è**. Livello e velocità
-valgono contro quel materiale e sono quelli di una mano nuda contro tutto il
-resto — ed è tutto qui quello che rende un'ascia diversa da un piccone.
+`register_node(..., material)` says what the block is **made of**; `register_item(..., digs)` says
+what the tool **is for**. Level and speed hold against that material and are a bare hand's against
+everything else -- and that is all that makes an axe different from a pickaxe.
 
 ```lua
-core.register_node("mymod:granito", 120, 120, 130, true, 0, false, 1, 4.0, "stone")
-core.register_item("mymod:piccone", 1, "", 1, 5.0, "stone")
-core.register_item("mymod:pala",    1, "", 1, 4.0, "soil")
+core.register_node("mymod:granite", 120, 120, 130, true, 0, false, 1, 4.0, "stone")
+core.register_item("mymod:pickaxe", 1, "", 1, 5.0, "stone")
+core.register_item("mymod:shovel",  1, "", 1, 4.0, "soil")
 ```
 
-La pala qui sopra è **migliore del piccone in ogni numero che ha** — stesso
-livello, e attraverso la terra va quattro volte più veloce di una mano — e
-davanti al granito non vale niente: contro `stone` è livello 0 e velocità 1. Un
-livello dice quanto è buono un attrezzo, un materiale dice **in cosa**, e senza
-il secondo ogni attrezzo è lo stesso attrezzo con un numero diverso sopra.
+The shovel above is **better than the pickaxe in every number it has** -- same level, and through
+soil it goes four times faster than a hand -- and against granite it is worth nothing: against
+`stone` it is level 0 and speed 1. A level says how good a tool is, a material says **at what**,
+and without the second every tool is the same tool with a different number on it.
 
-`register_item(..., damage)`, dopo `digs`, dice quanti punti toglie un colpo
-dato con quell'oggetto in mano: 0 è quello di un pugno (1). Il colpo porta lo
-slot della hotbar e il numero lo legge il server dalla **sua** tabella, quindi
-un client non può dire di colpire più forte.
+`register_item(..., damage)`, after `digs`, says how many points a blow given with that item in hand
+takes off: 0 is a fist's (1). The blow carries the hotbar slot and the server reads the number from
+**its** table, so a client cannot claim to hit harder.
 
 ```lua
-core.register_item("tools:sword", 1, "", 0, 1.0, "", 4)   -- 4 dei 20 di un corpo
+core.register_item("tools:sword", 1, "", 0, 1.0, "", 4)   -- 4 of a body's 20
 ```
 
-Vuoto da una parte o dall'altra vuol dire «nessuno l'ha detto», e allora la
-regola non si applica: un attrezzo che non nomina un materiale è generale (vale
-il suo livello ovunque) e un blocco che non dice di cosa è fatto si scava con
-qualsiasi attrezzo per quello che vale. Sono i due modi di tacere, ed è quello
-che è ogni blocco e ogni item registrato prima che i materiali esistessero.
+Empty on either side means "nobody said", and then the rule does not apply: a tool that names no
+material is general (its level holds everywhere) and a block that does not say what it is made of is
+dug by any tool for what it is worth. Those are the two ways of keeping quiet, and it is what every
+block and item registered before materials existed is.
 
-Il rifiuto lo dice: «that needs a level 1 tool for stone, and this one is level 0
-against stone». Il numero da solo suonerebbe come una bugia a chi ha in mano
-un'ascia di livello 3: l'ascia **è** livello 3, quello che non è è un attrezzo
-per questo.
+The refusal says so: "that needs a level 1 tool for stone, and this one is level 0 against stone".
+The number alone would sound like a lie to someone holding a level-3 axe: the axe **is** level 3,
+what it is not is a tool for this.
 
-I blocchi del motore usano quattro nomi — `stone`, `soil`, `wood`, `glass` — e
-non uno per blocco: un materiale per ogni blocco è una tabella dove ogni
-attrezzo è il suo attrezzo, cioè un elenco e non una regola.
+The engine's blocks use four names -- `stone`, `soil`, `wood`, `glass` -- and not one per block: a
+material for every block is a table where every tool is its own tool, a list and not a rule.
 
-### Un blocco che non è un cubo
+### A block that is not a cube
 
-`core.node_box(id, x0, y0, z0, x1, y1, z1, pezzo)` aggiunge una scatola alla
-forma di un blocco. Chi ne dichiara almeno una **smette di essere un cubo**: il
-mesher lascia stare la sua cella e le scatole le disegna un passo a parte.
+`core.node_box(id, x0, y0, z0, x1, y1, z1, piece)` adds a box to a block's shape. One that declares
+at least one **stops being a cube**: the mesher leaves its cell alone and the boxes are drawn by a
+separate pass.
 
 ```lua
 local CHEST = core.register_node("chest:box", 150, 110, 60, true, 4, true)
@@ -941,1370 +860,1194 @@ core.node_box(CHEST, 0.00, 0.00, 0.00, 1.00, 0.62, 1.00)
 core.node_box(CHEST, 0.03, 0.62, 0.03, 0.97, 0.88, 0.97, "lid")
 ```
 
-Le coordinate sono nello **spazio del nodo**: 0 è una parete della cella, 1
-quella opposta.
+The coordinates are in **node space**: 0 is one wall of the cell, 1 the opposite one.
 
-Le scatole **sono** il blocco, non un suo disegno: un corpo è fermato da quelle e
-non dalla cella, un raggio trova quelle e attraversa il resto della cella, e il
-contorno che il giocatore vede è disegnato attorno a quelle. Un blocco alto mezza
-cella si calpesta a mezzo nodo da terra e nell'altra metà della sua cella ci si
-cammina. `mods/steps` è il pezzo di gioco che lo mette in mano: una lastra e una
-scala.
+The boxes **are** the block, not a drawing of it: a body is stopped by them and not by the cell, a
+ray finds them and goes through the rest of the cell, and the outline the player sees is drawn round
+them. A block half a cell high is walked on half a node off the ground and you walk in the other
+half of its cell. `mods/steps` is the piece of gameplay that puts it in hand: a slab and a stair.
 
-Ci si sale sopra **camminando**, fino a 0.55 di nodo: è quello che rende una
-scala una scala. Più in alto si salta, e un nodo intero si salta sempre -- un
-cubo resta un muro.
+You get on it **by walking**, up to 0.55 of a node: that is what makes a stair a stair. Higher you
+jump, and a whole node is always a jump -- a cube stays a wall.
 
-La forma **viaggia**: dal protocollo 27 il welcome la porta accanto al nome del
-blocco, quindi anche un client che il tuo mod non ce l'ha vede le scatole giuste
-e ci cammina sopra come chi ce l'ha. Quella del server vince sempre, anche su un
-nome che il client conosce già.
+The shape **travels**: since protocol 27 the welcome carries it beside the block's name, so even a
+client without your mod sees the right boxes and walks on them like one that has it. The server's
+always wins, even on a name the client already knows.
 
-### Un pezzo di pista: `core.node_piece`
+### A piece of track: `core.node_piece`
 
-Pezzi di strada come nei giochi di corse acrobatiche: una strada liscia su una griglia di 8 nodi,
-che si aggancia alla griglia quando la si piazza e si unisce al pezzo accanto
-dove i bordi coincidono. Il blocco è l'angolo del pezzo; le altre celle sono un
-blocco "fill" (scatole sotto la strada, su cui si cammina, mai disegnate).
+Pieces of road as in stunt racing games: a smooth road on an 8-node grid, which snaps to the grid
+when placed and joins the piece beside where the edges match. The block is the piece's corner; the
+other cells are a "fill" block (boxes under the road, walked on, never drawn).
 
 ```lua
-local FILL = core.register_node("pista:fill", 60, 62, 70)
-local CURVA = core.register_node("pista:curva_sopraelevata", 64, 66, 76, true, 0, "upright")
--- plan 2 = curva a destra, raggio 2 quadrati, sponda sinistra 4 nodi più alta
-core.node_piece(CURVA, FILL, 2, 2, 0, 0, 0, 4, 4, true)
-core.place_piece(96, 20, 88, CURVA, 2)   -- entrata nel quadrato di (96, 88), verso +z
+local FILL = core.register_node("track:fill", 60, 62, 70)
+local BEND = core.register_node("track:banked_bend", 64, 66, 76, true, 0, "upright")
+-- plan 2 = right bend, radius 2 squares, left bank 4 nodes higher
+core.node_piece(BEND, FILL, 2, 2, 0, 0, 0, 4, 4, true)
+core.place_piece(96, 20, 88, BEND, 2)   -- entry in the square of (96, 88), towards +z
 ```
 
-Il kart corre sulla strada vera (una mesh uguale su client e server); un piede,
-un raggio e i controlli del server vedono le celle fill, sempre sotto la strada.
-Scavare una cella qualunque toglie il pezzo intero; mirandolo si vede il contorno di tutto il pezzo, e con un pezzo in mano il pezzo stesso, trasparente, dove andrà (rosso se andrebbe sopra un altro pezzo o se coprirebbe il giocatore). Un pezzo prende il posto di terreno e blocchi che trova nelle sue celle e svuota le 3 celle sopra la strada; lo ferma solo un altro pezzo di pista; Z e X lo ruotano di un quarto prima di piazzarlo. Nella borsa l'icona di un pezzo è la sua pianta vista dall'alto. `plan` 3 e 4 sono una chicane, a destra e a sinistra. Con `wall = true` (ultimo argomento, solo dritti) bank0 e bank1 sono gradi di rotazione della strada attorno al suo centro: a 90 diventa un muro, e un kart ci resta sopra finché va veloce (da 10 m/s, del tutto da 16). `plan` 5 è una curva a sinistra; `width = 2` (ultimo argomento) fa la strada larga due quadrati, e un pezzo largo si piazza dal quadrato della sua corsia destra. `plan` 6 e 7 sono un giro della morte (stretto o largo, 2 o 3 quadrati, senza cordoli): la strada sale, passa sopra capovolta e riscende sulla corsia accanto, a sinistra (6) o a destra (7); il kart ci resta attaccato come su un muro, e lento cade dalla cima. Srotolato, un giro è una chicane: lo spostamento di una corsia si sterza. `plan` 8 e 9 (solo `width = 2`) restringono la strada larga alla sua corsia destra o sinistra in due quadrati; piazzati al contrario la allargano. Una discesa è una salita
-piazzata al contrario. Esempio completo: `games/track/mods/track_core` (tutti i pezzi
-e i circuiti che ci costruisce, `/pezzi` per averli nella borsa, con gli strumenti linea di partenza e checkpoint che `track_game` legge).
+The kart runs on the real road (a mesh, the same on client and server); a foot, a ray and the
+server's checks see the fill cells, always under the road. Digging any cell takes the whole piece
+away; aiming at it shows the outline of the whole piece, and with a piece in hand the piece itself,
+see-through, where it will go (red if it would go over another piece or cover the player). A piece
+takes the place of terrain and blocks it finds in its cells and empties the 3 cells over the road;
+only another piece of track stops it; Z and X turn it a quarter before placing. In the bag a piece's
+icon is its plan seen from above. `plan` 3 and 4 are a chicane, right and left. With `wall = true`
+(last argument, straights only) bank0 and bank1 are degrees of roll of the road round its centre: at
+90 it becomes a wall, and a kart stays on it as long as it goes fast (from 10 m/s, fully from 16).
+`plan` 5 is a left bend; `width = 2` (last argument) makes the road two squares wide, and a wide
+piece is placed from the square of its right lane. `plan` 6 and 7 are a loop (tight or wide, 2 or 3
+squares, no kerbs): the road climbs, passes over upside down and comes down on the lane beside, to
+the left (6) or right (7); the kart sticks to it as on a wall, and slow it falls from the top.
+Unrolled, a loop is a chicane: the shift of a lane is steered. `plan` 8 and 9 (`width = 2` only)
+narrow the wide road to its right or left lane in two squares; placed reversed they widen it. A
+descent is a climb placed reversed. Complete example: `games/track/mods/track_core` (every piece and
+the circuits it builds, `/pezzi` to have them in the bag, with the start line and checkpoint tools
+`track_game` reads).
 
-Sulla pista (`games/track`) `/pezzi` dà per primi tre strumenti, letti da
-`track_game`:
+On the track (`games/track`) `/pezzi` first gives three tools, read by `track_game`:
 
-- **start line**: tasto destro su una strada o un pezzo mette una linea di
-  partenza di traverso, larga quanto la strada (12 per lato al massimo),
-  attraversata allontanandosi da chi ha cliccato; trave bianca sopra. Una nuova
-  linea è una pista nuova con la sua classifica (`customN`). Cliccata di nuovo,
-  la toglie con tutta la pista.
-- **checkpoint**: il checkpoint successivo, trave gialla; cliccato di nuovo, lo
-  toglie.
-- **offroad**: due click sono due angoli opposti di un'area (256 per lato al
-  massimo) dove durante un giro il kart può stare su qualunque cosa; un paletto
-  luminoso a ogni angolo, un click dentro la toglie.
+- **start line**: right click on a road or a piece puts a start line across, as wide as the road (12
+  a side at most), crossed going away from whoever clicked; white beam overhead. A new line is a new
+  track with its own board (`customN`). Clicked again, it removes it with the whole track.
+- **checkpoint**: the next checkpoint, yellow beam; clicked again, removes it.
+- **offroad**: two clicks are two opposite corners of an area (256 a side at most) where during a
+  lap the kart may be on anything; a glowing post at each corner, a click inside removes it.
 
-E l'**editor** (`track_core:editor`, di `track_core`): tasto destro su un pezzo
-segue la sua pista all'indietro fino all'inizio e in avanti fino al capo aperto,
-e apre un pannello con i pezzi che ci si attaccano -- stessa larghezza, stessa
-pendenza e stessa sopraelevazione all'ingresso di quelle che il capo lascia (la
-metà che manca a una salita, l'uscita da una curva sopraelevata...), anche
-piazzati al contrario ("rev"). Un click lo mette giù lì (`core.place_piece`) e
-il pannello si rifà dal nuovo capo; **undo** toglie l'ultimo messo dal pannello
-(`core.take_piece`); **close circuit** cerca (A* sulle caselle della griglia,
-direzione e quota) i pezzi che dal capo aperto tornano all'inizio -- dritti,
-curve, chicane e `rise` nei due versi, mai
-dove c'è qualcosa, prima in piano e solo se non basta con le salite, e con gli
-adattatori se le due estremità hanno larghezze diverse -- e li mette giù. Tenuto nella borsa, ogni pezzo messo a mano
-apre il pannello da sé. **B** con l'editor in mano (o il pulsante **pick from afar** del pannello, che col cursore libero non sente i tasti) sceglie **da lontano**,
-senza limiti di distanza: il corpo resta dov'è (`core.fixed_view`), la
-telecamera guarda dal punto in cui si sta l'inizio del pezzo in prova, che è già
-messo giù; A e D lo tolgono e provano il prossimo che si attacca (saltando quelli
-che non entrano), **W** lo tiene e prova il primo dal nuovo capo, S
-toglie l'ultimo tenuto, F chiude il circuito, B esce togliendo quello in prova.
-Al posto della hotbar c'è una griglia con tutti i pezzi (`core.hud.item`): accesi
-quelli che si attaccano al capo, scuri gli altri, in giallo quello in prova; un
-click sinistro su un pezzo lo mette in prova (cliccato di nuovo, nell'altro verso
-se entra in tutti e due), fuori dalla griglia non fa niente.
-I tasti li sente la metà client di `track_game` e li passa a `track_core` con
-l'evento `track_core:pick`; la vista torna con `track_core:pick_view`. A ogni pezzo la pista si ritrova con `core.piece_entry`,
-che dice da dove si entra nel pezzo di una cella qualunque.
+And the **editor** (`track_core:editor`, from `track_core`): right click on a piece follows its
+track backwards to the start and forwards to the open end, and opens a panel with the pieces that
+attach there -- same width, same slope and same bank at the entry as the end leaves (the half a climb
+is missing, the exit from a banked bend...), also placed reversed ("rev"). A click puts it down there
+(`core.place_piece`) and the panel is redone from the new end; **undo** removes the last one placed
+from the panel (`core.take_piece`); **close circuit** searches (A* on the grid squares, direction and
+height) the pieces that lead from the open end back to the start -- straights, bends, chicanes and
+`rise` both ways, never where something is, flat first and with climbs only if that is not enough,
+and with adapters if the two ends have different widths -- and puts them down. Held in the bag, every
+piece placed by hand opens the panel by itself. **B** with the editor in hand (or the panel's **pick
+from afar** button, since with the free cursor it does not hear keys) picks **from afar**, with no
+distance limit: the body stays where it is (`core.fixed_view`), the camera looks from where the start
+of the piece on trial is, already put down; A and D remove it and try the next one that attaches
+(skipping those that do not fit), **W** keeps it and tries the first from the new end, S removes the
+last kept, F closes the circuit, B leaves removing the one on trial. In place of the hotbar there is a
+grid with every piece (`core.hud.item`): lit those that attach to the end, dark the others, in yellow
+the one on trial; a left click on a piece puts it on trial (clicked again, the other way round if it
+fits both ways), outside the grid it does nothing. The keys are heard by `track_game`'s client half
+and passed to `track_core` with the `track_core:pick` event; the view comes back with
+`track_core:pick_view`. At every piece the track is found again with `core.piece_entry`, which says
+from where you enter the piece of any cell.
 
-Un corpo che guida (`core.body_drive`) ha il nitro: Shift con l'acceleratore lo spinge fino a 1.35 volte la sua `sprint`, consumando in 3 s una riserva che si ricarica in 20; il motore lo calcola uguale su client e server.
+A driving body (`core.body_drive`) has nitro: Shift with the throttle pushes it up to 1.35 times its
+`sprint`, using up in 3 s a reserve that recharges in 20; the engine computes it the same on client
+and server.
 
-Fuori da un giro il kart va dove vuole; durante un giro, fuori da strada, pezzi,
-paddock e aree per mezzo secondo, è rimesso sulla strada o sul pezzo piano più
-vicino. Il paddock e gli accessi alle piste sono terra battuta
-(`track_core:paddock`), consentita in giro come la strada. Linee e aree stanno
-nel salvataggio del mod (`core.storage_set`).
+Outside a lap the kart goes where it likes; during a lap, off road, pieces, paddock and areas for
+half a second, it is put back on the nearest road or flat piece. The paddock and the tracks' accesses
+are packed dirt (`track_core:paddock`), allowed in a lap like the road. Lines and areas are in the
+mod's save (`core.storage_set`).
 
-### Un blocco disegnato come modello
+### A block drawn as a model
 
-`core.node_model(id, modello)` fa disegnare il blocco come un **glTF** invece che
-come un cubo o come scatole: è lo stesso modello che indossa un corpo, dichiarato
-con `core.register_model`.
+`core.node_model(id, model)` has the block drawn as a **glTF** instead of a cube or boxes: it is the
+same model a body wears, declared with `core.register_model`.
 
 ```lua
 local M = core.register_model("steps:marker", "marker.gltf")
 local B = core.register_node("steps:marker", 200, 170, 90, true, 0, "upright")
 core.node_model(B, M)
-core.node_box(B, 0.15, 0.0, 0.15, 0.85, 0.6, 0.85)   -- dove sta il corpo
+core.node_box(B, 0.15, 0.0, 0.15, 0.85, 0.6, 0.85)   -- where the body stands
 ```
 
-**Il modello è la figura, le scatole sono il blocco.** Nessuno chiede a una mesh
-dove può stare un corpo o cosa ha trovato un raggio: una mesh sono mille
-triangoli, una collisione sono quattro scatole. Un blocco che vuole una forma
-sotto il modello dichiara tutte e due, come `collision_box` accanto a
-`drawtype = mesh` nell'engine di partenza.
+**The model is the figure, the boxes are the block.** Nobody asks a mesh where a body can stand or
+what a ray found: a mesh is a thousand triangles, a collision is four boxes. A block that wants a
+shape under the model declares both, like `collision_box` beside `drawtype = mesh` in the starting
+engine.
 
-Il modello viene ruotato attorno al **centro della cella** dal byte di facing,
-come una scatola, quindi un modello disegnato dentro il cubo unitario con i piedi
-a 0 sta dove sta il blocco e guarda dalla parte in cui è stato messo. Un client
-che il file non ce l'ha disegna le scatole, e se non ce ne sono non disegna
-niente: mai un cubo, perché un cubo è l'unica cosa che quel blocco non è.
+The model is turned about the **cell's centre** by the facing byte, like a box, so a model drawn
+inside the unit cube with its feet at 0 stands where the block is and faces the way it was placed. A
+client without the file draws the boxes, and if there are none draws nothing: never a cube, because a
+cube is the one thing that block is not.
 
-Limiti dichiarati: un blocco-modello prende la luce direzionale dei corpi e non
-quella della sua cella, non si anima e non viene tagliato da un portale.
+Declared limits: a model block takes the bodies' directional light and not its cell's, it is not
+animated and it is not cut by a portal.
 
-Quello che una forma **non** cambia: un oggetto caduto si posa sulla cella e non
-sulla scatola. E quello che **non** viaggia con lei: se il blocco è solido, la
-sua durezza, il suo livello e il suo materiale restano del server -- chi non ha
-il mod li scopre quando il server rifiuta. TODO.md OPEN-43.
+What a shape does **not** change: a dropped item rests on the cell and not on the box. And what does
+**not** travel with it: if the block is solid, its hardness, level and material stay the server's --
+whoever lacks the mod finds them out when the server refuses. TODO.md OPEN-43.
 
-Il nome del pezzo non è decorativo: **una scatola con un nome si muove**. Ruota
-verso l'alto attorno al proprio spigolo posteriore inferiore finché qualcuno ha
-quella cella aperta, e torna giù quando l'ultimo che ci guardava dentro chiude.
-Il motore non impara cos'è un coperchio: chiede soltanto se quella scatola un
-nome ce l'ha.
+The piece's name is not decorative: **a box with a name moves**. It turns upwards about its own
+lower back edge while someone has that cell open, and comes back down when the last one looking in
+closes it. The engine does not learn what a lid is: it only asks whether that box has a name.
 
-Chi apre e chi chiude lo decidono i contenitori: `core.container_show` mette la
-cella fra quelle aperte, e uscire dal pannello, allontanarsi troppo o
-disconnettersi la rimette fra quelle chiuse. **È la CELLA a essere aperta, non
-la sessione** — un coperchio che vedesse solo chi ha cliccato non è
-un'animazione, è un effetto locale.
+Containers decide who opens and who closes: `core.container_show` puts the cell among the open ones,
+and leaving the panel, walking too far or disconnecting puts it back among the closed. **It is the
+CELL that is open, not the session** -- a lid only the one who clicked could see is not an
+animation, it is a local effect.
 
-Sul filo viaggia **un bit**, quando cambia: il movimento fra chiuso e aperto lo
-disegna ogni client per conto suo, a un quarto di secondo, al proprio frame
-rate. Un client che entra mentre una cassa è già aperta non lo sa finché quella
-non cambia — scritto in TODO OPEN-32 invece che nascosto.
+**One bit** travels on the wire, when it changes: the movement between closed and open is drawn by
+every client on its own, over a quarter of a second, at its own frame rate. A client entering while a
+chest is already open does not know until it changes -- written in TODO OPEN-32 instead of hidden.
 
-Tre conseguenze, e nessuna è un dettaglio:
+Three consequences, and none is a detail:
 
-- **Smette di nascondere i vicini.** Una scatola che riempie sei decimi della
-  cella non copre niente, quindi il blocco non è più opaco qualunque cosa avesse
-  detto. Una verità sola: il mod che si dimenticasse di spegnere l'opacità si
-  ritroverebbe un buco nel pavimento dietro la cassa.
-- **Il giro gira la FORMA.** Un cubo è sei quadrati sulle pareti della cella, e
-  girarlo può solo voler dire spostare le immagini fra quelle sei; una scatola
-  ha una forma, e gira con lei. La faccia verso cui una scatola guarda dopo il
-  giro è quella di cui porta l'immagine ed è quella che la ombreggia.
-- **Le collisioni restano quelle del cubo.** La forma è come il blocco si vede;
-  la fisica non l'ha saputo. Una cassa alta sei decimi si cammina sopra come un
-  blocco intero.
+- **It stops hiding its neighbours.** A box filling six tenths of the cell covers nothing, so the
+  block is no longer opaque whatever it had said. One truth only: a mod that forgot to turn opacity
+  off would find a hole in the floor behind the chest.
+- **The turn turns the SHAPE.** A cube is six squares on the cell's walls, and turning it can only
+  mean moving the pictures among those six; a box has a shape, and turns with it. The face a box looks
+  towards after the turn is the one whose picture it carries and the one that shades it.
+- **Collisions stay the cube's.** The shape is how the block looks; physics has not been told. A
+  chest six tenths high is walked on like a whole block.
 
-Non entra nella mesh del chunk perché non ci starebbe: lì le posizioni sono
-**byte, un'unità per nodo, 0..32 inclusi**, e gli ottavi vorrebbero 0..256, cioè
-un valore più di quanti ne tenga un byte. Le scatole visibili si raccolgono
-invece in un buffer solo, ricostruito ogni frame e disegnato in una chiamata
-sola, con **lo stesso shader e lo stesso atlante** dei cubi — quindi luce,
-ombreggiatura per faccia e ciclo del giorno sono quelli, e non una seconda
-copia che diverge.
+It does not go into the chunk mesh because it would not fit: there positions are **bytes, one unit a
+node, 0..32 inclusive**, and eighths would want 0..256, one value more than a byte holds. The visible
+boxes are gathered instead into a single buffer, rebuilt every frame and drawn in a single call, with
+**the same shader and the same atlas** as the cubes -- so light, per-face shading and the day cycle
+are those, and not a second copy that drifts.
 
-Su un server, un client che quel mod non ce l'ha vede un **cubo**: la tabella
-dei blocchi sul filo sono nomi, e la forma non viaggia ancora.
+On a server, a client without that mod sees a **cube**: the block table on the wire is names, and
+the shape does not travel yet.
 
-### Un liquido: `core.node_liquid`
+### A liquid: `core.node_liquid`
 
 ```luau
-local ACQUA = core.register_node("laghi:acqua", 52, 104, 178, false)
-core.node_liquid(ACQUA, 150)      -- 0..254: quanto nasconde di quello che c'è dietro
-core.node_liquid(RIVOLO, 150, 3)  -- e quanto è piena la cella, in ottavi (8 = tutta)
+local WATER = core.register_node("lakes:water", 52, 104, 178, false)
+core.node_liquid(WATER, 150)      -- 0..254: how much of what is behind it hides
+core.node_liquid(RIVULET, 150, 3) -- and how full the cell is, in eighths (8 = all)
 ```
 
-Il terzo argomento, `fill`, è **quanto è piena una cella** di quel liquido, da 1 a 8
-ottavi. Viaggia nella tabella dei blocchi (protocollo 40), quindi un client senza il
-mod disegna ogni livello alla sua altezza: la superficie di una cella prende, a ogni
-angolo, l'altezza della più piena fra le celle di liquido che si toccano lì (una
-cella con altro liquido sopra conta piena), e così **si inclina** dal lato alto a
-quello basso e due vicine mettono la stessa altezza sullo spigolo che condividono.
-Le facce fra due celle di liquido non si disegnano: un lago è una superficie, non
-una pila di pareti trasparenti. Un liquido non passa più dal mesher dei cubi — i cui
-vertici sono byte, un'unità per nodo — ma da celle con quattro altezze che il
-renderer costruisce in float, come fa con i box.
+The third argument, `fill`, is **how full a cell is** of that liquid, 1 to 8 eighths. It travels in
+the block table (protocol 40), so a client without the mod draws every level at its height: a cell's
+surface takes, at each corner, the height of the fullest of the liquid cells touching there (a cell
+with more liquid above counts as full), and so it **slopes** from the high side to the low one and
+two neighbours put the same height on the edge they share. The faces between two liquid cells are not
+drawn: a lake is a surface, not a pile of see-through walls. A liquid no longer goes through the
+cube mesher -- whose vertices are bytes, one unit a node -- but through cells with four heights the
+renderer builds in float, as it does for boxes.
 
-Un blocco liquido **non ferma un corpo, non ferma la luce, si disegna trasparente
-e non si scava**. Un corpo che ci sta dentro anche solo in parte **nuota**: i tasti
-lo spingono a metà del suo passo, affonda piano (al massimo 2.5 m/s) e sale
-tenendo premuto il salto (3.5 m/s). Sono numeri di `core/physics/movement.h`,
-gli stessi con cui il server controlla i claim: un corpo in un liquido conta come
-appoggiato, quindi risalire da un lago non è volare anche in un mondo dove non si
-vola. Un blocco piazzato in una cella di liquido **prende il posto** del liquido.
+A liquid block **does not stop a body, does not stop light, is drawn see-through and is not dug**. A
+body even partly inside it **swims**: the keys push it at half its pace, it sinks slowly (at most 2.5
+m/s) and rises holding jump (3.5 m/s). These are numbers from `core/physics/movement.h`, the same the
+server checks claims with: a body in a liquid counts as supported, so climbing out of a lake is not
+flying even in a world where you do not fly. A block placed in a liquid cell **takes the place** of
+the liquid.
 
-Il server dice a ogni client che entra che cosa fa ogni blocco a un corpo e alla
-luce (protocollo 38), quindi un client **senza il mod** nuota nel lago come quello
-che ce l'ha — prima un blocco non solido di un mod era un muro per chi non aveva
-il mod.
+The server tells every client that enters what every block does to a body and to light (protocol
+38), so a client **without the mod** swims in the lake like one that has it -- before, a mod's
+non-solid block was a wall for whoever lacked the mod.
 
-Quello che un liquido **non fa**: muoversi da solo. Il motore dice che una cella
-è liquida, non che scorre — non c'è simulazione di fluidi da nessuna parte in
-`src/`. Chi vuole l'acqua che scorre la scrive come un mod, e `mods/lakes` è
-l'esempio: una **sorgente** (`lakes:water`, piena) e sei livelli di acqua che
-scorre (`lakes:flow1`..`lakes:flow6`, da due a sette ottavi), un blocco per livello
-perché il livello di una cella è il blocco che c'è dentro; un ABM due volte al secondo dà a ogni cella
-che scorre un passo — giù se sotto c'è aria o acqua che scorre più debole, e
-arriva a livello 6 (un ruscello scende un pendio fin dove il pendio va); di lato
-un livello più debole **solo se sotto c'è qualcosa che la regge**, nell'aria e
-**nell'acqua che scorre più debole**, che alza al proprio livello, e il nuovo
-livello prosegue lungo quel ruscello; può finire anche sopra l'acqua, di un lago o
-di un ruscello, ma lì si ferma, perché acqua che scorre sopra altra acqua ci si
-unisce e basta — e **asciuga** quella che non ha più niente sopra né niente di più
-bagnato accanto che si allarghi. Le sorgenti non vengono spazzate: un lago di mille celle ferme non
-costa niente. Ad aprire la strada all'acqua ci sono due cose sole, una scavata
-accanto (`core:broken`) e un secchio versato.
+What a liquid **does not do**: move by itself. The engine says a cell is liquid, not that it flows
+-- there is no fluid simulation anywhere in `src/`. Whoever wants flowing water writes it as a mod,
+and `mods/lakes` is the example: a **source** (`lakes:water`, full) and six levels of flowing water
+(`lakes:flow1`..`lakes:flow6`, two to seven eighths), a block per level because a cell's level is the
+block inside it; an ABM twice a second gives every flowing cell a step -- down if below there is air
+or weaker flowing water, arriving at level 6 (a stream goes down a slope as far as the slope goes);
+sideways one level weaker **only if something below holds it up**, into air and **into weaker
+flowing water**, which it raises to its own level, and the new level carries on along that stream; it
+can end up over water too, a lake's or a stream's, but there it stops, because flowing water over
+other water just joins it -- and it **dries** what no longer has anything above it or anything wetter
+beside it spreading. Sources are not swept: a lake of a thousand still cells costs nothing. Only two
+things open the way for the water, a cell dug beside (`core:broken`) and a bucket poured.
 
-### Un blocco con un davanti
+### A block with a front
 
-`register_node(..., rotatable = true)` dichiara un blocco che ha un **davanti**.
-Piazzarlo gira **la cella**, non l'id: la cella porta un byte che dice di
-quanti quarti di giro attorno alla verticale è girata, e il mesher legge quel
-byte per decidere quale immagine va su quale faccia. L'id nel mondo è quello che
-`register_node` ha restituito, sempre.
+`register_node(..., rotatable = true)` declares a block that has a **front**. Placing it turns **the
+cell**, not the id: the cell carries a byte saying by how many quarter turns about the vertical it is
+turned, and the mesher reads that byte to decide which picture goes on which face. The id in the
+world is the one `register_node` returned, always.
 
 ```lua
-local FORNO = core.register_node("mymod:forno", 150, 110, 60, true, 0, true)
+local OVEN = core.register_node("mymod:oven", 150, 110, 60, true, 0, true)
 
 core.event.on("core:used", function(ev)
-    if ev.id ~= FORNO then return end       -- l'id è quello, comunque sia girato
-    core.log(`forno girato di {core.get_facing(ev.x, ev.y, ev.z)}`)
+    if ev.id ~= OVEN then return end        -- the id is that one, however it is turned
+    core.log(`oven turned by {core.get_facing(ev.x, ev.y, ev.z)}`)
 end)
 ```
 
-Un mod può girare una cella da sé con `core.set_facing(x, y, z, giro)` e
-leggerla con `core.get_facing(x, y, z)`. Il giro vale 0..3; qualunque altra cosa
-viene ignorata. `core.set_block` dice **quale** blocco, non come è girato: la
-cella che riscrive torna a 0, altrimenti una cassa costruita dove c'era un forno
-guarderebbe dove guardava il forno.
+A mod can turn a cell itself with `core.set_facing(x, y, z, turn)` and read it with
+`core.get_facing(x, y, z)`. The turn is 0..3; anything else is ignored. `core.set_block` says
+**which** block, not how it is turned: the cell it rewrites goes back to 0, otherwise a chest built
+where an oven was would face where the oven faced.
 
-Non è sempre stato così. Fino a poco fa registrare un blocco con un davanti
-registrava **quattro id** — la base e tre quarti di giro — e quello nel mondo
-era uno dei tre in più, per cui un handler che confrontava `ev.id` con l'id
-restituito non riconosceva tre piazzamenti su quattro e la cassa si apriva solo
-a mani vuote. Era un difetto vero, di questo mod. Il prezzo era su ogni
-chiamante: chiedere `core.node_base` prima di sapere che blocco fosse. Quella
-chiamata non c'è più, e nemmeno i tre id.
+It was not always so. Until recently registering a block with a front registered **four ids** -- the
+base and three quarter turns -- and the one in the world was one of the three extra, so a handler
+comparing `ev.id` with the returned id did not recognise three placings out of four and the chest
+opened only with an empty hand. It was a real defect, of this mod. The price was on every caller:
+asking `core.node_base` before knowing what block it was. That call is gone, and so are the three
+ids.
 
-`core.find_nodes` cerca un nome e trova le celle qualunque verso guardino. Quello
-che è sparito con gli id è cercare un **orientamento** — il vecchio
-`mymod:forno^2` trovava solo quel giro: quando servirà, sarà un argomento in
-più a `find_nodes`, non quattro nomi.
+`core.find_nodes` searches a name and finds the cells whichever way they face. What went with the ids
+is searching for an **orientation** -- the old `mymod:oven^2` found only that turn: when it is
+needed, it will be one more argument to `find_nodes`, not four names.
 
-Il pacchetto di texture dipinge le facce per nome — `mymod:forno:front` — senza
-sapere niente dei giri: vedi [TEXTURE_PACKS.md](TEXTURE_PACKS.md).
+The texture pack paints faces by name -- `mymod:oven:front` -- without knowing anything about turns:
+see [TEXTURE_PACKS.md](TEXTURE_PACKS.md).
 
-### Un corpo con una faccia
+### A body with a face
 
-`core.register_model(nome, file)` dichiara un modello e restituisce un id. Il
-**nome** è quello che viaggia — un corpo sul filo porta l'id, e il mondo manda la
-tabella dei nomi una volta sola nel saluto — mentre il **file** è dove il
-modello sta *su questa macchina*, accanto all'`init.luau` del mod:
+`core.register_model(name, file)` declares a model and returns an id. The **name** is what travels
+-- a body on the wire carries the id, and the world sends the table of names once in the greeting --
+while the **file** is where the model is *on this machine*, beside the mod's `init.luau`:
 
 ```lua
-local PERSONA = core.register_model("mymod:persona", "persona.gltf")
-core.player_model(PERSONA)   -- il corpo di un giocatore
-core.mob_model(PERSONA)      -- e le creature di --mobs
+local PERSON = core.register_model("mymod:person", "person.gltf")
+core.player_model(PERSON)   -- a player's body
+core.mob_model(PERSON)      -- and the creatures of --mobs
 ```
 
-### Creature
+### Creatures
 
-`core.register_mob` dichiara un **tipo** di creatura; il comportamento è del
-motore (`src/core/ecs/mob.h`). Due modi di combattere: `"melee"` si avvicina e
-colpisce, `"archer"` resta a distanza e tira frecce finché vede il giocatore.
+`core.register_mob` declares a **kind** of creature; the behaviour is the engine's
+(`src/core/ecs/mob.h`). Two ways of fighting: `"melee"` closes in and strikes, `"archer"` stays at a
+distance and shoots arrows as long as it sees the player.
 
 ```lua
 local ZOMBIE = core.register_model("mymod:zombie", "zombie.gltf")
---                nome            modello vita vel.  lotta    danno portata ogni
+--                name            model   hp   speed fight    dmg  reach  every
 core.register_mob("mymod:zombie", ZOMBIE, 20,  2.2, "melee",  3,    1.6,    1.0)
-core.spawn_mob("mymod:zombie", x, y, z)   -- una, adesso, lì
+core.spawn_mob("mymod:zombie", x, y, z)   -- one, now, there
 ```
 
-Le creature di ogni tipo registrato escono **al buio** (luce 7 o meno) tra 18
-e 40 nodi da un giocatore, fino a sei vicino a ciascuno, puntano il più vicino
-entro 16 nodi e spariscono quando nessuno è entro 72. Il modello suona le clip
-per nome come un giocatore (`idle`, `walk`, `run`, `jump_loop`, `swim`) e, mentre
-colpisce o tende l'arco, `attack` o `shoot`. Solo su un server: in un mondo
-locale non ci sono creature. `mods/mobs` è l'esempio completo.
+Creatures of every registered kind come out **in the dark** (light 7 or less) between 18 and 40
+nodes from a player, up to six near each, aim for the nearest within 16 nodes and vanish when nobody
+is within 72. The model plays clips by name like a player (`idle`, `walk`, `run`, `jump_loop`,
+`swim`) and, while it strikes or draws its bow, `attack` or `shoot`. Server only: a local world has
+no creatures. `mods/mobs` is the complete example.
 
-Una creatura che muore (o si allontana oltre la portata) non sparisce di colpo:
-il client la lascia dov'era e la **dissolve** in 1.2 s, suonando una volta la clip
-`death` del modello se ce l'ha, ferma nell'ultima posa se no. Solo lato client,
-nessun messaggio in più: la lista dei corpi vicini arriva intera a ogni messaggio.
+A creature that dies (or moves out of range) does not vanish at once: the client leaves it where it
+was and **dissolves** it over 1.2 s, playing the model's `death` clip once if it has one, still in its
+last pose if not. Client side only, no extra message: the list of nearby bodies arrives whole in
+every message.
 
-**Ogni nuova creatura deve avere la sua clip `death`**, nel modello che passa a
-`core.register_mob` e in ogni variante che indossa (addomesticata, tosata,
-cucciolo): una clip che suona una volta e resta ferma sull'ultima posa, circa un
-secondo. Il server lo controlla quando la creatura viene registrata e scrive nel
-log `register_mob('...'): its model has no "death" clip` se manca. Quelle del
-progetto:
+**Every new creature must have its `death` clip**, in the model passed to `core.register_mob` and
+in every variant it wears (tamed, shorn, young): a clip that plays once and holds the last pose,
+about a second. The server checks it when the creature is registered and writes
+`register_mob('...'): its model has no "death" clip` in the log if missing. The project's:
 
-| creature | come muoiono | da dove |
+| creatures | how they die | from where |
 |---|---|---|
-| zombie, scheletro (`mods/mobs`), brute (`games/inferno`) | su un fianco | `tools/export_mob_models.py` (il brute copia lo zombie: poi `tools/make_inferno_models.py`) |
-| cane, gatto (`mods/pets`), maiale, mucca, pecora, gallina (`mods/animals`), con cuccioli, tosata e addomesticati | su un fianco | `tools/make_pet_models.py`, `tools/make_animal_models.py` |
-| wraith, cinder (`games/inferno`) | il wraith si inclina, scende e arriccia i tentacoli; al cinder cadono i bastoni e poi la testa | `tools/make_inferno_creatures.py` |
-| ghoul, imp, pinky, gazer (`games/yafps`) | ognuno a modo suo | `tools/make_fps_models.py` |
-| umano, rospo, talpa (`mods/villagers`), robot aiutante (`mods/helpers`) | su un fianco | `tools/make_villager_models.py` |
-| bacteria, smiler (`games/backrooms`) | il bacteria barcolla e cade rigido in avanti; lo smiler chiude il ghigno e scende a terra girandosi | `tools/make_backrooms_creatures.py` |
+| zombie, skeleton (`mods/mobs`), brute (`games/inferno`) | onto one side | `tools/export_mob_models.py` (the brute copies the zombie: then `tools/make_inferno_models.py`) |
+| dog, cat (`mods/pets`), pig, cow, sheep, chicken (`mods/animals`), with young, shorn and tamed | onto one side | `tools/make_pet_models.py`, `tools/make_animal_models.py` |
+| wraith, cinder (`games/inferno`) | the wraith leans, sinks and curls its tentacles; the cinder drops its sticks and then its head | `tools/make_inferno_creatures.py` |
+| ghoul, imp, pinky, gazer (`games/yafps`) | each its own way | `tools/make_fps_models.py` |
+| human, toad, mole (`mods/villagers`), helper robot (`mods/helpers`) | onto one side | `tools/make_villager_models.py` |
+| bacteria, smiler (`games/backrooms`) | the bacteria staggers and falls stiff forward; the smiler shuts its grin and sinks to the ground turning | `tools/make_backrooms_creatures.py` |
 
-In Blender la più semplice è `tip_over(rig, [mesh])` di `tools/make_pet_models.py`:
-la creatura va su un fianco, sollevata di mezza larghezza perché non entri nel
-pavimento, con qualunque rig; `drop=` la fa anche cadere, per una che vola.
-Le clip che il motore suona per nome, tutte facoltative tranne `death`: `idle`,
-`walk`, `run`, `jump_loop`, `swim`, `swim_idle`, `attack` (mischia) o `shoot`
-(arciere), `sit` (animale seduto), `death`; un lavoratore quelle che il suo mod nomina.
+In Blender the simplest is `tip_over(rig, [mesh])` from `tools/make_pet_models.py`: the creature
+goes onto one side, lifted half its width so it does not sink into the floor, with any rig; `drop=`
+makes it fall too, for one that flies. The clips the engine plays by name, all optional but `death`:
+`idle`, `walk`, `run`, `jump_loop`, `swim`, `swim_idle`, `attack` (melee) or `shoot` (archer), `sit`
+(a sitting animal), `death`; a worker the ones its mod names.
 
-Un tipo con lotta `"pet"` è un **animale domestico**: non attacca nessuno, esce
-**di giorno** su terreno al sole (su `spawn_on`, se dato), al massimo sei
-vicino a ogni giocatore (contati a parte dalle creature della notte), passeggia e si ferma a guardare chi gli sta entro 4
-nodi. `core.mob_tame` dice cosa lo addomestica e cosa indossa dopo:
+A kind with fight `"pet"` is a **domestic animal**: it attacks nobody, comes out **by day** on
+sunlit ground (on `spawn_on`, if given), at most six near each player (counted apart from the night's
+creatures), strolls and stops to look at whoever is within 4 nodes. `core.mob_tame` says what tames
+it and what it wears after:
 
 ```lua
 local DOG, DOG_TAME = core.register_model("mymod:dog", "dog.gltf"),
                       core.register_model("mymod:dog_tame", "dog_tame.gltf")
 core.register_mob("mymod:dog", DOG, 16, 3.2, "pet", 0, 1.6, 1.0, "", 1, 0, false, 0, false, "core:grass")
-core.mob_tame("mymod:dog", "mobs:bone", DOG_TAME)   -- l'oggetto, e il modello col collare
+core.mob_tame("mymod:dog", "mobs:bone", DOG_TAME)   -- the item, and the model with the collar
 ```
 
-Tasto destro col suo oggetto in mano: ne consuma uno ed è tuo. Da allora ti
-segue (corre se resti indietro di più di 5 nodi, ti ricompare accanto oltre
-14), non sparisce mai, resta suo anche dopo un riavvio del server (il motore
-lo salva nel file del mondo), e un altro tasto destro lo fa sedere (clip
-`sit`) o rialzare. Vale anche nel mondo locale. Clip: `idle`, `walk`, `run`,
-`sit`. `mods/pets` è l'esempio completo.
+Right click with its item in hand: it uses one up and it is yours. From then it follows you (runs
+if you get more than 5 nodes ahead, reappears beside you beyond 14), never vanishes, stays yours even
+after a server restart (the engine saves it in the world file), and another right click makes it sit
+(clip `sit`) or get up. It holds in the local world too. Clips: `idle`, `walk`, `run`, `sit`.
+`mods/pets` is the complete example.
 
-Un tipo con lotta `"worker"` è un **lavoratore**: non combatte, non esce da
-solo e non sparisce mai; lo fa nascere il suo mod (`core.spawn_mob` restituisce
-l'id) e lo guida lui. Il motore lo fa camminare e mostra cosa fa:
+A kind with fight `"worker"` is a **worker**: it does not fight, does not come out on its own and
+never vanishes; its mod spawns it (`core.spawn_mob` returns the id) and drives it. The engine walks
+it and shows what it does:
 
 ```lua
-local id = core.spawn_mob("mymod:contadino", x + 0.5, y, z + 0.5)
-core.mob_goto(id, cx, cy, cz)          -- a quella cella, per la strada di core.find_path
-if core.mob_going(id) == 0 then        -- arrivato (o fermo dove non c'è strada)
+local id = core.spawn_mob("mymod:farmer", x + 0.5, y, z + 0.5)
+core.mob_goto(id, cx, cy, cz)          -- to that cell, by core.find_path's road
+if core.mob_going(id) == 0 then        -- arrived (or stuck where there is no road)
     core.mob_face(id, wx, wz)
-    core.mob_act(id, "gather", "farm:hoe")  -- clip in loop e oggetto in mano, a tutti (protocollo 81)
+    core.mob_act(id, "gather", "farm:hoe")  -- looping clip and item in hand, to everybody (protocol 81)
 end
-core.mob_act(id, "", "")               -- di nuovo idle e walk
-core.mob_place(id, x + 0.5, y + 1, z + 0.5)  -- messo lì, fermo: per salire dove non si cammina
-core.mob_remove(id)                    -- via subito, senza morte: il mod lo riprende
+core.mob_act(id, "", "")               -- idle and walk again
+core.mob_place(id, x + 0.5, y + 1, z + 0.5)  -- put there, still: to climb where one does not walk
+core.mob_remove(id)                    -- gone at once, without dying: the mod takes it back
 ```
 
-Un tasto destro su un lavoratore arriva al mod come `core:used_mob`
-(`player, target, held`); così anche su qualunque altra creatura con cui il
-motore non ha fatto nulla (né tosata, né nutrita, né addomesticata): una mucca
-munta, una pecora tinta. `core.mob_kind(target)` dice che creatura è. L'oggetto in mano si disegna come quello di un
-giocatore: il modello `<item>_held` sull'osso `hand_R`, o l'osso `tool_<nome>`
-del modello stesso. `core.node_yield(id)` dice cosa dà un blocco rotto, per chi
-scava al posto di un giocatore. `mods/villagers` e `mods/helpers` sono gli esempi.
+A right click on a worker reaches the mod as `core:used_mob` (`player, target, held`); so does one
+on any other creature the engine did nothing with (not shorn, fed or tamed): a cow milked, a sheep
+dyed. `core.mob_kind(target)` says what creature it is. The item in hand is drawn like a player's:
+the `<item>_held` model on the `hand_R` bone, or the model's own `tool_<name>` bone.
+`core.node_yield(id)` says what a broken block gives, for whoever digs in a player's place.
+`mods/villagers` and `mods/helpers` are the examples.
 
-Un `"pet"` senza `core.mob_tame` è un **animale selvatico**: esce, pascola e
-lascia il suo drop, ma nessuno lo addomestica. Colpito, va nel **panico**:
-scappa correndo dal colpo per cinque secondi. `mods/animals` (maiale,
-mucca, pecora, gallina) è l'esempio.
+A `"pet"` without `core.mob_tame` is a **wild animal**: it comes out, grazes and leaves its drop,
+but nobody tames it. Hit, it **panics**: it runs away from the blow for five seconds. `mods/animals`
+(pig, cow, sheep, chicken) is the example.
 
 ```lua
--- tasto destro con le forbici: 2 lana a terra, modello tosato per 300 s, e panico
+-- right click with shears: 2 wool on the ground, shorn model for 300 s, and panic
 core.mob_shear("mymod:sheep", "mymod:shears", "mymod:wool", 2, SHEEP_SHORN, 300)
--- un uovo a terra ogni 120-300 s, e uno in più fra i drop quando muore
+-- an egg on the ground every 120-300 s, and one more among the drops when it dies
 core.mob_lays("mymod:chicken", "mymod:egg", 120, 300)
--- nutrito d'erba è innamorato 30 s (HEARTS gli gira sopra la testa): due vicini
--- fanno un cucciolo (metà taglia, il suo modello, resta vicino a un genitore,
--- adulto dopo 1200 s); non di nuovo prima di 300 s
+-- fed grass it is in love for 30 s (HEARTS spin over its head): two near each other
+-- make a young one (half size, its own model, stays near a parent, adult after
+-- 1200 s); not again before 300 s
 core.mob_breed("mymod:cow", "core:grass", COW_BABY, 1200, HEARTS)
 ```
 
-Le forbici si consumano se hanno `durability` (register_item): una tosatura
-ne usa un punto.
+Shears wear out if they have `durability` (register_item): a shearing uses one point.
 
-Il corpo di ogni creatura (con cui cammina, passa nei varchi e viene colpita)
-è preso dal suo modello: alto quanto il modello, largo quanto è da fianco a
-fianco, mai più di 1.8 × 0.6. Due creature non stanno una dentro l'altra: si
-spingono via finché fra i loro centri c'è la somma delle loro mezze larghezze
-di modello (queste non limitate a 0.3: una mucca ne tiene 0.375).
+Every creature's body (what it walks with, passes through gaps with and is hit on) is taken from its
+model: as tall as the model, as wide as it is side to side, never more than 1.8 × 0.6. Two creatures
+do not stand inside each other: they push apart until the distance between their centres is the sum
+of their model half widths (these not limited to 0.3: a cow keeps 0.375).
 
-Le creature trovano la strada con `core.find_path`, che un mod può usare per
-qualsiasi corpo che cammina (un animale che segue il padrone, un abitante che
-torna a casa):
+Creatures find their way with `core.find_path`, which a mod can use for any walking body (an animal
+following its owner, a villager going home):
 
 ```lua
--- da, a, e il corpo: alto 2 celle, sale 1, scende 3, nuota; 2000 celle al massimo
-local via = core.find_path(x1, y1, z1, x2, y2, z2, 2, 1, 3, true, 2000)
-for i = 1, #via, 3 do
-    local x, y, z = via[i], via[i + 1], via[i + 2]   -- la cella dei piedi, passo dopo passo
+-- from, to, and the body: 2 cells high, climbs 1, drops 3, swims; 2000 cells at most
+local way = core.find_path(x1, y1, z1, x2, y2, z2, 2, 1, 3, true, 2000)
+for i = 1, #way, 3 do
+    local x, y, z = way[i], way[i + 1], way[i + 2]   -- the feet's cell, step by step
 end
 ```
 
-Senza strada, o finito il budget, la lista porta alla cella **più vicina**
-raggiunta: controlla se l'ultima è quella che hai chiesto.
+With no road, or the budget spent, the list leads to the **nearest** cell reached: check whether the
+last one is the one you asked for.
 
-La strada legge i blocchi dalla **forma**: un mezzo blocco è un gradino che
-si sale senza saltare, un pannello sottile (una scala, una porta aperta) lascia
-passare accanto. `core.node_climbable(id)` fa di un blocco una **scala**: chi ci
-sta dentro sale con salto e si tiene con accovacciarsi, e la strada ci sale e
-scende. `core.node_door(chiusa, aperta)` dice che due blocchi sono **una porta**:
-la strada passa da una aperta e si ferma davanti a una chiusa, tranne per un
-corpo che apre le porte (`opens_doors` in `register_mob`). `mods/doors` e le
-scale di `mods/timber` sono gli esempi.
+The road reads blocks by their **shape**: a half block is a step climbed without jumping, a thin
+panel (a ladder, an open door) lets you pass beside. `core.node_climbable(id)` makes a block a
+**ladder**: whoever is inside climbs with jump and holds with crouch, and the road goes up and down
+it. `core.node_door(closed, open)` says two blocks are **a door**: the road passes an open one and
+stops before a closed one, except for a body that opens doors (`opens_doors` in `register_mob`).
+`mods/doors` and `mods/timber`'s ladders are the examples.
 
-Un modello di un altro mod si cerca per nome con `core.model_id("suomod:kart")`,
-come `core.node_id` cerca un blocco: 0 se non c'è.
+Another mod's model is looked up by name with `core.model_id("theirmod:kart")`, as `core.node_id`
+looks up a block: 0 if not there.
 
-Un nome di file che prova a uscire dalla cartella del mod — con una barra, una
-barra rovescia o un punto iniziale — **viene rifiutato** e la chiamata
-restituisce 0. Un mod è contenuto e il contenuto arriva da dove capita.
+A file name that tries to leave the mod's folder -- with a slash, a backslash or a leading dot --
+**is refused** and the call returns 0. A mod is content and content comes from wherever.
 
-Dichiarare lo stesso nome due volte **tiene l'id**: un reload non spoglia i corpi
-che lo indossano.
+Declaring the same name twice **keeps the id**: a reload does not strip the bodies wearing it.
 
-Dall'altra parte il client non vede mai quel percorso. Il mondo **serve** il
-modello — il `.gltf` e tutto quello che nomina accanto a sé — per la stessa
-strada delle texture, e il client lo ricostruisce in una cartella sua. Quello che
-il mondo non serve viene cercato nella cartella dei modelli del giocatore
-(`--models`), dove `mymod:persona` diventa `mymod_persona.gltf`. Un client che
-non ha né l'uno né l'altra disegna la scatola che disegnava prima — mai un buco
-dove c'era un giocatore.
+On the other side the client never sees that path. The world **serves** the model -- the `.gltf`
+and everything it names beside itself -- by the same road as textures, and the client rebuilds it in
+a folder of its own. What the world does not serve is looked for in the player's models folder
+(`--models`), where `mymod:person` becomes `mymod_person.gltf`. A client with neither draws the box it
+drew before -- never a hole where a player was.
 
-Un modello viaggia **intero o niente**: un `.gltf` senza il buffer che nomina
-non è mezzo personaggio, è un personaggio con un buco, e chi lo guarda non può
-sapere quale file manca.
+A model travels **whole or not at all**: a `.gltf` without the buffer it names is not half a
+character, it is a character with a hole, and whoever looks at it cannot know which file is missing.
 
-Un modello fatto di **parti rigide** — un veicolo con le ruote, come esporta
-Sketchfab — è montato dai suoi nodi: ogni mesh senza scheletro prende la
-trasformazione del nodo che la porta, rotazioni, scale e specchi compresi. Una
-mesh con uno scheletro la mettono i giunti. Il davanti di un corpo è −Z: un
-modello esportato con il muso verso +Z va girato nel file. Il kart di
-`games/track`, com'è uscito da Sketchfab, ha già il muso verso −Z.
+A model made of **rigid parts** -- a vehicle with wheels, as Sketchfab exports -- is assembled from
+its nodes: every mesh without a skeleton takes the transform of the node carrying it, rotations,
+scales and mirrors included. A mesh with a skeleton is placed by its joints. A body's front is -Z: a
+model exported nose towards +Z must be turned in the file. `games/track`'s kart, as it came out of
+Sketchfab, already faces -Z.
 
-Il mod `mods/chest` è questo, scritto per intero: `chest:box` è `rotatable`, e i
-suoi due handler — quello che apre la cassa e quello che la svuota quando viene
-rotta — confrontano `ev.id` con l'id che `core.register_node` ha restituito, e
-basta. **Un mod che aggiunge un blocco sposta gli id di quelli registrati dopo
-di lui**: gli id sono posizionali. Un file di mondo scritto prima tiene i nomi
-della sua tabella, e all'apertura i suoi chunk vengono riscritti per nome in
-quella nuova. I blocchi che nessun mod caricato registra più diventano
-segnaposto magenta con il loro nome (non si possono tenere in mano), e tornano
-loro stessi quando il mod torna; il server li elenca all'avvio. Un id tenuto in una variabile va quindi
-chiesto a `core.register_node` a ogni avvio, mai scritto a mano.
+The `mods/chest` mod is this, written in full: `chest:box` is `rotatable`, and its two handlers --
+the one opening the chest and the one emptying it when it is broken -- compare `ev.id` with the id
+`core.register_node` returned, and that is all. **A mod that adds a block shifts the ids of those
+registered after it**: ids are positional. A world file written before keeps the names of its table,
+and on opening its chunks are rewritten by name into the new one. Blocks no loaded mod registers any
+more become magenta placeholders with their name (they cannot be held), and become themselves again
+when the mod comes back; the server lists them at start. So an id held in a variable must be asked of
+`core.register_node` at every start, never written by hand.
 
-### Scrivere tante celle in una volta
+### Writing many cells at once
 
-`core.set_block` scrive il mondo e lo dice a chi è connesso. Come lo dice
-dipende da quante celle di UNO stesso chunk hai cambiato in quel tick:
+`core.set_block` writes the world and tells whoever is connected. How it tells depends on how many
+cells of ONE chunk you changed in that tick:
 
-* poche — una per una, nove byte più il motivo, per sessione;
-* più di 150 — il chunk viene tolto da quello che quella sessione ha e lo
-  streamer glielo rimanda intero, calcolato dal mondo com'è adesso.
+* few -- one by one, nine bytes plus the reason, per session;
+* more than 150 -- the chunk is taken out of what that session has and the streamer sends it again
+  whole, computed from the world as it is now.
 
-Non c'è niente da scegliere: il risultato è lo stesso mondo in tutti e due i
-casi. Misurato: 640 celle di un chunk sono 640 messaggi contro 1 chunk, e
-quattrocento celle costano 6834 byte come celle e 233 come chunk. Una sessione a
-cui il mondo sta ancora arrivando non riceve niente finché non è arrivato — le
-celle aspettano, non si perdono.
+There is nothing to choose: the result is the same world in both cases. Measured: 640 cells of one
+chunk are 640 messages against 1 chunk, and four hundred cells cost 6834 bytes as cells and 233 as a
+chunk. A session the world is still arriving to receives nothing until it has arrived -- the cells
+wait, they are not lost.
 
-L'illuminazione non si paga a cella: ogni posto da cui un mod scrive (un tick,
-un evento, il caricamento) è dentro un `LightRun` del server, che rifà la luce
-una volta sola alla fine, per tutte le celle cambiate. Un'esplosione che scava
-trecento celle in un tick (`games/front`) è un ricalcolo, non trecento. Quello
-che resta da pagare è la chiamata e il chunk rimandato.
+Lighting is not paid per cell: every place a mod writes from (a tick, an event, loading) is inside a
+server `LightRun`, which redoes the light once at the end, for all the cells changed. An explosion
+digging three hundred cells in a tick (`games/front`) is one recomputation, not three hundred. What
+remains to pay is the call and the chunk sent again.
 
-### Generare una parte del mondo: `core.register_mapgen`
+### Generating a part of the world: `core.register_mapgen`
 
-Uno **stage** è un pezzo della generazione del mondo scritto in Lua. Il motore
-ne registra uno suo — `core:terrain` — e un mod ne aggiunge altri:
+A **stage** is a piece of world generation written in Lua. The engine registers one of its own --
+`core:terrain` -- and a mod adds others:
 
 ```luau
-local ORE = core.register_node("miniera:ferro", 180, 120, 90)
+local ORE = core.register_node("mine:iron", 180, 120, 90)
 
-core.register_mapgen("miniera:vene", function(ctx)
-    -- ctx.seed, ctx.height, e la colonna da generare: ctx.min_x..ctx.max_x e
-    -- ctx.min_z..ctx.max_z, estremi compresi, 32 per 32. Non c'è altro dentro,
-    -- e non si scrive niente dentro: uno stage scrive con core.set_block e
-    -- legge il terreno con core.terrain_height.
+core.register_mapgen("mine:veins", function(ctx)
+    -- ctx.seed, ctx.height, and the column to generate: ctx.min_x..ctx.max_x and
+    -- ctx.min_z..ctx.max_z, inclusive, 32 by 32. There is nothing else inside,
+    -- and nothing is written inside: a stage writes with core.set_block and
+    -- reads the terrain with core.terrain_height.
     for z = ctx.min_z, ctx.max_z, 8 do
         for x = ctx.min_x, ctx.max_x, 8 do
-            local suolo = core.terrain_height(x, z)
-            if suolo > 12 then
-                core.set_block(x, suolo - 6, z, ORE)
+            local ground = core.terrain_height(x, z)
+            if ground > 12 then
+                core.set_block(x, ground - 6, z, ORE)
             end
         end
     end
 end)
 ```
 
-**Sotto la roccia madre (y 0) c'è spazio fino a y -64** (`kWorldBottom`): il motore non
-ci genera niente, ma uno stage può costruirci, e quei blocchi si illuminano, si salvano e si
-inviano come gli altri; un corpo muore solo sotto y -80. `mods/deep` ci mette le sue cavità.
+**Below bedrock (y 0) there is room down to y -64** (`kWorldBottom`): the engine generates nothing
+there, but a stage can build there, and those blocks are lit, saved and sent like the others; a body
+dies only below y -80. `mods/deep` puts its hollows there.
 
-**Il mondo non ha bordo, e uno stage gira una volta per colonna** di chunk
-(32×32 blocchi, tutta l'altezza), quando qualcuno ci si avvicina per la prima
-volta. Quello che scrive fuori dalla sua colonna viene **scartato** senza
-errore: una struttura a cavallo di due colonne la scrivono tutte e due, ognuna
-la sua metà, ed è l'unico modo perché venga intera in qualunque ordine le due
-colonne vengano generate. Quindi una struttura che parte da una colonna vicina
-(una vena, una galleria, la chioma di un albero) va *seguita* anche da qui:
-`mods/ore` guarda gli inizi di vena fino a quattro colonne prima, `mods/cave`
-le gallerie dei quadrati fino a quattro più in là. E `core.get_block` fuori
-dalla colonna legge quello che c'è adesso, che può essere niente: uno stage
-decide da quello che c'è **dentro** la colonna, o da funzioni del seme.
+**The world has no edge, and a stage runs once per column** of chunks (32×32 blocks, the whole
+height), when someone comes near it for the first time. What it writes outside its column is
+**discarded** without error: a structure straddling two columns is written by both, each its half,
+and that is the only way it comes out whole in whatever order the two columns are generated. So a
+structure starting in a neighbouring column (a vein, a tunnel, a tree's crown) must be *followed* from
+here too: `mods/ore` looks at vein starts up to four columns back, `mods/cave` at the tunnels of the
+squares up to four further on. And `core.get_block` outside the column reads what is there now, which
+may be nothing: a stage decides from what is **inside** the column, or from functions of the seed.
 
-Quattro regole, e sono quello che rende uno stage diverso da un mod che scrive
-blocchi al caricamento:
+Four rules, and they are what makes a stage different from a mod writing blocks at load:
 
-* **L'ordine di registrazione è il contratto.** Gli stage girano nell'ordine in
-  cui sono stati chiesti — quindi nell'ordine di caricamento dei mod, che
-  `depends` decide — e uno stage vede quello che hanno scritto quelli prima di
-  lui.
-* **Si registra mentre il mod si carica, non dopo.** Gli stage girano su ogni
-  colonna nuova, per tutta la vita del server — sulla regione attorno allo spawn
-  subito dopo il caricamento dei mod, sul resto quando serve — ma la lista si
-  chiude quando i mod hanno finito di caricarsi: chiederne uno da `on_step` viene
-  **rifiutato** con un errore, invece di essere accettato e girare solo sulle
-  colonne generate da lì in poi.
-* **Deve essere deterministico.** Stesso seme, stesso mondo, su qualunque
-  macchina. Niente orologi, niente `math.random` senza seme, niente che dipenda
-  da chi è connesso: un server e un client che non sono d'accordo su com'è il
-  terreno sono un desync prima del primo pacchetto.
-* **`core.set_block` dentro uno stage non costa l'illuminazione.** Il mondo
-  viene illuminato una volta sola alla fine della passata, e nessun chunk va
-  rimandato a nessuno: è il posto dove scrivere decine di migliaia di celle.
+* **The order of registration is the contract.** Stages run in the order they were asked for -- so
+  in the mods' load order, which `depends` decides -- and a stage sees what those before it wrote.
+* **You register while the mod loads, not after.** Stages run on every new column, for the server's
+  whole life -- on the region round the spawn right after the mods load, on the rest when needed --
+  but the list closes when the mods have finished loading: asking for one from `on_step` is
+  **refused** with an error, instead of being accepted and running only on the columns generated from
+  then on.
+* **It must be deterministic.** Same seed, same world, on any machine. No clocks, no `math.random`
+  without a seed, nothing depending on who is connected: a server and a client that disagree on what
+  the terrain is are a desync before the first packet.
+* **`core.set_block` inside a stage does not cost lighting.** The world is lit once at the end of
+  the pass, and no chunk has to be sent again to anyone: it is the place to write tens of thousands of
+  cells.
 
-Uno stage che va in errore ferma **il suo** mod e nessun altro: quello che aveva
-già scritto resta nel mondo, gli stage registrati dopo girano lo stesso, e il
-log dice che è stato lo stage.
+A stage that errors stops **its** mod and no other: what it had already written stays in the world,
+the stages registered after run all the same, and the log says it was the stage.
 
-`mods/ore` è questo meccanismo in produzione e non un esempio: registra uno
-stage che sotterra carbone e ferro nella pietra, il ferro a livello 1 — cioè
-dietro il piccone di `mods/tools`. Vale la pena leggerlo per due cose che
-l'esempio qui sopra non mostra: l'hash deterministico scritto a mano (un double
-tiene 53 bit esatti e il prodotto di due numeri a 32 bit ne fa 64, quindi
-`a * b` butta via proprio i bit bassi che servono a un hash) e la regola che
-sostituisce **solo** le celle che sono `core:stone`, che è quello che tiene lo
-stage fuori dalla superficie, dal filler del bioma, dalla bedrock e da quello
-che ha costruito uno stage registrato prima.
+`mods/ore` is this mechanism in production and not an example: it registers a stage burying coal
+and iron in the stone, the iron at level 1 -- that is, behind `mods/tools`'s pickaxe. It is worth
+reading for two things the example above does not show: the deterministic hash written by hand (a
+double holds 53 exact bits and the product of two 32-bit numbers makes 64, so `a * b` throws away
+exactly the low bits a hash needs) and the rule replacing **only** cells that are `core:stone`, which
+is what keeps the stage out of the surface, the biome filler, the bedrock and what a stage registered
+before built.
 
-`mods/cave` è il secondo, e mostra la cosa che l'ordine dei mod decide davvero:
-la cartella dei mod si carica in ordine di nome, gli stage girano nell'ordine in
-cui sono stati chiesti, e `cave` viene prima di `ore`. Quindi le gallerie si
-scavano e *poi* il minerale riempie la pietra rimasta — ed è così che una vena
-finisce nella **parete** di una caverna invece che dentro un blocco che nessuno
-guarderà mai. Invertire i due nomi cambia il gioco senza cambiare una riga di
-codice: è il contratto di cui parla questa sezione, visto da fuori.
+`mods/cave` is the second, and shows the thing mod order really decides: the mods folder loads in
+name order, stages run in the order they were asked for, and `cave` comes before `ore`. So the
+tunnels are dug and *then* ore fills the stone left -- and that is how a vein ends up in a cavern's
+**wall** instead of inside a block nobody will ever look at. Swapping the two names changes the game
+without changing a line of code: it is the contract this section speaks of, seen from outside.
 
-Le altre due regole che vale la pena copiare da lì: una caverna per quadrato di
-32×32 colonne, scelta *dentro* il quadrato invece che «una colonna su N», perché
-un mondo piccolo con un hash sfortunato sarebbe un mondo senza caverne e un
-gate che passa solo su certi semi; e il tetto tenuto sei blocchi sotto la
-superficie, controllato a ogni passo contro `core.terrain_height` della colonna
-in cui la galleria si trova adesso e non di quella da cui è partita.
+The other two rules worth copying from there: one cavern per square of 32×32 columns, chosen
+*inside* the square instead of "one column in N", because a small world with an unlucky hash would
+be a world without caverns and a gate that passes only on some seeds; and the roof kept six blocks
+under the surface, checked at every step against `core.terrain_height` of the column the tunnel is
+in now and not the one it started from.
 
-`games/backrooms` è il terzo, e un mondo intero fatto solo di stage
-(`core.mapgen_core(false)`): una griglia di stanze di 8 che sta tutta dentro una
-colonna di 32, così ogni stanza si scrive per intero e nessuna struttura va
-seguita da una colonna vicina. Due cose da copiare. La pianta è funzione di x e
-z e **non del seme**, e per questo anche il tick la può leggere: trova dove sono
-i portali senza aver visto girare lo stage, che in un mondo caricato dal file
-non gira. E quello che attraversa più livelli (le scale, i buchi nel pavimento)
-si scrive **dopo** tutti i livelli della colonna: `core.replace_nodes(…, AIR,
-pavimento)` di un livello fatto dopo richiuderebbe il buco aperto prima.
+`games/backrooms` is the third, and a whole world made only of stages (`core.mapgen_core(false)`): a
+grid of rooms of 8 that fits entirely inside a column of 32, so every room is written whole and no
+structure has to be followed from a neighbouring column. Two things to copy. The plan is a function
+of x and z and **not of the seed**, and that is why the tick can read it too: it finds where the
+portals are without having seen the stage run, which in a world loaded from the file does not run.
+And what crosses several levels (stairs, holes in the floor) is written **after** all the levels of
+the column: `core.replace_nodes(…, AIR, floor)` of a level made later would close the hole opened
+before.
 
-Una colonna già generata e poi lasciata (nessuno ci passa da un po') non viene
-rigenerata: torna dal file del mondo, o dalla memoria se il server non ne ha
-uno. Uno stage cambiato fra due avvii cambia solo le colonne che nessuno ha
-ancora visitato, e il confine con quelle vecchie si vede. Un mod che scrive con
-`core.set_block` in una colonna non ancora pronta non perde la scrittura: aspetta
-che la colonna sia generata e illuminata, e poi va. `core.get_block` in una
-colonna che non c'è risponde aria. TODO.md OPEN-35 e OPEN-38 hanno i numeri.
+A column already generated and then left (nobody has passed in a while) is not generated again: it
+comes back from the world file, or from memory if the server has none. A stage changed between two
+starts changes only the columns nobody has visited yet, and the border with the old ones shows. A mod
+writing with `core.set_block` into a column not ready yet does not lose the write: it waits for the
+column to be generated and lit, and then goes. `core.get_block` in a column that is not there answers
+air. TODO.md OPEN-35 and OPEN-38 have the numbers.
 
-### Come si muove un corpo: `core.movement`
+### How a body moves: `core.movement`
 
 ```luau
--- camminata, sprint, volo, salto, gravità
+-- walk, sprint, fly, jump, gravity
 core.movement(12, 60, 20, 10, -40)
 ```
 
-Un mondo dice quanto veloce cammina, corre, vola e salta un corpo, e quanto forte
-cade. È **del mondo** e non del giocatore: ogni client che entra riceve questi
-numeri nel welcome e si muove con quelli, e il server giudica le posizioni con
-limiti ricavati dagli stessi numeri. Quindi un corpo a 60 m/s non è un cheat in un
-mondo che l'ha dichiarato, e uno a 150 sì.
+A world says how fast a body walks, runs, flies and jumps, and how hard it falls. It is **the
+world's** and not the player's: every client that enters receives these numbers in the welcome and
+moves with them, and the server judges positions with limits derived from the same numbers. So a body
+at 60 m/s is not a cheat in a world that declared it, and one at 150 is.
 
-* **Mentre il mod si carica.** Da un tick è troppo tardi e viene rifiutato: i
-  numeri escono nell'handshake, e un mondo che ne cambiasse a metà avrebbe
-  giocatori a cui ne sono stati detti altri.
-* **Rifiutato, con il motivo nel log:** una velocità negativa, non numerica o
-  sopra i **256 m/s**; una gravità non numerica o **verso l'alto**. Restituisce 1
-  se i numeri sono stati presi, 0 se no.
-* **Il volo raddoppia con lo sprint**, come con i numeri del motore.
-* **La velocità terminale, 60 m/s, non si dichiara**: è quello che ferma una
-  caduta qualunque sia la gravità, anche sul client.
-* **Se due mod lo chiamano vince l'ultimo caricato**, e il log dice di chi ha
-  sostituito i numeri.
-* **Un client connesso usa i numeri del server**, anche se un suo mod ne dichiara
-  altri: il server è il lato che controlla.
+* **While the mod loads.** From a tick it is too late and refused: the numbers go out in the
+  handshake, and a world that changed them halfway would have players who were told others.
+* **Refused, with the reason in the log:** a speed negative, not a number or over **256 m/s**; a
+  gravity not a number or **pointing up**. Returns 1 if the numbers were taken, 0 if not.
+* **Flying doubles with sprint**, as with the engine's numbers.
+* **Terminal velocity, 60 m/s, is not declared**: it is what stops any fall whatever the gravity, on
+  the client too.
+* **If two mods call it the last loaded wins**, and the log says whose numbers it replaced.
+* **A connected client uses the server's numbers**, even if one of its mods declares others: the
+  server is the side that checks.
 
-Quello che **non** c'è ancora: velocità per corpo — un veicolo è un corpo che non
-è un giocatore a piedi — e un server che simula il movimento invece di
-verificarne la fine. TODO.md OPEN-44.
+What is **not** there yet: speed per body -- a vehicle is a body that is not a player on foot -- and
+a server that simulates movement instead of checking its end. TODO.md OPEN-44.
 
-### Quanto è grande un corpo: `core.body_width`
+### How big a body is: `core.body_width`
 
 ```luau
-core.body_width(1.4, 2.6)   -- un kart: largo 1.4, lungo 2.6
+core.body_width(1.4, 2.6)   -- a kart: 1.4 wide, 2.6 long
 ```
 
-A piedi, il lato del box quadrato con cui un corpo urta, in nodi: 0.6 se il mondo
-non dice niente. L'altezza resta quella del motore, 1.8. Il secondo numero conta
-solo in un mondo che guida (`core.drive`): lì il corpo è un **telaio su quattro
-ruote con le sospensioni**, largo `width` e lungo `length` (0: lungo quanto è
-largo), simulato come corpo rigido (Jolt, `core/physics/vehicle.h`). Gira col
-kart, beccheggia in frenata, si inclina in curva, e se entra troppo veloce in una
-curva le gomme non tengono e scivola largo. Il telaio resta entro 26 gradi dalla
-verticale e le sue ruote non prendono come terreno niente di più ripido di 50
-gradi: un kart che striscia un muro non ci si corica sopra e non lo scala.
+On foot, the side of the square box a body collides with, in nodes: 0.6 if the world says nothing.
+The height stays the engine's, 1.8. The second number counts only in a world that drives
+(`core.drive`): there the body is a **chassis on four wheels with suspension**, `width` wide and
+`length` long (0: as long as it is wide), simulated as a rigid body (Jolt, `core/physics/vehicle.h`).
+It turns with the kart, pitches under braking, leans in bends, and if it enters a bend too fast the
+tyres do not hold and it slides wide. The chassis stays within 26 degrees of vertical and its wheels
+take nothing steeper than 50 degrees as ground: a kart scraping a wall does not lie down on it or
+climb it.
 
-* **Mentre il mod si carica**, come `core.movement`: esce nello stesso welcome, e
-  `core.movement` e `core.body_movement` la tengono.
-* **Il server controlla con un box quadrato**: largo `width` a piedi; per un corpo
-  che guida, il quadrato che sta dentro al telaio comunque sia girato,
-  `width / 1.41`. Chi esce da un portale viene spinto fuori dal muro accanto di
-  mezza larghezza, o di mezza lunghezza se guida.
-* **Stare DENTRO un blocco** è l'unica domanda che fa in modo diverso: a piedi la
-  fa con quel box, guidando **col solo centro**. Un telaio gira, si inclina e ha
-  le ruote fuori dal suo box, quindi i due capi non concordano su cosa tocca, e
-  un rifiuto che rimette il kart dove il box del server è libero lascia il telaio
-  dentro il muro che stava strisciando — e il server lo rifiuta di nuovo, a ogni
-  claim (TODO.md). Un kart può appoggiarsi a un muro; uno col centro dentro viene
-  ancora rimesso a posto.
-* **Rifiutato:** una larghezza sotto 0.2 o sopra 4, una lunghezza diversa da 0
-  sotto 0.2 o sopra 8, o un numero che non è un numero.
-* **Un corpo più largo di un portale nel pavimento non ci passa**: il server esenta
-  solo il nodo dell'apertura, e il box largo affonda anche nei nodi accanto.
+* **While the mod loads**, like `core.movement`: it goes out in the same welcome, and
+  `core.movement` and `core.body_movement` keep it.
+* **The server checks with a square box**: `width` wide on foot; for a driving body, the square that
+  fits inside the chassis however it is turned, `width / 1.41`. Whoever comes out of a portal is
+  pushed off the wall beside by half a width, or half a length if driving.
+* **Being INSIDE a block** is the one question it asks differently: on foot it asks with that box,
+  driving **with the centre only**. A chassis turns, leans and has its wheels outside its box, so the
+  two ends do not agree on what it touches, and a refusal putting the kart back where the server's box
+  is free leaves the chassis inside the wall it was scraping -- and the server refuses it again, at
+  every claim (TODO.md). A kart can lean on a wall; one with its centre inside is still put back.
+* **Refused:** a width under 0.2 or over 4, a length other than 0 under 0.2 or over 8, or a number
+  that is not a number.
+* **A body wider than a portal in the floor does not pass through**: the server exempts only the
+  opening's node, and the wide box sinks into the nodes beside as well.
 
-**Chi non vola non sale.** In un mondo che guida (`core.drive`), o che dichiara
-volo 0, il server rifiuta un corpo che non poggia su niente ed è più in alto di
-dove ha poggiato l'ultima volta di più di un salto (v² / 2g, più 0.3). Un salto,
-un gradino e un atterraggio su un blocco più alto passano; una salita a velocità
-di salto sopra i due nodi dei muri della pista no.
+**Whoever does not fly does not rise.** In a world that drives (`core.drive`), or that declares fly
+0, the server refuses a body that rests on nothing and is higher than where it last rested by more
+than a jump (v² / 2g, plus 0.3). A jump, a step and a landing on a higher block pass; a climb at jump
+speed over the track's two-node walls does not.
 
-### Un corpo diverso dagli altri: `core.body_movement`
+### A body different from the others: `core.body_movement`
 
 ```luau
 core.event.on("core:net_message", function(ev)
-    if ev.text == "sali in macchina" then
-        -- giocatore, camminata, sprint, volo, salto, gravità
+    if ev.text == "get in the car" then
+        -- player, walk, sprint, fly, jump, gravity
         core.body_movement(ev.player, 12, 150, 20, 10, -40)
     end
 end)
 ```
 
-`core.movement` dice come si muovono i corpi del mondo; questa dice come si muove
-**un** corpo, e si può chiamare quando si vuole: un veicolo, un potenziamento, un
-prigioniero rallentato. Il giocatore riceve i numeri in un messaggio suo, e da quel
-momento il server controlla quel corpo con quelli.
+`core.movement` says how the world's bodies move; this says how **one** body moves, and can be
+called whenever you like: a vehicle, a power-up, a slowed prisoner. The player receives the numbers in
+a message of their own, and from then the server checks that body with them.
 
-* **Un secondo di margine.** Il client continua a muoversi con i numeri vecchi
-  finché il messaggio non arriva, quindi per un secondo il server accetta il più
-  veloce fra i vecchi e i nuovi: rallentare qualcuno non corregge i passi che
-  aveva già fatto. Il prezzo, detto: un corpo rallentato ha un secondo in cui può
-  ancora andare alla velocità di prima.
-* **I default sono i numeri del motore, non quelli del mondo.** Per rimettere un
-  corpo come il mondo l'ha dichiarato, si passano quelli.
-* **Rifiutato, con il motivo nel log:** i numeri che `core.movement` rifiuta, un
-  giocatore che non è nel mondo, e chi sta solo guardando.
-* **Quanto in alto, il settimo numero (`rise`).** Senza, un corpo che non vola
-  può stare al massimo la cima del suo salto sopra dove poggiava (per un kart,
-  più lo stacco del telaio dalle ruote). Con, quello che dice il mondo, fino a
-  64: la pista passa 10, e un kart che ci arriva rimbalza come contro un
-  soffitto. Chi deve restare dentro un percorso lo decide il mod, non l'altezza:
-  `games/track` riporta sulla strada più vicina un kart che ne è fuori da mezzo
-  secondo (`core.player_place`).
+* **A second of slack.** The client keeps moving with the old numbers until the message arrives, so
+  for a second the server accepts the faster of old and new: slowing someone does not correct the
+  steps they had already taken. The price, stated: a slowed body has a second in which it can still
+  go at the old speed.
+* **The defaults are the engine's numbers, not the world's.** To put a body back as the world
+  declared it, pass those.
+* **Refused, with the reason in the log:** the numbers `core.movement` refuses, a player not in the
+  world, and someone only watching.
+* **How high, the seventh number (`rise`).** Without it, a body that does not fly can be at most the
+  top of its jump above where it rested (for a kart, plus the chassis's lift off the wheels). With it,
+  what the world says, up to 64: the track passes 10, and a kart getting there bounces as against a
+  ceiling. Who must stay inside a course is decided by the mod, not by height: `games/track` puts back
+  on the nearest road a kart that has been off it for half a second (`core.player_place`).
 
-Quello che **non** c'è ancora: il server non controlla sterzo e inerzia. E i numeri
-di un corpo non attraversano un portale verso un altro mondo, dove vale il welcome
-di quel mondo, e non si salvano. TODO.md OPEN-47.
+What is **not** there yet: the server does not check steering and inertia. And a body's numbers do
+not cross a portal to another world, where that world's welcome holds, and are not saved. TODO.md
+OPEN-47.
 
-### Uno solo sale in kart: `core.body_drive` e `core.body_model`
+### Only one gets in the kart: `core.body_drive` and `core.body_model`
 
 ```luau
 core.event.on("core:used", function(ev)
     if ev.id ~= KART then return end
     ev.cancel = true
-    core.set_block(ev.x, ev.y, ev.z, 0)                       -- il kart ora è lui
-    core.body_drive(ev.player, 12, 30, 2.6, 0.6, 1.4, 2.6)    -- accel, freno, sterzo, attrito, largo, lungo
-    core.body_model(ev.player, KART_MODEL)                    -- e lo vedono così
+    core.set_block(ev.x, ev.y, ev.z, 0)                       -- the kart is now them
+    core.body_drive(ev.player, 12, 30, 2.6, 0.6, 1.4, 2.6)    -- accel, brake, steer, grip, wide, long
+    core.body_model(ev.player, KART_MODEL)                    -- and they look like this
 end)
 ```
 
-Un carrello è `core.body_cart(player, true)`: un blocco dichiarato binario
-(`core.node_conveyor(id, velocità, altezza, salita, true)`) non trascina chi ci
-cammina sopra, ma chi è in carrello lo percorre come uno scivolo, in piano, in
-salita o in discesa, curvando dove un binario allo stesso livello entra di lato;
-`velocità` è quella a cui porta il carrello, 0 un freno (avanti tenuto riparte).
-`mods/carts` e i binari di `mods/building`.
+A cart is `core.body_cart(player, true)`: a block declared a rail
+(`core.node_conveyor(id, speed, height, rise, true)`) does not drag whoever walks on it, but whoever
+is in a cart runs along it like a chute, flat, uphill or downhill, turning where a rail at the same
+level comes in from the side; `speed` is what it carries the cart at, 0 a brake (forward held starts
+again). `mods/carts` and `mods/building`'s rails.
 
-Una barca è `core.body_boat(player, true)`: su un liquido il corpo galleggia coi
-piedi 0.35 sotto il pelo, W/S remano lungo la prua (avanti fino alla `sprint`), A/D
-sterzano e la chiglia toglie la deriva laterale; fuori dall'acqua cammina. Lo scafo e la posa sono del mod (`core.player_wear`,
+A boat is `core.body_boat(player, true)`: on a liquid the body floats with its feet 0.35 under the
+surface, W/S row along the bow (forward up to `sprint`), A/D steer and the keel takes away the
+sideways drift; out of the water it walks. The hull and the pose are the mod's (`core.player_wear`,
 `core.player_clip(p, "drive_idle")`): `mods/boats`.
 
-`core.drive` e `core.body_width` dicono come guida **il mondo**, e vanno chiamate
-mentre i mod caricano; `core.body_drive` dice come guida **un corpo**, quando si
-vuole, e `accel` a 0 lo rimette a piedi (passando anche la larghezza di prima).
-`core.eye_height(h)` dice a che altezza sta l'occhio sopra i piedi (1.62 se il
-mondo non dice niente): la telecamera in prima persona e il punto da cui si
-misura la portata della mano, sul client e sul server. Si chiama mentre i mod
-caricano, come `core.movement`, e va nel welcome (protocollo 50). Da 0.2 a 1.8:
-il box del corpo resta alto 1.8. `mods/robot` dice 1.5, la visiera del robot.
+`core.drive` and `core.body_width` say how **the world** drives, and must be called while the mods
+load; `core.body_drive` says how **a body** drives, whenever you like, and `accel` at 0 puts it back
+on foot (passing the previous width too). `core.eye_height(h)` says how high the eye is above the
+feet (1.62 if the world says nothing): the first-person camera and the point the hand's reach is
+measured from, on client and server. It is called while the mods load, like `core.movement`, and
+goes in the welcome (protocol 50). From 0.2 to 1.8: the body's box stays 1.8 high. `mods/robot` says
+1.5, the robot's visor.
 
-`core.parkour(true)` dice che in questo mondo i corpi a piedi fanno parkour
-(`core/physics/player.cpp`), e va nel welcome come il resto (protocollo 87):
+`core.parkour(true)` says that in this world bodies on foot do parkour (`core/physics/player.cpp`),
+and goes in the welcome like the rest (protocol 87):
 
-* **corsa sul muro**: in aria vicino al culmine del salto, avanti tenuto a 4 m/s
-  o più, con un muro accanto (a destra o a sinistra della direzione in cui si
-  va), ci si corre sopra in piano, senza gravità, per al più 5 nodi;
-* **salto dal muro**: salto premuto in aria con un muro entro 0.45 si spinge via
-  dal muro, a 5.5 m/s e in su col salto del mondo; mai due volte di fila dallo
-  stesso lato, così fra due muri a 2 si sale rimbalzando e su uno solo no;
-* **scivolata**: crouch premuto correndo (oltre il passo) mette il corpo sulla
-  schiena, alto 0.8, a 1.15 volte lo sprint che rallenta, per 0.9 s: passa sotto
-  un blocco alto 1; sotto un soffitto basso resta giù e va al passo accovacciato;
-* **capriola all'indietro**: salto con indietro tenuto, da terra, sale di 2.2
-  nodi andando indietro a 3 m/s: su un gradino alto 2 alle spalle;
-* **corda**: `core.rope(true)`, dal codice del mondo sul client, spara la corda
-  dall'occhio fino a 40 nodi; il corpo oscilla attorno al punto dove si aggancia
-  (le mani restano a distanza di corda), i tasti spingono l'oscillazione,
-  crouch allunga, sprint accorcia, salto o `core.rope(false)` stacca.
+* **wall run**: in the air near the top of the jump, forward held at 4 m/s or more, with a wall
+  beside (right or left of the direction you are going), you run along it flat, without gravity, for
+  at most 5 nodes;
+* **wall jump**: jump pressed in the air with a wall within 0.45 pushes off the wall, at 5.5 m/s and
+  up with the world's jump; never twice in a row off the same side, so between two walls 2 apart you
+  climb bouncing and on a single one you do not;
+* **slide**: crouch pressed while running (faster than the pace) puts the body on its back, 0.8
+  high, at 1.15 times sprint slowing down, for 0.9 s: it passes under a block 1 high; under a low
+  ceiling it stays down and goes at crouching pace;
+* **backflip**: jump with back held, from the ground, rises 2.2 nodes going backwards at 3 m/s: onto
+  a step 2 high behind you;
+* **rope**: `core.rope(true)`, from the world's code on the client, fires the rope from the eye up to
+  40 nodes; the body swings round the point it hooks (the hands stay a rope's length away), the keys
+  push the swing, crouch lengthens, sprint shortens, jump or `core.rope(false)` lets go.
 
-In un mondo così le mani **non** si aggrappano alle sporgenze (lì un muro alto 2
-è una capriola e uno alto è un camino), e il server permette quello che queste
-mosse fanno: 20 m/s di oscillazione, qualunque altezza, un corpo scivolato
-sotto un blocco (`limits_for`). Il robot ha le clip per ognuna: `wall_run_left`,
-`wall_run_right`, `wall_jump`, `power_slide`, `backflip`, `rope_swing`.
-`games/parkour` è il mondo fatto per questo.
+In such a world hands do **not** grab ledges (there a wall 2 high is a backflip and a tall one is a
+chimney), and the server allows what these moves do: 20 m/s of swing, any height, a body slid under a
+block (`limits_for`). The robot has the clips for each: `wall_run_left`, `wall_run_right`,
+`wall_jump`, `power_slide`, `backflip`, `rope_swing`. `games/parkour` is the world made for it.
 
-`core.body_model` è `core.player_model` per un corpo solo. È così che si fa un
-mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
+`core.body_model` is `core.player_model` for one body. That is how you make a world where you arrive
+on foot and get into a parked kart: `games/track`.
 
-* **I numeri di velocità restano suoi.** `core.body_drive` cambia cosa *è* il
-  corpo, non quanto va: `sprint` è la velocità massima e `walk` quella in
-  retromarcia, e si cambiano con `core.body_movement`, che a sua volta lascia
-  stare il kart (un conto alla rovescia a zero non fa scendere nessuno).
-* **Salire alza il corpo di 1.07** — un telaio sta sulle sue molle — quindi un
-  fermo che azzera anche il salto si fa correggere dal server: lascia il salto
-  del mondo.
-* **Quello che vede il giocatore del proprio corpo** con la telecamera dietro
-  (`core.view`) è il modello di `core.player_model`: il welcome ne porta uno
-  solo. Gli altri vedono quello di `core.body_model`. Il codice del mondo che
-  gira sul client può chiamare `core.body_model(0, id)` per cambiare come
-  **quella macchina** disegna il proprio corpo (0 lo rimette com'era):
-  `games/track` ci mette il kart mentre si guida.
-* **Ruote che girano e sterzano.** Un modello con uno scheletro le anima da
-  solo, per nome degli ossi: `steer_*` sterza attorno al proprio asse,
-  `wheel_*` rotola attorno al proprio (figlio di uno `steer_*`, sterza anche),
-  `steering_wheel` gira di un quarto di giro a fondo corsa. "Il proprio asse" è
-  la Y dell'osso, cioè dove punta un osso di Blender. Il raggio di una ruota è
-  quanto sta alto il suo centro sul fondo del modello. Sterzo e metri percorsi
-  il client li legge da come il corpo si muove: niente da dichiarare, e vale
-  anche per gli altri giocatori. Un blocco che indossa il modello resta fermo.
-* **Clip per nome.** Un modello con delle animazioni ne suona una scelta dal
-  movimento del corpo, con un quinto di secondo di dissolvenza tra una e
-  l'altra: `idle`, `walk` (fino a 5.5 m/s), `run`,
-  `jump_loop` (in aria), `swim`/`swim_idle` (in un liquido), `slide` (su un
-  nastro in discesa da 3 m/s in su: uno scivolo) e, per il proprio
-  corpo, `fly`/`fly_hover` e mentre si scava `mine`, `dig` o `chop` secondo il
-  materiale del blocco (`stone`, `soil`, `wood`). Una clip che il modello non
-  ha lascia quella di prima.
-* **Chi guida.** In un corpo che indossa un modello con ruote (`wheel_*`) il
-  client siede il modello di `core.player_model`, alla stessa origine: suona
-  `kart_enter` una volta, poi `drive_idle` piegato verso `drive_left` o
-  `drive_right` quanto è girato lo sterzo. Le clip di chi guida vanno quindi
-  fatte attorno all'origine del veicolo. `mods/robot` e il kart di
-  `games/track` sono fatti così.
-* **Pezzi del veicolo.** Un pezzo che una mod fa indossare a chi guida
-  (`core.player_wear`) e che si chiama come il veicolo più `_<parte>_<variante>`
-  (`track_core:kart_wheel_slick` su `track_core:kart`) va sulle ossa del
-  veicolo, non di chi ci siede, e le ossa del veicolo che si chiamano `<parte>`
-  o `<parte>_*` non si disegnano: il pezzo le sostituisce (le quattro
-  `wheel_*`). Il veicolo stesso indossato come pezzo lo vernicia: il suo tint
-  colora i `tint_1..3` del veicolo. Le fiamme del nitro escono dai giunti
-  `flame_*` (lungo l'osso) dei pezzi che ne hanno, se no da quelli del
-  veicolo; le sgommate dalle ossa `wheel_R*`, sulla strada sotto di loro (su
-  un pezzo di pista, la sua superficie).
-* **Anteprima in un pannello.** `core.ui_model(pannello, x, y, w, h, modello,
-  tint, pezzi)` mette in un riquadro del pannello un modello che gira piano,
-  inquadrato dalla sua misura, con i suoi colori e i pezzi (id separati da
-  spazi) addosso come sopra: il garage di `games/track` mostra così il kart
-  scelto. Non risponde ai click (protocollo 104). `tools/make_kart_parts.py` fa il
-  kart diviso in parti (`nose`, `pods`, `pipes`) e i suoi 14 pezzi.
-* **Braccia in prima persona.** Un modello registrato col nome del modello
-  del giocatore più `_arms` (`robot:robot` → `robot:robot_arms`) viene
-  disegnato davanti all'occhio quando la vista è in prima persona. È fatto
-  nello spazio dell'occhio: origine all'occhio, avanti −Z, su +Y. Suona
-  `swing` finché il tasto sinistro è giù e `idle` altrimenti, e ondeggia
-  mentre si cammina. Un blocco in mano è un cubo delle sue facce nel palmo
-  dell'osso `hand_R`; un pezzo di pista (`core.node_piece`) è il pezzo in
-  miniatura, la sua strada col lato più lungo di 0.24 avambracci; per terra, lo
-  stesso pezzo in miniatura. Vale anche nel mondo locale.
-* **Vetri.** Un materiale con l'alpha del colore base sotto 1
-  (`baseColorFactor`, in Blender l'Alpha del Principled BSDF) si vede
-  attraverso: è disegnato dopo il resto del modello, mescolato e senza
-  scrivere la profondità (i vetri dei mezzi del fronte, 0.3). L'alpha della
-  texture invece ritaglia, sotto 0.5 il pixel non c'è.
-* **Colori e accessori del giocatore.** I materiali `tint_1`, `tint_2`,
-  `tint_3` del modello del giocatore (e delle sue `_arms`) prendono il
-  primario, secondario e accento scelti nel menù Robot (protocollo 93,
-  `Hello::livery`); senza scelta restano del colore del file. Gli accessori
-  sono modelli col nome del giocatore più `_cap`, `_tophat`, `_headphones`,
-  `_scarf`, `_bowtie`, `_medal` (`robot:robot_cap`), fatti sullo scheletro
-  del giocatore e disegnati come un pezzo indossato; un mondo che non li
-  registra semplicemente non li mostra. `tools/make_robot_extras.py` li fa.
-  La specie (protocollo 94, due bit sopra gli accessori: umano, uomo talpa,
-  uomo rana) sostituisce il modello del giocatore con quello col suo nome più
-  `_human`, `_mole`, `_frog` (`robot:robot_mole`, con le sue `_arms`), sullo
-  stesso scheletro e con le stesse clip; lo stile scelto è un pezzo indossato
-  di nome `<specie>_<stile>` (`robot:robot_mole_lamp`). Gli accessori sono
-  quelli rifatti per la specie (`robot:robot_mole_cap`) se il mondo li
-  registra, se no quelli del giocatore; un accessorio in testa sostituisce gli
-  stili che sono cappelli (lampada, corona, ninfea). Un mondo che non registra
-  la specie mostra il robot.
-  `tools/make_species.py` li fa tutti: ogni pezzo del corpo (testa, busto,
-  braccio, gamba) è un'unica superficie, primitive fuse con un remesh a voxel,
-  levigate e sfoltite, con pesi sfumati alle giunture; occhi e piccoli dettagli
-  restano netti. Un osso `sway_*` oscilla solo in avanti, via dal petto.
-  In un pezzo indossato, un osso che il giocatore non ha segue il suo
-  genitore, e se si chiama `sway_*` dondola anche attorno a dove è legato.
-* **Attrezzi in mano.** Un osso `tool_<nome>` si vede solo quando in mano c'è
-  un oggetto che si chiama `<mod>:<nome>` (`tool_pick` per `tools:pick`), e gli
-  altri `tool_*` spariscono: sulle braccia e sul proprio corpo in terza
-  persona, e sugli altri giocatori (dal protocollo 48 il server manda a tutti
-  cosa ha in mano ognuno).
-* **Oggetti in mano.** Se il mondo ha un modello che si chiama come l'oggetto
-  più `_held` (`core.register_model("ore:diamond_held", "diamond_held.gltf")`),
-  chi tiene quell'oggetto lo ha nel palmo di `hand_R` al posto del cubo: un
-  glTF rigido, senza scheletro, fatto attorno alla presa (origine al centro
-  del pugno, +Y dove punta un attrezzo, cioè in su in prima persona, +Z verso
-  l'occhio in prima persona: una cosa piatta sta nel piano XY), in metri del
-  robot da 1.357 e scalato con l'avambraccio come il blocco. Vale sulle
-  braccia, sul proprio corpo e sugli altri giocatori.
-  `tools/make_held_models.py` fa i 41 dei mod del progetto e le icone di
-  quelli che non ne avevano.
-* **Armature indossate.** Un oggetto con `wear` (`core.register_item`) va in
-  uno dei quattro slot indossati della borsa (testa, petto, gambe, piedi; lo
-  shift-click a borsa aperta lo mette e lo toglie). Se il mondo ha un modello
-  con lo stesso nome dell'oggetto (`core.register_model("armor:iron_helmet",
-  ...)`), il corpo lo porta: un glTF skinnato su ossa con gli stessi nomi di
-  quelle del giocatore, disegnato con la sua posa. Dal protocollo 58 il server
-  manda a tutti cosa indossa ognuno. `tools/make_armor_models.py` fa i sedici
-  di `mods/armor` sul rig del robot.
-* **Accovacciato.** Ctrl tenuto a piedi (in volo resta "scendi"): il passo
-  a 0.35 del `walk`, niente scatto, l'occhio a 0.8 della sua altezza. Il
-  corpo suona `crouch_idle` o `crouch_walk`, e dal protocollo 51 lo vedono
-  anche gli altri.
-* **Chi lavora.** Col tasto sinistro giù il corpo suona la clip del suo
-  attrezzo: `mine` col piccone, `dig` con la pala, `chop` con l'ascia,
-  `sword_slash` con la spada; a mani nude quella del materiale del blocco. Dal
-  protocollo 49 lo vedono anche gli altri.
+* **The speed numbers stay its own.** `core.body_drive` changes what the body *is*, not how fast it
+  goes: `sprint` is top speed and `walk` reverse speed, and they change with `core.body_movement`,
+  which in turn leaves the kart alone (a countdown at zero makes nobody get out).
+* **Getting in lifts the body by 1.07** -- a chassis stands on its springs -- so a stop that also
+  zeroes the jump gets corrected by the server: leave the world's jump.
+* **What the player sees of their own body** with the camera behind (`core.view`) is
+  `core.player_model`'s model: the welcome carries only one. Others see `core.body_model`'s. The
+  world's code running on the client can call `core.body_model(0, id)` to change how **that machine**
+  draws its own body (0 puts it back): `games/track` puts the kart there while driving.
+* **Wheels that turn and steer.** A model with a skeleton animates them by itself, by bone name:
+  `steer_*` steers about its own axis, `wheel_*` rolls about its own (child of a `steer_*`, steers
+  too), `steering_wheel` turns a quarter turn at full lock. "Its own axis" is the bone's Y, that is
+  where a Blender bone points. A wheel's radius is how high its centre is above the model's bottom.
+  The client reads steering and metres travelled from how the body moves: nothing to declare, and it
+  holds for other players too. A block wearing the model stays still.
+* **Clips by name.** A model with animations plays one chosen from the body's movement, with a fifth
+  of a second's crossfade between them: `idle`, `walk` (up to 5.5 m/s), `run`, `jump_loop` (in the
+  air), `swim`/`swim_idle` (in a liquid), `slide` (on a downhill conveyor from 3 m/s up: a chute)
+  and, for your own body, `fly`/`fly_hover` and while digging `mine`, `dig` or `chop` according to the
+  block's material (`stone`, `soil`, `wood`). A clip the model lacks leaves the previous one.
+* **Who drives.** In a body wearing a model with wheels (`wheel_*`) the client seats
+  `core.player_model`'s model, at the same origin: it plays `kart_enter` once, then `drive_idle` bent
+  towards `drive_left` or `drive_right` as far as the steering is turned. The driver's clips must
+  therefore be made round the vehicle's origin. `mods/robot` and `games/track`'s kart are made so.
+* **Vehicle parts.** A piece a mod has the driver wear (`core.player_wear`) named like the vehicle
+  plus `_<part>_<variant>` (`track_core:kart_wheel_slick` on `track_core:kart`) goes on the vehicle's
+  bones, not the rider's, and the vehicle bones named `<part>` or `<part>_*` are not drawn: the piece
+  replaces them (the four `wheel_*`). The vehicle itself worn as a piece paints it: its tint colours
+  the vehicle's `tint_1..3`. The nitro flames come out of the `flame_*` joints (along the bone) of the
+  pieces that have them, otherwise of the vehicle's; the skid marks from the `wheel_R*` bones, on the
+  road under them (on a track piece, its surface).
+* **Preview in a panel.** `core.ui_model(panel, x, y, w, h, model, tint, pieces)` puts in a box of
+  the panel a slowly turning model, framed by its size, with its colours and the pieces (ids separated
+  by spaces) on it as above: `games/track`'s garage shows the chosen kart this way. It does not answer
+  clicks (protocol 104). `tools/make_kart_parts.py` makes the kart split into parts (`nose`, `pods`,
+  `pipes`) and its 14 pieces.
+* **First-person arms.** A model registered with the player model's name plus `_arms`
+  (`robot:robot` -> `robot:robot_arms`) is drawn in front of the eye when the view is first person.
+  It is made in eye space: origin at the eye, forward -Z, up +Y. It plays `swing` while the left
+  button is down and `idle` otherwise, and sways while walking. A block in hand is a cube of its faces
+  in the palm of the `hand_R` bone; a track piece (`core.node_piece`) is the piece in miniature, its
+  road's longer side 0.24 forearms; on the ground, the same piece in miniature. It holds in the local
+  world too.
+* **Glass.** A material with base colour alpha under 1 (`baseColorFactor`, in Blender the Principled
+  BSDF's Alpha) is see-through: it is drawn after the rest of the model, blended and without writing
+  depth (the front's vehicles' windows, 0.3). Texture alpha instead cuts out: under 0.5 the pixel is
+  not there.
+* **The player's colours and accessories.** The `tint_1`, `tint_2`, `tint_3` materials of the
+  player's model (and its `_arms`) take the primary, secondary and accent chosen in the Robot menu
+  (protocol 93, `Hello::livery`); with no choice they keep the file's colour. Accessories are models
+  named after the player plus `_cap`, `_tophat`, `_headphones`, `_scarf`, `_bowtie`, `_medal`
+  (`robot:robot_cap`), made on the player's skeleton and drawn as a worn piece; a world that does not
+  register them simply does not show them. `tools/make_robot_extras.py` makes them. The species
+  (protocol 94, two bits above the accessories: human, mole man, frog man) replaces the player's model
+  with the one named after it plus `_human`, `_mole`, `_frog` (`robot:robot_mole`, with its `_arms`),
+  on the same skeleton and with the same clips; the chosen style is a worn piece named
+  `<species>_<style>` (`robot:robot_mole_lamp`). Accessories are the ones remade for the species
+  (`robot:robot_mole_cap`) if the world registers them, otherwise the player's; a head accessory
+  replaces the styles that are hats (lamp, crown, lily pad). A world that does not register the
+  species shows the robot. `tools/make_species.py` makes them all: every body part (head, torso, arm,
+  leg) is a single surface, primitives fused with a voxel remesh, smoothed and decimated, with weights
+  blended at the joints; eyes and small details stay sharp. A `sway_*` bone swings only forwards, away
+  from the chest. In a worn piece, a bone the player lacks follows its parent, and if named `sway_*`
+  dangles too round where it is attached.
+* **Tools in hand.** A `tool_<name>` bone shows only when the item in hand is named `<mod>:<name>`
+  (`tool_pick` for `tools:pick`), and the other `tool_*` vanish: on the arms and on your own body in
+  third person, and on other players (since protocol 48 the server sends everyone what each holds).
+* **Items in hand.** If the world has a model named like the item plus `_held`
+  (`core.register_model("ore:diamond_held", "diamond_held.gltf")`), whoever holds that item has it in
+  the palm of `hand_R` in place of the cube: a rigid glTF, no skeleton, made round the grip (origin at
+  the centre of the fist, +Y where a tool points, that is up in first person, +Z towards the eye in
+  first person: a flat thing lies in the XY plane), in metres of the 1.357 robot and scaled with the
+  forearm like the block. It holds on the arms, on your own body and on other players.
+  `tools/make_held_models.py` makes the 41 of the project's mods and the icons of those that had
+  none.
+* **Worn armour.** An item with `wear` (`core.register_item`) goes in one of the bag's four worn
+  slots (head, chest, legs, feet; shift-click with the bag open puts it on and takes it off). If the
+  world has a model with the item's name (`core.register_model("armor:iron_helmet", ...)`), the body
+  wears it: a glTF skinned on bones named like the player's, drawn with its pose. Since protocol 58
+  the server sends everyone what each wears. `tools/make_armor_models.py` makes `mods/armor`'s sixteen
+  on the robot's rig.
+* **Crouching.** Ctrl held on foot (in flight it stays "go down"): pace at 0.35 of `walk`, no
+  sprint, the eye at 0.8 of its height. The body plays `crouch_idle` or `crouch_walk`, and since
+  protocol 51 others see it too.
+* **Who works.** With the left button down the body plays its tool's clip: `mine` with the pickaxe,
+  `dig` with the shovel, `chop` with the axe, `sword_slash` with the sword; bare-handed the one for
+  the block's material. Since protocol 49 others see it too.
 
-### Un'entità che vedono tutti: `core.ecs.visible`
+### An entity everybody sees: `core.ecs.visible`
 
 ```luau
-local cartello = core.ecs.spawn("mymod:cartello", 32.5, 22.5, 30.5)
-core.ecs.visible(cartello, true)    -- da qui ogni giocatore vicino la riceve
-core.ecs.visible(cartello, false)   -- e da qui non più
+local sign = core.ecs.spawn("mymod:sign", 32.5, 22.5, 30.5)
+core.ecs.visible(sign, true)    -- from here every nearby player receives it
+core.ecs.visible(sign, false)   -- and from here no more
 ```
 
-Un'entità di un mod è nel mondo del server e basta, finché il mod non chiede che
-la vedano gli altri. Da lì viene mandata a ogni giocatore vicino dalla stessa
-strada che manda persone, creature e oggetti a terra, **come cosa**: il client la
-disegna come una scatola sua, non come una persona né come una creatura, perché
-il motore non sa cosa sia.
+A mod's entity is in the server's world and that is all, until the mod asks for others to see it.
+From then it is sent to every nearby player by the same road that sends people, creatures and items
+on the ground, **as a thing**: the client draws it as a box of its own, not as a person or a
+creature, because the engine does not know what it is.
 
-* **Solo le entità di un mod.** Un giocatore, una creatura o un oggetto a terra
-  hanno già un corpo che gli ha dato il motore, e `visible` li rifiuta in
-  entrambe le direzioni: un mod non può nascondere un giocatore.
-* **Nasconderla non è istantaneo per chi la stava guardando**: un client dimentica
-  un corpo che non riceve più dopo cinque secondi di silenzio.
-* **Un modello**: `core.ecs.model(id, core.register_model(...))` la disegna col
-  modello invece che con la scatola (0 torna alla scatola), i piedi alla sua y.
-  Solo su un'entità resa visibile da `visible`.
-* **Salute**: `core.ecs.health(id, 3)` gliene dà 3, e da lì un colpo di un
-  giocatore gliene toglie quanto toglie a una creatura; `core.ecs.health(id)` la
-  legge. A 0 resta dov'è: cosa voglia dire morire lo decide il mod.
-* **Una clip**: `core.ecs.clip(id, "shoot")` fa suonare quella clip del suo
-  modello al posto di quella che il motore sceglie dal movimento (idle, walk,
-  run secondo la velocità); `core.ecs.clip(id, "")` la ridà al movimento.
-  `"death"` va una volta e resta ferma sull'ultima posa: si chiama, si aspetta
-  la sua durata, poi `core.ecs.kill`. Viaggia ai client (protocollo 88).
-* **Quanto è grande per un colpo**: `core.ecs.box(id, 1.1, 3.2)` -- mezza
-  larghezza attorno al centro, altezza dai piedi in su. Senza, un colpo la
-  trova solo in un cubetto di 0.6 ai suoi piedi.
-* **Dove guarda**: `core.ecs.set(id, "yaw", a)` la gira come lo sguardo di un
-  giocatore (0 guarda verso -z); `core.ecs.get(id, "yaw")` lo legge. "yaw" non
-  può più essere il nome di un campo di un componente.
-* **Non si scontra** con niente. TODO.md OPEN-20.
+* **Only a mod's entities.** A player, a creature or an item on the ground already has a body the
+  engine gave it, and `visible` refuses them both ways: a mod cannot hide a player.
+* **Hiding it is not instant for whoever was looking**: a client forgets a body it no longer
+  receives after five seconds of silence.
+* **A model**: `core.ecs.model(id, core.register_model(...))` draws it with the model instead of the
+  box (0 goes back to the box), feet at its y. Only on an entity made visible by `visible`.
+* **Health**: `core.ecs.health(id, 3)` gives it 3, and from then a player's blow takes off as much as
+  it takes off a creature; `core.ecs.health(id)` reads it. At 0 it stays where it is: what dying
+  means the mod decides.
+* **A clip**: `core.ecs.clip(id, "shoot")` plays that clip of its model in place of the one the
+  engine picks from movement (idle, walk, run by speed); `core.ecs.clip(id, "")` gives it back to
+  movement. `"death"` goes once and holds the last pose: call it, wait its length, then
+  `core.ecs.kill`. It travels to clients (protocol 88).
+* **How big for a blow**: `core.ecs.box(id, 1.1, 3.2)` -- half width round the centre, height from
+  the feet up. Without it, a blow finds it only in a little 0.6 cube at its feet.
+* **Where it looks**: `core.ecs.set(id, "yaw", a)` turns it like a player's gaze (0 looks towards
+  -z); `core.ecs.get(id, "yaw")` reads it. "yaw" can no longer be the name of a component field.
+* **It collides** with nothing. TODO.md OPEN-20.
 
-### Mezzi: `core.craft`
+### Vehicles: `core.craft`
 
-Un'entità di un mod resa visibile può diventare un **mezzo**: una jeep, un carro
-armato, un elicottero, un aereo. Il motore la muove con Jolt (lo stesso del
-kart, `core/physics/craft.h`), solo sul server, un passo fisso a 60 Hz; i
-giocatori ci salgono come passeggeri di un corpo (`core.ride`) e chi guida è
-chi il mod ascolta.
+A mod's entity made visible can become a **vehicle**: a jeep, a tank, a helicopter, a plane. The
+engine moves it with Jolt (the same as the kart, `core/physics/craft.h`), server only, a fixed step at
+60 Hz; players get on as passengers of a body (`core.ride`) and whoever drives is whoever the mod
+listens to.
 
 ```luau
-local id = core.ecs.spawn("fronte:mezzo", x, y, z)   -- i piedi: il fondo del modello
+local id = core.ecs.spawn("front:vehicle", x, y, z)  -- the feet: the model's bottom
 core.ecs.visible(id, true)
-core.ecs.model(id, CARRO)
-core.ecs.set(id, "yaw", 0)                            -- prima di make: dove guarda
+core.ecs.model(id, TANK)
+core.ecs.set(id, "yaw", 0)                            -- before make: where it looks
 core.craft.make(id, "tracked", 3000, 1.6, 0.6, 3.2, 4, 9, 0.9)
---               tipo, kg, mezza larghezza, mezza altezza, mezza lunghezza, m/s², m/s, rad/s
+--               kind, kg, half width, half height, half length, m/s², m/s, rad/s
 ```
 
-* **`core.craft.make(id, kind, mass, half_w, half_h, half_l, accel, top, turn)`**:
-  `kind` è `"wheeled"` (quattro ruote motrici, le due davanti sterzano),
-  `"tracked"` (due cingoli, si gira rallentando uno, da fermo sul posto),
-  `"rotor"` (spinto lungo il suo su, inclinato verso dove deve andare) o `"wing"`
-  (spinto lungo il muso, sostenuto da quanto va veloce: sotto il 45% di `top`
-  stalla). Le misure sono lo scafo in nodi. Rifatto, ricomincia da fermo.
-* **`core.craft.keys(id, forward, right, up, yaw)`**: quello che chiede chi
-  guida, da -1 a 1, tenuto finché non si dice altro. Ruote e cingoli: gas e
-  sterzo. Rotore: `forward` e `right` lo inclinano, `up` è il collettivo (0 sta
-  sospeso), `yaw` lo gira. Ala: `up` muove la manetta (e lei resta dove l'ha
-  lasciata), `forward` è la cloche in avanti (muso giù), `right` il rollio,
-  `yaw` il timone. Chi gioca preme tasti sul suo client: il mod li manda con
-  `core.net` e li passa qui.
-* **`core.craft.pose(id)`**: una tabella `x y z yaw pitch roll vx vy vz speed
-  grounded impact throttle`. `speed` è lungo il muso, `impact` il colpo più
-  forte preso da quando lo si è chiesto l'ultima volta, in m/s (uno schianto),
-  e chiederlo lo azzera.
-* **`core.craft.push(id, vx, vy, vz)`**: aggiunto alla sua velocità: un'esplosione.
-* **`core.craft.mount(id, on, x, y, z)`**: un'altra entità visibile portata su
-  `on` a x, y, z nel suo riferimento (x a destra, y su, z avanti): una torretta
-  su uno scafo, una canna sulla torretta. `on` 0 la lascia. Rimessa a posto
-  ogni tick dopo i mezzi, chi porta prima di chi è portato.
-* **`core.craft.aim(id, yaw, pitch)`**: quanto una cosa montata è girata su chi
-  la porta e alzata; su una non montata, come guarda nel mondo (un mortaio).
-* **`core.craft.seat(player, id, x, y, z)`**: il giocatore portato su
-  quell'entità, al posto x, y, z nel suo riferimento, finché `core.ride(player,
-  0)` non lo fa scendere o l'entità non sparisce. Da seduto guarda dove vuole
-  (`core.player_look`) e il suo WASD non lo muove.
+* **`core.craft.make(id, kind, mass, half_w, half_h, half_l, accel, top, turn)`**: `kind` is
+  `"wheeled"` (four-wheel drive, the front two steer), `"tracked"` (two tracks, turns by slowing one,
+  from still on the spot), `"rotor"` (pushed along its up, tilted towards where it must go) or
+  `"wing"` (pushed along the nose, held up by how fast it goes: under 45% of `top` it stalls). The
+  sizes are the hull in nodes. Made again, it starts from still.
+* **`core.craft.keys(id, forward, right, up, yaw)`**: what the driver asks, -1 to 1, held until told
+  otherwise. Wheels and tracks: throttle and steering. Rotor: `forward` and `right` tilt it, `up` is
+  the collective (0 hovers), `yaw` turns it. Wing: `up` moves the throttle (and it stays where it was
+  left), `forward` is the stick forward (nose down), `right` the roll, `yaw` the rudder. The player
+  presses keys on their client: the mod sends them with `core.net` and passes them here.
+* **`core.craft.pose(id)`**: a table `x y z yaw pitch roll vx vy vz speed grounded impact throttle`.
+  `speed` is along the nose, `impact` the hardest blow taken since it was last asked, in m/s (a
+  crash), and asking zeroes it.
+* **`core.craft.push(id, vx, vy, vz)`**: added to its velocity: an explosion.
+* **`core.craft.mount(id, on, x, y, z)`**: another visible entity carried on `on` at x, y, z in its
+  frame (x right, y up, z forward): a turret on a hull, a barrel on the turret. `on` 0 releases it.
+  Put back in place every tick after the vehicles, carrier before carried.
+* **`core.craft.aim(id, yaw, pitch)`**: how far a mounted thing is turned on its carrier and raised;
+  on an unmounted one, how it looks in the world (a mortar).
+* **`core.craft.seat(player, id, x, y, z)`**: the player carried on that entity, at seat x, y, z in
+  its frame, until `core.ride(player, 0)` gets them off or the entity vanishes. Seated, they look
+  where they like (`core.player_look`) and their WASD does not move them.
 
-Ogni mezzo è un mondo Jolt suo con i blocchi attorno; il motore poi separa due
-mezzi che si sovrappongono (in proporzione alla massa) e spinge fuori dallo
-scafo chi è a piedi. Dal protocollo 100 lo scafo va ai client: il corpo di un
-giocatore non ci entra, ci sta sopra e viene portato con lui. Il rollio di
-un'entità va ai client dal protocollo 98.
+Every vehicle is a Jolt world of its own with the blocks round it; the engine then separates two
+overlapping vehicles (in proportion to mass) and pushes whoever is on foot out of the hull. Since
+protocol 100 the hull goes to clients: a player's body does not go into it, it stands on it and is
+carried with it. An entity's roll goes to clients since protocol 98.
 
-**Sul client di chi guida**, `make`, `keys` e `pose` fanno girare il mezzo anche
-lì, perché parta nel frame in cui si preme il tasto e non un andata e ritorno
-dopo. `core.craft.make(id, ...)` vale solo per il mezzo su cui il giocatore è
-seduto (con `core.craft.seat`) e torna `false` finché il seggiolino non è
-arrivato: va richiamato finché non dice `true`. Da lì `keys` sono quelle che il
-mod dà sul server (le stesse, calcolate allo stesso modo) e `pose` è dove il
-mezzo sarà. Il motore lo disegna lì, ci mette sopra il giocatore e porta con lui
-quello che ci sta sopra o dentro. Lo confronta con le pose del server: corregge
-piano gli scarti piccoli e lo rimette dove dice il server se si allontana più di
-3 nodi. Scendere dal mezzo ferma la previsione. Gli altri `core.craft` sul client
-non fanno niente. Esempio: `drive_here` in `games/front/mods/front_game`.
+**On the driver's client**, `make`, `keys` and `pose` run the vehicle there too, so it moves in the
+frame the key is pressed and not a round trip later. `core.craft.make(id, ...)` holds only for the
+vehicle the player is seated on (with `core.craft.seat`) and returns `false` until the seat has
+arrived: call it again until it says `true`. From then `keys` are the ones the mod gives on the
+server (the same, computed the same way) and `pose` is where the vehicle will be. The engine draws it
+there, puts the player on it and carries with it what is on or in it. It compares it with the
+server's poses: it corrects small gaps gently and puts it back where the server says if it strays
+more than 3 nodes. Getting off the vehicle stops the prediction. The other `core.craft` on the client
+do nothing. Example: `drive_here` in `games/front/mods/front_game`.
 
-### Codice che un mondo manda al client: `side`
+### Code a world sends to the client: `side`
 
 ```
 # mod.conf
 name = hud
-side = both        # server | client | both; server se non c'è
+side = both        # server | client | both; server if absent
 ```
 
 ```luau
 if core.side() == "server" then
-    core.event.on("core:net_message", function(ev) core.net.send(ev.player, "ciao") end)
+    core.event.on("core:net_message", function(ev) core.net.send(ev.player, "hello") end)
 else
-    core.render.pass("hud:mirino", 100, function() core.render.box(0, 60, 0) end)
+    core.render.pass("hud:crosshair", 100, function() core.render.box(0, 60, 0) end)
 end
 ```
 
-Un mod dice **dove gira**. `server` è ogni mod di prima: gira dove sta il mondo.
-`client` il server non lo fa girare: lo impacchetta e lo manda ai giocatori come
-media. `both` gira in tutti e due i posti, ed è quello che serve a un mod per
-parlare con la sua altra metà sul proprio canale — il canale di un mod è il suo
-nome, e il server lo dà ai mod che fa girare. `core.side()` dice a una metà quale
-è: `"server"`, `"client"`, o `"both"` in un processo che è il server di se stesso.
+A mod says **where it runs**. `server` is every mod from before: it runs where the world is.
+`client` the server does not run: it packs it and sends it to players as media. `both` runs in both
+places, and it is what a mod needs to talk with its other half on its own channel -- a mod's channel
+is its name, and the server gives it to the mods it runs. `core.side()` tells a half which it is:
+`"server"`, `"client"`, or `"both"` in a process that is its own server.
 
-Sulla macchina di un giocatore il codice di un mondo:
+On a player's machine a world's code:
 
-* **non scrive il mondo e non registra niente**: blocchi, forme, modelli, oggetti,
-  ricette, stage, modificatori, borse, casse, pannelli, salute e movimento sono
-  del server. La funzione c'è e non fa niente, o dà un errore che dice perché;
-* **non ha nessuna capability**, nemmeno `os`: un mod che ne dichiara una non
-  viene caricato, e il log la nomina;
-* **non alza la propria quota** di memoria o il budget di interruzione sopra i
-  default;
-* **muore con la sessione**: attraversare un portale è entrare in un altro mondo,
-  con il codice suo.
+* **does not write the world and registers nothing**: blocks, shapes, models, items, recipes,
+  stages, modifiers, bags, chests, panels, health and movement are the server's. The function is
+  there and does nothing, or gives an error saying why;
+* **has no capability**, not even `os`: a mod declaring one is not loaded, and the log names it;
+* **does not raise its own** memory quota or interrupt budget above the defaults;
+* **dies with the session**: crossing a portal is entering another world, with its own code.
 
-**Il giocatore può rifiutarlo**: `--world-code refuse` per tutti i mondi, o la
-chiave di firma di un mondo, in esadecimale, una per riga in
-`world_code_refused.txt` nella cache dei media. Un mondo rifiutato si gioca lo
-stesso: il server resta l'autorità, quindi rifiutare non dà nessun vantaggio e
-toglie solo quello che il mondo voleva mostrare.
+**The player can refuse it**: `--world-code refuse` for every world, or a world's signing key, in
+hex, one per line in `world_code_refused.txt` in the media cache. A refused world is played all the
+same: the server stays the authority, so refusing gives no advantage and only takes away what the
+world wanted to show.
 
-Il codice di un mondo **disegna sullo schermo e sente i tasti**: `core.hud` e
-`core:input`, sotto. Quello che **non** c'è ancora: un mod solo client che parli al
-server senza una metà `both`. TODO.md OPEN-49.
+A world's code **draws on the screen and hears keys**: `core.hud` and `core:input`, below. What is
+**not** there yet: a client-only mod talking to the server without a `both` half. TODO.md OPEN-49.
 
-### Sullo schermo e dai tasti: `core.hud` e `core:input`
+### On the screen and from the keys: `core.hud` and `core:input`
 
 ```luau
-core.hud.pass("gara:tempo", 100, function()
-    core.hud.rect(0.5, 0.5, 0.026, 0.003, 223, 244, 255, 230)   -- mirino
-    core.hud.text(0.5, 0.9, `{giri} / 3`, 0.045)
+core.hud.pass("race:time", 100, function()
+    core.hud.rect(0.5, 0.5, 0.026, 0.003, 223, 244, 255, 230)   -- crosshair
+    core.hud.text(0.5, 0.9, `{laps} / 3`, 0.045)
 end)
 
 core.event.on("core:input", function(ev)
     if ev.action == "mouse_left" then
-        ev.cancel = true            -- il click è del mod: niente scavo, niente colpo
-        core.net.send(0, "spara")
+        ev.cancel = true            -- the click is the mod's: no digging, no blow
+        core.net.send(0, "fire")
     end
 end)
 ```
 
-Un **hud pass** non è un render pass: quello gira una volta per camera, e un
-portale sullo schermo disegnerebbe il tempo una volta per ogni mondo che mostra.
-Questo gira **una volta per frame**, sopra la barra e sotto un pannello.
-`x, y` sono frazioni dello schermo e sono **il centro** di quello che si disegna
-(`align` 0 mette lì l'estremo sinistro del testo, 2 il destro); `w`, `h` e
-`size` sono frazioni dell'**altezza**, così un quadrato resta quadrato a ogni
-proporzione. Fuori da un pass `text`, `rect` e `image` sono rifiutate e lo dicono.
+A **hud pass** is not a render pass: that runs once per camera, and a portal on the screen would draw
+the time once for every world it shows. This runs **once per frame**, over the bar and under a panel.
+`x, y` are fractions of the screen and are **the centre** of what is drawn (`align` 0 puts the text's
+left end there, 2 the right); `w`, `h` and `size` are fractions of the **height**, so a square stays
+square at any proportion. Outside a pass `text`, `rect` and `image` are refused and say so.
 
-`core.hud.image(nome, x, y, w, h, a)` disegna un'immagine dei media di questo
-mondo — un PNG fra le texture di un suo mod, per nome di file — con il centro in
-`x, y` e le misure come `rect`; `a` è l'opacità, 0-255. Decodificata una volta
-sola; un nome che il mondo non ha è detto nel log una volta e disegna niente.
-Il server manda come media solo le texture dei **blocchi e degli oggetti
-registrati**: un PNG che è solo un disegno per l'HUD va registrato come
-oggetto che nessuno riceve (`core.register_item`), e si chiama col nome del
-suo file. `games/track` fa così con le icone dei power-up e la macchia
-dell'inchiostro (`track_core:item_*`, `track_core_item_boost.png`). Della
-misura delle altre texture del mondo (32 px): l'atlante ne prende una sola, e
-un'immagine di un'altra misura è un quadrato rosso nella borsa.
+`core.hud.image(name, x, y, w, h, a)` draws an image of this world's media -- a PNG among the
+textures of one of its mods, by file name -- centred at `x, y` and sized like `rect`; `a` is opacity,
+0-255. Decoded once; a name the world does not have is said in the log once and draws nothing. The
+server sends as media only the textures of **registered blocks and items**: a PNG that is only a
+drawing for the HUD must be registered as an item nobody receives (`core.register_item`), and is
+called by its file name. `games/track` does so with the power-up icons and the ink splat
+(`track_core:item_*`, `track_core_item_boost.png`). The size of the world's other textures (32 px):
+the atlas takes only one, and an image of another size is a red square in the bag.
 
-`core.hud.item(nome, x, y, lato)` disegna il quadrato di un oggetto come lo
-disegna la borsa (un pezzo di pista come la sua pianta), centro in `x, y` e
-lato in frazioni dell'altezza; false per un oggetto che il mondo non ha.
-`core.hud.mouse()` dice dov'è il cursore, in frazioni dello schermo come le
-`x, y` di `text` (niente dove non c'è schermo): con la camera di
-`core.fixed_view` il cursore è libero e i click arrivano comunque a
-`core:input`, così un mod ci fa una griglia da cliccare (l'editor della pista).
+`core.hud.item(name, x, y, side)` draws an item's square as the bag draws it (a track piece as its
+plan), centre at `x, y` and side in fractions of the height; false for an item the world does not
+have. `core.hud.mouse()` says where the cursor is, in fractions of the screen like `text`'s `x, y`
+(nothing where there is no screen): with `core.fixed_view`'s camera the cursor is free and clicks
+reach `core:input` anyway, so a mod makes a grid to click on (the track editor).
 
-`core.hud.aspect()` è larghezza diviso altezza dello schermo (0 dove non c'è
-schermo). Serve a mettere qualcosa **allineato alle barre del motore**, le cui
-misure sono frazioni dell'altezza: la barra della fame di `mods/hunger` è larga
-quanto la hotbar, e il centro di ogni tacca va in `0.5 + dx / aspect`. Le misure
-del motore sono in `src/client/ui/hud.cpp` (uno slot è 0.075 dell'altezza, lo
-spazio fra due 0.0075, una barra alta 0.0165).
+`core.hud.aspect()` is the screen's width divided by height (0 where there is no screen). It is for
+putting something **aligned with the engine's bars**, whose sizes are fractions of the height:
+`mods/hunger`'s hunger bar is as wide as the hotbar, and each notch's centre goes at
+`0.5 + dx / aspect`. The engine's sizes are in `src/client/ui/hud.cpp` (a slot is 0.075 of the
+height, the gap between two 0.0075, a bar 0.0165 high).
 
-`core.view(distanza)` mette la camera di questo mondo **dietro** il giocatore, a
-quella distanza in nodi (0 è l'occhio, al massimo 16), con il suo corpo disegnato
-nel modello di `core.player_model`. Vale per il mondo che la chiede: tornare in
-un mondo che non ha detto niente riporta all'occhio. Il tasto V fa lo stesso a
-mano. `games/track` la chiama con 5.
+`core.view(distance)` puts this world's camera **behind** the player, at that distance in nodes (0
+is the eye, at most 16), with their body drawn in `core.player_model`'s model. It holds for the world
+asking: going back to a world that said nothing returns to the eye. The V key does the same by hand.
+`games/track` calls it with 5.
 
-`core.engine_hud_on()` dice se la barra e le barre del motore sono disegnate in
-questo mondo: un mod che disegna una barra accanto a loro (`mods/hunger`,
-`mods/enchant`) la nasconde con loro quando il codice di un mondo ha detto
-`core.engine_hud(false)`.
+`core.engine_hud_on()` says whether the engine's hotbar and bars are drawn in this world: a mod
+drawing a bar beside them (`mods/hunger`, `mods/enchant`) hides it with them when a world's code has
+said `core.engine_hud(false)`.
 
-`core.fixed_view(x, y, z, distanza, yaw, pitch, fov, secondi)` è la camera di
-`core.iso_view` tenuta su **un punto** invece che sulla testa: vola dall'occhio fin
-lì in `secondi`, il cursore è libero (`core.cursor_ray`), il corpo sta fermo (i
-tasti non camminano) e non si vede; `distanza` 0 la riporta all'occhio. È la
-vista di `mods/chess` sopra la scacchiera.
+`core.fixed_view(x, y, z, distance, yaw, pitch, fov, seconds)` is `core.iso_view`'s camera held on
+**a point** instead of the head: it flies from the eye there in `seconds`, the cursor is free
+(`core.cursor_ray`), the body stays still (the keys do not walk) and is not seen; `distance` 0 brings
+it back to the eye. It is `mods/chess`'s view over the board.
 
-`core:input` arriva quando il giocatore **preme** e quando **lascia**, mentre
-gioca: `mouse_left`, `mouse_right`, e i tasti `key_w`, `key_a`, `key_s`, `key_d`,
-`key_space`, `key_shift`, `key_ctrl`, `key_f`, `key_r`, `key_e`, `key_q`, `key_v`,
-`key_c`, `key_b`, `key_f4`, `key_f8`, `key_i`, `key_k`, `key_1` … `key_9`; il rilascio è lo stesso nome con `_up` (`key_w_up`,
-`mouse_left_up`). Con una chest aperta sopra la borsa arrivano anche `wheel_up` e
-`wheel_down`, la rotella (`mods/creative` scorre le righe). Un tasto tenuto è quello premuto e non ancora lasciato. Un
-handler che mette `ev.cancel = true` su una **pressione** del mouse l'ha
-**reclamata**: il motore non scava, non colpisce, non piazza e non usa con quella
-pressione, finché il tasto non torna su. I tasti si sentono e basta: il motore
-cammina, vola e apre la borsa con i suoi comunque (`mods/creative` apre la sua
-lista con C). Fanno eccezione `key_1` … `key_9`: reclamati, non cambiano
-l'oggetto in mano (il fronte li usa per i posti dei mezzi). Solo sul client: il server non vede tasti,
-vede quello che la metà client di un mod ha deciso di mandare — quindi un mod
-`both` ascolta `core:input` solo dal lato che non è `"server"`.
+`core:input` arrives when the player **presses** and when they **let go**, while playing:
+`mouse_left`, `mouse_right`, and the keys `key_w`, `key_a`, `key_s`, `key_d`, `key_space`,
+`key_shift`, `key_ctrl`, `key_f`, `key_r`, `key_e`, `key_q`, `key_v`, `key_c`, `key_b`, `key_f4`,
+`key_f8`, `key_i`, `key_k`, `key_1` … `key_9`; the release is the same name with `_up` (`key_w_up`,
+`mouse_left_up`). With a chest open over the bag `wheel_up` and `wheel_down` arrive too, the wheel
+(`mods/creative` scrolls the rows). A held key is one pressed and not yet released. A handler setting
+`ev.cancel = true` on a mouse **press** has **claimed** it: the engine does not dig, strike, place or
+use with that press, until the button comes back up. Keys are only heard: the engine walks, flies and
+opens the bag with its own anyway (`mods/creative` opens its list with C). The exception is `key_1` …
+`key_9`: claimed, they do not change the item in hand (the front uses them for vehicle seats). Client
+only: the server sees no keys, it sees what a mod's client half decided to send -- so a `both` mod
+listens to `core:input` only on the side that is not `"server"`.
 
-### Un colpo deciso dal server: `core.player_look` e `core.raycast`
+### A shot decided by the server: `core.player_look` and `core.raycast`
 
 ```luau
 local x, y, z = core.player_pos(player)
 local dx, dy, dz = core.player_look(player)
-local _, _, _, muro = core.raycast(x, y + 1.62, z, dx, dy, dz, 60)
+local _, _, _, wall = core.raycast(x, y + 1.62, z, dx, dy, dz, 60)
 ```
 
-`player_look` è dove guarda un giocatore **secondo il server**: lo sguardo
-arrivato con l'ultima posizione accettata. Con `player_pos` è un colpo che il
-server lancia senza prendere la mira dal client — un client può mentire solo su
-*quando* ha premuto. `raycast` restituisce il primo blocco solido lungo il raggio
-e a che distanza, entro `max` (al massimo 256), o niente. **Solo blocchi**.
+`player_look` is where a player looks **according to the server**: the gaze that arrived with the
+last accepted position. With `player_pos` it is a shot the server fires without taking aim from the
+client -- a client can only lie about *when* it pressed. `raycast` returns the first solid block
+along the ray and at what distance, within `max` (at most 256), or nothing. **Blocks only**.
 
-Un proiettile che colpisce **i corpi** è `core.shoot`: il primo corpo che si può
-ferire (una creatura, o un'entità di un mod con `core.ecs.health`) prima del primo
-blocco solido perde `damage` e viene respinto; torna a che distanza e se è morto.
-`core.blast` è un'esplosione: tutti i corpi entro `r`, metà danno al bordo, e
-torna quanti ne ha uccisi. Nessuno dei due tocca mai un giocatore.
+A projectile that hits **bodies** is `core.shoot`: the first body that can be hurt (a creature, or a
+mod's entity with `core.ecs.health`) before the first solid block loses `damage` and is knocked back;
+it returns at what distance and whether it died. `core.blast` is an explosion: every body within `r`,
+half damage at the edge, and it returns how many it killed. Neither ever touches a player.
 
 ```luau
-local dist, morto = core.shoot(x, y + 1.5, z, dx, dy, dz, 80, 6)   -- niente se ha mancato
-local uccisi = core.blast(x, y, z, 7, 140)
-core.mob_sight("mymod:imp", 64)   -- da quanto lontano un tipo vede chi inseguire (16)
+local dist, dead = core.shoot(x, y + 1.5, z, dx, dy, dz, 80, 6)   -- nothing if it missed
+local killed = core.blast(x, y, z, 7, 140)
+core.mob_sight("mymod:imp", 64)   -- how far a kind sees whom to chase (16)
 ```
 
-Sul client, `core.arms_clip("fire_shotgun")` suona una volta, dall'inizio, una clip
-delle braccia in prima persona (il modello `<giocatore>_arms`), anche se sta già
-suonando, e poi le lascia al motore: lo sparo di un'arma, un'arma che si alza.
-`core.held_item` sul client risponde per il giocatore di questa macchina (id 1).
+On the client, `core.arms_clip("fire_shotgun")` plays once, from the start, a clip of the
+first-person arms (the `<player>_arms` model), even if already playing, and then leaves them to the
+engine: a weapon's shot, a weapon being raised. `core.held_item` on the client answers for this
+machine's player (id 1).
 
-Le braccia a riposo suonano `idle_<oggetto>` quando ce l'hanno (`idle_shotgun`
-con `yafps_game:shotgun` in mano), altrimenti `idle`: ogni arma si tiene a modo suo.
+Arms at rest play `idle_<item>` when they have it (`idle_shotgun` with `yafps_game:shotgun` in hand),
+otherwise `idle`: every weapon is held its own way.
 
-`games/yafps` è l'esempio intero: una base a più stanze in stile arena shooter moderno con
-pistola, fucile a pompa, doppietta, mitragliatrice e plasma cannon (ogni arma un osso
-`tool_<arma>` sotto la mano destra delle braccia del robot, le mani messe sulle
-impugnature con l'IK in `tools/make_fps_models.py`), ondate di demoni fatti con
-`core.register_mob`, munizioni e HUD.
+`games/yafps` is the whole example: a multi-room base in modern arena shooter style with pistol,
+pump shotgun, double barrel, machine gun and plasma cannon (each weapon a `tool_<weapon>` bone under
+the robot arms' right hand, the hands put on the grips with IK in `tools/make_fps_models.py`), waves
+of demons made with `core.register_mob`, ammo and HUD.
 
-### Che cosa esiste: `core.item_count`, `core.item_name`, `core.item_stack`
+### What exists: `core.item_count`, `core.item_name`, `core.item_stack`
 
 ```luau
 for id = 1, core.item_count() - 1 do
     local name = core.item_name(id)
     if name ~= "" then
-        print(name, core.item_stack(id))   -- quanti ne stanno in uno slot
+        print(name, core.item_stack(id))   -- how many fit in a slot
     end
 end
 ```
 
-`core.item_id` risponde su un nome che il mod **ha già**; queste tre rispondono
-nell'altro senso, cioè "che cosa c'è in questo mondo". Servono a un inventario
-creativo, a una casella di ricerca, a un mod che elenca quello che un mondo
-tiene — cose che da Lua non si potevano nemmeno chiedere.
+`core.item_id` answers on a name the mod **already has**; these three answer the other way, "what is
+there in this world". They are for a creative inventory, a search box, a mod listing what a world
+holds -- things that from Lua could not even be asked.
 
-`item_name` risponde **vuoto** per un id che nessuno ha registrato e per un
-**orfano**, cioè un item il cui mod è andato via: l'id resta (una pila in un
-baule continua a valere quello che valeva) ma a nessuno si può più dare, quindi
-camminare da 1 a `item_count` saltando i vuoti dà esattamente gli item che un
-giocatore può ricevere. `mods/creative` è l'esempio: un pannello con un pulsante
-per item, e un click dà una pila piena — `item_stack` e non 64, altrimenti ogni
-attrezzo sarebbe sbagliato.
+`item_name` answers **empty** for an id nobody registered and for an **orphan**, an item whose mod has
+gone: the id stays (a stack in a chest keeps being worth what it was) but it can no longer be given to
+anyone, so walking from 1 to `item_count` skipping the empties gives exactly the items a player can
+receive. `mods/creative` is the example: a panel with a button per item, and a click gives a full
+stack -- `item_stack` and not 64, otherwise every tool would be wrong.
 
-### Contenitori, cinnabar e altre cose aggiunte il 2026-09-25
+### Containers, cinnabar and other things added on 2026-09-25
 
-Riassunto per chi scrive un mod; firme e default in [API.md](API.md).
+A summary for whoever writes a mod; signatures and defaults in [API.md](API.md).
 
-**Contenitori fra loro.** `core.container_fill(x, y, z)` dice quanto è pieno un
-contenitore, 0..1, come lo legge un comparatore (ogni slot vale la sua pila
-diviso quanto ne sta in una pila), -1 se lì non c'è. `core.container_revision`
-è un numero che cambia a ogni modifica del contenuto, a mano o da un mod: un
-comparatore lo guarda ogni 0,25 s. `core.container_move(da, a, quanti)` sposta
-la prima pila da un contenitore a un altro **così com'è** (usura e incantesimi
-compresi), e `core.collect_drops(cella, contenitore)` mette dentro un
-contenitore quello che giace in una cella: sono le due metà di un hopper
-(`mods/cinnabar`).
+**Containers among themselves.** `core.container_fill(x, y, z)` says how full a container is, 0..1,
+as a comparator reads it (every slot is worth its stack divided by how many fit in a stack), -1 if
+there is none there. `core.container_revision` is a number that changes at every change of the
+contents, by hand or by a mod: a comparator watches it every 0.25 s. `core.container_move(from, to,
+count)` moves the first stack from one container to another **as it is** (wear and enchantments
+included), and `core.collect_drops(cell, container)` puts into a container what lies in a cell: they
+are the two halves of a hopper (`mods/cinnabar`).
 
-**Osservare una cella.** `core.watch_cell(x, y, z, on)` chiede di sapere quando
-**qualunque cosa** scrive quella cella: un mod (acqua che scorre, grano che
-cresce), un giocatore che piazza o rompe, il motore (una porta aperta da una
-creatura). Si sente come `core:watched`. Le osservazioni non si salvano: un
-observer le richiede con un LBM quando il suo chunk si carica.
+**Watching a cell.** `core.watch_cell(x, y, z, on)` asks to know when **anything** writes that cell:
+a mod (flowing water, growing wheat), a player placing or breaking, the engine (a door opened by a
+creature). It is heard as `core:watched`. Watches are not saved: an observer asks for them again with
+an LBM when its chunk loads.
 
 ```luau
 core.register_lbm("mymod:rewatch", { "mymod:sensor" }, function(cell)
     core.watch_cell(cell.x - 1, cell.y, cell.z, true)
 end)
-core.event.on("core:watched", function(ev) --[[ la cella è cambiata ]] end)
+core.event.on("core:watched", function(ev) --[[ the cell changed ]] end)
 ```
 
-**Spostare corpi.** `core.push_mobs(x, y, z, dx, dy, dz)` sposta le creature coi
-piedi in quella cella; un giocatore si sposta con `core.player_place` (il
-pistone lo fa scivolare in quattro tick da 0,25).
+**Moving bodies.** `core.push_mobs(x, y, z, dx, dy, dz)` moves creatures with their feet in that
+cell; a player is moved with `core.player_place` (the piston slides them in four ticks of 0.25).
 
-**Blocchi.** `core.node_solid(id)` risponde 1 o 0 — confrontatelo con 1, perché
-in Luau anche 0 è vero. Un blocco `wallmounted` guarda fuori dalla faccia contro
-cui è stato messo, in sei direzioni: è così che pistoni, observer e hopper
-puntano anche in su e in giù (+X, -X, +Y, -Y, +Z, -Z per le facce 0..5, e i box
-si scrivono col davanti verso +Z). **L'immagine di un box si legge con la prima
-riga in basso**: una torcia disegnata con la testa nelle prime righe esce a testa
-in giù.
+**Blocks.** `core.node_solid(id)` answers 1 or 0 -- compare it with 1, because in Luau 0 is true too.
+A `wallmounted` block looks out of the face it was placed against, in six directions: that is how
+pistons, observers and hoppers point up and down too (+X, -X, +Y, -Y, +Z, -Z for faces 0..5, and
+boxes are written with the front towards +Z). **A box's picture is read with the first row at the
+bottom**: a torch drawn with its head in the first rows comes out upside down.
 
-**Rinominare.** `core.node_alias(vecchio, nuovo)` fa caricare come `nuovo` le celle
-salvate col nome vecchio, invece del segnaposto magenta; `core.item_alias` fa lo
-stesso per le pile in borse e bauli. Si leggono solo quando si apre un mondo.
+**Renaming.** `core.node_alias(old, new)` loads cells saved with the old name as `new`, instead of
+the magenta placeholder; `core.item_alias` does the same for stacks in bags and chests. They are read
+only when a world opens.
 
-**Tempo, rinascita, rigenerazione.** `core.time_of_day()` (0 mezzanotte, 0.25
-alba, 0.5 mezzogiorno, 0.75 tramonto) e `core.set_time(t)`, che tutti i client
-sentono subito: il letto. `core.player_spawn(player, x, y, z, on)` dove quel
-giocatore rinasce, finché è connesso. `core.player_regen(player, on)` ferma o
-riattiva la salute che torna da sola: la fame.
+**Time, respawn, regeneration.** `core.time_of_day()` (0 midnight, 0.25 dawn, 0.5 noon, 0.75 dusk)
+and `core.set_time(t)`, which every client hears at once: the bed. `core.player_spawn(player, x, y,
+z, on)` where that player respawns, while connected. `core.player_regen(player, on)` stops or
+restarts health coming back by itself: hunger.
 
-**Creature.** `core.mob_drop(nome, oggetto, max)` è un secondo drop, 0..max: la
-pelle della mucca. `core.monsters_near(x, y, z, r)` conta le creature che
-combattono (non `"pet"`) entro r: il letto non fa dormire se ce n'è una entro 8.
+**Creatures.** `core.mob_drop(name, item, max)` is a second drop, 0..max: the cow's hide.
+`core.monsters_near(x, y, z, r)` counts the fighting creatures (not `"pet"`) within r: the bed does
+not let you sleep if one is within 8.
 
-**Luce.** `core.light(x, y, z)` è quanto è illuminata una cella adesso, 0..15: la
-luce dei blocchi o quella del cielo per l'ora (piena a mezzogiorno, un quinto a
-mezzanotte, niente sotto `core.world_sky`). Il grano cresce da 9 in su.
+**Light.** `core.light(x, y, z)` is how lit a cell is now, 0..15: the blocks' light or the sky's for
+the hour (full at noon, a fifth at midnight, none under `core.world_sky`). Wheat grows from 9 up.
 
-**Seduti su un altro: `core.ride`.** `core.ride(player, host, x, y, z)` mette
-`player` sul corpo di `host`, a x alla sua destra, y in su e z davanti (ognuno
-entro 8), e ce lo tiene girando con lui: il passeggero di un kart. Il server lo
-rimette al posto a ogni tick e non guarda le sue posizioni; lui guarda, scava,
-costruisce e usa come sempre. `core.ride(player, 0)` lo fa scendere dov'è; scende
-da solo se `host` se ne va. Solo sul server (protocollo 63).
+**Riding on another: `core.ride`.** `core.ride(player, host, x, y, z)` puts `player` on `host`'s
+body, at x to its right, y up and z ahead (each within 8), and keeps them there turning with it: a
+kart's passenger. The server puts them back in place every tick and ignores their positions; they
+look, dig, build and use as always. `core.ride(player, 0)` gets them off where they are; they get off
+by themselves if `host` leaves. Server only (protocol 63).
 
-**Girare, e sapere cosa c'è.** `core.node_turns(id)` dice quanti valori prende
-`core.set_facing` per quel blocco: 1 senza fronte, 4 dritto, 6 a muro, 24 un
-tronco; `mods/screwdriver` li scorre uno a clic. `core.loaded(x, y, z)` è 0 per una
-cella la cui colonna non è in memoria, che `core.get_block` legge come aria.
+**Turning, and knowing what is there.** `core.node_turns(id)` says how many values `core.set_facing`
+takes for that block: 1 without a front, 4 upright, 6 wall-mounted, 24 a log; `mods/screwdriver`
+cycles them one per click. `core.loaded(x, y, z)` is 0 for a cell whose column is not in memory,
+which `core.get_block` reads as air.
 
-**Incantesimi.** Una pila tiene fino a quattro incantesimi in un byte, due bit di
-livello per tipo: 1 Efficienza (scava 1 + 0,5 per livello più in fretta), 2
-Affilatezza (un punto in più per livello), 3 Indistruttibilità (si consuma un uso
-su livello + 1), 4 Protezione (un punto di armatura per livello, indossata).
-`core.enchant_held(player, livello, tipo)` mette un tipo sulla cosa in mano
-(solo se è una cosa sola) lasciando gli altri; `core.held_enchant(player)`
-risponde col byte: il livello del tipo k è `(v // 4^(k-1)) % 4`.
+**Enchantments.** A stack holds up to four enchantments in a byte, two bits of level per kind: 1
+Efficiency (digs 1 + 0.5 per level faster), 2 Sharpness (one more point per level), 3 Unbreaking
+(one use is spent in level + 1), 4 Protection (one armour point per level, worn).
+`core.enchant_held(player, level, kind)` puts a kind on the thing in hand (only if it is a single
+thing) leaving the others; `core.held_enchant(player)` answers with the byte: kind k's level is
+`(v // 4^(k-1)) % 4`.
 
-**Eventi fra mod.** Un mod dichiara un evento suo e un altro lo ascolta, senza
-che nessuno dei due chiami l'altro: `mods/furnace` tiene l'esperienza della
-fusione nei meta della fornace e la dà con `furnace:xp` a chi la apre;
-`mods/enchant` (che dipende da `furnace`) la conta.
+**Events between mods.** A mod declares an event of its own and another listens, without either
+calling the other: `mods/furnace` keeps the smelting experience in the furnace's meta and gives it
+with `furnace:xp` to whoever opens it; `mods/enchant` (which depends on `furnace`) counts it.
 
 ```luau
 core.event.define("furnace:xp", { fields = { player = "number", points = "number" }, cancellable = false })
 core.event.emit("furnace:xp", { player = ev.player, points = 3 })
 ```
 
-### Pagine: `core.page_register` e `core.page_show`
+### Pages: `core.page_register` and `core.page_show`
 
-Una pagina è una schermata stile pagina web, impaginata dal motore sul server
-e disegnata con gli stessi elementi di un pannello: nessun messaggio nuovo sul
-filo. Un mod la registra con un nome; quando un giocatore la apre (`/page
-nome`, o un link `page:nome`) il mod riceve `core:page_open` e risponde con
-`core.page_show`. Il markup, un costrutto per riga:
+A page is a web-page-like screen, laid out by the engine on the server and drawn with the same
+elements as a panel: no new message on the wire. A mod registers it with a name; when a player opens
+it (`/page name`, or a `page:name` link) the mod receives `core:page_open` and answers with
+`core.page_show`. The markup, one construct per line:
 
 ```
-# Titolo                  una barra
-## Sottotitolo            con una riga sotto
-testo con [un link](page:altra) dentro, che va a capo da solo
-| nome | ruolo | [kick](cmd:/kick bob) |      righe di tabella, colonne larghe quanto serve
-?[scrivi qui](act:invia)                       un campo: Invio esegue la destinazione
-> testo più quieto
+# Title                   a bar
+## Subtitle               with a line under it
+text with [a link](page:other) inside, wrapping by itself
+| name | role | [kick](cmd:/kick bob) |       table rows, columns as wide as needed
+?[write here](act:send)                        a field: Enter runs the target
+> quieter text
 ---
 ```
 
-Le destinazioni: `page:NOME` apre un'altra pagina, `cmd:/riga` esegue un
-comando come il giocatore che ha cliccato (con i suoi permessi, come se
-l'avesse scritto; dopo, la pagina si riapre aggiornata), `act:ID` arriva al mod
-come `core:page_action`. In un campo `{text}` diventa quello che è stato
-scritto. Oltre una schermata compaiono "back" e "next". Il testo è misurato con
-le larghezze dei caratteri del font del client, quindi va a capo dove viene
-disegnato. Nel client a processo singolo (`--quick`) le pagine dei mod ci sono
-lo stesso, con `/page`. L'esempio completo è `mods/board`.
+The targets: `page:NAME` opens another page, `cmd:/line` runs a command as the player who clicked
+(with their permissions, as if they had typed it; after, the page reopens updated), `act:ID` reaches
+the mod as `core:page_action`. In a field `{text}` becomes what was written. Beyond one screen "back"
+and "next" appear. The text is measured with the widths of the client font's glyphs, so it wraps
+where it is drawn. In the single-process client (`--quick`) mods' pages are there all the same, with
+`/page`. The complete example is `mods/board`.
 
-Un giocatore con `/mute` non parla agli altri neanche attraverso i mod: mentre
-gira un suo comando, un'azione su una pagina o un click su un pannello, il
-`core.chat` del mod verso chiunque altro è trattenuto, e lui legge una volta che è mutato. `core.is_muted` serve solo per
-rispondere meglio (come fa `/msg`).
+A player under `/mute` does not talk to others through mods either: while one of their commands, a
+page action or a panel click runs, the mod's `core.chat` to anyone else is held back, and they read
+once that they are muted. `core.is_muted` is only for answering better (as `/msg` does).
 
-### Come si aggiunge una funzione all'API
+### How a function is added to the API
 
-Non a mano. Le firme stanno **una volta sola** in `src/script/api.luau`, e
-`tools/api_gen` (un generatore scritto in Luau, nessuna toolchain nuova) produce
-al momento della build tre file:
+Not by hand. Signatures live **once** in `src/script/api.luau`, and `tools/api_gen` (a generator
+written in Luau, no new toolchain) produces three files at build time:
 
-| file | a cosa serve |
+| file | what it is for |
 |---|---|
-| `src/script/api_generated.inc` | il glue C++: `luaL_check*`, default, valori di ritorno, registrazione |
-| `docs/api.d.luau` | i tipi per il language server |
-| `docs/API.md` | questa documentazione |
+| `src/script/api_generated.inc` | the C++ glue: `luaL_check*`, defaults, return values, registration |
+| `docs/api.d.luau` | the types for the language server |
+| `docs/API.md` | this documentation |
 
-Aggiungere `core.node_name` è costato sei righe nella tabella descrittiva più la
-funzione host: il glue, i tipi e la doc si sono aggiornati da soli. Il costo
-vero dei binding senza FFI (DESIGN.md §5.4) si paga con del tooling, non a mano.
+Adding `core.node_name` cost six lines in the descriptive table plus the host function: the glue, the
+types and the doc updated themselves. The real cost of bindings without FFI (DESIGN.md §5.4) is paid
+with tooling, not by hand.
 
-`core.event.*` e `core.register_mapgen` restano scritte a mano: prendono tabelle
-o funzioni invece di scalari, e un generatore che le coprisse sarebbe più grande
-di quello che sostituisce.
+`core.event.*` and `core.register_mapgen` stay hand-written: they take tables or functions instead of
+scalars, and a generator covering them would be bigger than what it replaces.
 
-### La modalità survival: livelli dietro i portali
+### Survival mode: levels behind the portals
 
-Un mondo nuovo può essere **sandbox** (la piazza con i suoi portali) o **survival** (niente
-piazza, `cnp_server --survival` sulla stanza sandbox, il file `mode` del mondo). **Un mod non
-chiede mai la modalità**: guarda i dati. Così una correzione a un mod vale per tutte e due.
+A new world can be **sandbox** (the plaza with its portals) or **survival** (no plaza,
+`cnp_server --survival` on the sandbox room, the world's `mode` file). **A mod never asks for the
+mode**: it looks at the data. That way a fix to a mod holds for both.
 
-- `core.plaza()` dà `lo, hi` della piazza (20, 100) o `nil` dove non c'è: chi la teneva
-  libera (alberi, villaggi, rovine, ...) o ci costruiva sopra (scalini, banco, scacchi, ...)
-  segue questa risposta.
-- `core.seed()` è il seme anche fuori da uno stadio di mapgen; `core.world_spawn()` risponde
-  già mentre i mod caricano, in un mondo senza piazza.
-- `core:died {player, x, y, z}`: un giocatore è morto (già rimesso al letto o allo spawn).
-  `mods/grave` ci mette la borsa in una tomba (`core.bag_to_container`).
-- `core.mob_health(id, hp)`: una creatura più robusta di come `core.register_mob` la fa.
+- `core.plaza()` gives the plaza's `lo, hi` (20, 100) or `nil` where there is none: whoever kept it
+  clear (trees, villages, ruins, ...) or built on it (steps, bench, chess, ...) follows this answer.
+- `core.seed()` is the seed outside a mapgen stage too; `core.world_spawn()` answers already while
+  mods load, in a world without a plaza.
+- `core:died {player, x, y, z}`: a player died (already put back at the bed or spawn). `mods/grave`
+  puts the bag in a grave there (`core.bag_to_container`).
+- `core.mob_health(id, hp)`: a creature tougher than `core.register_mob` makes it.
 
-**I siti** sono di `mods/gates`, funzione del seme e di celle di 256: dove stanno, di che
-mondo, con che difficoltà `d` da 1 a 10 (cresce di uno ogni 300 nodi dallo spawn). Le bocche
-di ogni mondo (due per i sette con chiave) vanno ai siti più vicini ai giocatori; chi entra
-porta con sé la riga `core.player_carried`:
+**Sites** belong to `mods/gates`, a function of the seed and of 256-node cells: where they are, of
+which world, with what difficulty `d` from 1 to 10 (one more every 300 nodes from the spawn). Every
+world's mouths (two for the seven with a key) go to the sites nearest the players; whoever enters
+carries the `core.player_carried` line:
 
 ```
-site=<id> d=<1..10> s=<seme del sito> t=<stanza>
+site=<id> d=<1..10> s=<site seed> t=<room>
 ```
 
-Altri mod chiedono i siti con `gates:ask {x, z, r, tag, player}` e ricevono subito
-`gates:sites {tag, list = "stanza d x z;..."}`, senza quelli che `player` ha già fatto
-(`mods/villagers` ne fa dicerie e indicazioni). `maps:pin {player, label, x, z, colour}`
-mette un punto sulla mappa (1 viola, 2 verde).
+Other mods ask for sites with `gates:ask {x, z, r, tag, player}` and get at once
+`gates:sites {tag, list = "room d x z;..."}`, without those `player` has already done
+(`mods/villagers` makes rumours and directions of them). `maps:pin {player, label, x, z, colour}` puts
+a point on the map (1 purple, 2 green).
 
-**Il protocollo dei livelli** sta in `mods/keys`, collegato in ogni mondo a tema. Chi arriva
-da un sito riceve uno **slot** di quel mondo (0 è la prova scritta a mano, sempre dov'era). Lo
-slot `n` è un quadrato di 2048 che parte da `x = 8192 + (n % 16) * 2048, z = (n // 16) * 2048`.
-Un mondo che ha un livello suo risponde agli eventi così:
+**The level protocol** is in `mods/keys`, linked in every themed world. Whoever arrives from a site
+gets a **slot** of that world (0 is the hand-written trial, always where it was). Slot `n` is a
+2048 square starting at `x = 8192 + (n % 16) * 2048, z = (n // 16) * 2048`. A world with a level of
+its own answers the events like this:
 
-| evento | chi lo emette | campi | cosa vuol dire |
+| event | emitted by | fields | what it means |
 |---|---|---|---|
-| `keys:level` | `mods/keys` | `player, slot, d, seed, ox, oz` | costruisci il livello dello slot e portaci il giocatore; annullabile: chi lo annulla l'ha preso, altrimenti il giocatore fa la prova del mondo |
-| `keys:start` | il mondo | `player, slot, ex, ey, ez` | l'uscita: un buco largo 1 e alto 2 in `ex ey ez`, rivolto a +x, a 8-20 dall'inizio |
-| `keys:cleared` | il mondo | `player, slot` | il livello è fatto |
-| `keys:earned` | il mondo | `player, key` | la prova del mondo è superata (vale anche per un livello) |
-| `keys:reward` | `mods/keys` (sandbox) | `player, list` | le ricompense vinte, a `mods/gates` che le mette in una cassa al sito |
+| `keys:level` | `mods/keys` | `player, slot, d, seed, ox, oz` | build the slot's level and take the player there; cancellable: whoever cancels it has taken it, otherwise the player does the world's trial |
+| `keys:start` | the world | `player, slot, ex, ey, ez` | the exit: a hole 1 wide and 2 high at `ex ey ez`, facing +x, 8-20 from the start |
+| `keys:cleared` | the world | `player, slot` | the level is done |
+| `keys:earned` | the world | `player, key` | the world's trial is passed (holds for a level too) |
+| `keys:reward` | `mods/keys` (sandbox) | `player, list` | the rewards won, to `mods/gates`, which puts them in a chest at the site |
 
-**L'uscita nascosta.** Le due celle in `ex + 1` (davanti al buco) sono una parete del livello,
-e la cella sopra di loro, in `ex + 1, ey + 2`, la riempie `mods/keys` con una lampada spenta
-(`keys:hint`): l'unico segno. A `keys:cleared` le due celle diventano aria, la lampada si
-accende e la prima bocca del mondo verso la sandbox va nel buco, aperta solo a chi ha finito.
-Il livello porta il giocatore indietro con un pezzo di sola andata, di solito un portale del
-mondo stesso (`core.portal_open`, aperto solo a livello fatto: due portali collegati vanno nei
-due sensi). Un livello di `d >= 4` dà la chiave del mondo; ogni livello dà una ricompensa.
+**The hidden exit.** The two cells at `ex + 1` (in front of the hole) are a wall of the level, and
+the cell above them, at `ex + 1, ey + 2`, is filled by `mods/keys` with an unlit lamp (`keys:hint`):
+the only sign. At `keys:cleared` the two cells become air, the lamp lights and the world's first mouth
+towards the sandbox goes into the hole, open only to whoever finished. The level brings the player
+back with a one-way piece, usually a portal of the world itself (`core.portal_open`, opened only once
+the level is done: two linked portals go both ways). A level with `d >= 4` gives the world's key;
+every level gives a reward.
 
-Lo stadio di mapgen del mondo riconosce le colonne di uno slot dalla x (`>= 8192`) e ne
-costruisce il piano, una funzione dello slot, di `d` e del seme salvati nello storage del mod
-all'arrivo. Così le colonne si fanno quando servono e restano nel file del mondo. Esempi:
-`games/parkour/mods/parkour` (stazioni e salti), `games/backrooms/mods/backrooms_exit`,
-`games/arpg/mods/arpg_game` (`L.add_level`), `games/track/mods/track_core` (un circuito,
-`track_core:level` / `track_core:laid`), `games/chambers/mods/chambers_game` (una copia della
-fila di camere da x 20000).
+The world's mapgen stage recognises a slot's columns by x (`>= 8192`) and builds its plan, a function
+of the slot, of `d` and of the seed saved in the mod's storage on arrival. So columns are made when
+needed and stay in the world file. Examples: `games/parkour/mods/parkour` (stations and jumps),
+`games/backrooms/mods/backrooms_exit`, `games/arpg/mods/arpg_game` (`L.add_level`),
+`games/track/mods/track_core` (a circuit, `track_core:level` / `track_core:laid`),
+`games/chambers/mods/chambers_game` (a copy of the row of chambers from x 20000).
 
 ---
 
-## Esempio minimo
+## Minimal example
 
 ```lua
 --!strict
-local BLU = core.register_node("mio:blu", 60, 90, 220)
+local BLUE = core.register_node("mine:blue", 60, 90, 220)
 
 for i = 0, 9 do
-    core.set_block(50 + i, 20, 50, BLU)
+    core.set_block(50 + i, 20, 50, BLUE)
 end
 
 local t = 0.0
@@ -2313,50 +2056,42 @@ function on_step(dt: number)
 end
 ```
 
-con
+with
 
 ```
-name = mio
+name = mine
 version = 0.1.0
 capabilities =
 ```
 
-I tre mod in `mods/` sono esempi funzionanti:
+The mods in `mods/` are working examples:
 
-- `spike` — nessuna capability, una torre e un portale che si muove ogni frame;
-- `beacons` — `capabilities = os`, `depends = spike`, un faro che pulsa;
-- `palette` — venti blocchi dichiarati in un ciclo, che è anche la prova che
-  l'atlante cresce da solo (da 16 a 64 tile) senza toccare niente nel motore;
-- `guard` — annulla `core:pre_place` dentro la piazza dei portali, sostituisce
-  il blocco sopra y=30, e alza un evento suo che `beacons` ascolta dalla propria
-  VM. Nessuna riga di motore è stata scritta per la regola "qui non si
-  costruisce";
-- `portal` — una cornice di `portal:frame` attorno a un buco d'aria, in piedi o
-  coricata, apre un portale (`core.portal_open`, quante cornici si vuole: il
-  server dà le 32 aperture vere a quelle vicine ai giocatori) e la
-  collega all'ultima rimasta sola (`core.portal_link`); il tasto destro sulla
-  cornice apre il suo menù, con le altre cornici a cui collegarla. Finché non
-  è collegata il client la chiude con una membrana verde animata, che si apre
-  dal centro sull'immagine quando l'altro capo arriva (0.9 s);
-- `chambers_game` e `lab` — la portal gun: ogni colpo è un `core.portal_open`
-  col colore del tasto (1 blu, 2 arancione), così il primo portale sparato è
-  chiuso nel suo colore finché non c'è il secondo;
-- `games/track` (`track_core`) e `games/inferno` (`inferno_track`) — la pista
-  dell'inferno, fra due stanze con tre bocche ciascuna (fino a 4 per mondo):
-  la cornice A della pista (apertura 1, `--portal-to @inferno/2`) porta a B,
-  l'apertura 2 dell'inferno, che riporta ad A (`@pista/1`); C (apertura 1 del
-  inferno, `@pista/2`) porta a D, l'apertura 2 della pista, che riporta a C
-  (`@inferno/1`). Le aperture 2 e 3 si mettono con `core.set_portal` e
-  `core.portal_place` come le prime due. Un corpo che guida
-  (`core.body_drive`) passa nell'altra stanza ancora in kart, se quella stanza
-  conosce il modello che indossa, e con lui la riga di `core.player_carry`
-  (qui: il giro in corso), che di là si legge con `core.player_carried`; la
-  stanza lasciata lo sa da `core.body_taken` e non parcheggia un kart che è
-  andato via. `track_game` gira in tutte e due le stanze e cronometra
-  solo i gate della sua (`inferno = true`). Dietro a una cornice che un kart
-  attraversa serve spazio: il kart supera il piano di qualche nodo prima che
-  il passaggio sia risposto;
-- `tools` — un blocco che chiede il livello 1, il piccone che lo apre e la pala
-  che non lo apre, con le ricette per farsene altri. È il posto dove sta un
-  attrezzo: il motore mette i secondi e i materiali sui propri blocchi e lascia
-  livelli e attrezzi al contenuto.
+- `spike` -- no capability, a tower and a portal that moves every frame;
+- `beacons` -- `capabilities = os`, `depends = spike`, a pulsing beacon;
+- `palette` -- twenty blocks declared in a loop, which is also the proof that the atlas grows by
+  itself (from 16 to 64 tiles) without touching anything in the engine;
+- `guard` -- cancels `core:pre_place` inside the portal plaza, replaces the block above y=30, and
+  raises an event of its own that `beacons` listens to from its own VM. No engine line was written for
+  the rule "you do not build here";
+- `portal` -- a frame of `portal:frame` round a hole of air, upright or lying, opens a portal
+  (`core.portal_open`, as many frames as you like: the server gives the 32 real openings to those near
+  players) and links it to the last one left alone (`core.portal_link`); right click on the frame opens
+  its menu, with the other frames to link it to. Until it is linked the client closes it with an
+  animated green membrane, which opens from the centre onto the picture when the other end arrives
+  (0.9 s);
+- `chambers_game` and `lab` -- the portal gun: every shot is a `core.portal_open` with the button's
+  colour (1 blue, 2 orange), so the first portal shot is closed in its colour until the second exists;
+- `games/track` (`track_core`) and `games/inferno` (`inferno_track`) -- the inferno track, between
+  two rooms with three mouths each (up to 4 per world): the track's frame A (opening 1,
+  `--portal-to @inferno/2`) leads to B, the inferno's opening 2, which leads back to A (`@pista/1`); C
+  (the inferno's opening 1, `@pista/2`) leads to D, the track's opening 2, which leads back to C
+  (`@inferno/1`). Openings 2 and 3 are set with `core.set_portal` and `core.portal_place` like the
+  first two. A driving body (`core.body_drive`) passes into the other room still in its kart, if that
+  room knows the model it wears, and with it the `core.player_carry` line (here: the lap in progress),
+  which is read on the other side with `core.player_carried`; the room left knows from
+  `core.body_taken` and does not park a kart that has gone. `track_game` runs in both rooms and times
+  only its own gates (`inferno = true`). Behind a frame a kart crosses there must be room: the kart
+  passes the plane by a few nodes before the crossing is answered;
+- `tools` -- a block that asks for level 1, the pickaxe that opens it and the shovel that does not,
+  with the recipes to make more. It is where a tool belongs: the engine puts seconds and materials on
+  its own blocks and leaves levels and tools to content.
