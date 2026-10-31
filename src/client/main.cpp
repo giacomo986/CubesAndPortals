@@ -9349,10 +9349,17 @@ std::string worlds_dir() { return user_data_dir() + "/worlds"; }
 // A world directory holds the server's world file, its key, its log, and
 // `seed`: the seed the world was made with, which the world file insists on,
 // written again at every start so its time is when the world was last played.
+// And `version`: the kEngineVersion that made it, written once (serve_world);
+// a world with none is from before there was the file.
 struct SavedWorld {
     std::string                     name;   // the directory's
     uint32_t                        seed = 0;
     std::filesystem::file_time_type played;
+    std::string                     version;   // empty: older than the file
+
+    // Made by an earlier version than this one: what it holds was generated
+    // by other code, and the title screen says so.
+    bool older() const { return version.empty() || update::compare(version, kEngineVersion) < 0; }
 };
 
 std::vector<SavedWorld> saved_worlds()
@@ -9366,6 +9373,7 @@ std::vector<SavedWorld> saved_worlds()
         if (!(in >> w.seed)) continue;   // not a world
         w.name   = e.path().filename().string();
         w.played = fs::last_write_time(e.path() / "seed", ec);
+        std::ifstream(e.path() / "version") >> w.version;
         out.push_back(std::move(w));
     }
     std::sort(out.begin(), out.end(),
@@ -9759,11 +9767,28 @@ ui::Panel title_panel(const TitleMenu &m, bool debug)
                                       : "Or play a saved world:",
                     0.5f, y);
         y += 1.2f;
+        bool any_older = false;
         for (size_t i = m.first; i < m.worlds.size() && i < m.first + kWorldsShown; ++i) {
+            const SavedWorld &w  = m.worlds[i];
             const std::string id = "world:" + std::to_string(i);
-            panel_add(p, ui::ElemKind::Button, id, m.worlds[i].name, 0.5f, y, 8.8f);
+            std::string       text = w.name;
+            if (w.older()) {
+                // An amber frame round it, and the version that made it.
+                any_older = true;
+                panel_add(p, ui::ElemKind::Box, "", "", 0.38f, y - 0.12f, 9.04f);
+                p.elements.back().h = 1.24f;
+                p.elements.back().r = 230;
+                p.elements.back().g = 150;
+                p.elements.back().b = 30;
+                text += w.version.empty() ? "  [old version]" : "  [v" + w.version + "]";
+            }
+            panel_add(p, ui::ElemKind::Button, id, text, 0.5f, y, 8.8f);
             panel_add(p, ui::ElemKind::Button, "edit:" + std::to_string(i), "Edit", 9.5f, y, 2.0f);
             y += 1.2f;
+        }
+        if (any_older) {
+            panel_label(p, "Amber: made by an earlier version.", 0.5f, y);
+            y += 1.0f;
         }
         y += 0.2f;
         if (m.hosting) {
@@ -10253,6 +10278,10 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
 
     std::error_code ec;
     std::filesystem::create_directories(dir, ec);
+    // Which version made it, once: only for a world with no world file yet,
+    // so one from before this file stays unmarked and shows as older.
+    if (!std::filesystem::exists(dir + "/world.db", ec) && !std::filesystem::exists(dir + "/version", ec))
+        std::ofstream(dir + "/version") << kEngineVersion << "\n";
     std::ofstream(dir + "/seed") << seed << "\n";
     // The kind is the world's for good: written once, when it is made, and
     // read back every start after.

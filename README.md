@@ -481,7 +481,9 @@ Options are kept between runs. `CNP_HITCH_MS=30 cnp_client ...` prints every fra
 
 **Play** starts a world of your own on a local server, with the key in
 `~/.local/share/cubes-and-portals/player.key`; the list shows the saved worlds, the green button
-on top creates a new one (name and seed), and Edit renames or deletes one. **Multiplayer** keeps
+on top creates a new one (name and seed), and Edit renames or deletes one. A world made by an
+earlier version has an amber frame and that version beside its name (its `version` file, written
+once when it is made; "old version" for one from before the file). **Multiplayer** keeps
 a list of servers, each with a coloured dot (grey untried, amber trying, green with its ping, red
 if it did not answer). The account belongs to the server: you pick a server, then give a name and
 password for it, from which your identity is derived (Argon2id) instead of being kept in a file;

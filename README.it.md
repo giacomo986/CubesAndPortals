@@ -492,7 +492,9 @@ più lungo di 30 ms con le sezioni del profiler.
 
 **Gioca** avvia un mondo proprio su un server locale, con la chiave di
 `~/.local/share/cubes-and-portals/player.key`; l'elenco mostra i mondi salvati, il bottone verde
-in cima ne crea uno nuovo (nome e seme), e Modifica ne rinomina o cancella uno.
+in cima ne crea uno nuovo (nome e seme), e Modifica ne rinomina o cancella uno. Un mondo creato da
+una versione precedente ha un bordo ambra e quella versione accanto al nome (il suo file
+`version`, scritto una volta quando nasce; "versione vecchia" per uno di prima del file).
 **Multigiocatore** tiene la lista dei server, ognuno con un tondo colorato (grigio non provato,
 giallo in prova, verde con il ping, rosso se non ha risposto). L'account è del server: si sceglie
 il server, poi un nome e una password per quello, da cui l'identità viene derivata (Argon2id)
