@@ -3,9 +3,11 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.md](docs/BUILDING.md#versioni).
 
-## Non ancora uscito
+## 0.10.0-alpha.1 — 2026-10-31
 
-Protocollo 111 (fino a 24 bocche per stanza; 110 i binari): un client 0.9.0-alpha.4 non entra.
+Protocollo 111 (110 i binari, 111 fino a 24 bocche per stanza): non gioca con i server della
+0.9 né i loro client con i suoi. Legge i mondi della 0.9.0-alpha.4; un mondo nuovo può essere
+sandbox o survival.
 
 - Modalità **survival** (menu nuovo mondo, `--survival`): niente piazza, spawn casuale su terra,
   i mondi a tema dietro portali sparsi con difficoltà 1-10 che cresce con la distanza, un livello

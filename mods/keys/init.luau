@@ -597,7 +597,7 @@ end)
 -- The front (games/front) and the assault (games/assault) open once l'Ospite
 -- is beaten. FRONT_OPEN keeps both open to everybody while they are tested;
 -- false is the game as it ships.
-local FRONT_OPEN = true
+local FRONT_OPEN = false
 local FRONT, ASSAULT = -1, -1
 for k = 0, 19 do
     if core.portal_room(k) == "front" then FRONT = k end
