@@ -367,7 +367,11 @@ void step_arrows(flecs::world &w, const World &world, const NodeRegistry &reg,
             p.y = from.y + dir.y * wall.distance;
             p.z = from.z + dir.z * wall.distance;
             a.landed_at = now;
-            if (a.gravity == 0.0f) gone.push_back(e.id());   // a fireball bursts
+            if (a.gravity == 0.0f) {   // a fireball bursts
+                gone.push_back(e.id());
+                if (const MobBurst *b = w.try_get<MobBurst>(); b != nullptr && b->at)
+                    b->at(wall.x, wall.y, wall.z, wall.nx, wall.ny, wall.nz);
+            }
             e.modified<Position>();
             return;
         }

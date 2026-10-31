@@ -14,6 +14,18 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 - Le release delle alpha e delle beta escono segnate come pre-release.
 - La documentazione e questo changelog sono in inglese, ognuno con il suo gemello italiano
   accanto (`<nome>.it.md`).
+- La lista dei mondi salvati nel menù del titolo segna quelli creati da una versione precedente:
+  un bordo ambra e la versione che li ha creati, o "versione vecchia" per uno di prima che i mondi
+  la registrassero (il nuovo file `version` del mondo, scritto una volta quando nasce).
+- Parkour: una corsa sul muro fermata da un muro di traverso (un angolo interno) gira su quel muro
+  con un salto entro 0,4 s (`core.parkour`). Il percorso del parkour ha due stazioni in più prima
+  della torre: due travi per la corda in fila, e una corsa sul muro attorno a un angolo interno;
+  poi due travi ad angolo, tre a S e tre a U.
+- L'Inferno: i suoi bottini servono (lingotti d'oro, resistenza al fuoco all'alambicco, polvere di
+  tizzone per un accendino e lanterne di brace, blocchi di quarzo e comparatori); campi di basalto,
+  foreste di funghi e deserti di cenere; bauli lungo le fortezze; le palle di fuoco accendono fuochi
+  brevi (nuovo evento `core:burst`); suoni e cenere nell'aria; e una cornice accesa nell'Inferno vi
+  porta la via di ritorno, con la gemella costruita otto volte più lontano nel mondo di sopra.
 
 ## 0.10.0-alpha.1 — 2026-10-31
 

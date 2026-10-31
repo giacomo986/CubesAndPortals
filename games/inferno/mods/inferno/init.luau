@@ -6,6 +6,14 @@
 -- No sun and a red sky (core.world_sky), so the only light is the lava's and the
 -- glowrock's, and the creatures of mods/mobs come out of the dark everywhere.
 --
+-- Besides the plain scoria, three countries, by a noise over x and z: fields
+-- of basalt with its columns from floor to roof, forests of fungi as tall as
+-- trees with glowing caps, and wastes of ash where the glowrock is scarce. The
+-- fortresses' lanes keep chests, filled the first time one is opened. A
+-- creature's fireball sets a short fire where it bursts (core:burst), longer
+-- on wood, which never spreads. Fire resistance (mods/alchemy, from a wraith's
+-- tear) keeps lava and fire off for three minutes.
+--
 -- The engine makes none of the ground (core.mapgen_core(false)): the stage below
 -- is the whole world. It is reached through the world's first opening, which
 -- stands in a chamber with a frame of obsidian round it.
@@ -45,10 +53,47 @@ for _, mod in { "inferno", "inferno_heart", "inferno_track", "track_game" } do
 end
 
 -- The Inferno's own creatures, beside mods/mobs's zombie and skeleton, drawn by
--- tools/make_inferno_models.py. What they leave, and nothing yet uses it.
+-- tools/make_inferno_models.py, and what they leave.
 core.register_item("inferno:gold_nugget", 64, "", 0, 1.0, "")
 core.register_item("inferno:wraith_tear", 64, "", 0, 1.0, "")
 core.register_item("inferno:cinder_rod", 64, "", 0, 1.0, "")
+
+-- What it all is for:
+--   gold nugget   nine are an ingot (mods/furnace's gold, and its tools)
+--   wraith tear   the still's fire resistance (mods/alchemy)
+--   cinder rod    fuel (mods/furnace), or ground into two of powder
+--   cinder powder with iron a lighter; with gold and glass two ember lanterns,
+--                 a light that never goes out
+--   quartz        what quartz ore gives: four a block of quartz, and the middle
+--                 of a comparator (mods/cinnabar) as the classic block game's
+--   fungus stem   four planks of its own; two of those, four sticks
+core.register_item("inferno:quartz", 64, "", 0, 1.0, "")
+core.register_item("inferno:cinder_powder", 64, "", 0, 1.0, "")
+core.node_drop_item(QUARTZ, "inferno:quartz")
+core.register_node("inferno:quartz_block", 228, 220, 210, true, 0, "", 0, 1.5, "stone")
+core.register_node("inferno:ember_lantern", 255, 170, 70, true, 15, "", 0, 0.5, "glass")
+-- The countries' own ground.
+local BASALT = core.register_node("inferno:basalt", 56, 54, 62, true, 0, "", 0, 0.8, "stone")
+local STEM   = core.register_node("inferno:fungus_stem", 118, 62, 96, true, 0, "", 0, 1.0, "wood")
+local CAP    = core.register_node("inferno:fungus_cap", 56, 190, 168, true, 11, "", 0, 0.4, "")
+core.register_node("inferno:fungus_planks", 150, 86, 120, true, 0, "", 0, 1.0, "wood")
+-- A fireball's fire: not solid, burns whoever stands in it, goes out by itself.
+local FIRE = core.register_node("inferno:fire", 255, 150, 40, false, 13)
+core.node_glass(FIRE)
+core.node_drop(FIRE, 0)
+
+local G = "inferno:gold_nugget"
+core.recipe_shaped("furnace:gold_ingot", 1, `{G} {G} {G}`, `{G} {G} {G}`, `{G} {G} {G}`)
+core.recipe_shaped("inferno:quartz_block", 1, "inferno:quartz inferno:quartz", "inferno:quartz inferno:quartz")
+core.recipe_shapeless("inferno:cinder_powder", 2, "inferno:cinder_rod")
+core.recipe_shapeless("infernoportal:lighter", 1, "furnace:iron_ingot inferno:cinder_powder")
+core.recipe_shapeless("inferno:ember_lantern", 2, "furnace:gold_ingot inferno:cinder_powder core:glass")
+core.recipe_shapeless("inferno:fungus_planks", 4, "inferno:fungus_stem")
+core.recipe_shaped("timber:stick", 4, "inferno:fungus_planks", "inferno:fungus_planks")
+core.recipe_shaped("cinnabar:comparator", 1,
+    "-               cinnabar:torch  -",
+    "cinnabar:torch  inferno:quartz  cinnabar:torch",
+    "core:stone      core:stone      core:stone")
 local FIREBALL = core.register_model("inferno:fireball", "fireball.gltf")
 
 -- A brute: the zombie's body and clips in its own colours, a little quicker
@@ -148,6 +193,17 @@ end
 
 local world_h = 64   -- how tall this world is, as the first stage run says
 
+-- Which country a column is in: 1 basalt, 2 fungi, 3 ash, 0 plain scoria.
+local function country(x: number, z: number, seed: number): number
+    local c = noise3(x, 0, z, 80, 1, seed + 131)
+    if c < 0.3 then return 1 end
+    if c > 0.7 then return 2 end
+    if noise3(x, 0, z, 56, 1, seed + 137) > 0.64 then return 3 end
+    return 0
+end
+
+local CHEST = core.node_id("chest:box")
+
 core.register_mapgen("inferno:caverns", function(ctx)
     local H, seed = ctx.height, ctx.seed
     world_h = H
@@ -179,6 +235,7 @@ core.register_mapgen("inferno:caverns", function(ctx)
         for dz = 0, W - 1 do
             local k, tz = dz // S, (dz % S) / S
             local x, z = x0 + dx, z0 + dz
+            local rock = if country(x, z, seed) == 1 then BASALT else SCORIA
             local b00 = (i * ns + k) * ny + 1
             local b10 = ((i + 1) * ns + k) * ny + 1
             local b01 = (i * ns + k + 1) * ny + 1
@@ -198,7 +255,7 @@ core.register_mapgen("inferno:caverns", function(ctx)
                 local v = lo + (hi - lo) * ty
                 if v > cut[y + 1] then
                     cell[idx(dx, y, dz)] = 1
-                    core.set_block(x, y, z, if hash(x, y, z, seed + 5) % 90 == 0 then QUARTZ else SCORIA)
+                    core.set_block(x, y, z, if hash(x, y, z, seed + 5) % 90 == 0 then QUARTZ else rock)
                 elseif y <= LAVA_TOP then
                     cell[idx(dx, y, dz)] = 2
                     core.set_block(x, y, z, LAVA)
@@ -209,19 +266,56 @@ core.register_mapgen("inferno:caverns", function(ctx)
         end
     end
 
-    -- Ash sand on the shores of the seas, glowrock hanging from the roof.
+    -- A fungus on the floor at (dx, y, dz): a stem four to seven high and a
+    -- cap over it, three across on top and five round under that, into air
+    -- only and inside this column's square.
+    local function fungus(dx: number, y: number, dz: number, h: number)
+        local tall = 4 + h % 4
+        for up = 1, tall + 1 do
+            if y + up > H - 2 or cell[idx(dx, y + up, dz)] ~= 0 then return end
+        end
+        local x, z = x0 + dx, z0 + dz
+        for up = 1, tall do core.set_block(x, y + up, z, STEM) end
+        for ox = -2, 2 do
+            for oz = -2, 2 do
+                local ax, az = dx + ox, dz + oz
+                if ax >= 0 and ax < W and az >= 0 and az < W then
+                    local ring = math.abs(ox) == 2 or math.abs(oz) == 2
+                    local cy = if ring then y + tall else y + tall + 1
+                    if not (ring and math.abs(ox) == 2 and math.abs(oz) == 2) and cell[idx(ax, cy, az)] == 0 then
+                        core.set_block(x + ox, cy, z + oz, CAP)
+                    end
+                end
+            end
+        end
+    end
+
+    -- Ash sand on the shores of the seas and over the wastes, glowrock hanging
+    -- from the roof (seldom over the wastes), the fungi and the basalt columns.
     for dx = 0, W - 1 do
         for dz = 0, W - 1 do
             local x, z = x0 + dx, z0 + dz
-            local sandy = noise3(x, 0, z, 14, 1, seed + 41) > 0.56
+            local land = country(x, z, seed)
+            local sandy = land == 3 or noise3(x, 0, z, 14, 1, seed + 41) > 0.56
+            local glow = if land == 3 then 90 elseif land == 2 then 30 else 45
             for y = LAVA_TOP + 1, H - 3 do
                 local here, up = cell[idx(dx, y, dz)], cell[idx(dx, y + 1, dz)]
-                if sandy and here == 1 and up == 0 and y <= LAVA_TOP + 7 then
+                local floor_here = here == 1 and up == 0
+                if floor_here and land == 2 and y > LAVA_TOP + 1 and hash(x, y, z, seed + 61) % 19 == 0 then
+                    fungus(dx, y, dz, hash(x, y, z, seed + 67))
+                elseif floor_here and land == 1 and hash(x, y, z, seed + 73) % 29 == 0 then
+                    -- A column up to the roof, or as far as thirty.
+                    local top = y + 1
+                    while top < H - 1 and top - y <= 30 and cell[idx(dx, top, dz)] == 0 do
+                        core.set_block(x, top, z, BASALT)
+                        top += 1
+                    end
+                elseif sandy and floor_here and (land == 3 or y <= LAVA_TOP + 7) then
                     core.set_block(x, y, z, ASH_SAND)
                     if cell[idx(dx, y - 1, dz)] == 1 then core.set_block(x, y - 1, z, ASH_SAND) end
                 elseif here == 0 and up == 1 and y >= H - 26 then
                     local h = hash(x, y, z, seed + 53)
-                    if h % 45 == 0 then
+                    if h % glow == 0 then
                         -- A cluster, down from the roof: this cell and a few
                         -- under and beside it, as the bits of the hash say.
                         core.set_block(x, y, z, GLOWROCK)
@@ -271,6 +365,11 @@ core.register_mapgen("inferno:caverns", function(ctx)
         core.set_block(x, y, z, BRICKS)
         for up = 1, 4 do
             core.set_block(x, y + up, z, if rail and up == 1 then BRICKS else 0)
+        end
+        -- A chest every 64 along, against the rail, facing across.
+        if across == 1 and CHEST ~= 0 and (if ax then x else z) % 64 == 40 then
+            core.set_block(x, y + 1, z, CHEST)
+            core.set_facing(x, y + 1, z, if ax then 2 else 3)
         end
         core.set_block(x, y + 5, z, if cell[idx(x - x0, y + 5, z - z0)] == 1 then BRICKS else 0)
         if pillar and not rail then
@@ -411,18 +510,96 @@ core.event.on("core:broken", function(ev)
     end
 end)
 
--- Lava burns: a body in it loses three points every half second.
+-- Fire resistance (mods/alchemy's potion): who is not burnt, until when.
+local clock = 0.0
+local fireproof: { [number]: number } = {}
+core.event.on("alchemy:fireproof", function(ev)
+    fireproof[ev.player] = clock + ev.seconds
+end)
+
+-- A fireball's fire: "x,y,z" -> when it goes out. In the cell in front of the
+-- face it struck, if that is air; eight seconds on what burns, three on rock.
+local fires: { [string]: number } = {}
+local function burns(id: number): boolean
+    local n = core.node_name(id)
+    for _, w in { "plank", "log", "wood", "leaves", "fungus", "wool", "hay", "book", "stick" } do
+        if string.find(n, w, 1, true) then return true end
+    end
+    return false
+end
+core.event.on("core:burst", function(ev)
+    local fx, fy, fz = ev.x + ev.nx, ev.y + ev.ny, ev.z + ev.nz
+    if core.get_block(fx, fy, fz) ~= 0 then return end
+    core.set_block(fx, fy, fz, FIRE)
+    fires[`{fx},{fy},{fz}`] = clock + (if burns(core.get_block(ev.x, ev.y, ev.z)) then 8 else 3)
+    core.play_sound("inferno:ignite", fx + 0.5, fy + 0.5, fz + 0.5)
+end)
+
+-- Lava burns: a body in it loses three points every half second, a body in a
+-- fire one; nothing while fire resistance lasts.
 local burn = 0.0
 core.event.on("core:tick", function(ev)
+    clock += ev.dt
     burn += ev.dt
     if burn < 0.5 then return end
     burn = 0.0
+    for key, at in fires do
+        if clock >= at then
+            local x, y, z = string.match(key, "(-?%d+),(-?%d+),(-?%d+)")
+            local fx, fy, fz = tonumber(x) :: number, tonumber(y) :: number, tonumber(z) :: number
+            if core.get_block(fx, fy, fz) == FIRE then core.set_block(fx, fy, fz, 0) end
+            fires[key] = nil
+        end
+    end
     for _, id in core.players() do
         local x, y, z = core.player_pos(id)
-        if x then
+        if x and (fireproof[id] or 0) <= clock then
             local fx, fy, fz = math.floor(x), math.floor(y + 0.1), math.floor(z)
             if lava_at(fx, fy, fz) > 0 or lava_at(fx, fy + 1, fz) > 0 then
                 core.damage(id, 3)
+            elseif core.get_block(fx, fy, fz) == FIRE or core.get_block(fx, fy + 1, fz) == FIRE then
+                core.damage(id, 1)
+            end
+        end
+    end
+end)
+
+-- A fortress's chest, the first time it is opened: what the legion of the
+-- Inferno left in it. A chest a player put down is theirs and stays empty.
+local LOOT = {
+    { "inferno:gold_nugget", 3, 9, 1.0 }, { "inferno:cinder_rod", 1, 3, 0.7 }, { "inferno:quartz", 2, 6, 0.7 },
+    { "inferno:wraith_tear", 1, 2, 0.4 }, { "inferno:obsidian", 1, 4, 0.5 }, { "furnace:iron_ingot", 1, 4, 0.5 },
+    { "furnace:gold_ingot", 1, 2, 0.3 }, { "alchemy:fire_resistance", 1, 1, 0.15 }, { "ore:diamond", 1, 1, 0.08 },
+}
+core.event.on("core:placed", function(ev)
+    if ev.id == CHEST then core.meta_set(ev.x, ev.y, ev.z, "loot", "no") end
+end)
+core.event.on("core:used", -20, function(ev)
+    if ev.id ~= CHEST or core.meta_get(ev.x, ev.y, ev.z, "loot") ~= "" then return end
+    if core.get_block(ev.x, ev.y - 1, ev.z) ~= BRICKS then return end
+    core.meta_set(ev.x, ev.y, ev.z, "loot", "taken")
+    core.container_make(ev.x, ev.y, ev.z, 27)
+    for _, l in LOOT do
+        local item = core.item_id(l[1])
+        if item ~= 0 and math.random() < l[4] then
+            core.container_add(ev.x, ev.y, ev.z, item, math.random(l[2], l[3]))
+        end
+    end
+end)
+
+-- What the caverns sound like round each player, now and then: a low rumble,
+-- lava bubbling below, a moan far off (tools/make_inferno_sounds.py).
+local heard_at: { [number]: number } = {}
+core.event.on("core:tick", function(_)
+    for _, id in core.players() do
+        if clock >= (heard_at[id] or 0) then
+            heard_at[id] = clock + 6 + math.random() * 8
+            local x, y, z = core.player_pos(id)
+            if x then
+                local a, r = math.random() * 2 * math.pi, 6 + math.random() * 14
+                local what = ({ "rumble", "bubble", "moan" })[math.random(1, 3)]
+                local sy = if what == "bubble" then LAVA_TOP + 1 else y + math.random(-3, 6)
+                core.play_sound(`inferno:{what}`, x + math.cos(a) * r, sy, z + math.sin(a) * r)
             end
         end
     end
@@ -491,8 +668,35 @@ end
 local wanted: Gate? = nil   -- heard, waiting for its ground to be made
 local heard = false
 
+local function saved_gate(): Gate?
+    local v = string.split(core.storage_get("gate") or "", " ")
+    if #v ~= 7 then return nil end
+    return { x = tonumber(v[1]) or 0, y = tonumber(v[2]) or 0, z = tonumber(v[3]) or 0,
+             w = tonumber(v[4]) or 1, h = tonumber(v[5]) or 2,
+             axis = tonumber(v[6]) or 0, sign = tonumber(v[7]) or 1 }
+end
+
+-- A frame a player lit here (mods/infernoportal): the way back is that one now,
+-- and the world above builds the twin. Gone out, back to the arrival.
+core.event.on("infernoportal:lit", function(ev)
+    core.storage_set("gate", `{ev.x} {ev.y} {ev.z} {ev.w} {ev.h} {ev.axis} {ev.sign}`)
+end)
+-- The world above goes back to its plaza after it: that move is not followed.
+local quiet_until = 0.0
+core.event.on("infernoportal:out", function(_)
+    core.storage_set("gate", "")
+    quiet_until = clock + 5
+end)
+
 core.event.on("core:far_moved", function(ev)
-    if ev.index ~= 0 or ev.axis > 1 then return end
+    if ev.index ~= 0 or ev.axis > 1 or clock < quiet_until then return end
+    -- Only the world above following a frame lit here: already where it maps.
+    local old = saved_gate()
+    if old then
+        local ox = old.x + (if old.axis == 0 then old.w / 2 else 0.5)
+        local oz = old.z + (if old.axis == 0 then 0.5 else old.w / 2)
+        if math.abs(ev.x / SCALE - ox) <= 3 and math.abs(ev.z / SCALE - oz) <= 3 then return end
+    end
     local w, h = math.max(1, math.floor(ev.half_w * 2 + 0.5)), math.max(2, math.floor(ev.half_h * 2 + 0.5))
     local ax = if ev.axis == 0 then 1 else 0
     local g: Gate = {
@@ -511,14 +715,6 @@ local function ground_made(g: Gate): boolean
         if core.loaded(g.x + c[1], g.y, g.z + c[2]) == 0 then return false end
     end
     return true
-end
-
-local function saved_gate(): Gate?
-    local v = string.split(core.storage_get("gate") or "", " ")
-    if #v ~= 7 then return nil end
-    return { x = tonumber(v[1]) or 0, y = tonumber(v[2]) or 0, z = tonumber(v[3]) or 0,
-             w = tonumber(v[4]) or 1, h = tonumber(v[5]) or 2,
-             axis = tonumber(v[6]) or 0, sign = tonumber(v[7]) or 1 }
 end
 
 local restored = false
@@ -555,6 +751,6 @@ end)
 
 -- What each item looks like in a hand: its own model, drawn in the palm
 -- (tools/make_held_models.py).
-for _, n in { "cinder_rod", "wraith_tear", "gold_nugget" } do
+for _, n in { "cinder_rod", "wraith_tear", "gold_nugget", "quartz", "cinder_powder" } do
     core.register_model(`inferno:{n}_held`, `{n}_held.gltf`)
 end

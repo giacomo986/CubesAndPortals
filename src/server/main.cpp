@@ -6313,6 +6313,16 @@ int serve_room(int argc, char **argv)
             s.mods.events().define(landed, err);
         }
         {
+            // A creature's fireball burst on the block at x y z, on the face
+            // whose normal is nx ny nz: what a mod sets alight there is its own.
+            EventSchema burst;
+            burst.name   = "core:burst";
+            burst.owner  = "core";
+            burst.fields = {{"x", SCRIPT_V_NUMBER},  {"y", SCRIPT_V_NUMBER},  {"z", SCRIPT_V_NUMBER},
+                            {"nx", SCRIPT_V_NUMBER}, {"ny", SCRIPT_V_NUMBER}, {"nz", SCRIPT_V_NUMBER}};
+            s.mods.events().define(burst, err);
+        }
+        {
             // A player died at x y z and has already been put back at their
             // bed or the spawn; the bag is still on them (kill_body says why),
             // so a mod that wants a death to cost it takes it here.
@@ -8178,6 +8188,12 @@ int serve_room(int argc, char **argv)
                         snd.x = at.x; snd.y = at.y; snd.z = at.z;
                         if (net::sound_name_ok(snd.name)) s.mod_sounds.push_back(snd.encode());
                     }});
+                // Fireballs burst during the arrows' pass, where the world is
+                // not to be written: kept, and told the mods after it.
+                std::vector<std::array<int, 6>> bursts;
+                sessions.ecs().set<cnp::ecs::MobBurst>({[&bursts](int x, int y, int z, int nx, int ny, int nz) {
+                    if (bursts.size() < 64) bursts.push_back({x, y, z, nx, ny, nz});
+                }});
                 cnp::ecs::step_mobs(sessions.ecs(), s.world, s.registry, s.mob_kinds, targets,
                                     (float)kTickSeconds, mob_now,
                                     (s.has_sky ? 0.0f : daylight_at(sessions.time_of_day())),
@@ -8194,6 +8210,20 @@ int serve_room(int argc, char **argv)
                                                                 write_block(s, bx, by, bz, b, f);
                                                             });
                                     });
+                sessions.ecs().remove<cnp::ecs::MobBurst>();
+                for (const std::array<int, 6> &b : bursts) {
+                    script_field f[6] = {
+                        {"x", SCRIPT_V_NUMBER, (double)b[0], nullptr, 0},
+                        {"y", SCRIPT_V_NUMBER, (double)b[1], nullptr, 0},
+                        {"z", SCRIPT_V_NUMBER, (double)b[2], nullptr, 0},
+                        {"nx", SCRIPT_V_NUMBER, (double)b[3], nullptr, 0},
+                        {"ny", SCRIPT_V_NUMBER, (double)b[4], nullptr, 0},
+                        {"nz", SCRIPT_V_NUMBER, (double)b[5], nullptr, 0},
+                    };
+                    bool        ignored = false;
+                    std::string err;
+                    s.mods.events().emit("core:burst", f, 6, &ignored, err);
+                }
                 // And through the world's own openings: a cube thrown into a portal.
                 sessions.cross_mobs(mob_now);
                 if (natural_mobs && tick % 40 == 0) {

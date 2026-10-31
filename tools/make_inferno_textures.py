@@ -83,10 +83,61 @@ def main():
 
     tiles["lava"] = blobs(speckle((230, 100, 20), 0.1, rng), (255, 180, 40), 8, 2.4, rng)
 
+    # The countries (games/inferno: basalt fields, fungus forests).
+    basalt = Image.new("RGB", (N, N))
+    for x in range(N):
+        col = shade((56, 54, 62), 1.0 + rng.uniform(-0.12, 0.12))
+        for y in range(N):
+            seam = x % 4 == 0
+            basalt.putpixel((x, y), shade((30, 28, 34) if seam else col, 1.0 + rng.uniform(-0.05, 0.05)))
+    tiles["basalt"] = basalt
+
+    stem = Image.new("RGB", (N, N))
+    for x in range(N):
+        for y in range(N):
+            ridge = (x + (y // 5) % 2) % 3 == 0
+            stem.putpixel((x, y), shade((96, 48, 80) if ridge else (124, 66, 100), 1.0 + rng.uniform(-0.08, 0.08)))
+    tiles["fungus_stem"] = stem
+
+    tiles["fungus_cap"] = blobs(speckle((40, 140, 124), 0.12, rng), (150, 255, 220), 6, 1.6, rng)
+
+    fplanks = Image.new("RGB", (N, N))
+    for y in range(N):
+        for x in range(N):
+            gap = y % 4 == 3 or (x + (8 if (y // 4) % 2 else 0)) % 16 == 15
+            fplanks.putpixel((x, y), shade((70, 36, 58) if gap else (150, 86, 120), 1.0 + rng.uniform(-0.07, 0.07)))
+    tiles["fungus_planks"] = fplanks
+
+    qblock = speckle((228, 220, 210), 0.04, rng)
+    for i in range(N):
+        for e in (0, N - 1):
+            qblock.putpixel((i, e), (196, 186, 174))
+            qblock.putpixel((e, i), (196, 186, 174))
+    tiles["quartz_block"] = qblock
+
+    lantern = blobs(speckle((255, 170, 70), 0.08, rng), (255, 230, 150), 5, 2.0, rng)
+    for i in range(N):
+        for e in (0, 1, N - 2, N - 1):
+            lantern.putpixel((i, e), (200, 150, 40))
+            lantern.putpixel((e, i), (200, 150, 40))
+    tiles["ember_lantern"] = lantern
+
     for name, img in tiles.items():
         img.resize((2 * N, 2 * N), Image.NEAREST).convert("RGBA").save(
             os.path.join(OUT, f"inferno_{name}.png"))
-    print(f"{len(tiles)} textures in {os.path.normpath(OUT)}")
+    # A fireball's fire: tongues of flame up from the bottom, clear between them.
+    fire = Image.new("RGBA", (N, N), (0, 0, 0, 0))
+    for x in range(N):
+        top = int(N * (0.35 + 0.5 * rng.random()))
+        for y in range(N - top, N):
+            k = (y - (N - top)) / max(1, top)
+            c = (255, int(220 - 150 * k), int(80 - 70 * k))
+            fire.putpixel((x, y), (*c, 230))
+    fire.resize((2 * N, 2 * N), Image.NEAREST).save(os.path.join(OUT, "inferno_fire_side.png"))
+    # Its top and bottom clear: a fire is its four sides of flame.
+    for face in ("top", "bottom"):
+        Image.new("RGBA", (2 * N, 2 * N), (0, 0, 0, 0)).save(os.path.join(OUT, f"inferno_fire_{face}.png"))
+    print(f"{len(tiles) + 3} textures in {os.path.normpath(OUT)}")
 
 
 if __name__ == "__main__":

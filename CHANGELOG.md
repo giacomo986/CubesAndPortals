@@ -14,6 +14,18 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 - Alpha and beta releases come out marked as pre-releases.
 - The documentation and this changelog are in English, each with its Italian twin beside it
   (`<name>.it.md`).
+- The title screen's list of saved worlds marks those made by an earlier version: an amber frame
+  and the version that made them, or "old version" for one from before worlds kept it (a world's
+  new `version` file, written once when it is made).
+- Parkour: a run along a wall stopped by a wall across its way (an inside corner) turns onto that
+  wall at a jump within 0.4 s (`core.parkour`). The parkour course has two stations more before the
+  tower: two rope beams in a row, and a wall run round an inside corner; then two beams round a
+  corner, three in an S and three in a U.
+- The Inferno: its drops have uses (gold ingots, fire resistance at the still, cinder powder for a
+  lighter and ember lanterns, quartz blocks and comparators); basalt fields, fungus forests and ash
+  wastes; chests along the fortresses; fireballs set short fires (new event `core:burst`); sounds
+  and ash in the air; and a frame lit in the Inferno opens the way back there, with its twin built
+  eight times as far out in the world above.
 
 ## 0.10.0-alpha.1 — 2026-10-31
 

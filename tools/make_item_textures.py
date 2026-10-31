@@ -287,6 +287,7 @@ LIQUIDS = {
     "mending": ((235, 80, 90), (170, 40, 55)),
     "haste": ((240, 150, 60), (190, 100, 30)),
     "water_breathing": ((60, 200, 160), (30, 140, 110)),
+    "fire_resistance": ((245, 110, 40), (180, 60, 20)),
 }
 # Cheese and a cake (mods/animals).
 SHAPES["animals_cheese"] = ([

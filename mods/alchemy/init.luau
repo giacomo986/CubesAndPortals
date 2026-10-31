@@ -14,6 +14,8 @@
 --   plants:melon_slice  mending       health back three times as fast
 --   rocks:amethyst_shard haste        digging 1.6 times as fast
 --   pets:fish           water_breathing  no air lost under water (mods/breath)
+--   inferno:wraith_tear fire_resistance  lava and fire do not burn (games/inferno,
+--                                     told by the event alchemy:fireproof)
 --
 -- Each potion is its own source of core.player_factors, so two drunk add up
 -- and neither undoes a territory's. The effects are in memory: they end with
@@ -27,7 +29,8 @@ local LAST = 180       -- seconds a potion lasts
 local BREW = 10        -- seconds a still brews
 
 -- What each potion does: the four factors, or night sight.
-type Potion = { from: string, factors: { number }?, sight: boolean?, gills: boolean?, said: string }
+type Potion = { from: string, factors: { number }?, sight: boolean?, gills: boolean?, fireproof: boolean?,
+                said: string }
 local POTIONS: { [string]: Potion } = {
     night_sight = { from = "deep:glowcap", sight = true, said = "Night sight" },
     swiftness   = { from = "cane:sugar_cane", factors = { 1.4, 1, 1, 1 }, said = "Swiftness" },
@@ -35,10 +38,14 @@ local POTIONS: { [string]: Potion } = {
     mending     = { from = "plants:melon_slice", factors = { 1, 1, 1, 3 }, said = "Mending" },
     haste       = { from = "rocks:amethyst_shard", factors = { 1, 1.6, 1, 1 }, said = "Haste" },
     water_breathing = { from = "pets:fish", gills = true, said = "Water breathing" },
+    fire_resistance = { from = "inferno:wraith_tear", fireproof = true, said = "Fire resistance" },
 }
 
 if serving then
     core.net.open()
+    -- Who drank fire resistance, and for how long: what burns them (the
+    -- Inferno's lava and fire) is another mod's, which listens.
+    core.event.define("alchemy:fireproof", { fields = { player = "number", seconds = "number" }, cancellable = false })
 
     core.register_item("alchemy:flask", 16, "", 0, 1.0, "")
     core.register_item("alchemy:flask_water", 16, "", 0, 1.0, "")
@@ -149,6 +156,9 @@ if serving then
                 apply(ev.player, name, true)
                 if POTIONS[name].gills then
                     core.event.emit("breath:water", { player = ev.player, seconds = LAST })
+                end
+                if POTIONS[name].fireproof then
+                    core.event.emit("alchemy:fireproof", { player = ev.player, seconds = LAST })
                 end
                 core.play_sound("alchemy:drink", ev.x, ev.y, ev.z)
                 core.notice(ev.player, POTIONS[name].said .. " for three minutes")

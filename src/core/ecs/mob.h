@@ -542,6 +542,14 @@ struct MobVoice {
     std::function<void(uint16_t kind, const char *what, Vec3 at)> say;
 };
 
+// Where a fireball bursts on a block: the block it struck and that face's
+// normal (add it for the cell in front). A singleton like MobVoice, called from
+// inside the arrows' pass, so whoever sets it keeps the burst for later rather
+// than touching the world there. Unset, nobody hears of it.
+struct MobBurst {
+    std::function<void(int x, int y, int z, int nx, int ny, int nz)> at;
+};
+
 // One tick of every creature and every arrow: they fall, walk, climb, think,
 // swing and shoot, burn under the open sky by day (`daylight` above a half),
 // and the arrows fly. `hurt` is how a blow or an arrow reaches a player --

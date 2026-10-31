@@ -402,6 +402,7 @@ The core uses the same bus, with the same schemas, with no privileged paths (DES
 | `core:input` | `action, player` | yes — only on a client |
 | `core:far_moved` | `index, x, y, z, axis, sign, half_w, half_h` | no — only on a server of rooms |
 | `core:died` | `player, x, y, z` | no — only on a server; the body is already back at its bed or the spawn, x y z is where it died |
+| `core:burst` | `x, y, z, nx, ny, nz` | no — only on a server; a creature's fireball burst on the block at x y z, on the face with normal nx ny nz |
 
 `core:used` is a right click on a block within reach, **with anything in hand**. It names the block
 hit, not the face beside it, and it is emitted **before** placing: a handler that sets

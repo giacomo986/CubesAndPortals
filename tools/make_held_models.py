@@ -300,6 +300,7 @@ M = {
     "torch_lens": material("TorchLens", (1.00, 0.95, 0.70), glow=True),
     "frost": material("Frost", (0.65, 0.88, 1.00), glow=True),
     "tear": material("Tear", (0.70, 0.86, 0.93), 0.0, 0.1),
+    "quartz": material("Quartz", (0.93, 0.90, 0.86), 0.0, 0.15),
     "flint": material("Flint", (0.30, 0.30, 0.33), 0.0, 0.5),
     "pack": material("Pack", (0.20, 0.21, 0.24), 0.3, 0.5),
     "pack_accent": material("PackAccent", (0.92, 0.42, 0.12)),
@@ -641,6 +642,12 @@ ITEMS = {
     "inferno:gold_nugget": [(lump(r, s, at=(x, 0.04 + y, z), scale=(1, 1, 0.8)), "gold")
                            for r, s, x, y, z in ((0.02, 1, 0, 0, 0), (0.016, 2, 0.022, 0.012, -0.004),
                                                  (0.014, 3, -0.016, 0.02, 0.0))],
+    # A cluster of white crystals; a little heap of glowing dust.
+    "inferno:quartz": gem(0.03, 0.05, 0.04, 6, "quartz") +
+                      [(cyl(0.018, 0.04, segs=6, r2=0.008, at=(x, 0.03, 0.0), rot=(0, 0, a)), "quartz")
+                       for x, a in ((0.03, -30), (-0.028, 25))],
+    "inferno:cinder_powder": [(lump(0.024, s, rough=0.3, at=(x, 0.03 + y, 0), scale=(1, 0.6, 0.8)), "cinder")
+                              for s, x, y in ((2, -0.02, 0), (4, 0.022, 0.004), (6, 0.0, 0.026))],
     "infernoportal:lighter": [(ring(0.035, 0.008, start=-120, sweep=280, segs=12, at=(0, 0.04, 0.0),
                                    rot=(90, 0, 0)), "iron"),
                              (lump(0.025, 5, rough=0.25, at=(0.05, 0.02, -0.01)), "flint")],
@@ -855,7 +862,7 @@ for key, rgb, metal, rough, glow in (
     M[key] = material(key.capitalize() + "_new", rgb, metal, rough, glow=glow)
 POTIONS = {"flask_water": (0.25, 0.48, 0.86), "night_sight": (0.31, 0.84, 0.90), "swiftness": (0.94, 0.86, 0.35),
            "stoneskin": (0.67, 0.47, 0.94), "mending": (0.92, 0.31, 0.35), "haste": (0.94, 0.59, 0.24),
-           "water_breathing": (0.24, 0.78, 0.63)}
+           "water_breathing": (0.24, 0.78, 0.63), "fire_resistance": (0.96, 0.43, 0.16)}
 
 
 def flask(liquid):
@@ -984,6 +991,8 @@ ICONS = {
     "inferno:cinder_rod": (0, 0, -45),
     "inferno:wraith_tear": (0, 0, 0),
     "inferno:gold_nugget": (-30, 0, 15),
+    "inferno:quartz": (0, 0, 0),
+    "inferno:cinder_powder": (-30, 0, 15),
     "infernoportal:lighter": (0, 0, 0),
     "lab:torch": (0, 0, -45),
     "lab:frost": (0, 0, 0),

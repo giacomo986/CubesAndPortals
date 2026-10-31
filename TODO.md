@@ -108,6 +108,25 @@ Open:
   squares (creative showed words) and their blocks baked placeholders: now
   283 of 349 items drawn. The bag's tooltip says "Iron pick" as creative
   does, not "tools:iron_pick". Open: no per-item label a mod can choose.
+  Inferno completed (2026-10-31): the drops have uses (nine nuggets an ingot,
+  a tear the still's fire resistance, a rod two of cinder powder: with iron a
+  lighter, with gold and glass two ember lanterns; quartz ore gives quartz:
+  four a block, the middle of a comparator); mods/alchemy, deep and breath
+  now load there. Three countries by noise: basalt fields with columns,
+  fungus forests (stems, glowing caps, planks), ash wastes. A chest every 64
+  along the fortress lanes, filled the first time it is opened (a player's
+  own stays empty). A creature's fireball reaches mods as core:burst (new
+  engine event) and sets a fire, 3 s on rock and 8 on wood, never spreading.
+  Ambient rumble, bubbling and moans (tools/make_inferno_sounds.py); ash and
+  embers in the air (inferno_ash, a client mod). 1:8 both ways: a frame lit
+  in the Inferno moves its way back there and the sandbox builds the twin at
+  eight times on the ground; broken, both go home. Checked headless and in
+  Xephyr: the countries, a chest's loot (9 nuggets, 2 rods, 6 quartz,
+  obsidian, iron), a fire, 4 s in lava at 20/20 under fire resistance, a
+  fireball into a wall told once with its face (unit probe), a lit frame
+  at 36 30 32 giving a twin at 292 27 260 and both home after a break. Not
+  seen: a wraith's fireball setting a fire in play (none hit a wall in 20 s),
+  a frame lit in the sandbox since the change, the sounds heard.
   Arpg effects and breakables (2026-10-20): core.render.fx (new, client
   only) draws an effect of light with the engine's shaders
   (src/client/render/fx_render.cpp, one quad and one GLSL program: glow,
@@ -1710,8 +1729,7 @@ not in memory waits.
   picked or played while a card is moving, or for 0.15 s after.
   Seen in Xephyr at a
   briscola and a scopa for two against the table.
-- Fireballs do not burn or break; inferno gold, tears and rods have no use;
-  zombie flesh and bones have no use.
+- Zombie flesh and bones have no use.
 - Water: only the top is lit smoothly; the selection outline under water is
   not faded; the walk's cost on a weak GPU was not measured.
 - Clouds: the wind is not saved.
@@ -1908,7 +1926,7 @@ completion or cursor.
 2026-10-11 the Inferno loads the sandbox's gameplay mods (50 running, 348 items,
 11 sandbox stages dropped by `core.mapgen_only`); not gates, guard, villages,
 villagers, depths, spike, beacons, console, palette -- their items cross as
-orphans. Hunger, experience, keys seen and the backpacks' counter are kept
+orphans (alchemy, deep and breath load there since 2026-10-31). Hunger, experience, keys seen and the backpacks' counter are kept
 once for every room (`core.shared_storage_*`, in the first room's file); a
 backpack's contents move to the room its wearer enters. Not run with a player
 yet: a pack crossing with something in it. A crash between the two rooms'
