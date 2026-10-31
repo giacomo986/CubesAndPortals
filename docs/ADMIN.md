@@ -1,5 +1,7 @@
 # Running a server
 
+*[Leggi in italiano](ADMIN.it.md)*
+
 Everything an owner or a member of staff can do to a `cnp_server`: the commands, who may use
 them, the flags and the `server.conf` keys, the scripts, and what each one keeps on disk. The
 code is [`src/server/admin.h`](../src/server/admin.h) and `admin.cpp`; every command goes
