@@ -324,6 +324,11 @@ if PLAZA then
         build(theme, hx, y0, hz, k == 0)
         core.log(`gates: opening {k} to '{room}' at {hx} {y0} {hz}`)
     end
+    -- The second ways in (17..23) are a survival world's: on a plaza they
+    -- wait in the rock under it.
+    for k = 17, 23 do
+        if core.portal_room(k) ~= "" then core.set_portal(k, 60.5, 3, 30.5 + (k - 17) * 3) end
+    end
     return
 end
 
@@ -487,16 +492,23 @@ local function sites_near(x: number, z: number, r: number): { Site }
     return out
 end
 
--- The mouths: each room's way in (0..7, 15, 16) and its arch (8..14, the way
--- out of it comes back by).
-local MOUTH: { [string]: number } = {}
+-- The mouths: each room's ways in (0..7, 15, 16, and a second for each world
+-- with a key, 17..23) and its arch (8..14, the way out of it comes back by).
+local MOUTHS: { [string]: { number } } = {}
 local ARCH: { [string]: number } = {}
-for k = 0, 19 do
+for k = 0, 23 do
     local room = core.portal_room(k)
     if room ~= "" then
-        if k <= 7 or k >= 15 then MOUTH[room] = k else ARCH[room] = k end
+        if k <= 7 or k >= 15 then
+            MOUTHS[room] = MOUTHS[room] or {}
+            table.insert(MOUTHS[room], k)
+        else
+            ARCH[room] = k
+        end
     end
 end
+local MOUTH: { [string]: number } = {}   -- each room's first
+for room, ks in MOUTHS do MOUTH[room] = ks[1] end
 
 -- The arch beside a gate, 8 along it: the frame mods/keys gives the plaza's.
 local function arch(put: Put)
@@ -549,8 +561,10 @@ if LAB_SITE and MOUTH.laboratorio then
     core.log(`gates: the laboratory at {LAB_SITE.x} {LAB_SITE.y} {LAB_SITE.z}`)
 end
 -- The rest wait in the rock under the spawn until a site wants them.
-for room, k in MOUTH do
-    if room ~= "laboratorio" then core.set_portal(k, spawn_x + k * 3 + 0.5, 4, spawn_z + 0.5) end
+for room, ks in MOUTHS do
+    for _, k in ks do
+        if room ~= "laboratorio" then core.set_portal(k, spawn_x + k * 3 + 0.5, 4, spawn_z + 0.5) end
+    end
 end
 for _, k in ARCH do core.set_portal(k, spawn_x + k * 3 + 0.5, 4, spawn_z + 4.5) end
 if FIRST_SITE then
@@ -611,21 +625,21 @@ local function reward(p: number, s: Site, pending: string)
 end
 
 local came_from: { [string]: Site? } = {} -- the site each player last came back by
-local at_site: { [string]: Site } = {}   -- each room's mouth: the site it is at now
+local at_site: { [number]: Site } = {}   -- each mouth: the site it is at now
 local away: { [string]: Site } = {}      -- the site of somebody gone through, by who
 local near: { [number]: Site } = {}      -- the site each player here stands at, if any
 local who_is: { [number]: string } = {}  -- each player here, by who
 local pinned: { [string]: { [string]: boolean } } = {}   -- pins sent this run, by who
 local since = 0.0
 
-local function place(room: string, s: Site)
-    local k = MOUTH[room]
-    if k == nil or room == "laboratorio" then return end
+-- Mouth k to site s; the world's arch with it when it is the world's nearest.
+local function place(k: number, room: string, s: Site, arch: boolean)
+    if room == "laboratorio" then return end
     if core.portal_place(k, s.x + 0.5, s.y + 1, s.z + 0.5, 1, 1, 0.5, 1.0) == 1 then
-        at_site[room] = s
-        local a = ARCH[room]
-        if a then core.portal_place(a, s.x + 0.5, s.y + 1, s.z + 8.5, 1, 1, 0.5, 1.0) end
+        at_site[k] = s
     end
+    local a = ARCH[room]
+    if a and arch then core.portal_place(a, s.x + 0.5, s.y + 1, s.z + 8.5, 1, 1, 0.5, 1.0) end
 end
 
 core.event.on("core:tick", function(ev)
@@ -634,7 +648,18 @@ core.event.on("core:tick", function(ev)
     since = 0.0
 
     local now: { [number]: boolean } = {}
-    local want: { [string]: { site: Site, dist: number } } = {}
+    local want: { [string]: { { site: Site, dist: number } } } = {}
+    local function wanted(s: Site, dist: number)
+        local l = want[s.room] or {}
+        want[s.room] = l
+        for _, w in l do
+            if w.site == s then
+                w.dist = math.min(w.dist, dist)
+                return
+            end
+        end
+        table.insert(l, { site = s, dist = dist })
+    end
     for _, p in core.players() do
         now[p] = true
         local x, y, z = core.player_pos(p)
@@ -663,8 +688,7 @@ core.event.on("core:tick", function(ev)
         end
         for _, s in sites_near(x, z, NEAR) do
             local dist = (s.x - x) ^ 2 + (s.z - z) ^ 2
-            local w = want[s.room]
-            if w == nil or dist < w.dist then want[s.room] = { site = s, dist = dist } end
+            wanted(s, dist)
             -- Close enough to walk in: what the world behind needs to know.
             if dist < 6 * 6 and near[p] ~= s then
                 core.player_carry(p, `site={s.id} d={s.d} s={hash(s.x, s.z, SEED) % 1000000} t={s.room}`)
@@ -682,12 +706,27 @@ core.event.on("core:tick", function(ev)
     end
     -- Somebody gone through keeps their world's mouth at their site (the arch
     -- brings them back there); else the site nearest anybody has it.
-    for _, s in away do
-        if want[s.room] == nil then want[s.room] = { site = s, dist = 0 } end
-    end
-    for room, w in want do
-        local cur = at_site[room]
-        if cur == nil or cur.id ~= w.site.id then place(room, w.site) end
+    for _, s in away do wanted(s, 0) end
+    -- Each world's mouths to its nearest wanted sites: a mouth already at one
+    -- stays, the others go to the rest.
+    for room, l in want do
+        local ks = MOUTHS[room]
+        if ks == nil then continue end
+        table.sort(l, function(a, b) return a.dist < b.dist end)
+        local chosen: { [Site]: boolean } = {}
+        for i = 1, math.min(#l, #ks) do chosen[l[i].site] = true end
+        local free = {}
+        for _, k in ks do
+            local cur = at_site[k]
+            if cur and chosen[cur] then chosen[cur] = nil else table.insert(free, k) end
+        end
+        for i = 1, math.min(#l, #ks) do
+            local site = l[i].site
+            if chosen[site] and #free > 0 then
+                place(table.remove(free, 1), room, site, i == 1)
+                chosen[site] = nil
+            end
+        end
     end
 end)
 

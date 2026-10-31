@@ -5,7 +5,7 @@ un'alpha: [docs/BUILDING.md](docs/BUILDING.md#versioni).
 
 ## Non ancora uscito
 
-Protocollo 110: un client 0.9.0-alpha.4 non entra in un server con i binari.
+Protocollo 111 (fino a 24 bocche per stanza; 110 i binari): un client 0.9.0-alpha.4 non entra.
 
 - Modalità **survival** (menu nuovo mondo, `--survival`): niente piazza, spawn casuale su terra,
   i mondi a tema dietro portali sparsi con difficoltà 1-10 che cresce con la distanza, un livello

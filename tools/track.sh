@@ -14,7 +14,8 @@
 # parkour (le ultime cinque messe sulla piazza da mods/gates), 7 il laboratorio; 8-14 gli archi
 # delle uscite sul bordo nord della piazza (mods/keys), sigillati in rosso a chi non ha la
 # chiave di quel mondo; 15 il fronte (90.5 ... 58.5, mods/gates), andata e ritorno; 16 l'assalto
-# (90.5 ... 76.5), il cui mondo non si salva. Il client guarda dentro solo le
+# (90.5 ... 76.5), il cui mondo non si salva; 17-23 una seconda entrata per
+# ognuno dei sette mondi con chiave (survival: due siti dello stesso mondo insieme). Il client guarda dentro solo le
 # due più vicine. La pista dell'inferno va
 # dalla pista all'inferno e ritorno, tre bocche per stanza: la cornice A della
 # pista (apertura 1) e B dell'inferno (apertura 2) si portano l'una all'altra, e
@@ -104,6 +105,8 @@ echo "== avvio il server (sandbox, pista, inferno, arena, arpg, camere di prova,
         --portal-to @pista/3 --portal-to @inferno/3 --portal-to @arena/1 --portal-to @arpg/1 \
         --portal-to @chambers/1 --portal-to @backrooms/1 --portal-to @parkour/1 \
         --portal-to @front/0 --portal-to @assalto/0 \
+        --portal-to @pista/0 --portal-to @inferno/0 --portal-to @arena/0 --portal-to @arpg/0 \
+        --portal-to @chambers/0 --portal-to @backrooms/0 --portal-to @parkour/0 \
     --room pista --mods "$ROOT/games/track/mods" --textures "$ROOT/games/track/textures" \
         --world-file "$HERE/pista.world" --portal-to @sandbox/0 --portal-to @inferno/2 --portal-to @inferno/1 \
         --portal-to @sandbox/8 \

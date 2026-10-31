@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 110; // 110 rails (NodeDef::rail) and carts
+inline constexpr uint16_t kProtocol    = 111; // 111 up to 24 mouths (survival: two per world)
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -394,8 +394,10 @@ inline constexpr size_t kMaxRoomName = 64;
 inline constexpr int kMaxOpenings = 32;
 
 // How many of them may lead to other worlds. Each is a window the client keeps
-// open and draws into a target of its own, which is what bounds it.
-inline constexpr int kMaxMouths = 20;
+// open and draws into a target of its own, which is what bounds it. 24: a
+// survival sandbox has two for each of its seven worlds with a key, and the
+// eight openings left are what its mods' own portals share near players.
+inline constexpr int kMaxMouths = 24;
 
 enum class Channel : uint8_t {
     Handshake = 0,   // reliable

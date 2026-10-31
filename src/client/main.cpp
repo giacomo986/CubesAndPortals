@@ -10375,6 +10375,12 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
                               "--portal-to", "@chambers/1", "--portal-to", "@backrooms/1",
                               "--portal-to", "@parkour/1", "--portal-to", "@front/0",
                               "--portal-to", "@assalto/0",
+                              // A second way into each world with a key (17-23): mods/gates
+                              // puts two of a world's sites in reach at once.
+                              "--portal-to", "@pista/0", "--portal-to", "@inferno/0",
+                              "--portal-to", "@arena/0", "--portal-to", "@arpg/0",
+                              "--portal-to", "@chambers/0", "--portal-to", "@backrooms/0",
+                              "--portal-to", "@parkour/0",
                               "--room", "pista", "--mods", track_mods.c_str(), "--textures",
                               track_tex.c_str(), "--world-file", track_file.c_str(),
                               "--portal-to", "@sandbox/0", "--portal-to", "@inferno/2",
