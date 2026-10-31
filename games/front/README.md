@@ -1,129 +1,117 @@
-# Il fronte
+# The front
 
-Un campo di battaglia nello stile dei grandi sparatutto a squadre: due basi,
-tre punti da prendere, rossi contro blu. Due mod: `mods/front_core` (solo
-server: il campo, i blocchi, come ci si muove) e `mods/front_game`
-(`side = both`: squadre, armi, granate, bot e punti sul server, HUD ed
-effetti sul client).
+*[Leggi in italiano](README.it.md)*
 
-## Come ci si arriva
+A battlefield in the style of the big team shooters: two bases, three points to take, red against
+blue. Two mods: `mods/front_core` (server only: the field, the blocks, how bodies move) and
+`mods/front_game` (`side = both`: teams, weapons, grenades, bots and points on the server, the HUD
+and the effects on the client).
 
-`tools/track.sh` (o il menù del titolo) avvia il sandbox con dieci stanze; la
-porta del fronte, una porta di bunker fra sacchi di sabbia sotto una bandiera
-rossa e una blu, sta a 90.5 21 58.5 (`mods/gates`, sedicesima bocca del
-sandbox). Si entra nella **tribuna**: una stanza sul crinale ovest, a metà
-strada fra le due basi e 16 nodi sopra il campo, con una vetrata da cui si
-guarda la battaglia. Chi è in tribuna guarda e basta: non è di nessuna squadra,
-i bot non lo vedono. Sulla parete di fondo ci sono due portali, uno rosso e uno
-blu, e dentro ciascuno si vede la sua base. Chi entra in quello rosso esce nel
-bunker della base rossa e combatte per i rossi; lo stesso con il blu. Dal
-portale del bunker si torna in tribuna e si smette di combattere; da lì si può
-scegliere di nuovo. La porta da cui si è entrati, in fondo a sud della
-tribuna, riporta sulla piazza. Il fronte non dà chiavi.
+## How to get there
 
-Nel gioco finito la porta si apre solo a chi ha battuto l'Ospite nel
-laboratorio (`mods/keys`: il laboratorio manda `keys:ending`, tenuto per ogni
-stanza in `ending:<chi>`). Per ora `FRONT_OPEN = true` in `mods/keys/init.luau`
-la lascia aperta a tutti, per provarla; `false` è il gioco come uscirà.
+`tools/track.sh` (or the title menu) starts the sandbox with its rooms; the front's door, a bunker
+door between sandbags under a red and a blue flag, stands at 90.5 21 58.5 (`mods/gates`, the
+sandbox's sixteenth mouth). You come into the **gallery**: a room on the western ridge, halfway
+between the two bases and 16 nodes above the field, with a window to watch the battle from. Who is
+in the gallery only watches: on no team, unseen by the bots. On the back wall are two portals, a
+red one and a blue one, and inside each you see its base. Walking into the red one you come out in
+the red base's bunker and fight for the reds; the same with the blue. The bunker's portal takes you
+back to the gallery and out of the fight; from there you can choose again. The door you came in by,
+at the gallery's south end, leads back to the plaza. The front gives no key.
 
-## Il campo
+In the finished game the door opens only to whoever has beaten the Host in the laboratory
+(`mods/keys`: the laboratory sends `keys:ending`, kept for every room as `ending:<who>`).
+`FRONT_OPEN = true` in `mods/keys/init.luau` opens it to everybody, to try it; `false` is the game
+as it ships. In a survival world the front stands behind portals scattered past 1500 from the
+spawn, shut until the ending, and the site's difficulty sets the bots a team (4 + d / 2) and the
+tickets (100 + 10 d); a round won by the player's team is the level done.
 
-256 × 256 nodi chiusi da un crinale. Base rossa a sud (128, 24), blu a nord
-(128, 232): un cortile di cemento con le strisce della squadra, sacchi di
-sabbia, un bunker e il pennone. In mezzo, sulla strada fra le basi:
+## The field
 
-| punto | dove | cos'è |
+256 × 256 nodes closed in by a ridge. The red base to the south (128, 24), the blue to the north
+(128, 232): a concrete yard with the team's stripes, sandbags, a bunker and the flagpole. In the
+middle, on the road between the bases:
+
+| point | where | what |
 |---|---|---|
-| A | 48, 128 | una fattoria fra muretti di pietra, un fienile di legno |
-| B | 128, 128 | il villaggio all'incrocio: sei case di mattoni, una piazza col pozzo |
-| C | 208, 128 | un bunker di cemento su una collina, sacchi di sabbia tutt'attorno |
+| A | 48, 128 | a farm between stone walls, a wooden barn |
+| B | 128, 128 | the village at the crossroads: six brick houses, a square with a well |
+| C | 208, 128 | a concrete bunker on a hill, sandbags all round |
 
-Due muri di pietra alti 2 attraversano il campo a z 86 e 170, con varchi
-sulla strada e ogni tanto. Tutto si può far saltare, tranne il fondo e il
-crinale.
+Two stone walls 2 high cross the field at z 86 and 170, with gaps on the road and here and there.
+Everything can be blown up, except the floor and the ridge.
 
-## Come si gioca
+## How it plays
 
-* **Ticket**: 150 a squadra. Ogni morte ne costa uno; chi tiene più punti fa
-  perdere all'altra un ticket ogni 4 s (2 s con tutti e tre). A zero la
-  squadra perde il round, e dopo 10 s ne comincia un altro.
-* **Punti**: chi sta entro 10 nodi conta; ogni soldato in più dell'altra
-  squadra porta avanti la presa di 10 al secondo, a 100 il punto è preso e la
-  bandiera cambia colore.
-* **Armi** (in mano dall'inizio): fucile e mitragliatrice sparano finché si
-  tiene il sinistro, la pistola e il fucile da cecchino un colpo a pressione,
-  R ricarica. Una testa vale il doppio. Dal fianco i colpi si allargano (il
-  mirino lo mostra); col **destro** si mira: l'arma sale al centro della vista,
-  la vista si stringe, i colpi vanno dove si guarda e si cammina a 1.8 m/s. Il
-  cecchino, mirando, guarda nel cannocchiale (5x) e non sbaglia. Niente fuoco amico. Nel cortile della propria base munizioni
-  e granate si ricaricano.
-* **Granate**: rimbalzano, scoppiano dopo 3 s, scavano una sfera di 2.6 e fanno
-  cadere quello che resta appeso sopra il buco.
-* **Bot**: ogni squadra è riempita fino a 8 con soldati comandati dal mod
-  (si vede l'arma che tengono in mano);
-  vanno di punto in punto e ogni tanto lanciano una granata. Vedono solo
-  davanti (un cono di 110 gradi, entro 48 nodi, 90 col cecchino) o a meno di
-  4 nodi; chi viene colpito si gira verso il colpo. Prima del primo sparo
-  passa un attimo (0.45-1.1 s), sparano a raffiche, all'inizio larghi e poi
-  più stretti, e un colpo loro fa tre quarti di quello di un giocatore.
-  Quattro modi di combattere, a turno: la **sentinella** si ferma ogni tanto
-  a guardarsi attorno, preferisce il cecchino e prende i nidi, i mortai e gli
-  obici che trova; l'**assaltatore** corre addosso a chi vede con la
-  mitragliatrice; il **prudente** va prima al riparo, si sporge per una
-  raffica col fucile e torna dietro; l'**anticarro** comincia col
-  lanciarazzi. Mortai e obici dei bot tirano su quello che un bot della
-  squadra ha visto negli ultimi 3 s. Ognuno tiene la sua arma
-  finché ha colpi, poi passa alla successiva (alla fine una pistola
-  raccattata).
-* **Bot sui mezzi**: guidano jeep e carro verso il loro punto, aspettano un
-  attimo che salgano i compagni vicini; la jeep li lascia al punto, il carro
-  resta e si ferma a sparare col cannone a chi vede entro 70 (un po' storto,
-  ogni 5.5-7 s). Pilotano l'elicottero (a 18 sopra il punto, razzi su
-  quello che hanno davanti), l'aereo e il bombardiere (in giro sopra il
-  punto, bombe dove cadrebbero su quello che la squadra vede). Salgono alle
-  armi e sui posti liberi di un mezzo della loro squadra fermo vicino, anche
-  guidato da un giocatore, e scendono se nessuno guida; alla contraerea
-  quando un nemico vola vicino. Lasciano jeep e carro a un giocatore della
-  squadra entro 25 nodi.
+* **Tickets**: 150 a team. Each death costs one; the team holding more points makes the other lose
+  a ticket every 4 s (2 s with all three). At zero the team loses the round, and 10 s later
+  another begins.
+* **Points**: whoever is within 10 nodes counts; each soldier more than the other team pushes the
+  capture on by 10 a second, at 100 the point is taken and the flag changes colour.
+* **Weapons** (in hand from the start): the rifle and the machine gun fire while the left button
+  is held, the pistol and the sniper rifle a shot a press, R reloads. A head counts double. From
+  the hip the shots spread (the crosshair shows it); with the **right** button you aim: the weapon
+  comes up to the middle of the view, the view narrows, the shots go where you look and you walk at
+  1.8 m/s. The sniper rifle, aimed, looks through its scope (5x) and does not miss. No friendly
+  fire. In your own base's yard ammunition and grenades refill.
+* **Grenades**: they bounce, go off after 3 s, dig a sphere of 2.6 and bring down what is left
+  hanging over the hole.
+* **Bots**: each team is filled up to 8 with soldiers the mod commands (you see the weapon they
+  hold); they go from point to point and now and then throw a grenade. They see only ahead (a cone
+  of 110 degrees, within 48 nodes, 90 with the sniper rifle) or within 4 nodes; one that is hit
+  turns towards the shot. A moment passes before the first shot (0.45-1.1 s), they fire in
+  bursts, wide at first and then tighter, and a shot of theirs does three quarters of a player's.
+  Four ways of fighting, in turn: the **sentry** stops now and then to look around, prefers the
+  sniper rifle and takes the nests, mortars and howitzers it finds; the **assaulter** runs at
+  whoever it sees with the machine gun; the **careful** one goes to cover first, leans out for a
+  burst with the rifle and goes back behind; the **anti-tank** one starts with the rocket
+  launcher. The bots' mortars and howitzers fire at what a bot of the team saw in the last 3 s.
+  Each keeps its weapon while it has rounds, then moves to the next (in the end a pistol picked up).
+* **Bots in machines**: they drive jeeps and tanks to their point, waiting a moment for nearby
+  comrades to get in; the jeep drops them at the point, the tank stays and stops to fire its gun
+  at whoever it sees within 70 (a little off, every 5.5-7 s). They fly the helicopter (18 over the
+  point, rockets at what is ahead), the plane and the bomber (round over the point, bombs where they
+  would fall on what the team sees). They take the weapons and free seats of a machine of their
+  team standing nearby, even one a player drives, and get out if nobody drives; they take the
+  anti-aircraft gun when an enemy flies near. They leave jeeps and tanks to a player of the team
+  within 25 nodes.
 
-## Modelli
+## Models
 
-`tools/make_front_models.py` (Blender, con gli aiuti di
-`tools/make_fps_models.py`): le braccia del robot in prima persona con
-pistola, fucile, mitragliatrice e granata; le armi in mano; i soldati rosso e
-blu con idle, walk, run, fire, throw e death.
+`tools/make_front_models.py` (Blender, with the helpers of `tools/make_fps_models.py`): the
+robot's first-person arms with pistol, rifle, machine gun and grenade; the weapons in hand; the red
+and blue soldiers with idle, walk, run, fire, throw and death.
 
-## Mezzi e armi pesanti
+## Machines and heavy weapons
 
-Si sale e si scende con **F** vicino a un mezzo, sul posto libero più vicino (da
-dietro la jeep si sale dietro); **1-9** cambiano posto, anche guidando, senza
-cambiare l'arma in mano. `/mezzo <tipo>` mette un mezzo davanti a te, per le
-prove. Il
-primo posto guida e ha l'arma del mezzo; WASD guida a terra, spazio e shift
-salgono e scendono, il mouse governa quello che vola.
+You get in and out with **F** near a machine, on the nearest free seat (from behind the jeep you
+get in at the back); **1-9** change seat, while driving too, without changing the weapon in hand.
+`/mezzo <type>` puts a machine in front of you, for testing. The first seat drives and has the
+machine's weapon; WASD drives on the ground, space and shift climb and descend, the mouse steers
+what flies.
 
-| | dove | posti | armi |
+| | where | seats | weapons |
 |---|---|---|---|
-| jeep | due per base | 4 | mitragliatrice dietro |
-| carro | uno per base | 2 | cannone (chi guida), mitragliatrice sulla torretta; sfonda i muri spingendoci contro |
-| elicottero | a ovest della base | 3 | razzi (chi pilota), mitragliatrice al portellone |
-| aereo | sulla strada a nord della base | 1 | mitragliatrici, bombe col destro |
-| bombardiere | in fondo alla strada nord, dietro l'aereo | 2 | chi pilota sgancia una fila di sei bombe (un palo rosso segna dove cadrebbero), torretta di mitragliatrice sul dorso |
-| contraerea | due nel cortile della base | 1 | missili solo contro quello che vola: si tiene il mirino su un elicottero o un aereo nemico 1.2 s (LOCKING), poi LOCKED e quattro missili che lo inseguono |
-| nido di mitragliatrice | ai sacchi di sabbia lungo le strade | 1 | |
-| mortaio, obice | nelle basi | 1 | tirano dove guarda il mirino (un palo rosso lo segna) |
+| jeep | two a base | 4 | machine gun at the back |
+| tank | one a base | 2 | gun (the driver), machine gun on the turret; breaks through walls by pushing against them |
+| helicopter | west of the base | 3 | rockets (the pilot), machine gun at the door |
+| plane | on the road north of the base | 1 | machine guns, bombs with the right button |
+| bomber | at the end of the north road, behind the plane | 2 | the pilot drops a row of six bombs (a red pole marks where they would fall), a machine-gun turret on its back |
+| anti-aircraft gun | two in the base's yard | 1 | missiles only at what flies: hold the sight on an enemy helicopter or plane for 1.2 s (LOCKING), then LOCKED and four missiles that chase it |
+| machine-gun nest | at the sandbags along the roads | 1 | |
+| mortar, howitzer | in the bases | 1 | fire where the sight looks (a red pole marks it) |
 
-La fanteria ha anche il lanciarazzi. Un mezzo distrutto esplode: il
-relitto brucia, perde i pezzi (la torretta del carro vola via, la jeep si
-ribalta) e in 5 s sprofonda; ne torna uno nuovo a casa dopo 30 s.
+The infantry has the rocket launcher too. A destroyed machine explodes: the wreck burns, sheds its
+parts (the tank's turret flies off, the jeep overturns) and sinks in 5 s; a new one comes back home
+after 30 s.
 
-## Ancora da fare
+## Still to do
 
-Due mezzi non si urtano tra loro e un giocatore a piedi passa attraverso un
-mezzo: TODO.md, "The front's machines". Un bot su un mezzo è rimesso al suo
-posto dal mod a ogni tick (i posti del motore sono dei giocatori).
+Two machines do not collide with each other, and a player on foot walks through a machine:
+TODO.md, "The front's machines". A bot in a machine is put back in its seat by the mod every tick
+(the engine's seats are players').
 
-## Suoni
+## Sounds
 
-`tools/make_front_sounds.py` li sintetizza (spari, esplosioni, motori,
-rotore, le voci dei soldati) in ogg accanto al mod.
+`tools/make_front_sounds.py` synthesises them (shots, explosions, engines, the rotor, the
+soldiers' voices) into ogg files beside the mod.
