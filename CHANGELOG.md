@@ -1,313 +1,314 @@
-# Cambiamenti
+# Changes
 
-Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
-un'alpha: [docs/BUILDING.md](docs/BUILDING.md#versioni).
+*[Leggi in italiano](CHANGELOG.it.md)*
 
-## Non ancora uscito
+One entry for every alpha handed out, the newest at the top. How they are numbered and how an
+alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
-- Il Flatpak si aggiorna: installato una volta dal repository
+## Not released yet
+
+- The Flatpak updates itself: installed once from the repository
   (`flatpak install --user https://giacomo986.github.io/CubesAndPortals/cubes-and-portals.flatpakref`),
-  `flatpak update` porta ogni versione nuova. Il repository è firmato e sta su GitHub Pages;
-  il `.flatpak` delle release si installa ancora, ma da file non si aggiorna.
-- Le release delle alpha e delle beta escono segnate come pre-release.
+  `flatpak update` brings every new release. The repository is signed and lives on GitHub Pages;
+  the releases' `.flatpak` still installs, but one installed from a file is never updated.
+- Alpha and beta releases come out marked as pre-releases.
+- The documentation and this changelog are in English, each with its Italian twin beside it
+  (`<name>.it.md`).
 
 ## 0.10.0-alpha.1 — 2026-10-31
 
-Protocollo 111 (110 i binari, 111 fino a 24 bocche per stanza): non gioca con i server della
-0.9 né i loro client con i suoi. Legge i mondi della 0.9.0-alpha.4; un mondo nuovo può essere
-sandbox o survival.
+Protocol 111 (110 the rails, 111 up to 24 mouths a room): it does not play with 0.9's servers,
+nor their clients with its own. It reads 0.9.0-alpha.4's worlds; a new world can be sandbox or
+survival.
 
-- Modalità **survival** (menu nuovo mondo, `--survival`): niente piazza, spawn casuale su terra,
-  i mondi a tema dietro portali sparsi con difficoltà 1-10 che cresce con la distanza, un livello
-  per ogni portale (parkour e backrooms generati; arena, inferno, fronte e assalto scalati), uscita
-  nascosta che si apre a livello finito, cassa di ricompensa al ritorno, chiavi solo da difficoltà
-  4, laboratorio in un punto casuale. Dicerie e indicazioni (a pagamento dal sindaco) sui portali
-  vicini. Niente catalogo creativo e borsa in una tomba alla morte. Nuove API `core.seed`,
-  `core.plaza`, `core.bag_to_container`, evento `core:died`; `/perm PERMESSO nobody`.
-- Il catalogo (C) chiede il permesso `creative` (moderatore in su; nel mondo proprio il proprietario).
-- I carrelli sui binari: curve, salite e discese, binari alimentati dal cinabro (stazioni da
-  spenti), scambi. I binari si percorrono nei due sensi e le curve si vedono curve; le ruote
-  fanno rumore sui giunti.
-- Le pietre del viaggio: una per villaggio accanto al pozzo, fabbricabili per i territori;
-  pagando uno smeraldo ogni 200 nodi si apre un portale vero verso una pietra toccata, per
-  cinque minuti.
-- Il pannello creativo mostra di nuovo zaino, jetpack e armpack: un contenitore portato rifiutava
-  tutto ciò che si porta sulla schiena, anche nelle caselle del catalogo.
-- Sentieri fra i villaggi rifatti: una rete (ogni villaggio ai vicini), curve morbide, fondo per
-  terreno (arenaria, ciottoli, ghiaia, terra battuta) con bordi irregolari, cartelli alle uscite,
-  pietre miliari con lanterna ogni 100 blocchi. I mondi già esplorati tengono i sentieri vecchi.
-- Carovane da villaggi non ancora visitati, con i prodotti della loro terra, lungo i sentieri; il
-  mercante indica la strada a voce e la segna sulla mappa. `/village incoming`.
-- Eventi dei villaggi: carovane mercante e mulo fra i villaggi (si compra o si scorta), assedi
-  notturni rari con preavviso e ricompensa, festa del raccolto a fine estate con bancarelle, musica
-  e fuochi d'artificio (nuovo `mods/fireworks`). Annunci con la campana e sulla bacheca;
-  `/village` per gli admin. `farm:season` porta anche i giorni rimasti.
-- Il tavolo degli scacchi gioca anche a dama italiana e a mulino; il gong dell'arena avvia sfide PvP
-  di tre minuti con punteggio e classifica. Nuova API `core.body_player`.
-- Modelli in mano e icone per tutti gli oggetti e i blocchi nuovi che non li avevano (le sedie
-  nell'inventario non sono più quadrati di assi).
-- Decorazioni: vetro colorato e lastre nei sedici colori, muretti, piastrelle smaltate, a scacchi
-  e di pietra, sedie (ci si siede, e il corpo non gira con la telecamera) e tavoli per ogni legno,
-  tappeti, lanterne in ferro e vetro. Dal carrello si scende anche con F.
-  `core.player_clip` accetta una direzione in cui il corpo resta girato.
-- Le ferrovie rifatte in Blender: traversine e rotaie vere, curve ad arco, salite su terrapieno,
-  binari alimentati che si accendono, scambi con leva; un vero carrello da miniera; il giocatore ci
-  sale scavalcando il bordo e viaggia seduto; in prima persona si vedono il carrello e le mani sui
-  bordi, e il carrello resta nella direzione dei binari quando si gira la visuale. Un giocatore ora vede anche su di sé la posa e ciò che
-  indossa per una mod del server (messaggio OwnPose).
-- I progetti: copiare una costruzione, tracciarla come fantasma, farla costruire a mano, dal
-  costruttore del villaggio o da un robot. Nuove API: `core.held_id`, `core.held_set_id`, `id` in
-  `core.give_item`, `core.ghost_cell`, `core.ghost_clear`, `core.node_colour`.
-- Le commissioni dei villaggi: sei tipi, una bacheca accanto al pozzo, pagate dalla tesoreria,
-  uno sconto dal mercante dopo cinque.
-- L'allevamento: pecore tinte (lana colorata), latte (formaggio e torta; il secchio resta), mangiatoie che fanno da stalla, l'ordine
-  "Bada agli animali" per il robot. Nuove API: `core.mob_kind`, `mob_love`, `mob_keep`,
-  `mob_shear_now`, `mob_become`, `mob_voice`; `core:used_mob` anche sugli animali.
-- La pesca per acqua: persici, carpe, trote, merluzzi, anguille, tonni e un raro pesce rosso;
-  tutti si cuociono e il pescatore-rana li compra.
-- L'alchimia: un alambicco, le fiasche e cinque pozioni (vista notturna, rapidità, pelle di
-  pietra, guarigione, fretta, respirare sott'acqua). Si annega: quindici secondi d'aria
-  sott'acqua, poi si perde salute. Nuove API: `core.night_sight`, e una fonte per
-  `core.player_factors`, così gli effetti di mod diverse si sommano.
-- Le Cavità sotto la roccia madre: caverne luminose, lava, cristalli, lurker e un guardiano.
-  Il mondo ora tiene blocchi fino a y -64.
-- Un chunk sotto il giocatore arriva solo dopo quello sopra: niente più caverne viste dall'alto
-  attraverso il terreno non ancora arrivato.
-- Strutture rare con un enigma: templi nel deserto, relitti, rovine sommerse.
-- La bussola che punta a casa e la mappa che si riempie esplorando.
-- I portali non hanno più un massimo per mondo: il server tiene attivi i 32 più vicini ai
-  giocatori. Le cornici di portale non finiscono più a 16.
-- La barca dondola sull'onda. Barca e carrello hanno un'icona.
-- I mattoni di pietra si fanno con la pietra liscia: la ricetta vecchia era quella dei mattoni.
-
-- Il sandbox ha il meteo: pioggia, neve nella tundra e sulle vette, temporali con fulmini e
-  tuono. La pioggia innaffia i campi.
-- Le stagioni: foglie che cambiano colore, campi fermi d'inverno senza lampade, neve
-  ovunque d'inverno. I mercanti raddoppiano il cibo d'inverno e la legna d'autunno.
-- Le barche: cinque assi, tasto destro sull'acqua per salire, su una riva per scendere. Vanno
-  al doppio del nuoto, sterzano con A e D, scansano le creature, rimbalzano fra loro e si
-  sentono i remi.
+- **Survival** mode (new world menu, `--survival`): no plaza, a random spawn on land, the themed
+  worlds behind scattered portals with a difficulty of 1-10 growing with the distance, a level
+  for every portal (parkour and backrooms generated; arena, Inferno, front and assault scaled), a
+  hidden way out that opens when the level is done, a reward chest on the way back, keys only
+  from difficulty 4, the laboratory somewhere at random. Rumours and directions (paid, from the
+  mayor) about nearby portals. No creative catalogue and the bag in a grave on death. New APIs
+  `core.seed`, `core.plaza`, `core.bag_to_container`, the `core:died` event; `/perm PERMISSION
+  nobody`.
+- The catalogue (C) asks the `creative` permission (moderator and up; in one's own world the
+  owner).
+- Carts on rails: curves, slopes up and down, rails powered by cinnabar (stations when off),
+  switches. Rails are run both ways and curves look curved; the wheels clatter on the joints.
+- Waystones: one a village beside the well, craftable for territories; paying an emerald every
+  200 nodes opens a real portal to a stone touched, for five minutes.
+- The creative panel shows the backpack, jetpack and armpack again: a carried container refused
+  everything worn on the back, the catalogue's squares too.
+- Paths between villages made again: a network (each village to its neighbours), soft curves, a
+  surface by the land (sandstone, cobbles, gravel, beaten earth) with ragged edges, signposts at
+  the ends, milestones with a lantern every 100 blocks. Worlds already explored keep their old
+  paths.
+- Caravans from villages not visited yet, with their land's goods, along the paths; the merchant
+  tells the way aloud and marks it on the map. `/village incoming`.
+- Village events: merchant and mule caravans between villages (bought from or escorted), rare
+  night sieges with a warning and a reward, a harvest feast at the end of summer with stalls,
+  music and fireworks (new `mods/fireworks`). Announcements with the bell and on the board;
+  `/village` for admins. `farm:season` carries the days left too.
+- The chess table also plays Italian draughts and the mill; the arena's gong starts three-minute
+  PvP rounds with a score and a standing. New API `core.body_player`.
+- Models in hand and icons for every new item and block that lacked them (chairs in the
+  inventory are no longer squares of planks).
+- Decoration: stained glass and panes in the sixteen colours, walls, glazed, chequered and stone
+  tiles, chairs (you sit on them, and the body does not turn with the camera) and tables of every
+  wood, carpets, iron and glass lanterns. You get off a cart with F too. `core.player_clip` takes a
+  direction the body stays turned to.
+- Railways remade in Blender: real sleepers and rails, arched curves, slopes on embankments,
+  powered rails that light up, switches with a lever; a real mine cart; the player climbs in over
+  the edge and rides seated; in first person the cart and the hands on its edges are seen, and the
+  cart keeps to the rails' direction when the view turns. A player now also sees on themselves the
+  pose and what they wear for a server's mod (the OwnPose message).
+- Blueprints: copy a building, trace it as a ghost, have it built by hand, by the village's
+  builder or by a robot. New APIs: `core.held_id`, `core.held_set_id`, `id` in `core.give_item`,
+  `core.ghost_cell`, `core.ghost_clear`, `core.node_colour`.
+- Village errands: six kinds, a board beside the well, paid by the treasury, a discount from the
+  merchant after five.
+- Breeding: dyed sheep (coloured wool), milk (cheese and cake; the bucket stays), troughs that
+  make a pen, the robot's "Mind the animals" order. New APIs: `core.mob_kind`, `mob_love`,
+  `mob_keep`, `mob_shear_now`, `mob_become`, `mob_voice`; `core:used_mob` on animals too.
+- Fishing by water: perch, carp, trout, cod, eels, tuna and a rare goldfish; all are cooked and
+  the frog fisher buys them.
+- Alchemy: a still, flasks and five potions (night sight, swiftness, stoneskin, mending, haste,
+  water breathing). You drown: fifteen seconds of air under water, then health is lost. New APIs:
+  `core.night_sight`, and a source for `core.player_factors`, so different mods' effects add up.
+- The Hollows under the bedrock: glowing caverns, lava, crystals, lurkers and a guardian. The
+  world now holds blocks down to y -64.
+- A chunk under the player arrives only after the one above it: no more caverns seen from above
+  through ground not arrived yet.
+- Rare structures with a riddle: desert temples, wrecks, sunken ruins.
+- The compass that points home and the map that fills as you explore.
+- Portals no longer have a maximum a world: the server keeps active the 32 nearest the players.
+  Portal frames no longer stop at 16.
+- The boat rocks on the waves. Boat and cart have an icon.
+- Stone bricks are made with smooth stone: the old recipe was the bricks'.
+- The sandbox has weather: rain, snow on the tundra and the peaks, storms with lightning and
+  thunder. Rain waters the fields.
+- Seasons: leaves that change colour, fields still in winter without lamps, snow everywhere in
+  winter. Merchants double food in winter and wood in autumn.
+- Boats: five planks, right click on water to get in, on a bank to get out. They go at twice
+  swimming speed, steer with A and D, dodge creatures, bounce off each other and the oars are heard.
 
 ## 0.9.0-alpha.4 — 2026-10-27
 
-Protocollo 109, come la 0.9.0-alpha.2: gioca con i suoi server e legge i suoi mondi. La
-0.9.0-alpha.3 non è uscita: il pacchetto macOS non si costruiva.
+Protocol 109, like 0.9.0-alpha.2: it plays with its servers and reads its worlds. 0.9.0-alpha.3
+did not come out: the macOS package would not build.
 
-- Chi tiene un server ha un'amministrazione completa: ruoli, ban, kick, mute, lista d'accesso,
-  console, RCON, riavvii programmati, manutenzione, messaggio del giorno, regole da accettare,
-  rollback dei blocchi, backup e webhook. Il manuale è [docs/ADMIN.md](docs/ADMIN.md).
-- I server amici condividono ban, presenza, chat e lo zaino: chi passa da un portale verso un
-  amico porta con sé lo stesso zaino.
-- La lista Multiplayer mostra giocatori, versione e messaggio del giorno di ogni server.
-- Il titolo avvisa quando su GitHub c'è un'alpha più nuova.
-- Il README è anche in inglese.
+- Whoever keeps a server has a full administration: roles, bans, kick, mute, an access list, a
+  console, RCON, scheduled restarts, maintenance, a message of the day, rules to accept, block
+  rollback, backups and webhooks. The manual is [docs/ADMIN.md](docs/ADMIN.md).
+- Friend servers share bans, presence, chat and the backpack: whoever goes through a portal to a
+  friend carries the same backpack.
+- The Multiplayer list shows each server's players, version and message of the day.
+- The title says when a newer alpha is on GitHub.
+- The README is in English too.
 
 ## 0.9.0-alpha.2 — 2026-10-26
 
-Protocollo 109, come la 0.9.0-alpha.1: gioca con i suoi server e legge i suoi mondi.
+Protocol 109, like 0.9.0-alpha.1: it plays with its servers and reads its worlds.
 
-- Il gioco parla italiano e inglese: Options, Language sceglie la lingua (all'inizio quella del
-  sistema). Una lingua nuova è un file in `assets/lang/`.
-- In Multiplayer l'account è del server: si sceglie il server, poi nome e password per quello.
-- Nella fuga dell'assalto i bot a bordo sparano alle trappole al momento giusto.
-- La piazza dello spawn è silenziosa: niente più lampada che lampeggia né fari che si
-  accendono a turno.
-- I pacchetti non contengono più modelli di terzi, e si costruiscono da un clone del
-  repository; il codice è pubblico, con licenza MIT, e i sorgenti Blender dei modelli sono in
+- The game speaks Italian and English: Options, Language picks the language (at first the
+  system's). A new language is a file in `assets/lang/`.
+- In Multiplayer the account is the server's: you pick the server, then a name and password for it.
+- In the assault's escape the bots aboard shoot at the traps at the right moment.
+- The spawn's plaza is quiet: no more blinking lamp nor beacons lighting in turn.
+- The packages no longer hold third-party models, and are built from a clone of the repository;
+  the code is public, under the MIT licence, and the models' Blender sources are in
   `assets/blender/`.
 
 ## 0.9.0-alpha.1 — 2026-10-25
 
-Protocollo 109: non gioca con i server della 0.8.0-alpha.1. Legge i suoi mondi.
+Protocol 109: it does not play with 0.8.0-alpha.1's servers. It reads its worlds.
 
-- In rete, nei mondi con tanti soldati (l'assalto, il fronte), soldati e giocatori non saltano più
-  da un punto all'altro: i corpi viaggiano in pacchetti piccoli, così un pacchetto perso ne ferma
-  pochi e per un attimo; chi esce dalla vista sparisce subito invece di restare fermo; se ne vedono
-  fino a 96.
-- Il server scrive nel log quando non sta al passo, e perché.
+- Online, in worlds with many soldiers (the assault, the front), soldiers and players no longer
+  jump from one place to another: bodies travel in small packets, so a lost packet stops a few for
+  a moment; whoever leaves the view disappears at once instead of standing still; up to 96 are seen.
+- The server writes in its log when it does not keep up, and why.
 
 ## 0.8.0-alpha.1 — 2026-10-25
 
-Protocollo 108: non gioca con i server della 0.7.0-alpha.5. Legge i suoi mondi.
+Protocol 108: it does not play with 0.7.0-alpha.5's servers. It reads its worlds.
 
-- Nuovo mondo, **l'assalto**, da giocare insieme contro Basoalth (dalla piazza del sandbox, a
-  90.5 21 76.5): quattro fortezze da prendere una dopo l'altra, crediti e negozio, alleati che
-  escono dalle caserme, costruttori che riparano, mettono scale sulle mura e nidi di sacchi, bot
-  che fanno saltare il cancello della fortezza; la sala del nucleo con i piloni; Basoalth che
-  diventa un gigante, il pavimento che crolla e la fuga in jeep in un tunnel di lava con curve,
-  salite e discese, valvole, massi e serbatoi da colpire per rallentarlo.
-- La valle dell'assalto: cielo rosso con nuvole a vortici che girano, tornado che risucchiano e
-  scagliano via, una catena di vulcani con colate di lava, un fiume di lava con un ponte e isolotti.
-- Chi muore torna con tutte le armi e le munizioni piene.
-- Sui mezzi: i gradini hanno rampe più lunghe e si salgono senza fermarsi (in tutti i mondi);
-  da passeggero si spara con la propria arma e 1-9 la sceglie; seduti si sta seduti con l'arma,
-  alla torretta con le mani sull'arma, girati dove si guarda.
-- Mezzi e obiettivi non spariscono più quando ci sono molti soldati in giro.
-- Dietro il vetro si vede quello che c'è (prima i corpi ci passavano davanti); le nuvole non sono
-  più a puntini.
-- Kart: derapata con Ctrl, segni delle gomme sulla strada, fiamme del nitro, e un garage per farsi
-  il proprio kart.
-- Rovine: una città, tre zone, classi e oggetti con proprietà; barili, casse e urne da rompere;
-  incantesimi e colpi con effetti nuovi.
-- Parkour: la corda va dove sta il mirino, anche in terza persona.
-- Borsa e creativo con caselle più piccole e la barra sotto; un baule catalogo.
-- Il mazzo illustrato delle carte ha nuove carte di denari, coppe e spade.
-- I passi si sentono meno.
+- A new world, **the assault**, played together against Basoalth (from the sandbox's plaza, at
+  90.5 21 76.5): four fortresses to take one after another, credits and a shop, allies coming out
+  of the barracks, builders who repair, put ladders on the walls and nests of sandbags, bots that
+  blow up the fortress's gate; the core's hall with its pylons; Basoalth growing into a giant, the
+  floor collapsing and the escape by jeep through a lava tunnel with turns, rises and falls,
+  valves, boulders and tanks to hit to slow him down.
+- The assault's valley: a red sky with clouds in turning vortices, tornadoes that suck in and
+  throw away, a chain of volcanoes with lava flows, a lava river with a bridge and islets.
+- Whoever dies comes back with every weapon and full ammunition.
+- In machines: steps have longer ramps and are climbed without stopping (in every world); as a
+  passenger you shoot with your own weapon and 1-9 picks it; seated you sit with the weapon, at a
+  turret with your hands on the weapon, turned where you look.
+- Machines and objectives no longer disappear when many soldiers are about.
+- Behind glass you see what is there (before, bodies passed in front of it); the clouds are no
+  longer dotted.
+- Karts: drifting with Ctrl, tyre marks on the road, the nitro's flames, and a garage to make your
+  own kart.
+- The ruins: a town, three zones, classes and items with properties; barrels, crates and urns to
+  break; spells and blows with new effects.
+- Parkour: the rope goes where the crosshair is, in third person too.
+- Bag and creative with smaller squares and the bar below; a catalogue chest.
+- The illustrated deck of cards has new cards of coins, cups and swords.
+- Footsteps are quieter.
 
 ## 0.7.0-alpha.5 — 2026-10-18
 
-Protocollo 100: non gioca con i server della 0.7.0-alpha.4. Legge i suoi mondi.
+Protocol 100: it does not play with 0.7.0-alpha.4's servers. It reads its worlds.
 
-- Si entra nel fronte da una tribuna sul crinale, a metà fra le basi e in alto sul campo, con una
-  vetrata da cui si guarda la battaglia. Due portali, uno rosso e uno blu, portano nel bunker
-  della base: da quello che si attraversa si sceglie la squadra. Dal bunker si torna in tribuna.
-- La battaglia dei bot parte anche se c'è solo chi guarda dalla tribuna.
-- I mezzi sono solidi: due mezzi si urtano invece di passarsi attraverso, chi è a piedi non entra
-  nello scafo, ci sale sopra e viene portato.
-- Chi guida vede il mezzo muoversi subito, senza aspettare il server: il client lo simula e lo
-  allinea a quello del server.
-- I soldati alle armi fisse (contraerea, mitragliatrice, mortaio) guardano dove punta l'arma.
-- Corretto un crash del server quando due mezzi nascevano nello stesso istante.
-- Il mazzo illustrato delle carte ha anche il 2, il 3 e il 4 di denari.
+- You enter the front from a gallery on the ridge, halfway between the bases and high over the
+  field, with a window to watch the battle from. Two portals, a red one and a blue one, lead into
+  the base's bunker: the one you cross picks the team. From the bunker you go back to the gallery.
+- The bots' battle starts even if there is only somebody watching from the gallery.
+- Machines are solid: two machines collide instead of passing through each other, whoever is on
+  foot does not get into the hull, climbs on it and is carried.
+- Whoever drives sees the machine move at once, without waiting for the server: the client
+  simulates it and lines it up with the server's.
+- Soldiers at fixed weapons (anti-aircraft gun, machine gun, mortar) look where the weapon points.
+- Fixed a server crash when two machines were born at the same instant.
+- The illustrated deck of cards has the 2, the 3 and the 4 of coins too.
 
 ## 0.7.0-alpha.4 — 2026-10-18
 
-Protocollo 99, come la 0.7.0-alpha.3: gioca con i suoi server e legge i suoi mondi.
+Protocol 99, like 0.7.0-alpha.3: it plays with its servers and reads its worlds.
 
-- Al fronte si mira: col destro l'arma sale al centro della vista, i colpi vanno dove si guarda
-  e si cammina piano. Nuovo fucile da cecchino con cannocchiale. Dal fianco i colpi si allargano.
-  Le armi si vedono impugnate, puntate, sparate e ricaricate anche da fuori.
-- In terza persona i colpi vanno dove sta il mirino, anche se c'è un soldato o un mezzo davanti;
-  passando dalla prima alla terza persona e viceversa il mirino resta sullo stesso punto.
-- I soldati bot sono più alla portata: vedono solo davanti a sé, aspettano un attimo prima di
-  sparare, sparano a raffiche meno precise e fanno meno danno. Combattono in quattro modi
-  (sentinella col cecchino, assaltatore con la mitragliatrice, prudente che si ripara, anticarro
-  col lanciarazzi), tengono la loro arma finché ha colpi e la si vede nelle loro mani.
-- I bot usano i mezzi: guidano jeep e carro, pilotano elicottero, aereo e bombardiere, prendono
-  nidi, mortai, obici e contraerea, e salgono sui mezzi guidati dai compagni, anche dai giocatori.
-- Nuovi mezzi: il bombardiere (una fila di sei bombe, con il punto d'impatto segnato, e una
-  torretta sul dorso) e la contraerea, che aggancia elicotteri e aerei e lancia missili che li
-  inseguono.
-- Sui mezzi: F fa salire sul posto libero più vicino (da dietro la jeep si sale dietro) e 1-9
-  cambiano posto senza cambiare l'arma in mano. I vetri dei mezzi sono trasparenti.
-- I pannelli di vetro sono trasparenti.
-- Il fronte sarà il premio di chi batte l'Ospite nel laboratorio; per ora resta aperto a tutti.
+- At the front you aim: with the right button the weapon comes up to the middle of the view, the
+  shots go where you look and you walk slowly. A new sniper rifle with a scope. From the hip the
+  shots spread. Weapons are seen held, pointed, fired and reloaded from outside too.
+- In third person the shots go where the crosshair is, even with a soldier or a machine in front;
+  going from first to third person and back the crosshair stays on the same point.
+- The bot soldiers are more within reach: they see only ahead, wait a moment before firing, fire
+  less accurate bursts and do less damage. They fight in four ways (the sentry with the sniper
+  rifle, the assaulter with the machine gun, the careful one who takes cover, the anti-tank one
+  with the rocket launcher), keep their weapon while it has rounds and it is seen in their hands.
+- Bots use the machines: they drive jeeps and tanks, fly the helicopter, the plane and the
+  bomber, take nests, mortars, howitzers and anti-aircraft guns, and get into machines their
+  comrades drive, players too.
+- New machines: the bomber (a row of six bombs, with the point of impact marked, and a turret on
+  its back) and the anti-aircraft gun, which locks on to helicopters and planes and launches
+  missiles that chase them.
+- In machines: F puts you in the nearest free seat (from behind the jeep you get in at the back)
+  and 1-9 change seat without changing the weapon in hand. The machines' windows are transparent.
+- Glass panes are transparent.
+- The front will be the prize of whoever beats the Host in the laboratory; for now it stays open to
+  everybody.
 
 ## 0.7.0-alpha.3 — 2026-10-18
 
-Protocollo 99: non gioca con i server della 0.7.0-alpha.2.
+Protocol 99: it does not play with 0.7.0-alpha.2's servers.
 
-- Nuovo mondo, il fronte: un campo di battaglia fra una base rossa e una blu, con tre punti da
-  conquistare (fattoria, villaggio, bunker sulla collina) e 150 ticket per squadra. Si entra
-  dalla porta-bunker fra i sacchi di sabbia sulla piazza. Bot soldato riempiono le squadre fino
-  a 8.
-- Al fronte: fucile e mitragliatrice automatici, pistola, granate e lanciarazzi. Le esplosioni
-  scavano il terreno e fanno crollare quello che resta sospeso.
-- Mezzi: jeep a quattro posti con mitragliatrice, carri armati che salgono i gradini e sfondano
-  i muri, elicotteri con razzi, aerei con mitragliatrici e bombe, nidi di mitragliatrice,
-  mortai e obici che tirano dove punta il mirino. Si sale e si scende con F, 1-9 cambiano posto,
-  il mouse mira e governa quello che vola. Un mezzo distrutto brucia, perde i pezzi e sprofonda.
-- Seduti su un mezzo il corpo resta solidale con lui; alla guida della jeep le mani stanno sul
-  volante, e in prima persona si vedono solo le braccia.
-- Carte: le carte giocate, prese, pescate e distribuite volano sul tavolo una alla volta;
-  il cursore su una carta giocata la solleva e dice chi l'ha giocata.
-- Corretto: dopo essere scesi da un mezzo o morti dentro, il server poteva smettere di
-  accettare i movimenti (granate che non partivano, colpi che non arrivavano).
+- A new world, the front: a battlefield between a red base and a blue one, with three points to
+  capture (farm, village, bunker on the hill) and 150 tickets a team. You enter by the bunker door
+  between the sandbags on the plaza. Bot soldiers fill the teams up to 8.
+- At the front: automatic rifle and machine gun, pistol, grenades and rocket launcher. Explosions
+  dig the ground and bring down what is left hanging.
+- Machines: four-seat jeeps with a machine gun, tanks that climb steps and break through walls,
+  helicopters with rockets, planes with machine guns and bombs, machine-gun nests, mortars and
+  howitzers that fire where the crosshair points. You get in and out with F, 1-9 change seat, the
+  mouse aims and steers what flies. A destroyed machine burns, sheds its parts and sinks.
+- Seated in a machine the body stays fixed to it; at the jeep's wheel the hands are on the wheel,
+  and in first person only the arms are seen.
+- Cards: cards played, taken, drawn and dealt fly onto the table one at a time; the cursor on a
+  played card lifts it and says who played it.
+- Fixed: after getting out of a machine or dying in it, the server could stop accepting movement
+  (grenades that did not leave, shots that did not arrive).
 
 ## 0.7.0-alpha.2 — 2026-10-17
 
-Protocollo 97: non gioca con i server della 0.7.0-alpha.1.
+Protocol 97: it does not play with 0.7.0-alpha.1's servers.
 
-- Multiplayer: gli altri giocatori e le creature si muovono fluidi, non più a scatti, scivolando
-  da una posizione ricevuta alla successiva.
-- Multiplayer: chi vola è visto volare (non più camminare quando vola rasoterra).
-- Volo: il corpo si inclina nella direzione in cui vola e plana quando si lascia andare.
-- Pista: icone per il jetpack e gli attrezzi del cronometro.
-- Carte: seme di bastoni, dorso e asso di denari illustrati.
+- Multiplayer: the other players and the creatures move smoothly, no longer in jerks, sliding from
+  one position received to the next.
+- Multiplayer: whoever flies is seen flying (no longer walking when flying low).
+- Flying: the body leans in the direction it flies and glides when let go.
+- Track: icons for the jetpack and the timer's tools.
+- Cards: the suit of clubs, the back and the ace of coins illustrated.
 
 ## 0.7.0-alpha.1 — 2026-10-17
 
-Protocollo 96: non gioca con i server della 0.6.0-alpha.2.
+Protocol 96: it does not play with 0.6.0-alpha.2's servers.
 
-- Personaggio (Character): oltre al robot, umano, uomo talpa e uomo rana, ognuno con tre stili
-  (capelli corti, lunghi, barba; lampada da minatore, occhialoni, occhialini; macchie, corona,
-  ninfea), i tre colori e gli accessori di prima. Stesso scheletro e clip del robot, braccia
-  proprie in prima persona. Gli accessori sono rifatti su misura per ogni specie (la rana porta il
-  cappellino all'indietro); un accessorio in testa prende il posto di lampada, corona o ninfea.
-- Kart: zaino, armature e oggetto in mano stanno sul pilota, non più sul kart (il jetpack finiva
-  sulla testa e in prima persona copriva la vista).
-- Kart: si scende con F, non più col tasto destro, che faceva scendere per sbaglio.
-- Personaggi scolpiti in Blender: umano, talpa e rana sono superfici continue e levigate (non più
-  primitive incollate) che si piegano a gomiti e ginocchia; i capelli coprono la nuca. Medaglia e
-  capi della sciarpa oscillano solo in avanti, senza entrare nel petto.
-- Attrezzi: piccone, ascia, pala, spada e zappa in legno, pietra, ferro, oro e diamante, ognuno
-  con la sua forma; si consumano con l'uso.
-- Zaino a braccia: uno zaino di metallo con due braccia snodate, un attrezzo in ogni pinza; scava
-  col migliore fra mano e braccia e somma le spade.
-- Villaggi: ogni lavoratore prende dai bauli l'attrezzo migliore del suo mestiere, l'artigiano fa
-  attrezzi di ferro, e si comprano in ferro e diamante.
-- Editor delle piste: B (o il pulsante "pick from afar") sceglie da lontano; al posto della hotbar
-  una griglia con tutti i pezzi, clic per provarne uno, W per tenerlo. A/D non si bloccano più
-  togliendo curve sopraelevate e muri, che prima restavano piazzati.
-- Pezzi di pista: si piazzano anche nel terreno, che viene tolto (e 3 blocchi sopra la strada);
-  li ferma solo un altro pezzo.
-- Jetpack: il suono è molto più basso e sale appena mentre ci si muove.
-- ARPG: la stanza d'arrivo è sicura, le creature restano fuori; W A S D interrompono la camminata
-  col clic.
+- Character: besides the robot, a human, a mole man and a frog man, each with three styles (short
+  hair, long hair, beard; miner's lamp, goggles, glasses; spots, crown, water lily), the three
+  colours and the accessories from before. The robot's skeleton and clips, arms of their own in
+  first person. The accessories are remade to fit each species (the frog wears the cap
+  backwards); an accessory on the head takes the place of the lamp, crown or lily.
+- Karts: backpack, armour and the thing in hand are on the driver, no longer on the kart (the
+  jetpack ended up on the head and in first person covered the view).
+- Karts: you get out with F, no longer with the right button, which made you get out by mistake.
+- Characters sculpted in Blender: the human, mole and frog are continuous smooth surfaces (no
+  longer glued primitives) that bend at elbows and knees; the hair covers the nape. Medal and the
+  scarf's ends swing only forward, without going into the chest.
+- Tools: pickaxe, axe, shovel, sword and hoe in wood, stone, iron, gold and diamond, each with its
+  own shape; they wear with use.
+- Armpack: a metal backpack with two jointed arms, a tool in each claw; it digs with the best of
+  hand and arms and adds up the swords.
+- Villages: every worker takes the best tool of their trade from the chests, the crafter makes
+  iron tools, and iron and diamond ones are bought.
+- Track editor: B (or the "pick from afar" button) picks from afar; instead of the hotbar a grid
+  with every piece, click to try one, W to keep it. A/D no longer jam when removing banked curves
+  and walls, which used to stay placed.
+- Track pieces: they are placed in the ground too, which is taken away (and 3 blocks over the
+  road); only another piece stops them.
+- Jetpack: the sound is much lower and rises a little while moving.
+- ARPG: the arrival room is safe, creatures stay out; W A S D interrupt walking by click.
 
 ## 0.6.0-alpha.2 — 2026-10-14
 
-Gioca con i server della 0.6.0-alpha.1 (protocollo 93); i mondi salvati si leggono.
+Plays with 0.6.0-alpha.1's servers (protocol 93); saved worlds are read.
 
-- Pista: casse dei potenziamenti dopo ogni traguardo, come nei giochi di kart: turbo, triplo
-  turbo, banana, guscio, guscio a ricerca, inchiostro, stella, fulmine. Se ne tengono due.
-- Editor delle piste (in /pezzi): clic destro su un pezzo propone quelli che si attaccano alla
-  fine aperta, Undo toglie l'ultimo, Close circuit chiude il circuito da solo, prima in piano.
-  I pezzi in mano e per terra si vedono in miniatura.
-- Pista: lo strumento delle casse, il pannello creativo e il jetpack per volarci sopra.
-- Pista: giri della morte alti il doppio; il kart non inciampa più uscendo dai giri.
-- Luce contro il buio: F8 mostra dove escono le creature, i robot le illuminano, un'ancora li
-  tiene al lavoro.
-- Aiutanti: una cava con la sua scala per uscire, e Close sul pannello del programma.
-- Portali: tra stanze dello stesso server niente biglietto, e un biglietto scaduto si rinnova
-  invece di essere rifiutato.
+- Track: power-up boxes after every finish line, as in kart games: boost, triple boost, banana,
+  shell, homing shell, ink, star, lightning. Two are kept.
+- Track editor (in /pezzi): right click on a piece offers those that fit the open end, Undo removes
+  the last one, Close circuit closes the circuit by itself, level first. Pieces in hand and on the
+  ground are seen in miniature.
+- Track: the boxes' tool, the creative panel and the jetpack to fly over it.
+- Track: loops twice as tall; the kart no longer trips coming out of loops.
+- Light against the dark: F8 shows where creatures come out, robots light them up, an anchor keeps
+  them at work.
+- Helpers: a quarry with its staircase to get out, and Close on the program's panel.
+- Portals: between rooms of the same server no ticket, and an expired ticket is renewed instead of
+  refused.
 
 ## 0.6.0-alpha.1 — 2026-10-12
 
-Non gioca con i server della 0.5 (protocollo 93); i mondi salvati si leggono ancora.
+Does not play with 0.5's servers (protocol 93); saved worlds are still read.
 
-- Il robot si personalizza: Robot, nel menù iniziale o in pausa, sceglie colore primario,
-  secondario e accento (16 colori) e un accessorio in testa (cappellino, cilindro, cuffie) e uno
-  al collo (sciarpa, papillon, medaglia), con il robot che gira accanto. Gli altri giocatori lo
-  vedono, anche quando si cambia a partita in corso.
-- Luce nuova: buio vero, luce morbida, lampade che illuminano le facce rivolte verso di loro,
-  sole e luna con le ombre. La luce di prima resta nelle opzioni (Light: classic), e le ombre
-  si possono abbassare o spegnere.
-- Schermo intero: F11 o nelle opzioni.
-- Carte: al tavolo il robot si siede e tiene le carte in mano.
+- The robot is customised: Robot, in the start menu or in pause, picks a primary, secondary and
+  accent colour (16 colours) and an accessory on the head (cap, top hat, headphones) and one at the
+  neck (scarf, bow tie, medal), with the robot turning beside it. The other players see it, also
+  when it is changed mid-game.
+- New light: true darkness, soft light, lamps lighting the faces turned to them, sun and moon with
+  shadows. The light from before stays in the options (Light: classic), and shadows can be lowered
+  or turned off.
+- Full screen: F11 or in the options.
+- Cards: at the table the robot sits and holds the cards in its hand.
 
 ## 0.5.0-alpha.1 — 2026-10-11
 
-Non gioca con i server della 0.4 (protocollo 91); i mondi salvati si leggono ancora, e le zone
-già generate tengono il terreno di prima.
+Does not play with 0.4's servers (protocol 91); saved worlds are still read, and the zones already
+generated keep the ground they had.
 
-- Mondo: oceani, mari, spiagge, fiumi, laghi in quota e gole, con ponti dove i sentieri li
-  attraversano; sotto terra miniere abbandonate e cripte.
-- Le uscite dei mondi sono sigillate in rosso finché non si vince quel mondo; gli archi sulla
-  piazza portano all'uscita di ogni mondo.
-- L'Inferno carica i mod di gioco del sandbox: quello che si porta in borsa vale anche lì; fame,
-  esperienza e chiavi sono le stesse in tutte le stanze.
-- Pista: una nuova pista con tre giri della morte, la telecamera che segue il kart nei giri, e
-  niente lampo verde attraversando l'Inferno.
-- Pista dell'Inferno: tolta una cornice di ossidiana in più nel portale di uscita; scendendo e
-  risalendo sul kart nell'Inferno si torna sulla pista disegnati giusti, e la vista scelta resta.
-- Scacchi: otto varianti. Parkour: sempre di corsa, e ci si aggrappa ai bordi.
-- Un mondo nuovo parte in circa 25 secondi (erano 80), con una barra sul titolo.
+- World: oceans, seas, beaches, rivers, high lakes and gorges, with bridges where the paths cross
+  them; underground abandoned mines and crypts.
+- The worlds' ways out are sealed in red until that world is won; the arches on the plaza lead to
+  each world's way out.
+- The Inferno loads the sandbox's game mods: what you carry in the bag counts there too; hunger,
+  experience and keys are the same in every room.
+- Track: a new track with three loops, the camera following the kart in the loops, and no green
+  flash crossing the Inferno.
+- The Inferno track: an extra obsidian frame removed from the exit portal; getting off and back on
+  the kart in the Inferno you come back to the track drawn right, and the chosen view stays.
+- Chess: eight variants. Parkour: always running, and you grab ledges.
+- A new world starts in about 25 seconds (it was 80), with a bar on the title.
 
 ## 0.4.0-alpha.1 — 2026-10-10
 
-La prima alpha consegnata.
+The first alpha handed out.
 
-- Pacchetti: Linux (tarball, AppImage, Flatpak), Windows (zip), macOS (`.dmg`, mai provato su un Mac).
-- La versione è scritta nell'angolo in basso a destra del menù: va indicata quando si segnala un bug.
-- Su Windows: niente stack dump in caso di crash, e tornando al menù va rimessa la password.
+- Packages: Linux (tarball, AppImage, Flatpak), Windows (zip), macOS (`.dmg`, never tried on a Mac).
+- The version is written in the bottom right corner of the menu: give it when reporting a bug.
+- On Windows: no stack dump on a crash, and going back to the menu the password has to be typed
+  again.
