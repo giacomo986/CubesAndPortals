@@ -609,7 +609,7 @@ local function add_rect(x0: number, z0: number, x1: number, z1: number, area: nu
     end
 end
 
-for n, a in L.AREAS do
+function L.shape(n: number, a: any)
     L.BY_KEY[a.key] = n
     a.cx, a.cz = L.OX + a.i * L.G, L.OZ + a.j * L.G
     local h1, h2 = hash(a.i, a.j, 31), hash(a.i, a.j, 32)
@@ -647,10 +647,8 @@ for n, a in L.AREAS do
         end
     end
 end
--- The cell of the town's arch (opening 0), in the high ground of its north edge.
-add_rect(L.OX, L.OZ - 21, L.OX, L.OZ - 21, 1)
--- The corridors: from each area's middle to the middle of the one before it.
-for n, a in L.AREAS do
+-- A corridor five wide from an area's middle to the middle of the one before it.
+function L.corridor(n: number, a: any)
     if a.from then
         local f = L.AREAS[L.BY_KEY[a.from]]
         if f.j == a.j then
@@ -660,6 +658,11 @@ for n, a in L.AREAS do
         end
     end
 end
+for n, a in L.AREAS do L.shape(n, a) end
+-- The cell of the town's arch (opening 0), in the high ground of its north edge.
+add_rect(L.OX, L.OZ - 21, L.OX, L.OZ - 21, 1)
+-- The corridors: from each area's middle to the middle of the one before it.
+for n, a in L.AREAS do L.corridor(n, a) end
 
 -- The area a column is in, or 0 for the high ground.
 function L.at(x: number, z: number): number
@@ -690,7 +693,7 @@ function L.level_at(x: number, y: number, z: number): number
     if a.kind == "crypt" and y < GROUND - 1 then
         return math.max(1, L.bonus + (if x >= L.CRYPT_DX + 138 then 12 elseif x >= L.CRYPT_DX + 110 then 11 else 10))
     end
-    return math.max(1, a.level + L.bonus)
+    return if a.slot then a.level else math.max(1, a.level + L.bonus)
 end
 
 -- The town's places, around its middle.
@@ -729,9 +732,9 @@ L.ENC = {}
 L.CHESTS = {}
 L.PROPS = {}      -- what is broken for what is inside: { x, z, area, kind }
 local KINDS = { [1] = { "zombie", "zombie", "skeleton" }, [2] = { "zombie", "skeleton", "imp", "imp" } }
-for n, a in L.AREAS do
+function L.populate(n: number, a: any)
     if a.kind == "town" or a.kind == "crypt" then
-        continue
+        return
     end
     local spots = {}
     local function free_spot(salt: number): (number, number)
@@ -784,7 +787,8 @@ for n, a in L.AREAS do
         table.insert(L.ENC, e)
     end
     if a.kind == "lair" then
-        local e = { area = n, x = a.cx, z = a.cz, members = { { a.boss, 3 } }, name = D.MOB[a.boss].boss }
+        local e = { area = n, x = a.cx, z = a.cz, members = { { a.boss, 3 } }, name = D.MOB[a.boss].boss,
+                    slot = a.slot }
         for _ = 1, 4 do
             table.insert(e.members, { a.minion, 0 })
         end
@@ -802,14 +806,144 @@ for n, a in L.AREAS do
                                 kind = "arpg_core:" .. kinds[1 + math.floor(hash(n, j, 120) * #kinds)] })
     end
 end
+for n, a in L.AREAS do L.populate(n, a) end
+
+-- A survival site's lands (mods/keys' keys:level), in its slot's square: a
+-- path of 3 + d areas from a first one -- each a step east, north or south
+-- of the last, never back onto one -- with a branch off it from d 3 and a
+-- second from d 6, and at its end a lair and its lord: the Barrows' ember
+-- wing from d 6, the Grey Waste's grave lord before. Levels from 2 d - 3,
+-- one up every three areas. Shaped and filled as the lands' own areas are,
+-- so the ground is made by the same stage; the first area is where the
+-- player starts. A function of the slot, d and the seed.
+L.SLOTS = {}   -- slot -> the index in L.AREAS of its first area
+function L.add_level(slot: number, d: number, seed: number): number
+    if L.SLOTS[slot] then return L.SLOTS[slot] end
+    local ox, oz = 8192 + (slot % 16) * 2048 + 1024, (slot // 16) * 2048 + 1024
+    local i0, j0 = (ox - L.OX) // L.G, (oz - L.OZ) // L.G
+    local st = (seed + slot * 7919) % 2147483647 + 1
+    local function roll(): number
+        st = (st * 48271) % 2147483647
+        return st / 2147483647
+    end
+    local zone = if d >= 6 then 2 else 1
+    local taken: { [number]: boolean } = { [cell_key(i0, j0)] = true }
+    local path = { { i = i0, j = j0 } }
+    local count = math.min(10, 3 + d)
+    while #path < count do
+        local last = path[#path]
+        local dirs = { { 1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 0 } }
+        local ok = false
+        for _ = 1, 8 do
+            local dd = dirs[1 + math.floor(roll() * #dirs)]
+            local ni, nj = last.i + dd[1], last.j + dd[2]
+            if not taken[cell_key(ni, nj)] and math.abs(nj - j0) <= 3 then
+                taken[cell_key(ni, nj)] = true
+                table.insert(path, { i = ni, j = nj })
+                ok = true
+                break
+            end
+        end
+        if not ok then
+            local ni = last.i + 1
+            taken[cell_key(ni, last.j)] = true
+            table.insert(path, { i = ni, j = last.j })
+        end
+    end
+    local first = #L.AREAS + 1
+    local function add(a: any)
+        table.insert(L.AREAS, a)
+        local n = #L.AREAS
+        L.shape(n, a)
+        L.corridor(n, a)
+        L.populate(n, a)
+    end
+    for k, c in path do
+        local a: any = { key = `s{slot}_{k}`, i = c.i, j = c.j, zone = zone, level = math.max(1, 2 * d - 3 + (k - 1) // 3),
+                         slot = slot, from = if k > 1 then `s{slot}_{k - 1}` else nil }
+        if k == #path then
+            a.kind = "lair"
+            a.boss = if zone == 2 then "arpg_core:ember_wing" else "arpg_core:grave_lord"
+            a.minion = if zone == 2 then "arpg_core:imp" else "arpg_core:zombie"
+        end
+        add(a)
+    end
+    -- The branches: off a middle area, onto a cell nobody took.
+    for b = 1, (if d >= 6 then 2 elseif d >= 3 then 1 else 0) do
+        local at = path[1 + math.floor(#path * b / 3)]
+        for _, dd in { { 0, 1 }, { 0, -1 }, { -1, 0 } } do
+            local ni, nj = at.i + dd[1], at.j + dd[2]
+            if not taken[cell_key(ni, nj)] then
+                taken[cell_key(ni, nj)] = true
+                local from = 1
+                for k, c in path do
+                    if c == at then from = k end
+                end
+                add({ key = `s{slot}_b{b}`, i = ni, j = nj, zone = zone, level = math.max(1, 2 * d - 2), slot = slot,
+                      kind = "branch", from = `s{slot}_{from}` })
+                break
+            end
+        end
+    end
+    L.SLOTS[slot] = first
+    return first
+end
 
 -- ==================================================================== server
 
 if serving then
+    -- A site's level: its lands added (and kept, "slots": "slot d seed;..."
+    -- for the next start), the player put in its first area, the way out in a
+    -- block of rock by that area's west edge, hidden (mods/keys).
+    local level_slot: { [number]: number } = {}
+    local function niche(a: any): (number, number, number)
+        local x0 = a.cx - a.hw + 1
+        for x = x0, x0 + 3 do
+            for z = a.cz - 2, a.cz + 2 do
+                for y = GROUND, GROUND + 3 do core.set_block(x, y, z, core.node_id("arpg_core:rock")) end
+            end
+        end
+        core.set_block(x0 + 2, GROUND, a.cz, 0)
+        core.set_block(x0 + 2, GROUND + 1, a.cz, 0)
+        return x0 + 2, GROUND, a.cz
+    end
     core.event.on("keys:level", function(ev)
-        L.bonus = ev.d - 4
-        core.log(`arpg_game: a site's level, d {ev.d}: the lands {L.bonus} levels off`)
+        local known = core.storage_get("slots")
+        if not string.find(known, `{ev.slot} `, 1, true) then
+            core.storage_set("slots", known .. `{ev.slot} {ev.d} {ev.seed};`)
+        end
+        local n = L.add_level(ev.slot, ev.d, ev.seed)
+        local a = L.AREAS[n]
+        ev.cancel = true
+        level_slot[ev.player] = ev.slot
+        local ex, ey, ez = niche(a)
+        core.player_place(ev.player, a.cx + 0.5, GROUND, a.cz + 0.5, 1, 0, 0)
+        core.player_spawn(ev.player, a.cx + 0.5, GROUND, a.cz + 0.5, true)
+        core.event.emit("keys:start", { player = ev.player, slot = ev.slot, ex = ex, ey = ey, ez = ez })
+        core.notice(ev.player, "Terre nuove, dietro questo portale. Il loro signore aspetta nel covo in fondo.")
+        core.log(`arpg_game: slot {ev.slot}'s lands, d {ev.d}, from area {n}`)
     end)
+    core.event.on("core:world_ready", function()
+        for slot, d, seed in string.gmatch(core.storage_get("slots"), "(%d+) (%d+) (%d+);") do
+            L.add_level(tonumber(slot) :: number, tonumber(d) :: number, tonumber(seed) :: number)
+        end
+    end)
+    -- A lair's lord dead in a site's lands: that level done for whoever is in
+    -- it, and a way back to its first area opened (a portal of this world;
+    -- only now, since linked portals lead both ways).
+    function L.level_done(e: any)
+        local first = L.AREAS[L.SLOTS[e.slot]]
+        local here = L.AREAS[e.area]
+        local a = core.portal_open(here.cx + 0.5, GROUND + 1, here.cz + 4.5, 1, 1, 0, 0.5, 1.0)
+        local b = core.portal_open(first.cx - 3.5, GROUND + 1, first.cz + 4.5, 1, 1, 0, 0.5, 1.0)
+        if a >= 0 and b >= 0 then core.portal_link(a, b) end
+        for p, slot in level_slot do
+            if slot == e.slot then
+                core.event.emit("keys:cleared", { player = p, slot = slot })
+                core.notice(p, "Il signore e' caduto. Un varco riporta alla prima terra: li' qualcosa si e' aperto.")
+            end
+        end
+    end
     core.net.open()
 
     -- Opening 0, where a player from the sandbox comes in: an arch in the
@@ -2489,7 +2623,7 @@ if serving then
                     end
                 end
                 if st.woke then
-                    local lvl = L.AREAS[e.area].level
+                    local lvl = L.level_at(e.x, GROUND, e.z)
                     for i, m in st.left do
                         local a = i * 2.4
                         local r = if m[2] >= 2 then 0 else 1.5 + (i % 3)
@@ -2541,6 +2675,7 @@ if serving then
             if next(st.ids) == nil then
                 if #st.left == 0 then
                     st.done = true
+                    if e.slot and L.level_done then L.level_done(e) end
                 else
                     st.woke = false
                 end
