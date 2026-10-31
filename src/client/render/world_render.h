@@ -527,7 +527,7 @@ private:
     float       m_shadow_texel = 0.0f;
     int         m_loc_shadow_tiles = -1, m_loc_shadow_tex = -1;
     int         m_loc_cloud_sun = -1, m_loc_cloud_sun_on = -1, m_loc_cloud_moon = -1, m_loc_cloud_storm = -1;
-    int         m_loc_cloud_funnel = -1, m_loc_cloud_range = -1, m_loc_cloud_overcast = -1;
+    int         m_loc_cloud_funnel = -1, m_loc_cloud_range = -1, m_loc_cloud_overcast = -1, m_loc_cloud_part = -1;
     int         m_loc_sun_dir = -1, m_loc_sun_color = -1, m_loc_ambient = -1;
     int         m_loc_shadow_vp = -1, m_loc_shadow = -1, m_loc_shadow_on = -1, m_loc_shadow_texel = -1;
 

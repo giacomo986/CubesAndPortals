@@ -435,6 +435,7 @@ uniform vec4  uStorm;      // core.world_storm: its colour, and w 1 when there i
 uniform vec4  uFunnel[4];  // core.storm_funnel: x, ground y, z, and w 1 when there is one
 uniform float uRange;      // how far the world is drawn: a funnel past it would stand over nothing
 uniform float uOvercast;   // core.overcast: 0..1, the layer thicker and grey
+uniform int   uPart;       // 1 the layer, 2 the funnels, 3 both: each pass its own depth
 
 out vec4 fragColor;
 )" CNP_WATER_GLSL R"(
@@ -678,7 +679,7 @@ void main()
     vec3 dir   = vNear - eye;
 
     disc = vec4(0.0);
-    if (uSunShown > 0.5) {
+    if (uSunShown > 0.5 && (uPart & 1) != 0) {
         float c    = dot(normalize(dir), uSunDir);
         float edge = uMoon > 0.5 ? 0.99965 : 0.9992;
         float body = smoothstep(edge - 0.00004, edge + 0.00004, c);
@@ -725,6 +726,10 @@ void main()
     }
     // Front to back: from under the layer the funnels come first.
     bool under = vNear.y < kBase;
+    // One fragment has one depth, the first cloud's: drawn in one pass, a
+    // funnel in front of a hill let the layer behind the hill through with it.
+    if ((uPart & 2) == 0) ntw = 0;
+    if ((uPart & 1) == 0) lay = vec2(1.0, 0.0);
     for (int k = 0; under && k < ntw && keep >= 0.03; ++k) march(vNear, d, twt[k], 20, true, tw[k]);
     if (lay.y > lay.x && keep >= 0.03) march(vNear, d, lay, 16, false, ivec2(0));
     for (int k = 0; !under && k < ntw && keep >= 0.03; ++k) march(vNear, d, twt[k], 20, true, tw[k]);

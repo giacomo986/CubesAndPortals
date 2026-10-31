@@ -176,6 +176,7 @@ bool WorldRenderer::init(NodeRegistry &reg, const MediaSource &media)
     m_loc_cloud_funnel   = gfx_uniform_location(m_cloud_shader, "uFunnel");
     m_loc_cloud_range    = gfx_uniform_location(m_cloud_shader, "uRange");
     m_loc_cloud_overcast = gfx_uniform_location(m_cloud_shader, "uOvercast");
+    m_loc_cloud_part     = gfx_uniform_location(m_cloud_shader, "uPart");
     m_cloud_water_u.locate(m_cloud_shader);
 
     for (WaterBox &w : m_water) {
@@ -1360,7 +1361,22 @@ void WorldRenderer::draw(const Mat4 &projection, const Mat4 &view, bool cull)
         sky.cull      = GFX_CULL_NONE;
         sky.blend     = GFX_BLEND_ALPHA;
         gfx_state_set(&sky);
-        gfx_draw(m_sky_mesh, 3, 0);
+        // With funnels about, the layer and the funnels in two passes, nearer
+        // last, each writing its own depth so a hill hides each on its own.
+        bool funnels = m_cloud_storm[3] > 0.5f;
+        for (int k = 0; k < 4; ++k) funnels = funnels || m_cloud_funnel[k * 4 + 3] > 0.5f;
+        if (!funnels) {
+            gfx_uniform_set_int(m_loc_cloud_part, 3);
+            gfx_draw(m_sky_mesh, 3, 0);
+        } else {
+            const float eye_y = -(view.at(0, 1) * view.at(0, 3) + view.at(1, 1) * view.at(1, 3) +
+                                  view.at(2, 1) * view.at(2, 3));
+            const bool under = eye_y < 96.0f;   // kCloudFS's kBase
+            gfx_uniform_set_int(m_loc_cloud_part, under ? 1 : 2);
+            gfx_draw(m_sky_mesh, 3, 0);
+            gfx_uniform_set_int(m_loc_cloud_part, under ? 2 : 1);
+            gfx_draw(m_sky_mesh, 3, 0);
+        }
 
         const gfx_state back = gfx_state_default();
         gfx_state_set(&back);
