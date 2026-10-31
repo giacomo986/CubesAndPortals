@@ -128,6 +128,7 @@ core.event.on("keys:level", function(ev)
     if plan == nil then return end
     ev.cancel = true
     level_slot[ev.player] = ev.slot
+    level_d[ev.player] = ev.d
     core.player_place(ev.player, plan.sx + 3.5, 21, plan.sz + 5.5, -1, 0, 0)
     core.player_spawn(ev.player, plan.sx + 3.5, 21, plan.sz + 5.5, true)
     core.event.emit("keys:start", { player = ev.player, slot = ev.slot, ex = plan.sx - 1, ey = 21, ez = plan.sz + 2 })
@@ -138,6 +139,13 @@ core.event.on("core:pre_break", function(ev)
 end)
 
 local clock = 0
+-- From d 5, on Level 0, the lights round a player go out now and then, for
+-- eight seconds: its tubes made Level 1's dark lamps, which Level 0 has none
+-- of, so putting them back puts back exactly those.
+local TUBE, DARK = id("backrooms:tube"), id("backrooms:lamp_off")
+local outs: { { number } } = {}   -- { x, z, until }
+local level_d: { [number]: number } = {}
+local next_out: { [number]: number } = {}
 type P = { next_beep: number, next_word: number, down: boolean, found: boolean }
 local players: { [number]: P } = {}
 
@@ -159,6 +167,16 @@ core.event.on("core:tick", function(ev)
         if x == nil then continue end
         local slot = level_slot[p]
         local plan = if slot then plan_of(slot) else nil
+        if plan and slot and (level_d[p] or 0) >= 5 and y >= 17 and y < 33 then
+            if next_out[p] == nil then next_out[p] = clock + 30 end
+            if clock >= next_out[p] then
+                next_out[p] = clock + 40 + math.random() * 30
+                core.replace_nodes(math.floor(x) - 24, 21, math.floor(z) - 24, math.floor(x) + 24, 27,
+                                   math.floor(z) + 24, TUBE, DARK)
+                table.insert(outs, { math.floor(x), math.floor(z), clock + 8 })
+                core.notice(p, "Le luci si spengono.")
+            end
+        end
         if plan and slot then
             -- A level: the radio from wherever its exit room is, on any level.
             local cx, cz = plan.ex + 4.5, plan.ez + 4.5
@@ -216,10 +234,18 @@ core.event.on("core:tick", function(ev)
             core.notice(p, `Il segnale della radio e' {word(d)}.`)
         end
     end
+    for i = #outs, 1, -1 do
+        local o = outs[i]
+        if clock >= o[3] then
+            core.replace_nodes(o[1] - 24, 21, o[2] - 24, o[1] + 24, 27, o[2] + 24, DARK, TUBE)
+            table.remove(outs, i)
+        end
+    end
     for p in players do
         if not here[p] then
             players[p] = nil
             level_slot[p] = nil
+            level_d[p], next_out[p] = nil, nil
         end
     end
 end)

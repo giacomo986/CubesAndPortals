@@ -39,6 +39,10 @@ if serving then
     local PAD      = node("pad", { 240, 120, 24 }, 8)
     local FRAME    = node("frame", { 34, 34, 36 })
     local LAMP     = node("lamp", { 255, 240, 200 }, 14)
+    -- A level's own pieces (below): a pad that throws a body forward and up,
+    -- and a slab that gives way a moment after it is stood on.
+    local BOUNCE   = node("bounce", { 60, 200, 120 }, 6)
+    local CRUMBLE  = node("crumble", { 150, 120, 90 })
 
     core.register_item(GUN, 1, "", 0, 1.0, "")
     core.register_model("parkour:rope_gun_held", "rope_gun_held.gltf")
@@ -294,6 +298,24 @@ if serving then
             floor(x - 1 - flat // 2 - 4, x - 1 - flat // 2, F, zc - 2, zc + 2)
             return x - flat // 2 - 6, F
         end
+        -- A bounce pad at the end of the takeoff: thrown 8 on and 3 up.
+        local function bounce(xs: number, F: number, zc: number): (number, number)
+            floor(xs - 2, xs, F, zc - 2, zc + 2)
+            box(xs - 2, F, zc - 1, xs - 2, F, zc + 1, BOUNCE)
+            floor(xs - 14, xs - 10, F + 3, zc - 2, zc + 2)
+            return xs - 15, F + 3
+        end
+        -- Slabs over a gap that give way under a body (and come back).
+        local function crumble(xs: number, F: number, zc: number): (number, number)
+            floor(xs - 2, xs, F, zc - 2, zc + 2)
+            local x = xs - 2
+            for _ = 1, 3 + math.floor(rnd() * 2) do
+                x -= 2
+                box(x, F, zc - 1, x, F, zc + 1, CRUMBLE)
+            end
+            floor(x - 6, x - 2, F, zc - 2, zc + 2)
+            return x - 7, F
+        end
         local PIECES: { { any } } = {
             { jump, "Un salto: prendi la rincorsa." },
             { step, "Un salto verso l'alto." },
@@ -303,6 +325,8 @@ if serving then
             { backflip, "Capriola: spalle al gradino, indietro e salta." },
             { chimney, "Il camino: salta da un muro all'altro." },
             { rope, "La corda: tasto destro sulla trave." },
+            { bounce, "Il pad verde ti lancia in alto: prendi la rincorsa." },
+            { crumble, "Le lastre cedono sotto i piedi: non fermarti." },
         }
         -- The easy three first at d 1 and 2; every piece once before any twice.
         local count = math.min(12, 3 + dd)
@@ -310,7 +334,9 @@ if serving then
         local pool = {}
         while #order < count do
             if #pool == 0 then
-                for i = 1, (if dd <= 2 then 3 elseif dd <= 4 then 6 else #PIECES) do table.insert(pool, i) end
+                for i = 1, (if dd <= 2 then 3 elseif dd <= 4 then 6 elseif dd <= 6 then 9 else #PIECES) do
+                    table.insert(pool, i)
+                end
             end
             table.insert(order, table.remove(pool, 1 + math.floor(rnd() * #pool)))
         end
@@ -379,7 +405,28 @@ if serving then
 
     -- Every player's last pad, and the rope gun handed to whoever arrives.
     local reached: { [number]: number } = {}
-    core.event.on("core:tick", function(_)
+    -- A level's bounce pads and slabs: when a body may be thrown again, and
+    -- the slabs giving way ("x,y,z" -> when they go; gone ones come back 4 s on).
+    local thrown: { [number]: number } = {}
+    local giving: { [string]: number } = {}
+    local gone: { [string]: number } = {}
+    local clock = 0.0
+    core.event.on("core:tick", function(ev)
+        clock += ev.dt
+        for key, at in giving do
+            if clock >= at then
+                local x, y, z = string.match(key, "(-?%d+),(-?%d+),(-?%d+)")
+                core.set_block(tonumber(x) :: number, tonumber(y) :: number, tonumber(z) :: number, AIR)
+                giving[key], gone[key] = nil, clock + 4
+            end
+        end
+        for key, at in gone do
+            if clock >= at then
+                local x, y, z = string.match(key, "(-?%d+),(-?%d+),(-?%d+)")
+                core.set_block(tonumber(x) :: number, tonumber(y) :: number, tonumber(z) :: number, CRUMBLE)
+                gone[key] = nil
+            end
+        end
         local here: { [number]: boolean } = {}
         for _, p in core.players() do
             here[p] = true
@@ -388,6 +435,14 @@ if serving then
             local slot = level_slot[p]
             local plan = if slot then plan_of(slot) else nil
             local pads = if plan then plan.pads else PADS
+            local under = core.get_block(math.floor(x), math.floor(y - 0.1) , math.floor(z))
+            if under == BOUNCE and (thrown[p] or 0) < clock then
+                thrown[p] = clock + 0.8
+                core.player_launch(p, -13, 13, 0, 1.2)
+            elseif under == CRUMBLE then
+                local key = `{math.floor(x)},{math.floor(y - 0.1)},{math.floor(z)}`
+                if giving[key] == nil then giving[key] = clock + 0.6 end
+            end
             if reached[p] == nil then
                 reached[p] = 1
                 -- Exactly one, however many they came with.

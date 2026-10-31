@@ -85,6 +85,11 @@ if serving then
     local last_wave, more = LAST_WAVE, 1.0
     -- And 15% more health a step of d (core.mob_health), from register_mob's.
     local sturdier = 1.0
+    -- And from d 4 each wave has a twist, drawn as it starts: a swarm (half as
+    -- many again of the small ones), the heavies (two more pinkies), or an
+    -- elite (a gazer and a pinky more).
+    local twists = false
+    local TWIST = { "THE SWARM", "THE HEAVIES", "THE ELITE" }
     local HP = { ghoul = 14, imp = 26, pinky = 70, gazer = 130, guardian = 700 }
     for name in GUNS do
         core.register_item(`yafps_game:{name}`, 1, "", 0, 1.0, "")
@@ -198,6 +203,16 @@ if serving then
         add("imp", math.ceil(math.min(wave, 6) * more))
         add("pinky", math.ceil(math.min(wave // 2, 4) * more))
         add("gazer", math.ceil(math.min((wave - 1) // 2, 3) * more))
+        local twist = if twists then math.random(1, #TWIST) else 0
+        if twist == 1 then
+            add("ghoul", math.ceil(math.min(2 + wave, 8) * more * 0.5))
+            add("imp", math.ceil(math.min(wave, 6) * more * 0.5))
+        elseif twist == 2 then
+            add("pinky", 2)
+        elseif twist == 3 then
+            add("gazer", 1)
+            add("pinky", 1)
+        end
         -- Shuffled, so a wave does not come through a kind at a time.
         for i = #to_spawn, 2, -1 do
             local j = math.random(1, i)
@@ -205,6 +220,7 @@ if serving then
         end
         state, next_at = "fight", clock
         tell(0, `wave {wave} {#to_spawn}`)
+        if twist > 0 then tell(0, `msg WAVE {wave}: {TWIST[twist]}`) end
         core.log(`yafps_game: wave {wave}, {#to_spawn} demons`)
 
         -- The bigger guns turn up, each from its wave on, one at a time.
@@ -251,7 +267,7 @@ if serving then
             -- starts from the first wave.
             wave, state, next_at, to_spawn = 0, "rest", clock + 5, {}
             guardian = 0   -- the engine lets it go with the rest
-            last_wave, more, sturdier = LAST_WAVE, 1.0, 1.0
+            last_wave, more, sturdier, twists = LAST_WAVE, 1.0, 1.0, false
             return
         end
         if state == "done" then
@@ -302,6 +318,7 @@ if serving then
         if wave == 0 then
             last_wave, more = 3 + ev.d // 2, 1 + 0.1 * (ev.d - 1)
             sturdier = 1 + 0.15 * (ev.d - 1)
+            twists = ev.d >= 4
             core.log(`yafps_game: a site's level, d {ev.d}: {last_wave} waves, x{more} demons`)
         end
     end)
