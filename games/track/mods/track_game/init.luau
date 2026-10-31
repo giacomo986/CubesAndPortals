@@ -596,6 +596,86 @@ if serving then
         bests[i] = {}
     end
 
+    -- ======================================================== a site's circuit
+    --
+    -- Come by a survival site (mods/keys' keys:level), in the track's room: a
+    -- circuit of that site's own, laid by track_core in its slot's square
+    -- (track_core:level, answered by track_core:laid with its lines), a kart
+    -- on a pad beside its start, and behind the pad the way out, hidden.
+    -- Three laps in a row each under the site's time -- its length over
+    -- 9 + d metres a second -- are the level done.
+    local LEVEL_AT: { [number]: number } = {}     -- slot -> its index in TRACKS
+    local level_of: { [number]: { slot: number, d: number, under: number } } = {}
+    local function arrive(p: number, slot: number)
+        local tr = TRACKS[LEVEL_AT[slot]]
+        local sx, sz = tr.sx, tr.sz
+        local WALL_ID, BASE_ID = core.node_id("track_core:wall"), core.node_id("track_core:base")
+        -- The pad: level, cleared, west of the start line.
+        for x = sx - 16, sx - 1 do
+            for z = sz - 2, sz + 9 do
+                core.set_block(x, 19, z, BASE_ID)
+                for y = 20, 25 do core.set_block(x, y, z, 0) end
+            end
+        end
+        core.set_block(sx - 3, 20, sz + 3, core.node_id("track_core:kart"))
+        -- The way out: a block of wall with a hole facing +x, behind two
+        -- cells of it under a dark lamp (mods/keys).
+        for x = sx - 14, sx - 11 do
+            for z = sz + 1, sz + 5 do
+                for y = 20, 23 do core.set_block(x, y, z, WALL_ID) end
+            end
+        end
+        core.set_block(sx - 12, 20, sz + 3, 0)
+        core.set_block(sx - 12, 21, sz + 3, 0)
+        core.player_place(p, sx - 6.5, 20, sz + 3.5, 1, 0, 0)
+        core.player_spawn(p, sx - 6.5, 20, sz + 3.5, true)
+        core.event.emit("keys:start", { player = p, slot = slot, ex = sx - 12, ey = 20, ez = sz + 3 })
+        local lv = level_of[p]
+        core.notice(p, string.format("Il circuito di questo portale: tre giri di fila sotto %.1f s. Il kart e' qui accanto.",
+                                     tr.length / (9 + (if lv then lv.d else 1))))
+    end
+    local waiting: { [number]: { number } } = {}   -- slot -> players waiting for its circuit
+    core.event.on("keys:level", function(ev)
+        if INFERNO then return end
+        ev.cancel = true
+        level_of[ev.player] = { slot = ev.slot, d = ev.d, under = 0 }
+        if LEVEL_AT[ev.slot] then
+            arrive(ev.player, ev.slot)
+        else
+            waiting[ev.slot] = waiting[ev.slot] or {}
+            table.insert(waiting[ev.slot], ev.player)
+            core.event.emit("track_core:level", { slot = ev.slot, d = ev.d, seed = ev.seed })
+        end
+    end)
+    -- Only in the track's own room: the Inferno's has no track_core to answer.
+    if not INFERNO then core.event.on("track_core:laid", function(ev)
+        local gates = {}
+        for axis, at, dir, from, to in string.gmatch(ev.gates, "(%a) (-?%d+) (-?%d+) (-?%d+) (-?%d+)") do
+            table.insert(gates, { axis = axis, at = tonumber(at), dir = tonumber(dir), from = tonumber(from),
+                                  to = tonumber(to) })
+        end
+        table.insert(TRACKS, { key = `level{ev.slot}`, gates = gates, level = ev.slot, length = ev.length,
+                               sx = ev.x, sz = ev.z })
+        LEVEL_AT[ev.slot] = #TRACKS
+        bests[#TRACKS] = {}
+        core.log(`track_game: slot {ev.slot}'s circuit, {ev.length} m, {#gates} lines`)
+        for _, p in waiting[ev.slot] or {} do arrive(p, ev.slot) end
+        waiting[ev.slot] = nil
+    end) end
+    local function level_lap(p: number, ti: number, lap: number)
+        local tr, lv = TRACKS[ti], level_of[p]
+        if lv == nil or lv.slot ~= tr.level then return end
+        local target = tr.length / (9 + lv.d)
+        lv.under = if lap < target then lv.under + 1 else 0
+        if lv.under >= 3 then
+            lv.under = 0
+            core.notice(p, "Tre giri sotto il tempo. Dietro la piazzola qualcosa si e' aperto.")
+            core.event.emit("keys:cleared", { player = p, slot = tr.level })
+        else
+            core.notice(p, string.format("Il tempo: %.1f s. Giri di fila sotto: %d di 3.", target, lv.under))
+        end
+    end
+
     -- Where a track keeps a thing in the store: the loop under the keys it
     -- always had ("board", "best:<name>"), the others under their own.
     local function stored(i: number, what: string): string
@@ -1661,6 +1741,7 @@ if serving then
                             end
                             tell(p, string.format("lap %.3f %.3f", lap, best))
                             if TRACKS[ti].key == "inferno" then engineer_lap(p, s, lap) end
+                            if TRACKS[ti].level then level_lap(p, ti, lap) end
                             core.log(string.format("track_game: %s lap %.3f s, best %.3f s%s",
                                                    s.name, lap, best,
                                                    if TRACKS[ti].key == "" then "" else ` ({TRACKS[ti].key})`))

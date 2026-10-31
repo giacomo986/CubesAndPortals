@@ -698,6 +698,85 @@ local function lay(steps: { { string } }, x0: number, z0: number, t0: number, wh
     place_pieces(false)
 end
 
+-- A survival site's circuit (track_game asks, track_core:level): a ring in
+-- its slot's square, built by rule so it closes -- four sides, two by two the
+-- same length, four right turns -- with, by d, a chicane on each long side
+-- (from 3: one right on each, which cancel, the sides running opposite ways),
+-- a hill up one long side and down the other (from 5), a kicker and its
+-- landing (from 7), and tighter corners (from 9). Laid like the others, and
+-- answered with its lines (track_core:laid): the start on the first long
+-- side, a checkpoint on each of the others.
+core.event.define("track_core:level", { fields = { slot = "number", d = "number", seed = "number" },
+                                        cancellable = false })
+core.event.define("track_core:laid", { fields = { slot = "number", gates = "string", length = "number",
+                                                  x = "number", z = "number" },
+                                       cancellable = false })
+core.event.on("track_core:level", function(ev)
+    local d = ev.d
+    local rnd = ev.seed + ev.slot * 7919
+    local function roll(n: number): number
+        rnd = (rnd * 48271) % 2147483647
+        return rnd % n
+    end
+    local long, short = 6 + d // 2 + roll(3), 3 + roll(3)
+    local turn = if d >= 9 then "turn1" elseif d >= 4 then "turn2" else "turn3"
+    local function side(n: number, extra: { { string } }): { { string } }
+        local out = {}
+        local used = 0
+        for _, e in extra do used += SIZE[e[1]] end
+        local before = math.max(1, (n - used) // 2)
+        for _ = 1, before do table.insert(out, { "straight" }) end
+        for _, e in extra do table.insert(out, e) end
+        for _ = 1, math.max(0, n - used - before) do table.insert(out, { "straight" }) end
+        return out
+    end
+    local a, c = {}, {}
+    if d >= 3 then
+        table.insert(a, { "chicane_right" })
+        table.insert(c, { "chicane_right" })
+    end
+    if d >= 5 then
+        table.insert(a, { "rise", "up" })
+        table.insert(c, { "rise", "down" })
+    end
+    if d >= 7 then
+        table.insert(c, { "kicker", "up" })
+        table.insert(c, { "landing", "down" })
+        table.insert(a, { "straight2" })
+    end
+    local steps: { { string } } = {}
+    local marks: { [number]: boolean } = {}   -- a line before these steps
+    for k, sd in { side(long, a), side(short, {}), side(long, c), side(short, {}) } do
+        marks[#steps + 1] = true
+        if k == 1 then table.insert(sd, 1, { "straight" }) end
+        for _, st in sd do table.insert(steps, st) end
+        table.insert(steps, { turn, "r" })
+        if k == 3 then table.insert(steps, #steps, { "straight" }) end
+    end
+    -- k == 1 and k == 3 each got one straight more, so the long sides match.
+    local ox, oz = 8192 + (ev.slot % 16) * 2048 + 1024, (ev.slot // 16) * 2048 + 1024
+    local x0, z0 = ox // 8, oz // 8
+    -- The lines, from the turtle as lay will walk it.
+    local st: Turtle = { gx = x0, gz = z0, t = 1, y = GROUND }
+    local lines, length = {}, 0
+    for k, s0 in steps do
+        if marks[k] then
+            local f = FWD[st.t + 1]
+            if f[1] ~= 0 then
+                table.insert(lines, `x {if f[1] > 0 then st.gx * 8 else st.gx * 8 + 8} {f[1]} {st.gz * 8} {st.gz * 8 + 7}`)
+            else
+                table.insert(lines, `z {if f[2] > 0 then st.gz * 8 else st.gz * 8 + 8} {f[2]} {st.gx * 8} {st.gx * 8 + 7}`)
+            end
+        end
+        local _, after = step(st, s0[1], s0[2] == "down")
+        length += SIZE[s0[1]] * 8
+        st = after
+    end
+    lay(steps, x0, z0, 1, `circuit of slot {ev.slot}`)
+    core.event.emit("track_core:laid", { slot = ev.slot, gates = table.concat(lines, ";"), length = length,
+                                         x = x0 * 8, z = z0 * 8 })
+end)
+
 core.event.on("core:world_ready", function()
     if core.get_block(GRAND_X * 8, GROUND, GRAND_Z * 8) ~= PIECE.wide_straight3 then
         lay(GRAND, GRAND_X, GRAND_Z, 1, "grand circuit")
