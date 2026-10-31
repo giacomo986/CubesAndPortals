@@ -2951,8 +2951,8 @@ if drawing then
                           0.024, 0, 220, 230, 220, 255)
             if m then
                 local k = math.clamp(m.hp / math.max(1, m.max), 0, 1)
-                core.hud.rect(x0 + 0.1, 0.87, 0.2, 0.018, 40, 40, 40, 200)
-                core.hud.rect(x0 + 0.1 * k, 0.87, 0.2 * k, 0.018, math.floor(255 * (1 - k)), math.floor(200 * k + 40), 40, 255)
+                core.hud.rect(x0 + 0.1 / core.hud.aspect(), 0.87, 0.2, 0.018, 40, 40, 40, 200)
+                core.hud.rect(x0 + 0.1 * k / core.hud.aspect(), 0.87, 0.2 * k, 0.018, math.floor(255 * (1 - k)), math.floor(200 * k + 40), 40, 255)
                 local info = string.format("%d KM/H", math.floor(m.speed * 3.6))
                 if V.seat.kind == "heli" or V.seat.kind == "plane" or V.seat.kind == "bomber" then
                     info ..= string.format("   ALT %d", math.floor(m.alt))

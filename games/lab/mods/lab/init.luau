@@ -1447,7 +1447,7 @@ if drawing then
         if hp >= 0 then
             local f = math.max(0, hp / hp_max)
             core.hud.rect(0.5, 0.06, 0.5, 0.025, 30, 20, 40, 220)
-            core.hud.rect(0.25 + 0.25 * f, 0.06, 0.5 * f, 0.02, 170, 60, 230, 255)
+            core.hud.rect(0.5 + 0.25 * (f - 1) / core.hud.aspect(), 0.06, 0.5 * f, 0.02, 170, 60, 230, 255)
             core.hud.text(0.5, 0.1, "L'OSPITE", 0.03)
         end
         if banner_left > 0 then

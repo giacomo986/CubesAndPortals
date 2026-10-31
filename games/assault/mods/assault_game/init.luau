@@ -5014,8 +5014,8 @@ if drawing then
                           0.024, 0, 220, 230, 220, 255)
             if m then
                 local k = math.clamp(m.hp / math.max(1, m.max), 0, 1)
-                core.hud.rect(x0 + 0.1, 0.87, 0.2, 0.018, 40, 40, 40, 200)
-                core.hud.rect(x0 + 0.1 * k, 0.87, 0.2 * k, 0.018, math.floor(255 * (1 - k)), math.floor(200 * k + 40), 40, 255)
+                core.hud.rect(x0 + 0.1 / core.hud.aspect(), 0.87, 0.2, 0.018, 40, 40, 40, 200)
+                core.hud.rect(x0 + 0.1 * k / core.hud.aspect(), 0.87, 0.2 * k, 0.018, math.floor(255 * (1 - k)), math.floor(200 * k + 40), 40, 255)
                 local info = string.format("%d KM/H", math.floor(m.speed * 3.6))
                 if V.seat.kind == "heli" or V.seat.kind == "plane" or V.seat.kind == "bomber" then
                     info ..= string.format("   ALT %d", math.floor(m.alt))
@@ -5035,7 +5035,8 @@ if drawing then
                 local y = 0.075 + (i - 1) * 0.045
                 local k = math.clamp(b.k, 0, 1)
                 core.hud.rect(0.5, y, 0.36, 0.016, 30, 20, 40, 210)
-                core.hud.rect(0.32 + 0.18 * k, y, 0.36 * k, 0.012, if i == 1 then 90 else 190,
+                -- x is in widths of the screen, w in heights: the fill grows from the bar's left end.
+                core.hud.rect(0.5 + 0.18 * (k - 1) / core.hud.aspect(), y, 0.36 * k, 0.012, if i == 1 then 90 else 190,
                               if i == 1 then 150 else 60, if i == 1 then 240 else 230, 255)
                 core.hud.text(0.5, y + 0.022, b.text, 0.02, 1, 220, 215, 230, 230)
             end
