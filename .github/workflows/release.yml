@@ -60,7 +60,8 @@ jobs:
 
   # On a tag only: the tag must be the version the code says it is
   # (src/core/version.h), and the packages become the latest GitHub Release,
-  # its notes only that version's section of CHANGELOG.md.
+  # its notes only that version's section of CHANGELOG.md; a pre-release while
+  # the version is an alpha or a beta (docs/BUILDING.md, "Versioni").
   publish:
     if: startsWith(github.ref, 'refs/tags/')
     needs: [linux, windows, macos]
@@ -79,4 +80,5 @@ jobs:
         with:
           files: packages/*
           make_latest: true
+          prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') }}
           body_path: notes.md
