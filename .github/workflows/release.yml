@@ -82,7 +82,7 @@ jobs:
   # On a tag only: the tag must be the version the code says it is
   # (src/core/version.h), and the packages become the latest GitHub Release,
   # its notes only that version's section of CHANGELOG.md; a pre-release while
-  # the version is an alpha or a beta (docs/BUILDING.md, "Versioni").
+  # the version is an alpha or a beta (docs/BUILDING.md, "Versions").
   publish:
     if: startsWith(github.ref, 'refs/tags/')
     needs: [linux, windows, macos]

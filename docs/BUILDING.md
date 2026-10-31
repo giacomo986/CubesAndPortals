@@ -1,192 +1,191 @@
-# Compilare e distribuire
+# Building and distributing
 
-Come si passa dal sorgente agli eseguibili, e da lì ai pacchetti per chi gioca. Come si gioca
-e si prova una volta compilato è nel [README](../README.it.md#giocare-e-testare-riferimento).
+*[Leggi in italiano](BUILDING.it.md)*
 
-## Cosa serve
+How to get from the source to the executables, and from there to the packages for players. How to
+play and test once it is built is in the [README](../README.md#playing-and-testing-reference).
 
-Il gioco porta con sé tutte le sue librerie (raylib, Luau, ENet, zstd, SQLite, Monocypher,
-flecs, Jolt) come submodule in `third_party/`, e le compila insieme al resto. Dal sistema
-servono solo il compilatore e le librerie che il driver grafico possiede.
+## What you need
 
-Linux (Ubuntu 24.04; su altre distribuzioni i pacchetti hanno gli stessi nomi o quasi):
+The game carries all its libraries (raylib, Luau, ENet, zstd, SQLite, Monocypher, flecs, Jolt) as
+submodules in `third_party/`, and builds them along with the rest. From the system you need only
+the compiler and the libraries the graphics driver owns.
+
+Linux (Ubuntu 24.04; on other distributions the packages have the same names, or nearly):
 
 ```sh
 sudo apt install build-essential cmake ninja-build git \
     libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev libasound2-dev
 ```
 
-- **CMake 3.25 o più recente** (lo chiede raylib 6.0), **GCC 13** o Clang con C++20.
-- Il client vuole **OpenGL 3.3** e **X11** (su Wayland gira attraverso XWayland). Il server
-  non vuole nessuno dei due.
+- **CMake 3.25 or newer** (raylib 6.0 asks for it), **GCC 13** or Clang with C++20.
+- The client wants **OpenGL 3.3** and **X11** (on Wayland it runs through XWayland). The server
+  wants neither.
 
-Il sorgente con i submodule:
+The source with its submodules:
 
 ```sh
-git clone --recursive <url>            # oppure, in un clone che già c'è:
+git clone --recursive <url>            # or, in a clone you already have:
 git submodule update --init --recursive
 ```
 
-## Il build di sviluppo
+## The development build
 
 ```sh
-cmake -S . -B build -G Ninja           # RelWithDebInfo se non si dice altro
+cmake -S . -B build -G Ninja           # RelWithDebInfo unless told otherwise
 cmake --build build -j
-ctest --test-dir build                 # 13 test; -LE gpu salta quello che apre una finestra
+ctest --test-dir build                 # 13 tests; -LE gpu skips the one that opens a window
 ```
 
-Escono tre programmi:
+Three programs come out:
 
 | | |
 |---|---|
-| `build/src/client/cnp_client` | il gioco: menù, mondi salvati, multiplayer |
-| `build/src/server/cnp_server` | un mondo per altri giocatori, senza finestra |
-| `build/tools/cnp_modpack` | un mod in un file `.cnpmod` e ritorno |
+| `build/src/client/cnp_client` | the game: menu, saved worlds, multiplayer |
+| `build/src/server/cnp_server` | a world for other players, with no window |
+| `build/tools/cnp_modpack` | a mod into a `.cnpmod` file and back |
 
-Un build di sviluppo legge `mods/`, `games/` e `assets/` dal checkout, quindi gira da dove è
-stato compilato e non si copia altrove (`core/paths.h` spiega l'ordine in cui li cerca).
-`tools/play.sh` fa un build Release in `build-release/` e avvia server e client insieme.
+A development build reads `mods/`, `games/` and `assets/` from the checkout, so it runs from where
+it was built and is not copied elsewhere (`core/paths.h` explains the order it looks for them in).
+`tools/play.sh` makes a Release build in `build-release/` and starts a server and a client together.
 
-Opzioni di CMake:
+CMake options:
 
 | | |
 |---|---|
-| `-DCMAKE_BUILD_TYPE=Release` | ottimizzato e senza simboli di debug (il default è `RelWithDebInfo`) |
-| `-DCNP_PORTABLE=ON` | il runtime C++ dentro gli eseguibili: un build che gira su un'altra macchina Linux |
-| `-DCNP_WERROR=ON` | i warning del nostro codice diventano errori |
+| `-DCMAKE_BUILD_TYPE=Release` | optimised and without debug symbols (the default is `RelWithDebInfo`) |
+| `-DCNP_PORTABLE=ON` | the C++ runtime inside the executables: a build that runs on another Linux machine |
+| `-DCNP_WERROR=ON` | warnings in our own code become errors |
 
-Un build che si ferma su `api_generated.inc` vuol dire che `src/script/api.luau` è cambiato:
-il generatore (`build/tools/cnp_api_gen`) riscrive `src/script/api_generated.inc`, `docs/API.md`
-e `docs/api.d.luau`, che stanno nel repository e vanno committati insieme.
+A build that stops on `api_generated.inc` means `src/script/api.luau` changed: the generator
+(`build/tools/cnp_api_gen`) rewrites `src/script/api_generated.inc`, `docs/API.md` and
+`docs/api.d.luau`, which are in the repository and are committed together.
 
-## I pacchetti
+## The packages
 
-Ogni pacchetto è una cartella con i tre programmi e, accanto, `mods/`, `games/` e `assets/`
-(`textures`, `sounds`, `lang`): la copia la fa `tools/dist/stage.sh`, ed è la disposizione in
-cui `core/paths.h` cerca i file. Un pacchetto si chiama
-`cubes-and-portals-<versione>-<sistema>-<architettura>` e finisce in `<build>/dist/`.
+Every package is a folder with the three programs and, beside them, `mods/`, `games/` and
+`assets/` (`textures`, `sounds`, `lang`): `tools/dist/stage.sh` makes the copy, and it is the layout
+`core/paths.h` looks for. A package is named `cubes-and-portals-<version>-<system>-<architecture>`
+and ends up in `<build>/dist/`.
 
 ### Linux: tarball, AppImage, Flatpak
 
-Tutti e tre vengono dallo stesso build portabile:
+All three come from the same portable build:
 
 ```sh
 cmake -S . -B build-dist -G Ninja -DCNP_PORTABLE=ON
 cmake --build build-dist --target cnp_client cnp_server cnp_modpack
 tools/dist/package-linux.sh build-dist        # .tar.gz
-tools/dist/package-appimage.sh build-dist     # .AppImage (serve appimagetool)
-tools/dist/package-flatpak.sh build-dist      # .flatpak (serve il runtime, sotto)
+tools/dist/package-appimage.sh build-dist     # .AppImage (needs appimagetool)
+tools/dist/package-flatpak.sh build-dist      # .flatpak (needs the runtime, below)
 ```
 
-- **Tarball** (~25 MB): si scompatta dove si vuole e si avvia `./cnp_client`. Gira su
-  qualsiasi glibc dalla 2.38 in su, cioè dalla macchina su cui è stato compilato in poi: per
-  raggiungere distribuzioni più vecchie va compilato su una più vecchia.
-  `package-linux.sh` rifiuta un build senza `CNP_PORTABLE`.
-- **AppImage** (~23 MB): un file solo. Avviato è il client; `… server` e `… modpack` sono gli
-  altri due. `appimagetool` si scarica da
-  <https://github.com/AppImage/appimagetool/releases> (continuous) e va nel `PATH` o in
-  `$APPIMAGETOOL`.
-- **Flatpak** (~17 MB): il tarball dentro `/app/lib/cubes-and-portals`, sul runtime
-  `org.freedesktop.Platform//25.08`. Si costruisce con i comandi di flatpak e basta, senza
-  flatpak-builder né SDK. Per costruirlo serve il runtime:
-  `flatpak install --user flathub org.freedesktop.Platform//25.08`. Chi lo riceve lo installa
-  con `flatpak install --user <file>.flatpak`, e il runtime arriva da Flathub. Da lì si avvia
-  dal menù del desktop o con `flatpak run io.github.giacomoperin.CubesAndPortals` (anche qui
-  `server` e `modpack` come primo argomento). Mondi e opzioni stanno in
+- **Tarball** (~25 MB): unpack it anywhere and run `./cnp_client`. It runs on any glibc from 2.38
+  on, that is from the machine it was built on onwards: to reach older distributions it has to be
+  built on an older one. `package-linux.sh` refuses a build without `CNP_PORTABLE`.
+- **AppImage** (~23 MB): a single file. Run, it is the client; `… server` and `… modpack` are the
+  other two. Download `appimagetool` from <https://github.com/AppImage/appimagetool/releases>
+  (continuous) and put it in the `PATH` or in `$APPIMAGETOOL`.
+- **Flatpak** (~17 MB): the tarball inside `/app/lib/cubes-and-portals`, on the
+  `org.freedesktop.Platform//25.08` runtime. It is built with flatpak's own commands only, without
+  flatpak-builder or an SDK. To build it you need the runtime:
+  `flatpak install --user flathub org.freedesktop.Platform//25.08`. Whoever receives the file
+  installs it with `flatpak install --user <file>.flatpak`, and the runtime comes from Flathub. From
+  there it starts from the desktop menu or with `flatpak run io.github.giacomoperin.CubesAndPortals`
+  (here too `server` and `modpack` as the first argument). Worlds and options live in
   `~/.var/app/io.github.giacomoperin.CubesAndPortals/`.
 
-#### Il repository Flatpak (aggiornamenti con `flatpak update`)
+#### The Flatpak repository (updates with `flatpak update`)
 
-Un Flatpak installato da un file `.flatpak` non si aggiorna mai. Per questo la CI pubblica
-anche un **repository** su GitHub Pages (<https://giacomo986.github.io/CubesAndPortals/>):
-`package-flatpak.sh` esporta in `build-dist/dist/flatpak-repo/` e, se ha una chiave
-(`FLATPAK_GPG_KEY_ID`, e `FLATPAK_GPG_HOMEDIR` se non è quella di gpg), lo firma;
-`tools/dist/flatpak-site.sh build-dist site` ne fa il sito: `repo/`, il `.flatpakref` per
-installare, il `.flatpakrepo` per aggiungere il remote (tutti e due con la chiave pubblica,
-`tools/dist/flatpak-repo.gpg`) e una pagina. Il job `pages` di
-`.github/workflows/release.yml` lo pubblica a ogni tag, o a mano dalla scheda Actions.
+A Flatpak installed from a `.flatpak` file is never updated. So the CI also publishes a
+**repository** on GitHub Pages (<https://giacomo986.github.io/CubesAndPortals/>):
+`package-flatpak.sh` exports into `build-dist/dist/flatpak-repo/` and, when it has a key
+(`FLATPAK_GPG_KEY_ID`, and `FLATPAK_GPG_HOMEDIR` if not gpg's own), signs it;
+`tools/dist/flatpak-site.sh build-dist site` makes the site of it: `repo/`, the `.flatpakref` to
+install, the `.flatpakrepo` to add the remote (both carrying the public key,
+`tools/dist/flatpak-repo.gpg`) and a page. The `pages` job of `.github/workflows/release.yml`
+publishes it on every tag, or by hand from the Actions tab.
 
-Serve il segreto `FLATPAK_GPG_KEY` del repository GitHub: la chiave privata in forma
-armored, una volta sola:
+It needs the GitHub repository's `FLATPAK_GPG_KEY` secret: the private key, armoured, once:
 
 ```sh
 gh secret set FLATPAK_GPG_KEY < ~/.config/cubes-and-portals-release/flatpak-repo-secret.asc
 ```
 
-e Pages acceso con sorgente "GitHub Actions" (Settings, Pages). Senza segreto la release esce
-lo stesso, senza repository. La chiave privata va tenuta: con un'altra chiave chi ha già
-installato non riceve più aggiornamenti finché non reinstalla.
+and Pages turned on with "GitHub Actions" as its source (Settings, Pages). Without the secret a
+release is made just the same, with no repository. Keep the private key: with another key,
+whoever has installed gets no more updates until they install again.
 
 ### Windows: zip
 
-Si compila da Linux, non su Windows: [zig](https://ziglang.org/download/) 0.16 nel `PATH` fa
-da compilatore e da MinGW (`tools/dist/zig-windows.cmake`).
+It is built from Linux, not on Windows: [zig](https://ziglang.org/download/) 0.16 in the `PATH` is
+the compiler and the MinGW (`tools/dist/zig-windows.cmake`).
 
 ```sh
-tools/dist/package-windows.sh                 # configura e compila in build-win/, poi lo zip
+tools/dist/package-windows.sh                 # configures and builds in build-win/, then the zip
 ```
 
-Lo zip (~25 MB) contiene `cnp_client.exe`, `cnp_server.exe`, `cnp_modpack.exe` e i dati. Si
-scompatta dove si vuole e si fa doppio clic sul client. Serve Windows 10 o più recente, perché
-usa solo DLL di sistema (UCRT, OpenGL32, Winsock). Mondi e opzioni stanno in
-`%APPDATA%\cubes-and-portals`. Per provarlo su Linux: `wine cnp_client.exe`. Sotto
-wine in Xephyr i clic non arrivano al menù, e un `--quick` o un `--connect` lo provano lo
-stesso.
+The zip (~25 MB) holds `cnp_client.exe`, `cnp_server.exe`, `cnp_modpack.exe` and the data. Unpack
+it anywhere and double-click the client. It needs Windows 10 or newer, since it uses only system
+DLLs (UCRT, OpenGL32, Winsock). Worlds and options live in `%APPDATA%\cubes-and-portals`. To try it
+on Linux: `wine cnp_client.exe`. Under wine in Xephyr clicks do not reach the menu, and a `--quick`
+or a `--connect` tries it just the same.
 
-Su Windows mancano ancora alcune cose (TODO.md, OPEN-40): niente stack dump né watchdog, un
-client che va in crash chiude il suo server senza salvare, e tornare al menù richiede di nuovo
-la password.
+On Windows a few things are still missing (TODO.md, OPEN-40): no stack dump or watchdog, a client
+that crashes closes its server without saving, and going back to the menu asks for the password
+again.
 
-### macOS: .app in un .dmg
+### macOS: .app in a .dmg
 
-Si compila **su un Mac**, perché il client ha bisogno dell'SDK di Apple (Cocoa, OpenGL).
-Servono gli Xcode command line tools, `cmake` e `ninja` (`brew install cmake ninja`):
+It is built **on a Mac**, because the client needs Apple's SDK (Cocoa, OpenGL). You need the Xcode
+command line tools, `cmake` and `ninja` (`brew install cmake ninja`):
 
 ```sh
-tools/dist/package-macos.sh                   # compila in build-mac/, poi l'app e il .dmg
+tools/dist/package-macos.sh                   # builds in build-mac/, then the app and the .dmg
 ```
 
-I programmi vanno in `Cubes and Portals.app/Contents/MacOS`, i dati in `Contents/Resources`.
-Serve macOS 11 o più recente. Il pacchetto ha l'architettura del Mac che lo compila (arm64 su
-Apple silicon). La firma è ad hoc, non di uno sviluppatore: il primo avvio va fatto con clic
-destro e Apri, oppure `xattr -dr com.apple.quarantine "Cubes and Portals.app"`.
-**Non è mai stato provato su un Mac.**
+The programs go into `Cubes and Portals.app/Contents/MacOS`, the data into `Contents/Resources`. It
+needs macOS 11 or newer. The package has the architecture of the Mac that builds it (arm64 on Apple
+silicon). The signature is ad hoc, not a developer's: the first run has to be right-click and
+Open, or `xattr -dr com.apple.quarantine "Cubes and Portals.app"`. **It has never been tried on a
+Mac.**
 
-### Tutti insieme: GitHub Actions
+### All together: GitHub Actions
 
-`.github/workflows/release.yml` costruisce tutti i pacchetti: Linux e Windows su Ubuntu, macOS
-su un runner Apple silicon. Parte da solo a ogni tag `v*` e si può lanciare a mano dalla
-scheda Actions. Su un tag controlla che il tag sia la versione scritta nel codice, e mette i
-pacchetti in una GitHub Release (marcata pre-release finché la versione è un'alpha). Il
-repository deve stare su GitHub perché tutto questo funzioni.
+`.github/workflows/release.yml` builds every package: Linux and Windows on Ubuntu, macOS on an
+Apple silicon runner. It starts by itself on every `v*` tag and can be run by hand from the
+Actions tab. On a tag it checks that the tag is the version written in the code, and puts the
+packages in a GitHub Release (a pre-release while the version is an alpha or a beta) whose notes
+are that version's section of `CHANGELOG.md`. The repository has to be on GitHub for all this to
+work.
 
-Nessun pacchetto è firmato: Windows SmartScreen chiede conferma una volta ("Ulteriori
-informazioni", poi "Esegui comunque") e macOS Gatekeeper pure.
+No package is signed: Windows SmartScreen asks for confirmation once ("More info", then "Run
+anyway") and macOS Gatekeeper does too.
 
-## Versioni
+## Versions
 
-La versione sta in un posto solo, `kEngineVersion` in `src/core/version.h`. Da lì la leggono
-i nomi dei pacchetti, il log di join del server e l'angolo in basso a destra del menù.
+The version is in one place only, `kEngineVersion` in `src/core/version.h`. From there the
+packages' names, the server's join log and the bottom right corner of the menu read it.
 
-Finché il gioco è in alpha la forma è `0.MINORE.0-alpha.N`:
+While the game is in alpha its form is `0.MINOR.0-alpha.N`:
 
-- **N** sale di uno a ogni alpha consegnata (`0.4.0-alpha.1`, `0.4.0-alpha.2`, ...);
-- **MINORE** sale quando un'alpha non legge più i mondi salvati della precedente o non gioca
-  più con i suoi server, e allora N riparte da 1 (`0.5.0-alpha.1`). Quando succede va scritto
-  nel `CHANGELOG.md`, perché chi gioca perde i suoi mondi.
+- **N** goes up by one with every alpha handed out (`0.4.0-alpha.1`, `0.4.0-alpha.2`, ...);
+- **MINOR** goes up when an alpha no longer reads the previous one's saved worlds or no longer
+  plays with its servers, and then N starts again from 1 (`0.5.0-alpha.1`). When that happens it
+  is written in `CHANGELOG.md`, because whoever plays loses their worlds.
 
-La versione serve a chi legge, non decide nulla. Se un client e un server possono giocare
-insieme lo decidono il numero di protocollo (`net/protocol.h`) e l'hash della tabella dei blocchi,
-come spiega il commento in `version.h`.
+The version is for whoever reads it, it decides nothing. Whether a client and a server can play
+together is decided by the protocol number (`net/protocol.h`) and the block table's hash, as the
+comment in `version.h` explains.
 
-Per fare un'alpha:
+To make an alpha:
 
-1. alzare `kEngineVersion`;
-2. aggiungere in cima a `CHANGELOG.md` la nuova voce, con la data e cosa cambia per chi gioca;
-3. fare un commit, poi `git tag v<versione>` (per esempio `git tag v0.4.0-alpha.2`);
-4. `git push`, poi `git push origin v<versione>` (`--follow-tags` non porta i tag semplici):
-   la CI costruisce i pacchetti e li pubblica. Senza GitHub, si
-   lanciano a mano i `package-*.sh` qui sopra e si consegnano i file di `<build>/dist/`.
-   Ogni `package-*.sh`, prima di costruire, sposta in `<build>/dist/vecchie/` i pacchetti
-   delle altre versioni (`tools/dist/archive-old.sh`): in `dist/` resta solo quella da
-   consegnare.
+1. raise `kEngineVersion`;
+2. add the new entry at the top of `CHANGELOG.md`, with the date and what changes for players
+   (and the same in `CHANGELOG.it.md`);
+3. commit, then `git tag v<version>` (for example `git tag v0.4.0-alpha.2`);
+4. `git push`, then `git push origin v<version>` (`--follow-tags` does not carry plain tags): the
+   CI builds the packages and publishes them. Without GitHub, run the `package-*.sh` above by hand
+   and hand over the files in `<build>/dist/`. Every `package-*.sh`, before building, moves the
+   other versions' packages into `<build>/dist/vecchie/` (`tools/dist/archive-old.sh`): only the
+   one to hand over stays in `dist/`.
