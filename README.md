@@ -73,8 +73,15 @@ Ready-made packages are on the **[Releases](../../releases)** page. For every ve
 tag) GitHub Actions builds them for all three systems and publishes them as a pre-release.
 
 - **Linux**: unpack the `.tar.gz` anywhere and run `./cnp_client`; or make the `.AppImage`
-  executable (`chmod +x`) and run it; or install the `.flatpak` with
-  `flatpak install --user <file>.flatpak`, after which it shows up in the desktop menu.
+  executable (`chmod +x`) and run it; or install the Flatpak from its repository, which keeps it
+  up to date (`flatpak update` brings each new release):
+
+  ```sh
+  flatpak install --user https://giacomo986.github.io/CubesAndPortals/cubes-and-portals.flatpakref
+  ```
+
+  The `.flatpak` file of each release installs too (`flatpak install --user <file>.flatpak`),
+  but a Flatpak installed from a file is never updated: install it from the repository instead.
 - **Windows**: unpack the `.zip` and double-click `cnp_client.exe`.
 - **macOS**: open the `.dmg` and drag the app wherever you like.
 

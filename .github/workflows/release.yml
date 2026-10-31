@@ -12,6 +12,7 @@ on:
 jobs:
   linux:
     runs-on: ubuntu-24.04
+    outputs: {site: "${{ steps.site.outputs.made }}"}
     steps:
       - uses: actions/checkout@v4
         with: {submodules: recursive}
@@ -27,7 +28,27 @@ jobs:
       - run: cmake --build build-dist --target cnp_client cnp_server cnp_modpack
       - run: tools/dist/package-linux.sh build-dist
       - run: APPIMAGETOOL=$PWD/appimagetool APPIMAGE_EXTRACT_AND_RUN=1 tools/dist/package-appimage.sh build-dist
+      # The Flatpak repository's key (secret FLATPAK_GPG_KEY, an armoured
+      # private key): with it the repository is signed and, on a tag, goes to
+      # GitHub Pages (the pages job), where `flatpak update` finds each release.
+      - env: {KEY: "${{ secrets.FLATPAK_GPG_KEY }}"}
+        run: |
+          if [ -n "$KEY" ]; then
+            export GNUPGHOME="$RUNNER_TEMP/gpg"
+            mkdir -m 700 -p "$GNUPGHOME"
+            printf '%s\n' "$KEY" | gpg --batch --import
+            echo "FLATPAK_GPG_HOMEDIR=$GNUPGHOME" >> "$GITHUB_ENV"
+            echo "FLATPAK_GPG_KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr/{print $10; exit}')" >> "$GITHUB_ENV"
+          fi
       - run: tools/dist/package-flatpak.sh build-dist
+      - id: site
+        if: (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') && env.FLATPAK_GPG_KEY_ID != ''
+        run: |
+          tools/dist/flatpak-site.sh build-dist site
+          echo "made=true" >> "$GITHUB_OUTPUT"
+      - if: steps.site.outputs.made == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with: {path: site}
       - uses: actions/upload-artifact@v4
         with:
           name: linux
@@ -82,3 +103,16 @@ jobs:
           make_latest: true
           prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') }}
           body_path: notes.md
+
+  # The Flatpak repository on GitHub Pages (tools/dist/flatpak-site.sh), after
+  # the release itself, and only when the linux job made it (a signing key):
+  # on a tag, or run by hand from the Actions tab (no release then).
+  pages:
+    if: always() && needs.linux.outputs.site == 'true' && needs.publish.result != 'failure'
+    needs: [linux, publish]
+    runs-on: ubuntu-24.04
+    permissions: {pages: write, id-token: write}
+    environment: {name: github-pages, url: "${{ steps.deploy.outputs.page_url }}"}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -70,7 +70,19 @@ DESKTOP
 # desktop it runs through XWayland.
 flatpak build-finish "$DIR" --command=cubes-and-portals \
     --share=network --share=ipc --socket=x11 --socket=pulseaudio --device=dri > /dev/null
-flatpak build-export "$REPO" "$DIR" > /dev/null
+# Signed when a key is given (the CI's, from its secret): the repository it
+# exports into is the one tools/dist/flatpak-site.sh publishes for `flatpak
+# update`. FLATPAK_GPG_KEY_ID and, if not gpg's own, FLATPAK_GPG_HOMEDIR.
+SIGN=""
+if [ -n "${FLATPAK_GPG_KEY_ID:-}" ]; then
+    SIGN="--gpg-sign=$FLATPAK_GPG_KEY_ID${FLATPAK_GPG_HOMEDIR:+ --gpg-homedir=$FLATPAK_GPG_HOMEDIR}"
+fi
+rm -rf "$REPO"
+# shellcheck disable=SC2086
+flatpak build-export $SIGN "$REPO" "$DIR" > /dev/null
+# shellcheck disable=SC2086
+flatpak build-update-repo $SIGN --title="Cubes and Portals" --default-branch=master \
+    --generate-static-deltas "$REPO" > /dev/null
 
 BUNDLE="$OUT/$NAME.flatpak"
 rm -f "$BUNDLE"

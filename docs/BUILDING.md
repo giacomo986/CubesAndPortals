@@ -95,6 +95,28 @@ tools/dist/package-flatpak.sh build-dist      # .flatpak (serve il runtime, sott
   `server` e `modpack` come primo argomento). Mondi e opzioni stanno in
   `~/.var/app/io.github.giacomoperin.CubesAndPortals/`.
 
+#### Il repository Flatpak (aggiornamenti con `flatpak update`)
+
+Un Flatpak installato da un file `.flatpak` non si aggiorna mai. Per questo la CI pubblica
+anche un **repository** su GitHub Pages (<https://giacomo986.github.io/CubesAndPortals/>):
+`package-flatpak.sh` esporta in `build-dist/dist/flatpak-repo/` e, se ha una chiave
+(`FLATPAK_GPG_KEY_ID`, e `FLATPAK_GPG_HOMEDIR` se non è quella di gpg), lo firma;
+`tools/dist/flatpak-site.sh build-dist site` ne fa il sito: `repo/`, il `.flatpakref` per
+installare, il `.flatpakrepo` per aggiungere il remote (tutti e due con la chiave pubblica,
+`tools/dist/flatpak-repo.gpg`) e una pagina. Il job `pages` di
+`.github/workflows/release.yml` lo pubblica a ogni tag, o a mano dalla scheda Actions.
+
+Serve il segreto `FLATPAK_GPG_KEY` del repository GitHub: la chiave privata in forma
+armored, una volta sola:
+
+```sh
+gh secret set FLATPAK_GPG_KEY < ~/.config/cubes-and-portals-release/flatpak-repo-secret.asc
+```
+
+e Pages acceso con sorgente "GitHub Actions" (Settings, Pages). Senza segreto la release esce
+lo stesso, senza repository. La chiave privata va tenuta: con un'altra chiave chi ha già
+installato non riceve più aggiornamenti finché non reinstalla.
+
 ### Windows: zip
 
 Si compila da Linux, non su Windows: [zig](https://ziglang.org/download/) 0.16 nel `PATH` fa
