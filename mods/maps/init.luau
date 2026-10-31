@@ -17,7 +17,9 @@
 -- A ROUTE marked for a player (maps:route, from a mod: mods/villagers'
 -- caravans tell the way to their village) is drawn on the map as a dotted
 -- red line to a flag, the land along it shown as seen; three at most, kept
--- per player ("routes:<name>"), each gone once its end is reached.
+-- per player ("routes:<name>"), each gone once its end is reached. A PIN
+-- (maps:pin: mods/gates' portals, once seen) is a dot of its own colour, kept
+-- per player ("pins:<name>"), 64 at most, the oldest dropped first.
 
 local side    = core.side()
 local serving = side ~= "client"
@@ -59,6 +61,7 @@ end
 local seen: { [number]: number } = {}   -- this player's pixels, by pk: their colour
 local home_x, home_z = 0, 0
 local routes: { [string]: { { number } } } = {}   -- this player's, by label: points x, z
+local pins: { [string]: { number } } = {}          -- this player's, by label: x, z, colour
 local function pk(px: number, pz: number): number
     return (px + 32768) * 65536 + (pz + 32768)
 end
@@ -85,6 +88,11 @@ local function heard(text: string)
             end
             routes[label] = if #list > 0 then list else nil
         end
+    elseif kind == "p" then   -- a pin: "label|x,z,c"
+        local label, x, z, c = string.match(rest or "", "^([^|]*)|(-?%d+),(-?%d+),(%d+)$")
+        if label then
+            pins[label] = { tonumber(x) :: number, tonumber(z) :: number, tonumber(c) :: number }
+        end
     elseif kind == "h" then
         local x, z = string.match(rest or "", "^(-?[%d.]+) (-?[%d.]+)$")
         home_x, home_z = tonumber(x) or 0, tonumber(z) or 0
@@ -95,6 +103,10 @@ end
 
 core.event.define("maps:route", { fields = { player = "number", label = "string", points = "string" },
                                   cancellable = false })
+-- A pin's colour: 1 violet (a portal), 2 green (a portal done).
+core.event.define("maps:pin", { fields = { player = "number", label = "string", x = "number", z = "number",
+                                           colour = "number" },
+                                cancellable = false })
 
 if serving then
     core.net.open()
@@ -221,8 +233,26 @@ if serving then
         for label, pts in routes_of(s.name) do
             send(p, `r {label}|{pts}`)
         end
+        for part in string.gmatch(core.storage_get(`pins:{s.name}`), "[^#]+") do
+            send(p, `p {part}`)
+        end
         return s
     end
+
+    core.event.on("maps:pin", function(ev)
+        local name = core.player_name(ev.player)
+        local entry = `{ev.label}|{math.floor(ev.x)},{math.floor(ev.z)},{ev.colour}`
+        local kept = {}
+        for part in string.gmatch(core.storage_get(`pins:{name}`), "[^#]+") do
+            if part == entry then return end   -- had it already
+            if string.sub(part, 1, #ev.label + 1) ~= ev.label .. "|" then table.insert(kept, part) end
+        end
+        table.insert(kept, entry)
+        while #kept > 64 do table.remove(kept, 1) end
+        core.storage_set(`pins:{name}`, table.concat(kept, "#"))
+        send(ev.player, `p {entry}`)
+        reveal(ev.player, math.floor(ev.x / PIXEL), math.floor(ev.z / PIXEL))
+    end)
 
     core.event.on("maps:route", function(ev)
         local name = core.player_name(ev.player)
@@ -436,6 +466,11 @@ if drawing then
             local e = pts[#pts]
             mark(e[1], e[2], 60, 30, 20, cell * 2.6)
             mark(e[1], e[2], 240, 200, 60, cell * 1.6)
+        end
+        for _, pin in pins do
+            mark(pin[1], pin[2], 20, 10, 30, cell * 2.4)
+            if pin[3] == 2 then mark(pin[1], pin[2], 80, 200, 90, cell * 1.5)
+            else mark(pin[1], pin[2], 170, 80, 230, cell * 1.5) end
         end
         mark(home_x, home_z, 200, 30, 30, cell * 2.4)
         mark(x, z, 20, 20, 20, cell * 2.2)

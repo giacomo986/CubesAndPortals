@@ -615,6 +615,7 @@ local at_site: { [string]: Site } = {}   -- each room's mouth: the site it is at
 local away: { [string]: Site } = {}      -- the site of somebody gone through, by who
 local near: { [number]: Site } = {}      -- the site each player here stands at, if any
 local who_is: { [number]: string } = {}  -- each player here, by who
+local pinned: { [string]: { [string]: boolean } } = {}   -- pins sent this run, by who
 local since = 0.0
 
 local function place(room: string, s: Site)
@@ -649,6 +650,16 @@ core.event.on("core:tick", function(ev)
             end
             came_from[me] = gone
             away[me] = nil
+        end
+        -- Every portal within 64, on the map (maps:pin; green once done).
+        for _, s in sites_near(x, z, 64) do
+            local done = string.find(core.shared_storage_get("done:" .. me), s.id .. ";", 1, true) ~= nil
+            local key = `{s.id}{if done then "+" else ""}`
+            pinned[me] = pinned[me] or {}
+            if not pinned[me][key] then
+                pinned[me][key] = true
+                core.event.emit("maps:pin", { player = p, label = s.id, x = s.x, z = s.z, colour = if done then 2 else 1 })
+            end
         end
         for _, s in sites_near(x, z, NEAR) do
             local dist = (s.x - x) ^ 2 + (s.z - z) ^ 2
