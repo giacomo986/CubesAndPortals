@@ -53,7 +53,7 @@ ground), every minute and a half or so. Cost: with llvmpipe in Xephyr the camp g
 | 2 the bastion | 64, 480 | stone walls, towers, a keep | burnt forest: ash, charred trunks, embers | 11, two machine guns, two mortars, a tank |
 | 3 the battery | 64, 710 | three bunkers, trenches, two howitzers, anti-aircraft | a field of glowing violet crystals | 14, two machine guns, a helicopter |
 | 4 the fortress | 64, 905 | basalt walls 12 high (indestructible), the gate to blow up | basalt split by magma, ribs of bone | 18, two tanks, mortars, anti-aircraft, a helicopter |
-| the hall | 64, 976 | behind the fortress: four pylons, the core, the throne | -- | waves from doors in the side walls |
+| the hall | 64, 976 | behind the fortress, sunk 10 under the courtyard: four pylons, the core, the throne | -- | waves from doors in the side walls |
 
 The legion is of three kinds, chosen for how they fight: **zombies** (behind cover, slow, 28
 health), **demons** (on the attack, fast, 18) and **cyborgs** (on watch with the sniper rifle and
@@ -121,6 +121,17 @@ the rocket launcher, 26).
 * **In machines**: whoever is not driving and not at a weapon of the machine shoots with their own
   (players and bots), and aims with the right button. Seated bots are carried by the engine
   (`core.mob_ride`) along with the machine.
+* **The way down**: the hall is roofed and sunk, its floor 10 under the courtyard, so nothing in it
+  can be shot from outside. With the courtyard taken, the door at the foot of a pit against the
+  hall's south wall (x 59..69, z 928..940) opens; the builders go to the pit's south rim and hang
+  three ziplines down it, 22 s each (`assault_core:zipline`, a slide of the engine drawn as a rope:
+  ridden sat on its line and held by it, so the drop costs nothing -- walk into it from the rim).
+  While none is up, half of every wave of the guard comes out into the pit to shoot up at the
+  builders. Allied bots wait at the rim, then ride down (the server carries them along the line,
+  5 cells a second). The dead come back at the courtyard's base and go down again. Jumping in
+  without one is a 10-node fall. Tried headless: two lines up 24 s after the courtyard, the third
+  at ~50 s; a player walked in at the rim and was at the bottom in 1.6 s with 20 of 20 health;
+  allies in the hall.
 * **The hall**: the four pylons feed the core's shield; brought down, the core is open for 18 s,
   then the pylons light up again, stronger. Basoalth throws orbs from the throne, which a shot puts
   out.

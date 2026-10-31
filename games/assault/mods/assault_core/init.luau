@@ -60,6 +60,14 @@ local LADDER   = core.register_node("assault_core:ladder", 190, 196, 200, true, 
 core.node_box(LADDER, 0.1, 0, 0.8, 0.9, 1, 1)
 core.node_climbable(LADDER)
 core.node_model(LADDER, core.register_model("assault_core:ladder", "ladder.gltf"))
+-- A zipline: one cell of a slide (core.node_conveyor's ramp down, ridden sat
+-- on its line and held by it, so the fall costs nothing), drawn as the cable
+-- over it at the height of the hands (tools/make_zipline_model.py). Facing 2:
+-- in high at -z, out low at +z, a cell down each. Not solid: its stepped
+-- boxes would be stairs.
+local ZIP      = core.register_node("assault_core:zipline", 140, 142, 150, false, 0, "upright", 0, 0, "metal")
+core.node_conveyor(ZIP, 7, 1.25, -1)
+core.node_model(ZIP, core.register_model("assault_core:zipline", "zipline.gltf"))
 
 -- What a player is here: the sandbox's robot (mods/robot, linked), with the
 -- front's arms (its guns).
@@ -89,8 +97,14 @@ local MID    = 64
 local CAMP   = { MID, 22 }
 local FORTS  = { { MID, 250 }, { MID, 480 }, { MID, 710 }, { MID, 905 } }
 -- The fortress: outer walls x 20..108, z 870..1012; the courtyard to z 940,
--- the hall behind it (inside x 26..102, z 943..1009, roof at GROUND + 24).
+-- the hall behind it (inside x 26..102, z 943..1009, roof at GROUND + 24),
+-- sunk: its floor HALL_Y, ten under the courtyard's, so that nothing in it is
+-- seen from outside. The way down is a pit in the courtyard against its
+-- south wall (PIT, x MID +-5, z 928..940), into it through a low door; the
+-- allies' builders hang ziplines down the pit (ZIP, assault_game).
 local HALL_Z0, HALL_Z1, HALL_ROOF = 943, 1009, GROUND + 24
+local HALL_Y = GROUND - 10
+local PIT_Z0 = 928
 
 -- The way in from the sandbox: opening 0 (facing +z) at the camp's south end.
 core.set_portal(0, MID + 0.5, GROUND + 1, 6.5)
@@ -252,29 +266,42 @@ do
     end
     for _, bx in { MID - 8, MID + 8 } do put(bx, GROUND + 12, z0 - 1, bx, GROUND + 12, z0 - 1, EMBER) end
     -- The courtyard: a few blocks of cover, the way up to the walk, the flag.
-    for _, c in { { -30, 890 }, { 30, 890 }, { -14, 905 }, { 14, 905 }, { -30, 922 }, { 30, 922 }, { 0, 925 } } do
+    for _, c in { { -30, 890 }, { 30, 890 }, { -14, 905 }, { 14, 905 }, { -30, 922 }, { 30, 922 }, { 0, 918 } } do
         put(MID + c[1] - 2, GROUND, c[2] - 1, MID + c[1] + 2, GROUND + 1, c[2] + 1, BASALT)
     end
     put(MID, GROUND, 905, MID, GROUND + 7, 905, BASALT)
-    -- The hall: its own floor, walls and roof inside the outer ones.
-    put(x0 + 6, GROUND - 1, HALL_Z0, x1 - 6, GROUND - 1, HALL_Z1, HALL)
-    put(x0 + 6, GROUND, HALL_Z0, x1 - 6, HALL_ROOF - 1, HALL_Z1, 0)
+    -- The hall: its own floor, walls and roof inside the outer ones, the
+    -- walls taken down under the ground to its sunk floor.
+    put(x0, HALL_Y - 1, HALL_Z0 - 3, x1, GROUND - 1, z1, KEEP)
+    put(x0 + 6, HALL_Y - 1, HALL_Z0, x1 - 6, HALL_Y - 1, HALL_Z1, HALL)
+    put(x0 + 6, HALL_Y, HALL_Z0, x1 - 6, HALL_ROOF - 1, HALL_Z1, 0)
     put(x0, GROUND + 12, HALL_Z0 - 3, x1, HALL_ROOF + 1, z1, KEEP)              -- walls up to the roof
     put(x0 + 6, GROUND + 12, HALL_Z0, x1 - 6, HALL_ROOF - 1, HALL_Z1, 0)
-    put(x0 + 3, GROUND - 1, 941, x1 - 3, GROUND + 11, 942, KEEP)                -- between courtyard and hall
-    put(MID - 4, GROUND, 941, MID + 4, GROUND + 7, 942, SEAL)                    -- the door
+    put(x0 + 3, HALL_Y - 1, 941, x1 - 3, GROUND + 11, 942, KEEP)                -- between courtyard and hall
+    -- The pit, walled in the fortress's black; its door into the hall, low.
+    put(MID - 6, HALL_Y - 1, PIT_Z0 - 1, MID + 6, GROUND - 1, 940, KEEP)
+    put(MID - 5, HALL_Y, PIT_Z0, MID + 5, GROUND + 11, 940, 0)
+    put(MID - 5, HALL_Y - 1, PIT_Z0, MID + 5, HALL_Y - 1, 940, BASALT)
+    for x = MID - 5, MID + 5, 2 do put(x, GROUND - 1, PIT_Z0 - 1, x, GROUND - 1, PIT_Z0 - 1, HAZARD) end
+    for z = PIT_Z0 + 2, 938, 4 do
+        for _, y in { HALL_Y + 3, HALL_Y + 7 } do
+            put(MID - 6, y, z, MID - 6, y, z, LAMP)
+            put(MID + 6, y, z, MID + 6, y, z, LAMP)
+        end
+    end
+    put(MID - 4, HALL_Y, 941, MID + 4, HALL_Y + 5, 942, SEAL)                    -- the door
     for x = x0 + 8, x1 - 8, 10 do
         for z = HALL_Z0 + 6, HALL_Z1 - 6, 10 do put(x, HALL_ROOF, z, x, HALL_ROOF, z, EMBER) end
     end
     -- Lamps along its walls, low and high: it is roofed, and embers alone left it dark.
     for x = x0 + 9, x1 - 9, 8 do
-        for _, y in { GROUND + 4, GROUND + 14 } do
+        for _, y in { HALL_Y + 4, HALL_Y + 14, HALL_Y + 24 } do
             put(x, y, HALL_Z0, x, y, HALL_Z0, LAMP)
             put(x, y, HALL_Z1, x, y, HALL_Z1, LAMP)
         end
     end
     for z = HALL_Z0 + 4, HALL_Z1 - 4, 8 do
-        for _, y in { GROUND + 4, GROUND + 14 } do
+        for _, y in { HALL_Y + 4, HALL_Y + 14, HALL_Y + 24 } do
             put(x0 + 6, y, z, x0 + 6, y, z, LAMP)
             put(x1 - 6, y, z, x1 - 6, y, z, LAMP)
         end
@@ -284,24 +311,24 @@ do
     for a = 0, 47 do
         local t = a / 48 * 2 * math.pi
         local x, z = MID + math.floor(math.cos(t) * 9 + 0.5), 976 + math.floor(math.sin(t) * 9 + 0.5)
-        put(x, GROUND - 1, z, x, GROUND - 1, z, EMBER)
+        put(x, HALL_Y - 1, z, x, HALL_Y - 1, z, EMBER)
     end
     for _, c in { { 38, 956 }, { 90, 956 }, { 38, 997 }, { 90, 997 } } do
-        put(c[1] - 2, GROUND - 1, c[2] - 2, c[1] + 2, GROUND, c[2] + 2, BASALT)
+        put(c[1] - 2, HALL_Y - 1, c[2] - 2, c[1] + 2, HALL_Y, c[2] + 2, BASALT)
     end
-    put(MID - 8, GROUND + 7, HALL_Z1 - 4, MID + 8, GROUND + 7, HALL_Z1, BASALT)
-    put(MID - 2, GROUND + 8, HALL_Z1 - 1, MID + 2, GROUND + 12, HALL_Z1, KEEP)   -- the throne
+    put(MID - 8, HALL_Y + 7, HALL_Z1 - 4, MID + 8, HALL_Y + 7, HALL_Z1, BASALT)
+    put(MID - 2, HALL_Y + 8, HALL_Z1 - 1, MID + 2, HALL_Y + 12, HALL_Z1, KEEP)   -- the throne
     for _, sx in { -1, 1 } do
         -- Two doors in each side wall (x 20..25) onto a passage inside it.
         local wx = MID + sx * 39
-        put(wx, GROUND, 966, wx + sx, GROUND + 2, 968, 0)
-        put(wx, GROUND, 984, wx + sx, GROUND + 2, 986, 0)
-        put(wx + sx * 2, GROUND, 960, wx + sx * 3, GROUND + 2, 992, 0)
-        put(wx + sx * 2, GROUND - 1, 960, wx + sx * 3, GROUND - 1, 992, HALL)
+        put(wx, HALL_Y, 966, wx + sx, HALL_Y + 2, 968, 0)
+        put(wx, HALL_Y, 984, wx + sx, HALL_Y + 2, 986, 0)
+        put(wx + sx * 2, HALL_Y, 960, wx + sx * 3, HALL_Y + 2, 992, 0)
+        put(wx + sx * 2, HALL_Y - 1, 960, wx + sx * 3, HALL_Y - 1, 992, HALL)
     end
     -- Cover in the hall: low basalt blocks.
     for _, c in { { -24, 966 }, { 24, 966 }, { -24, 988 }, { 24, 988 }, { -12, 956 }, { 12, 956 }, { -12, 998 }, { 12, 998 } } do
-        put(MID + c[1] - 1, GROUND, c[2] - 1, MID + c[1] + 1, GROUND + 1, c[2] + 1, BASALT)
+        put(MID + c[1] - 1, HALL_Y, c[2] - 1, MID + c[1] + 1, HALL_Y + 1, c[2] + 1, BASALT)
     end
     -- The garage behind the north wall, three bays; its door into the hall
     -- stays shut (KEEP) until Basoalth breaks it (assault_game).
@@ -460,7 +487,7 @@ end
 local COLLAPSE: { { number } } = {}
 do
     local fy = TUBE[1][3]
-    box(COLLAPSE, 28, fy, 945, 100, GROUND - 1, 1007, 0)
+    box(COLLAPSE, 28, fy, 945, 100, HALL_Y - 1, 1007, 0)
     box(COLLAPSE, 28, fy - 1, 945, 100, fy - 1, 1007, TRACK)
     box(COLLAPSE, MID - IN, fy, 1007, MID + IN, fy + HIGH - 1, HALL_N, 0)
     box(COLLAPSE, MID - IN, fy - 1, 1007, MID + IN, fy - 1, HALL_N, TRACK)

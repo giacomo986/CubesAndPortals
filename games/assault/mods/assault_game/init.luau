@@ -7,7 +7,9 @@
 --        with none of its garrison near; then the camp moves there (where the
 --        dead come back, and the crates top up ammunition) and the next one
 --        is manned. The fortress's gate has to be blown in.
---   5    the hall: four pylons feed a shield round the core; all four down,
+--   5    the hall, sunk under the courtyard: the builders hang ziplines down
+--        the pit at its door while its guard shoots up at them; then down.
+--        Four pylons feed a shield round the core; all four down,
 --        the core is bare for a while, then the pylons come back. Its guard
 --        comes out of the side walls and Basoalth throws his orbs from the
 --        throne.
@@ -34,6 +36,7 @@
 
 local EYE    = 1.5
 local GROUND = 20
+local HALL_Y = GROUND - 10   -- the hall's floor, sunk (assault_core's HALL_Y)
 local SIZE   = 216     -- what a machine may leave before it is lost: the valley and the chasm
 local MID    = 64
 
@@ -719,7 +722,7 @@ if serving then
     -- Once the hall's floor has fallen in (A.deep) from the tunnel's floor
     -- down there, deeper than the valley's.
     local function feet_at(x: number, z: number): number
-        for y = if A.deep then -12 else GROUND - 6, GROUND + 12 do
+        for y = if A.deep then -12 else HALL_Y - 2, GROUND + 12 do
             if core.get_block(x, y - 1, z) ~= 0 and core.get_block(x, y, z) == 0
                and core.get_block(x, y + 1, z) == 0 then
                 return y
@@ -909,6 +912,7 @@ if serving then
             A.build_think(id, b, x, y, z)
             return
         end
+        if A.riders[id] then return end   -- on a zipline: A.step_riders
         if b.ride then
             M.bot_ride_think(id, b)
             return
@@ -1027,6 +1031,9 @@ if serving then
             end
             if M.bot_hop(id, b, x, z) then return end
         end
+        -- In the hall's fight an ally still up in the courtyard goes down a
+        -- zipline, or waits at the pit's rim while there is none.
+        if A.stage == "hall" and b.team == 1 and y > GROUND - 2 and z > 870 and z < 941 and A.zip_down(id, b, x, z) then return end
         local p = goal_of(id, b)
         -- A waypoint a couple of dozen nodes on, with a little spread so a
         -- squad does not walk in single file; at the point, somewhere in it.
@@ -2929,15 +2936,104 @@ if serving then
         return b[1] - 21 + math.random(-1, 1) + 0.5, GROUND, b[2] - 1 + math.random(-1, 1) + 0.5
     end
 
+    -- The ziplines hung down the pit: their x, and every cell they took, for
+    -- the reset.
+    A.zips, A.zip_cells = {}, {}
+    function A.put_zip(zx: number)
+        local function put(x: number, y: number, z: number, block: number, facing: number?)
+            core.set_block(x, y, z, block)
+            if facing then core.set_facing(x, y, z, facing) end
+            table.insert(A.zip_cells, { x, y, z })
+        end
+        for k = 0, GROUND - HALL_Y - 1 do put(zx, GROUND - 1 - k, A.ZIP_Z0 + k, A.ZIP, 2) end
+        -- A frame over its top on the rim, two posts at its foot.
+        for _, sx in { -1, 1 } do
+            for y = GROUND, GROUND + 2 do put(zx + sx, y, A.ZIP_Z0 - 1, A.POST) end
+            for y = HALL_Y, HALL_Y + 2 do put(zx + sx, y, A.ZIP_Z0 + GROUND - HALL_Y, A.POST) end
+        end
+        put(zx, GROUND + 2, A.ZIP_Z0 - 1, A.POST)
+        table.insert(A.zips, zx)
+    end
+    -- An ally to the top of the nearest, between its posts, and on it.
+    A.riders = {}   -- mob id -> { x, when it got on }
+    function A.zip_down(id: number, b, x: number, z: number): boolean
+        local best, at = nil, 1e9
+        for _, zx in A.zips do
+            if math.abs(zx - x) < at then best, at = zx, math.abs(zx - x) end
+        end
+        if best == nil then
+            local wx, wz = MID + (b.n % 7 - 3) * 2, A.ZIP_Z0 - 6
+            if (wx + 0.5 - x) ^ 2 + (wz + 0.5 - z) ^ 2 > 4 and core.mob_going(id) == 0 then
+                core.mob_goto(id, wx, GROUND, wz)
+            end
+            return true
+        end
+        if (best + 0.5 - x) ^ 2 + (A.ZIP_Z0 - 0.5 - z) ^ 2 < 1.5 then
+            core.mob_goto(id, math.floor(x), GROUND, math.floor(z))
+            A.riders[id] = { best, clock }
+            return true
+        end
+        if core.mob_going(id) == 0 or b.zip_to ~= best then
+            b.zip_to = best
+            core.mob_goto(id, best, GROUND, A.ZIP_Z0 - 1)
+        end
+        return true
+    end
+
+    -- Down the cable at five cells a second, on the slide's line (from
+    -- GROUND + 0.25 at the top cell's high end, a node down every node on);
+    -- off it at the foot.
+    A.ZIP_SPEED = 5
+    function A.step_riders()
+        for id, r in A.riders do
+            local k = (clock - r[2]) * A.ZIP_SPEED
+            local b = bots[id]
+            if b == nil or b.dead or core.mob_pos(id) == nil then
+                A.riders[id] = nil
+            elseif k >= GROUND - HALL_Y then
+                core.mob_place(id, r[1] + 0.5, HALL_Y, A.ZIP_Z0 + GROUND - HALL_Y + 0.5)
+                A.riders[id] = nil
+            else
+                core.mob_place(id, r[1] + 0.5, GROUND + 0.25 - k, A.ZIP_Z0 + k)
+            end
+        end
+    end
+
+    function A.clear_zips()
+        for _, c in A.zip_cells do
+            if core.loaded(c[1], c[2], c[3]) == 1 then core.set_block(c[1], c[2], c[3], 0) end
+        end
+        A.zips, A.zip_cells, A.riders = {}, {}, {}
+    end
+
     -- What the builders put up for stronghold k, worked out the first time
     -- one asks (its walls in memory by then, A.keep): a ladder up the south
     -- face of what stands either side of the middle -- a wall, a tower, a
     -- bunker -- 3 to 16 high with room on top; and four nests of sandbags out
     -- in front, in the open short of it.
     A.LADDER, A.SANDBAG = core.node_id("assault_core:ladder"), core.node_id("assault_core:sandbag")
+    A.ZIP, A.POST = core.node_id("assault_core:zipline"), core.node_id("assault_core:logs")
     A.plans = {}
+    -- What there is to put up now: stronghold k's, or (5) the hall's.
+    function A.build_k(): number
+        return if A.stage == "fort" then A.fort elseif A.stage == "hall" then 5 else 0
+    end
+    -- The hall's: three ziplines down the pit (assault_core's PIT), each
+    -- from its south rim at GROUND to the pit's floor at HALL_Y, a cell
+    -- down for every cell north -- worked at from the rim, a while each.
+    A.ZIP_X = { MID, MID - 4, MID + 4 }
+    A.ZIP_Z0 = 928
+    A.ZIP_WORK = 22
     function A.plan(k: number)
         if A.plans[k] then return A.plans[k] end
+        if k == 5 then
+            local list = {}
+            for _, zx in A.ZIP_X do
+                table.insert(list, { kind = "zipline", fort = 5, x = zx, z = A.ZIP_Z0, sx = zx, sz = A.ZIP_Z0 - 3 })
+            end
+            A.plans[k] = list
+            return list
+        end
         local f, ar = FORTS[k], A.AREA[k]
         if core.loaded(f[1], GROUND, ar[3] - 12) ~= 1 or core.loaded(f[1], GROUND, f[2]) ~= 1 then return {} end
         local function solid(x: number, y: number, z: number): boolean return core.get_block(x, y, z) ~= 0 end
@@ -2979,6 +3075,9 @@ if serving then
                 end
             end
             A.say("UNA SCALA SULLE MURA")
+        elseif job.kind == "zipline" then
+            A.put_zip(job.x)
+            A.say(if #A.zips == 1 then "UNA TELEFERICA NELLA FOSSA: GIU', ALLA SALA!" else "UN'ALTRA TELEFERICA NELLA FOSSA")
         else
             -- A low wall across, its ends bent back: the open side ours.
             for _, c in { { -2, 0 }, { -1, 0 }, { 0, 0 }, { 1, 0 }, { 2, 0 }, { -2, -1 }, { 2, -1 } } do
@@ -3009,12 +3108,12 @@ if serving then
         if b.aside_until and clock < b.aside_until then return end
 
         local job = b.job
-        if job and (job.done or (if job.kind then A.stage ~= "fort" or A.fort ~= job.fort else not A.may_build(job))) then
+        if job and (job.done or (if job.kind then A.build_k() ~= job.fort else not A.may_build(job))) then
             job, b.job = nil, nil
         end
         if job == nil then
             -- Half of them see to what is broken first, half to what is to be put up.
-            local plan = if A.stage == "fort" then A.plan(A.fort) else {}
+            local plan = if A.build_k() > 0 then A.plan(A.build_k()) else {}
             local best, at = nil, 1e9
             for pass = 1, 2 do
                 local builds = (pass == 1) == (b.n % 2 == 0)
@@ -3066,6 +3165,7 @@ if serving then
         core.mob_face(id, job.x, job.z)
         core.mob_act(id, "build", "assault_game:wrench")
         b.work_until = b.work_until or clock + (if job.kind == "ladder" then 3 + (job.top - GROUND) * 0.4
+                                                elseif job.kind == "zipline" then A.ZIP_WORK
                                                 elseif job.kind then 5 else 2 + job.r)
         if clock >= b.work_until then
             job.done = true
@@ -3144,8 +3244,8 @@ if serving then
     end
 
     A.PYLONS = { { 38, 956 }, { 90, 956 }, { 38, 997 }, { 90, 997 } }
-    A.CORE = { MID + 0.5, GROUND + 5, 976.5 }
-    A.THRONE = { MID + 0.5, GROUND + 8, 1006.5 }
+    A.CORE = { MID + 0.5, HALL_Y + 5, 976.5 }
+    A.THRONE = { MID + 0.5, HALL_Y + 8, 1006.5 }
     A.SHIELD_OPEN = 18      -- seconds the core is bare once every pylon is down
     -- The escape tunnel (assault_core's TUBE, kept in step): each corner x, z
     -- and the height a body stands at there; how far along it the rock is.
@@ -3403,7 +3503,7 @@ if serving then
         A.pylons = {}
         for i, c in A.PYLONS do
             local pl
-            pl = A.thing("pylon", c[1] + 0.5, GROUND + 1, c[2] + 0.5, 1.2, 5, function(dmg: number, _by: number, _w: string): boolean
+            pl = A.thing("pylon", c[1] + 0.5, HALL_Y + 1, c[2] + 0.5, 1.2, 5, function(dmg: number, _by: number, _w: string): boolean
                 if pl.hp <= 0 then return false end
                 pl.hp -= dmg
                 if pl.hp > 0 then return false end
@@ -3433,12 +3533,13 @@ if serving then
         return n
     end
 
-    -- The courtyard taken: the hall's door opens, its pylons, its core and
-    -- Basoalth on his throne.
+    -- The courtyard taken: the door at the foot of the pit opens, its
+    -- pylons, its core and Basoalth on his throne; the builders go to hang
+    -- the ziplines down the pit (A.plan(5)).
     function A.open_hall()
         A.stage, A.cycle = "hall", 1
         for x = MID - 4, MID + 4 do
-            for y = GROUND, GROUND + 7 do
+            for y = HALL_Y, HALL_Y + 5 do
                 for z = 941, 942 do core.set_block(x, y, z, 0) end
             end
         end
@@ -3461,7 +3562,7 @@ if serving then
             M.order(g[1], g[2], g[3], 0, 2, false, function(id) A.crew(id, 5) end)
         end
         A.wave_at, A.orb_at = clock + 4, clock + 6
-        A.say("LA SALA DEL NUCLEO: ABBATTETE I QUATTRO PILONI")
+        A.say("LA SALA DEL NUCLEO E' IN FONDO ALLA FOSSA: DIFENDETE I COSTRUTTORI, CALANO LE TELEFERICHE")
         core.log("assault_game: the hall")
     end
 
@@ -3476,7 +3577,11 @@ if serving then
             local id = A.spawn_bot(2, x, z)
             if id then
                 bots[id].fort = 5
-                bots[id].post = { math.random(32, 96) + 0.5, math.random(950, 1000) + 0.5 }
+                -- While nobody can come down, half of them out into the pit,
+                -- to shoot up at the builders.
+                bots[id].post = if #A.zips == 0 and i % 2 == 1
+                    then { MID + math.random(-4, 4) + 0.5, math.random(931, 939) + 0.5 }
+                    else { math.random(32, 96) + 0.5, math.random(950, 1000) + 0.5 }
             end
         end
     end
@@ -3641,13 +3746,13 @@ if serving then
                     for y = GROUND + 24, GROUND + 25 do core.set_block(x, y, z, 0) end
                 end
             end
-            A.giant = A.thing("basoalth_giant", A.CORE[1], GROUND, A.CORE[3], 0, 0, nil)
+            A.giant = A.thing("basoalth_giant", A.CORE[1], HALL_Y, A.CORE[3], 0, 0, nil)
             if A.giant then
                 core.ecs.set(A.giant.id, "yaw", 0)
                 core.ecs.clip(A.giant.id, "rise")
             end
             for _, d in { { 0, 30, 0 }, { -12, 26, 6 }, { 12, 26, -6 } } do
-                tell(0, string.format("boom %.2f %.2f %.2f 4", A.CORE[1] + d[1], GROUND + d[2], A.CORE[3] + d[3]))
+                tell(0, string.format("boom %.2f %.2f %.2f 4", A.CORE[1] + d[1], HALL_Y + d[2], A.CORE[3] + d[3]))
             end
             A.say("BASOALTH SI ERGE!")
         end
@@ -3658,9 +3763,9 @@ if serving then
             A.deep = true
             core.event.emit("assault:collapse", { on = true })
             for _, d in { { -20, -20 }, { 20, -20 }, { -20, 20 }, { 20, 20 }, { 0, 34 } } do
-                tell(0, string.format("boom %.2f %.2f %.2f 4", A.CORE[1] + d[1], GROUND, A.CORE[3] + d[2]))
+                tell(0, string.format("boom %.2f %.2f %.2f 4", A.CORE[1] + d[1], HALL_Y, A.CORE[3] + d[2]))
             end
-            core.play_sound("assault_game:boom", A.CORE[1], GROUND, A.CORE[3])
+            core.play_sound("assault_game:boom", A.CORE[1], HALL_Y, A.CORE[3])
             if A.giant and A.giant.id then core.ecs.set(A.giant.id, "y", A.PATH[1][3]) end
             A.jeeps()
             A.say("IL PAVIMENTO CROLLA! ALLE JEEP, NEL TUNNEL A NORD!")
@@ -4382,13 +4487,14 @@ if serving then
         A.TWISTERS, A.tw_at = {}, nil
         A.income_at, A.reinforce_at, A.reinforcing = nil, 0, false
         local SEAL, KEEP = core.node_id("assault_core:seal"), core.node_id("assault_core:keep")
-        if core.loaded(MID, GROUND, 941) == 1 then
+        if core.loaded(MID, HALL_Y, 941) == 1 then
             for x = MID - 4, MID + 4 do
-                for y = GROUND, GROUND + 7 do
+                for y = HALL_Y, HALL_Y + 5 do
                     for z = 941, 942 do core.set_block(x, y, z, SEAL) end
                 end
             end
         end
+        A.clear_zips()
         if core.loaded(MID, GROUND, 1011) == 1 then
             for x = MID - 6, MID + 6 do
                 for y = GROUND, GROUND + 6 do
@@ -4454,7 +4560,7 @@ if serving then
         A.started = true
         A.rout(nil)
         A.pylons = A.pylons or {}
-        for p in players do core.player_place(p, MID + 0.5, GROUND, 960.5, 0, 0, 1) end
+        for p in players do core.player_place(p, MID + 0.5, HALL_Y, 960.5, 0, 0, 1) end
         A.rise_at = clock + 4
         core.log("assault_game: straight to the escape")
     end)
@@ -4483,7 +4589,7 @@ if serving then
             A.step_fort()
             A.step_zones()
             A.step_counter()
-        elseif A.stage == "hall" then A.step_hall()
+        elseif A.stage == "hall" then A.step_hall(); A.step_riders()
         elseif A.stage == "rise" then A.step_rise(dt)
         elseif A.stage == "escape" then A.step_crews(); A.step_escape(dt)
         elseif A.stage == "won" then A.step_won(dt) end

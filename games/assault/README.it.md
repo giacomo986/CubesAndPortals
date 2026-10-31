@@ -61,7 +61,7 @@ passa da 25.7 a 21 FPS.
 | 2 il bastione | 64, 480 | mura di pietra, torri, un mastio | foresta bruciata: cenere, tronchi carbonizzati, braci | 11, due mitragliatrici, due mortai, un carro |
 | 3 la batteria | 64, 710 | tre bunker, trincee, due obici, contraerea | distesa di cristalli viola e luminosi | 14, due mitragliatrici, un elicottero |
 | 4 la fortezza | 64, 905 | mura di basalto alte 12 (indistruttibili), il cancello da far saltare | basalto spaccato dal magma, costole d'osso | 18, due carri, mortai, contraerea, un elicottero |
-| la sala | 64, 976 | dietro la fortezza: quattro piloni, il nucleo, il trono | -- | ondate da porte nei muri laterali |
+| la sala | 64, 976 | dietro la fortezza, sprofondata 10 sotto il cortile: quattro piloni, il nucleo, il trono | -- | ondate da porte nei muri laterali |
 
 La legione è di tre specie, scelte per come combattono: **zombi** (dietro i
 ripari, lenti, 28 di vita), **demoni** (all'assalto, veloci, 18) e
@@ -142,6 +142,20 @@ ripari, lenti, 28 di vita), **demoni** (all'assalto, veloci, 18) e
 * **Sui mezzi**: chi non guida e non sta a un'arma del mezzo spara con la
   sua (giocatori e bot), e mira col destro. I bot seduti sono portati dal
   motore (`core.mob_ride`) insieme al mezzo.
+* **La discesa**: la sala è coperta e sprofondata, il pavimento 10 sotto il
+  cortile, così niente al suo interno si colpisce da fuori. Preso il
+  cortile, si apre la porta in fondo a una fossa contro il muro sud della
+  sala (x 59..69, z 928..940); i costruttori vanno al bordo sud della fossa
+  e calano tre teleferiche, 22 s l'una (`assault_core:zipline`, uno scivolo
+  del motore disegnato come una corda: ci si va seduti sulla sua linea e
+  tenuti da essa, quindi la discesa non toglie vita -- ci si entra
+  camminando dal bordo). Finché non ce n'è nessuna, metà di ogni ondata
+  della guardia esce nella fossa a sparare ai costruttori. I bot alleati
+  aspettano sul bordo, poi scendono (il server li porta lungo la linea, 5
+  celle al secondo). I morti tornano alla base del cortile e riscendono.
+  Buttarsi senza teleferica è una caduta di 10 nodi. Provato headless: due
+  linee 24 s dopo il cortile, la terza a ~50 s; un giocatore entrato dal
+  bordo era in fondo in 1,6 s con 20 di vita su 20; alleati nella sala.
 * **La sala**: i quattro piloni nutrono lo scudo del nucleo; abbattuti, il
   nucleo resta scoperto 18 s, poi i piloni si riaccendono più forti.
   Basoalth tira sfere dal trono, che un colpo spegne.
