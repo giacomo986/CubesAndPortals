@@ -1,166 +1,166 @@
-# Cubes and Portals — sandbox voxel ex-novo su raylib con portali nativi
+# Cubes and Portals — a from-scratch voxel sandbox on raylib with native portals
 
-> Documento di progettazione. Analisi di fattibilità (grafica, server, client multi-istanza,
-> scripting, estensibilità) e piano a milestone. Non è ancora un impegno a scrivere codice:
-> §8 contiene un *kill switch* esplicito dopo 3 settimane di spike.
+*[Leggi in italiano](DESIGN.it.md)*
+
+> Design document. Feasibility analysis (graphics, server, multi-instance client, scripting,
+> extensibility) and a milestone plan. It is not yet a commitment to write code: §8 contains an
+> explicit *kill switch* after 3 weeks of spike.
 >
-> Scritto il 2026-08-14, partendo dall'esperienza di un fork precedente
-> (fork dell'engine di partenza con portali + dual-client cross-server, funzionante).
+> Written on 2026-08-14, starting from the experience of an earlier fork
+> (a fork of the starting engine with portals + cross-server dual client, working).
 
 ---
 
 ## Context
 
-Il fork precedente oggi è: ~9 700 righe di Lua (`yaportal/init.lua` 6911, `yaportal_link/init.lua`
-2221, `yafps/` 552) sopra un **fork dell'engine** di partenza (77 file, +6 369/−309 righe su una base
-di ~214k righe C++). Sette capacità del fork sono *invisibili* a un mod stock e quindi
-non-upstreamabili in blocco: RTT da seconda camera, near plane obliquo, `gl_ClipDistance`
-per-vertice, teletrasporto atomico in un pacchetto, roll della camera, shift della collision
-box, **seconda connessione live** a un altro server renderizzata dentro il portale.
+The earlier fork today is: ~9,700 lines of Lua (`yaportal/init.lua` 6911, `yaportal_link/init.lua`
+2221, `yafps/` 552) on top of a **fork of the starting engine** (77 files, +6,369/−309 lines on a base
+of ~214k lines of C++). Seven of the fork's capabilities are *invisible* to a stock mod and therefore
+not upstreamable as a block: RTT from a second camera, oblique near plane, per-vertex
+`gl_ClipDistance`, atomic teleport in one packet, camera roll, collision box shift, **a second live
+connection** to another server rendered inside the portal.
 
-Il costo di questo assetto non è scrivere le feature: è **inseguire upstream** e combattere
-architetture che non erano pensate per due mondi vivi nello stesso processo (singleton, sky
-globale, `ViewArea` CPU-side che si sporca se tocchi la projection, identità dei client
-per indirizzo invece che per mondo). Dato che la probabilità di merge upstream è ~0, la
-domanda è: **conviene ripartire da un engine proprio, con raylib come layer di piattaforma,
-progettato dal giorno 0 attorno a portali e multi-sessione?**
+The cost of this setup is not writing the features: it is **chasing upstream** and fighting
+architectures that were not designed for two live worlds in the same process (singletons, global
+sky, a CPU-side `ViewArea` that gets dirty if you touch the projection, client identity by address
+instead of by world). Since the probability of an upstream merge is ~0, the question is: **is it
+worth starting again from an engine of our own, with raylib as the platform layer, designed from day
+0 around portals and multi-session?**
 
-Questo documento risponde su quattro assi (grafica, server, client multi-istanza, scripting),
-con pregi/difetti misurati e un piano a milestone.
+This document answers on four axes (graphics, server, multi-instance client, scripting), with
+measured pros and cons and a milestone plan.
 
 ---
 
-## 0. TL;DR — verdetto
+## 0. TL;DR — verdict
 
-| Domanda | Risposta breve |
+| Question | Short answer |
 |---|---|
-| Portali con oblique near clipping su raylib sono fattibili? | **Sì, e più puliti di adesso.** `rlSetMatrixProjection` accetta la matrice di Lengyel senza toccare il culling CPU: l'hack `setRenderProjectionMatrix` del fork sparisce per costruzione. |
-| I clip plane laterali sono fattibili? | **Sì.** Shader nostri → `gl_ClipDistance[0..4]`; `glEnable(GL_CLIP_DISTANCE0+i)` è GL core, basta dichiararlo (raylib non lo espone ma non lo blocca). Fallback `discard` per GLES/Web. |
-| Server fattibile in C/C++ puro? | **Sì.** ENet + zstd + SQLite + FastNoiseLite. Nessuna toolchain nuova, tutte librerie C. |
-| Client multi-istanza per portali cross-server? | **Sì, ed è l'argomento più forte a favore del rewrite.** Oggi funziona ma è stato strappato a forza dai singleton; da zero è "una `struct Session`, niente globali". Misura già in mano: **il render del mondo B costa solo il 3-7% del frame** — il multi-sessione non è il collo di bottiglia. |
-| Linguaggio di scripting? | **Luau** (un Lua moderno: tipi graduali, native codegen, sandbox *progettata* per codice non fidato) dietro un'interfaccia `script_*`. Era previsto **LuaJIT** come secondo backend per i mod legacy l'engine di partenza e per il codice trusted con FFI: caduta la compatibilità (2026-09-12), resta un runtime solo e la FFI non è in piano. Valutati anche QuickJS-ng, WASM, Wren, Umka, C#: §5. |
-| Estendere le *meccaniche*, non solo i blocchi? | ECS server-side con componenti/sistemi definiti da Lua + trait sui nodi + render-graph con pass registrabili + canali di protocollo per mod. §6. |
-| **Costo reale** | Spike di validazione ~3 settimane. Client+server giocabile con portali cross-server: **~7 mesi**. Engine + gioco minimo: **~11 mesi**. Parità di contenuti in stile gioco a blocchi classico: **anni**, a meno di §7.5. |
-| **Raccomandazione** | Spike M0 come cancello. Sui contenuti la raccomandazione era il **layer di compatibilità con l'API dell'engine di partenza** (§7.5), **annullato il 2026-09-12**: L'engine di partenza era l'ispirazione, non l'obiettivo. Resta vera la metà scomoda della frase — un progetto come questo muore sui contenuti e non sulla grafica. **Scope fissato lo stesso giorno:** un clone del classico gioco a blocchi da cui i portali portano ad altri mondi, ciascuno un server con i suoi mod, fino a mondi che sono un altro gioco — una corsa acrobatica, un FPS in stile arena shooter. Non è più piccolo dello scope che §7.5 chiamava fatale; lo tiene in piedi il fatto che ogni modo è un mondo piccolo dietro un portale e non un pezzo del sandbox (M12, M13). |
+| Are portals with oblique near clipping feasible on raylib? | **Yes, and cleaner than now.** `rlSetMatrixProjection` accepts Lengyel's matrix without touching CPU culling: the fork's `setRenderProjectionMatrix` hack disappears by construction. |
+| Are side clip planes feasible? | **Yes.** Our own shaders → `gl_ClipDistance[0..4]`; `glEnable(GL_CLIP_DISTANCE0+i)` is core GL, it only needs declaring (raylib does not expose it but does not block it). `discard` fallback for GLES/Web. |
+| A server feasible in pure C/C++? | **Yes.** ENet + zstd + SQLite + FastNoiseLite. No new toolchain, all C libraries. |
+| A multi-instance client for cross-server portals? | **Yes, and it is the strongest argument for the rewrite.** Today it works but it was wrenched out of the singletons by force; from scratch it is "a `struct Session`, no globals". A measure already in hand: **rendering world B costs only 3-7% of the frame** — multi-session is not the bottleneck. |
+| Scripting language? | **Luau** (a modern Lua: gradual types, native codegen, a sandbox *designed* for untrusted code) behind a `script_*` interface. **LuaJIT** was planned as a second backend for the starting engine's legacy mods and for trusted code with FFI: with compatibility dropped (2026-09-12), a single runtime remains and FFI is not planned. Also evaluated QuickJS-ng, WASM, Wren, Umka, C#: §5. |
+| Extend the *mechanics*, not just the blocks? | Server-side ECS with components/systems defined from Lua + traits on nodes + a render graph with registrable passes + per-mod protocol channels. §6. |
+| **Real cost** | Validation spike ~3 weeks. A playable client+server with cross-server portals: **~7 months**. Engine + minimal game: **~11 months**. Content parity in the style of the classic block game: **years**, unless §7.5. |
+| **Recommendation** | Spike M0 as a gate. On content the recommendation was the **compatibility layer with the starting engine's API** (§7.5), **cancelled on 2026-09-12**: the starting engine was the inspiration, not the goal. The uncomfortable half of the sentence stays true — a project like this dies on content and not on graphics. **Scope fixed the same day:** a clone of the classic block game from which portals lead to other worlds, each a server with its own mods, up to worlds that are another game — a stunt race, an arena-style FPS. It is no smaller than the scope §7.5 called fatal; what keeps it standing is that every mode is a small world behind a portal and not a piece of the sandbox (M12, M13). |
 
-### Decisioni prese (fissano lo scope di questo piano)
+### Decisions taken (they fix the scope of this plan)
 
-| Decisione | Scelta | Conseguenza nel piano |
+| Decision | Choice | Consequence in the plan |
 |---|---|---|
-| Obiettivo | **Clone del classico gioco a blocchi, con portali verso altri mondi con mod propri — fino a modi di gioco diversi (corsa acrobatica, FPS in stile arena shooter)** (2026-09-12) | §7.5 è annullato, quindi i contenuti del sandbox si scrivono qui (M12) e la parità resta anni. Ogni modo è un server con i suoi mod, e chiede all'engine cose che un sandbox non chiede: comportamento di un mondo che arriva al client, movimento veloce, colpi a distanza (M13) |
-| Fork dell'engine di partenza | **Congelato** | Nessun prodotto vivo durante il rewrite → M-1 obbligatoria (release taggata + bug documentati prima del freeze) |
-| Layer grafico | **raylib dietro `gfx_*`** (~30 funzioni) | Migrazione a `sokol_gfx` possibile in giorni se serve in M9 |
-| Multiplayer | **2-8 giocatori per mondo** | SQLite basta, anti-cheat leggero, interest management semplice (−1 sett. su M3) |
-| Scripting | **Luau**, unico runtime | Sandbox e tipi dal runtime; costo binding pagato con un generatore (§5.4). Il secondo backend LuaJIT è caduto con la compatibilità dell'engine di partenza (§5.3) |
-| Collocazione | **`/home/giacomo/dev/Cubes and portals/`** | Repo nuovo e indipendente; il fork precedente non viene toccato se non per il freeze |
+| Goal | **A clone of the classic block game, with portals to other worlds with their own mods — up to different game modes (stunt race, arena-style FPS)** (2026-09-12) | §7.5 is cancelled, so the sandbox's content is written here (M12) and parity stays years away. Every mode is a server with its own mods, and asks the engine for things a sandbox does not: a world's behaviour reaching the client, fast movement, ranged hits (M13) |
+| Fork of the starting engine | **Frozen** | No live product during the rewrite → M-1 mandatory (tagged release + documented bugs before the freeze) |
+| Graphics layer | **raylib behind `gfx_*`** (~30 functions) | Migration to `sokol_gfx` possible in days if needed in M9 |
+| Multiplayer | **2-8 players per world** | SQLite is enough, light anti-cheat, simple interest management (−1 week on M3) |
+| Scripting | **Luau**, single runtime | Sandbox and types from the runtime; binding cost paid with a generator (§5.4). The second LuaJIT backend fell with the starting engine's compatibility (§5.3) |
+| Location | **`/home/giacomo/dev/Cubes and portals/`** | New, independent repo; the earlier fork is not touched except for the freeze |
 
 ---
 
-## 1. Punto di partenza — cosa esiste e quanto pesa
+## 1. Starting point — what exists and how much it weighs
 
-| Componente | Dimensione | Riusabile in un engine nuovo? |
+| Component | Size | Reusable in a new engine? |
 |---|---|---|
-| `yaportal/init.lua` | 6911 righe Lua | **Sì, ~70%.** Geometria portale, trasformata, trigger, macchina a stati, blocchi classici dei puzzle a portali. Cambiano solo le chiamate `core.*`. |
-| `yaportal_link/init.lua` | 2221 righe Lua | **Sì, ~50%.** Registry a file JSON e logica di pairing sopravvivono; l'handshake si riprogetta (vedi §4.4). |
-| `yafps/` (gioco intero) | 552 righe + 160 KB media | **Sì.** E dimostra che un *gioco* qui costa 5 mod e mezzo giorno — dato importante per §7. |
-| Renderer portali del fork | `portal.{cpp,h}` + `portal_manager.{cpp,h}` ≈ **1660 righe**, + ~250 di hook in `ClientMap`, ~240 di `Sky`, 12 di shader | **Da riscrivere**, ma è l'unico pezzo grafico davvero specifico: 2 000 righe, non 200 000. |
-| Resto del fork (dual-client, protocollo, mapnode, API Lua) | ~4 500 righe | **No come codice, sì come conoscenza.** Le invarianti di `AGENTS.MD` §461 valgono più del codice: sono bug già pagati. |
-| `docs/PORTAL_SYSTEM.md` | 1366 righe + 9 figure SVG | **Sì**: è la specifica dell'engine nuovo, già scritta, fino alle formule. |
-| Engine di partenza | ~214k righe C++ (+ Irrlicht) | Sostituito. Un engine mirato ne serve ~40-60k per fare quello che ci serve. |
-| Giochi esistenti (contenuti) | enorme | **Perso.** È il costo nascosto del rewrite. |
+| `yaportal/init.lua` | 6911 lines of Lua | **Yes, ~70%.** Portal geometry, transform, triggers, state machine, the classic blocks of portal puzzles. Only the `core.*` calls change. |
+| `yaportal_link/init.lua` | 2221 lines of Lua | **Yes, ~50%.** The JSON file registry and pairing logic survive; the handshake is redesigned (see §4.4). |
+| `yafps/` (a whole game) | 552 lines + 160 KB of media | **Yes.** And it shows that a *game* here costs 5 mods and half a day — an important data point for §7. |
+| The fork's portal renderer | `portal.{cpp,h}` + `portal_manager.{cpp,h}` ≈ **1660 lines**, + ~250 of hooks in `ClientMap`, ~240 of `Sky`, 12 of shader | **To rewrite**, but it is the only truly specific graphics piece: 2,000 lines, not 200,000. |
+| Rest of the fork (dual client, protocol, mapnode, Lua API) | ~4,500 lines | **Not as code, yes as knowledge.** The invariants of `AGENTS.MD` §461 are worth more than the code: they are bugs already paid for. |
+| `docs/PORTAL_SYSTEM.md` | 1366 lines + 9 SVG figures | **Yes**: it is the new engine's specification, already written, down to the formulas. |
+| Starting engine | ~214k lines of C++ (+ Irrlicht) | Replaced. A focused engine needs ~40-60k to do what we need. |
+| Existing games (content) | huge | **Lost.** It is the hidden cost of the rewrite. |
 
-**Due limiti dell'implementazione attuale che un engine nuovo toglierebbe di mezzo per
-costruzione** (misurati, non supposti):
+**Two limits of the current implementation a new engine would remove by construction** (measured,
+not assumed):
 
-- **Nessuna ricorsione.** Il portale dentro il portale oggi non esiste: l'hook che disegna i quad
-  viene saltato durante qualunque pass RTT (`clientmap.cpp:1281`). Profondità massima = 1.
-- **Ogni portale costa una scena intera a risoluzione piena.** Ogni slot attivo fa un
-  `drawAll()` completo con frustum culling disabilitato, alla dimensione di rendering dello
-  schermo, senza LOD, senza risoluzione ridotta, senza grafo di visibilità che decida quali
-  portali contano davvero.
+- **No recursion.** The portal inside the portal does not exist today: the hook drawing the quads
+  is skipped during any RTT pass (`clientmap.cpp:1281`). Maximum depth = 1.
+- **Every portal costs a whole scene at full resolution.** Every active slot does a full
+  `drawAll()` with frustum culling disabled, at the screen's rendering size, with no LOD, no reduced
+  resolution, no visibility graph deciding which portals really matter.
 
-**Numero da tenere a mente:** `docs/PORTAL_SYSTEM.md` esiste già ed è dettagliata a livello di
-formule (matrice di Lengyel invertita in forma chiusa, apex standoff `0.05·BS`, plane 4 sulla
-faccia *esterna* del nodo, clamp `n·bn < 0`). Un rewrite non riparte dalla teoria: riparte
-dall'implementazione, con la teoria in mano. Questo taglia forse il 40% del rischio grafico.
+**A number to keep in mind:** `docs/PORTAL_SYSTEM.md` already exists and is detailed down to the
+formulas (Lengyel's matrix inverted in closed form, apex standoff `0.05·BS`, plane 4 on the node's
+*outer* face, clamp `n·bn < 0`). A rewrite does not start again from theory: it starts again from
+implementation, theory in hand. This cuts maybe 40% of the graphics risk.
 
 ---
 
-## 2. Fattibilità grafica su raylib
+## 2. Graphics feasibility on raylib
 
-### 2.1 Cosa dà raylib, cosa non dà
+### 2.1 What raylib gives, what it does not
 
-Verificato su **raylib 5.5** (header dell'installazione locale in `~/dev/raylib`, binding CPython).
+Checked on **raylib 5.5** (headers of the local install in `~/dev/raylib`, CPython binding).
 
-**Dà (e ti risparmia mesi):** finestra/input/gamepad via GLFW o SDL2, `rlgl` come astrazione GL
-3.3 core / GLES 2-3, caricamento immagini e font, audio (miniaudio), matematica (`raymath`),
-mesh + `UploadMesh`/`DrawMesh`/`DrawMeshInstanced`, `RenderTexture2D`, shader custom completi,
-e — cruciale — **accesso di basso livello**: `rlLoadFramebuffer`, `rlFramebufferAttach`,
-`rlLoadTextureDepth`, `rlLoadVertexArray`, `rlUpdateVertexBuffer`, `rlDrawVertexArrayElements`,
-`rlEnableShader`, `rlSetUniform`, `rlSetUniformMatrix`, `rlSetMatrixProjection`/`Modelview`,
-`rlTextureParameters`, `rlSetCullFace`, `rlColorMask`, `rlDisableDepthMask`.
+**It gives (and saves you months):** window/input/gamepad via GLFW or SDL2, `rlgl` as a GL 3.3 core /
+GLES 2-3 abstraction, image and font loading, audio (miniaudio), maths (`raymath`), meshes +
+`UploadMesh`/`DrawMesh`/`DrawMeshInstanced`, `RenderTexture2D`, full custom shaders, and — crucially
+— **low-level access**: `rlLoadFramebuffer`, `rlFramebufferAttach`, `rlLoadTextureDepth`,
+`rlLoadVertexArray`, `rlUpdateVertexBuffer`, `rlDrawVertexArrayElements`, `rlEnableShader`,
+`rlSetUniform`, `rlSetUniformMatrix`, `rlSetMatrixProjection`/`Modelview`, `rlTextureParameters`,
+`rlSetCullFace`, `rlColorMask`, `rlDisableDepthMask`.
 
-Tradotto: **raylib non ti sta in mezzo**. Quando serve fare GL "vero", `rlgl` ti passa gli id
-degli oggetti GL e te li lascia manipolare.
+Translated: **raylib does not get in your way**. When "real" GL is needed, `rlgl` hands you the GL
+object ids and lets you handle them.
 
-**Non dà (e devi scriverlo tu):**
+**It does not give (and you must write it):**
 
-| Mancanza | Impatto | Rimedio |
+| Missing | Impact | Remedy |
 |---|---|---|
-| Nessun scene graph / frustum culling / occlusion | Alto — è *il* lavoro di un engine voxel | Lo scrivi tu, ed è meglio così (§2.6) |
-| Nessuna texture array (`GL_TEXTURE_2D_ARRAY`) | Medio | ~60 righe di shim GL, oppure atlas con padding + mip manuali |
-| GL single-thread | Medio | Meshing su worker → buffer CPU → upload sul thread GL (come fa l'engine di partenza) |
-| Niente shadow map / ombre | Medio | Le scrivi tu, o parti senza ombre (Il classico gioco a blocchi non le ha). Scritte il 2026-10-11: vedi ARCHITECTURE.md, "Come si disegna la luce" |
-| Audio non spaziale 3D (solo pan/volume) | Basso | Attenuazione+pan a mano, o miniaudio diretto (già linkato) |
-| Nessun `BeginTextureMode` annidato | Basso | Non serve: la ricorsione portali si fa **dal più profondo al più superficiale** su un pool di RT (§2.5) |
-| Nessuna UI dichiarativa | Medio | `microui` o `Clay` (C, MIT) + backend raylib; formspec-like guidato da Lua |
-| Niente rete, niente fisica, niente storage | Alto ma atteso | ENet / AABB proprio / SQLite (§3) |
+| No scene graph / frustum culling / occlusion | High — it is *the* work of a voxel engine | You write it, and better so (§2.6) |
+| No texture array (`GL_TEXTURE_2D_ARRAY`) | Medium | ~60 lines of GL shim, or an atlas with padding + manual mips |
+| Single-thread GL | Medium | Meshing on workers → CPU buffers → upload on the GL thread (as the starting engine does) |
+| No shadow maps / shadows | Medium | You write them, or start without shadows (the classic block game has none). Written on 2026-10-11: see ARCHITECTURE.md, "How light is drawn" |
+| No spatial 3D audio (only pan/volume) | Low | Attenuation+pan by hand, or miniaudio directly (already linked) |
+| No nested `BeginTextureMode` | Low | Not needed: portal recursion is done **from deepest to shallowest** on a pool of RTs (§2.5) |
+| No declarative UI | Medium | `microui` or `Clay` (C, MIT) + raylib backend; formspec-like driven by Lua |
+| No network, no physics, no storage | High but expected | ENet / own AABB / SQLite (§3) |
 
-**Conclusione onesta:** raylib copre *il guscio*, non l'engine. Ti regala forse il 15% del
-lavoro client — ma è il 15% più noioso e più bug-prone (piattaforme, input, decodifica
-immagini, audio), ed è il 15% che il fork dell'engine di partenza oggi paga con Irrlicht, che è tenuto in vita
-dal progetto stesso.
+**Honest conclusion:** raylib covers *the shell*, not the engine. It gives you maybe 15% of the
+client work — but it is the most tedious and bug-prone 15% (platforms, input, image decoding, audio),
+and it is the 15% the fork of the starting engine pays for today with Irrlicht, which is kept alive by
+the project itself.
 
-### 2.2 Pipeline portali proposta
+### 2.2 Proposed portal pipeline
 
-Un frame, mondo attivo `A`, N portali visibili:
+One frame, active world `A`, N visible portals:
 
 ```
-1. cull:      per la camera del giocatore  → drawlist A
-2. portal:    per ogni portale visibile e linkato, ordinati per profondità:
+1. cull:      for the player's camera  → drawlist A
+2. portal:    for every visible, linked portal, ordered by depth:
                  vcam = transform(src → dst, cam)
-                 cull per vcam                        → drawlist P[i]   (bypass del frustum del giocatore)
+                 cull for vcam                         → drawlist P[i]   (bypassing the player's frustum)
                  BeginTextureMode(RT[i])
-                    rlSetMatrixProjection(oblique(P_base, piano_dst))   ← Lengyel
+                    rlSetMatrixProjection(oblique(P_base, dst_plane))   ← Lengyel
                     upload uniform portalClipPlanes[5]; glEnable(CLIP_DISTANCE0..4)
-                    render opachi(P[i]) ; render trasparenti(P[i], ordinati per vcam)
+                    render opaque(P[i]) ; render transparent(P[i], sorted for vcam)
                     glDisable(CLIP_DISTANCE0..4)
                  EndTextureMode()
-3. main:      opachi(A)
-              quad portali: 4 pareti inset + fondo con RT[i] (UV screen-space)    ← DENTRO il pass opaco
-              trasparenti(A) ordinati per la camera vera
+3. main:      opaque(A)
+              portal quads: 4 inset walls + bottom with RT[i] (screen-space UV)    ← INSIDE the opaque pass
+              transparent(A) sorted for the real camera
 4. post:      fog/tonemap/UI
 ```
 
-Due decisioni sono già state pagate col sangue nel fork e vanno riportate identiche:
+Two decisions have already been paid for in blood in the fork and must be carried over identical:
 
-- **I quad dei portali si disegnano dentro il pass opaco**, non dopo. La geometria trasparente
-  scrive depth: un quad disegnato dopo viene z-cullato da qualunque lastra di vetro davanti al
-  portale.
-- **Il pass RTT prima del pass principale**, così il driver torna a FBO 0 e il main pass ribinda
-  il suo target pulito.
+- **Portal quads are drawn inside the opaque pass**, not after. Transparent geometry writes depth: a
+  quad drawn after is z-culled by any pane of glass in front of the portal.
+- **The RTT pass before the main pass**, so the driver goes back to FBO 0 and the main pass rebinds
+  its clean target.
 
-Su raylib entrambe sono banali perché **il render graph è nostro**: non c'è un `Draw3D` altrui
-in cui infilarsi con un hook. Questo è il primo punto in cui il rewrite è più semplice del fork.
+On raylib both are trivial because **the render graph is ours**: there is no one else's `Draw3D` to
+slip into with a hook. This is the first point where the rewrite is simpler than the fork.
 
-### 2.3 Oblique near clipping su rlgl — fattibilità confermata
+### 2.3 Oblique near clipping on rlgl — feasibility confirmed
 
-raylib usa proiezione **RH, depth [-1,1]** (`MatrixPerspective` → `m11 = -1`). Lengyel standard,
-indici in layout column-major GL (identici ai campi `Matrix.m2/m6/m10/m14` di raylib):
+raylib uses an **RH, depth [-1,1]** projection (`MatrixPerspective` → `m11 = -1`). Standard Lengyel,
+indices in GL column-major layout (identical to raylib's `Matrix.m2/m6/m10/m14` fields):
 
 ```c
-// C = piano di clip in eye space (camera space RH, -Z avanti), normalizzato,
-//     ancorato appena dentro la faccia esterna del portale di destinazione.
+// C = clip plane in eye space (RH camera space, -Z forward), normalised,
+//     anchored just inside the destination portal's outer face.
 static Matrix ObliqueNear(Matrix P, Vector4 C)
 {
     Vector4 Q = {
@@ -176,504 +176,499 @@ static Matrix ObliqueNear(Matrix P, Vector4 C)
     P.m14 = C.w * s;
     return P;
 }
-// uso:
+// use:
 BeginTextureMode(rt); BeginMode3D(vcam);
-    rlDrawRenderBatchActive();                      // flush di quel che c'era
+    rlDrawRenderBatchActive();                      // flush what was there
     rlSetMatrixProjection(ObliqueNear(rlGetMatrixProjection(), plane_eye));
-    draw_world(drawlist_i);                          // DrawMesh usa matProjection corrente
+    draw_world(drawlist_i);                          // DrawMesh uses the current matProjection
 EndMode3D(); EndTextureMode();
 ```
 
-`rlgl` ricalcola `mvp = matProjection * matModelView` a ogni `rlDrawMesh`/flush del batch, quindi
-la matrice obliqua raggiunge sia le mesh sia il batch immediato.
+`rlgl` recomputes `mvp = matProjection * matModelView` at every `rlDrawMesh`/batch flush, so the
+oblique matrix reaches both meshes and the immediate batch.
 
-> **Verificato in M0 su raylib 6.0** (non 5.5: il progetto è partito da 6.0). `rlGetMatrixProjection`,
-> `rlSetMatrixProjection` e `rlDrawRenderBatchActive` esistono, e la convenzione di proiezione è
-> **invariata** rispetto a 5.5 — `MatrixPerspective` resta RH con depth `[-1,1]` e `m11 = -1`,
-> quindi la formula sopra vale identica. Due correzioni alla prima stesura di questo paragrafo:
-> **`rlGetRenderBatch()` non esiste** (e non è mai esistita); per svuotare il batch interno si usa
-> `rlDrawRenderBatchActive()`. E `rlLoadShaderCode` si chiama **`rlLoadShader`** (sorgente singolo)
-> o **`rlLoadShaderProgram`** (vertex+fragment da stringhe).
+> **Checked in M0 on raylib 6.0** (not 5.5: the project started from 6.0). `rlGetMatrixProjection`,
+> `rlSetMatrixProjection` and `rlDrawRenderBatchActive` exist, and the projection convention is
+> **unchanged** from 5.5 — `MatrixPerspective` stays RH with depth `[-1,1]` and `m11 = -1`, so the
+> formula above holds identically. Two corrections to the first draft of this paragraph:
+> **`rlGetRenderBatch()` does not exist** (and never did); to empty the internal batch use
+> `rlDrawRenderBatchActive()`. And `rlLoadShaderCode` is called **`rlLoadShader`** (single source)
+> or **`rlLoadShaderProgram`** (vertex+fragment from strings).
 >
-> La formula è stata verificata numericamente, non solo per ispezione: `tests/portal_math_test.cpp`
-> controlla che un punto giacente sul piano di clip finisca esattamente a `ndc.z == -1`, in asse e
-> fuori asse, e che la geometria tra camera e portale finisca oltre il near plane.
+> The formula was checked numerically, not only by inspection: `tests/portal_math_test.cpp` checks
+> that a point lying on the clip plane lands exactly at `ndc.z == -1`, on axis and off axis, and that
+> the geometry between camera and portal lands beyond the near plane.
 >
-> Attenzione a un dettaglio di raylib che non è nel codice sopra: la struct `Matrix` **dichiara** i
-> campi nell'ordine `m0, m4, m8, m12, m1, …`, quindi l'ordine in memoria non è l'ordine dei nomi.
-> L'indice `mN` significa `riga + 4·colonna` (column-major) e `MatrixToFloat` riordina prima di
-> caricare. Un `float[16]` column-major standard corrisponde elemento per elemento a `mN`, ma
-> **convertire con `memcpy` produce una matrice trasposta**, silenziosamente.
+> Beware a raylib detail not in the code above: the `Matrix` struct **declares** its fields in the
+> order `m0, m4, m8, m12, m1, …`, so the order in memory is not the order of the names. Index `mN`
+> means `row + 4·column` (column-major) and `MatrixToFloat` reorders before loading. A standard
+> column-major `float[16]` matches `mN` element by element, but **converting with `memcpy` produces a
+> transposed matrix**, silently.
 
-**Il bug che sparisce da solo:** nel fork, impostare la projection vera faceva cullare le entità
-da parte del SceneManager contro un frustum obliquo (macchie nere), e per questo esiste
-`setRenderProjectionMatrix` in `ICameraSceneNode`. In un engine nostro il culling CPU usa il
-frustum **non modificato** perché è codice nostro e sappiamo perché: nessun hack, nessuna patch
-a una classe di terze parti.
+**The bug that disappears by itself:** in the fork, setting the real projection made the SceneManager
+cull entities against an oblique frustum (black blotches), and that is why `setRenderProjectionMatrix`
+exists in `ICameraSceneNode`. In an engine of our own CPU culling uses the **unmodified** frustum
+because it is our code and we know why: no hack, no patch to a third-party class.
 
-**Guardie da riportare** (tutte e tre già nel fork, `portal.cpp:153-206`):
-1. Obliqua **solo** se la vcam è dal lato destinazione (`side < -0.001·BS`). Con il giocatore
-   *dentro* il portale `c_e_w` cambia segno, il near plane finisce dietro la camera e il portale
-   diventa nero → projection normale.
-2. Salto se `c_e_z ≤ 1e-4` (angolo radente) o `|dot(c_c,q)| ≤ 1e-6` — degeneri.
-3. Il piano di clip è ancorato a `dst_surface + n·0.49·BS`, *dentro* la faccia esterna, per non
-   fare z-fighting con i blocchi adiacenti.
+**Guards to carry over** (all three already in the fork, `portal.cpp:153-206`):
+1. Oblique **only** if the vcam is on the destination side (`side < -0.001·BS`). With the player
+   *inside* the portal `c_e_w` changes sign, the near plane ends up behind the camera and the portal
+   goes black → normal projection.
+2. Skip if `c_e_z ≤ 1e-4` (grazing angle) or `|dot(c_c,q)| ≤ 1e-6` — degenerate.
+3. The clip plane is anchored at `dst_surface + n·0.49·BS`, *inside* the outer face, so as not to
+   z-fight with the adjacent blocks.
 
-> **Precisazione da M0.** `dst_surface` qui è il **centro del nodo**, non la superficie visibile:
-> la faccia esterna sta a `+0.5·BS`, quindi `0.49·BS` è "appena dentro" quella faccia. È la stessa
-> convenzione del quinto clip plane di §2.4 (ancorato invece a `pos + n·0.5·BS` esatto). Confondere
-> centro e superficie è ciò che, nel fork, lasciava la metà anteriore del nodo di uscita a coprire
-> l'immagine agli angoli radenti.
+> **Clarification from M0.** `dst_surface` here is the **node's centre**, not the visible surface:
+> the outer face is at `+0.5·BS`, so `0.49·BS` is "just inside" that face. It is the same convention
+> as §2.4's fifth clip plane (anchored instead at exactly `pos + n·0.5·BS`). Confusing centre and
+> surface is what, in the fork, left the front half of the exit node covering the image at grazing
+> angles.
 >
-> Il segno della guardia 2 va riletto passando a raylib: il fork è **Irrlicht LH** con `+z_eye`
-> in avanti e usa `c_e_z > 1e-4`; raylib è **RH** con `-z_eye` in avanti, quindi la condizione
-> equivalente è `c_e_z < -1e-4`. Il piano in eye space conviene ottenerlo trasformando quello in
-> world space con l'inversa trasposta della view, invece di riderivare a mano le componenti:
-> toglie ogni ambiguità di segno.
+> The sign of guard 2 must be reread when moving to raylib: the fork is **Irrlicht LH** with `+z_eye`
+> forward and uses `c_e_z > 1e-4`; raylib is **RH** with `-z_eye` forward, so the equivalent
+> condition is `c_e_z < -1e-4`. The plane in eye space is best obtained by transforming the world
+> space one with the inverse transpose of the view, instead of re-deriving the components by hand: it
+> removes every sign ambiguity.
 
-**Precisione:** la view matrix della vcam va costruita a mano dal `vdir` già normalizzato, non
-via `lookAt(pos, target)`. La sottrazione `target − pos` in float32 perde precisione con
-posizioni di portale lontane (il caso cross-world) — nel fork è servita una funzione apposta
-(`setRenderViewMatrix`); in un engine nostro è semplicemente come si scrive la funzione.
+**Precision:** the vcam's view matrix must be built by hand from the already normalised `vdir`, not
+via `lookAt(pos, target)`. The subtraction `target − pos` in float32 loses precision with far-off
+portal positions (the cross-world case) — in the fork it took a dedicated function
+(`setRenderViewMatrix`); in an engine of our own it is simply how the function is written.
 
-### 2.4 Clip plane laterali — due strade, entrambe aperte
+### 2.4 Side clip planes — two roads, both open
 
-Il near plane obliquo da solo lascia entrare la cornice del portale di destinazione ai bordi,
-ad angoli radenti. Servono i 5 piani (4 laterali + faccia) del fork.
+The oblique near plane alone lets the destination portal's frame in at the edges, at grazing angles.
+The fork's 5 planes (4 sides + face) are needed.
 
-**Strada A — `gl_ClipDistance` (desktop GL 3.3, preferita).** Gli shader sono nostri:
+**Road A — `gl_ClipDistance` (desktop GL 3.3, preferred).** The shaders are ours:
 
 ```glsl
 // VS
 uniform vec4 uClipPlanes[5];
-uniform int  uClipCount;              // 0 = disattivato
+uniform int  uClipCount;              // 0 = off
 out float gl_ClipDistance[5];
 ...
 for (int k = 0; k < uClipCount; ++k)
     gl_ClipDistance[k] = dot(vec4(worldPos, 1.0), uClipPlanes[k]);
 ```
 
-raylib non espone `glEnable`, ma **non serve un loader**: `glEnable` è GL core, esportato da
-`libGL.so`. Bastano
+raylib does not expose `glEnable`, but **no loader is needed**: `glEnable` is core GL, exported by
+`libGL.so`. Enough are
 
 ```c
 extern void glEnable(unsigned int);  extern void glDisable(unsigned int);
 #define GL_CLIP_DISTANCE0 0x3000
 ```
 
-e cinque righe attorno al draw. (Alternativa pulita: `glfwGetProcAddress`, GLFW è già linkato.)
+and five lines round the draw. (Clean alternative: `glfwGetProcAddress`, GLFW is already linked.)
 
-**Strada B — `discard` nel fragment shader (GLES 2/3, Web, driver ostili).** Stessi 5 piani,
-test su `worldPos` interpolato, `discard` se fuori. Costa early-z e un po' di fill, ma è
-portabile ovunque e a portata di `#ifdef`. Su GLES3 esiste `EXT_clip_cull_distance`, non
-garantito.
+**Road B — `discard` in the fragment shader (GLES 2/3, Web, hostile drivers).** Same 5 planes, a test
+on the interpolated `worldPos`, `discard` if outside. It costs early-z and some fill, but it is
+portable everywhere and within reach of an `#ifdef`. On GLES3 there is `EXT_clip_cull_distance`, not
+guaranteed.
 
-**Da riportare identici dal fork** (sono raffinamenti costati bug, non abbellimenti):
-apex **fuori** dalla faccia (`vpos -= n·(apex_side + 0.05·BS)`), altrimenti il frustum ha
-semiangolo `atan(hw/depth)` e taglia via mezza destinazione; piano 4 ancorato alla faccia
-**esterna** del nodo (al centro copre tutta l'immagine); bypass completo quando il giocatore è
-dentro l'apertura (`|lx|<hw && |ly|<hh`); clamp del tilt all'indietro (`n·bn < 0` → si toglie
-la componente `bn` e si ancora al centro del bordo).
+**To carry over identical from the fork** (they are refinements that cost bugs, not embellishments):
+apex **outside** the face (`vpos -= n·(apex_side + 0.05·BS)`), otherwise the frustum has half-angle
+`atan(hw/depth)` and cuts away half the destination; plane 4 anchored to the node's **outer** face
+(at the centre it covers the whole image); full bypass when the player is inside the opening
+(`|lx|<hw && |ly|<hh`); clamp of backward tilt (`n·bn < 0` → remove the `bn` component and anchor to
+the centre of the edge).
 
-### 2.5 Ricorsione (portale dentro portale) — capacità nuova
+### 2.5 Recursion (portal inside portal) — a new capability
 
-Oggi non esiste (profondità 1, vedi §1). raylib non annida `BeginTextureMode`, ma non è un
-limite: la ricorsione si fa **iterativa**, che è anche l'unico modo sano di limitarne il costo.
+It does not exist today (depth 1, see §1). raylib does not nest `BeginTextureMode`, but it is not a
+limit: recursion is done **iteratively**, which is also the only sane way to limit its cost.
 
 ```
-stack = [(cam_giocatore, depth 0)]
-per depth = MAXD..1:  renderizza i livelli più profondi per primi in RT del pool
+stack = [(player_cam, depth 0)]
+for depth = MAXD..1:  render the deepest levels first into pool RTs
 ```
 
-Pool suggerito: `MAX_PORTALS=16` slot × `MAXD=2` livelli, RT a **risoluzione ridotta con la
-profondità** (100% / 50% / 25%) e riuso aggressivo degli slot per portali fuori schermo. Al
-livello massimo, il portale disegna una tinta piatta o l'ultimo frame (ghosting accettabile).
+Suggested pool: `MAX_PORTALS=16` slots × `MAXD=2` levels, RTs at **resolution reduced with depth**
+(100% / 50% / 25%) and aggressive reuse of slots for off-screen portals. At the maximum level, the
+portal draws a flat tint or the last frame (acceptable ghosting).
 
-### 2.6 Il vero lavoro: il renderer voxel
+### 2.6 The real work: the voxel renderer
 
-Questo è il 70% dello sforzo grafico, e raylib **non** te lo dà:
+This is 70% of the graphics effort, and raylib does **not** give it to you:
 
-- **Meshing**: greedy meshing per faccia + occlusione tra chunk vicini; formato vertice
-  compatto (posizione quantizzata 8-bit in chunk-space, normale in 3 bit, AO in 2 bit, indice
-  texture in 12 bit → 8-12 byte/vertice). Su worker thread; upload sul thread GL a budget
-  (es. max 4 chunk/frame) per non fare stutter.
-- **Texture**: `GL_TEXTURE_2D_ARRAY` (uno strato per texture di blocco) elimina il bleeding tra
-  tile dell'atlas e rende gratis il mipmap. È la mancanza più fastidiosa di raylib: ~60 righe di
-  shim (`glTexImage3D`/`glTexSubImage3D` via `glfwGetProcAddress`).
-  *Costruito nel frattempo:* l'atlante resta un atlante, ma la dimensione della tile è quella del
-  **pacchetto** e non una costante — 32 px per l'arte di questo repo, 128 px per un pacchetto CC0
-  scaricato, senza ritoccare un file. Il passaggio a texture array eredita la stessa regola: una
-  dimensione per pacchetto, decisa leggendo i file prima di allocare
-  ([`TEXTURE_PACKS.md`](TEXTURE_PACKS.md)).
-- **Luce**: propagazione flood-fill sole+blocco per chunk (modello classico dei giochi a blocchi, 4 bit
-  ciascuna), impacchettata nel vertice; ricalcolo incrementale sul piazzamento blocco.
-- **Culling**: frustum per chunk + **cave culling** (visibilità di attraversamento per chunk,
-  precalcolata al meshing: quale faccia vede quale faccia). È quello che rende un engine voxel
-  veloce, ed è il motivo per cui oggi *il collo di bottiglia misurato è il render del mondo A*.
-- **Trasparenze**: bucket separato ordinato back-to-front **per camera** — quindi **per
-  sessione e per vcam**, come già fa `setPortalCamera(true, …)` nel fork.
-- **Draw list per vcam**: la vcam guarda terreno che la camera vera non ha mai visto. Serve una
-  drawlist propria con culling proprio. **Invariante da non rompere** (è già nella memoria del
-  progetto): quel percorso non deve *mai* accodare un mesh update — i chunk d'aria non hanno
-  mesh in permanenza e riaccodarli ogni frame allaga la coda e inchioda il gioco.
+- **Meshing**: greedy meshing per face + occlusion between neighbouring chunks; compact vertex format
+  (8-bit quantised position in chunk space, normal in 3 bits, AO in 2 bits, texture index in 12 bits →
+  8-12 bytes/vertex). On a worker thread; upload on the GL thread on a budget (e.g. max 4
+  chunks/frame) so as not to stutter.
+- **Textures**: `GL_TEXTURE_2D_ARRAY` (one layer per block texture) removes bleeding between atlas
+  tiles and makes mipmapping free. It is raylib's most annoying gap: ~60 lines of shim
+  (`glTexImage3D`/`glTexSubImage3D` via `glfwGetProcAddress`).
+  *Built in the meantime:* the atlas stays an atlas, but the tile size is the **pack's** and not a
+  constant — 32 px for this repo's art, 128 px for a downloaded CC0 pack, without touching a file. The
+  move to texture arrays inherits the same rule: one size per pack, decided by reading the files before
+  allocating ([`TEXTURE_PACKS.md`](TEXTURE_PACKS.md)).
+- **Light**: sun+block flood-fill propagation per chunk (the classic block games' model, 4 bits
+  each), packed into the vertex; incremental recomputation on block placement.
+- **Culling**: frustum per chunk + **cave culling** (traversal visibility per chunk, precomputed at
+  meshing: which face sees which face). It is what makes a voxel engine fast, and it is why today *the
+  measured bottleneck is rendering world A*.
+- **Transparency**: a separate bucket sorted back-to-front **per camera** — so **per session and per
+  vcam**, as `setPortalCamera(true, …)` already does in the fork.
+- **Draw list per vcam**: the vcam looks at terrain the real camera has never seen. It needs its own
+  drawlist with its own culling. **An invariant not to break** (it is already in the project's
+  memory): that path must *never* queue a mesh update — air chunks permanently have no mesh and
+  queuing them again every frame floods the queue and nails the game.
 
-### 2.7 Rischi grafici
+### 2.7 Graphics risks
 
-| Rischio | Gravità | Mitigazione |
+| Risk | Severity | Mitigation |
 |---|---|---|
-| Ricorsione + N sessioni = N×M pass | Media | Budget per frame, RT scalati, MAXD=2, portali fuori schermo saltati |
-| `gl_ClipDistance` su driver vecchi/GLES | Bassa | Strada B (`discard`) già progettata |
-| Precisione depth in RT lontani | Media | Reverse-Z + depth float32 (siamo padroni della projection: qui è più facile che su Irrlicht) |
-| Nessuna ombra → look "piatto" | Bassa | AO al vertice + fog direzionale; ombre dopo |
-| Meshing stutter | Media | Worker + budget upload + amortized rebuild |
+| Recursion + N sessions = N×M passes | Medium | Per-frame budget, scaled RTs, MAXD=2, off-screen portals skipped |
+| `gl_ClipDistance` on old drivers/GLES | Low | Road B (`discard`) already designed |
+| Depth precision in far RTs | Medium | Reverse-Z + float32 depth (we own the projection: here it is easier than on Irrlicht) |
+| No shadows → "flat" look | Low | Per-vertex AO + directional fog; shadows later |
+| Meshing stutter | Medium | Workers + upload budget + amortised rebuild |
 
 ---
 
-## 3. Fattibilità server
+## 3. Server feasibility
 
-### 3.1 Forma del processo
+### 3.1 Shape of the process
 
-Un solo binario, tre modi: `--server` (headless, niente raylib linkato nel core sim), client con
-server in-process (singleplayer), client puro. La regola già imparata sul fork vale ancora:
-**il server in-process muore col client che l'ha lanciato** — la sopravvivenza al redirect non
-si ripropone; per un mondo che deve restare in piedi si lancia un processo dedicato.
+A single binary, three modes: `--server` (headless, no raylib linked into the core sim), client with
+an in-process server (singleplayer), pure client. The rule already learnt on the fork still holds:
+**the in-process server dies with the client that launched it** — surviving the redirect is not
+attempted again; for a world that must stay up a dedicated process is launched.
 
-Separazione netta e non negoziabile: `core/` (voxel, ECS, mapgen, protocollo) non include mai
-`raylib.h`. Solo `client/` lo fa. È ciò che rende il server compilabile senza GPU e testabile
+A clean, non-negotiable separation: `core/` (voxel, ECS, mapgen, protocol) never includes
+`raylib.h`. Only `client/` does. It is what makes the server compilable without a GPU and testable
 headless in CI.
 
-### 3.2 Rete
+### 3.2 Network
 
-- **Trasporto: ENet** (C, MIT, ~10k righe, zero dipendenze). UDP con canali affidabili/inaffidabili,
-  frammentazione, congestion control, sequenziamento per canale. Rispetta il vincolo "solo
-  linguaggi nativi" e non aggiunge toolchain.
-- **Canali**: 0 handshake/auth · 1 chunk (affidabile, ordinato, compresso) · 2 entità (inaffidabile,
-  sequenziato) · 3 eventi di gioco (affidabile) · 4+ **canali dei mod** (§6.5).
-- **Compressione: zstd** livello 3 sui chunk (o LZ4 se serve latenza minima).
-- **Crypto**: ENet non cifra. `libsodium` per handshake X25519 + chiave di sessione, e per le
-  **chiavi d'identità del giocatore** che servono in §4.4. Non è opzionale se i portali portano
-  su server di terzi.
-  > **Scostamento, applicato dopo M3.** La libreria è **Monocypher 4.0.3**, non libsodium.
-  > Il motivo è il vincolo dietro questa riga più che la riga stessa: libsodium si compila con
-  > autotools, e metterlo come sottomodulo aggiungerebbe autoconf e libtool all'elenco di ciò che
-  > serve per compilare il gioco — esattamente la crescita di toolchain che §3.1 esclude.
-  > Monocypher dà le stesse primitive (X25519, XChaCha20-Poly1305, BLAKE2b, ed25519 per i ticket
-  > di §4.4) in due file C99. Costo: molti meno occhi sopra. Il ritorno a libsodium è una modifica
-  > di build e non di protocollo, perché niente sopra `core/net/crypto.h` sa cosa c'è sotto.
-  > Cosa esiste oggi: cifratura di sessione con forward secrecy e chiave del server appuntabile
-  > (`--server-key`). Cosa non esiste: le chiavi d'identità del **giocatore**, che restano M6.
-- **Protocollo**: header versionato + tabella di feature negoziate all'handshake, così un client
-  nuovo parla con un server vecchio. Il fork oggi mette un magic `0x59415054` in testa ai suoi
-  pacchetti proprio per non collidere: da zero, si progetta bene subito.
+- **Transport: ENet** (C, MIT, ~10k lines, zero dependencies). UDP with reliable/unreliable
+  channels, fragmentation, congestion control, per-channel sequencing. It respects the "native
+  languages only" constraint and adds no toolchain.
+- **Channels**: 0 handshake/auth · 1 chunks (reliable, ordered, compressed) · 2 entities
+  (unreliable, sequenced) · 3 game events (reliable) · 4+ **mod channels** (§6.5).
+- **Compression: zstd** level 3 on chunks (or LZ4 if minimal latency is needed).
+- **Crypto**: ENet does not encrypt. `libsodium` for the X25519 handshake + session key, and for the
+  **player identity keys** §4.4 needs. It is not optional if portals lead to third-party servers.
+  > **Deviation, applied after M3.** The library is **Monocypher 4.0.3**, not libsodium. The reason
+  > is the constraint behind this line more than the line itself: libsodium builds with autotools, and
+  > adding it as a submodule would add autoconf and libtool to the list of what is needed to build the
+  > game — exactly the toolchain growth §3.1 rules out. Monocypher gives the same primitives (X25519,
+  > XChaCha20-Poly1305, BLAKE2b, ed25519 for §4.4's tickets) in two C99 files. Cost: far fewer eyes on
+  > it. Going back to libsodium is a build change and not a protocol change, because nothing above
+  > `core/net/crypto.h` knows what is underneath. What exists today: session encryption with forward
+  > secrecy and a pinnable server key (`--server-key`). What does not exist: the **player's**
+  > identity keys, which stay M6.
+- **Protocol**: versioned header + a table of features negotiated at handshake, so a new client talks
+  to an old server. The fork today puts a magic `0x59415054` at the head of its packets precisely so
+  as not to collide: from scratch, it is designed well at once.
 
-### 3.3 Simulazione, storage, mapgen
+### 3.3 Simulation, storage, mapgen
 
-- **Tick** autoritativo a 20 Hz, disaccoppiato dal frame rate del client. Interpolazione client,
-  predizione del solo giocatore locale, riconciliazione a ritroso.
-- **Interest management**: per giocatore, raggio in chunk + priorità per direzione dello sguardo.
-  Un portale aggiunge **un secondo centro di interesse** (la destinazione) — regola nativa qui,
-  bolt-on nel fork.
-- **Storage**: SQLite con WAL (Write-Ahead Logging) + compressione dei chunk con **zstd** (livello 3) — transazionale, compatto su disco e resistente a corruzioni in caso di crash/power loss improvviso. Se emerge come collo di bottiglia a carichi estremi, region file custom stile Anvil.
-- **Mapgen**: FastNoiseLite (single-header C) + pipeline a stage registrabili da Lua (§6).
-  Deterministica per seed: obbligatoria se vuoi testare headless.
-- **Thread**: job system con pool (N-1 core): mapgen, meshing (client), lighting, I/O. Il tick
-  di gioco resta single-thread (determinismo e sanità mentale); i mod girano lì.
+- **Authoritative tick** at 20 Hz, decoupled from the client's frame rate. Client interpolation,
+  prediction of the local player only, backward reconciliation.
+- **Interest management**: per player, a radius in chunks + priority by gaze direction. A portal adds
+  **a second centre of interest** (the destination) — a native rule here, a bolt-on in the fork.
+- **Storage**: SQLite with WAL (Write-Ahead Logging) + chunk compression with **zstd** (level 3) —
+  transactional, compact on disk and resistant to corruption on a crash/sudden power loss. If it
+  emerges as a bottleneck under extreme loads, custom Anvil-style region files.
+- **Mapgen**: FastNoiseLite (single-header C) + a pipeline of stages registrable from Lua (§6).
+  Deterministic by seed: mandatory if you want to test headless.
+- **Threads**: a job system with a pool (N-1 cores): mapgen, meshing (client), lighting, I/O. The
+  game tick stays single-thread (determinism and sanity); mods run there.
 
-### 3.4 Autorità e cheat
+### 3.4 Authority and cheating
 
-Movimento validato lato server (speed cap, `noclip` off), piazzamento/rottura validati per
-distanza e permessi, inventari solo server-side. I portali introducono un caso proprio: la
-teletrasportazione è *decisa dal server* (come oggi in Lua), il client la disegna. Il "moved too
-fast" post-swap che oggi è aperto come BUG-10 nel fork si previene alla radice: il pacchetto di
-swap porta con sé un **grace token** che sopprime il controllo di velocità per N tick sul server
-di destinazione.
+Movement validated server-side (speed cap, `noclip` off), placing/breaking validated by distance and
+permissions, inventories server-side only. Portals introduce a case of their own: teleportation is
+*decided by the server* (as today in Lua), the client draws it. The post-swap "moved too fast",
+open today as BUG-10 in the fork, is prevented at the root: the swap packet carries a **grace token**
+that suppresses the speed check for N ticks on the destination server.
 
 ---
 
-## 4. Client multi-istanza — il portale tra server diversi
+## 4. Multi-instance client — the portal between different servers
 
-### 4.1 Requisito numero uno: zero stato globale
+### 4.1 Requirement number one: zero global state
 
-Tutta la difficoltà del dual-client nel fork viene da lì: `Sky`, `Clouds`, la view range, il
-"chi disegna il proprio avatar", l'input, l'identità del client — tutte cose che esistevano una
-volta sola. Le invarianti in `AGENTS.MD` sono, tutte, cicatrici da singleton.
+All the difficulty of the fork's dual client comes from there: `Sky`, `Clouds`, the view range,
+"who draws their own avatar", input, client identity — all things that existed once only. The
+invariants in `AGENTS.MD` are, all of them, singleton scars.
 
-Regola dell'engine nuovo, applicata a compile time:
+The new engine's rule, applied at compile time:
 
 ```c
-typedef struct Session {           // TUTTO lo stato di un mondo vive qui dentro
-    NetPeer     *peer;             // connessione a quel server
-    ChunkStore   map;              // voxel + luce + mesh
+typedef struct Session {           // ALL of a world's state lives in here
+    NetPeer     *peer;             // connection to that server
+    ChunkStore   map;              // voxels + light + meshes
     EntityStore  entities;
-    ContentReg   content;          // registry blocchi/item DI QUEL server (namespaced)
+    ContentReg   content;          // block/item registry OF THAT server (namespaced)
     Sky          sky;  Clouds clouds;  float view_range;
-    Camera3D     cam;   bool has_camera;   // false = passiva
-    LuaState    *csm;              // eventuali script client-side, isolati
+    Camera3D     cam;   bool has_camera;   // false = passive
+    LuaState    *csm;              // any client-side scripts, isolated
 } Session;
 
-Session *sessions[MAX_SESSIONS];   // 0 = attiva; le altre passive
+Session *sessions[MAX_SESSIONS];   // 0 = active; the others passive
 int      active_session;
 ```
 
-Niente funzione di `core/` o `client/world/` prende dati impliciti: la sessione è **sempre** un
-parametro. Lo swap diventa `active_session = i` più un pugno di transizioni esplicite, invece
-delle promozioni/demozioni chirurgiche di oggi.
+No function of `core/` or `client/world/` takes implicit data: the session is **always** a
+parameter. The swap becomes `active_session = i` plus a handful of explicit transitions, instead of
+today's surgical promotions/demotions.
 
-### 4.2 Costi — c'è già una misura
+### 4.2 Costs — there is already a measure
 
-Dal lavoro dual-client sul fork: **renderizzare il mondo B costa il 3-7% del frame**; il collo di
-bottiglia è il render del mondo A. Due conseguenze dirette:
+From the dual-client work on the fork: **rendering world B costs 3-7% of the frame**; the bottleneck
+is rendering world A. Two direct consequences:
 
-1. Il multi-sessione **non è il problema di performance**. 3-4 mondi vivi contemporaneamente sono
-   plausibili con budget e view range ridotti per le passive.
-2. Il guadagno più grosso di un engine nuovo non è nei portali: è nel **renderer del mondo
-   principale** (cave culling, vertici compatti, meno draw call), dove l'engine di partenza lascia molto sul
-   tavolo.
+1. Multi-session **is not the performance problem**. 3-4 live worlds at once are plausible with
+   reduced budgets and view ranges for the passive ones.
+2. The biggest gain of a new engine is not in portals: it is in the **main world's renderer** (cave
+   culling, compact vertices, fewer draw calls), where the starting engine leaves a lot on the table.
 
-Budget per sessione passiva: view range ~1/3, niente audio, niente particelle, niente predizione,
-tick di mesh a priorità bassa, RT alla risoluzione del portale (non dello schermo).
+Budget per passive session: view range ~1/3, no audio, no particles, no prediction, low-priority mesh
+ticks, RTs at the portal's resolution (not the screen's).
 
-### 4.3 Protocollo di link e swap
+### 4.3 Link and swap protocol
 
-Il modello attuale è giusto, va solo ripulito. Il **client** fa tutto il lavoro; i due server non
-si parlano per un attraversamento (fondamentale: niente fiducia reciproca da stabilire per passare
-da un mondo all'altro).
+The current model is right, it only needs cleaning up. The **client** does all the work; the two
+servers do not talk for a crossing (fundamental: no mutual trust to establish to pass from one world
+to another).
 
-**Eccezione dal 2026-10-27: i server amici** (`/friend`, `src/server/admin.h`). Due server che si
-mettono a vicenda nella propria lista si scambiano, su una porta TCP loro (`--federation`), righe
-firmate con la chiave di firma di ciascuno e cifrate per chi le riceve: i ban permanenti per
-chiave, chi è online (`/where`), una chat (`/fed`) e lo zaino. La fiducia c'è perché è stata data
-a mano, da entrambe le parti, ed è revocabile (`/friend remove` toglie anche i suoi ban). Non passa
-di lì niente che serva per attraversare: un portale verso un amico funziona come verso chiunque.
-Lo zaino invece è uno solo per tutti gli amici: sta su un server alla volta, e il server dove il
-giocatore arriva lo chiede a quello da cui viene (o a chi ne ha la copia più recente), che lo cede;
-gli oggetti che un mondo non conosce restano nascosti e viaggiano con lo zaino (docs/ADMIN.md).
+**Exception since 2026-10-27: friend servers** (`/friend`, `src/server/admin.h`). Two servers that
+put each other in their own list exchange, on a TCP port of their own (`--federation`), lines signed
+with each one's signing key and encrypted for the receiver: permanent bans by key, who is online
+(`/where`), a chat (`/fed`) and the backpack. The trust is there because it was given by hand, on
+both sides, and it is revocable (`/friend remove` also removes its bans). Nothing needed to cross
+passes there: a portal to a friend works as to anyone. The backpack instead is one for all friends:
+it is on one server at a time, and the server the player arrives at asks the one they come from (or
+whoever has the most recent copy), which hands it over; items a world does not know stay hidden and
+travel with the backpack (docs/ADMIN.md).
 
 ```
 1. Server A → client:  PORTAL_LINK { portal_id, host, port, world, dst_pos, dst_yaw, ticket }
-2. Client:             apre sessione passiva su B (handshake normale + ticket)
-3. Client:             quando la passiva è Ready → dichiara lo stato a A, con HEARTBEAT
-4. Attraversamento:    A e B validano; swap in place; A parcheggia il fantasma, B promuove
-5. Fallback:           nessuna passiva pronta → redirect classico con schermata di carico
+2. Client:             opens a passive session on B (normal handshake + ticket)
+3. Client:             when the passive one is Ready → declares the state to A, with HEARTBEAT
+4. Crossing:           A and B validate; swap in place; A parks the ghost, B promotes
+5. Fallback:           no passive ready → classic redirect with loading screen
 ```
 
-Invarianti già pagate, da riportare nella spec del protocollo (non "da ricordare"):
+Invariants already paid for, to carry into the protocol spec (not "to remember"):
 
-- Lo stato della passiva si **ripete a timer** (2 s), mai fire-and-forget: il server principale
-  scarta i pacchetti in-game finché il client non è attivo lì, e il mondo A può caricare per
-  decine di secondi dopo che la passiva è già pronta.
-- Una sessione passiva si dichiara **nell'handshake**, non via chat: il server deve saperlo
-  *prima* di far comparire l'avatar fantasma a chiunque.
-- Una sessione si identifica per **nome del mondo (+porta)**, mai per stringa di indirizzo:
-  `127.0.0.1` e l'IP LAN sono lo stesso mondo, e confrontare indirizzi trasforma ogni ritorno a
-  casa in un redirect.
-- Lo swap **non azzera i tasti premuti**: solo gli edge (`pressed/released/wheel`). Entrare in una
-  porta con W premuto deve continuare a camminare.
-- Lo swap **ridecide chi disegna il proprio avatar**: la sessione promossa sì, la demossa no.
-- Il cielo della sessione promossa si prende dal `Sky` **vivo** della passiva, mai dal replay
-  degli eventi (un server manda `set_sky` una volta sola: al secondo giro il replay è vuoto).
-- `init_secondary()` è **idempotente**: due connessioni con lo stesso nome vengono rifiutate dal
-  server e uccidono la passiva che funzionava.
+- The passive one's state is **repeated on a timer** (2 s), never fire-and-forget: the main server
+  drops in-game packets until the client is active there, and world A may load for tens of seconds
+  after the passive one is already ready.
+- A passive session declares itself **in the handshake**, not via chat: the server must know *before*
+  making the ghost avatar appear to anyone.
+- A session is identified by **world name (+port)**, never by address string: `127.0.0.1` and the
+  LAN IP are the same world, and comparing addresses turns every homecoming into a redirect.
+- The swap **does not reset held keys**: only the edges (`pressed/released/wheel`). Walking into a
+  door with W held must keep walking.
+- The swap **re-decides who draws their own avatar**: the promoted session yes, the demoted one no.
+- The promoted session's sky is taken from the passive one's **live** `Sky`, never from the replay
+  of events (a server sends `set_sky` once only: on the second round the replay is empty).
+- `init_secondary()` is **idempotent**: two connections with the same name are refused by the server
+  and kill the passive one that worked.
 
-### 4.4 Identità e autenticazione (il vero salto di qualità)
+### 4.4 Identity and authentication (the real leap in quality)
 
-Oggi la sessione passiva entra come utente fantasma `<nome>_pv` con password vuota. Non è
-accettabile in un gioco vero. Progetto:
+Today the passive session enters as a ghost user `<name>_pv` with an empty password. It is not
+acceptable in a real game. Design:
 
-- Ogni giocatore ha una **coppia di chiavi** (ed25519, `libsodium`) generata al primo avvio.
-  L'identità è la chiave pubblica; il nome è solo un'etichetta.
-- Il server A emette un **ticket** firmato `{pubkey, portal_id, exp, scope=OBSERVE|ENTER}`.
-  Il client lo presenta a B. B lo accetta se: la firma è valida, A è nella sua lista di peer
-  fidati **oppure** B accetta osservatori anonimi (impostazione per-mondo).
-- Scope `OBSERVE` = niente avatar, niente inventario, niente interazione: solo chunk streaming
-  in una sfera attorno al punto d'uscita. Riduce anche la superficie di abuso (nessun "entro
-  passivo in 50 server per minare dati").
-- Rate limit: N sessioni passive per IP, timeout se il giocatore non attraversa mai.
+- Every player has a **key pair** (ed25519, `libsodium`) generated at first start. The identity is
+  the public key; the name is only a label.
+- Server A issues a signed **ticket** `{pubkey, portal_id, exp, scope=OBSERVE|ENTER}`. The client
+  presents it to B. B accepts it if: the signature is valid, A is in its list of trusted peers **or**
+  B accepts anonymous observers (a per-world setting).
+- Scope `OBSERVE` = no avatar, no inventory, no interaction: only chunk streaming in a sphere round the
+  exit point. It also reduces the abuse surface (no "I enter passively into 50 servers to mine data").
+- Rate limit: N passive sessions per IP, timeout if the player never crosses.
 
-### 4.5 Contenuti e collisioni di asset
+### 4.5 Content and asset collisions
 
-Due server = due registry di blocchi e due set di media, e oggi questo produce già warning di
-collisione media nel caso cross-game. Progetto:
+Two servers = two block registries and two media sets, and today this already produces media
+collision warnings in the cross-game case. Design:
 
-- Media **content-addressed** (BLAKE3 del file), cache condivisa su disco tra tutte le sessioni.
-  Due server che spediscono la stessa texture la scaricano una volta sola.
-- ID di contenuto **per-sessione**: `session->content` mappa `id numerico → nome stringa`.
-  Nessun id globale, mai. Le texture finiscono in strati di array texture allocati per sessione,
-  con un budget.
-- Handshake: il client manda la lista di hash che ha già; il server manda solo il delta.
+- **Content-addressed** media (BLAKE3 of the file), a cache on disk shared between all sessions. Two
+  servers shipping the same texture download it once.
+- **Per-session** content ids: `session->content` maps `numeric id → string name`. No global id,
+  ever. Textures end up in texture array layers allocated per session, with a budget.
+- Handshake: the client sends the list of hashes it already has; the server sends only the delta.
 
 ---
 
 ## 5. Scripting
 
-### 5.1 I criteri, prima dei nomi
+### 5.1 The criteria, before the names
 
-Un linguaggio di scripting per questo gioco deve reggere cinque cose insieme. Sono in ordine di
-peso, e sono il motivo per cui la risposta non è automaticamente "Lua come l'engine di partenza":
+A scripting language for this game must bear five things together. They are in order of weight, and
+they are why the answer is not automatically "Lua like the starting engine":
 
-1. **Sandbox per codice non fidato.** I portali portano su server di altri; prima o poi qualcuno
-   vorrà mandare script al client. Un runtime dove "sandbox" significa "cancella `io` e spera"
-   non basta.
-2. **Costo dei binding.** L'engine è C/C++: ogni API nuova non deve costare 50 righe di glue.
-3. **Prestazioni prevedibili.** Niente pause GC visibili a 60 fps con migliaia di entità.
-4. **Vincolo del progetto**: solo Lua e C/C++, nessuna toolchain nuova da installare — né per
-   te, né per chi scriverà i mod.
-5. **Continuità con l'engine di partenza**, perché §7.5 (compat layer) e ~9 700 righe di Lua già scritte
-   pesano.
+1. **A sandbox for untrusted code.** Portals lead to other people's servers; sooner or later someone
+   will want to send scripts to the client. A runtime where "sandbox" means "delete `io` and hope" is
+   not enough.
+2. **Binding cost.** The engine is C/C++: every new API must not cost 50 lines of glue.
+3. **Predictable performance.** No GC pauses visible at 60 fps with thousands of entities.
+4. **The project's constraint**: only Lua and C/C++, no new toolchain to install — neither for you
+   nor for whoever will write mods.
+5. **Continuity with the starting engine**, because §7.5 (compat layer) and ~9,700 lines of Lua
+   already written weigh.
 
-### 5.2 Il campo, valutato sul serio
+### 5.2 The field, evaluated seriously
 
-| Runtime | Anno / stato | Sandbox | Perf | Binding | Toolchain per l'autore di mod | Verdetto |
+| Runtime | Year / state | Sandbox | Perf | Binding | Toolchain for the mod author | Verdict |
 |---|---|---|---|---|---|---|
-| **Luau** | attivo, C++, MIT | **Progettata per codice ostile**: globals congelati, no `getfenv/setfenv/loadstring`, no `os/io`, interruzioni a budget, memory cap per VM | Interprete ~2-3× PUC Lua; **native codegen** x86-64/arm64 per il codice caldo | API stile `lua_State` (no FFI) | Nessuna (opzionale: type checker + LSP) | **Scelto (primario per gameplay/nodi/UI)** |
-| **WASM** (WAMR / Wasmtime) | attivo, C/Rust, Apache/MIT | **Isolamento totale (ISA/memoria virtuale)**: zero accessi non concessi dall'host | **Quasi nativa (JIT/AOT)** | Marshalling / C-ABI / Component Model | **Sì: richiede compilatore (Rust/Zig/C++/C#)** | **Scelto come estensione per plugin pesanti (§5.8, §6.6)** |
-| **TypeScript / JS** (Hermes / QuickJS-ng) | attivo, C++, MIT | Ottima (realm isolati; Hermes con bytecode AOT compatto) | Buona; GC deterministico su Hermes | Verboso su QuickJS, strutturato su Hermes | TypeScript opzionale | Alternativa per modder JS/TS; supportabile tramite transpiler Luau (`roblox-ts`) o runtime Hermes |
-| **LuaJIT 2.1** | rolling, C, MIT | Debole se c'è la FFI (= accesso pieno alla macchina) | Il più veloce del gruppo | **FFI: zero glue** | Nessuna | ~~Secondo backend~~ — la ragione (compat legacy) è caduta, §5.3 |
-| Lua 5.4 (PUC) | ufficiale | Media | Lenta | manuale | Nessuna | Fallback di portabilità |
-| Wren | quasi fermo | Media | Media | Semplice | Nessuna | No: ecosistema fermo |
-| Umka | attivo, C, piccolo | Media | Buona (tipizzato) | Semplice | Nessuna | No: comunità minuscola, nessuna continuità |
-| Janet / Fennel | attivi | Media | Media | Media | Fennel: nessuna | No: sintassi Lisp = barriera per i modder |
-| C# (.NET NativeAOT/Mono) | attivo | Debole senza AppDomain | Ottima | Buona | **SDK .NET obbligatorio** | No: runtime pesante (30-80 MB) |
-| Python (CPython) | attivo | Pessima da sandboxare | GIL, startup lento | Media | Nessuna ma pesante | No |
+| **Luau** | active, C++, MIT | **Designed for hostile code**: frozen globals, no `getfenv/setfenv/loadstring`, no `os/io`, budgeted interrupts, per-VM memory cap | Interpreter ~2-3× PUC Lua; **native codegen** x86-64/arm64 for hot code | `lua_State`-style API (no FFI) | None (optional: type checker + LSP) | **Chosen (primary for gameplay/nodes/UI)** |
+| **WASM** (WAMR / Wasmtime) | active, C/Rust, Apache/MIT | **Total isolation (ISA/virtual memory)**: zero accesses not granted by the host | **Near native (JIT/AOT)** | Marshalling / C-ABI / Component Model | **Yes: needs a compiler (Rust/Zig/C++/C#)** | **Chosen as an extension for heavy plugins (§5.8, §6.6)** |
+| **TypeScript / JS** (Hermes / QuickJS-ng) | active, C++, MIT | Excellent (isolated realms; Hermes with compact AOT bytecode) | Good; deterministic GC on Hermes | Verbose on QuickJS, structured on Hermes | Optional TypeScript | Alternative for JS/TS modders; supportable via a Luau transpiler (`roblox-ts`) or the Hermes runtime |
+| **LuaJIT 2.1** | rolling, C, MIT | Weak if FFI is there (= full access to the machine) | The fastest of the group | **FFI: zero glue** | None | ~~Second backend~~ — the reason (legacy compat) fell, §5.3 |
+| Lua 5.4 (PUC) | official | Medium | Slow | manual | None | Portability fallback |
+| Wren | nearly stalled | Medium | Medium | Simple | None | No: stalled ecosystem |
+| Umka | active, C, small | Medium | Good (typed) | Simple | None | No: tiny community, no continuity |
+| Janet / Fennel | active | Medium | Medium | Medium | Fennel: none | No: Lisp syntax = a barrier for modders |
+| C# (.NET NativeAOT/Mono) | active | Weak without AppDomain | Excellent | Good | **.NET SDK mandatory** | No: heavy runtime (30-80 MB) |
+| Python (CPython) | active | Terrible to sandbox | GIL, slow startup | Medium | None but heavy | No |
 
-### 5.3 Scelta: Luau primario, LuaJIT come secondo backend
+### 5.3 Choice: Luau primary, LuaJIT as second backend
 
-**Perché Luau e non LuaJIT come prima scelta**, avendo un gioco che apre porte su macchine altrui:
+**Why Luau and not LuaJIT as first choice**, with a game that opens doors onto other people's
+machines:
 
-- È **l'unico Lua moderno progettato per eseguire codice di sconosciuti**: una grande piattaforma esegue milioni
-  di script utente sopra questa VM. Globals congelati per default, `getfenv`/`setfenv`/`loadstring`
-  rimossi, `io`/`os`/`debug` assenti, budget di interruzione e limite di memoria per VM sono
-  *primitive del runtime*, non convenzioni tue.
-- **Tipi graduali**: `--!strict`, annotazioni, type checker e LSP ufficiali. Su un'API di gioco con
-  centinaia di funzioni, la differenza in usabilità per chi scrive mod è enorme rispetto a Lua 5.1
-  nudo — ed è ciò che l'utente chiedeva con "più moderno".
-- **Sintassi moderna** senza rompere Lua: `continue`, interpolazione di stringhe, `+=`, iterazione
-  generalizzata, `type`/`export type`.
-- **Native codegen** (x86-64 e arm64) sul codice caldo: non è il JIT di LuaJIT, ma copre il caso
-  "sistema ECS in Lua chiamato 20 volte al secondo su 5 000 entità".
-- C++ con licenza MIT, buildabile con CMake: rientra nel vincolo "solo Lua e C++".
+- It is **the only modern Lua designed to run strangers' code**: a big platform runs millions of user
+  scripts on this VM. Globals frozen by default, `getfenv`/`setfenv`/`loadstring` removed,
+  `io`/`os`/`debug` absent, interrupt budget and memory limit per VM are *runtime primitives*, not
+  your conventions.
+- **Gradual types**: `--!strict`, annotations, official type checker and LSP. On a game API with
+  hundreds of functions, the difference in usability for mod authors is huge compared with bare Lua
+  5.1 — and it is what the user asked for with "more modern".
+- **Modern syntax** without breaking Lua: `continue`, string interpolation, `+=`, generalised
+  iteration, `type`/`export type`.
+- **Native codegen** (x86-64 and arm64) on hot code: it is not LuaJIT's JIT, but it covers the case
+  "ECS system in Lua called 20 times a second on 5,000 entities".
+- C++ under the MIT licence, buildable with CMake: it fits the "only Lua and C++" constraint.
 
-**Perché LuaJIT restava come backend opzionale** — e perché adesso non è più lavoro in piano:
+**Why LuaJIT stayed as an optional backend** — and why it is no longer planned work:
 
-1. ~~**I mod dell'engine di partenza legacy non girano su Luau senza modifiche.**~~ Era la prima ragione, e cade
-   con il layer di compatibilità (M11 annullata, §7.5): non c'è più un mod Lua 5.1 da far girare.
-2. **FFI per il codice trusted**: i sistemi ECS pesanti e il codice dell'engine scritto in Lua
-   otterrebbero struct C native senza glue. Resta l'unica ragione, e nessun numero l'ha ancora
-   chiesta — il profiler di M9 dice dove va un frame, e non è nei binding.
+1. ~~**The starting engine's legacy mods do not run on Luau unmodified.**~~ It was the first reason,
+   and it falls with the compatibility layer (M11 cancelled, §7.5): there is no longer a Lua 5.1 mod
+   to run.
+2. **FFI for trusted code**: heavy ECS systems and engine code written in Lua would get native C
+   structs without glue. It remains the only reason, and no number has asked for it yet — M9's profiler
+   says where a frame goes, and it is not in the bindings.
 
 ```
-script_* (interfaccia, ~25 funzioni)
-   ├── backend "luau"    → tutti i mod: nuovi, scaricati, qualunque cosa non fidata  [l'unico]
-   └── backend "luajit"  → mai scritto; resterebbe per FFI e hot path trusted        [non in piano]
+script_* (interface, ~25 functions)
+   ├── backend "luau"    → all mods: new, downloaded, anything untrusted        [the only one]
+   └── backend "luajit"  → never written; would stay for FFI and trusted hot path [not planned]
 ```
 
-Stessa forma già scelta per `gfx_*`: un'interfaccia sottile, così la decisione resta reversibile.
-**Oggi il runtime è uno solo**, ed è il risultato che il criterio di revisione qui scritto
-cercava — per un'altra strada: non perché il compat girasse su Luau con poco shim, ma perché il
-compat non si fa (§7.5).
+The same shape already chosen for `gfx_*`: a thin interface, so the decision stays reversible.
+**Today there is a single runtime**, and it is the result the revision criterion written here was
+looking for — by another road: not because compat ran on Luau with little shim, but because compat is
+not being done (§7.5).
 
-### 5.4 Costo dei binding senza FFI (il vero prezzo di Luau)
+### 5.4 Binding cost without FFI (Luau's real price)
 
-È l'unico svantaggio reale rispetto a LuaJIT, e va pagato con del tooling, non a mano:
+It is the only real disadvantage compared with LuaJIT, and it must be paid with tooling, not by hand:
 
-- Le API si dichiarano **una volta** in una tabella descrittiva (nome, argomenti, tipi, flags);
-  uno **script Lua a build time** genera sia il glue C++ (`lua_pushnumber`/`luaL_check*`) sia il
-  file `.d.luau` di definizioni per il type checker sia la documentazione Markdown. Generatore in
-  Lua = nessuna toolchain nuova (vincolo 4 rispettato).
-- Le strutture calde (posizioni, blocchi, componenti ECS) non passano per tabelle: si usano
-  **userdata con metatabelle** e iteratori batch (§6.1), così il costo per entità resta in C++.
+- APIs are declared **once** in a descriptive table (name, arguments, types, flags); a **Lua script at
+  build time** generates the C++ glue (`lua_pushnumber`/`luaL_check*`), the `.d.luau` definitions file
+  for the type checker, and the Markdown documentation. A generator in Lua = no new toolchain
+  (constraint 4 respected).
+- Hot structures (positions, blocks, ECS components) do not go through tables: **userdata with
+  metatables** and batch iterators are used (§6.1), so the per-entity cost stays in C++.
 
-### 5.5 Authoring moderno, opzionale
+### 5.5 Modern authoring, optional
 
-Chi vuole può scrivere i mod in **Luau tipizzato** (`--!strict`), oppure in TypeScript
-transpilato a Luau (con un transpiler TS→Luau) — ma **il gioco non lo richiede mai**: un mod resta un
-file `.luau` che si apre in un editor di testo e funziona. Questa è la linea da non superare, ed è
-il motivo per cui C#, WASM e simili sono fuori: appena l'autore di un mod deve installare un SDK,
-la mod library muore.
+Whoever wants can write mods in **typed Luau** (`--!strict`), or in TypeScript transpiled to Luau
+(with a TS→Luau transpiler) — but **the game never requires it**: a mod stays a `.luau` file that
+opens in a text editor and works. This is the line not to cross, and it is why C#, WASM and the like
+are out: as soon as a mod's author has to install an SDK, the mod library dies.
 
-### 5.6 Sandbox e sicurezza
+### 5.6 Sandbox and security
 
-Il fork oggi ha `secure.trusted_mods` e mod che leggono/scrivono una directory condivisa. Nel
-nuovo engine "sandbox" significa qualcosa di preciso, e Luau ne regala metà:
+The fork today has `secure.trusted_mods` and mods reading/writing a shared directory. In the new
+engine "sandbox" means something precise, and Luau gives half of it away:
 
-- **Una VM per mod** (non un env condiviso): isolamento di crash e di globals.
-- **Manifest con capability** dichiarate: `fs:read <dir>`, `net:http <host>`, `native`, `exec`.
-  Niente manifest → niente `io`, `os`, `package`, punto. Il caricatore le rimuove *prima* di
-  eseguire una riga del mod. Su Luau molte non esistono nemmeno da rimuovere.
-- **Il backend LuaJIT (e quindi la FFI) è una capability di livello massimo**, equivalente a
-  "questo mod è codice nativo": avviso esplicito all'utente all'installazione, mai concessa a un
-  mod arrivato dalla rete.
-- **Quota memoria** per VM e **budget di interruzione** per tick (`lua_callbacks().interrupt` su
-  Luau, hook a conteggio istruzioni su LuaJIT): un mod in loop infinito viene interrotto, non
-  congela il server.
-- **Mod lato client** — ~~di default nessuno scaricato dal server viene eseguito; se mai, solo
-  su Luau, firmati e in whitelist~~. **Deciso il 2026-09-13 (M13): un mondo può mandare al
-  client codice Luau, e il client può rifiutarlo.** La frase "è la differenza tra un gioco e una
-  botnet" resta vera, ed è il motivo delle condizioni:
-  - solo **Luau**, mai codice nativo; una **VM per mod e per sessione**, che muore con la
-    sessione;
-  - **capability solo da client**: disegnare, HUD, input, il canale del proprio mod, leggere il
-    mondo della propria sessione. **Niente file, niente rete, niente processi**, e nessuna
-    capability del manifest che un mod installato a mano potrebbe chiedere;
-  - **quota di memoria e budget di interruzione**, come sul server: un mod che va in loop si
-    ferma, il client no;
-  - **l'autorità resta al server**: il codice che arriva prevede e disegna, non decide. Un client
-    che lo rifiuta non guadagna niente — il server controlla lo stesso — e perde quello che il
-    mondo voleva mostrargli;
-  - **il rifiuto è del giocatore**: per tutti i mondi o per un mondo, e un mondo rifiutato si
-    gioca lo stesso, senza il suo codice.
+- **One VM per mod** (not a shared env): crash and globals isolation.
+- **A manifest with declared capabilities**: `fs:read <dir>`, `net:http <host>`, `native`, `exec`. No
+  manifest → no `io`, `os`, `package`, full stop. The loader removes them *before* running a line of
+  the mod. On Luau many do not even exist to be removed.
+- **The LuaJIT backend (and so FFI) is a top-level capability**, equivalent to "this mod is native
+  code": an explicit warning to the user at install, never granted to a mod that came from the network.
+- **Memory quota** per VM and **interrupt budget** per tick (`lua_callbacks().interrupt` on Luau, an
+  instruction-count hook on LuaJIT): a mod in an infinite loop is interrupted, it does not freeze the
+  server.
+- **Client-side mods** — ~~by default none downloaded from the server is run; if ever, only on Luau,
+  signed and whitelisted~~. **Decided on 2026-09-13 (M13): a world can send the client Luau code, and
+  the client can refuse it.** The sentence "it is the difference between a game and a botnet" stays
+  true, and it is the reason for the conditions:
+  - only **Luau**, never native code; **one VM per mod and per session**, which dies with the session;
+  - **client-only capabilities**: drawing, HUD, input, its own mod's channel, reading its own
+    session's world. **No files, no network, no processes**, and no manifest capability a mod installed
+    by hand could ask for;
+  - **memory quota and interrupt budget**, as on the server: a mod that loops stops, the client does
+    not;
+  - **authority stays with the server**: the code that arrives predicts and draws, it does not decide.
+    A client refusing it gains nothing — the server checks all the same — and loses what the world
+    wanted to show it;
+  - **refusal is the player's**: for every world or for one world, and a refused world is played all
+    the same, without its code.
 
-  **Fatto il 2026-09-13** (TODO.md OPEN-49). Un mod dice dove gira con `side = server | client |
-  both`; il server impacchetta quelli per i client e li offre come media (`worldcode.<mod>.cnpmod`,
-  al massimo 1 MB come ogni media); il client li carica nel `ModHost` del mondo in cui è, con una
-  tabella di funzioni da cui è tolto tutto ciò che scrive il mondo o registra contenuti, nessuna
-  capability e quota e interruzione non oltre i default. Il rifiuto è `--world-code refuse`, o la
-  chiave di firma del mondo in `world_code_refused.txt` nella cache dei media.
+  **Done on 2026-09-13** (TODO.md OPEN-49). A mod says where it runs with `side = server | client |
+  both`; the server packs those for clients and offers them as media (`worldcode.<mod>.cnpmod`, at most
+  1 MB like every media); the client loads them into the `ModHost` of the world it is in, with a
+  function table stripped of everything that writes the world or registers content, no capability and
+  quota and interrupt not above the defaults. Refusal is `--world-code refuse`, or the world's signing
+  key in `world_code_refused.txt` in the media cache.
 
-### 5.7 Hot reload e determinismo
+### 5.7 Hot reload and determinism
 
-- Ogni mod dichiara il proprio stato serializzabile; il reload ricrea lo stato dal serializzato e
-  ri-registra gli handler. Registry con generazione: al reload si scartano solo le voci del mod.
-- Il tick di gioco è deterministico per seed+input: fondamentale per test headless (già oggi
-  esiste una pratica di test headless con mod usa-e-getta e grep sul log — quella va promossa a
-  framework di prima classe, non workaround).
+- Every mod declares its serialisable state; reload recreates the state from the serialised one and
+  re-registers the handlers. A registry with generations: on reload only the mod's entries are dropped.
+- The game tick is deterministic by seed+input: fundamental for headless tests (a practice of headless
+  tests with throwaway mods and grep on the log already exists today — it must be promoted to a
+  first-class framework, not a workaround).
 
-### 5.8 Strategia Ibrida di Modding e Scripting (Raccomandazione Architetturale)
+### 5.8 Hybrid modding and scripting strategy (architectural recommendation)
 
-Per combinare massima accessibilità per i modder casuali e potenza nativa per i sistemi complessi,
-l'architettura adotta una **strategia su 3 livelli**:
+To combine maximum accessibility for casual modders and native power for complex systems, the
+architecture adopts a **3-tier strategy**:
 
-1. **Livello 1 — Gameplay e Blocchi (Luau)**:
-   - Default per il 90% dei mod (blocchi, item, ricette, UI, logica di interazione).
-   - Zero toolchain per chi scrive il mod: file `.luau` modificabili a caldo.
-   - Tipi statici opzionali (`--!strict`), LSP integrabile in VS Code, sandbox nativa a prova di crash.
-2. **Livello 2 — Sistemi ad Alte Prestazioni e Modding Polyglot (WASM via WAMR)**:
-   - Per generatori di mondo procedurali complessi, simulatori di fluidi, o fisica personalizzata.
-   - I modder avanzati possono compilare in `.wasm` da **Rust, Zig, C++, C# o AssemblyScript**.
-   - Sandbox ad isolamento totale della memoria (ISA-level): nessun accesso a syscall o memoria non autorizzata.
-3. ~~**Livello 3 — Compatibilità Legacy & Hot Path Trusted (LuaJIT 2.1)**~~:
-   - Era per il layer di compatibilità dell'engine di partenza. Caduto quello (§7.5, 2026-09-12), resta un livello
-     senza un utente: nessun mod da far girare, e la FFI non l'ha ancora chiesta nessun numero.
+1. **Tier 1 — Gameplay and blocks (Luau)**:
+   - Default for 90% of mods (blocks, items, recipes, UI, interaction logic).
+   - Zero toolchain for the mod author: `.luau` files editable hot.
+   - Optional static types (`--!strict`), an LSP that plugs into VS Code, a native crash-proof sandbox.
+2. **Tier 2 — High-performance systems and polyglot modding (WASM via WAMR)**:
+   - For complex procedural world generators, fluid simulators, or custom physics.
+   - Advanced modders can compile to `.wasm` from **Rust, Zig, C++, C# or AssemblyScript**.
+   - A sandbox with total memory isolation (ISA level): no access to syscalls or unauthorised memory.
+3. ~~**Tier 3 — Legacy compatibility & trusted hot path (LuaJIT 2.1)**~~:
+   - It was for the starting engine's compatibility layer. With that gone (§7.5, 2026-09-12), a tier
+     without a user remains: no mod to run, and no number has asked for FFI yet.
 
 ---
 
-## 6. Estendere le *meccaniche*, non solo i blocchi
+## 6. Extending the *mechanics*, not just the blocks
 
-Registrare un blocco è facile e lo fanno tutti. Il problema vero è: **come fa un mod ad
-aggiungere un sistema che l'engine non prevedeva** (un tipo di fluido, un circuito, un portale
-non-euclideo, un veicolo)? Sei leve, in ordine di potenza crescente.
+Registering a block is easy and everybody does it. The real problem is: **how does a mod add a system
+the engine did not foresee** (a kind of fluid, a circuit, a non-Euclidean portal, a vehicle)? Six
+levers, in order of increasing power.
 
-### 6.1 ECS moderno: adozione di Flecs (C/C++)
+### 6.1 Modern ECS: adopting Flecs (C/C++)
 
-Invece di scrivere un motore ECS da zero a mano con inevitabile debito tecnico, la raccomandazione
-è integrare **Flecs** (C99/C++20, licenza MIT, zero dipendenze):
-- **Archetype storage nativo**: query vettorizzate e cache-friendly ad altissime prestazioni (milioni di entità/sec).
-- **Gerarchie native e relazioni**: supporto di prima classe per coppie/relazioni (es. `(PortalChildOf, ParentPortal)`, `(InWorld, SessionId)`), fondamentale per il multi-mondo.
-- **Binding pronti**: Flecs espone già binding C/C++, Lua/Luau e integrazione WASM.
-- **REST / Web Dashboard di debug**: Flecs include un modulo explorer per ispezionare visivamente lo stato di tutte le entità in tempo reale nel browser durante lo sviluppo.
+Instead of writing an ECS engine from scratch by hand with inevitable technical debt, the
+recommendation is to integrate **Flecs** (C99/C++20, MIT licence, zero dependencies):
+- **Native archetype storage**: vectorised, cache-friendly queries with very high performance
+  (millions of entities/sec).
+- **Native hierarchies and relationships**: first-class support for pairs/relationships (e.g.
+  `(PortalChildOf, ParentPortal)`, `(InWorld, SessionId)`), fundamental for multi-world.
+- **Ready bindings**: Flecs already exposes C/C++ and Lua/Luau bindings and WASM integration.
+- **REST / web debug dashboard**: Flecs includes an explorer module to inspect visually the state of
+  all entities in real time in the browser during development.
 
-Entità = id + set di componenti; il mod dichiara componenti (schema tipizzato → layout compatto
-lato C) e registra sistemi in fasi ordinate:
+Entity = id + set of components; the mod declares components (typed schema → compact layout on the C
+side) and registers systems in ordered phases:
 
 ```luau
 --!strict
@@ -682,42 +677,41 @@ core.ecs.system("mymod:attract", {
     phase   = "pre_physics",             -- input | pre_physics | physics | post_physics | net
     after   = { "core:gravity" },
     query   = { "mymod:magnet", "core:transform" },
-    run = function(dt: number, it: core.Iter)   -- iterazione batch, non per-entità
+    run = function(dt: number, it: core.Iter)   -- batch iteration, not per entity
         for i = 1, it.n do
-            continue                      -- sintassi Luau; il tipo di `it` è controllato
+            continue                      -- Luau syntax; the type of `it` is checked
         end
     end,
 })
 ```
 
-La query è un *archetype iterator* eseguito da Flecs in C: il costo per entità resta nativo, Lua vede
-un batch compatto. Questo è ciò che permette a un mod di aggiungere *fisica* nuova, non solo comportamento.
+The query is an *archetype iterator* run by Flecs in C: the per-entity cost stays native, Lua sees a
+compact batch. This is what lets a mod add new *physics*, not only behaviour.
 
-### 6.2 Trait sui nodi, invece di comportamenti hardcoded
+### 6.2 Traits on nodes, instead of hard-coded behaviours
 
-Nell'engine nuovo, "solido", "liquido", "scalabile", "superficie-di-portale", "conduce segnale"
-non sono flag di un enum chiuso ma **trait** che un mod può definire e che l'engine consulta
-tramite tabelle di dispatch compilate al momento della registrazione:
+In the new engine, "solid", "liquid", "climbable", "portal surface", "conducts signal" are not flags
+of a closed enum but **traits** a mod can define and the engine consults through dispatch tables
+compiled at registration time:
 
 ```lua
 core.trait.define("mymod:conductive", { on_signal = "function", delay = "u8" })
 core.node.register("mymod:wire", { traits = { ["mymod:conductive"] = { delay = 1 } } })
 ```
 
-Le facce solide direzionali (che nel fork sono bit in `param2` e patch a `mapnode.cpp`) diventano
-un trait standard: `solidity = { [FACE_NX] = true, ... }`. **Il portal_block di tipo 2 smette di
-essere una patch all'engine.**
+Directional solid faces (which in the fork are bits in `param2` and patches to `mapnode.cpp`) become a
+standard trait: `solidity = { [FACE_NX] = true, ... }`. **The type-2 portal_block stops being a patch
+to the engine.**
 
-### 6.3 Bus di eventi tipizzato
+### 6.3 Typed event bus
 
-Eventi con schema dichiarato, handler con priorità e possibilità di cancellare/modificare; il
-core stesso emette solo eventi (nessun path "speciale" riservato all'engine). Se
-`portal:pre_teleport` è cancellabile, un mod può fare "i portali non funzionano nell'Inferno"
-senza toccare `yaportal`.
+Events with a declared schema, handlers with priority and the ability to cancel/modify; the core
+itself only emits events (no "special" path reserved to the engine). If `portal:pre_teleport` is
+cancellable, a mod can do "portals do not work in the Inferno" without touching `yaportal`.
 
-### 6.4 Render graph estensibile
+### 6.4 Extensible render graph
 
-La leva che manca completamente all'engine di partenza oggi. Il client espone il grafo dei pass come dati:
+The lever the starting engine completely lacks today. The client exposes the graph of passes as data:
 
 ```lua
 core.render.add_pass("mymod:heat_haze", {
@@ -728,13 +722,13 @@ core.render.add_pass("mymod:heat_haze", {
 })
 ```
 
-Con questo, "aggiungere un nuovo tipo di portale con effetto visivo proprio", oggi impossibile
-senza forkare, diventa un mod. È anche l'assicurazione contro il ripetersi di questa stessa
-analisi tra due anni.
+With this, "adding a new kind of portal with its own visual effect", impossible today without
+forking, becomes a mod. It is also the insurance against this same analysis being repeated in two
+years.
 
-### 6.5 Canali di protocollo per mod
+### 6.5 Per-mod protocol channels
 
-Un mod dichiara messaggi con schema e ottiene un canale ENet dedicato:
+A mod declares messages with a schema and gets a dedicated ENet channel:
 
 ```lua
 local ch = core.net.channel("yaportal:link", { reliable = true })
@@ -742,161 +736,161 @@ ch:define("state", { portal = "u16", ready = "bool", world = "string" })
 ch:send_to(player, "state", { portal = 3, ready = true, world = "backportal" })
 ```
 
-Nessun opcode nuovo nell'engine per ogni feature — che è esattamente ciò che il fork oggi deve
-fare (`0x65`-`0x68`, `0x54`).
+No new opcode in the engine for every feature — which is exactly what the fork has to do today
+(`0x65`-`0x68`, `0x54`).
 
-### 6.6 Plugin nativi (C ABI)
+### 6.6 Native plugins (C ABI)
 
-Per ciò che lo scripting non può reggere (mapgen custom pesante, fisica di veicoli, compressione):
-mod che spediscono una `.so`/`.dll` con una tabella di puntatori a funzione versionata. Non
-sandboxati, opt-in esplicito dell'utente, versione ABI controllata al caricamento.
+For what scripting cannot bear (heavy custom mapgen, vehicle physics, compression): mods shipping a
+`.so`/`.dll` with a versioned table of function pointers. Not sandboxed, explicit user opt-in, ABI
+version checked at load.
 
-**Alternativa moderna, da preferire quando la performance lo consente: WASM** (WAMR, C, Apache-2)
-al posto di `dlopen`. Stesso caso d'uso — codice compilato da un altro linguaggio — ma
-**isolato per costruzione**: un plugin WASM che va in crash o tenta una syscall non porta giù il
-server, e può arrivare dalla rete senza che l'utente firmi cambiali. Il prezzo è il marshalling
-(niente valori dinamici attraverso il confine) e il fatto che l'autore deve compilare. Ordine
-consigliato: `dlopen` per i plugin locali dell'utente, WASM per tutto ciò che è distribuito.
+**A modern alternative, to prefer when performance allows: WASM** (WAMR, C, Apache-2) in place of
+`dlopen`. Same use case — code compiled from another language — but **isolated by construction**: a
+WASM plugin that crashes or attempts a syscall does not bring down the server, and it can come from
+the network without the user signing blank cheques. The price is marshalling (no dynamic values
+across the boundary) and the fact that the author must compile. Recommended order: `dlopen` for the
+user's local plugins, WASM for everything distributed.
 
 ---
 
-### 6.7 Superficie API minima per riportare `yaportal` (criterio di accettazione concreto)
+### 6.7 Minimal API surface to port `yaportal` (a concrete acceptance criterion)
 
-Inventario reale delle chiamate usate oggi dai tre mod. È la lista della spesa dell'engine nuovo:
-se questa è coperta, il mod si porta; se manca un pezzo, si sa esattamente quale.
+A real inventory of the calls the three mods use today. It is the new engine's shopping list: if this
+is covered, the mod ports; if a piece is missing, we know exactly which.
 
-**Stock dell'engine di partenza (il grosso, ~120 chiamate distinte):**
+**Stock starting engine (the bulk, ~120 distinct calls):**
 
-| Gruppo | Cosa serve davvero |
+| Group | What is really needed |
 |---|---|
-| Registrazione | `register_node` (~150 nodi generati in loop), `register_tool`, `register_craftitem`, `register_entity`, `register_craft`, `register_alias`, `register_lbm` (8: ri-registrano bottoni/vent/porte/pedestal/display al caricamento del mapblock), `register_abm`, `register_biome`, `override_item` |
-| Callback | `register_globalstep` (13 stepper indipendenti), join/leave/die/respawn, `on_dignode`, `on_player_hpchange`, `on_mods_loaded`, `on_shutdown`, `on_player_receive_fields`, `after` |
-| Definizioni nodo | drawtype `nodebox` (×14) e `mesh`, `node_box`/`selection_box`, `paramtype2` facedir+wallmounted, `special_tiles`, `groups`, `drop`, `light_source`, `glow`, `pointable`, `walkable`, `use_texture_alpha`, `sunlight_propagates` |
-| Modificatori texture | `[combine` (il display 7-segmenti del clock è composto a runtime!), `[colorize` |
-| Mappa | `get/set_node`, `swap_node`, `get_meta` (23 siti) con tipi misti, `hash_node_position`, `emerge_area`, `raycast`, `get_voxel_manip`, `is_protected`, `item_place` |
+| Registration | `register_node` (~150 nodes generated in loops), `register_tool`, `register_craftitem`, `register_entity`, `register_craft`, `register_alias`, `register_lbm` (8: re-register buttons/vents/doors/pedestals/displays when the mapblock loads), `register_abm`, `register_biome`, `override_item` |
+| Callbacks | `register_globalstep` (13 independent steppers), join/leave/die/respawn, `on_dignode`, `on_player_hpchange`, `on_mods_loaded`, `on_shutdown`, `on_player_receive_fields`, `after` |
+| Node definitions | drawtype `nodebox` (×14) and `mesh`, `node_box`/`selection_box`, `paramtype2` facedir+wallmounted, `special_tiles`, `groups`, `drop`, `light_source`, `glow`, `pointable`, `walkable`, `use_texture_alpha`, `sunlight_propagates` |
+| Texture modifiers | `[combine` (the clock's 7-segment display is composed at runtime!), `[colorize` |
+| Map | `get/set_node`, `swap_node`, `get_meta` (23 sites) with mixed types, `hash_node_position`, `emerge_area`, `raycast`, `get_voxel_manip`, `is_protected`, `item_place` |
 | Player/Object | pos/vel/accel, look dir/yaw/pitch, `get_player_control`, `get/set_properties`, `set_physics_override`, `get_inventory`, `get_player_information`, `get_sky` |
-| UI | `show_formspec` (9 siti), `formspec_version[4]`, `textlist`, `dropdown`, `checkbox`, `field_close_on_enter`, `explode_textlist_event` |
-| Storage | `get_mod_storage`, `serialize`/`deserialize`, `write_json`/`parse_json`, `get_worldpath`, `get_modpath` (32 siti — rilevamento del gioco ospite) |
-| Particelle/suono | `add_particle(spawner)`, `sound_play` |
+| UI | `show_formspec` (9 sites), `formspec_version[4]`, `textlist`, `dropdown`, `checkbox`, `field_close_on_enter`, `explode_textlist_event` |
+| Storage | `get_mod_storage`, `serialize`/`deserialize`, `write_json`/`parse_json`, `get_worldpath`, `get_modpath` (32 sites — detecting the host game) |
+| Particles/sound | `add_particle(spawner)`, `sound_play` |
 
-**Fork-only (~20 chiamate) — nel nuovo engine devono essere API di prima classe, non patch:**
+**Fork-only (~20 calls) — in the new engine they must be first-class APIs, not patches:**
 `set_portals`, `set/clear_portal_cam_hint`, `register/update_portal_sky_type`,
 `set/clear_portal_sky`, `set/clear_portal_xworld_dest`, `set/clear_xworld_target`,
 `redirect_player`, `xworld_swap_player`, `player_dual_ready`, `xworld_exchange(_posts)`,
-`get_bind_port/address`, `player:portal_teleport(...)` (atomico: pos+yaw+pitch+roll+velocità+cielo),
-`player:set/get_look_roll`, `set_look_pitch_animate`, `set_pos_look`, più la chiave
-`physics_override.floor_portal_cb_shift` e i **tre gruppi interpretati dal C++**
-(`portal_block`, `portal_frame`, `portal_slab` + codifica carve nei bit 3-6 di `param2`).
-Nel modello §6.2 questi tre gruppi diventano **trait dichiarati da Lua** e smettono di essere
-codice di engine.
+`get_bind_port/address`, `player:portal_teleport(...)` (atomic: pos+yaw+pitch+roll+velocity+sky),
+`player:set/get_look_roll`, `set_look_pitch_animate`, `set_pos_look`, plus the
+`physics_override.floor_portal_cb_shift` key and the **three groups interpreted by the C++**
+(`portal_block`, `portal_frame`, `portal_slab` + carve encoding in bits 3-6 of `param2`). In the §6.2
+model these three groups become **traits declared from Lua** and stop being engine code.
 
-**Due dipendenze "brutte" da sostituire con feature vere** (oggi sono scappatoie):
-- `request_insecure_environment()` → `io`/`os` reali e `io.popen` per **lanciare altri server**.
-  Nel nuovo engine: un **world supervisor** nel core (API `core.world.spawn{game, port}`), con
-  permessi espliciti — non un buco nella sandbox.
-- `request_http_api()` + servizio `PortalExchange` su `porta+5000` → **servizio di registry**
-  nativo, con firma dei record (§4.4), non HTTP in chiaro con chiave condivisa.
-- Monkey-patch di `register_abm` e `rawset(_G, …)` per aggirare il limite dei 200 local per
-  chunk: sintomi di un'API senza namespace propri. Nel nuovo: moduli per mod, niente `_G`.
+**Two "ugly" dependencies to replace with real features** (today they are loopholes):
+- `request_insecure_environment()` → real `io`/`os` and `io.popen` to **launch other servers**. In the
+  new engine: a **world supervisor** in the core (API `core.world.spawn{game, port}`), with explicit
+  permissions — not a hole in the sandbox.
+- `request_http_api()` + a `PortalExchange` service on `port+5000` → a native **registry service**,
+  with signed records (§4.4), not plain HTTP with a shared key.
+- Monkey-patching `register_abm` and `rawset(_G, …)` to get round the 200-locals-per-chunk limit:
+  symptoms of an API without namespaces of its own. In the new one: modules per mod, no `_G`.
 
-**Nota che vale oro:** oggi il dual-client condivide la cache texture *per nome* tra i due giochi,
-e l'unica difesa è il prefisso `yafps_` su ogni file. È esattamente il bug che §4.5 (media
-content-addressed + id per-sessione) elimina per costruzione.
+**A note worth gold:** today the dual client shares the texture cache *by name* between the two games,
+and the only defence is the `yafps_` prefix on every file. It is exactly the bug §4.5
+(content-addressed media + per-session ids) removes by construction.
 
 ---
 
-## 7. Pregi e difetti — verdetto onesto
+## 7. Pros and cons — honest verdict
 
-### Pro del rewrite su raylib
+### Pros of the rewrite on raylib
 
-1. **L'architettura nasce con i portali dentro.** Multi-sessione, render graph, drawlist per
-   camera virtuale, culling separato: tutte prime classi invece di innesti.
-2. **Il debito di Irrlicht sparisce.** Irrlicht è mantenuto dall'engine di partenza stesso; oggi paghi il suo
-   fixed-function stack, il suo scene manager, i suoi shader.
-3. **Niente più inseguire upstream.** Un fork mai mergiabile è una tassa a vita: ogni rebase è un
-   rischio di regressione sulle invarianti di `AGENTS.MD`.
-4. **Performance potenzialmente molto superiori.** Sul mondo principale (che *è* il collo di
-   bottiglia misurato): cave culling, vertici compatti, meno draw call. Sui portali: oggi ogni
-   portale attivo costa una scena intera a risoluzione piena senza culling; con RT scalati e un
-   grafo di visibilità dei portali il costo cala di un fattore, non di una percentuale.
-5. **Scriptabilità migliore fin dall'inizio**: FFI, ECS, render graph, canali di rete per mod.
-6. **Base di codice comprensibile per una persona sola**: 40-60k righe mirate contro 214k+Irrlicht.
-7. **Distribuzione più semplice**: raylib è statico e minuscolo; niente AppImage da 85 MB.
-8. **La specifica è già scritta**: `PORTAL_SYSTEM.md` + le invarianti sono metà del lavoro di design.
+1. **The architecture is born with portals inside.** Multi-session, render graph, drawlists per
+   virtual camera, separate culling: all first-class instead of grafts.
+2. **Irrlicht's debt disappears.** Irrlicht is maintained by the starting engine itself; today you
+   pay for its fixed-function stack, its scene manager, its shaders.
+3. **No more chasing upstream.** A fork that can never be merged is a lifelong tax: every rebase is a
+   risk of regression on the invariants of `AGENTS.MD`.
+4. **Potentially far higher performance.** On the main world (which *is* the measured bottleneck):
+   cave culling, compact vertices, fewer draw calls. On portals: today every active portal costs a whole
+   scene at full resolution without culling; with scaled RTs and a portal visibility graph the cost
+   drops by a factor, not a percentage.
+5. **Better scriptability from the start**: FFI, ECS, render graph, network channels per mod.
+6. **A code base one person can understand**: 40-60k focused lines against 214k+Irrlicht.
+7. **Simpler distribution**: raylib is static and tiny; no 85 MB AppImage.
+8. **The specification is already written**: `PORTAL_SYSTEM.md` + the invariants are half the design
+   work.
 
-### Contro (e sono pesanti)
+### Cons (and they are heavy)
 
-1. **I contenuti.** Un gioco completo per l'engine di partenza è anni-uomo di lavoro. Senza un gioco, l'engine è una demo. È **il**
-   rischio del progetto, non la grafica. Questo contro era scritto quando la risposta prevista era
-   far girare quei contenuti (§7.5); caduta la compatibilità, resta in piedi tale e quale e la sola
-   risposta è scegliere un gioco che una persona sola finisce.
-2. **Tutto ciò che è noioso e invisibile**: inventari, craft, GUI, i18n, salvataggi, migrazioni,
-   mob e AI, meteo, suoni, accessibilità, controller, multipiattaforma.
-3. **Nessuna community il giorno 1.** L'engine di partenza porta mod, server, giocatori, wiki.
-4. **Il tempo attuale è speso su feature che oggi funzionano già.** Sei a build 8, con crafting,
-   cross-game e cross-server funzionanti: un rewrite li rimette tutti a zero.
-5. **raylib è pensato per giochi piccoli.** Nessuno ha spedito un voxel-MMO con raylib; ogni
-   sistema serio (culling, texture array, threading) lo aggiungi tu — raylib non ti aiuta, si
-   limita a non ostacolarti.
-6. **Rischio bus-factor 1.** Un engine proprio senza community è un engine che muore con l'autore.
+1. **Content.** A complete game for the starting engine is man-years of work. Without a game, the
+   engine is a demo. It is **the** risk of the project, not the graphics. This con was written when the
+   expected answer was running that content (§7.5); with compatibility gone, it stands exactly as it is
+   and the only answer is choosing a game one person can finish.
+2. **Everything boring and invisible**: inventories, crafting, GUI, i18n, saves, migrations, mobs and
+   AI, weather, sounds, accessibility, controllers, multi-platform.
+3. **No community on day 1.** The starting engine brings mods, servers, players, wiki.
+4. **Current time is spent on features that already work today.** You are at build 8, with crafting,
+   cross-game and cross-server working: a rewrite puts them all back at zero.
+5. **raylib is meant for small games.** Nobody has shipped a voxel MMO with raylib; every serious
+   system (culling, texture arrays, threading) you add yourself — raylib does not help, it only does
+   not get in the way.
+6. **Bus factor 1.** An engine of one's own without a community is an engine that dies with its author.
 
-### Alternative al rewrite completo
+### Alternatives to the full rewrite
 
-| Opzione | Costo | Pro | Contro |
+| Option | Cost | Pros | Cons |
 |---|---|---|---|
-| **Restare sul fork dell'engine di partenza** | 0 | Funziona oggi, contenuti gratis | Tassa di rebase a vita, tetto di performance, architettura ostile al multi-sessione |
-| **Rewrite raylib (questo doc)** | 6-10 mesi al giocabile | Controllo totale, portali nativi | Zero contenuti, zero community |
-| **Engine generalista + estensioni C++** | 3-5 mesi | Editor, UI, asset pipeline, community | Portali richiedono comunque viewport+matrici custom; multi-sessione = due `SceneTree` (difficile); GDScript ≠ vincolo Lua; engine grosso da capire |
-| **bgfx / sokol_gfx invece di raylib** | +1 mese vs raylib | Multi-backend (Vulkan/D3D/Metal), threading di render vero | Più cerimonia, meno "batterie incluse"; sokol è C (ok), bgfx è C++ |
-| **SDL3 + GL puro** | +1-2 mesi vs raylib | Zero astrazioni tra te e la GPU | Riscrivi ciò che raylib regala (immagini, font, audio, math) |
+| **Stay on the fork of the starting engine** | 0 | Works today, free content | Lifelong rebase tax, performance ceiling, architecture hostile to multi-session |
+| **raylib rewrite (this doc)** | 6-10 months to playable | Total control, native portals | Zero content, zero community |
+| **General-purpose engine + C++ extensions** | 3-5 months | Editor, UI, asset pipeline, community | Portals still need custom viewports+matrices; multi-session = two `SceneTree`s (hard); GDScript ≠ Lua constraint; a big engine to understand |
+| **bgfx / sokol_gfx instead of raylib** | +1 month vs raylib | Multi-backend (Vulkan/D3D/Metal), real render threading | More ceremony, fewer "batteries included"; sokol is C (ok), bgfx is C++ |
+| **SDL3 + pure GL** | +1-2 months vs raylib | Zero abstractions between you and the GPU | You rewrite what raylib gives away (images, fonts, audio, maths) |
 
-**Nota su bgfx/sokol:** se il vero obiettivo è *un engine serio*, `sokol_gfx` (C, single header,
-GL/Metal/D3D11/WebGPU) è tecnicamente la scelta più solida di raylib per il renderer, e si può
-tenere raylib solo per finestra/input/audio... oppure `sokol_app`. **Scelta adottata: raylib
-dietro `gfx_*`** — velocità di prototipo ora (verificato che espone tutto il necessario), con
-un'interfaccia sottile di ~30 funzioni che rende la migrazione a sokol un lavoro di giorni.
+**A note on bgfx/sokol:** if the real goal is *a serious engine*, `sokol_gfx` (C, single header,
+GL/Metal/D3D11/WebGPU) is technically a sounder choice than raylib for the renderer, and raylib can be
+kept only for window/input/audio... or `sokol_app`. **Choice adopted: raylib behind `gfx_*`** —
+prototype speed now (checked that it exposes everything needed), with a thin interface of ~30
+functions that makes migrating to sokol a matter of days.
 
-L'interfaccia `gfx_*` da rispettare (tutto il resto del client passa da qui, mai da `raylib.h`):
+The `gfx_*` interface to respect (the rest of the client goes through here, never through `raylib.h`):
 
 ```c
 gfx_init/shutdown/begin_frame/end_frame
 gfx_buffer_create/update/destroy          gfx_vertexlayout_create
-gfx_texture_create/update/destroy         gfx_texture_array_create   // shim GL con raylib
+gfx_texture_create/update/destroy         gfx_texture_array_create   // GL shim with raylib
 gfx_shader_create/destroy                 gfx_uniform_set{f,v4,mat4,int}
 gfx_rt_create/destroy/begin/end           gfx_rt_texture
 gfx_draw(buffer, count, offset)           gfx_draw_instanced
 gfx_state_set(depth, cull, blend, colormask)
-gfx_clip_planes_set(vec4 *planes, int n)  // gl_ClipDistance o discard, dietro le quinte
-gfx_projection_set(mat4)  gfx_view_set(mat4)   // punto d'ingresso di Lengyel
+gfx_clip_planes_set(vec4 *planes, int n)  // gl_ClipDistance or discard, behind the scenes
+gfx_projection_set(mat4)  gfx_view_set(mat4)   // Lengyel's entry point
 ```
 
-### 7.5 Strategia contenuti — ~~il layer di compatibilità con l'API dell'engine di partenza~~ (annullata 2026-09-12)
+### 7.5 Content strategy — ~~the compatibility layer with the starting engine's API~~ (cancelled 2026-09-12)
 
-> **Questa sezione è storia, non piano.** Il layer `compat_layer/` non si fa: l'engine di partenza è stato
-> l'ispirazione, non l'obiettivo, e questo engine non deve far girare i mod di qualcun altro
-> (M11 in §8). Resta scritta perché l'analisi qui sotto è il motivo per cui l'API nativa ha la
-> forma che ha — trait invece di enum, UI dichiarativa, chunk 32³ — e perché il costo che
-> nominava è reale e adesso lo si paga: **i contenuti si scrivono qui**.
+> **This section is history, not plan.** The `compat_layer/` layer is not being done: the starting
+> engine was the inspiration, not the goal, and this engine does not have to run someone else's mods
+> (M11 in §8). It stays written because the analysis below is why the native API has the shape it has
+> — traits instead of enums, declarative UI, 32³ chunks — and because the cost it named is real and is
+> now being paid: **content is written here**.
 >
-> Quello che di concreto l'engine aveva da fare per il layer è stato fatto e vale da solo:
-> `param2` come trait, drawtype nodebox+mesh, scheduler ABM/LBM. Il resto — parser formspec,
-> `[combine`/`[colorize`, VoxelManip, alias di mapgen, backend LuaJIT — non si fa.
+> What the engine concretely had to do for the layer has been done and is worth it on its own:
+> `param2` as a trait, nodebox+mesh drawtypes, ABM/LBM scheduler. The rest — formspec parser,
+> `[combine`/`[colorize`, VoxelManip, mapgen aliases, LuaJIT backend — is not being done.
 
-Deciso l'obiettivo "clone del classico gioco a blocchi completo", la parità di contenuti è **il** problema. Due
-strade, e solo una regge per una persona sola:
+With the goal "complete clone of the classic block game" decided, content parity is **the** problem.
+Two roads, and only one holds for a single person:
 
-| Strada | Costo | Esito |
+| Road | Cost | Outcome |
 |---|---|---|
-| Riscrivere i contenuti da zero | anni-uomo | Il progetto muore prima |
-| ~~Far girare i mod dell'engine di partenza sul nuovo engine~~ | 8-12 settimane | I giochi esistenti, tutta la mod library, **e i 9 700 righe di Lua già scritte** girano con modifiche minime |
+| Rewrite the content from scratch | man-years | The project dies first |
+| ~~Run the starting engine's mods on the new engine~~ | 8-12 weeks | The existing games, the whole mod library, **and the 9,700 lines of Lua already written** run with minimal changes |
 
-**Come**, senza sporcare l'architettura nuova: il compat layer è **un mod Lua**, non codice di
-engine. L'engine espone la sua API nativa pulita (§6); `compat_layer/` è un pacchetto Lua che
-costruisce la tabella legacy/`core` sopra di essa. Gira sul **backend LuaJIT** (§5.3): i mod
-esistenti dell'engine di partenza sono Lua 5.1 e usano `setfenv`/`getfenv`/`loadstring`, che su Luau non esistono.
+**How**, without dirtying the new architecture: the compat layer is **a Lua mod**, not engine code.
+The engine exposes its clean native API (§6); `compat_layer/` is a Lua package that builds the
+legacy/`core` table on top of it. It runs on the **LuaJIT backend** (§5.3): the starting engine's
+existing mods are Lua 5.1 and use `setfenv`/`getfenv`/`loadstring`, which do not exist on Luau.
 
 ```lua
--- compat_layer/init.lua (schema)
+-- compat_layer/init.lua (sketch)
 local M = {}
 function M.register_node(name, def)
     core.node.register(name, translate_def(def))   -- drawtype/nodebox/param2 → trait
@@ -906,527 +900,499 @@ function M.show_formspec(pl, fid, spec)  core.ui.show(pl, formspec_parse(spec)) 
 rawset(_G, "legacy", M); rawset(_G, "core", M)
 ```
 
-Quello che l'**engine** deve fornire perché il layer sia sottile (e non una reimplementazione di
-L'engine di partenza travestita):
+What the **engine** must provide for the layer to be thin (and not a reimplementation of the starting
+engine in disguise):
 
-- `param2` a 8 bit per nodo con semantica `facedir`/`wallmounted` come **trait standard**;
-- drawtype `nodebox` e `mesh` con `node_box`/`selection_box` (14 nodebox nel solo `yaportal`);
-- scheduler ABM/LBM (tick per area con probabilità/intervallo, e hook "al caricamento del chunk");
-- metadata per nodo tipizzati e per-item;
-- VoxelManip equivalente (accesso a blocco grezzo per il mapgen dei mod);
-- **un parser formspec** — la parte più sgradevole: linguaggio a stringhe, 20+ elementi. Si copre
-  il sottoinsieme reale (button/field/label/box/dropdown/textlist/checkbox/list/item_image +
-  `formspec_version[4]`), non la grammatica intera;
-- media per nome con i modificatori `[combine` e `[colorize` (il display del clock li usa a
+- 8-bit `param2` per node with `facedir`/`wallmounted` semantics as a **standard trait**;
+- `nodebox` and `mesh` drawtypes with `node_box`/`selection_box` (14 nodeboxes in `yaportal` alone);
+- ABM/LBM scheduler (per-area ticks with probability/interval, and an "on chunk load" hook);
+- typed per-node and per-item metadata;
+- a VoxelManip equivalent (raw block access for mods' mapgen);
+- **a formspec parser** — the nastiest part: a string language, 20+ elements. The real subset is
+  covered (button/field/label/box/dropdown/textlist/checkbox/list/item_image + `formspec_version[4]`),
+  not the whole grammar;
+- media by name with the `[combine` and `[colorize` modifiers (the clock's display uses them at
   runtime).
 
-**Costo onesto:** ~60-70% dell'API dell'engine di partenza stock. Non è gratis, e va detto chiaro: **adottare
-questa strada significa ereditare alcuni vincoli di design dell'engine di partenza** (semantica `param2`,
-formspec, mapblock 16³). La mitigazione è tenerli confinati nel layer: il core nuovo resta libero
-(chunk 32³ internamente, UI dichiarativa nativa, trait invece di enum), e il compat traduce.
+**Honest cost:** ~60-70% of the stock starting engine's API. It is not free, and it must be said
+clearly: **taking this road means inheriting some of the starting engine's design constraints**
+(`param2` semantics, formspec, 16³ mapblocks). The mitigation is keeping them confined in the layer:
+the new core stays free (32³ chunks internally, native declarative UI, traits instead of enums), and
+the compat translates.
 
-**Ordine consigliato:** il layer NON si fa presto. Si fa in M11, dopo che l'API nativa si è
-assestata su un gioco vero (M7): un compat scritto sopra un'API instabile si riscrive due volte.
+**Recommended order:** the layer is NOT done early. It is done in M11, after the native API has
+settled on a real game (M7): a compat written on an unstable API is rewritten twice.
 
-> Questo ordine ha retto fino in fondo: l'API si è assestata su M7, M8 e M9, e la scelta di non
-> fare il layer è arrivata prima di scrivere una riga di compat. Quello che si è perso è zero
-> lavoro; quello che si è guadagnato sono tre feature d'engine che il layer avrebbe chiesto e che
-> il gioco usa comunque.
+> This order held to the end: the API settled on M7, M8 and M9, and the choice not to do the layer
+> came before writing a line of compat. What was lost is zero work; what was gained are three engine
+> features the layer would have asked for and that the game uses anyway.
 
 ---
 
-## 8. Piano di implementazione
+## 8. Implementation plan
 
-Effort: singolo sviluppatore a tempo pieno con assistenza AI. "sett." = settimane.
+Effort: a single full-time developer with AI assistance. "wk" = weeks.
 
-### M-1 — Chiudere bene il fork prima di congelarlo (1 sett.) · **obbligatoria**
+### M-1 — Close the fork properly before freezing it (1 wk) · **mandatory**
 
-Il fork viene congelato: se non si chiude bene, non esiste più nulla di funzionante a cui
-tornare. Prima del freeze:
+The fork is frozen: if it is not closed properly, nothing working remains to go back to. Before the
+freeze:
 
-- Release taggata e riproducibile (AppImage + Flatpak, `BUILD_NUMBER` bumpato) dell'ultimo stato
-  buono, con le build già in repo.
-- Ogni bug aperto scritto in `TODO.md` con sintomo, riproduzione e ipotesi — non nella memoria
-  di chi ci lavora.
+- A tagged, reproducible release (AppImage + Flatpak, `BUILD_NUMBER` bumped) of the last good state,
+  with the builds already in the repo.
+- Every open bug written in `TODO.md` with symptom, reproduction and hypothesis — not in the memory of
+  whoever works on it.
 
-  > **Corretto in M0:** questo punto citava `BUG-10` ("moved too fast" post-swap) come aperto,
-  > ma il `TODO.md` del fork lo dà **risolto dal 2026-07-28**. Al momento del freeze risultavano
-  > aperti `BUG-1..BUG-6` e `BUG-9`; risolti `BUG-7`, `BUG-8`, `BUG-10`, `BUG-11`. La mitigazione
-  > del *grace token* descritta in §3.4 resta valida come progetto per il nuovo engine.
-- Commit e **push su entrambi i remoti** di tutto il lavoro non pushato (engine `portal-fork` e
-  outer), submodule allineato. Oggi ci sono commit locali non pushati: congelare con quelli
-  fuori sync equivale a perderli.
-- `README.md` con una riga: stato = congelato, dove prosegue il lavoro.
+  > **Corrected in M0:** this point cited `BUG-10` (post-swap "moved too fast") as open, but the
+  > fork's `TODO.md` gives it **solved since 2026-07-28**. At the time of the freeze `BUG-1..BUG-6`
+  > and `BUG-9` were open; `BUG-7`, `BUG-8`, `BUG-10`, `BUG-11` solved. The *grace token* mitigation
+  > described in §3.4 stays valid as a design for the new engine.
+- Commit and **push to both remotes** all unpushed work (engine `portal-fork` and outer), submodule
+  aligned. Today there are local unpushed commits: freezing with those out of sync is the same as
+  losing them.
+- `README.md` with one line: state = frozen, where work continues.
 
-**Uscita:** `git status` pulito su entrambi i repo, tag remoto, artefatti scaricabili.
+**Exit:** clean `git status` on both repos, remote tag, downloadable artefacts.
 
-### M0 — Spike di validazione (3 sett.) · **KILL SWITCH**
+### M0 — Validation spike (3 wk) · **KILL SWITCH**
 
-L'unico obiettivo è falsificare le tre ipotesi rischiose, con codice buttabile.
+The only goal is to falsify the three risky hypotheses, with throwaway code.
 
-- Finestra raylib **già dietro `gfx_*`** (§7 — l'interfaccia nasce qui, non dopo), un chunk 32³
-  meshato a mano, movimento FPS con collisione AABB.
-- Un portale: RT, camera virtuale con la trasformata di `PORTAL_SYSTEM.md` §1.3, matrice di
-  Lengyel via `rlSetMatrixProjection`, 5 clip plane via `gl_ClipDistance` + `glEnable` dichiarato
-  a mano, quad tunnel con UV screen-space.
-- **Luau** integrato con una manciata di binding generati, un mod che piazza blocchi e sposta un
-  portale a runtime.
+- A raylib window **already behind `gfx_*`** (§7 — the interface is born here, not later), a 32³ chunk
+  meshed by hand, FPS movement with AABB collision.
+- One portal: RT, virtual camera with the transform of `PORTAL_SYSTEM.md` §1.3, Lengyel's matrix via
+  `rlSetMatrixProjection`, 5 clip planes via `gl_ClipDistance` + `glEnable` declared by hand, a tunnel
+  quad with screen-space UVs.
+- **Luau** integrated with a handful of generated bindings, a mod that places blocks and moves a
+  portal at runtime.
 
-**Criteri di uscita (tutti e tre, o si ferma qui):**
-1. Attraversamento visivamente continuo — nessun frame che mostra la geometria tra vcam e portale.
-2. Il portale resta corretto con la camera *dentro* la cornice (il caso che rompe Lengyel).
-3. ≥ 200 FPS con 2 portali a 1080p su hardware di sviluppo, con il costo del binding Luau
-   misurato e sotto l'1% del frame.
+**Exit criteria (all three, or it stops here):**
+1. Visually continuous crossing — no frame showing the geometry between vcam and portal.
+2. The portal stays correct with the camera *inside* the frame (the case that breaks Lengyel).
+3. ≥ 200 FPS with 2 portals at 1080p on development hardware, with the cost of the Luau binding
+   measured and under 1% of the frame.
 
-### M1 — Core voxel client (6 sett.)
-Chunk store 32³ paginato, greedy meshing su worker, formato vertice compatto, texture array
-(shim GL), luce sole+blocco flood-fill, AO al vertice, frustum + cave culling, collisione AABB,
-raycast per selezione, piazzamento/rottura.
-**Test:** mondo statico da 512³ a 60 FPS, memoria stabile su 10 minuti di volo.
+### M1 — Client voxel core (6 wk)
+Paged 32³ chunk store, greedy meshing on workers, compact vertex format, texture array (GL shim),
+sun+block flood-fill light, per-vertex AO, frustum + cave culling, AABB collision, raycast for
+selection, placing/breaking.
+**Test:** a static 512³ world at 60 FPS, stable memory over 10 minutes of flight.
 
-### M2 — Scripting e registry (5 sett.)
-Interfaccia `script_*` + **backend Luau** (una VM per mod, budget di interruzione, quota memoria,
-capability dal manifest), generatore di binding da tabella descrittiva (glue C++ + `.d.luau` +
-doc), registry data-driven per blocchi/item/entità con hot reload, event bus tipizzato, hook di
-tick. Il backend LuaJIT era previsto per M11: quella milestone è annullata (§8) e il runtime
-resta uno.
-**Test:** un mod `--!strict` che aggiunge 20 blocchi e un item, ricaricato a caldo senza riavvio;
-un mod che va in loop infinito viene interrotto senza fermare il server.
+### M2 — Scripting and registry (5 wk)
+`script_*` interface + **Luau backend** (one VM per mod, interrupt budget, memory quota, capabilities
+from the manifest), a binding generator from a descriptive table (C++ glue + `.d.luau` + doc), a
+data-driven registry for blocks/items/entities with hot reload, typed event bus, tick hooks. The
+LuaJIT backend was planned for M11: that milestone is cancelled (§8) and the runtime stays one.
+**Test:** a `--!strict` mod adding 20 blocks and an item, hot reloaded without restarting; a mod in an
+infinite loop is interrupted without stopping the server.
 
-### M3 — Server e rete (5 sett.)
-Core headless, ENet + canali, handshake versionato con negoziazione feature, streaming chunk
-compresso con interest management, replica entità, autorità del movimento, SQLite, mapgen
-deterministico con stage registrabili.
-Dimensionato per **2-8 giocatori per mondo** (deciso): niente sharding, niente region file,
-anti-cheat leggero (speed cap + distanza di interazione + inventari server-side).
-**Test:** 4 client su LAN, 30 minuti, nessuna desync; server headless in CI che gira 1000 tick e
-verifica un hash del mondo.
+### M3 — Server and network (5 wk)
+Headless core, ENet + channels, versioned handshake with feature negotiation, compressed chunk
+streaming with interest management, entity replication, movement authority, SQLite, deterministic
+mapgen with registrable stages.
+Sized for **2-8 players per world** (decided): no sharding, no region files, light anti-cheat (speed
+cap + interaction distance + server-side inventories).
+**Test:** 4 clients on LAN, 30 minutes, no desync; a headless server in CI running 1000 ticks and
+checking a hash of the world.
 
-### M4 — Portali completi (5 sett.)
-Porting della logica di `yaportal` (geometria, trasformata, trigger, macchina a stati per
-giocatore, passthrough del pavimento, roll, teletrasporto atomico), RT pool con ricorsione,
-ordinamento trasparenti per vcam, cam hint, cielo/nebbia attraverso il portale.
-**Test:** la suite di casi di `PORTAL_SYSTEM.md` — orizzontale↔verticale, mezzo-offset, giocatore
-dentro la cornice, portale dietro il vetro, teletrasporto intra-frame (camera che salta ≥ 4 nodi
-tra il pass RTT e il pass dei quad), e **due portali che si guardano a profondità 2** — che oggi
-il fork non sa fare.
+### M4 — Complete portals (5 wk)
+Port of `yaportal`'s logic (geometry, transform, triggers, per-player state machine, floor
+passthrough, roll, atomic teleport), RT pool with recursion, transparent sorting per vcam, cam hint,
+sky/fog through the portal.
+**Test:** the suite of cases from `PORTAL_SYSTEM.md` — horizontal↔vertical, half offset, player inside
+the frame, portal behind glass, intra-frame teleport (camera jumping ≥ 4 nodes between the RTT pass and
+the quad pass), and **two portals looking at each other at depth 2** — which the fork cannot do today.
 
-> **Chiuso.** Ogni clausola ha un gate in `ctest`: `portal_cases` per mezzo-offset, camera dentro
-> la cornice, vetro e salto intra-frame; `portal_orientation` per orizzontale↔verticale;
-> `portal_recursion` per la profondità 2 — la riga che il fork non sapeva fare. Tabella clausola per
-> clausola nel `README.md`, misure in `docs/archive/M4_FINDINGS.md`.
+> **Closed.** Every clause has a gate in `ctest`: `portal_cases` for half offset, camera inside the
+> frame, glass and intra-frame jump; `portal_orientation` for horizontal↔vertical; `portal_recursion`
+> for depth 2 — the line the fork could not do. Clause-by-clause table in `README.md`, measurements in
+> `docs/archive/M4_FINDINGS.md`.
 
-### M5 — Multi-sessione locale (3 sett.)
-Due `Session` nello stesso processo (due mondi locali), una attiva e una passiva renderizzata nel
-portale, swap in place con tutte le invarianti di §4.3.
-**Test:** entra e esce dieci volte di fila; cielo, tasti premuti, avatar proprio e view range
-corretti a ogni giro (i quattro bug storici).
+### M5 — Local multi-session (3 wk)
+Two `Session`s in the same process (two local worlds), one active and one passive rendered in the
+portal, swap in place with all the invariants of §4.3.
+**Test:** go in and out ten times in a row; sky, held keys, own avatar and view range correct on every
+round (the four historical bugs).
 
-> **Chiuso.** `dual_session` fa i dieci giri e controlla i quattro bug a ogni lap. Misure in
+> **Closed.** `dual_session` does the ten rounds and checks the four bugs on every lap. Measurements in
 > `docs/archive/M5_FINDINGS.md`.
 
-### M6 — Cross-server (4 sett.)
-Chiavi d'identità, ticket firmati, scope OBSERVE/ENTER, heartbeat di stato, fallback a redirect,
-media content-addressed con cache condivisa, id di contenuto per-sessione.
-**Test:** due server su macchine diverse, con *game* diversi; attraversamento senza schermata di
-carico; una passiva verso un server morto non spamma il log (regola del backoff).
+### M6 — Cross-server (4 wk)
+Identity keys, signed tickets, OBSERVE/ENTER scopes, state heartbeat, fallback to redirect,
+content-addressed media with a shared cache, per-session content ids.
+**Test:** two servers on different machines, with different *games*; crossing without a loading
+screen; a passive one towards a dead server does not spam the log (the backoff rule).
 
-> **Chiuso, con un limite dichiarato.** `bad_link` fa lo scenario intero a 400 ms e 20% di perdita
-> fra due server con *game* diversi, e insiste che l'attraversamento sia successo davvero;
-> `dead_world` misura la regola del backoff (2 righe in 26 s contro 28108 senza); `two_clocks` fa
-> divergere le due wall clock. «Macchine diverse» è coperto per MTU, frammentazione, NAT, un server
-> con due nomi e due orologi — `tools/two_machines.sh` in container per i primi, un `LD_PRELOAD` per
-> l'ultimo. **Non** coperti: un kernel separato e la contesa reale di CPU, che restano a una VM.
-> Misure in `docs/archive/M6_FINDINGS.md`.
+> **Closed, with a declared limit.** `bad_link` does the whole scenario at 400 ms and 20% loss
+> between two servers with different *games*, and insists the crossing really happened; `dead_world`
+> measures the backoff rule (2 lines in 26 s against 28108 without); `two_clocks` makes the two wall
+> clocks diverge. "Different machines" is covered for MTU, fragmentation, NAT, a server with two names
+> and two clocks — `tools/two_machines.sh` in containers for the first ones, an `LD_PRELOAD` for the
+> last. **Not** covered: a separate kernel and real CPU contention, which remain for a VM. Measurements
+> in `docs/archive/M6_FINDINGS.md`.
 
-### M7 — Gioco minimo (8 sett.)
-Inventario, craft, UI (microui/Clay guidata da Lua), HUD, salute, drop, contenitori, mapgen con
-biomi, ciclo giorno/notte, audio con attenuazione, mob base con ECS.
-**Test:** una partita di 30 minuti dall'inizio, senza crash e senza toccare la console.
+### M7 — Minimal game (8 wk)
+Inventory, crafting, UI (microui/Clay driven by Lua), HUD, health, drops, containers, mapgen with
+biomes, day/night cycle, audio with attenuation, basic mobs with ECS.
+**Test:** a 30-minute game from the start, without crashes and without touching the console.
 
-> **Chiuso, con quattro limiti dichiarati.** `tests/long_game.sh` fa i trenta minuti — 7.9 milioni
-> di frame, **zero correzioni**, RSS piatta a +1.1 MB, 224 blocchi rotti e 224 rimessi, otto
-> creature uccise, un giorno e mezzo di cielo. La prima run è stata rossa e ha trovato uno spawn
-> che esisteva solo con `--portals`, quindi un giocatore uscito dal mondo cadeva per sempre.
-> **Non** coperti: è uno *script* che cammina e non una persona (nessuno tocca la console, e nessuno
-> gioca davvero); le creature finiscono dopo un minuto e mezzo perché in M7 non c'è spawn di mob;
-> il mondo non ha aperture, quindi l'attraversamento resta `bad_link`; e serve una finestra, quindi
-> su una macchina headless questo test non gira. Misure in `docs/archive/M7_FINDINGS.md` §33.
+> **Closed, with four declared limits.** `tests/long_game.sh` does the thirty minutes — 7.9 million
+> frames, **zero corrections**, flat RSS at +1.1 MB, 224 blocks broken and 224 put back, eight
+> creatures killed, a day and a half of sky. The first run was red and found a spawn that existed only
+> with `--portals`, so a player leaving the world fell for ever. **Not** covered: it is a *script*
+> walking and not a person (nobody touches the console, and nobody really plays); creatures run out
+> after a minute and a half because in M7 there is no mob spawning; the world has no openings, so
+> crossing stays `bad_link`'s; and it needs a window, so on a headless machine this test does not run.
+> Measurements in `docs/archive/M7_FINDINGS.md` §33.
 
-### M8 — ECS e API meccaniche (4 sett.)
-Componenti/sistemi da Lua con iterazione batch, fasi ordinate, trait sui nodi, render pass
-registrabili, canali di rete per mod.
-**Test:** riscrivere i blocchi classici dei puzzle a portali (pulsante, dispenser, pedestal, clock) **solo** come mod,
-senza toccare l'engine — è la prova che l'estensibilità è vera.
+### M8 — ECS and mechanics API (4 wk)
+Components/systems from Lua with batch iteration, ordered phases, traits on nodes, registrable render
+passes, network channels per mod.
+**Test:** rewrite the classic portal-puzzle blocks (button, dispenser, pedestal, clock) **only** as
+mods, without touching the engine — it is the proof that extensibility is real.
 
-> **Chiuso per il suo test d'uscita, con il resto della milestone dichiarato
-> aperto.** `tests/portal1.sh` fa i quattro blocchi classici dei puzzle a portali come mod e nient'altro:
-> il pulsante si abbassa sotto chi ci sta sopra e risale, il segnale attraversa
-> da un mod a un altro e il vent lascia cadere un cubo, il pedestal prende quello
-> che gli si offre e lo restituisce a chi si avvicina, il clock conta e dopo aver
-> chiuso e riaperto il mondo riparte dal numero a cui si era fermato. Quattordici
-> controlli, headless, e l'ultimo è un `grep`: **nessun file sotto `src/` nomina
-> un blocco, un item o un evento dei quattro**.
+> **Closed for its exit test, with the rest of the milestone declared open.** `tests/portal1.sh` does
+> the four classic portal-puzzle blocks as mods and nothing else: the button goes down under whoever
+> stands on it and comes back up, the signal crosses from one mod to another and the vent drops a
+> cube, the pedestal takes what is offered and gives it back to whoever comes near, the clock counts
+> and after closing and reopening the world restarts from the number it had stopped at. Fourteen
+> checks, headless, and the last is a `grep`: **no file under `src/` names a block, an item or an event
+> of the four**.
 >
-> **E poi chiusa per intero.** Quello che il test d'uscita non toccava — i
-> quattro blocchi volevano stato per cella, non entità proprie — è stato scritto
-> dopo, con la stessa forma: il gate prima del codice, `DISABLED` finché non è
-> verde. `tests/sentry.sh` (headless, 16 controlli) fa **componenti e sistemi
-> da Lua con iterazione batch** (512 entità, una chiamata), **fasi ordinate** da
-> un numero e non dall'ordine di caricamento, un **canale di rete per mod** (il
-> campo esisteva nell'handshake da M3 e nessuno lo usava; protocollo 20 → 21) e
-> `find_nodes`, l'equivalente di un LBM dell'engine di partenza. `cnp_client --pass-check` (6
-> controlli, gpu) fa i **render pass registrabili**: un pass gira dentro il
-> render e una volta per camera, quindi quello che un mod disegna si vede anche
-> attraverso un portale.
+> **And then closed in full.** What the exit test did not touch — the four blocks wanted per-cell
+> state, not entities of their own — was written after, with the same shape: the gate before the code,
+> `DISABLED` until it is green. `tests/sentry.sh` (headless, 16 checks) does **components and systems
+> from Lua with batch iteration** (512 entities, one call), **phases ordered** by a number and not by
+> load order, a **network channel per mod** (the field existed in the handshake since M3 and nobody used
+> it; protocol 20 → 21) and `find_nodes`, the equivalent of the starting engine's LBM.
+> `cnp_client --pass-check` (6 checks, gpu) does the **registrable render passes**: a pass runs inside
+> the render and once per camera, so what a mod draws is seen through a portal too.
 >
-> **Resta aperto e dichiarato**, in `TODO.md`: un sistema nomina un componente
-> solo (non c'è join fra due), le entità di un mod non sono visibili agli altri
-> giocatori, e vivono nel mondo della tabella delle sessioni — quindi un run
-> offline non ne ha. Misure in `docs/archive/M8_FINDINGS.md`.
+> **Remaining open and declared**, in `TODO.md`: a system names one component only (no join between
+> two), a mod's entities are not visible to other players, and they live in the world of the session
+> table — so an offline run has none. Measurements in `docs/archive/M8_FINDINGS.md`.
 
-### M9 — Performance e robustezza (4 sett.)
-Meshing multi-thread a budget, occlusion culling, LOD lontano, reverse-Z, profiler in-game,
-crash handler, migrazione dei salvataggi.
-**Test:** tre gate, scritti prima del codice come quelli di M8. `frame_budget`
-(gpu) misura cosa costa un frame mentre il mondo si muove, su un mondo da 512
-nodi — 512 chunk, non i 32 degli altri gate — in tre fasi: fermo, un blocco per
-frame, e tutto sporco insieme. I numeri sono quelli del giocatore e non quelli
-che l'engine produce: 16.7 ms è un sessantesimo di secondo, 50 ms è uno scatto
-che si vede, e una camera sepolta nella roccia deve disegnare quello che ha
-intorno e non il mondo dietro la roccia. `crash_evidence` chiede che un processo
-che muore dica di quale segnale, lasci uno stack, e **muoia lo stesso** — un
-handler che inghiotte SIGSEGV è peggio di nessun handler. `migration` chiede che
-un file del mondo scritto da una build precedente si apra e tenga quello che
-c'era dentro, e che uno da una build successiva sia rifiutato per nome.
+### M9 — Performance and robustness (4 wk)
+Budgeted multi-threaded meshing, occlusion culling, distant LOD, reverse-Z, in-game profiler, crash
+handler, save migration.
+**Test:** three gates, written before the code like M8's. `frame_budget` (gpu) measures what a frame
+costs while the world moves, on a 512-node world — 512 chunks, not the other gates' 32 — in three
+phases: still, one block per frame, and everything dirty at once. The numbers are the player's and not
+the ones the engine produces: 16.7 ms is a sixtieth of a second, 50 ms is a visible hitch, and a camera
+buried in rock must draw what is round it and not the world behind the rock. `crash_evidence` asks
+that a dying process say which signal, leave a stack, and **die all the same** — a handler that
+swallows SIGSEGV is worse than no handler. `migration` asks that a world file written by an earlier
+build open and keep what was inside, and that one from a later build be refused by name.
 
-> Questa riga non c'era: M9 era l'unica milestone del piano con una lista di
-> feature e nessun numero. È stata scritta prima di cominciarla, perché M7 ha
-> chiuso con il suo test d'uscita scritto per ultimo e la prima run ha trovato
-> ventidue minuti di giocatore che cadeva fuori dal mondo.
+> This line was not there: M9 was the only milestone of the plan with a list of features and no
+> number. It was written before starting it, because M7 closed with its exit test written last and the
+> first run found twenty-two minutes of a player falling out of the world.
 >
-> **Chiusa dai suoi tre gate.** `migration` (14 controlli): la versione si legge
-> **prima** che lo schema tocchi il file, perché un'apertura rifiutata non deve
-> cambiare il file che ha rifiutato. `crash_evidence` (5): il segnale è nominato,
-> lo stack è scritto, e il processo **muore lo stesso** — su `sigaltstack`,
-> perché il modo più comune di prendere un SIGSEGV è finire lo stack.
-> `frame_budget` (21): un mondo da 512 chunk che si ricostruisce interamente
-> costa **4.23 ms** nel frame peggiore contro i 16.7 del budget, e recupera al
-> frame 130 invece che mai.
+> **Closed by its three gates.** `migration` (14 checks): the version is read **before** the schema
+> touches the file, because a refused opening must not change the file it refused. `crash_evidence`
+> (5): the signal is named, the stack is written, and the process **dies all the same** — on
+> `sigaltstack`, because the commonest way to get a SIGSEGV is running out of stack. `frame_budget`
+> (21): a 512-chunk world rebuilding entirely costs **4.23 ms** in the worst frame against the budget's
+> 16.7, and recovers at frame 130 instead of never.
 >
-> **Il profiler ha deciso il resto della milestone.** La sua proprietà è
-> aritmetica — tutto ciò che ha un nome più tutto ciò che non ce l'ha **è** il
-> frame — e il primo numero che ha prodotto dice dove va un chunk: `snapshot`
-> 0.32 ms, `build` 3.12, `upload` 0.00. Il 90% è la parte che legge solo uno
-> snapshot e il registry, cioè la sola che può lasciare il thread. Senza quella
-> riga la scelta fra thread e LOD sarebbe stata un'opinione.
+> **The profiler decided the rest of the milestone.** Its property is arithmetic — everything with a
+> name plus everything without **is** the frame — and the first number it produced says where a chunk
+> goes: `snapshot` 0.32 ms, `build` 3.12, `upload` 0.00. 90% is the part that reads only a snapshot
+> and the registry, the only one that can leave the thread. Without that line the choice between
+> threads and LOD would have been an opinion.
 >
-> **Occlusion culling è una camminata, non un test**: quindici bit per chunk che
-> dicono quali facce si raggiungono fra loro, e il renderer entra in un vicino
-> solo se poteva attraversare quello da cui viene. Camera sigillata nella roccia:
-> **4 chunk invece di 129**. Davanti a un muro: **2 invece di 154, e non un pixel
-> diverso** — che è l'unico controllo capace di prendere il fallimento che conta,
-> un buco nel mondo.
+> **Occlusion culling is a walk, not a test**: fifteen bits per chunk saying which faces reach each
+> other, and the renderer enters a neighbour only if it could cross the one it comes from. Camera
+> sealed in rock: **4 chunks instead of 129**. In front of a wall: **2 instead of 154, and not one
+> pixel different** — which is the only check able to catch the failure that matters, a hole in the
+> world.
 >
-> **Resta aperto e dichiarato**, in `docs/archive/M9_FINDINGS.md`: **LOD lontano e
-> reverse-Z non sono stati scritti**, perché erano mezzi e il budget non li ha
-> chiesti — il momento di farli è quando un numero li chiede, non prima. E il
-> walk è a grana di chunk: in un mondo alto due chunk, dalla superficie, scarta
-> zero. **57 test in `ctest`, tutti verdi, e per la prima volta niente
-> `DISABLED`.**
+> **Remaining open and declared**, in `docs/archive/M9_FINDINGS.md`: **distant LOD and reverse-Z were
+> not written**, because they were means and the budget did not ask for them — the moment to do them is
+> when a number asks, not before. And the walk is chunk-grained: in a world two chunks high, from the
+> surface, it discards zero. **57 tests in `ctest`, all green, and for the first time no `DISABLED`.**
 
-### M10 — Distribuzione (2 sett.)
-Build statiche Linux/Windows, AppImage/Flatpak (riutilizzando gli script esistenti), formato
-pacchetto mod + versionamento, documentazione dell'API.
+### M10 — Distribution (2 wk)
+Static Linux/Windows builds, AppImage/Flatpak (reusing the existing scripts), mod package format +
+versioning, API documentation.
 
-### M11 — Layer di compatibilità API dell'engine di partenza · **ANNULLATA il 2026-09-12**
+### M11 — Starting engine API compatibility layer · **CANCELLED on 2026-09-12**
 
-Era il layer `compat_layer/` con il secondo backend LuaJIT: dieci settimane per far girare i mod
-dell'engine di partenza e i suoi giochi sopra questo engine. **Non si fa.** L'engine di partenza è stato l'ispirazione e il fork
-precedente è da dove viene l'esperienza: non è l'obiettivo, e questo engine non deve far
-girare i mod di qualcun altro.
+It was the `compat_layer/` layer with the second LuaJIT backend: ten weeks to run the starting
+engine's mods and games on top of this engine. **It is not being done.** The starting engine was the
+inspiration and the earlier fork is where the experience comes from: it is not the goal, and this
+engine does not have to run someone else's mods.
 
-**Cosa resta di quella milestone, ed è già fatto.** M11 chiedeva all'engine tre cose che valgono
-per conto loro e che infatti sono state costruite prima che la scelta cadesse:
+**What remains of that milestone, and is already done.** M11 asked the engine for three things that
+are worth it on their own and in fact were built before the choice fell:
 
-- `param2` facedir/wallmounted come **trait** — TODO.md CLOSED-27, un byte sulla cella;
-- **scheduler ABM/LBM** — CLOSED/OPEN-42, `core.register_abm` e `core.register_lbm`;
-- **drawtype nodebox + mesh** — CLOSED-43, le scatole che fermano un corpo e un blocco disegnato
-  come modello.
+- `param2` facedir/wallmounted as a **trait** — TODO.md CLOSED-27, a byte on the cell;
+- **ABM/LBM scheduler** — CLOSED/OPEN-42, `core.register_abm` and `core.register_lbm`;
+- **nodebox + mesh drawtypes** — CLOSED-43, the boxes that stop a body and a block drawn as a model.
 
-Nessuna delle tre è un pezzo di compatibilità: sono un blocco che ha un fronte, un mondo in cui
-succede qualcosa senza che nessuno tocchi una cella, e un blocco che non è un cubo. Restano.
+None of the three is a compatibility piece: they are a block with a front, a world where something
+happens without anyone touching a cell, and a block that is not a cube. They stay.
 
-**Cosa cade con lei:** il parser formspec, i modificatori texture `[combine`/`[colorize`,
-VoxelManip, gli alias di mapgen, la traduzione di `register_node`/`register_entity`, e il secondo
-backend LuaJIT (§5.3), la cui prima ragione era far girare Lua 5.1 legacy.
+**What falls with it:** the formspec parser, the `[combine`/`[colorize` texture modifiers,
+VoxelManip, mapgen aliases, the translation of `register_node`/`register_entity`, and the second
+LuaJIT backend (§5.3), whose first reason was running legacy Lua 5.1.
 
-**E cosa costa, detto e non nascosto:** §7.5 diceva che riscrivere i contenuti da zero vale
-anni-uomo ed è il modo in cui questo progetto muore. Quella frase resta vera. La differenza è che
-adesso i contenuti sono una scelta di *scope* e non un debito verso il catalogo di qualcun altro —
-si veda M12.
+**And what it costs, said and not hidden:** §7.5 said that rewriting content from scratch is worth
+man-years and is the way this project dies. That sentence stays true. The difference is that now
+content is a choice of *scope* and not a debt to someone else's catalogue — see M12.
 
-### M12 — Contenuti propri (continuo)
+### M12 — Content of our own (ongoing)
 
-I contenuti si scrivono qui, come mod di questo engine e con la sua API. Quello che c'è già in
-`mods/` è la prova che la strada esiste: blocchi con forma e durezza, attrezzi che contano, casse,
-craft, ABM, un mapgen con stage, entità con componenti — tutto senza toccare l'engine.
+Content is written here, as mods of this engine and with its API. What is already in `mods/` is the
+proof the road exists: blocks with shape and hardness, tools that count, chests, crafting, ABMs, a
+mapgen with stages, entities with components — all without touching the engine.
 
-**Lo scope è deciso, 2026-09-12.** Il gioco è un clone del classico gioco a blocchi da cui i portali portano ad
-altri mondi, e quei mondi possono avere mod diversi — fino a mondi che sono un altro gioco (M13).
-La frase di §7.5 resta vera e va tenuta a vista: la *parità* di contenuti con il classico gioco a blocchi vale
-anni-uomo, e caduti i contenuti di qualcun altro non c'è scorciatoia. Quello che questo scope ha
-che "clone completo" non aveva è la forma: non tutto deve stare nel sandbox, perché il resto può
-stare dietro un portale, in un altro mondo, con i suoi mod. Il consiglio di questo documento è
-misurare M12 per partita e non per lista — un sandbox che regge una partita, come M7 ha misurato
-in trenta minuti — e non inseguire l'elenco delle feature del classico gioco a blocchi.
+**The scope is decided, 2026-09-12.** The game is a clone of the classic block game from which
+portals lead to other worlds, and those worlds can have different mods — up to worlds that are
+another game (M13). §7.5's sentence stays true and must be kept in view: content *parity* with the
+classic block game is worth man-years, and with someone else's content gone there is no shortcut. What
+this scope has that "complete clone" did not is the shape: not everything has to be in the sandbox,
+because the rest can be behind a portal, in another world, with its own mods. This document's advice
+is to measure M12 by game and not by list — a sandbox that holds a game, as M7 measured in thirty
+minutes — and not to chase the classic block game's feature list.
 
-### M13 — Mondi con un modo di gioco proprio (stima aperta)
+### M13 — Worlds with a game mode of their own (open estimate)
 
-Deciso con lo scope (§0). **Un modo di gioco è un mondo**: un server con i suoi mod, raggiunto da
-un portale del sandbox, non una modalità dentro il sandbox. È la lettura che usa quello che questo
-engine ha già — sessioni per server, media content-addressed, forme e modelli che viaggiano nel
-welcome — e il fork ha già fatto metà di questa strada: la sua `yafps/` è un'arena FPS
-minima «built as a cross-world portal destination», **552 righe in cinque mod** (armi 178,
-bersagli 114, core 114, arena 83, HUD 63). È il criterio naturale, come `yaportal` lo era in §6.7.
+Decided with the scope (§0). **A game mode is a world**: a server with its own mods, reached by a
+portal from the sandbox, not a mode inside the sandbox. It is the reading that uses what this engine
+already has — sessions per server, content-addressed media, shapes and models travelling in the
+welcome — and the fork has already gone half this way: its `yafps/` is a minimal FPS arena "built as a
+cross-world portal destination", **552 lines in five mods** (weapons 178, targets 114, core 114, arena
+83, HUD 63). It is the natural criterion, as `yaportal` was in §6.7.
 
-**Test:** dal sandbox, un portale verso un server che fa girare `yafps` **riscritto come mod di
-questo engine**, e uno verso un server con **una pista a tempo** — partenza, checkpoint, arrivo,
-tempo a schermo. Il client che attraversa **non ha installato nessuno dei due mod**. Si gioca una
-partita e un giro, e si torna dallo stesso portale. Più un `grep` come quello di M8: nessun file
-sotto `src/` nomina un'arma, un veicolo o un checkpoint.
+**Test:** from the sandbox, a portal to a server running `yafps` **rewritten as a mod of this
+engine**, and one to a server with **a timed track** — start, checkpoints, finish, time on screen. The
+client crossing **has installed neither mod**. A game and a lap are played, and you come back by the
+same portal. Plus a `grep` like M8's: no file under `src/` names a weapon, a vehicle or a checkpoint.
 
-**Cosa manca oggi, letto dal codice e non stimato:**
+**What is missing today, read from the code and not estimated:**
 
-1. **Da un mondo al client arrivano l'aspetto e la forma, non il comportamento.** Il client carica
-   i mod dalla propria directory (`src/client/main.cpp`, `--mods` e `load_dir`). Sul filo viaggiano
-   i nomi dei blocchi, le forme e il verso (protocollo 27), i modelli e i media. Non viaggiano se un
-   blocco è solido, la durezza, il livello di scavo (TODO.md OPEN-43), né una riga di Luau. Un modo
-   di gioco vive in buona parte sul client — il tempo o le munizioni a schermo, il riscontro di uno
-   sparo, la previsione di un veicolo, un `core.render.pass` — e §5.6 dice che **nessun mod
-   scaricato dal server viene eseguito sul client**. È la decisione aperta di questa milestone,
-   sotto.
-2. **Il movimento è un numero dell'engine.** `core/physics/movement.h`: camminata 4.8, sprint 8,
-   volo 14, salto 8, gravità −25. Il validatore del server accetta in orizzontale al massimo
-   `kFlySpeed × tolerance` = 14 × 1.6 = **22.4 m/s**, fuori dal secondo di grazia di un portale.
-   Nessun mod può cambiare questi numeri, né per mondo né per corpo, quindi un'auto più veloce di
-   un giocatore in volo è un cheat per questo server. `yafps` usava `set_physics_override` e
-   `set_velocity`. Servono limiti dichiarati dal mondo e dal corpo, spediti nel welcome come le
-   forme e letti dal validatore, e un corpo che non sia un giocatore a piedi. Il server verifica
-   il movimento e non lo simula (`movement.h` lo dice), e per una corsa va misurato se basta
-   prima di decidere che non basta.
-   **Primo pezzo fatto, 2026-09-13** (TODO.md OPEN-44): `core.movement` dichiara camminata,
-   sprint, volo, salto e gravità **per mondo**, i numeri viaggiano nel welcome (protocollo 28) e
-   il validatore ricava i limiti da lì — a 60 m/s il gate rifiuta 0 claim su 98 nel mondo che li
-   ha dichiarati e 14 su 99 in uno senza mod. Restano i limiti **per corpo** e un corpo che non
-   è un giocatore a piedi.
-3. **Il bersaglio lo sceglie il client.** TODO.md OPEN-15: il client lancia il raggio, il server
-   controlla solo che il corpo nominato sia entro `place_reach` = **7 nodi**, e un colpo ogni
-   `kHitCooldown` = **0.4 s**. Il fucile di `yafps` spara a **60 nodi ogni 180 ms**, con un
-   raycast lato server, e il suo commento dice perché non serve compensare la latenza: *tutti i
-   mondi girano su questa macchina*. Fra macchine diverse — che è quello che M6 ha misurato —
-   quella frase non vale più.
-4. **Le entità di un mod non le vede nessuno** (TODO.md OPEN-20), e i bersagli e i proiettili di
-   un FPS sono esattamente entità di un mod.
-5. ~~**Il mondo è una scatola** di 128 per 64, generata tutta (OPEN-35) e mai scaricata (OPEN-38).~~
-   **Fatto il 2026-09-15:** il mondo del server non ha bordo, le colonne si generano o si rileggono
-   quando qualcuno si avvicina e si lasciano quando nessuno c'è (protocollo 37).
-   Un'arena ci sta — `yafps` chiedeva il mapgen `flat` —; una pista forse no, e va detto quando se
-   ne disegna una.
-6. **Dei difetti dell'attraversamento ne resta aperto uno**, OPEN-2 (incastrati nel blocco
-   d'uscita), mai riprodotto. All'ingresso di un'arena o di una corsa è la prima cosa che si sente.
+1. **From a world to the client arrive look and shape, not behaviour.** The client loads mods from its
+   own directory (`src/client/main.cpp`, `--mods` and `load_dir`). On the wire travel block names,
+   shapes and facing (protocol 27), models and media. Whether a block is solid, its hardness, its dig
+   level (TODO.md OPEN-43) do not travel, nor a line of Luau. A game mode lives largely on the client —
+   time or ammo on screen, the feedback of a shot, a vehicle's prediction, a `core.render.pass` — and
+   §5.6 says **no mod downloaded from the server is run on the client**. It is this milestone's open
+   decision, below.
+2. **Movement is an engine number.** `core/physics/movement.h`: walk 4.8, sprint 8, fly 14, jump 8,
+   gravity −25. The server's validator accepts horizontally at most `kFlySpeed × tolerance` = 14 × 1.6
+   = **22.4 m/s**, outside a portal's grace second. No mod can change these numbers, per world or per
+   body, so a car faster than a flying player is a cheat for this server. `yafps` used
+   `set_physics_override` and `set_velocity`. Limits declared by the world and the body are needed,
+   sent in the welcome like shapes and read by the validator, and a body that is not a player on foot.
+   The server checks movement and does not simulate it (`movement.h` says so), and for a race it must
+   be measured whether that is enough before deciding it is not.
+   **First piece done, 2026-09-13** (TODO.md OPEN-44): `core.movement` declares walk, sprint, fly,
+   jump and gravity **per world**, the numbers travel in the welcome (protocol 28) and the validator
+   derives its limits from there — at 60 m/s the gate refuses 0 claims out of 98 in the world that
+   declared them and 14 out of 99 in one without mods. Limits **per body** and a body that is not a
+   player on foot remain.
+3. **The client chooses the target.** TODO.md OPEN-15: the client casts the ray, the server only
+   checks that the named body is within `place_reach` = **7 nodes**, and one blow every `kHitCooldown`
+   = **0.4 s**. `yafps`'s rifle fires at **60 nodes every 180 ms**, with a server-side raycast, and its
+   comment says why latency compensation is not needed: *all worlds run on this machine*. Between
+   different machines — which is what M6 measured — that sentence no longer holds.
+4. **Nobody sees a mod's entities** (TODO.md OPEN-20), and an FPS's targets and projectiles are
+   exactly a mod's entities.
+5. ~~**The world is a box** of 128 by 64, all generated (OPEN-35) and never unloaded (OPEN-38).~~
+   **Done on 2026-09-15:** the server's world has no edge, columns are generated or reread when
+   someone comes near and left when nobody is there (protocol 37). An arena fits — `yafps` asked for
+   the `flat` mapgen —; a track maybe not, and it must be said when one is drawn.
+6. **Of the crossing's defects one remains open**, OPEN-2 (stuck in the exit block), never
+   reproduced. At the entrance of an arena or a race it is the first thing felt.
 
-**Decisione presa, 2026-09-13: il codice lato client di un mondo.** La prima delle due strade
-qui sotto, con una condizione che la raccomandazione non diceva: **il client può rifiutare il
-codice di un mondo**, e quel mondo si gioca lo stesso, senza (§5.6). Le due strade, come erano
-state messe:
+**Decision taken, 2026-09-13: a world's client-side code.** The first of the two roads below, with a
+condition the recommendation did not state: **the client can refuse a world's code**, and that world
+is played all the same, without it (§5.6). The two roads, as they had been put:
 
-- **Luau spedito dal server**, in una VM per mod e per sessione, con capability solo da client —
-  disegnare, HUD, input, il canale del proprio mod — e niente file né rete. Chiede di riscrivere
-  la riga di §5.6. È ciò per cui Luau è stato scelto (§5.3: una sandbox *progettata* per codice non
-  fidato), ed è l'unica strada in cui un mondo nuovo non chiede un engine nuovo.
-- **Primitive dell'engine guidate da dati** — HUD dichiarativo, parametri di movimento, veicolo,
-  arma hitscan. Niente codice estraneo sul client, ma ogni modo che non ci sta dentro chiede una
-  release dell'engine a tutti i giocatori: il contrario di "mondi con mod diversi".
+- **Luau shipped by the server**, in a VM per mod and per session, with client-only capabilities —
+  drawing, HUD, input, its own mod's channel — and no files or network. It asks to rewrite §5.6's line.
+  It is what Luau was chosen for (§5.3: a sandbox *designed* for untrusted code), and it is the only road
+  where a new world does not ask for a new engine.
+- **Data-driven engine primitives** — declarative HUD, movement parameters, vehicle, hitscan weapon.
+  No foreign code on the client, but every mode that does not fit asks all players for an engine
+  release: the opposite of "worlds with different mods".
 
-La raccomandazione è la prima, con l'autorità che resta dove è: il client prevede e disegna, il
-server decide — i limiti di movimento e il raggio di un colpo sono numeri che il server verifica
-comunque, qualunque codice giri dall'altra parte.
+The recommendation is the first, with authority staying where it is: the client predicts and draws,
+the server decides — movement limits and a blow's ray are numbers the server checks anyway, whatever
+code runs on the other side.
 
-**Totali:**
-- Portali cross-server funzionanti (M-1..M6): **32 settimane (~7 mesi)**
-- Engine + gioco minimo autonomo (…M10): **49 settimane (~11 mesi)**
-- Contenuti propri (M12): **continuo**. La parità con il classico gioco a blocchi resta 2-3 anni, ed è la ragione
-  per cui il criterio è una partita e non una lista.
-- Mondi con un modo proprio (M13): **nessuna stima ancora**. La decisione sul codice lato client
-  è presa (2026-09-13); il pezzo più grosso che ne viene è la sandbox da client, e non è stato
-  misurato niente che dica quanto costa.
+**Totals:**
+- Working cross-server portals (M-1..M6): **32 weeks (~7 months)**
+- Engine + standalone minimal game (…M10): **49 weeks (~11 months)**
+- Content of our own (M12): **ongoing**. Parity with the classic block game stays 2-3 years, and it
+  is the reason the criterion is a game and not a list.
+- Worlds with a mode of their own (M13): **no estimate yet**. The decision on client-side code is
+  taken (2026-09-13); the biggest piece that comes from it is the client sandbox, and nothing has been
+  measured that says what it costs.
 
-### Assetto durante il lavoro
+### Arrangement during the work
 
-- Il fork dell'engine di partenza è **congelato** dopo M-1: nessun lavoro nuovo, solo il tag e la documentazione
-  dei bug aperti. (Consapevole del rischio: durante ~14 mesi non c'è prodotto vivo.)
-- Il nuovo engine vive in **`/home/giacomo/dev/Cubes and portals/`**, repo git proprio, non dentro
-  il fork precedente. Struttura prevista:
+- The fork of the starting engine is **frozen** after M-1: no new work, only the tag and the
+  documentation of open bugs. (Aware of the risk: for ~14 months there is no live product.)
+- The new engine lives in **`/home/giacomo/dev/Cubes and portals/`**, its own git repo, not inside the
+  earlier fork. Planned structure:
 
 ```
 Cubes and portals/
-  docs/DESIGN.md          ← questo documento
-  src/core/               ← voxel, ECS, mapgen, protocollo (mai #include <raylib.h>)
-  src/client/gfx/         ← gfx_* + backend raylib (poi eventualmente sokol)
-  src/client/             ← sessioni, render graph, portali, UI
+  docs/DESIGN.md          ← this document
+  src/core/               ← voxel, ECS, mapgen, protocol (never #include <raylib.h>)
+  src/client/gfx/         ← gfx_* + raylib backend (then possibly sokol)
+  src/client/             ← sessions, render graph, portals, UI
   src/server/             ← headless
-  src/script/             ← script_* + backend Luau (poi luajit)
-  mods/                   ← mod di base in .luau
+  src/script/             ← script_* + Luau backend (then luajit)
+  mods/                   ← base mods in .luau
   third_party/            ← raylib, luau, enet, sqlite, zstd, fastnoiselite, microui
 ```
-- `docs/PORTAL_SYSTEM.md` e le invarianti di `AGENTS.MD` §461 diventano la **specifica di test**
-  del nuovo engine: ogni invariante = un test automatico. È il modo di non ricomprare gli stessi
-  bug (cielo bianco al secondo giro, doppia connessione passiva, tasti persi allo swap, avatar
-  invisibile a sé stesso, identità per indirizzo invece che per mondo).
+- `docs/PORTAL_SYSTEM.md` and the invariants of `AGENTS.MD` §461 become the new engine's **test
+  specification**: every invariant = an automatic test. It is the way not to buy the same bugs again
+  (white sky on the second round, double passive connection, keys lost at the swap, avatar invisible to
+  itself, identity by address instead of by world).
 
 ---
 
-## 9. Rischi e decisioni aperte
+## 9. Risks and open decisions
 
-| Rischio | Prob. | Impatto | Mitigazione |
+| Risk | Prob. | Impact | Mitigation |
 |---|---|---|---|
-| Il progetto si arena sui contenuti | **Alta** | Fatale | La mitigazione era M11 (far girare i giochi esistenti), **annullata il 2026-09-12**. Lo scope fissato lo stesso giorno non è più piccolo: clone del classico gioco a blocchi più mondi con modi di gioco propri. La mitigazione che resta è la forma — ogni modo è un mondo piccolo dietro un portale, e M12 si misura per partita e non per lista di feature. È più debole di quella che c'era, e va detto |
-| Un modo veloce contro un validatore pensato per chi cammina | **Certa** | Alto | Oggi non è un rischio ma un fatto: 22.4 m/s in orizzontale, un colpo entro 7 nodi ogni 0.4 s. M13 punti 2-3: limiti dichiarati dal mondo e verificati dal server, raggio lanciato dal server |
-| Codice client spedito dal server | Media | Alto | **Scelto il 2026-09-13.** Luau, una VM per mod e per sessione, capability solo da client, niente file né rete né processi, quota e interruzione come sul server, autorità al server; e il giocatore può rifiutarlo, per tutti i mondi o per uno (§5.6) |
-| Fork congelato = nessun prodotto vivo per ~14 mesi | **Alta** | Alto | M-1 obbligatoria: release taggata, bug documentati, tutto pushato. Il fork resta *scongelabile* in un pomeriggio |
-| Stanchezza / bus factor 1 | Alta | Fatale | Milestone che producono qualcosa di giocabile ogni volta; niente big-bang |
-| raylib insufficiente in M9 | Media | Medio | Interfaccia `gfx_*` sottile → migrazione a sokol in giorni |
-| Sandbox FFI bucata | Media | Alto | Capability nel manifest, FFI off di default, nessun mod client dal server |
-| Cross-server abusato (scanner di mondi) | Media | Medio | Scope OBSERVE, ticket a scadenza, rate limit |
-| Rewrite più lento del previsto (sempre) | **Alta** | Alto | Kill switch a M0; revisione dello scope a M4, M6 e alla fine di M10 |
-| ~~M11 reintroduce vincoli di design dell'engine di partenza~~ | — | — | Non si applica più: il layer non si fa, e i vincoli che avrebbe ereditato (semantica `param2`, formspec, mapblock 16³) restano fuori |
+| The project runs aground on content | **High** | Fatal | The mitigation was M11 (running the existing games), **cancelled on 2026-09-12**. The scope fixed the same day is no smaller: a clone of the classic block game plus worlds with game modes of their own. The mitigation that remains is the shape — every mode is a small world behind a portal, and M12 is measured by game and not by feature list. It is weaker than the one there was, and it must be said |
+| A fast mode against a validator designed for walkers | **Certain** | High | Today it is not a risk but a fact: 22.4 m/s horizontally, a blow within 7 nodes every 0.4 s. M13 points 2-3: limits declared by the world and checked by the server, ray cast by the server |
+| Client code shipped by the server | Medium | High | **Chosen on 2026-09-13.** Luau, a VM per mod and per session, client-only capabilities, no files, network or processes, quota and interrupt as on the server, authority to the server; and the player can refuse it, for every world or for one (§5.6) |
+| Frozen fork = no live product for ~14 months | **High** | High | M-1 mandatory: tagged release, documented bugs, everything pushed. The fork stays *unfreezable* in an afternoon |
+| Fatigue / bus factor 1 | High | Fatal | Milestones that produce something playable every time; no big bang |
+| raylib insufficient in M9 | Medium | Medium | Thin `gfx_*` interface → migration to sokol in days |
+| Leaky FFI sandbox | Medium | High | Capabilities in the manifest, FFI off by default, no client mods from the server |
+| Cross-server abused (world scanners) | Medium | Medium | OBSERVE scope, expiring tickets, rate limit |
+| Rewrite slower than planned (always) | **High** | High | Kill switch at M0; scope review at M4, M6 and at the end of M10 |
+| ~~M11 reintroduces the starting engine's design constraints~~ | — | — | No longer applies: the layer is not being done, and the constraints it would have inherited (`param2` semantics, formspec, 16³ mapblocks) stay out |
 
-**Decisioni prese** (§0): fork congelato dopo M-1 · raylib dietro `gfx_*` · 2-8 giocatori per
-mondo · **niente compatibilità dell'engine di partenza** (2026-09-12) · **M10 sospesa** finché il gioco non è
-dichiarato finito e giocabile · **scope: clone del classico gioco a blocchi con portali verso mondi con mod e modi
-di gioco propri** (2026-09-12).
+**Decisions taken** (§0): fork frozen after M-1 · raylib behind `gfx_*` · 2-8 players per world · **no
+compatibility with the starting engine** (2026-09-12) · **M10 suspended** until the game is declared
+finished and playable · **scope: a clone of the classic block game with portals to worlds with their
+own mods and game modes** (2026-09-12).
 
-· **un mondo può spedire codice Luau al client, e il client può rifiutarlo** (2026-09-13, §5.6).
+· **a world can ship Luau code to the client, and the client can refuse it** (2026-09-13, §5.6).
 
-**Non resta aperta nessuna decisione di progetto grossa.** Resta il lavoro: quello che M13 elenca,
-e il rischio n.1 qui sopra, che lo scope mitiga in modo più debole di come faceva M11.
-
----
-
-## 10. Stato e prossimi passi
-
-**Stato, 2026-09-12.** M-1 fatta (fork congelato e taggato); M0..M3 superate e M4..M9 chiuse,
-ciascuna con i propri limiti dichiarati; M10 sospesa; M11 annullata; M12 continua; M13 aperta e
-senza stima. I difetti aperti sono in `TODO.md`, le misure e lo storico in `docs/archive/`
-(dal 2026-09-13, quando i test sono stati ridotti a 13 e la documentazione riscritta sullo stato
-attuale: [`ARCHITECTURE.md`](ARCHITECTURE.md)).
-
-**Prossimi passi, in ordine:**
-
-1. ~~Decidere il codice lato client di un mondo~~ — **deciso il 2026-09-13**: Luau dal server,
-   rifiutabile dal client (§5.6).
-2. **Limiti di movimento dichiarati dal mondo** e letti dal validatore (M13 punto 2). **Per mondo
-   fatto il 2026-09-13** (TODO.md OPEN-44). Da lì restano, dal più economico:
-   - ~~lo streaming dei chunk a velocità di corsa, misurato prima di cambiarlo~~ — **misurato il
-     2026-09-13** (TODO.md OPEN-45): regge fino a 120 m/s, dove il limite è il raggio (128 nodi,
-     un secondo di strada); a 256 m/s no, 64 nodi di terreno davanti al minimo. Non cambiato:
-     aspetta una pista che dica quanto lontano serve vedere;
-   - ~~il percorso di un claim controllato dal server~~ — **fatto il 2026-09-13** (TODO.md
-     OPEN-46): il server ripercorre il claim con il risolutore del client, in cinque modi, e lo
-     accetta se uno arriva entro mezzo nodo; il primo claim dopo un piazzamento del server si
-     giudica da dove finisce. Resta rifiutato un percorso che torna indietro su un
-     asse fra due claim, cosa che a piedi non succede e a 160 m/s sì;
-   - ~~velocità per corpo~~ — **fatto il 2026-09-13** (TODO.md OPEN-47): `core.body_movement`
-     dà a un corpo numeri suoi in qualunque momento, con un messaggio a quel corpo e un secondo in
-     cui il server accetta il più veloce fra i vecchi e i nuovi. È il primo pezzo di un veicolo e
-     non un veicolo: niente sterzo, niente inerzia.
-3. ~~Il colpo verificato dal server e le entità di un mod visibili~~ — **fatti il 2026-09-13**
-   (TODO.md OPEN-15, OPEN-20): il server lancia il raggio verso il corpo che un colpo nomina e lo
-   rifiuta se c'è un blocco solido in mezzo; `core.ecs.visible` fa mandare a tutti un'entità di un
-   mod, come *cosa* e non come persona. Per strada: gli id dei corpi sul filo erano a 32 bit e
-   perdevano la generazione (OPEN-48), ora sono interi.
-4. ~~Il codice Luau che un mondo spedisce al client~~ — **fatto il 2026-09-13** (TODO.md
-   OPEN-49), con il rifiuto del giocatore. Quello che ne manca è in quella voce: HUD e input da
-   codice di un mondo, e un gate che lo guardi girare in una finestra.
-5. ~~Un sandbox con un portale verso l'arena e uno verso la pista~~ — **fatto il 2026-09-14**
-   (protocollo 34): ogni apertura ha la sua destinazione. Con il `grep` pulito lo stesso giorno,
-   **il test di M13 passa**, a mano su tre server in locale (TODO.md, "one sandbox, two worlds").
-
-**Stato, 2026-09-14.** M13 ha il suo test passato; quello che resta sono i buchi che il test
-non guarda. Dal più economico:
-
-6. ~~Il kart guidato a mano~~ — provato a mano (2026-09-14).
-7. **La pista come gioco.** ~~Niente volo sopra i muri~~ e ~~un corpo largo quanto il kart~~ —
-   **fatti il 2026-09-14** (protocollo 35, `core.body_width`; TODO.md, "the timed track"), e
-   ~~conto alla rovescia, tempi tenuti per nome e confrontati~~ nel mod della pista, con
-   `core.player_name`. ~~Un pilota scriptato che non porta il kart fuori dalla piazzola~~ —
-   piazzola larga 13, due giri e un rientro provati in gioco (2026-09-14). ~~I tempi persi a un
-   riavvio del server~~ — **tenuti dal 2026-09-19** con `core.storage_set`, nel world file.
-   **Dal 2026-09-20 si arriva a piedi**: il mondo cammina, i kart stanno parcheggiati nella
-   piazzola come blocchi che indossano il modello del kart, e un tasto destro su uno ci fa
-   salire (`core.body_drive`, `core.body_model`, `core.model_id`; F fa scendere e il kart
-   resta dov'è -- dal 2026-10-16, prima era un altro tasto destro, che faceva scendere per sbaglio).
-8. **Inerzia e sterzo verificati dal server** (TODO.md OPEN-47). **Deciso il 2026-09-19:** il
-   kart è un corpo rigido su ruote con Jolt Physics (5.6.0, build deterministica), il giocatore
-   a piedi resta sul risolutore AABB proprio, con peso a terra e l'aria dei puzzle a portali; il movimento
-   è in `core/physics` (`player_update`, `vehicle_update`). Il passo dopo: il client manda i tasti
-   e il dt, il server li rigioca con lo stesso codice e corregge dove non torna, al posto dei
-   controlli di velocità, percorso e altezza. L'aderenza la decidono le gomme di Jolt, non un
-   numero di `core.drive`. **Finché quel passo non c'è**, tre regole tengono il kart dentro a
-   quello che il server sa controllare (TODO.md, 2026-09-20): il telaio resta entro 26 gradi
-   dalla verticale, le ruote non prendono come terreno niente oltre i 50 gradi — le due cose
-   che lo facevano coricare su un muro e scalarlo — e "dentro un blocco" per un corpo che guida
-   è il solo centro, perché il box del server non è la forma che il client simula e il rifiuto
-   rimetteva il telaio dentro il muro.
-9. Poi la decisione se il gioco è giocabile, che riapre M10.
+**No big design decision remains open.** The work remains: what M13 lists, and risk no. 1 above,
+which the scope mitigates more weakly than M11 did.
 
 ---
 
-## Verifica dei fatti citati
+## 10. State and next steps
 
-Fatti verificati durante l'analisi, non ricordati:
+**State, 2026-09-12.** M-1 done (fork frozen and tagged); M0..M3 passed and M4..M9 closed, each with
+its own declared limits; M10 suspended; M11 cancelled; M12 ongoing; M13 open and without an estimate.
+Open defects are in `TODO.md`, measurements and history in `docs/archive/` (since 2026-09-13, when the
+tests were cut to 13 and the documentation rewritten on the current state:
+[`ARCHITECTURE.md`](ARCHITECTURE.md)).
 
-- raylib 5.5 installato localmente (`~/dev/raylib/prova FPS/venv`, `raylib-5.5.0.4`): confermata
-  la presenza di `rlSetMatrixProjection`, `rlGetMatrixProjection`, `rlLoadFramebuffer`,
+**Next steps, in order:**
+
+1. ~~Decide a world's client-side code~~ — **decided on 2026-09-13**: Luau from the server, refusable
+   by the client (§5.6).
+2. **Movement limits declared by the world** and read by the validator (M13 point 2). **Per world done
+   on 2026-09-13** (TODO.md OPEN-44). From there remain, cheapest first:
+   - ~~chunk streaming at racing speed, measured before changing it~~ — **measured on 2026-09-13**
+     (TODO.md OPEN-45): it holds up to 120 m/s, where the limit is the radius (128 nodes, one second
+     of road); at 256 m/s it does not, 64 nodes of terrain ahead at the least. Not changed: it waits
+     for a track that says how far one needs to see;
+   - ~~a claim's path checked by the server~~ — **done on 2026-09-13** (TODO.md OPEN-46): the server
+     retraces the claim with the client's solver, in five ways, and accepts it if one arrives within
+     half a node; the first claim after a server placement is judged by where it ends. A path that
+     turns back on an axis between two claims stays refused, which on foot does not happen and at 160
+     m/s does;
+   - ~~speed per body~~ — **done on 2026-09-13** (TODO.md OPEN-47): `core.body_movement` gives a body
+     numbers of its own at any moment, with a message to that body and a second in which the server
+     accepts the faster of old and new. It is the first piece of a vehicle and not a vehicle: no
+     steering, no inertia.
+3. ~~The blow checked by the server and a mod's visible entities~~ — **done on 2026-09-13** (TODO.md
+   OPEN-15, OPEN-20): the server casts the ray towards the body a blow names and refuses it if there is
+   a solid block in between; `core.ecs.visible` has a mod's entity sent to everyone, as a *thing* and
+   not as a person. On the way: body ids on the wire were 32-bit and lost the generation (OPEN-48), now
+   they are whole.
+4. ~~The Luau code a world ships to the client~~ — **done on 2026-09-13** (TODO.md OPEN-49), with the
+   player's refusal. What is missing from it is in that entry: HUD and input from a world's code, and a
+   gate that watches it run in a window.
+5. ~~A sandbox with a portal to the arena and one to the track~~ — **done on 2026-09-14** (protocol
+   34): every opening has its own destination. With the `grep` clean the same day, **M13's test
+   passes**, by hand on three local servers (TODO.md, "one sandbox, two worlds").
+
+**State, 2026-09-14.** M13 has passed its test; what remains are the holes the test does not look at.
+Cheapest first:
+
+6. ~~The kart driven by hand~~ — tried by hand (2026-09-14).
+7. **The track as a game.** ~~No flying over the walls~~ and ~~a body as wide as the kart~~ — **done
+   on 2026-09-14** (protocol 35, `core.body_width`; TODO.md, "the timed track"), and ~~countdown, times
+   kept by name and compared~~ in the track's mod, with `core.player_name`. ~~A scripted driver that
+   does not take the kart out of the pit area~~ — pit area 13 wide, two laps and a return tried in game
+   (2026-09-14). ~~Times lost at a server restart~~ — **kept since 2026-09-19** with
+   `core.storage_set`, in the world file. **Since 2026-09-20 you arrive on foot**: the world walks,
+   karts are parked in the pit area as blocks wearing the kart model, and a right click on one gets you
+   in (`core.body_drive`, `core.body_model`, `core.model_id`; F gets you out and the kart stays where it
+   is -- since 2026-10-16, before it was another right click, which got you out by mistake).
+8. **Inertia and steering checked by the server** (TODO.md OPEN-47). **Decided on 2026-09-19:** the
+   kart is a rigid body on wheels with Jolt Physics (5.6.0, deterministic build), the player on foot
+   stays on our own AABB solver, with weight on the ground and the portal puzzles' air control;
+   movement is in `core/physics` (`player_update`, `vehicle_update`). The next step: the client sends
+   keys and dt, the server replays them with the same code and corrects where it does not match, in
+   place of the speed, path and height checks. Grip is decided by Jolt's tyres, not by a `core.drive`
+   number. **Until that step exists**, three rules keep the kart within what the server can check
+   (TODO.md, 2026-09-20): the chassis stays within 26 degrees of vertical, the wheels take nothing over
+   50 degrees as ground — the two things that made it lie down on a wall and climb it — and "inside a
+   block" for a driving body is the centre only, because the server's box is not the shape the client
+   simulates and the refusal put the chassis back inside the wall.
+9. Then the decision whether the game is playable, which reopens M10.
+
+---
+
+## Checking the facts cited
+
+Facts checked during the analysis, not remembered:
+
+- raylib 5.5 installed locally (`~/dev/raylib/prova FPS/venv`, `raylib-5.5.0.4`): confirmed the
+  presence of `rlSetMatrixProjection`, `rlGetMatrixProjection`, `rlLoadFramebuffer`,
   `rlFramebufferAttach`, `rlLoadTextureDepth`, `rlLoadVertexArray`, `rlUpdateVertexBuffer`,
-  `rlDrawVertexArrayElements`, `rlSetUniform(Matrix)`, `rlTextureParameters`,
-  `DrawMeshInstanced`, filtri anisotropici. Confermata **l'assenza** di API per texture array.
+  `rlDrawVertexArrayElements`, `rlSetUniform(Matrix)`, `rlTextureParameters`, `DrawMeshInstanced`,
+  anisotropic filters. Confirmed **the absence** of texture array APIs.
 
-  > **Aggiornato in M0:** il progetto è partito da **raylib 6.0** (submodule `third_party/raylib`,
-  > tag `6.0`), non da 5.5. Riverificato sull'header di 6.0: tutte le funzioni sopra esistono
-  > ancora, le texture array restano assenti come previsto, e la convenzione di proiezione non è
-  > cambiata (RH, depth `[-1,1]`, `m11 = -1`). Assenti invece `rlGetRenderBatch` e
-  > `rlLoadShaderCode`, che il §2.3 citava per errore. Build verificata: `PLATFORM_DESKTOP`,
-  > `GRAPHICS_API_OPENGL_33`, GLFW su X11, raylib statica.
+  > **Updated in M0:** the project started from **raylib 6.0** (submodule `third_party/raylib`, tag
+  > `6.0`), not 5.5. Rechecked on 6.0's header: all the functions above still exist, texture arrays
+  > stay absent as expected, and the projection convention has not changed (RH, depth `[-1,1]`,
+  > `m11 = -1`). Absent instead `rlGetRenderBatch` and `rlLoadShaderCode`, which §2.3 cited by mistake.
+  > Build checked: `PLATFORM_DESKTOP`, `GRAPHICS_API_OPENGL_33`, GLFW on X11, static raylib.
   > Scripting: **Luau 0.733** (`third_party/luau`).
-- Fork engine: 77 file, +6 369/−309 rispetto a upstream v5.16.1 (`5ebd9b579`); misurato anche
-  90 file / +6 587 contro la merge-base `750ae1956` di `upstream/master`.
-  Base dell'engine di partenza `src/`: 214 491 righe (client 40 962, server 16 574, network 7 100, gui 18 692,
-  mapgen 11 669).
-- Renderer portali del fork: `portal.cpp` 1050 righe (100% nuove) + `portal.h` 84 +
-  `portal_manager.{h,cpp}` 525 ≈ **1 660 righe**; hook in `clientmap.cpp` +182/−17;
-  `sky.cpp` +187/−78; shader +12. `game.cpp` +1247/−105, di cui ~880 sono le dieci funzioni
-  dual-client e `performSessionSwap` (282 righe da sola).
-- Ricorsione dei portali: **assente** oggi — il quad hook è saltato quando
-  `m_bypass_frustum_culling` è attivo (`clientmap.cpp:1281-1283`).
-- Ogni RTT è alla dimensione piena di rendering (`ctx.target_size`, `ECF_A8R8G8B8`) e fa un
-  `drawAll()` completo con culling disabilitato (`portal.cpp:660-919`); re-render intra-frame se
-  la camera si sposta ≥ 4 nodi (`portal.cpp:1033-1047`).
-- Mod: `yaportal/init.lua` 6911 righe / 289 KB, `yaportal_link/init.lua` 2221 / 94 KB,
-  `yafps/` 552 righe + 160 KB di media; totale Lua ≈ 9 684 righe.
-- Il mod **non usa mod channel**: tutta la comunicazione extra passa da HTTP + ambiente insicuro.
-- Nel sistema esiste già un esperimento raylib in Python (`~/dev/raylib/prova FPS`, `pyray` 5.5,
-  368 righe) — utile come riferimento di ergonomia, non come base.
+- Engine fork: 77 files, +6,369/−309 against upstream v5.16.1 (`5ebd9b579`); also measured 90 files /
+  +6,587 against the merge base `750ae1956` of `upstream/master`. The starting engine's `src/` base:
+  214,491 lines (client 40,962, server 16,574, network 7,100, gui 18,692, mapgen 11,669).
+- The fork's portal renderer: `portal.cpp` 1050 lines (100% new) + `portal.h` 84 +
+  `portal_manager.{h,cpp}` 525 ≈ **1,660 lines**; hooks in `clientmap.cpp` +182/−17; `sky.cpp`
+  +187/−78; shader +12. `game.cpp` +1247/−105, of which ~880 are the ten dual-client functions and
+  `performSessionSwap` (282 lines on its own).
+- Portal recursion: **absent** today — the quad hook is skipped when `m_bypass_frustum_culling` is on
+  (`clientmap.cpp:1281-1283`).
+- Every RTT is at full rendering size (`ctx.target_size`, `ECF_A8R8G8B8`) and does a full `drawAll()`
+  with culling disabled (`portal.cpp:660-919`); intra-frame re-render if the camera moves ≥ 4 nodes
+  (`portal.cpp:1033-1047`).
+- Mods: `yaportal/init.lua` 6911 lines / 289 KB, `yaportal_link/init.lua` 2221 / 94 KB, `yafps/` 552
+  lines + 160 KB of media; total Lua ≈ 9,684 lines.
+- The mod **does not use mod channels**: all extra communication goes through HTTP + the insecure
+  environment.
+- An experiment with raylib in Python already exists on the system (`~/dev/raylib/prova FPS`, `pyray`
+  5.5, 368 lines) — useful as an ergonomics reference, not as a base.
 
-**Non verificato sulla macchina (da confermare nello spike M0):** le proprietà di Luau
-(native codegen, interrupt/quota memoria, assenza di `setfenv`/`loadstring`), di QuickJS-ng e di
-WAMR provengono da conoscenza pregressa, non da una build locale. M0 deve includere: build di
-Luau con CMake accanto a raylib, e una misura del costo di una chiamata scriptata per frame.
-- API Lua aggiunte dal fork: `set_portals`, `set_portal_cam_hint`, `clear_portal_cam_hint`,
-  `set_portal_xworld_dest`, `set_xworld_target`, `register/update_portal_sky_type`,
-  `set_portal_sky`, `redirect_player`, `xworld_swap_player`, `xworld_exchange(_posts)`.
-  Opcode nuovi: `TOCLIENT_PORTAL_TELEPORT 0x65`, `TOCLIENT_REDIRECT 0x66`,
-  `TOCLIENT_XWORLD_SWAP 0x67`, `TOCLIENT_PORTAL_STATE 0x68`, `TOSERVER_XWORLD_STATUS 0x54`.
-- Misura di performance dual-client (dal lavoro M7 sul fork): il render del mondo B costa il
-  **3-7%** del frame; il collo di bottiglia è il mondo A.
+**Not checked on the machine (to confirm in spike M0):** the properties of Luau (native codegen,
+interrupt/memory quota, absence of `setfenv`/`loadstring`), QuickJS-ng and WAMR come from prior
+knowledge, not from a local build. M0 must include: building Luau with CMake beside raylib, and a
+measure of the cost of a scripted call per frame.
+- Lua APIs added by the fork: `set_portals`, `set_portal_cam_hint`, `clear_portal_cam_hint`,
+  `set_portal_xworld_dest`, `set_xworld_target`, `register/update_portal_sky_type`, `set_portal_sky`,
+  `redirect_player`, `xworld_swap_player`, `xworld_exchange(_posts)`. New opcodes:
+  `TOCLIENT_PORTAL_TELEPORT 0x65`, `TOCLIENT_REDIRECT 0x66`, `TOCLIENT_XWORLD_SWAP 0x67`,
+  `TOCLIENT_PORTAL_STATE 0x68`, `TOSERVER_XWORLD_STATUS 0x54`.
+- Dual-client performance measure (from the M7 work on the fork): rendering world B costs **3-7%** of
+  the frame; the bottleneck is world A.
