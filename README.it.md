@@ -74,8 +74,15 @@ I pacchetti già compilati sono nella pagina **[Releases](../../releases)**. A o
 tag `v*`) GitHub Actions li costruisce per tutti e tre i sistemi e li pubblica come pre-release.
 
 - **Linux**: si scompatta il `.tar.gz` dove si vuole e si avvia `./cnp_client`; oppure si rende
-  eseguibile l'`.AppImage` (`chmod +x`) e lo si avvia; oppure si installa il `.flatpak` con
-  `flatpak install --user <file>.flatpak`, e il gioco compare nel menù del desktop.
+  eseguibile l'`.AppImage` (`chmod +x`) e lo si avvia; oppure si installa il Flatpak dal suo
+  repository, che lo tiene aggiornato (`flatpak update` porta ogni versione nuova):
+
+  ```sh
+  flatpak install --user https://giacomo986.github.io/CubesAndPortals/cubes-and-portals.flatpakref
+  ```
+
+  Anche il `.flatpak` di ogni release si installa (`flatpak install --user <file>.flatpak`),
+  ma un Flatpak installato da file non si aggiorna mai: meglio dal repository.
 - **Windows**: si scompatta lo `.zip` e si fa doppio clic su `cnp_client.exe`.
 - **macOS**: si apre il `.dmg` e si trascina l'app dove si vuole.
 
@@ -85,7 +92,8 @@ informazioni", poi "Esegui comunque"); su macOS si fa clic destro sull'app e Apr
 **Aggiornamenti.** Il gioco controlla da solo se c'è una versione nuova: all'apertura del menù
 chiede a GitHub l'ultima release di questo repository (manda solo quella richiesta, nulla di chi
 gioca). Se ce n'è una più recente compare il bottone "Nuova versione …: scarica", che apre la
-pagina Releases. Si spegne in Opzioni, Aggiornamenti, o per una sola partita con
+pagina Releases; un Flatpak installato dal repository (sopra) lo aggiorna invece
+`flatpak update`. Il controllo si spegne in Opzioni, Aggiornamenti, o per una sola partita con
 `--no-update-check`.
 
 Mondi salvati e opzioni stanno in `~/.local/share/cubes-and-portals` e
@@ -227,6 +235,41 @@ due mondi:
 - **L'assalto** (`games/assault`): l'assalto finale alla dimensione di Basoalth, da giocare
   insieme: quattro fortezze, un negozio, alleati e costruttori, un boss che diventa un gigante e
   la fuga in jeep in un tunnel di lava.
+
+### Survival: i mondi sparsi sulla terra
+
+"Mode: Survival" nella pagina del nuovo mondo del menù del titolo (`cnp_server --survival` sulla
+stanza sandbox, `tools/track.sh --survival`) fa lo stesso gioco senza piazza:
+
+- **Niente piazza, uno spawn a caso.** Il terreno è il rumore ovunque; si parte su terra asciutta
+  e piana scelta dal seme fino a 2500 dal centro, sotto il cielo aperto se ce n'è entro 64. Niente
+  catalogo (C), neanche per il proprietario (`/perm creative owner` lo ridà), e una morte lascia la
+  borsa in una tomba dove è successo, segnata sulla mappa (`mods/grave`).
+- **Portali sparsi sulla terra** (`mods/gates`): cinque celle di 256 su sei ne hanno uno, una porta
+  nell'aspetto del suo mondo con accanto un arco per tornare e una fila di dieci lampade sopra:
+  tante accese quanta è la sua difficoltà, da 1 a 10, che sale di uno ogni 300 nodi dallo spawn.
+  Un sito di ogni mondo sta entro 950 dallo spawn, facile; il laboratorio è a 1500-2200, chiuso
+  dalle sette chiavi come sulla piazza; il fronte e l'assalto, oltre 1500, si aprono dopo il finale.
+- **Dietro ogni portale un livello suo** (`mods/keys` dà a ogni sito uno slot del suo mondo): il
+  parkour costruisce un percorso dalle sue stazioni e da pezzi nuovi (salti, gradini, pilastri, pad
+  di rimbalzo, lastre che cedono), 3 + d, con varchi misurati sul salto del corpo; le backrooms una
+  stanza d'uscita a 48 + 24 d, nel buio del Livello 1 da d 4, con le luci che si spengono da d 5;
+  la pista un circuito chiuso suo (chicane, una salita, un trampolino secondo d) con tre giri da
+  battere; le terre dell'arpg un percorso di 3 + d aree fino a un covo e al suo signore; le camere
+  di prova una copia della loro fila, un tratto di 2 + d / 2 camere più avanti quanto più è dura;
+  l'arena, il cuore dell'Inferno, il fronte e l'assalto scalano con d ondate (con una variante
+  ciascuna da d 4), guardiani, salute, bot e guarnigioni. L'uscita di ogni livello è chiusa, vicina
+  a dove si comincia e nascosta dietro una sua parete sotto una lampada spenta; a livello fatto la
+  parete cade, la lampada si accende, e una porta o il circuito stesso riporta lì. Due siti dello
+  stesso mondo si possono attraversare insieme.
+- **Ricompense e chiavi.** Al ritorno al portale una cassa tiene ciò che quel mondo dà (smeraldi e
+  binari dalla pista, oro e ossidiana dall'Inferno, frecce e armatura dall'arena, ...), il 40% in
+  più per ogni gradino di d, un quarto per un livello già fatto, ogni tanto qualcosa di raro. La
+  chiave di un mondo viene solo da un livello di d 4 o più.
+- **Indicazioni** (`mods/villagers`): un abitante ogni tanto parla del portale più vicino, in modo
+  vago (com'è, da che parte, vicino o lontano, come sono tornati quelli che ci sono andati); una
+  carovana, di uno vicino al villaggio da cui viene; il sindaco, per 2 + d smeraldi, esattamente,
+  con la strada sulla mappa. I portali visti vanno sulla mappa, verdi una volta fatti.
 
 ### Il sandbox
 
@@ -579,7 +622,7 @@ perché di ciascuno è in [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 - [`docs/MODDING.md`](docs/MODDING.md): scrivere un mod; [`docs/API.md`](docs/API.md): l'API
   Luau, generata da `src/script/api.luau`.
 - [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.md): fare un texture pack.
-- [`docs/BUILDING.md`](docs/BUILDING.md): compilare, pacchetti e versioni.
+- [`docs/BUILDING.md`](docs/BUILDING.md): compilare, pacchetti, versioni e il repository Flatpak.
 - [`TODO.md`](TODO.md) (in inglese): cosa manca e cosa non va.
 - [`docs/archive/`](docs/archive/README.md): lo storico, milestone per milestone, con le misure.
 
