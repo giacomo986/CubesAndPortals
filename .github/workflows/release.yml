@@ -76,5 +76,5 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: packages/*
-          prerelease: ${{ contains(github.ref_name, '-alpha') }}
+          make_latest: true
           body_path: CHANGELOG.md
