@@ -88,16 +88,25 @@ local ENGINEER = 32.0   -- scripted laps of it run 30-32 s (2026-10-09)
 -- By name: a player's state here is made again each time a lap brings them
 -- back from the Inferno.
 local under: { [string]: number } = {}
+-- Come by a survival site (mods/keys' keys:level), the time to beat is that
+-- site's: 1.3 - 0.035 d of the engineer's (d 1 41 s, d 4 37 s, d 10 30 s).
+local beat: { [string]: number } = {}
+if core.side() ~= "client" then
+    core.event.on("keys:level", function(ev)
+        beat[core.player_name(ev.player)] = ENGINEER * (1.3 - 0.035 * ev.d)
+    end)
+end
 function engineer_lap(p: number, s: any, lap: number)
-    if core.bag_count(p, "keys:pista") > 0 then return end
-    local n = if lap < ENGINEER then (under[s.name] or 0) + 1 else 0
+    local target = beat[s.name] or ENGINEER
+    if core.bag_count(p, "keys:pista") > 0 and beat[s.name] == nil then return end
+    local n = if lap < target then (under[s.name] or 0) + 1 else 0
     under[s.name] = n
     if n >= 3 then
         under[s.name] = 0
         core.notice(p, "Tre giri sotto il tempo dell'ingegnere.")
         core.event.emit("keys:earned", { player = p, key = "pista" })
     else
-        core.notice(p, string.format("Il tempo dell'ingegnere: %.1f s. Giri di fila sotto: %d di 3.", ENGINEER, n))
+        core.notice(p, string.format("Il tempo dell'ingegnere: %.1f s. Giri di fila sotto: %d di 3.", target, n))
     end
 end
 

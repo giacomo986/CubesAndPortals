@@ -313,6 +313,12 @@ if serving then
         { x = 220, y = FL, z = 2, door = 11, time = 10 },   -- 10
     }
     local timers: { [number]: number } = {}   -- seconds left, by door
+    -- Come by a survival site (mods/keys' keys:level), a push button holds its
+    -- door 1.2 - 0.04 d of its time (d 1 116%, d 10 80%); the last to come sets it.
+    local hold = 1.0
+    core.event.on("keys:level", function(ev)
+        hold = 1.2 - 0.04 * ev.d
+    end)
 
     -- A floor button, two by two from its lower corner (x, z), which wears it.
     local function button(x: number, y: number, z: number)
@@ -854,9 +860,10 @@ if serving then
         end
         for _, b in PUSHES do
             if b.x == cx and b.y == cy and b.z == cz then
-                timers[b.door] = b.time
+                local t = math.floor(b.time * hold + 0.5)
+                timers[b.door] = t
                 set_door(b.door, true)
-                tell(0, `clock {b.time}`)
+                tell(0, `clock {t}`)
             end
         end
         return true

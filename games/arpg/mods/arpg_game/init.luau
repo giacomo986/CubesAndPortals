@@ -676,6 +676,11 @@ function L.at(x: number, z: number): number
 end
 
 -- A place's level: its area's, and down in the crypt the floor's.
+-- Come by a survival site (mods/keys' keys:level), every area is d - 4
+-- levels off its own (d 1 three easier, d 10 six harder), never under 1: set
+-- by whoever came last, on the server, which is where the creatures are made.
+L.bonus = 0
+
 function L.level_at(x: number, y: number, z: number): number
     local n = L.at(x, z)
     local a = L.AREAS[n]
@@ -683,9 +688,9 @@ function L.level_at(x: number, y: number, z: number): number
         return 1
     end
     if a.kind == "crypt" and y < GROUND - 1 then
-        return if x >= L.CRYPT_DX + 138 then 12 elseif x >= L.CRYPT_DX + 110 then 11 else 10
+        return math.max(1, L.bonus + (if x >= L.CRYPT_DX + 138 then 12 elseif x >= L.CRYPT_DX + 110 then 11 else 10))
     end
-    return a.level
+    return math.max(1, a.level + L.bonus)
 end
 
 -- The town's places, around its middle.
@@ -801,6 +806,10 @@ end
 -- ==================================================================== server
 
 if serving then
+    core.event.on("keys:level", function(ev)
+        L.bonus = ev.d - 4
+        core.log(`arpg_game: a site's level, d {ev.d}: the lands {L.bonus} levels off`)
+    end)
     core.net.open()
 
     -- Opening 0, where a player from the sandbox comes in: an arch in the
