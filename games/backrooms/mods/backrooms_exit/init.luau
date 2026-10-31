@@ -24,8 +24,9 @@ local WALLPAPER, CARPET = id("backrooms:wallpaper"), id("backrooms:carpet")
 -- start in on Level 0 -- its way out hidden in its west wall, under a dark
 -- lamp -- and an exit room like this world's own, 48 + 24 d away the way the
 -- seed points, on Level 0 up to d 3 and in Level 1's dark from d 4. The
--- radio leads there; reaching it is the level done, and its signal takes
--- the player back to the start room, where the wall has opened.
+-- radio leads there; reaching it is the level done, and a doorway there
+-- opens (a portal of this world) onto one in the start room, where the wall
+-- has opened. Opened only then: linked portals lead both ways.
 type Plan = { sx: number, sz: number, ex: number, ez: number, eF: number }
 local PLANS: { [number]: Plan } = {}
 local level_slot: { [number]: number } = {}
@@ -106,6 +107,18 @@ core.register_mapgen("backrooms_exit:room", function(ctx)
     for y = 21, 22 do put(plan.sx, y, plan.sz + 2, WALLPAPER) end   -- the doorway there, walled
     exit_room(ctx, plan.ex, plan.ez, plan.eF, if plan.eF == F then CONCRETE else WALLPAPER,
               if plan.eF == F then SLAB else CARPET, false)
+    -- The two doorways of the way back, facing +x, each a frame round a hole
+    -- one wide and two high with a wall behind it.
+    for _, d in { { plan.ex + 2, plan.eF, plan.ez + 2 }, { plan.sx + 6, 21, plan.sz + 6 } } do
+        for dz = -1, 1 do
+            for y = d[2], d[2] + 2 do
+                put(d[1] - 1, y, d[3] + dz, SIGN)
+                if dz ~= 0 or y == d[2] + 2 then put(d[1], y, d[3] + dz, SIGN) end
+            end
+        end
+        put(d[1], d[2], d[3], 0)
+        put(d[1], d[2] + 1, d[3], 0)
+    end
 end)
 core.set_portal(1, X0 + 2.6, F + 1, Z0 + 2.5)
 
@@ -115,8 +128,8 @@ core.event.on("keys:level", function(ev)
     if plan == nil then return end
     ev.cancel = true
     level_slot[ev.player] = ev.slot
-    core.player_place(ev.player, plan.sx + 7.5, 21, plan.sz + 6.5, -1, 0, 0)
-    core.player_spawn(ev.player, plan.sx + 7.5, 21, plan.sz + 6.5, true)
+    core.player_place(ev.player, plan.sx + 3.5, 21, plan.sz + 5.5, -1, 0, 0)
+    core.player_spawn(ev.player, plan.sx + 3.5, 21, plan.sz + 5.5, true)
     core.event.emit("keys:start", { player = ev.player, slot = ev.slot, ex = plan.sx - 1, ey = 21, ez = plan.sz + 2 })
     core.notice(ev.player, "Una radio gracchia, lontano. L'uscita e' dove il segnale e' forte.")
 end)
@@ -153,9 +166,14 @@ core.event.on("core:tick", function(ev)
             local d = math.sqrt(dx * dx + dz * dz)
             if x >= plan.ex + 1 and x <= plan.ex + 8 and z >= plan.ez + 1 and z <= plan.ez + 8
                 and math.abs(y - plan.eF) < 3 then
-                core.event.emit("keys:cleared", { player = p, slot = slot })
-                core.notice(p, "Il segnale ti riporta indietro. Nella stanza dove sei arrivato qualcosa e' cambiato.")
-                core.player_place(p, plan.sx + 4.5, 21, plan.sz + 4.5, -1, 0, 0)
+                if not s.found then
+                    s.found = true
+                    core.event.emit("keys:cleared", { player = p, slot = slot })
+                    local a = core.portal_open(plan.ex + 2.5, plan.eF + 1, plan.ez + 2.5, 1, 1, 0, 0.5, 1.0)
+                    local b = core.portal_open(plan.sx + 6.5, 22, plan.sz + 6.5, 1, 1, 0, 0.5, 1.0)
+                    if a >= 0 and b >= 0 then core.portal_link(a, b) end
+                    core.notice(p, "La porta verde riporta alla stanza dove sei arrivato. Li' qualcosa e' cambiato.")
+                end
                 continue
             end
             if clock >= s.next_beep then
