@@ -235,6 +235,10 @@ tunnel and the credits. After that the sandbox stays free, and two more worlds o
   fortresses, a shop, allies and builders, a boss who grows into a giant, and an escape by jeep
   through a lava tunnel.
 
+`ALL_OPEN = true` in `mods/keys/init.luau` unseals every world for everybody, to test without
+winning anything: the ways out, the arches, the laboratory's gate, the front and the assault.
+`false` is the game as it ships.
+
 ### Survival: the worlds scattered over the land
 
 "Mode: Survival" on the title menu's new-world page (`cnp_server --survival` on the sandbox room,

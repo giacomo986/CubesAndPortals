@@ -360,6 +360,11 @@ end)
 -- passed here, the arch until the sandbox has seen its key in their bag. The
 -- membrane parts for them alone.
 
+-- ALL_OPEN unseals every world for everybody, to test without winning
+-- anything: the ways out, the arches, the front, the assault and the
+-- laboratory's gate. false is the game as it ships.
+local ALL_OPEN = false
+
 local HUB = false     -- the sandbox: leads to other rooms, never to "sandbox"
 local EXITS: { number } = {}
 for k = 0, 15 do
@@ -406,7 +411,7 @@ if not HUB and #EXITS > 0 then
             if x == nil then continue end
             local lv = level_of[p]
             local won = if lv then cleared(lv.site, p) else next(passed(p)) ~= nil
-            for _, k in EXITS do core.portal_seal(p, k, not won) end
+            for _, k in EXITS do core.portal_seal(p, k, not (won or ALL_OPEN)) end
             -- The altar, one forward and two to the side of each way out (all
             -- face +x), put back while anybody is near: a world's own stages
             -- write over what is set before its columns are made.
@@ -617,16 +622,16 @@ core.event.on("core:tick", function(ev)
     local ox, oy, oz = core.get_portal(LAB, 0), core.get_portal(LAB, 1), core.get_portal(LAB, 2)
     for _, p in core.players() do
         if scan then update(p) end
-        for _, a in ARCHES do core.portal_seal(p, a.k, not record(p)[a.room]) end
+        for _, a in ARCHES do core.portal_seal(p, a.k, not (ALL_OPEN or record(p)[a.room])) end
         for _, k in { FRONT, ASSAULT } do
             if k >= 0 then
-                core.portal_seal(p, k, not FRONT_OPEN and core.shared_storage_get("ending:" .. who(p)) ~= "1")
+                core.portal_seal(p, k, not (FRONT_OPEN or ALL_OPEN) and core.shared_storage_get("ending:" .. who(p)) ~= "1")
             end
         end
         local x, y, z = core.player_pos(p)
         if x == nil then continue end
         if math.abs(x - ox) < 2.6 and math.abs(z - oz) < 1.6 and math.abs(y - oy) < 3
-            and count(record(p)) < 7 then
+            and count(record(p)) < 7 and not ALL_OPEN then
             -- The gate faces +x (mods/gates turns every opening past the first that way).
             core.player_place(p, ox + 4, y, z, -1, 0, 0)
             if (told[p] or -10) + 3 < clock then

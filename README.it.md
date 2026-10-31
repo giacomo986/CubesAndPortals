@@ -236,6 +236,10 @@ due mondi:
   insieme: quattro fortezze, un negozio, alleati e costruttori, un boss che diventa un gigante e
   la fuga in jeep in un tunnel di lava.
 
+`ALL_OPEN = true` in `mods/keys/init.luau` apre tutti i mondi a tutti, per provarli senza vincere
+niente: le uscite, gli archi, il cancello del laboratorio, il fronte e l'assalto. `false` è il
+gioco come viene distribuito.
+
 ### Survival: i mondi sparsi sulla terra
 
 "Mode: Survival" nella pagina del nuovo mondo del menù del titolo (`cnp_server --survival` sulla
