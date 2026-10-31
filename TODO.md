@@ -390,16 +390,18 @@ from villagers and caravans, no catalogue and a grave on death. Measured: seeds 
 300-600, 3.9 at 900-1200, 6.2 at 1500-1800. Played in Xephyr one site at a time (scratch commands
 standing in for finishing a level): chambers, parkour, backrooms, arena. Open:
 - The test chambers, the arpg lands and the track have no level of their own: behind a site they
-  play their own trial (at the site's d for the key rule and the reward). The chambers need their
-  rooms as templates, which means their absolute coordinates (doors, buttons, vents, plates) per slot.
+  play their own trial, made harder by d (2026-10-31: the engineer's time, the lands' levels, the
+  push buttons' time). The chambers need their rooms as templates, which means their absolute
+  coordinates (doors, buttons, vents, plates) per slot.
 - The catalogue of new pieces (plan 5b) is built only for the parkour's jumps, steps and pillars.
 - One mouth per world: two players at two sites of the same world at once, the second finds its
   gate dark until the first walks away. An engine pool of mouths (as schedule_portals) lifts it.
-- The parkour's and the backrooms' way back to the hidden niche is a placement, not a piece.
-- d scales counts, never a creature's health (core.register_mob is fixed at load).
-- Rumours do not know which portals a player has done (mods/keys keeps that, storage is per mod);
-  an errand paying with a portal's place, and pins on the map for portals seen, are not built.
-- The spawn in a wide dark-oak wood falls back to the ground under it.
+- The backrooms' way back to the start room is a placement, not a piece (the parkour's is a
+  doorway since 2026-10-31).
+- Pins on the map for portals seen are not built (a route each would push out the player's three).
+  Done 2026-10-31: health scaled by d (core.mob_health) in the arena and the heart; directions
+  leave out the portals done; an exploring errand pays with a portal's place; a spawn in a wood
+  gets a clearing.
 - Still to play: two clients, and a whole level finished by hand at d 4+ for its key.
 
 ## The sandbox: what comes next (planned 2026-10-28)
