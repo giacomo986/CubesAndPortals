@@ -2237,6 +2237,64 @@ vero dei binding senza FFI (DESIGN.md §5.4) si paga con del tooling, non a mano
 o funzioni invece di scalari, e un generatore che le coprisse sarebbe più grande
 di quello che sostituisce.
 
+### La modalità survival: livelli dietro i portali
+
+Un mondo nuovo può essere **sandbox** (la piazza con i suoi portali) o **survival** (niente
+piazza, `cnp_server --survival` sulla stanza sandbox, il file `mode` del mondo). **Un mod non
+chiede mai la modalità**: guarda i dati. Così una correzione a un mod vale per tutte e due.
+
+- `core.plaza()` dà `lo, hi` della piazza (20, 100) o `nil` dove non c'è: chi la teneva
+  libera (alberi, villaggi, rovine, ...) o ci costruiva sopra (scalini, banco, scacchi, ...)
+  segue questa risposta.
+- `core.seed()` è il seme anche fuori da uno stadio di mapgen; `core.world_spawn()` risponde
+  già mentre i mod caricano, in un mondo senza piazza.
+- `core:died {player, x, y, z}`: un giocatore è morto (già rimesso al letto o allo spawn).
+  `mods/grave` ci mette la borsa in una tomba (`core.bag_to_container`).
+- `core.mob_health(id, hp)`: una creatura più robusta di come `core.register_mob` la fa.
+
+**I siti** sono di `mods/gates`, funzione del seme e di celle di 256: dove stanno, di che
+mondo, con che difficoltà `d` da 1 a 10 (cresce di uno ogni 300 nodi dallo spawn). Le bocche
+di ogni mondo (due per i sette con chiave) vanno ai siti più vicini ai giocatori; chi entra
+porta con sé la riga `core.player_carried`:
+
+```
+site=<id> d=<1..10> s=<seme del sito> t=<stanza>
+```
+
+Altri mod chiedono i siti con `gates:ask {x, z, r, tag, player}` e ricevono subito
+`gates:sites {tag, list = "stanza d x z;..."}`, senza quelli che `player` ha già fatto
+(`mods/villagers` ne fa dicerie e indicazioni). `maps:pin {player, label, x, z, colour}`
+mette un punto sulla mappa (1 viola, 2 verde).
+
+**Il protocollo dei livelli** sta in `mods/keys`, collegato in ogni mondo a tema. Chi arriva
+da un sito riceve uno **slot** di quel mondo (0 è la prova scritta a mano, sempre dov'era). Lo
+slot `n` è un quadrato di 2048 che parte da `x = 8192 + (n % 16) * 2048, z = (n // 16) * 2048`.
+Un mondo che ha un livello suo risponde agli eventi così:
+
+| evento | chi lo emette | campi | cosa vuol dire |
+|---|---|---|---|
+| `keys:level` | `mods/keys` | `player, slot, d, seed, ox, oz` | costruisci il livello dello slot e portaci il giocatore; annullabile: chi lo annulla l'ha preso, altrimenti il giocatore fa la prova del mondo |
+| `keys:start` | il mondo | `player, slot, ex, ey, ez` | l'uscita: un buco largo 1 e alto 2 in `ex ey ez`, rivolto a +x, a 8-20 dall'inizio |
+| `keys:cleared` | il mondo | `player, slot` | il livello è fatto |
+| `keys:earned` | il mondo | `player, key` | la prova del mondo è superata (vale anche per un livello) |
+| `keys:reward` | `mods/keys` (sandbox) | `player, list` | le ricompense vinte, a `mods/gates` che le mette in una cassa al sito |
+
+**L'uscita nascosta.** Le due celle in `ex + 1` (davanti al buco) sono una parete del livello,
+e la cella sopra di loro, in `ex + 1, ey + 2`, la riempie `mods/keys` con una lampada spenta
+(`keys:hint`): l'unico segno. A `keys:cleared` le due celle diventano aria, la lampada si
+accende e la prima bocca del mondo verso la sandbox va nel buco, aperta solo a chi ha finito.
+Il livello porta il giocatore indietro con un pezzo di sola andata, di solito un portale del
+mondo stesso (`core.portal_open`, aperto solo a livello fatto: due portali collegati vanno nei
+due sensi). Un livello di `d >= 4` dà la chiave del mondo; ogni livello dà una ricompensa.
+
+Lo stadio di mapgen del mondo riconosce le colonne di uno slot dalla x (`>= 8192`) e ne
+costruisce il piano, una funzione dello slot, di `d` e del seme salvati nello storage del mod
+all'arrivo. Così le colonne si fanno quando servono e restano nel file del mondo. Esempi:
+`games/parkour/mods/parkour` (stazioni e salti), `games/backrooms/mods/backrooms_exit`,
+`games/arpg/mods/arpg_game` (`L.add_level`), `games/track/mods/track_core` (un circuito,
+`track_core:level` / `track_core:laid`), `games/chambers/mods/chambers_game` (una copia della
+fila di camere da x 20000).
+
 ---
 
 ## Esempio minimo

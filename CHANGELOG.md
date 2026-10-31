@@ -3,6 +3,14 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.md](docs/BUILDING.md#versioni).
 
+## Non ancora uscito
+
+- Il Flatpak si aggiorna: installato una volta dal repository
+  (`flatpak install --user https://giacomo986.github.io/CubesAndPortals/cubes-and-portals.flatpakref`),
+  `flatpak update` porta ogni versione nuova. Il repository è firmato e sta su GitHub Pages;
+  il `.flatpak` delle release si installa ancora, ma da file non si aggiorna.
+- Le release delle alpha e delle beta escono segnate come pre-release.
+
 ## 0.10.0-alpha.1 — 2026-10-31
 
 Protocollo 111 (110 i binari, 111 fino a 24 bocche per stanza): non gioca con i server della

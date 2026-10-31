@@ -91,7 +91,9 @@ info", then "Run anyway"); on macOS, right-click the app and choose Open.
 **Updates.** The game checks for a new version by itself: when the title menu opens, it asks
 GitHub for the latest release of this repository (that request is all it sends, nothing about
 the player). If there is a newer one, a "New version …: download" button appears and opens the
-Releases page. Turn it off in Options, Updates, or for a single run with `--no-update-check`.
+Releases page; a Flatpak installed from the repository (above) is brought up to date by
+`flatpak update` instead. Turn the check off in Options, Updates, or for a single run with
+`--no-update-check`.
 
 Saved worlds and options live in `~/.local/share/cubes-and-portals` and
 `~/.config/cubes-and-portals` on Linux, in `~/.var/app/io.github.giacomoperin.CubesAndPortals`
@@ -609,7 +611,7 @@ The documents are in Italian.
 - [`docs/MODDING.md`](docs/MODDING.md): writing a mod; [`docs/API.md`](docs/API.md): the Luau
   API, generated from `src/script/api.luau`.
 - [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.md): making a texture pack.
-- [`docs/BUILDING.md`](docs/BUILDING.md): building, packages and versions.
+- [`docs/BUILDING.md`](docs/BUILDING.md): building, packages, versions and the Flatpak repository.
 - [`TODO.md`](TODO.md) (English): what is missing and what is broken.
 - [`docs/archive/`](docs/archive/README.md): the history, milestone by milestone, with the
   measurements.
