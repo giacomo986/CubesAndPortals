@@ -1,158 +1,138 @@
-# Le backrooms
+# The backrooms
 
-Un labirinto senza fine di stanze che nessuno ha costruito, su tre livelli
-impilati, con porte rare che portano da un livello all'altro. Il mondo è
-`mods/backrooms/init.luau` (server), più `backrooms_exit` (l'uscita) e
-`backrooms_hand` (la torcia, server e client).
+*[Leggi in italiano](README.it.md)*
 
-## Come ci si arriva
+An endless maze of rooms nobody built, on three stacked levels, with rare doors leading from one
+level to another. The world is `mods/backrooms/init.luau` (server), plus `backrooms_exit` (the
+way out) and `backrooms_hand` (the torch, server and client).
 
-`tools/track.sh` (o il menù del titolo) avvia il sandbox con sette stanze;
-il sesto cancello della piazza, un muro di carta da parati gialla con un neon
-sopra, sta a 16.5 21 28.5 (`mods/gates`). Si esce nella stanza all'origine
-del Level 0, quattro passi davanti al portale di ritorno. Un secondo portale
-di ritorno è nella stessa stanza delle poolrooms, rivolto a +x: lo trova solo
-chi è salito fin lì.
+## How to get there
 
-## I tre livelli
+`tools/track.sh` (or the title menu) starts the sandbox with its rooms; the plaza's sixth gate, a
+wall of yellow wallpaper with a strip light over it, stands at 16.5 21 28.5 (`mods/gates`). You
+come out in the room at the origin of Level 0, four steps in front of the portal home. A second
+portal home is in the same room of the poolrooms, facing +x: only whoever has climbed up there
+finds it.
 
-Il mondo è alto 64 celle; i livelli stanno uno sopra l'altro. F è la prima
-cella d'aria sopra il pavimento.
+## The three levels
 
-| livello | F | aria | materiali | luci |
+The world is 64 cells high; the levels are one over the other. F is the first cell of air over the
+floor.
+
+| level | F | air | materials | lights |
 |---|---|---|---|---|
-| Level 1 | 5 | 6 | cemento, lastre, pozzanghere | 2 lampade calde a stanza, 25% delle stanze spente |
-| Level 0 | 21 | 5 | carta da parati gialla, moquette, controsoffitto | 4 neon a stanza, 16% delle stanze spente |
-| Poolrooms | 37 | 9 | piastrelle bianche, piscine azzurre | 5 lampade a stanza, mai spente |
+| Level 1 | 5 | 6 | concrete, slabs, puddles | 2 warm lamps a room, 25% of the rooms dark |
+| Level 0 | 21 | 5 | yellow wallpaper, carpet, suspended ceiling | 4 strip lights a room, 16% of the rooms dark |
+| Poolrooms | 37 | 9 | white tiles, blue pools | 5 lamps a room, never dark |
 
-Gli atri salgono nel vuoto sopra il loro livello: soffitto a 19 nel Level 1,
-a 33 nel Level 0, a 62 nelle poolrooms.
+The atria rise into the void above their level: ceiling at 19 in Level 1, at 33 in Level 0, at 62
+in the poolrooms.
 
-Il nome del livello compare sullo schermo quando ci si entra
-(`level_at`: dai piedi, y ≥ 33 poolrooms, ≥ 17 Level 0, sotto Level 1).
-Niente si scava e niente si costruisce.
+The level's name comes up on the screen as you enter it (`level_at`: from the feet, y ≥ 33
+poolrooms, ≥ 17 Level 0, below that Level 1). Nothing is dug and nothing is built.
 
-## Come si genera
+## How it is generated
 
-Uno stage di mapgen (`backrooms:rooms`) per colonna di chunk (32×32). La
-pianta è funzione di x e z soltanto, non del seme: le backrooms sono le stesse
-per tutti, e il tick trova i portali senza aver visto girare il mapgen (un
-mondo caricato dal file non ne fa girare).
+A mapgen stage (`backrooms:rooms`) a column of chunks (32×32). The plan is a function of x and z
+only, not of the seed: the backrooms are the same for everybody, and the tick finds the portals
+without having seen the mapgen run (a world loaded from its file runs none).
 
-- **Stanze.** Una griglia di stanze di 8 celle. Il muro fra due stanze c'è o
-  no secondo un hash (Level 0 76%, Level 1 42%, poolrooms 36%); se c'è ha
-  sempre una porta larga 2, così da ogni stanza si arriva a tutte le altre.
-- **Corridoi.** File di 4 stanze lungo x (o lungo z) diventano un corridoio
-  largo 3 e lungo 32, i lati pieni, una porta per lato dove il muro della
-  griglia ha la sua, una luce al centro (Level 0 22%, Level 1 30%, poolrooms
-  11%, lì un canale allagato).
-- **Atri.** Ogni tanto un blocco di 2×2 stanze è un unico ambiente alto fino
-  al soffitto degli atri (Level 0 9%, Level 1 9%, poolrooms 12% dei blocchi):
-  gallerie larghe 3 lungo i muri, un piano sopra l'altro (uno nel Level 0 e nel
-  Level 1, due nelle poolrooms), un parapetto sul bordo interno, una rampa di
-  scale lungo +x per salire a ogni galleria (la prima da terra lungo la galleria
-  sud, la seconda dalla galleria ovest lungo la nord), lampade nel soffitto e
-  nei pavimenti delle gallerie, che fanno luce sopra e sotto. Nelle poolrooms
-  c'è una piscina in mezzo. Mai su stanze con scale, buchi o portali.
-- **Cose in una stanza.** Level 0: pilastri; Level 1: pozzanghere e pilastri;
-  poolrooms: piscine e scivoli.
-- **Piscine.** Quadrate (2 di profondità), grandi quanto la stanza o a corsia
-  lunga la stanza (3), canali nei corridoi (2), e quelle sotto i buchi. Tutte
-  hanno un guscio, una scaletta d'acciaio per uscire sul lato -x e, nelle
-  poolrooms, un bordo di piastrelle larghe e luci nelle pareti sott'acqua.
-- **Scivoli.** Un canale blu che scende di una cella per cella, fatto di pezzi
-  dritti (`slide.gltf`) e di curve di un quarto di giro (`slide_turn_a.gltf`
-  entra dal lato +x, `slide_turn_b.gltf` dal lato -x; escono davanti). Il mod
-  li posa come una lista di direzioni (`lay`): dove la direzione cambia mette
-  una curva, e restituisce la cella dove il corpo viene lanciato in acqua.
-  - Nelle stanze: una torre di piastrelle con la scaletta e quattro celle di
-    scivolo, dritto fino a una piscina lungo il lato basso della stanza, o con
-    una curva fino a una piscina lungo il lato ovest (metà e metà).
-  - Negli atri delle poolrooms: dalla prima galleria, da una piattaforma
-    accanto alla galleria est, dieci celle giù lungo il lato est, curva, lungo
-    il lato sud, curva e dentro la piscina centrale.
-  
-  Uno scivolo è un nastro veloce in discesa (`core.node_conveyor` 5, 1.25,
-  -1), non solido: il motore ci fa scendere il corpo dentro, seduto sulla
-  linea del letto (`chute_at`, `src/core/physics/aabb.cpp`), dritto o lungo
-  il quarto di cerchio della curva (riconosciuta dallo scivolo una cella
-  sopra che entra dal lato), da 2 m/s fino a 5, riportandolo al centro del
-  canale. Lo fa la fisica del client come un passo qualunque, quindi senza
-  scatti; alla fine del canale il corpo vola avanti con la velocità che ha
-  e cade in piscina, e il mod suona il tonfo. Il salto fa uscire. La caduta
-  dentro uno scivolo non conta. In curva il corpo e la vista girano con il
-  canale; gli altri vedono chi scende seduto rivolto lungo lo scivolo,
-  qualunque cosa guardi (il server lo manda con la direzione del canale). Il giocatore che ci scende fa la clip
-  `slide` del robot (seduto, gambe avanti, braccia in alto) e ha l'occhio
-  più basso, scendendo piano.
-- **Scale.** Una tromba delle scale sale di 16 celle dal Level 1 al Level 0
-  e dal Level 0 alle poolrooms: due rampe affiancate lungo z (x 1..2 sale verso
-  +z, x 5..6 verso -z) con un pianerottolo a ogni capo, gradini da mezza cella
-  che si salgono camminando, il soffitto aperto e il pozzo murato fino al
-  pavimento di sopra, lampade nei muri del pozzo ogni 4 celle. L'ultima rampa sbuca da
-  un'apertura 2×4 nel pavimento della stanza di sopra. Sotto le rampe si
-  cammina.
-- **Buchi.** Un buco 2×2 nel pavimento delle poolrooms (verso il Level 0) o
-  del Level 0 (verso il Level 1), un pozzo murato, e sotto una piscina
-  profonda 2: l'acqua azzera la caduta (`session.cpp`, `fall_reset` in un
-  liquido), si arriva con la vita piena.
-- **Portali.** In una colonna di chunk su tre (`PORTAL_CHANCE`) una stanza ha
-  una porta illuminata con un portale vero, e la stessa stanza di un altro
-  livello ha l'altro capo: si esce sopra o sotto il punto in cui si è entrati.
-  La cornice è vestita come il livello dove porta. Si aprono
-  (`core.portal_open`, `core.portal_link`) solo le coppie entro 40 celle da un
-  giocatore, al massimo 7: le aperture sono 16 e due sono del mondo.
+- **Rooms.** A grid of rooms 8 cells across. The wall between two rooms is there or not by a hash
+  (Level 0 76%, Level 1 42%, poolrooms 36%); if it is there it always has a door 2 wide, so every
+  room reaches every other.
+- **Corridors.** Rows of 4 rooms along x (or along z) become a corridor 3 wide and 32 long, its
+  sides solid, a door on each side where the grid's wall has its own, a light in the middle (Level
+  0 22%, Level 1 30%, poolrooms 11%, there a flooded channel).
+- **Atria.** Now and then a block of 2×2 rooms is one space as high as the atria's ceiling (Level
+  0 9%, Level 1 9%, poolrooms 12% of the blocks): galleries 3 wide along the walls, one floor over
+  another (one in Level 0 and Level 1, two in the poolrooms), a parapet on the inner edge, a flight
+  of stairs along +x to climb to each gallery (the first from the ground along the south gallery,
+  the second from the west gallery along the north), lamps in the ceiling and in the galleries'
+  floors, lighting above and below. In the poolrooms there is a pool in the middle. Never over
+  rooms with stairs, holes or portals.
+- **Things in a room.** Level 0: pillars; Level 1: puddles and pillars; poolrooms: pools and slides.
+- **Pools.** Square (2 deep), as big as the room or a lane the room's length (3), channels in the
+  corridors (2), and those under the holes. Each has a shell, a steel ladder to climb out on its
+  -x side and, in the poolrooms, a rim of wide tiles and lights in the walls under water.
+- **Slides.** A blue channel going down a cell a cell, made of straight pieces (`slide.gltf`) and
+  quarter-turn bends (`slide_turn_a.gltf` coming in from the +x side, `slide_turn_b.gltf` from the
+  -x side; they go out ahead). The mod lays them as a list of directions (`lay`): where the
+  direction changes it puts a bend, and returns the cell where the body is thrown into the water.
+  - In rooms: a tower of tiles with the ladder and four cells of slide, straight to a pool along the
+    room's low side, or with a bend to a pool along its west side (half and half).
+  - In the poolrooms' atria: from the first gallery, from a platform beside the east gallery, ten
+    cells down along the east side, a bend, along the south side, a bend and into the middle pool.
 
-Circa una stanza su dodici ha scale o un buco. La stanza all'origine e quelle
-dei portali restano sempre stanze normali. Le scale e i pianerottoli sono del
-livello da cui partono: moquette con il bordo d'ottone nel Level 0, piastrelle
-con il bordo azzurro nelle poolrooms, cemento con la riga gialla nel Level 1.
+  A slide is a fast conveyor going down (`core.node_conveyor` 5, 1.25, -1), not solid: the engine
+  takes the body down inside it, sitting on the line of its bed (`chute_at`,
+  `src/core/physics/aabb.cpp`), straight or along the bend's quarter circle (recognised from the
+  slide a cell above that comes in from the side), from 2 m/s up to 5, bringing it back to the
+  channel's middle. The client's physics does it like any step, so without jerks; at the end of the
+  channel the body flies on with the speed it has and falls into the pool, and the mod plays the
+  splash. Jumping gets out. A fall inside a slide does not count. On a bend the body and the view
+  turn with the channel; the others see whoever goes down sitting facing along the slide, whatever
+  they look at (the server sends it with the channel's direction). The player going down plays the
+  robot's `slide` clip (sitting, legs forward, arms up) and has the eye lower, going down slowly.
+- **Stairs.** A stairwell climbs 16 cells from Level 1 to Level 0 and from Level 0 to the
+  poolrooms: two flights side by side along z (x 1..2 climbing towards +z, x 5..6 towards -z) with
+  a landing at each end, half-cell steps walked up, the ceiling open and the shaft walled up to
+  the floor above, lamps in the shaft's walls every 4 cells. The last flight comes out of a 2×4
+  opening in the floor of the room above. You walk under the flights.
+- **Holes.** A 2×2 hole in the poolrooms' floor (to Level 0) or Level 0's (to Level 1), a walled
+  shaft, and under it a pool 2 deep: the water cancels the fall (`session.cpp`, `fall_reset` in a
+  liquid), you arrive with full health.
+- **Portals.** In one column of chunks in three (`PORTAL_CHANCE`) a room has a lit door with a real
+  portal, and the same room of another level has the other end: you come out over or under where
+  you went in. The frame is dressed as the level it leads to. Only the pairs within 40 cells of a
+  player open (`core.portal_open`, `core.portal_link`), at most 7: the openings are 16 and two are
+  the world's.
 
-**Una regola dello stage:** una colonna scrive solo dentro sé stessa, e i muri
-sui lati alti di un atrio o di un pozzo delle scale (x0 + 16, x0 + 8...) possono
-stare nella colonna accanto. Li alza la stanza vicina, di cui sono i lati bassi:
-la prima versione degli atri aveva il muro alto mancante, e dall'atrio si
-vedeva il vuoto fra i livelli.
+About one room in twelve has stairs or a hole. The room at the origin and the portals' rooms always
+stay ordinary rooms. Stairs and landings are the level's they start from: carpet with a brass edge
+in Level 0, tiles with a blue edge in the poolrooms, concrete with a yellow line in Level 1.
 
-## Luce
+**A rule of the stage:** a column writes only inside itself, and the walls on the high sides of an
+atrium or a stairwell (x0 + 16, x0 + 8...) may be in the next column. The neighbouring room puts
+them up, whose low sides they are: the first version of the atria lacked the high wall, and from
+the atrium you saw the void between the levels.
 
-La luce dei blocchi va da 15 alla lampada e scende di 1 a blocco; il motore
-la disegna lineare, con un minimo del 15%. Il mod:
+## Light
 
-- mette un neon o una lampada **spenti** dove una stanza è al buio (si vedono,
-  non fanno luce);
-- fa **sfarfallare** i neon del Level 0 e le lampade del Level 1 attorno a chi
-  c'è: ogni 0.3 s, per ogni giocatore, al 35% una lampada accesa di una stanza
-  vicina si spegne per 0.08-0.38 s, una o due volte. Ogni cambio rifà la luce
-  della cella (`core.set_block` mentre il mondo gira): pochi al secondo;
-- illumina i corridoi al centro, i pozzi delle scale e dei buchi, gli atri
-  dal soffitto e dai pavimenti delle gallerie, le piscine da sott'acqua.
+Block light goes from 15 at the lamp and drops by 1 a block; the engine draws it linearly, with a
+floor of 15%. The mod:
 
-Le creature escono solo dove la luce è 7 o meno, quindi nelle stanze spente.
+- puts a strip light or a lamp that is **off** where a room is dark (they are seen, they give no
+  light);
+- makes Level 0's strip lights and Level 1's lamps **flicker** round whoever is there: every 0.3 s,
+  for each player, at 35% a lit lamp of a nearby room goes off for 0.08-0.38 s, once or twice.
+  Each change makes the cell's light again (`core.set_block` while the world runs): a few a second;
+- lights the corridors in the middle, the stairwells' and holes' shafts, the atria from the ceiling
+  and the galleries' floors, the pools from under water.
 
-## Chi ci vive
+Creatures come out only where the light is 7 or less, so in the dark rooms.
 
-Due creature, `core.register_mob`, escono dove la luce è 7 o meno:
+## Who lives there
 
-| creatura | dove | vita | velocità | colpo | come muore |
+Two creatures, `core.register_mob`, come out where the light is 7 or less:
+
+| creature | where | health | speed | blow | how it dies |
 |---|---|---|---|---|---|
-| Bacteria | Level 0, sulla moquette | 30 | 3.4 | 4 | barcolla e cade rigido in avanti |
-| Smiler | Level 1, sulle lastre | 20 | 2.6 | 3 | chiude il ghigno e scende a terra girandosi |
+| Bacteria | Level 0, on the carpet | 30 | 3.4 | 4 | staggers and falls stiff forward |
+| Smiler | Level 1, on the slabs | 20 | 2.6 | 3 | shuts its grin and sinks to the ground turning |
 
-Clip: idle, walk, run, attack, death. Nelle poolrooms non c'è nessuno. Morendo un
-Bacteria lascia a volte un filamento, uno Smiler un dente: i pezzi della
-bussola dell'uscita (vedi sotto).
+Clips: idle, walk, run, attack, death. In the poolrooms there is nobody. Dying, a Bacteria now and
+then leaves a filament, a Smiler a tooth: the pieces of the exit's compass (below).
 
-## Suoni
+## Sounds
 
-ElevenLabs, text to sound (`eleven_text_to_sound_v2`, 50 crediti l'uno,
-flow `2zuOw1wXkyasR0eBFnRn`), convertiti in ogg mono con ffmpeg. I versi
-delle creature li suona il motore per nome (`<creatura>_say`, `_hurt`,
-`_death`, `_attack`); il ronzio e il tonfo li suona il mod (`core.play_sound`).
+ElevenLabs, text to sound (`eleven_text_to_sound_v2`, 50 credits each, flow
+`2zuOw1wXkyasR0eBFnRn`), turned into mono ogg with ffmpeg. The engine plays the creatures' sounds by
+name (`<creature>_say`, `_hurt`, `_death`, `_attack`); the mod plays the hum and the splash
+(`core.play_sound`).
 
 | file | prompt |
 |---|---|
-| `hum.ogg` | Fluorescent ceiling lights buzzing, steady electrical 60 Hz hum, empty office room, constant drone -- uscito di 1 s, ripetuto a 8 s con ffmpeg; suona sopra ogni giocatore del Level 0 ogni 8 s |
+| `hum.ogg` | Fluorescent ceiling lights buzzing, steady electrical 60 Hz hum, empty office room, constant drone -- came out 1 s long, repeated to 8 s with ffmpeg; plays over every Level 0 player every 8 s |
 | `splash.ogg` | Person jumping into an indoor swimming pool, big splash, tiled hall echo |
 | `bacteria_say.ogg` | Creepy creature clicking and wet gurgling breath, distorted, close-mic, short |
 | `bacteria_hurt.ogg` | Monster pained screech, short sharp distorted shriek |
@@ -162,106 +142,100 @@ delle creature li suona il motore per nome (`<creatura>_say`, `_hurt`,
 | `smiler_hurt.ogg` | Short distorted gasp with electrical crackle, glitchy |
 | `smiler_death.ogg` | Ghostly laugh slowing down and pitching down into silence, electrical fizzle out |
 
-## Rifare gli asset
+## Making the assets again
 
-- **Texture:** `tools/make_backrooms_textures.py` (PIL) scrive
-  `textures/backrooms_*.png`.
-- **Creature:** `tools/make_backrooms_creatures.py`, scatole in Blender con
-  armatura e clip, esportate in `mods/backrooms/{bacteria,smiler}.gltf` e
-  salvate in `assets/blender/backrooms.blend`. Da terminale:
+- **Textures:** `tools/make_backrooms_textures.py` (PIL) writes `textures/backrooms_*.png`.
+- **Creatures:** `tools/make_backrooms_creatures.py`, boxes in Blender with an armature and clips,
+  exported to `mods/backrooms/{bacteria,smiler}.gltf` and saved in
+  `assets/blender/backrooms.blend`. From a terminal:
   `flatpak run org.blender.Blender --background --python "$PWD/tools/make_backrooms_creatures.py"`
-  (il percorso assoluto: il flatpak non parte dalla cartella del progetto).
-  Nel Blender aperto, attraverso il server MCP: eseguire lo script senza
-  `__main__` e chiamare `bacteria()` e `smiler()` dopo aver svuotato la scena
-  a mano (`read_homefile` nella finestra aperta perde il contesto).
-- **Scivolo e scaletta:** `tools/make_backrooms_props.py`, in
-  `mods/backrooms/{slide,ladder}.gltf` e `assets/blender/backrooms_props.blend`.
-  La scaletta non è metallica: senza nulla da riflettere il motore la
-  disegnava nera.
-- **Giocatore:** il robot del sandbox, link a `mods/robot`. La clip `slide`
-  è in `assets/blender/robot18.blend` (azione `slide`, dalla posa di
-  `drive_idle`), esportata da sola e aggiunta a `mods/robot/robot.gltf` con
-  `tools/gltf_add_clips.py`. Il client la sceglie quando il corpo è dentro uno
-  scivolo (`slides` in `src/client/main.cpp`, con `chute_at`), per sé e per
-  gli altri.
-- **Bussole, filamento, dente:** `tools/make_held_models.py`
+  (the absolute path: the flatpak does not start from the project's folder). In an open Blender,
+  through the MCP server: run the script without `__main__` and call `bacteria()` and `smiler()`
+  after emptying the scene by hand (`read_homefile` in the open window loses the context).
+- **Slide and ladder:** `tools/make_backrooms_props.py`, into `mods/backrooms/{slide,ladder}.gltf`
+  and `assets/blender/backrooms_props.blend`. The ladder is not metallic: with nothing to reflect
+  the engine drew it black.
+- **Player:** the sandbox's robot, a link to `mods/robot`. The `slide` clip is in
+  `assets/blender/robot18.blend` (action `slide`, from the `drive_idle` pose), exported alone and
+  added to `mods/robot/robot.gltf` with `tools/gltf_add_clips.py`. The client picks it when the
+  body is inside a slide (`slides` in `src/client/main.cpp`, with `chute_at`), for itself and for
+  the others.
+- **Compasses, filament, tooth:** `tools/make_held_models.py`
   (`ONLY="backrooms:compass_in,backrooms:compass_out,backrooms:filament,backrooms:smiler_tooth"`),
-  modelli in mano in `mods/backrooms/*_held.gltf` e icone in
-  `textures/backrooms_*.png`. La cassa è un link a `mods/chest/chest.gltf`.
+  models in hand in `mods/backrooms/*_held.gltf` and icons in `textures/backrooms_*.png`. The chest
+  is a link to `mods/chest/chest.gltf`.
 
-## Cosa manca
+## What is missing
 
-- Le casse ci sono solo nelle parti delle backrooms generate da ora in poi:
-  in un mondo già salvato le stanze già visitate restano senza.
-- Le bussole si leggono solo cliccando un blocco a portata (il clic con una
-  bussola in mano deve poter aprire una cassa); la torcia no.
-- La torcia non ha un suono.
-- Gli scivoli non sono solidi: a terra si passa attraverso il fianco del
-  loro ultimo pezzo.
-- Nessuna ringhiera attorno ai buchi e all'apertura delle scale (dentro
-  l'apertura si cade al massimo di 3, sotto la soglia del danno).
-- Le gallerie degli atri non hanno porte verso le stanze vicine: ci si sale
-  solo dalle scale interne.
-- In Xephyr il client va a 4-7 FPS e tutto è al rallentatore (camminando
-  1.3 m/s invece di 4.8): lo scivolo si vede lento per lo stesso motivo.
-- Si torna al sandbox solo dalle stanze all'origine del Level 0 e delle
-  poolrooms.
-- Il verso dello Smiler dura mezzo secondo; nelle poolrooms non c'è suono.
+- Chests are only in the parts of the backrooms generated from now on: in a world already saved
+  the rooms already visited stay without.
+- The compasses are read only by clicking a block within reach (a click with a compass in hand has
+  to be able to open a chest); the torch is not.
+- The torch has no sound.
+- Slides are not solid: on the ground you walk through the side of their last piece.
+- No railing round the holes and the stairs' opening (inside the opening you fall 3 at most, under
+  the damage threshold).
+- The atria's galleries have no doors to the rooms nearby: you climb to them only by the inner
+  stairs.
+- In Xephyr the client runs at 4-7 FPS and everything is in slow motion (walking 1.3 m/s instead
+  of 4.8): the slide looks slow for the same reason.
+- You go back to the sandbox only from the rooms at the origin of Level 0 and of the poolrooms.
+- The Smiler's call lasts half a second; in the poolrooms there is no sound.
 
-## Crediti
+## Credits
 
-Codice, blocchi, texture, modelli e animazioni: questo progetto. Suoni:
-generati con ElevenLabs per questo progetto. Il robot: `mods/robot`, di
-questo progetto.
+Code, blocks, textures, models and animations: this project. Sounds: generated with ElevenLabs
+for this project. The robot: `mods/robot`, of this project.
 
-## Le bussole
+## The compasses
 
-Due bussole, e nessuno le regala:
+Two compasses, and nobody gives them away:
 
-- **Dell'entrata** (`backrooms:compass_in`, faccia gialla): si trova per caso
-  nelle casse. Una cassa (`backrooms:chest`, il modello di `mods/chest`) sta
-  in una stanza vuota su quaranta circa (25 per mille delle stanze senza
-  niente dentro, su tutti e tre i livelli), contro l'angolo +x +z. Si riempie
-  la prima volta che qualcuno la apre, secondo un hash di dove sta: la
-  bussola in due casse su cinque, la torcia in una su otto, e uno o due filamenti (Level 0), denti
-  (Level 1) o l'uno o l'altro (poolrooms).
-- **Dell'uscita** (`backrooms:compass_out`, faccia verde): si costruisce
-  nella griglia della borsa con due **filamenti** (`backrooms:filament`) e
-  due **denti dello Smiler** (`backrooms:smiler_tooth`), in qualunque ordine.
-  Un Bacteria lascia un filamento una volta su due, uno Smiler un dente
-  (`core.mob_drop`, 0 o 1).
+- **The entrance's** (`backrooms:compass_in`, yellow face): found by chance in chests. A chest
+  (`backrooms:chest`, the model of `mods/chest`) stands in about one empty room in forty (25 a
+  thousand of the rooms with nothing in them, on all three levels), against the +x +z corner. It
+  is filled the first time somebody opens it, by a hash of where it stands: the compass in two
+  chests in five, the torch in one in eight, and one or two filaments (Level 0), teeth (Level 1) or
+  either (poolrooms).
+- **The exit's** (`backrooms:compass_out`, green face): made in the bag's grid with two
+  **filaments** (`backrooms:filament`) and two **Smiler's teeth** (`backrooms:smiler_tooth`), in
+  any order. A Bacteria leaves a filament one time in two, a Smiler a tooth (`core.mob_drop`, 0
+  or 1).
 
-## La torcia
+## The torch
 
-`backrooms:torch`, rara: in una cassa su otto. Clic destro con la torcia in
-mano, dovunque si guardi: un fascio di luce lungo lo sguardo, fino a 14 nodi,
-stordisce per 4 s i Bacteria e gli Smiler che prende (`core.slow_mobs` al 5%:
-camminano a stento e non colpiscono); poi si ricarica per 6 s. Il clic nel
-vuoto non arriva al server come `core:used`, quindi lo prende il mod
-`backrooms_hand` (`side = both`): la sua metà sul client reclama il clic
-destro con la torcia in mano (`core:input`) e lo manda al server, che
-accende la torcia e dice a tutti i client dove disegnare il fascio. Il
-modello è quello della torcia del laboratorio.
+`backrooms:torch`, rare: in one chest in eight. Right click with the torch in hand, wherever you
+look: a beam of light along the look, up to 14 nodes, stuns the Bacteria and Smilers it catches for
+4 s (`core.slow_mobs` at 5%: they barely walk and do not strike); then it recharges for 6 s. A
+click into the void does not reach the server as `core:used`, so the `backrooms_hand` mod
+(`side = both`) takes it: its client half claims the right click with the torch in hand
+(`core:input`) and sends it to the server, which lights the torch and tells every client where to
+draw the beam. The model is the laboratory torch's.
 
-## Leggere le bussole
+## Reading the compasses
 
-Clic destro con una in mano, su un blocco qualunque (`core:used`), e una frase
-dice dove sta l'entrata (la stanza all'origine del Level 0, davanti al
-portale) o l'uscita (la stanza di `backrooms_exit` nel Level 1): metri e lato
-rispetto a dove si guarda ("23 m, davanti a destra"). Da un altro livello dice
-quanti livelli sopra o sotto e indica la via più vicina entro 16 stanze: scale
-per salire, scale o un buco per scendere. Entrando, una frase accenna alle
-casse e alle creature.
+Right click with one in hand, on any block (`core:used`), and a sentence says where the entrance
+is (the room at the origin of Level 0, in front of the portal) or the exit (`backrooms_exit`'s
+room in Level 1): metres and the side relative to where you look ("23 m, ahead to the right").
+From another level it says how many levels up or down and points to the nearest way within 16
+rooms: stairs to go up, stairs or a hole to go down. On entering, a sentence hints at the chests
+and the creatures.
 
-## L'uscita e la Chiave dell'Uscita
+## The exit and the Key of the Way Out
 
-`mods/backrooms_exit`: nel Level 1, nella stanza (12, -9) -- x 96..104, z
--72..-64, oltre cento nodi dall'origine, la stessa per tutti -- c'è l'uscita
-che l'ingegnere ha trovato: una stanza con una porta in ogni muro, insegne
-verdi sopra le porte e, su un piedistallo al centro, la **Chiave dell'Uscita**
-(`keys:backrooms`, mods/keys). Niente la indica tranne una radio: a chi è nel
-Level 1 gracchia dalla direzione dell'uscita (`radio.ogg`,
-`tools/make_radio_sound.py`), più spesso quanto più è vicina, e ogni 25 s un
-messaggio dice se il segnale è debole, chiaro o forte. Scendere nel Level 1 è
-un checkpoint: chi muore lì torna dove è sceso.
+`mods/backrooms_exit`: in Level 1, in room (12, -9) -- x 96..104, z -72..-64, over a hundred
+nodes from the origin, the same for everybody -- is the way out the engineer found: a room with a
+door in each wall, green signs over the doors and, on a pedestal in the middle, the **Key of the
+Way Out** (`keys:backrooms`, mods/keys). Nothing points to it but a radio: to whoever is in Level 1
+it crackles from the exit's direction (`radio.ogg`, `tools/make_radio_sound.py`), more often the
+nearer it is, and every 25 s a message says whether the signal is weak, clear or strong. Going down
+to Level 1 is a checkpoint: whoever dies there comes back where they came down.
 
+## A survival site's level
+
+Behind a survival site (mods/keys' `keys:level`) the backrooms are the same, but the level is the
+site's, in its slot: a start room in Level 0 with the hidden way out in its west wall under a dark
+lamp, and an exit room like the world's own 48 + 24 d away, in Level 0 up to d 3 and in Level 1's
+dark from d 4. The radio leads there; once there, a green doorway leads back to the start room,
+where the wall has opened. From d 5 the lights round the player go out now and then for eight
+seconds.
