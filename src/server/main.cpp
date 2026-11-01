@@ -4607,7 +4607,9 @@ struct Router {
             // The list of servers asking who is here: answered and let go.
             if (net::peek_type(ev.data.data(), ev.data.size()) == net::MsgType::StatusQuery) {
                 net::Status st;
-                st.version = kEngineVersion;
+                st.version      = kEngineVersion;
+                st.protocol     = net::kProtocol;
+                st.min_protocol = net::kMinProtocol;
                 st.rooms   = (uint16_t)rooms.size();
                 for (const RoomShared &r : rooms)
                     if (r.sessions)

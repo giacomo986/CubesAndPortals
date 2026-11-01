@@ -2510,6 +2510,8 @@ std::vector<uint8_t> Status::encode() const
     w.u16(rooms);
     w.str(motd);
     w.str(maintenance);
+    w.u16(protocol);
+    w.u16(min_protocol);
     return w.data();
 }
 
@@ -2521,6 +2523,9 @@ bool Status::decode(ByteReader &r, Status &out)
     out.players = r.u16();
     out.rooms   = r.u16();
     if (!r.str(out.motd, kMaxWireModText) || !r.str(out.maintenance, kMaxWireModText)) return false;
+    if (r.done()) return true;   // a server from before the protocol range
+    out.protocol     = r.u16();
+    out.min_protocol = r.u16();
     return r.done();
 }
 

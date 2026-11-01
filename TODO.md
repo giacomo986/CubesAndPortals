@@ -1993,8 +1993,13 @@ Xephyr from the title screen: new world loads the global mods; reopened with a
 world mod (depends on a global one) and `off = tst_off, nothing`, the log says
 `left out by this world` and the world mod runs; an unknown name is ignored.
 No block-loss guard: a mod off leaves magenta placeholders that come back
-(world_db.h), so the launcher warns instead of blocking. Next: step 3,
-protocol in Status.
+(world_db.h), so the launcher warns instead of blocking. Step 3 done
+2026-11-01: Status carries protocol and min_protocol after the old fields (a
+new reader takes their absence as an older server; a client built before reads
+no status from a new server, shown without "N playing"). The server list says
+"needs version X" for a server whose range misses ours. Seen: local server
+listed "0 playing" in Xephyr; "needs version" not seen (no older server built).
+Next: step 4, signed release manifest.
 
 **OPEN-40 -- macOS never run; Windows only under wine.** Packages, 2026-10-10:
 tarball and AppImage (23 MB; until now they lacked `assets/sounds` and

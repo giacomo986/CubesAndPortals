@@ -9957,7 +9957,9 @@ ui::Panel title_panel(const TitleMenu &m, bool debug)
             const ServerRow  &row  = m.servers[i];
             std::string what = row.player.empty() ? row.address : row.address + "   as " + row.player;
             if (row.state == ServerRow::State::Up && row.has_status)
-                what += row.status.maintenance.empty()
+                what += !row.status.speaks(net::kMinProtocol, net::kProtocol)
+                            ? "   needs version " + row.status.version
+                        : row.status.maintenance.empty()
                             ? "   " + std::to_string(row.status.players) + " playing"
                             : std::string("   maintenance");
             panel_add(p, ui::ElemKind::Button, "server:" + n, what, 0.5f, y, 9.8f);

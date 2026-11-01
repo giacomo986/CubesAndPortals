@@ -2307,6 +2307,18 @@ struct Status {
     uint16_t    rooms   = 1;
     std::string motd;           // the message of the day, "" for none
     std::string maintenance;    // "" when open to everybody
+    // The protocols the server speaks, so a client or the launcher knows before
+    // joining which build of the game can play there. Appended after the rest:
+    // 0 and 0 from a server older than these two fields.
+    uint16_t protocol     = 0;
+    uint16_t min_protocol = 0;
+
+    // Whether a build speaking from..to can play there; true when the server did
+    // not say (an older one: the join decides).
+    bool speaks(uint16_t from, uint16_t to) const
+    {
+        return protocol == 0 || (min_protocol <= to && from <= protocol);
+    }
 
     std::vector<uint8_t> encode() const;
     static bool decode(ByteReader &r, Status &out);
