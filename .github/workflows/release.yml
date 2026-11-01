@@ -90,6 +90,7 @@ jobs:
     permissions: {contents: write}
     steps:
       - uses: actions/checkout@v4
+        with: {submodules: recursive}
       - run: |
           v="$(sed -n 's/.*kEngineVersion = "\([^"]*\)".*/\1/p' src/core/version.h)"
           [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME, code says v$v"; exit 1; }
@@ -97,6 +98,21 @@ jobs:
           [ -s notes.md ] || { echo "CHANGELOG.md has no section for $v"; exit 1; }
       - uses: actions/download-artifact@v4
         with: {path: packages, merge-multiple: true}
+      # The release manifest (core/release.h): every package's size and hash,
+      # signed with the release key (secret RELEASE_SIGN_KEY, the seed as hex,
+      # what `cnp_release key` writes). The launcher runs nothing without it,
+      # so a release without the key is not made.
+      - env: {KEY: "${{ secrets.RELEASE_SIGN_KEY }}"}
+        run: |
+          [ -n "$KEY" ] || { echo "no RELEASE_SIGN_KEY secret: the launcher would refuse this release"; exit 1; }
+          sudo apt-get install -y ninja-build libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev
+          cmake -G Ninja -B build-rel -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-rel --target cnp_release
+          umask 077
+          printf '%s\n' "$KEY" > "$RUNNER_TEMP/release.sign.key"
+          build-rel/tools/cnp_release sign "$RUNNER_TEMP/release.sign.key" packages
+          build-rel/tools/cnp_release check packages
+          rm -f "$RUNNER_TEMP/release.sign.key"
       - uses: softprops/action-gh-release@v2
         with:
           files: packages/*

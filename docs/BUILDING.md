@@ -116,6 +116,30 @@ and Pages turned on with "GitHub Actions" as its source (Settings, Pages). Witho
 release is made just the same, with no repository. Keep the private key: with another key,
 whoever has installed gets no more updates until they install again.
 
+### The release manifest
+
+The launcher runs no package it downloaded unless the release's `release.manifest` lists it:
+every package's size and hash, the version, its protocols and mod API, signed with the
+**release key** (`src/core/release.h`). Its public half is `kReleaseKeyHex` in
+`src/core/version.h`; the private one is in `~/.config/cubes-and-portals-release/release.sign.key`
+and in the repository's `RELEASE_SIGN_KEY` secret, set once:
+
+```sh
+gh secret set RELEASE_SIGN_KEY < ~/.config/cubes-and-portals-release/release.sign.key
+```
+
+The `publish` job signs the packages with it (`cnp_release sign`), checks them
+(`cnp_release check`) and uploads the manifest with them; without the secret it stops, because a
+release without a manifest is one the launcher refuses. By hand:
+
+```sh
+cnp_release sign ~/.config/cubes-and-portals-release/release.sign.key <dir with the packages>
+cnp_release check <dir with the packages>
+```
+
+Keep the key: a release signed with another is refused by every launcher already out. A fork
+makes its own (`cnp_release key FILE` prints the public half) and changes `kReleaseKeyHex`.
+
 ### Windows: zip
 
 It is built from Linux, not on Windows: [zig](https://ziglang.org/download/) 0.16 in the `PATH` is

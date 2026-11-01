@@ -27,4 +27,9 @@ inline constexpr const char *kEngineVersion = "0.10.0-alpha.2";
 inline constexpr const char *kReleasesPage = "https://github.com/giacomo986/CubesAndPortals/releases";
 inline constexpr const char *kReleasesApi  = "https://api.github.com/repos/giacomo986/CubesAndPortals/releases?per_page=1";
 
+// The public half of the key every release's manifest is signed with
+// (core/release.h, tools/release). The launcher runs nothing a manifest under
+// another key lists. A fork makes its own key and changes this line.
+inline constexpr const char *kReleaseKeyHex = "9317628a230b0aa3ccbab8f59d198fbb21ea68565a317c6ba262853d6490f9f6";
+
 } // namespace cnp

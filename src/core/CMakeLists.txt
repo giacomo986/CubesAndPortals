@@ -26,6 +26,7 @@ add_library(cnp_core STATIC
     item/item_registry.cpp
     item/recipe.cpp
     media/content_hash.cpp
+    release.cpp
     os.cpp
     paths.cpp
     world/modifiers.cpp

@@ -119,6 +119,32 @@ e Pages acceso con sorgente "GitHub Actions" (Settings, Pages). Senza segreto la
 lo stesso, senza repository. La chiave privata va tenuta: con un'altra chiave chi ha già
 installato non riceve più aggiornamenti finché non reinstalla.
 
+### Il manifest della release
+
+Il launcher non esegue un pacchetto scaricato se il `release.manifest` della release non lo
+elenca: dimensione e hash di ogni pacchetto, la versione, i suoi protocolli e la API dei mod,
+firmati con la **chiave delle release** (`src/core/release.h`). La metà pubblica è
+`kReleaseKeyHex` in `src/core/version.h`; quella privata sta in
+`~/.config/cubes-and-portals-release/release.sign.key` e nel segreto `RELEASE_SIGN_KEY` del
+repository, messo una volta sola:
+
+```sh
+gh secret set RELEASE_SIGN_KEY < ~/.config/cubes-and-portals-release/release.sign.key
+```
+
+Il job `publish` firma i pacchetti (`cnp_release sign`), li controlla (`cnp_release check`) e
+carica il manifest con loro; senza il segreto si ferma, perché una release senza manifest è una
+che il launcher rifiuta. A mano:
+
+```sh
+cnp_release sign ~/.config/cubes-and-portals-release/release.sign.key <cartella dei pacchetti>
+cnp_release check <cartella dei pacchetti>
+```
+
+La chiave va tenuta: una release firmata con un'altra viene rifiutata da ogni launcher già in
+giro. Un fork se ne fa una sua (`cnp_release key FILE` stampa la metà pubblica) e cambia
+`kReleaseKeyHex`.
+
 ### Windows: zip
 
 Si compila da Linux, non su Windows: [zig](https://ziglang.org/download/) 0.16 nel `PATH` fa

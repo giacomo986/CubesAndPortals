@@ -63,3 +63,7 @@ endif()
 add_executable(cnp_modpack modpack/main.cpp)
 target_link_libraries(cnp_modpack PRIVATE cnp_modpack_lib cnp_script cnp_warnings
                                          cnp_portable)
+
+# The release manifest: the key, the signature, the check (core/release.h).
+add_executable(cnp_release release/main.cpp)
+target_link_libraries(cnp_release PRIVATE cnp_core cnp_warnings cnp_portable)

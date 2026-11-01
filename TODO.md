@@ -1999,7 +1999,13 @@ new reader takes their absence as an older server; a client built before reads
 no status from a new server, shown without "N playing"). The server list says
 "needs version X" for a server whose range misses ours. Seen: local server
 listed "0 playing" in Xephyr; "needs version" not seen (no older server built).
-Next: step 4, signed release manifest.
+Step 4 done 2026-11-01: `release.manifest` (core/release.h) signed with the
+release key (private: ~/.config/cubes-and-portals-release/release.sign.key and
+secret RELEASE_SIGN_KEY, still to set with `gh secret set`); `cnp_release
+key|sign|check`; the publish job signs and checks, and stops without the
+secret. Seen: a signed dir checks ok; one changed byte in a package, an edited
+manifest, a manifest signed with another key are all refused. Not seen: the CI
+job itself (next tag). Next: step 5, cnp_launcher skeleton.
 
 **OPEN-40 -- macOS never run; Windows only under wine.** Packages, 2026-10-10:
 tarball and AppImage (23 MB; until now they lacked `assets/sounds` and
