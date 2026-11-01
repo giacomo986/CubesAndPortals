@@ -102,7 +102,7 @@ blu con idle, walk, run, fire, throw e death.
 
 Si sale e si scende con **F** vicino a un mezzo, sul posto libero più vicino (da
 dietro la jeep si sale dietro); **1-9** cambiano posto, anche guidando, senza
-cambiare l'arma in mano. `/mezzo <tipo>` mette un mezzo davanti a te, per le
+cambiare l'arma in mano. `/vehicle <tipo>` mette un mezzo davanti a te, per le
 prove. Il
 primo posto guida e ha l'arma del mezzo; WASD guida a terra, spazio e shift
 salgono e scendono, il mouse governa quello che vola.

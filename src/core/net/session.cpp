@@ -4585,8 +4585,9 @@ std::vector<EntityState> ServerSessions::entities_for(PeerId peer, float radius)
             // to send either: the wire says a Drop names an item, so one that
             // named none would be refused by the client that received it.
             if (d->stack.item == kNoItem) return;
-            s.kind = EntityKind::Drop;
-            s.item = d->stack.item;
+            s.kind  = EntityKind::Drop;
+            s.item  = d->stack.item;
+            s.shown = d->shown;
         } else if (const ecs::Falling *f = e.try_get<ecs::Falling>()) {
             s.kind    = EntityKind::Drop;   // a block falling (73): the block's id, not an item
             s.item    = f->block;

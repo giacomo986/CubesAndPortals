@@ -2351,6 +2351,21 @@ One stack, on the ground at the middle of that cell, falling from there. Nobody 
 | `item` | number | — |  |
 | `count` | number | — |  |
 
+## `core.show_item`
+
+```luau
+core.show_item(x: number, y: number, z: number, item: number) -> number
+```
+
+Shows an item hanging in the middle of that cell, twice the size of a stack on the ground, bobbing and turning -- what a pedestal holds, put in the cell over it. Nobody picks it up and it never goes; one per cell, so showing another replaces it. Kept while the world runs, not saved: a mod shows it again when it starts. Protocol 112. Returns 1, or 0 for no item by that id.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `x` | number | — |  |
+| `y` | number | — |  |
+| `z` | number | — |  |
+| `item` | number | — | 0 shows nothing there any more. |
+
 ## `core.craft_show`
 
 ```luau

@@ -68,6 +68,7 @@ struct Body {
     // A stack on the ground: `hand` and `hand_block` are what lies there, drawn
     // as the thing itself about `center`, turned by `yaw` (draw_drop).
     bool dropped = false;
+    bool shown   = false;   // a dropped stack on show (core.show_item): drawn bigger
     bool falling = false;   // and it is a block falling (core.fall): `hand_block`, whole
 
     // What it wears, head to feet, by item name ("armor:iron_helmet"): each is

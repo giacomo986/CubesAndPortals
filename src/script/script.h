@@ -530,6 +530,8 @@ typedef struct script_host {
     int (*craft_show)(void *ud, int x, int y, int z, int player);
     int (*craft_close)(void *ud, int player);
     int (*drop_item)(void *ud, int x, int y, int z, int item, int count);
+    // An item on show over a pedestal (core.show_item); 0 takes it away.
+    int (*show_item)(void *ud, int x, int y, int z, int item);
 
     // How much of a player is left, and moving it. `amount` is points, and the
     // return is what they have AFTER -- so a mod that wants to know whether it

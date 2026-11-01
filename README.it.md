@@ -397,7 +397,9 @@ tre colori e due accessori, visti da tutti. Sulla schiena: un jetpack per volare
 cuoio con 27 slot suoi, o uno zaino di metallo con due braccia snodate che tengono uno strumento
 ciascuna. Il catalogo creativo (C) ha una casella di ricerca. `/creative on` è la modalità creativa: volo
 senza jetpack, nessun danno, scavo veloce (libera in un mondo tuo, da admin su un server). `/time`
-cambia l'ora, `/kill` riporta al letto o allo spawn quando si resta bloccati.
+cambia l'ora, `/kill` riporta al letto o allo spawn quando si resta bloccati. In un mondo con una
+prova, `/giveup` la abbandona: si muore e si torna nel sandbox, fuori dal portale del mondo. Ciò che un piedistallo o
+un altare contiene (una chiave, la pistola dei portali, un frammento) galleggia sopra, girando.
 
 ### L'engine
 
@@ -579,7 +581,8 @@ visite e `--report`, `/inspect` e `/rollback` di quello che un giocatore ha camb
 webhook, `/bag` e `/give`, e server amici che condividono ban, presenza, una chat e un solo
 zaino per ogni giocatore.
 
-**Ogni comando, permesso, flag e chiave di `server.conf` è in [`docs/ADMIN.md`](docs/ADMIN.it.md)** (in inglese).
+**Ogni comando, permesso, flag e chiave di `server.conf` è in [`docs/ADMIN.md`](docs/ADMIN.it.md);
+ogni comando della chat, anche quelli dei giocatori, con cosa fa, in [`docs/COMMANDS.it.md`](docs/COMMANDS.it.md).**
 `/help` in gioco elenca quelli che puoi usare.
 
 `tools/serve.sh -l logs build-release/src/server/cnp_server --config server.conf` tiene un

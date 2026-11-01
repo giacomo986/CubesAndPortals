@@ -86,7 +86,7 @@ and blue soldiers with idle, walk, run, fire, throw and death.
 
 You get in and out with **F** near a machine, on the nearest free seat (from behind the jeep you
 get in at the back); **1-9** change seat, while driving too, without changing the weapon in hand.
-`/mezzo <type>` puts a machine in front of you, for testing. The first seat drives and has the
+`/vehicle <type>` puts a machine in front of you, for testing. The first seat drives and has the
 machine's weapon; WASD drives on the ground, space and shift climb and descend, the mouse steers
 what flies.
 

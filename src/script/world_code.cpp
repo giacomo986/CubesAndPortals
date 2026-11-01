@@ -168,6 +168,7 @@ script_host world_code_host(script_host full)
     h.craft_show      = nullptr;
     h.craft_close     = nullptr;
     h.drop_item       = nullptr;
+    h.show_item       = nullptr;
     h.damage          = nullptr;
     h.heal            = nullptr;
     h.movement        = no_movement;

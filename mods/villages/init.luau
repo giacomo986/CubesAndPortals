@@ -52,7 +52,7 @@ do   -- core.plaza(): nil in a world without one (survival), with nothing to kee
         PLAZA_LO, PLAZA_HI = lo, hi
     end
 end
-local SEED: number? = nil   -- the world's, as the first column was handed it; /paese needs it
+local SEED: number? = nil   -- the world's, as the first column was handed it; /town needs it
 
 local function mul32(a: number, b: number): number
     local hi = math.floor(a / 65536)
@@ -1849,12 +1849,12 @@ core.register_mapgen("villages:build", function(ctx)
     end
 end)
 
--- ------------------------------------------------------------ /paese
+-- ------------------------------------------------------------ /town
 
-core.command("paese", "[città] -- takes you to the square of the nearest village or town, or of the nearest town")
+core.command("town", "[town] -- takes you to the square of the nearest village or town, or of the nearest town")
 
 core.event.on("core:command", function(ev)
-    if ev.name ~= "paese" then
+    if ev.name ~= "town" then
         return
     end
     local px, _, pz = core.player_pos(ev.player)

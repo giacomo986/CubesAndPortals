@@ -282,7 +282,7 @@ end)
 -- Pieces of road as stunt racers build them (core.node_piece): a smooth road on
 -- a grid of 8 nodes, snapped as it is put down, joined where the ends meet. A
 -- slope down is a slope up put down the other way round, a left bank a right
--- one driven the other way. `/pezzi` puts a stack of each in the bag.
+-- one driven the other way. `/pieces` puts a stack of each in the bag.
 --
 -- The shapes, as core.node_piece reads them: plan (1 straight, 2 a quarter
 -- turn right), size in squares, then climb, the grade at each end (nodes per
@@ -404,9 +404,9 @@ core.register_item("track_core:box_tool", 1)
 -- can follow the track it belongs to, and carried, every piece put down by hand.
 core.register_item("track_core:editor", 1)
 
-core.command("pezzi", "-- a stack of every track piece, the track editor (B with it in hand picks the next piece from afar), and the start line, checkpoint, off-road and item box tools")
+core.command("pieces", "-- a stack of every track piece, the track editor (B with it in hand picks the next piece from afar), and the start line, checkpoint, off-road and item box tools")
 core.event.on("core:command", function(ev)
-    if ev.name ~= "pezzi" then
+    if ev.name ~= "pieces" then
         return
     end
     -- The tools first: there are more pieces than the bag has squares.

@@ -1187,7 +1187,19 @@ if serving then
         end
     end
 
+    local shown_on: { [number]: number } = {}   -- the gun shown over each pedestal
     local function step_pedestals()
+        -- Over each pedestal, hanging, its gun while somebody here has yet to
+        -- take it (core.show_item).
+        for i, pd in pedestals do
+            local want = 0
+            for _, s in players do
+                if s.level < pd.level then want = core.item_id(pd.gives) end
+            end
+            if shown_on[i] ~= want and core.show_item(pd.x, FL + 1, pd.z, want) == 1 then
+                shown_on[i] = want
+            end
+        end
         for p, s in players do
             local x, y, z = core.player_pos(p)
             if x == nil then

@@ -3887,6 +3887,15 @@ int host_item_dye(void *ud, const char *item, int dye)
     return 0;
 }
 
+int host_show_item(void *ud, int x, int y, int z, int item)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    if (s->drops == nullptr) return 0;
+    if ((ItemId)item != kNoItem && (size_t)item >= s->act().items.size()) return 0;
+    cnp::ecs::show_drop(*s->drops, x, y, z, (ItemId)item);
+    return 1;
+}
+
 int host_drop_item(void *ud, int x, int y, int z, int item, int count)
 {
     Scene *s = static_cast<Scene *>(ud);
@@ -4265,7 +4274,7 @@ int host_collect_drops(void *ud, int x, int y, int z, int tx, int ty, int tz)
     int taken = 0;
     std::vector<flecs::entity> gone;
     s->drops->each([&](flecs::entity e, const ecs::Position &p, ecs::Dropped &d) {
-        if ((int)std::floor(p.x) != x || (int)std::floor(p.y) != y || (int)std::floor(p.z) != z)
+        if (d.shown || (int)std::floor(p.x) != x || (int)std::floor(p.y) != y || (int)std::floor(p.z) != z)
             return;
         const uint16_t left = into->add(s->act().items, d.stack.item, d.stack.count, -1, d.stack.used,
                                         d.stack.ench, d.stack.tag);
@@ -6397,15 +6406,19 @@ SkinnedModel held_piece_model(const NodeDef &def, int tiles, Vec3 centre, float 
 // item draw_drop has nothing better for; and it is drawn as the thing itself
 // the way the classic block game shows one: a hand's breadth off the ground, bobbing and
 // turning, each stack out of step with the next.
-Body drop_body(Session &w, const ItemDef &def, Vec3 at, uint64_t id)
+// One on show (core.show_item) hangs in the middle of its cell, twice the size,
+// bobbing wider and turning slower: what a pedestal holds, seen across a room.
+Body drop_body(Session &w, const ItemDef &def, Vec3 at, uint64_t id, bool shown)
 {
     const float  h = ecs::kDropSize * 0.5f;
     const double t = plat_time() + (double)(id % 97) * 0.37;
     Body b;
-    b.center = Vec3{at.x, at.y + 0.12f + 0.06f * (float)std::sin(t * 2.2), at.z};
-    b.half   = Vec3{h, h, h};
-    b.yaw    = (float)std::fmod(t * 1.6, 6.283185307);
+    b.center = shown ? Vec3{at.x, at.y + 0.12f * (float)std::sin(t * 1.5), at.z}
+                     : Vec3{at.x, at.y + 0.12f + 0.06f * (float)std::sin(t * 2.2), at.z};
+    b.half   = shown ? Vec3{2 * h, 2 * h, 2 * h} : Vec3{h, h, h};
+    b.yaw    = (float)std::fmod(t * (shown ? 1.0 : 1.6), 6.283185307);
     b.dropped    = true;
+    b.shown      = shown;
     b.hand       = def.name;
     b.hand_block = def.places;
     if (def.places != kAir) {
@@ -6438,7 +6451,9 @@ bool draw_drop(Scene &s, Session &w, const Body &b, const Mat4 &projection, cons
 {
     constexpr float kItem  = 0.5f;    // the longest side of an item on the ground, as the classic block game's half block
     constexpr float kBlock = 0.25f;   // a block's cube, as the classic block game's quarter block
-    const Mat4 at = mat4_multiply(mat4_translate(b.center), mat4_rotate_y(b.yaw));
+    constexpr float kShown = 2.0f;    // a stack on show, twice that
+    Mat4 at = mat4_multiply(mat4_translate(b.center), mat4_rotate_y(b.yaw));
+    if (b.shown) at = mat4_multiply(at, mat4_scale(Vec3{kShown, kShown, kShown}));
     // A model drawn about the middle of what it occupies, its longest side kItem.
     const auto fitted = [&](Vec3 lo, Vec3 hi) {
         const Vec3  d    = hi - lo;
@@ -15265,7 +15280,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
 
             if (p.kind == net::EntityKind::Drop) {
                 body = p.falling ? falling_body(p.item, Vec3{p.x, p.y, p.z})
-                                 : drop_body(s.act(), conn->items().get(p.item), Vec3{p.x, p.y, p.z}, p.id);
+                                 : drop_body(s.act(), conn->items().get(p.item), Vec3{p.x, p.y, p.z}, p.id, p.shown);
             } else if (p.kind == net::EntityKind::Mob) {
                 // Its own box and its own colour, because a creature drawn as a
                 // person is a creature a player swings at by mistake -- and a
@@ -18974,7 +18989,7 @@ int run_interactive(Scene &s, double seconds)
         s.act().bodies.resize(prop_bodies);
         demo_ecs.each([&](flecs::entity e, const ecs::Position &p, const ecs::Dropped &d) {
             s.act().bodies.push_back(
-                drop_body(s.act(), s.act().items.get(d.stack.item), Vec3{p.x, p.y, p.z}, e.id()));
+                drop_body(s.act(), s.act().items.get(d.stack.item), Vec3{p.x, p.y, p.z}, e.id(), d.shown));
         });
         demo_ecs.each([&](flecs::entity, const ecs::Position &p, const ecs::Falling &f) {
             s.act().bodies.push_back(falling_body(f.block, Vec3{p.x, p.y, p.z}));
@@ -19328,6 +19343,7 @@ script_host make_client_host(Scene &scene)
     host.health          = host_health;
     host.container_spill = host_container_spill;
     host.drop_item       = host_drop_item;
+    host.show_item       = host_show_item;
     host.container_make  = host_container_make;
     host.container_add   = host_container_add;
     host.container_show  = host_container_show;

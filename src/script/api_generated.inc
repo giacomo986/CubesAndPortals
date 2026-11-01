@@ -2012,6 +2012,19 @@ int l_drop_item(lua_State *L)
     return 1;
 }
 
+// core.show_item(x: number, y: number, z: number, item: number) -> number
+int l_show_item(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int x = (int)luaL_checkinteger(L, 1);
+    const int y = (int)luaL_checkinteger(L, 2);
+    const int z = (int)luaL_checkinteger(L, 3);
+    const int item = (int)luaL_checkinteger(L, 4);
+    const int result = (vm && vm->host.show_item) ? vm->host.show_item(vm->host.ud, x, y, z, item) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.craft_show(x: number, y: number, z: number, player: number) -> number
 int l_craft_show(lua_State *L)
 {
@@ -3225,6 +3238,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "container_spill");
     lua_pushcfunction(L, l_drop_item, "core.drop_item");
     lua_setfield(L, -2, "drop_item");
+    lua_pushcfunction(L, l_show_item, "core.show_item");
+    lua_setfield(L, -2, "show_item");
     lua_pushcfunction(L, l_craft_show, "core.craft_show");
     lua_setfield(L, -2, "craft_show");
     lua_pushcfunction(L, l_craft_close, "core.craft_close");

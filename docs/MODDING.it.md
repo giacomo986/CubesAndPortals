@@ -982,9 +982,9 @@ Il kart corre sulla strada vera (una mesh uguale su client e server); un piede,
 un raggio e i controlli del server vedono le celle fill, sempre sotto la strada.
 Scavare una cella qualunque toglie il pezzo intero; mirandolo si vede il contorno di tutto il pezzo, e con un pezzo in mano il pezzo stesso, trasparente, dove andrà (rosso se andrebbe sopra un altro pezzo o se coprirebbe il giocatore). Un pezzo prende il posto di terreno e blocchi che trova nelle sue celle e svuota le 3 celle sopra la strada; lo ferma solo un altro pezzo di pista; Z e X lo ruotano di un quarto prima di piazzarlo. Nella borsa l'icona di un pezzo è la sua pianta vista dall'alto. `plan` 3 e 4 sono una chicane, a destra e a sinistra. Con `wall = true` (ultimo argomento, solo dritti) bank0 e bank1 sono gradi di rotazione della strada attorno al suo centro: a 90 diventa un muro, e un kart ci resta sopra finché va veloce (da 10 m/s, del tutto da 16). `plan` 5 è una curva a sinistra; `width = 2` (ultimo argomento) fa la strada larga due quadrati, e un pezzo largo si piazza dal quadrato della sua corsia destra. `plan` 6 e 7 sono un giro della morte (stretto o largo, 2 o 3 quadrati, senza cordoli): la strada sale, passa sopra capovolta e riscende sulla corsia accanto, a sinistra (6) o a destra (7); il kart ci resta attaccato come su un muro, e lento cade dalla cima. Srotolato, un giro è una chicane: lo spostamento di una corsia si sterza. `plan` 8 e 9 (solo `width = 2`) restringono la strada larga alla sua corsia destra o sinistra in due quadrati; piazzati al contrario la allargano. Una discesa è una salita
 piazzata al contrario. Esempio completo: `games/track/mods/track_core` (tutti i pezzi
-e i circuiti che ci costruisce, `/pezzi` per averli nella borsa, con gli strumenti linea di partenza e checkpoint che `track_game` legge).
+e i circuiti che ci costruisce, `/pieces` per averli nella borsa, con gli strumenti linea di partenza e checkpoint che `track_game` legge).
 
-Sulla pista (`games/track`) `/pezzi` dà per primi tre strumenti, letti da
+Sulla pista (`games/track`) `/pieces` dà per primi tre strumenti, letti da
 `track_game`:
 
 - **start line**: tasto destro su una strada o un pezzo mette una linea di

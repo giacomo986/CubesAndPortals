@@ -5,7 +5,7 @@
 -- and split its lock into seven keys, one hidden in each themed world behind a
 -- trial. This mod is linked into every one of those worlds and into the
 -- sandbox. Everywhere it registers the seven keys (items, one each, carried
--- from room to room in the bag like anything else) and /diario, which reads
+-- from room to room in the bag like anything else) and /journal, which reads
 -- the engineer's page of every key held. A world's trial says it is passed
 -- (event keys:earned) and its key waits on an altar by the way out.
 --
@@ -119,9 +119,9 @@ local function held(player: number): { string }
     return got
 end
 
-core.command("diario", "-- the engineer's pages of the keys you carry")
+core.command("journal", "-- the engineer's pages of the keys you carry")
 core.event.on("core:command", function(ev)
-    if ev.name ~= "diario" then return end
+    if ev.name ~= "journal" then return end
     local pages = {}
     for _, w in held(ev.player) do table.insert(pages, { TITLE[w], PAGE[w] }) end
     if #pages == 0 then
@@ -209,7 +209,7 @@ local function at_altar(player: number)
         any = true
         if core.bag_count(player, item_of(w)) == 0 then
             core.give_item(player, item_of(w), 1)
-            core.notice(player, `Hai preso la {TITLE[w]}. /diario per leggere la pagina dell'ingegnere.`)
+            core.notice(player, `Hai preso la {TITLE[w]}. /journal per leggere la pagina dell'ingegnere.`)
         end
     end
     if not any then
@@ -377,8 +377,49 @@ for k = 0, 15 do
 end
 if #EXITS > 0 then HUB = false end
 
+-- /giveup: giving up this world's trial -- the body dies, comes back at
+-- the world's spawn, which faces the way in (opening 0), and is then walked
+-- through it: put just before its plane and next tick just past it, which the
+-- crossing takes as a step in. Out on the sandbox, by this world's gate.
+if not HUB and #EXITS > 0 then
+    local giving: { [number]: number } = {}   -- 1 dead, 2 before the opening, 3 through
+    core.command("giveup", "-- give up this world's trial: you die and come back out of the way in")
+    core.event.on("core:command", function(ev)
+        if ev.name ~= "giveup" then return end
+        core.chat(ev.player, "Ti sei arreso: torni fuori dall'ingresso del mondo.")
+        for _ = 1, 100 do
+            local hp = core.health(ev.player)
+            if hp <= 0 or core.damage(ev.player, hp) == 0 then break end
+        end
+        giving[ev.player] = 1
+    end)
+    core.event.on("core:tick", function(_)
+        for p, step in giving do
+            local sx, sy, sz = core.world_spawn()
+            local hp = core.health(p)
+            if sx == nil or hp == nil then giving[p] = nil; continue end
+            if hp <= 0 then continue end   -- not back yet
+            local ox, oz = core.get_portal(0, 0), core.get_portal(0, 2)
+            local dx, dz = ox - sx, oz - sz
+            local d = math.sqrt(dx * dx + dz * dz)
+            if d < 0.01 then giving[p] = nil; continue end
+            dx, dz = dx / d, dz / d
+            if step == 1 then
+                core.player_place(p, ox - dx * 0.6, sy, oz - dz * 0.6, dx, 0, dz)
+                giving[p] = 2
+            elseif step == 2 then
+                core.player_place(p, ox + dx * 0.15, sy, oz + dz * 0.15, dx, 0, dz)
+                giving[p] = 3
+            else
+                giving[p] = nil
+            end
+        end
+    end)
+end
+
 if not HUB and #EXITS > 0 then
     local by_altar: { [number]: boolean } = {}
+    local on_altar: { [number]: number } = {}   -- the key shown over each, by exit
     local home: { number }? = nil   -- where the way out stands for the world's own trial
     local out_at = ""               -- where it stands now
     core.event.on("core:tick", function(_)
@@ -432,6 +473,24 @@ if not HUB and #EXITS > 0 then
             end
             if by and not by_altar[p] then at_altar(p) end
             by_altar[p] = by
+        end
+        -- Over each altar, hanging, the key waiting there: one passed here by
+        -- somebody who has not got it yet (core.show_item).
+        local waiting = 0
+        for _, p in core.players() do
+            for w in passed(p) do
+                if core.bag_count(p, item_of(w)) == 0 then waiting = core.item_id(item_of(w)) end
+            end
+        end
+        for i, k in EXITS do
+            if on_altar[i] ~= waiting then
+                local hx = if i == 1 and home then home[1] else core.get_portal(k, 0)
+                local hy = if i == 1 and home then home[2] else core.get_portal(k, 1)
+                local hz = if i == 1 and home then home[3] else core.get_portal(k, 2)
+                if core.show_item(math.floor(hx) + 1, math.floor(hy), math.floor(hz) + 2, waiting) == 1 then
+                    on_altar[i] = waiting
+                end
+            end
         end
     end)
 end

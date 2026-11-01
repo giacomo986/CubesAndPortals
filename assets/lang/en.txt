@@ -6,7 +6,7 @@
 Chiudi = Close
 Non porti nessuna chiave. Ce n'e' una in ogni mondo dietro i portali. = You carry no key. There is one in every world behind the portals.
 Prova superata. La {} ti aspetta sul piedistallo accanto all'uscita. = Trial passed. The {} waits for you on the pedestal by the exit.
-Hai preso la {}. /diario per leggere la pagina dell'ingegnere. = You took the {}. /diario to read the engineer's page.
+Hai preso la {}. /journal per leggere la pagina dell'ingegnere. = You took the {}. /journal to read the engineer's page.
 Un incavo a forma di chiave, vuoto. La prova non e' ancora superata. = A key-shaped hollow, empty. The trial is not passed yet.
 Le sette chiavi vibrano insieme. Il portale del laboratorio si e' acceso. = The seven keys hum together. The lab's portal has lit up.
 Un incavo del piedistallo si illumina: {} chiavi su 7. = A hollow in the pedestal lights up: {} keys of 7.

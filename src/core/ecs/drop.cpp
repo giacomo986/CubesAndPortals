@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 #include "core/ecs/components.h"
 #include "core/ecs/mob.h"
@@ -76,6 +77,29 @@ flecs::entity spawn_drop(flecs::world &w, const ItemStack &what, float x, float 
     return w.entity().set<Position>(p).set<Look>({}).set<Dropped>(d).add<Body>();
 }
 
+void show_drop(flecs::world &w, int x, int y, int z, ItemId item)
+{
+    std::vector<flecs::entity> old;
+    bool same = false;
+    w.each([&](flecs::entity e, const Position &p, const Dropped &d) {
+        if (!d.shown || (int)std::floor(p.x) != x || (int)std::floor(p.y) != y || (int)std::floor(p.z) != z)
+            return;
+        if (d.stack.item == item && !same) same = true;
+        else old.push_back(e);
+    });
+    for (flecs::entity e : old) e.destruct();
+    if (same || item == kNoItem) return;
+    ItemStack stack;
+    stack.item  = item;
+    stack.count = 1;
+    flecs::entity e = spawn_drop(w, stack, (float)x + 0.5f, (float)y + 0.5f, (float)z + 0.5f, 0.0);
+    Dropped &d  = e.get_mut<Dropped>();
+    d.arm_at    = std::numeric_limits<double>::infinity();
+    d.expire_at = std::numeric_limits<double>::infinity();
+    d.resting   = true;
+    d.shown     = true;
+}
+
 flecs::entity spawn_falling(flecs::world &w, BlockId block, uint8_t facing, int x, int y, int z)
 {
     Position p;
@@ -130,6 +154,7 @@ void step_drops(flecs::world &w, const World &world, const NodeRegistry &nodes, 
     if (dt <= 0.0f) return;
 
     w.each([&](flecs::entity e, Position &p, Dropped &d) {
+        if (d.shown) return;   // it hangs where it was put
         const float half = kDropSize * 0.5f;
 
         if (d.resting) {
@@ -273,7 +298,7 @@ flecs::entity first_in_cell(flecs::world &w, int x, int y, int z)
 {
     flecs::entity found;
     w.each([&](flecs::entity e, const Position &p, const Dropped &d) {
-        if (found || d.stack.empty()) return;
+        if (found || d.stack.empty() || d.shown) return;
         if ((int)std::floor(p.x) == x && (int)std::floor(p.y) == y && (int)std::floor(p.z) == z) found = e;
     });
     return found;

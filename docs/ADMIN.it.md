@@ -82,6 +82,8 @@ permesso)` e `core.role(giocatore)` chiedono (vedi [`API.md`](API.md)).
 
 ## Comandi
 
+Ogni comando della chat, anche quelli dei giocatori e dei mod, con cosa fa: [`COMMANDS.it.md`](COMMANDS.it.md).
+
 Le durate sono `45s`, `30m`, `2h`, `7d`, `1w`. NOME è un giocatore online in qualunque stanza, o
 il proprietario di quel nome in questo mondo, o il nome e basta.
 
@@ -129,6 +131,7 @@ il proprietario di quel nome in questo mondo, o il nome e basta.
 | `/alts NOME` | alts | Altri giocatori entrati da un indirizzo da cui è entrato questo, e quali sono banditi |
 | `/bag NOME` | bag | Cosa porta un giocatore, casella per casella, e cosa tengono i suoi zaini; offline, la borsa tenuta qui; e se è andata a un server amico |
 | `/kill [NOME]` | chiunque (sé stesso), moderator (un altro) | Muore e torna al suo letto o allo spawn, in modalità creativa o no (`mods/creative`); l'armatura si consuma un poco, come per un colpo qualsiasi |
+| `/giveup` | chiunque, in un mondo con una prova | Abbandona la prova (`mods/keys`): muore, poi viene fatto passare per l'ingresso del mondo (apertura 0) ed esce nel sandbox accanto al portale di quel mondo; un corpo che non può essere ferito viene solo fatto passare |
 | `/creative on\|off` | admin | La modalità creativa per sé (`mods/creative`): volo senza jetpack, nessun danno, scavo dieci volte più veloce. Tenuta per nome tra un riavvio e l'altro. In un mondo del menù del titolo il giocatore è il proprietario, quindi lì è libera. `/creative TESTO` resta la ricerca del catalogo, sotto il permesso `creative` |
 | `/give NOME OGGETTO [QUANTI]` | give | Oggetti per nome (`chest:box`) nella borsa di un giocatore online |
 | `/report NOME cosa è successo` | chiunque | Un rapporto per lo staff, detto subito a chi è online |

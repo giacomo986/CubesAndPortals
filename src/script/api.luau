@@ -2483,6 +2483,22 @@ local api: { Fn } = {
            .. "contents of something it is destroying where a player can get them back.",
     },
     {
+        name = "show_item",
+        host = "show_item",
+        ret  = "int",
+        args = {
+            { name = "x", type = "int" },
+            { name = "y", type = "int" },
+            { name = "z", type = "int" },
+            { name = "item", type = "int", doc = "0 shows nothing there any more." },
+        },
+        doc = "Shows an item hanging in the middle of that cell, twice the size of a stack on the "
+           .. "ground, bobbing and turning -- what a pedestal holds, put in the cell over it. "
+           .. "Nobody picks it up and it never goes; one per cell, so showing another replaces "
+           .. "it. Kept while the world runs, not saved: a mod shows it again when it starts. "
+           .. "Protocol 112. Returns 1, or 0 for no item by that id.",
+    },
+    {
         name = "craft_show",
         host = "craft_show",
         ret  = "int",

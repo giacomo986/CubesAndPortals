@@ -309,6 +309,29 @@ local function relic_at(x: number, z: number): Relic?
     return relic_of(math.floor(x / SQUARE), math.floor(z / SQUARE), SEED)
 end
 
+-- A shard set in a pedestal hangs over it (core.show_item), shown again for
+-- the ruin somebody stands in after a restart, which forgets what is shown.
+local shown: { [string]: boolean } = {}
+local function show_shard(x: number, y: number, z: number)
+    local k = `{x},{y},{z}`
+    if not shown[k] and core.show_item(x, y + 1, z, core.item_id("relics:shard")) == 1 then shown[k] = true end
+end
+local since = 0
+core.event.on("core:tick", function(ev)
+    since += ev.dt
+    if since < 2 then return end
+    since = 0
+    for _, p in core.players() do
+        local x, _, z = core.player_pos(p)
+        local r = if x then relic_at(x, z) else nil
+        if r and r.kind == "ruin" then
+            for _, c in pedestal_cells(r) do
+                if core.get_block(c[1], c[2], c[3]) == PEDESTAL_FULL then show_shard(c[1], c[2], c[3]) end
+            end
+        end
+    end
+end)
+
 local function opened(x: number, y: number, z: number, player: number, what: string)
     core.play_sound("relics:grind", x, y, z)
     core.notice(player, what)
@@ -356,6 +379,7 @@ core.event.on("core:used", function(ev)
             return
         end
         core.set_block(ev.x, ev.y, ev.z, PEDESTAL_FULL)
+        show_shard(ev.x, ev.y, ev.z)
         core.play_sound("relics:grind", ev.x, ev.y, ev.z)
         local r = relic_at(ev.x, ev.z)
         if r == nil or r.kind ~= "ruin" then

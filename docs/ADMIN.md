@@ -82,6 +82,8 @@ and `core.role(player)` ask (see [`API.md`](API.md)).
 
 ## Commands
 
+Every chat command, the players' and the mods' too, with what it does: [`COMMANDS.md`](COMMANDS.md).
+
 Durations are `45s`, `30m`, `2h`, `7d`, `1w`. NAME is a player online in any room, or the
 owner of that name on this world, or the bare name.
 
@@ -129,6 +131,7 @@ owner of that name on this world, or the bare name.
 | `/alts NAME` | alts | Other players who came in from an address this one came from, and which are banned |
 | `/bag NAME` | bag | What a player carries, square by square, and what their backpacks hold; offline, the bag kept here; and whether it went to a friend server |
 | `/kill [NAME]` | anybody (themselves), moderator (somebody else) | Dies and comes back at their bed or the spawn, creative mode or not (`mods/creative`); armour wears a little, as from any blow |
+| `/giveup` | anybody, in a world with a trial | Gives the trial up (`mods/keys`): dies, then is walked through the world's way in (opening 0) and comes out on the sandbox by that world's gate; a body that cannot be hurt is only walked through |
 | `/creative on\|off` | admin | Creative mode for themselves (`mods/creative`): flying without the jetpack, no damage, digging ten times as fast. Kept by name across restarts. In a world of the title screen its player is the owner, so it is free there. `/creative TEXT` is still the catalogue's search, under the `creative` permission |
 | `/give NAME ITEM [COUNT]` | give | Items by name (`chest:box`) into an online player's bag |
 | `/report NAME what happened` | anybody | A report for the staff, told at once to those online |

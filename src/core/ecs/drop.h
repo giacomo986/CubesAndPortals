@@ -78,12 +78,19 @@ struct Dropped {
     double    expire_at = 0.0;  // and after this there is nothing to pick up
     float     vy      = 0.0f;   // metres per second, downward is negative
     bool      resting = false;  // it found a floor and stopped asking
+    // On show (core.show_item): hanging where it was put, never picked up,
+    // never gone, drawn bigger -- what a pedestal holds.
+    bool      shown   = false;
 };
 
 // One stack, at a point, falling from there. `now` is server seconds; the arming
 // window is counted from it.
 flecs::entity spawn_drop(flecs::world &w, const ItemStack &what, float x, float y, float z,
                          double now);
+
+// What the cell (x, y, z) shows, hanging in its middle (Dropped::shown): one
+// stack of `item`, put in place of what it showed before. kNoItem shows nothing.
+void show_drop(flecs::world &w, int x, int y, int z, ItemId item);
 
 // Gravity, and a floor.
 //

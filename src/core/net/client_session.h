@@ -102,6 +102,7 @@ struct RemotePlayer {
     uint16_t dress[10] = {}, dress_tint[10] = {};   // a mod's models on them (102)
     bool burning   = false;   // a creature in the sun
     bool falling   = false;   // a Drop that is a block falling: `item` is the block (73)
+    bool shown     = false;   // a Drop on show (core.show_item): hangs, bigger (112)
     bool lying     = false;   // a Player on their back, yaw the way the head points (75)
     bool flying    = false;   // a Player in the air on purpose (97)
     bool held      = false;   // a creature this player carries, drawn by its mod (91)

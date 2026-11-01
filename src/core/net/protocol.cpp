@@ -1504,7 +1504,7 @@ std::vector<uint8_t> Entities::encode() const
         const bool clip    = (e.kind == EntityKind::Mob || e.kind == EntityKind::Thing) && !e.clip.empty();
         const bool posed   = e.kind == EntityKind::Player && !e.clip.empty();   // 92
         const bool livery  = e.kind == EntityKind::Player && e.livery != 0;      // 93
-        w.u8((e.working ? 1 : 0) | (e.crouching || clip ? 2 : 0) | (e.burning || posed ? 4 : 0) |
+        w.u8((e.working || (e.kind == EntityKind::Drop && e.shown) ? 1 : 0) | (e.crouching || clip ? 2 : 0) | (e.burning || posed ? 4 : 0) |
              (dressed ? 8 : 0) | (chassis ? 16 : 0) |
              ((e.kind == EntityKind::Drop && e.falling) || livery ? 32 : 0) |
              ((e.kind == EntityKind::Player && e.lying) || (e.kind == EntityKind::Mob && e.held) ? 64 : 0) |
@@ -1681,9 +1681,12 @@ bool Entities::decode(ByteReader &r, Entities &out)
         // Since 52 a creature is Working while it swings or draws; only a
         // person crouches, and a stack or a thing does neither.
         if ((flags & 2) && e.kind != EntityKind::Player) return false;
-        if ((flags & 1) && e.kind != EntityKind::Player && e.kind != EntityKind::Mob) return false;
+        // And a stack is on show (112).
+        if ((flags & 1) && e.kind != EntityKind::Player && e.kind != EntityKind::Mob &&
+            e.kind != EntityKind::Drop) return false;
         if ((flags & 4) && e.kind != EntityKind::Mob) return false;   // only a creature burns (55)
-        e.working   = (flags & 1) != 0;
+        e.working   = (flags & 1) != 0 && e.kind != EntityKind::Drop;
+        e.shown     = (flags & 1) != 0 && e.kind == EntityKind::Drop && !e.falling;
         e.crouching = (flags & 2) != 0;
         e.burning   = (flags & 4) != 0;
 

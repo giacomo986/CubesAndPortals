@@ -3393,6 +3393,15 @@ int host_item_returns(void *ud, const char *item, const char *back)
     return 1;
 }
 
+int host_show_item(void *ud, int x, int y, int z, int item)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (s->sessions == nullptr) return 0;
+    if ((ItemId)item != kNoItem && (size_t)item >= s->items.size()) return 0;
+    cnp::ecs::show_drop(s->sessions->ecs(), x, y, z, (ItemId)item);
+    return 1;
+}
+
 int host_drop_item(void *ud, int x, int y, int z, int item, int count)
 {
     ServerState *s = static_cast<ServerState *>(ud);
@@ -3615,7 +3624,7 @@ int host_collect_drops(void *ud, int x, int y, int z, int tx, int ty, int tz)
     int taken = 0;
     std::vector<flecs::entity> gone;
     (s->sessions ? &s->sessions->ecs() : nullptr)->each([&](flecs::entity e, const ecs::Position &p, ecs::Dropped &d) {
-        if ((int)std::floor(p.x) != x || (int)std::floor(p.y) != y || (int)std::floor(p.z) != z)
+        if (d.shown || (int)std::floor(p.x) != x || (int)std::floor(p.y) != y || (int)std::floor(p.z) != z)
             return;
         const uint16_t left = into->add(s->items, d.stack.item, d.stack.count, -1, d.stack.used,
                                         d.stack.ench, d.stack.tag);
@@ -6189,6 +6198,7 @@ int serve_room(int argc, char **argv)
         host.health          = host_health;
         host.container_spill = host_container_spill;
         host.drop_item       = host_drop_item;
+    host.show_item       = host_show_item;
         host.container_make  = host_container_make;
         host.container_add   = host_container_add;
         host.container_show  = host_container_show;

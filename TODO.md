@@ -49,7 +49,7 @@ engineer, the story as text only, and the trials and the lab as proposed
 (memory: game-ending-needs-design).
 
 Built (2026-10-09): `mods/keys`, linked into every themed world: the seven
-keys (items, icons from tools/make_key_textures.py), `/diario` (the engineer's
+keys (items, icons from tools/make_key_textures.py), `/journal` (the engineer's
 page of each key carried). In the sandbox the eighth gate (mods/gates, a dark
 steel frame and seven pedestals at 62.5 21 76.5) leads to the new room
 `laboratorio` (games/lab: a steel hall round the breach, parkour on), and
@@ -1011,7 +1011,7 @@ Seen in Xephyr; not played with the gun by hand.
   star, lightning), used with the left click, S held throws a shell behind.
   A kart holds two (a box taken with two held gives nothing): the first is
   used, the second moves up; the HUD shows it smaller above the first.
-  Item box tool (track_core:box_tool, in /pezzi): a right click on a road
+  Item box tool (track_core:box_tool, in /pieces): a right click on a road
   puts a box over that cell, another on the same cell takes it away; kept
   in the store ("item_boxes"), laid with the rows at world_ready. Headless,
   by emitted core:used: two down (60 -> 62), one taken (61), a click on
@@ -1040,7 +1040,7 @@ Seen in Xephyr; not played with the gun by hand.
   unturned, longest side 0.24 of the forearm-sized unit, the middle of each
   role's tile, road/sides/dark curbs shaded 1/0.75/0.5) in place of a cube.
   Xephyr by hand: a turn in first and third person; dropped, on the ground too.
-  Track editor (2026-10-14): track_core:editor (in /pezzi). A right click on
+  Track editor (2026-10-14): track_core:editor (in /pieces). A right click on
   a piece follows its track back to the start and on to the open end
   (core.piece_entry, new: the entry square, height, block and facing of any
   piece cell; piece_entry() in piece.cpp, the inverse of piece_origin) and
@@ -1540,7 +1540,7 @@ Seats for players (2026-10-18): F takes the free seat nearest the body
 (a jeep's back seats from behind it), and 1-9 change seat without also
 changing the hand -- a key_1..9 press a world's code cancels no longer
 selects the hotbar (Scene::digit_claimed, both loops). Bots leave a jeep or
-a tank to a player of their team within 25 nodes. /mezzo <kind> puts a
+a tank to a player of their team within 25 nodes. /vehicle <kind> puts a
 machine in front of you for testing (none comes back when it is lost).
 Seen in Xephyr: F from behind a jeep to its gun, then 1, 2, 4, hand kept.
 Bots use everything (2026-10-18): soldiers hold the gun they use (hand_R
@@ -1926,6 +1926,17 @@ Open:
   first; a server lying about tickets is the only case it catches.
 
 ## Mods and scripting
+
+**Items on show (core.show_item, protocol 112), 2026-11-01.** The key over
+mods/keys' altars, the gun over the chambers' pedestals, a shard over a relic
+pedestal: hanging, twice a dropped stack's size, never picked up. Seen in
+Xephyr over chamber 03's pedestal. Not saved: a mod shows them again (relics
+re-shows when somebody is in the ruin). One key per altar even when two players
+wait on different keys. `/giveup` (mods/keys): dies, then is put
+just before the way in (opening 0, which the spawn faces) and next tick 0.15
+past its plane, which the crossing takes as a step: checked in Xephyr from the
+chambers, out on the sandbox at 40.9 45.4 by its gate, 0 corrections. Needs
+the world's spawn to face opening 0.
 
 **OPEN-42 -- modifiers (ABM/LBM).** One Lua call per cell that fires, no
 batching.

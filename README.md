@@ -389,7 +389,9 @@ two accessories, all seen by everyone. On your back: a jetpack to fly, a leather
 27 slots of its own, or a metal backpack with two jointed arms that each hold a tool. The
 creative catalogue (C) has a search box. `/creative on` is creative mode: flying without the
 jetpack, no damage, fast digging (free in a world of your own, admin on a server). `/time` sets
-the hour, `/kill` takes you back to your bed or the spawn when you are stuck.
+the hour, `/kill` takes you back to your bed or the spawn when you are stuck. In a world with a
+trial, `/giveup` gives it up: you die and come back on the sandbox, outside the world's gate. What a pedestal or an
+altar holds (a key, the portal gun, a shard) hangs over it, turning.
 
 ### The engine
 
@@ -567,7 +569,8 @@ reports and notes, rules to accept, alt accounts, restarts with warnings and mai
 `--report`, `/inspect` and `/rollback` of what a player changed, backups, webhooks, `/bag` and
 `/give`, and friend servers that share bans, presence, a chat and one bag for each player.
 
-**Every command, permission, flag and `server.conf` key is in [`docs/ADMIN.md`](docs/ADMIN.md).**
+**Every command, permission, flag and `server.conf` key is in [`docs/ADMIN.md`](docs/ADMIN.md);
+every chat command, the players' too, with what it does, in [`docs/COMMANDS.md`](docs/COMMANDS.md).**
 `/help` in the game lists the ones you may use.
 
 `tools/serve.sh -l logs build-release/src/server/cnp_server --config server.conf` keeps a

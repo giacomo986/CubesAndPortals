@@ -905,10 +905,10 @@ the left (6) or right (7); the kart sticks to it as on a wall, and slow it falls
 Unrolled, a loop is a chicane: the shift of a lane is steered. `plan` 8 and 9 (`width = 2` only)
 narrow the wide road to its right or left lane in two squares; placed reversed they widen it. A
 descent is a climb placed reversed. Complete example: `games/track/mods/track_core` (every piece and
-the circuits it builds, `/pezzi` to have them in the bag, with the start line and checkpoint tools
+the circuits it builds, `/pieces` to have them in the bag, with the start line and checkpoint tools
 `track_game` reads).
 
-On the track (`games/track`) `/pezzi` first gives three tools, read by `track_game`:
+On the track (`games/track`) `/pieces` first gives three tools, read by `track_game`:
 
 - **start line**: right click on a road or a piece puts a start line across, as wide as the road (12
   a side at most), crossed going away from whoever clicked; white beam overhead. A new line is a new

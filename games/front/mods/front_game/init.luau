@@ -638,17 +638,17 @@ if serving then
         asked(ev.player, ev.text)
     end)
 
-    -- For trying things out: /mezzo jeep puts one six nodes in front, of the
+    -- For trying things out: /vehicle jeep puts one six nodes in front, of the
     -- player's team, and none comes back when it is lost.
-    core.command("mezzo", "<jeep|tank|heli|plane|bomber|nest|mortar|howitzer|aa> -- a machine in front of you (test)", "moderator")
+    core.command("vehicle", "<jeep|tank|heli|plane|bomber|nest|mortar|howitzer|aa> -- a machine in front of you (test)", "moderator")
     core.event.on("core:command", function(ev)
-        if ev.name ~= "mezzo" then return end
+        if ev.name ~= "vehicle" then return end
         local kind = string.match(ev.args or "", "%S+") or "jeep"
         local x, _, z = core.player_pos(ev.player)
         local dx, _, dz = core.player_look(ev.player)
         local s = players[ev.player]
         if M.KINDS[kind] == nil or x == nil or dx == nil or s == nil then
-            core.chat(ev.player, "/mezzo jeep|tank|heli|plane|bomber|nest|mortar|howitzer|aa")
+            core.chat(ev.player, "/vehicle jeep|tank|heli|plane|bomber|nest|mortar|howitzer|aa")
             return
         end
         local l = math.max(0.01, math.sqrt(dx * dx + dz * dz))
