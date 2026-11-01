@@ -237,6 +237,12 @@ struct Session {
     // body skimming the ground as one walking.
     bool flying = false;
 
+    // Where this body's rope holds (Rope, core.rope), checked when it was
+    // hooked: a body hanging within reach of it is swinging, not falling.
+    // Let go by the client, and by every placement of the body (placed).
+    bool roped   = false;
+    Vec3 rope_at = {};
+
     // Whether this client's bar is behind. Like inventory_sent and craft_owed:
     // one viewer, so there is no revision to compare -- there is only "it
     // changed and they have not been told".

@@ -5,6 +5,7 @@
 #include "core/ecs/drop.h"
 #include "core/ecs/machine.h"
 #include "core/physics/aabb.h"
+#include "core/physics/player.h"
 #include "core/track/piece.h"
 #include "core/voxel/raycast.h"
 
@@ -649,11 +650,11 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
             if (s.scope == Scope::Enter) {
                 if (v.y < kBelowWorld) {
                     kill_body(s, now);
-                } else if ((move.flags & kMoveRoped) && s.movement.parkour) {
-                    // Hanging on a rope (core.rope): the swing down is not a
-                    // fall, and one let go of starts where it was let go.
-                    // ponytail: the client's word, in a parkour world only;
-                    // check a solid block within kRopeReach if it is abused.
+                } else if (s.roped && length(Vec3{v.x, v.y + kRopeHands, v.z} - s.rope_at) <=
+                                          kRopeReach + 1.0f) {
+                    // Hanging on a rope the server saw hooked (Rope): the swing
+                    // down is not a fall, and one let go of starts where it
+                    // was let go.
                     fall_reset(s.fall, v.y);
                 } else if ((move.flags & kMoveFlying) && s.movement.fly > 0.0f &&
                            s.movement.accel <= 0.0f) {
@@ -1227,6 +1228,37 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
             if (req.crouching) s.avatar.add<ecs::Crouching>();
             else               s.avatar.remove<ecs::Crouching>();
         }
+        return SessionAction{};
+    }
+
+    if (channel == (uint8_t)Channel::Event && peek_type(data, size) == MsgType::Rope) {
+        ByteReader r(data, size);
+        Rope       req;
+        if (!Rope::decode(r, req)) {
+            SessionAction bad;
+            bad.log = "'" + s.name + "' sent a rope that does not parse";
+            return bad;
+        }
+        s.roped = false;
+        if (!req.on) return SessionAction{};
+        // Held only where it can be: a world where bodies do parkour, a solid
+        // block at the point, within a rope's reach of the hands (and a node
+        // for the claim the hook came after).
+        const Vec3 at{req.x, req.y, req.z};
+        const MovementState &me = s.authority();
+        const Vec3 hands{me.x, me.y + kRopeHands, me.z};
+        const AABB grip{at - Vec3{0.05f, 0.05f, 0.05f}, at + Vec3{0.05f, 0.05f, 0.05f}};
+        std::string why;
+        if (!s.movement.parkour) why = "this world does not do parkour";
+        else if (!has_authority() || !box_hits_world(*m_world, *m_registry, grip)) why = "nothing solid there";
+        else if (length(at - hands) > kRopeReach + 1.0f) why = "out of a rope's reach";
+        if (!why.empty()) {
+            SessionAction bad;
+            bad.log = "'" + s.name + "' hooked a rope it cannot have: " + why;
+            return bad;
+        }
+        s.roped   = true;
+        s.rope_at = at;
         return SessionAction{};
     }
 
@@ -2883,6 +2915,7 @@ MovementLimits ServerSessions::limits_of(const Session &s, double now) const
 
 uint32_t ServerSessions::placed(Session &s, Vec3 at, Vec3 vel, float yaw, bool yaw_known)
 {
+    s.roped = false;   // put somewhere: off any rope, as the client takes itself off
     DriveShadow &d = s.drive;
     d.body.vehicle.reset();
     d.body.pos        = at;

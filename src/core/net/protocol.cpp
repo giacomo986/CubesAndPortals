@@ -657,7 +657,7 @@ bool Move::decode(ByteReader &r, Move &out)
         if (e.built) e.missing = r.u32();
     }
     if (!r.done()) return false;
-    if (out.flags & ~(kMoveFlying | kMoveRoped)) return false;
+    if (out.flags & ~kMoveFlying) return false;
     if (!sane(out.vx) || !sane(out.vy) || !sane(out.vz)) return false;
 
     // A scope this build does not know is not a claim it can decide what to do
@@ -2474,6 +2474,35 @@ bool ModData::decode(ByteReader &r, ModData &out)
 
 // --- Notice -----------------------------------------------------------------
 
+std::vector<uint8_t> Rope::encode() const
+{
+    ByteWriter w;
+    w.u8((uint8_t)MsgType::Rope);
+    w.u8(on ? 1 : 0);
+    if (on) {
+        w.f32(x);
+        w.f32(y);
+        w.f32(z);
+    }
+    return w.data();
+}
+
+bool Rope::decode(ByteReader &r, Rope &out)
+{
+    out = Rope{};
+    if (r.u8() != (uint8_t)MsgType::Rope) return false;
+    const uint8_t on = r.u8();
+    if (on > 1) return false;
+    out.on = on == 1;
+    if (out.on) {
+        out.x = r.f32();
+        out.y = r.f32();
+        out.z = r.f32();
+        if (!std::isfinite(out.x) || !std::isfinite(out.y) || !std::isfinite(out.z)) return false;
+    }
+    return r.done();
+}
+
 std::vector<uint8_t> Hold::encode() const
 {
     ByteWriter w;
@@ -2845,6 +2874,7 @@ MsgType peek_type(const void *data, size_t size)
     case MsgType::StatusQuery:
     case MsgType::Status:
     case MsgType::OwnPose:
+    case MsgType::Rope:
         return (MsgType)t;
     }
 

@@ -15450,8 +15450,10 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             const float flat = std::sqrt(std::max(0.0f, 1.0f - fwd.y * fwd.y));
             fwd = Vec3{std::sin(player.ride_yaw) * flat, fwd.y, -std::cos(player.ride_yaw) * flat};
         }
+        // The rope first, so the claim after it is judged as a swing.
+        conn->send_rope(player.roped, player.rope_at);
         conn->send_move(player.pos.x, player.pos.y, player.pos.z, fwd.x, fwd.y, fwd.z, now,
-                        player.flying, player.velocity, player.roped);
+                        player.flying, player.velocity);
 
         // And a viewpoint for every world being looked into, or nothing is
         // streamed: an observer's chunks follow its claim like anybody's.

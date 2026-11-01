@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 113; // 113 a claim says the body is on a rope
+inline constexpr uint16_t kProtocol    = 113; // 113 the client says where its rope holds (Rope)
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -364,8 +364,8 @@ inline constexpr uint16_t kProtocol    = 113; // 113 a claim says the body is on
 // client refuses; and bit 3 of BodyMovement's moves byte for a body in a cart.
 // 112 marks a Drop on show (core.show_item) with bit 1 of its flags, which a
 // 111 client refuses.
-// 113 says in a Move's flags that the body hangs on a rope (kMoveRoped), which
-// a 112 server refuses as a malformed claim.
+// 113 adds Rope, the client's rope hooked at a point or let go, which a 112
+// server does not know.
 inline constexpr uint16_t kMinProtocol = 113;
 
 // What a player picked to look like (protocol 93): the three colours of their
@@ -634,6 +634,11 @@ enum class MsgType : uint8_t {
     // own body, which the entities never carry -- they skip yourself -- so a
     // rider seen from behind sits in the cart everybody else sees them in.
     OwnPose = 50,        // server -> client, channel 3
+
+    // "My rope holds there" or "I let go" (core.rope, protocol 113): what the
+    // server needs to tell a swing from a fall. Checked there: a parkour
+    // world, a solid block at that point, within a rope's reach of the body.
+    Rope = 51,           // client -> server, channel 3
 };
 
 // Players per world, decided in DESIGN.md, and the reason the entity message
@@ -1232,7 +1237,7 @@ struct Move {
     // session still is that.
     uint8_t  scope = (uint8_t)Scope::Enter;
 
-    // What the body was doing when it got here: kMoveFlying, kMoveRoped. Only
+    // What the body was doing when it got here: kMoveFlying, or nothing. Only
     // the fall watch reads it. A body that says it is flying starts its fall
     // again where it is instead of being charged the descent -- and only on a
     // world where that body may fly, so saying it where flying is off buys
@@ -1265,10 +1270,6 @@ struct Move {
 };
 
 inline constexpr uint8_t kMoveFlying = 1;
-// On a rope (core.rope, protocol 113): the swing's descent is not a fall. Only
-// taken where bodies do parkour (MovementRules::parkour), the one place a rope
-// can be shot.
-inline constexpr uint8_t kMoveRoped = 2;
 
 // The most records one claim carries: a second at 60 steps is more than three
 // claims' worth, and a claim of them is still one packet.
@@ -2340,6 +2341,14 @@ struct Notice {
 // The longest line a player may type. A server line may be longer -- it carries
 // the name in front -- and is capped by kMaxWireModText like a notice.
 inline constexpr size_t kMaxChatLine = 256;
+
+struct Rope {
+    bool  on = false;
+    float x = 0.0f, y = 0.0f, z = 0.0f;   // where it holds, when on
+
+    std::vector<uint8_t> encode() const;
+    static bool decode(ByteReader &r, Rope &out);
+};
 
 struct Dress {
     uint32_t livery = 0;   // Hello::livery, under kLiveryMax

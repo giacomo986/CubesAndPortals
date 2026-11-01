@@ -265,7 +265,11 @@ public:
     // (record_drive), the velocity, and which placement and which numbers the
     // body is on, for the server to drive the same kart (TODO.md OPEN-47).
     bool send_move(float x, float y, float z, float look_x, float look_y, float look_z,
-                   double now, bool flying = false, Vec3 velocity = {}, bool roped = false);
+                   double now, bool flying = false, Vec3 velocity = {});
+
+    // The rope hooked at `at`, or let go (Rope, core.rope): sent when it
+    // changes from what was sent last, so it can be called every frame.
+    void send_rope(bool on, Vec3 at);
 
     // What this frame's chassis did (core/physics/vehicle.h), to go with the
     // next claims. Recorded against the numbers the body moves by now.
@@ -820,6 +824,8 @@ public:
     Transport &transport() { return m_transport; }
 
 private:
+    bool m_rope_on = false;   // what send_rope last said
+    Vec3 m_rope_at = {};
     void handle(const std::vector<uint8_t> &data, double now, uint8_t channel);
 
     // Opens another socket when one is due. Called from pump(), because that is

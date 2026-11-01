@@ -1138,12 +1138,15 @@ Fixed 2026-11-01 (protocol 113): the server did not know a body hung on a
 rope, so every swing's descent (about 12 nodes under the first beam) was a
 fall that hurt, and a few swings killed; the respawn's teleport left the
 client's rope on, whose constraint pulled the body from the spawn straight
-back onto the rope's sphere -- the "snap" seen while swinging. Now a claim
-carries kMoveRoped (honoured only where core.parkour) and the fall restarts
-there, and a teleport takes the client off its rope. Measured under station
+back onto the rope's sphere -- the "snap" seen while swinging. Now the client
+says where its rope holds and when it lets go (message Rope); the server takes
+it only in a parkour world, on a solid block, within kRopeReach + 1 of the
+hands, and while the body stays that close the fall restarts; any placement
+lets go on both ends. Measured under station
 6's first beam, pumping at the pendulum's period: before, one 18.6-node jump
 after a death within the first swings; after, 30 s at up to 22 m/s, no
-teleport, full health. The client's word for it: no check that a rope is there.
+teleport, full health, no refused hook in the server log. Not tried: a forged hook
+(the refusals are three ifs in session.cpp, logged).
 Since 2026-10-11 a parkour world (core.parkour) always runs at the sprint
 (8.0 m in 1 s held, was 4.8 walking) and hands grab ledges as in the sandbox:
 checked on a wall two high in the plaza, hung at 23 - 1.85, jump pulled up
