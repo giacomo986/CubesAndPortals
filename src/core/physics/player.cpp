@@ -136,6 +136,13 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
     // that turned with the mouse would turn faster than any wheel.
     if (!rules.drives()) player.yaw += input.look_dx * kLookSpeed;
     player.pitch -= input.look_dy * kLookSpeed;
+    // Round an inside corner the body and the view turn with the run, over a
+    // moment rather than at a snap (kCornerTurnRate), the mouse on top.
+    if (player.corner_turn != 0.0f) {
+        const float step = std::clamp(player.corner_turn, -kCornerTurnRate * dt, kCornerTurnRate * dt);
+        player.yaw         += step;
+        player.corner_turn -= step;
+    }
     player.pitch  = std::clamp(player.pitch, -kMaxPitch, kMaxPitch);
 
     // Hanging from a ledge, or pulling up over it, the head turns at most
@@ -490,6 +497,8 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
             player.used_dz    = player.corner_dz;
             player.corner     = 0.0f;
             player.corner_buf = 0.0f;
+            // Facing the way it now runs: fwd is (sin yaw, -cos yaw).
+            player.corner_turn = std::remainder(std::atan2(tx, -tz) - player.yaw, 6.2831853f);
             on_wall           = true;
             kicked            = true;
         }

@@ -41,6 +41,7 @@ inline constexpr float kKickTime    = 0.4f;    // seconds of the wall_jump clip
 inline constexpr float kKickReach   = 0.45f;   // how far off a wall a kick still finds it
 inline constexpr float kCornerTime  = 0.4f;    // seconds a jump turns a run that met an inside corner
 inline constexpr float kCornerAhead = 1.5f;    // how far ahead a wall across a run keeps a jump for the corner
+inline constexpr float kCornerTurnRate = 12.0f; // rad/s the body and view turn round an inside corner
 inline constexpr float kSlideTime   = 0.9f;    // seconds of a slide
 inline constexpr float kSlideBoost  = 1.15f;   // a slide starts this much over the sprint
 inline constexpr float kSlideEye    = 0.6f;    // the eye over the feet, sliding
@@ -152,6 +153,9 @@ struct Player {
     // A jump pressed on the run with that wall just ahead (kCornerAhead),
     // kept for kCornerTime seconds: the run turns as it meets the wall.
     float corner_buf = 0.0f;
+    // Radians the body and view still have to turn after a corner, to face
+    // the way the run now goes (kCornerTurnRate).
+    float corner_turn = 0.0f;
     float kick  = 0.0f;   // seconds left of a kick off a wall (kKickTime), for the clip
     float slide = 0.0f;   // seconds left of a slide (kSlideTime)
     bool  low   = false;  // the box kSlideHeight tall: sliding, or under a block after one
