@@ -57,6 +57,13 @@ std::string user_mods_dir();
 // The mods turned off everywhere: mods.conf beside user_mods_dir.
 std::string user_mods_conf();
 
+// A game started by the launcher (CNP_LAUNCHER in its environment) that meets a
+// server wanting another version writes what it met here -- `server = HOST:PORT`
+// and `version = V`, the server's engine version -- and exits with this code;
+// the launcher then starts that version on that server (TODO.md, step 9).
+inline constexpr int kExitWantsVersion = 42;
+std::string          launcher_request_path();
+
 // A mods.conf's `off = a, b` (a world's, or user_mods_conf): the names, in
 // order. `#` starts a comment; a missing file is an empty list.
 std::vector<std::string> read_mods_off(const std::string &path);

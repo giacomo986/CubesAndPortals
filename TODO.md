@@ -2046,7 +2046,20 @@ the window is shown, then added. Headless `--mods`, `--add-mod PATH [--world
 NAME]`. Seen: headless add, duplicate refused, package into a world, a wrong
 API and a too-old dependency named; in Xephyr list, detail, off everywhere
 shown in the world view, remove. Not seen: a real drop (xdotool cannot drag
-files). Next: step 9, follow the server's version.
+files). Step 9 done 2026-11-01: a game started by the launcher (CNP_LAUNCHER)
+that clicks a server listed "needs version X", or is refused for its version
+by an older server, writes <data>/launcher-request (server, version) and exits
+42; the launcher reopens, starts X (installing it first, signed, when it is
+not here) with `--join-listed HOST:PORT`, which goes to that row as the
+restart rejoin does. Seen in Xephyr with a 0.11.0-alpha.1/protocol 113 build
+in versions/ and its server: 0.10 listed "needs version 0.11.0-alpha.1", the
+click handed back, 0.11 opened on the account prompt and joined (server log:
+protocol 113). Not seen: the install-first path (no signed 0.11 release) and
+the refusal path (needs a server older than the status range). Next: step 10,
+packages.
+**Launcher text, to do (asked 2026-11-01):** make the launcher's text denser so
+more fits on one screen: smaller type for details, two columns where it reads
+well, shorter labels, fewer rows spent on one line of text.
 
 **OPEN-40 -- macOS never run; Windows only under wine.** Packages, 2026-10-10:
 tarball and AppImage (23 MB; until now they lacked `assets/sounds` and

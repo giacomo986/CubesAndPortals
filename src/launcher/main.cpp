@@ -371,248 +371,299 @@ int main(int argc, char **argv)
 
     std::vector<Build> builds = find_builds();
     size_t             chosen = 0;
-    const std::string  wanted = read_default();
+    std::string        wanted = read_default();
     for (size_t i = 0; i < builds.size(); ++i)
         if (builds[i].version == wanted) chosen = i;
 
-    gfx_desc desc{};
-    desc.width     = 1280;
-    desc.height    = 720;
-    desc.title     = "Cubes and Portals";
-    desc.resizable = true;
-    if (!gfx_init(&desc)) {
-        std::fprintf(stderr, "cnp_launcher: no window\n");
-        return 1;
-    }
-    plat_disable_default_exit_key();
+    // The game knows it was started from here (core/paths.h, kExitWantsVersion).
+#ifdef _WIN32
+    _putenv_s("CNP_LAUNCHER", "1");
+#else
+    setenv("CNP_LAUNCHER", "1", 1);
+#endif
 
-    Page        page = Page::Main;
-    std::string error = builds.empty() ? "no build of the game found" : "";
-    const Build             *start = nullptr;
-    std::vector<std::string> start_args;
-    std::vector<launcher::World> worlds;
-    ModsView                     mods;
-    bool        pressed_here = false;
+    // A server the game met that wants another version: followed by starting
+    // that version (installed first if it is not here) on that server.
+    std::string follow_server, follow_version;
 
-    std::vector<std::string>              remote;
-    std::future<std::vector<std::string>> asking;
-    std::future<std::string>              installing;
-    std::string                           installing_v, confirm;
-    launcher::Progress                    progress;
+    for (;;) {
+        builds = find_builds();
+        for (size_t i = 0; i < builds.size(); ++i)
+            if (builds[i].version == wanted) chosen = i;
 
-    while (!plat_should_close() && start == nullptr) {
-        // An install going on says how far it is; one that ended says how.
-        if (installing.valid()) {
-            if (installing.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-                const std::string err = installing.get();
-                error = err.empty() ? installing_v + " installed" : err;
-                const std::string keep = builds.empty() ? "" : builds[chosen].version;
-                builds = find_builds();
-                for (size_t i = 0; i < builds.size(); ++i)
-                    if (builds[i].version == keep) chosen = i;
-                page = Page::Builds;
-            } else {
-                std::error_code ec;
-                const uint64_t  have = fs::file_size(launcher::download_path(installing_v), ec);
-                const uint64_t  all  = progress.size;
-                error = std::string(lang::tr("downloading")) + " " + installing_v +
-                        (all > 0 && !ec ? "  " + std::to_string(have * 100 / all) + "%" : "");
+        gfx_desc desc{};
+        desc.width     = 1280;
+        desc.height    = 720;
+        desc.title     = "Cubes and Portals";
+        desc.resizable = true;
+        if (!gfx_init(&desc)) {
+            std::fprintf(stderr, "cnp_launcher: no window\n");
+            return 1;
+        }
+        plat_disable_default_exit_key();
+
+        Page        page = Page::Main;
+        std::string error = builds.empty() ? "no build of the game found" : "";
+        const Build             *start = nullptr;
+        std::vector<std::string> start_args;
+        std::vector<launcher::World> worlds;
+        ModsView                     mods;
+        bool        pressed_here = false;
+
+        std::vector<std::string>              remote;
+        std::future<std::vector<std::string>> asking;
+        std::future<std::string>              installing;
+        std::string                           installing_v, confirm;
+        launcher::Progress                    progress;
+
+        while (!plat_should_close() && start == nullptr) {
+            // An install going on says how far it is; one that ended says how.
+            if (installing.valid()) {
+                if (installing.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                    const std::string err = installing.get();
+                    error = err.empty() ? installing_v + " installed" : err;
+                    const std::string keep = builds.empty() ? "" : builds[chosen].version;
+                    builds = find_builds();
+                    for (size_t i = 0; i < builds.size(); ++i)
+                        if (builds[i].version == keep) chosen = i;
+                    page = Page::Builds;
+                    if (!err.empty()) follow_server.clear();
+                } else {
+                    std::error_code ec;
+                    const uint64_t  have = fs::file_size(launcher::download_path(installing_v), ec);
+                    const uint64_t  all  = progress.size;
+                    error = std::string(lang::tr("downloading")) + " " + installing_v +
+                            (all > 0 && !ec ? "  " + std::to_string(have * 100 / all) + "%" : "");
+                }
             }
-        }
-        if (asking.valid() && asking.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-            remote = asking.get();
-            if (remote.empty()) error = "the releases page did not answer";
-        }
-
-        // A mod dropped on the window, on any mods page: shown before it is added.
-        if (const int dropped = plat_take_dropped();
-            dropped > 0 && (page == Page::Mods || page == Page::ModDetail || page == Page::ModInstall)) {
-            std::string err;
-            if (launcher::read_mod(plat_dropped_path(0), mods.pending, err)) {
-                mods.pending.where = mods.scope == 0 ? launcher::Where::Everywhere : launcher::Where::World;
-                page               = Page::ModInstall;
-                error.clear();
-            } else {
-                error = err;
+            // Following a server: its version if it is here, else fetched first.
+            if (!follow_server.empty() && !installing.valid()) {
+                const auto b = std::find_if(builds.begin(), builds.end(),
+                                            [&](const Build &x) { return x.version == follow_version; });
+                if (b != builds.end()) {
+                    start      = &*b;
+                    start_args = {"--join-listed", follow_server};
+                    follow_server.clear();
+                } else if (installing_v != follow_version) {
+                    installing_v  = follow_version;
+                    progress.size = 0;
+                    installing    = std::async(std::launch::async, [v = installing_v, &progress] {
+                        return launcher::install(v, progress);
+                    });
+                    page = Page::Builds;
+                } else {
+                    follow_server.clear();   // fetched and still not here: the error says why
+                }
             }
-        }
-
-        const ui::Panel p = launcher_panel(page, builds, chosen, remote, worlds, mods, confirm, error);
-        // Below the game's name when it fits there: the mods pages are taller
-        // than any of the title screen's.
-        ui::PanelPlacement at = ui::place_panel(p, gfx_screen_width(), gfx_screen_height());
-        const float        top = (float)gfx_screen_height() * 0.19f;
-        if (at.y < top && top + p.h * at.cell <= (float)gfx_screen_height()) at.y = top;
-        float mx = 0.0f, my = 0.0f;
-        plat_mouse_position(&mx, &my);
-        const int hover = at.button_at(p, mx, my);
-
-        gfx_begin_frame();
-        gfx_clear(0.0f, 0.0f, 0.0f, 1.0f, true);
-        gfx_2d_begin(gfx_screen_width(), gfx_screen_height());
-        draw_title_backdrop();
-        ui::draw_mod_panel(p, at, hover, gfx_screen_width(), gfx_screen_height());
-        draw_title_name();
-        gfx_2d_end();
-        gfx_end_frame();
-
-        if (plat_mouse_pressed(PLAT_MOUSE_LEFT)) pressed_here = true;
-        std::string id;
-        if (plat_mouse_released(PLAT_MOUSE_LEFT) && pressed_here && hover >= 0) id = p.elements[(size_t)hover].id;
-        if (plat_mouse_released(PLAT_MOUSE_LEFT)) pressed_here = false;
-        if (plat_key_pressed(PLAT_KEY_ESC)) id = page == Page::Main ? "quit" : "back";
-
-        if (!id.empty() && id.rfind("remove:", 0) != 0 && id.rfind("world:", 0) != 0 && id != "mod_remove") {
-            confirm.clear();
-            if (!installing.valid()) error.clear();
-        }
-        if (id == "quit") break;
-        if (id == "builds") page = Page::Builds;
-        if (id == "worlds") {
-            worlds = launcher::list_worlds();
-            page   = Page::Worlds;
-        }
-        const auto reload_mods = [&] {
-            mods.mods = launcher::list_mods(builds.empty() ? "" : launcher::game_mods_dir(builds[chosen].client, builds[chosen].bundled),
-                                            mods.world());
-            if (!builds.empty()) launcher::api_range(builds[chosen].client, builds[chosen].bundled, mods.api_oldest, mods.api_newest);
-            mods.first = std::min(mods.first, mods.mods.empty() ? 0 : (mods.mods.size() - 1) / kModsShown * kModsShown);
-        };
-        if (id == "mods") {
-            if (page == Page::Main) {
-                mods.scope  = 0;
-                mods.worlds.clear();
-                for (const launcher::World &w : launcher::list_worlds()) mods.worlds.push_back(w.name);
+            if (asking.valid() && asking.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                remote = asking.get();
+                if (remote.empty()) error = "the releases page did not answer";
             }
-            mods.confirm.clear();
-            reload_mods();
-            page = Page::Mods;
-        }
-        if (id == "scope") {
-            mods.scope = (mods.scope + 1) % (mods.worlds.size() + 1);
-            mods.first = 0;
-            reload_mods();
-        }
-        if (id == "mods_prev") mods.first -= std::min(mods.first, kModsShown);
-        if (id == "mods_next") mods.first += kModsShown;
-        if (id.rfind("mod:", 0) == 0) {
-            mods.open    = std::min(mods.mods.size() - 1, (size_t)std::strtoul(id.c_str() + 4, nullptr, 10));
-            mods.confirm.clear();
-            page = Page::ModDetail;
-        }
-        if (id == "toggle") {
-            const launcher::ModEntry &m = mods.mods[mods.open];
-            launcher::set_off(mods.world(), m.manifest.name, !m.off);
-            const std::string path = m.path;
-            reload_mods();
-            for (size_t i = 0; i < mods.mods.size(); ++i)
-                if (mods.mods[i].path == path) mods.open = i;
-        }
-        if (id == "mod_remove") {
-            const launcher::ModEntry &m = mods.mods[mods.open];
-            if (mods.confirm != m.path) {
-                mods.confirm = m.path;
-            } else {
-                const std::string err = launcher::remove_mod(m);
-                error = err.empty() ? m.manifest.name + " " + lang::tr("removed") : err;
+
+            // A mod dropped on the window, on any mods page: shown before it is added.
+            if (const int dropped = plat_take_dropped();
+                dropped > 0 && (page == Page::Mods || page == Page::ModDetail || page == Page::ModInstall)) {
+                std::string err;
+                if (launcher::read_mod(plat_dropped_path(0), mods.pending, err)) {
+                    mods.pending.where = mods.scope == 0 ? launcher::Where::Everywhere : launcher::Where::World;
+                    page               = Page::ModInstall;
+                    error.clear();
+                } else {
+                    error = err;
+                }
+            }
+
+            const ui::Panel p = launcher_panel(page, builds, chosen, remote, worlds, mods, confirm, error);
+            // Below the game's name when it fits there: the mods pages are taller
+            // than any of the title screen's.
+            ui::PanelPlacement at = ui::place_panel(p, gfx_screen_width(), gfx_screen_height());
+            const float        top = (float)gfx_screen_height() * 0.19f;
+            if (at.y < top && top + p.h * at.cell <= (float)gfx_screen_height()) at.y = top;
+            float mx = 0.0f, my = 0.0f;
+            plat_mouse_position(&mx, &my);
+            const int hover = at.button_at(p, mx, my);
+
+            gfx_begin_frame();
+            gfx_clear(0.0f, 0.0f, 0.0f, 1.0f, true);
+            gfx_2d_begin(gfx_screen_width(), gfx_screen_height());
+            draw_title_backdrop();
+            ui::draw_mod_panel(p, at, hover, gfx_screen_width(), gfx_screen_height());
+            draw_title_name();
+            gfx_2d_end();
+            gfx_end_frame();
+
+            if (plat_mouse_pressed(PLAT_MOUSE_LEFT)) pressed_here = true;
+            std::string id;
+            if (plat_mouse_released(PLAT_MOUSE_LEFT) && pressed_here && hover >= 0) id = p.elements[(size_t)hover].id;
+            if (plat_mouse_released(PLAT_MOUSE_LEFT)) pressed_here = false;
+            if (plat_key_pressed(PLAT_KEY_ESC)) id = page == Page::Main ? "quit" : "back";
+
+            if (!id.empty() && id.rfind("remove:", 0) != 0 && id.rfind("world:", 0) != 0 && id != "mod_remove") {
+                confirm.clear();
+                if (!installing.valid()) error.clear();
+            }
+            if (id == "quit") break;
+            if (id == "builds") page = Page::Builds;
+            if (id == "worlds") {
+                worlds = launcher::list_worlds();
+                page   = Page::Worlds;
+            }
+            const auto reload_mods = [&] {
+                mods.mods = launcher::list_mods(builds.empty() ? "" : launcher::game_mods_dir(builds[chosen].client, builds[chosen].bundled),
+                                                mods.world());
+                if (!builds.empty()) launcher::api_range(builds[chosen].client, builds[chosen].bundled, mods.api_oldest, mods.api_newest);
+                mods.first = std::min(mods.first, mods.mods.empty() ? 0 : (mods.mods.size() - 1) / kModsShown * kModsShown);
+            };
+            if (id == "mods") {
+                if (page == Page::Main) {
+                    mods.scope  = 0;
+                    mods.worlds.clear();
+                    for (const launcher::World &w : launcher::list_worlds()) mods.worlds.push_back(w.name);
+                }
                 mods.confirm.clear();
                 reload_mods();
                 page = Page::Mods;
             }
-        }
-        if (id == "mod_install") {
-            const std::string err = launcher::install_mod(mods.pending, mods.world(), mods.mods);
-            error = err.empty() ? mods.pending.manifest.name + " " + lang::tr("added") : err;
-            reload_mods();
-            page = Page::Mods;
-        }
-        if (id.rfind("world:", 0) == 0 && !builds.empty() && !installing.valid()) {
-            // Which build last had it: what made it, or a newer one the launcher
-            // opened it with since. A save line apart is asked twice; a newer
-            // build gets a copy of the world as it was first, kept in backups/.
-            const launcher::World &w = worlds[std::min(worlds.size() - 1, (size_t)std::strtoul(id.c_str() + 6, nullptr, 10))];
-            const Build &b   = builds[chosen];
-            std::string  ref = w.made_with;
-            if (!w.last_opened.empty() && (ref.empty() || update::compare(w.last_opened, ref) > 0)) ref = w.last_opened;
-            const bool apart = !ref.empty() && launcher::save_line(ref) != launcher::save_line(b.version);
-            if (apart && confirm != "world:" + w.name) {
-                confirm = "world:" + w.name;
-                error   = ref + " " + lang::tr("made it: this version may not open it.") + "\n" +
-                          lang::tr("Click again to play; a copy is kept first.");
-            } else {
-                std::string err;
-                if (ref.empty() || update::compare(b.version, ref) > 0)
-                    err = launcher::backup_world(w.name, ref.empty() ? "before-" + b.version : ref);
-                confirm.clear();
-                if (!err.empty()) {
-                    error = err;
+            if (id == "scope") {
+                mods.scope = (mods.scope + 1) % (mods.worlds.size() + 1);
+                mods.first = 0;
+                reload_mods();
+            }
+            if (id == "mods_prev") mods.first -= std::min(mods.first, kModsShown);
+            if (id == "mods_next") mods.first += kModsShown;
+            if (id.rfind("mod:", 0) == 0) {
+                mods.open    = std::min(mods.mods.size() - 1, (size_t)std::strtoul(id.c_str() + 4, nullptr, 10));
+                mods.confirm.clear();
+                page = Page::ModDetail;
+            }
+            if (id == "toggle") {
+                const launcher::ModEntry &m = mods.mods[mods.open];
+                launcher::set_off(mods.world(), m.manifest.name, !m.off);
+                const std::string path = m.path;
+                reload_mods();
+                for (size_t i = 0; i < mods.mods.size(); ++i)
+                    if (mods.mods[i].path == path) mods.open = i;
+            }
+            if (id == "mod_remove") {
+                const launcher::ModEntry &m = mods.mods[mods.open];
+                if (mods.confirm != m.path) {
+                    mods.confirm = m.path;
                 } else {
-                    launcher::opened_with(w.name, b.version);
-                    start      = &b;
-                    start_args = {"--play-world", w.name};
+                    const std::string err = launcher::remove_mod(m);
+                    error = err.empty() ? m.manifest.name + " " + lang::tr("removed") : err;
+                    mods.confirm.clear();
+                    reload_mods();
+                    page = Page::Mods;
                 }
             }
-        }
-        if (id == "back") {
-            page = page == Page::Download ? Page::Builds : Page::Main;
-            confirm.clear();
-        }
-        if (id == "download") {
-            page = Page::Download;
-            if (remote.empty() && !asking.valid()) asking = std::async(std::launch::async, launcher::remote_versions);
-        }
-        if (id.rfind("get:", 0) == 0 && !installing.valid()) {
-            installing_v  = id.substr(4);
-            progress.size = 0;
-            installing    = std::async(std::launch::async, [v = installing_v, &progress] {
-                return launcher::install(v, progress);
-            });
-            page = Page::Builds;
-        }
-        if (id.rfind("remove:", 0) == 0) {
-            const Build &b = builds[std::min(builds.size() - 1, (size_t)std::strtoul(id.c_str() + 7, nullptr, 10))];
-            if (confirm != b.version) {
-                confirm = b.version;
-                const size_t made = launcher::worlds_made_with(b.version).size();
-                error = made == 0 ? std::string(lang::tr("click again to remove")) + " " + b.version
-                                    : std::to_string(made) + " " + lang::tr("world(s) were made with it: click again to remove it");
-            } else {
-                const std::string keep = builds[chosen].version, err = launcher::remove(b.version);
-                error   = err.empty() ? b.version + " " + lang::tr("removed") : err;
-                confirm.clear();
-                builds = find_builds();
-                chosen = 0;
-                for (size_t i = 0; i < builds.size(); ++i)
-                    if (builds[i].version == keep) chosen = i;
-                if (!builds.empty() && builds[chosen].version != keep) write_default(builds[chosen].version);
+            if (id == "mod_install") {
+                const std::string err = launcher::install_mod(mods.pending, mods.world(), mods.mods);
+                error = err.empty() ? mods.pending.manifest.name + " " + lang::tr("added") : err;
+                reload_mods();
+                page = Page::Mods;
             }
-        }
-        if (id.rfind("build:", 0) == 0) {
-            chosen = std::min(builds.size() - 1, (size_t)std::strtoul(id.c_str() + 6, nullptr, 10));
-            write_default(builds[chosen].version);
-            page = Page::Main;
-        }
-        if (id == "play" && !builds.empty() && !installing.valid()) start = &builds[chosen];
+            if (id.rfind("world:", 0) == 0 && !builds.empty() && !installing.valid()) {
+                // Which build last had it: what made it, or a newer one the launcher
+                // opened it with since. A save line apart is asked twice; a newer
+                // build gets a copy of the world as it was first, kept in backups/.
+                const launcher::World &w = worlds[std::min(worlds.size() - 1, (size_t)std::strtoul(id.c_str() + 6, nullptr, 10))];
+                const Build &b   = builds[chosen];
+                std::string  ref = w.made_with;
+                if (!w.last_opened.empty() && (ref.empty() || update::compare(w.last_opened, ref) > 0)) ref = w.last_opened;
+                const bool apart = !ref.empty() && launcher::save_line(ref) != launcher::save_line(b.version);
+                if (apart && confirm != "world:" + w.name) {
+                    confirm = "world:" + w.name;
+                    error   = ref + " " + lang::tr("made it: this version may not open it.") + "\n" +
+                              lang::tr("Click again to play; a copy is kept first.");
+                } else {
+                    std::string err;
+                    if (ref.empty() || update::compare(b.version, ref) > 0)
+                        err = launcher::backup_world(w.name, ref.empty() ? "before-" + b.version : ref);
+                    confirm.clear();
+                    if (!err.empty()) {
+                        error = err;
+                    } else {
+                        launcher::opened_with(w.name, b.version);
+                        start      = &b;
+                        start_args = {"--play-world", w.name};
+                    }
+                }
+            }
+            if (id == "back") {
+                page = page == Page::Download ? Page::Builds : Page::Main;
+                confirm.clear();
+            }
+            if (id == "download") {
+                page = Page::Download;
+                if (remote.empty() && !asking.valid()) asking = std::async(std::launch::async, launcher::remote_versions);
+            }
+            if (id.rfind("get:", 0) == 0 && !installing.valid()) {
+                installing_v  = id.substr(4);
+                progress.size = 0;
+                installing    = std::async(std::launch::async, [v = installing_v, &progress] {
+                    return launcher::install(v, progress);
+                });
+                page = Page::Builds;
+            }
+            if (id.rfind("remove:", 0) == 0) {
+                const Build &b = builds[std::min(builds.size() - 1, (size_t)std::strtoul(id.c_str() + 7, nullptr, 10))];
+                if (confirm != b.version) {
+                    confirm = b.version;
+                    const size_t made = launcher::worlds_made_with(b.version).size();
+                    error = made == 0 ? std::string(lang::tr("click again to remove")) + " " + b.version
+                                        : std::to_string(made) + " " + lang::tr("world(s) were made with it: click again to remove it");
+                } else {
+                    const std::string keep = builds[chosen].version, err = launcher::remove(b.version);
+                    error   = err.empty() ? b.version + " " + lang::tr("removed") : err;
+                    confirm.clear();
+                    builds = find_builds();
+                    chosen = 0;
+                    for (size_t i = 0; i < builds.size(); ++i)
+                        if (builds[i].version == keep) chosen = i;
+                    if (!builds.empty() && builds[chosen].version != keep) write_default(builds[chosen].version);
+                }
+            }
+            if (id.rfind("build:", 0) == 0) {
+                chosen = std::min(builds.size() - 1, (size_t)std::strtoul(id.c_str() + 6, nullptr, 10));
+                write_default(builds[chosen].version);
+                page = Page::Main;
+            }
+            if (id == "play" && !builds.empty() && !installing.valid()) start = &builds[chosen];
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
 
-    if (start == nullptr) {
+        if (start == nullptr) {
+            gfx_shutdown();
+            return 0;
+        }
+
+        // The game in a window of its own; this one closes and waits for it,
+        // because a launcher that left would take the game down with it (os.h).
         gfx_shutdown();
-        return 0;
-    }
+        ChildProcess game;
+        std::string  err;
+        const std::string dir = fs::path(start->client).parent_path().string();
+        if (!game.start(start->client, start_args, dir, user_data_dir() + "/game.log", err)) {
+            std::fprintf(stderr, "cnp_launcher: %s: %s\n", start->client.c_str(), err.c_str());
+            return 1;
+        }
+        std::printf("cnp_launcher: started %s (%s)\n", start->version.c_str(), start->client.c_str());
+        while (!game.exited()) std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        if (game.exit_code != kExitWantsVersion) return 0;
 
-    // The game in a window of its own; this one closes and waits for it,
-    // because a launcher that left would take the game down with it (os.h).
-    gfx_shutdown();
-    ChildProcess game;
-    std::string  err;
-    const std::string dir = fs::path(start->client).parent_path().string();
-    if (!game.start(start->client, start_args, dir, user_data_dir() + "/game.log", err)) {
-        std::fprintf(stderr, "cnp_launcher: %s: %s\n", start->client.c_str(), err.c_str());
-        return 1;
+        // The game met a server wanting another version: what it wrote, read once.
+        std::ifstream in(launcher_request_path());
+        follow_server.clear();
+        follow_version.clear();
+        for (std::string line; std::getline(in, line);) {
+            if (line.rfind("server = ", 0) == 0) follow_server = line.substr(9);
+            if (line.rfind("version = ", 0) == 0) follow_version = line.substr(10);
+        }
+        in.close();
+        std::error_code ec;
+        fs::remove(launcher_request_path(), ec);
+        if (!follow_version.empty() && follow_version[0] == 'v') follow_version.erase(0, 1);
+        std::printf("cnp_launcher: %s wants %s\n", follow_server.c_str(), follow_version.c_str());
     }
-    std::printf("cnp_launcher: started %s (%s)\n", start->version.c_str(), start->client.c_str());
-    while (!game.exited()) std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    return 0;
 }

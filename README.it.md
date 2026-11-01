@@ -530,6 +530,7 @@ dei mod, chat e testi dell'HUD. Una riga assente lascia il testo com'è.
 | `--mods DIR` `--seed N` `--world N` | Mondo locale: mod, seme, lato in blocchi |
 | `--user-mods DIR` | Mondo locale: altri mod, caricati con `--mods` come un solo insieme |
 | `--play-world NOME` | Dritto in quel mondo salvato, oltre la schermata del titolo (quello che avvia il launcher) |
+| `--join-listed HOST:PORTA` | Quella riga dell'elenco server, raggiunta come con un clic (il launcher, seguendo un server) |
 | `--day-length S` `--time T` | Durata del giorno in secondi, ora di partenza (0..1) |
 | `--dual` `--facing` `--oriented` | Scene di prova: due mondi, due portali affacciati, un portale coricato |
 | `--recursion N` `--portal-scale F` `--portal-config FILE` | Profondità della ricorsione (0-3), risoluzione dei target, forma del portale ([`config/portal.cfg`](config/portal.cfg)) |

@@ -149,6 +149,8 @@ bool ChildProcess::exited()
 {
     if (id == -1) return true;
     if (WaitForSingleObject((HANDLE)id, 0) != WAIT_OBJECT_0) return false;
+    DWORD code = 0;
+    exit_code  = GetExitCodeProcess((HANDLE)id, &code) ? (int)code : -1;
     CloseHandle((HANDLE)id);
     id = -1;
     return true;
@@ -258,8 +260,10 @@ bool ChildProcess::start(const std::string &prog, const std::vector<std::string>
 bool ChildProcess::exited()
 {
     if (id == -1) return true;
-    if (::waitpid((pid_t)id, nullptr, WNOHANG) != (pid_t)id) return false;
-    id = -1;
+    int status = 0;
+    if (::waitpid((pid_t)id, &status, WNOHANG) != (pid_t)id) return false;
+    exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+    id        = -1;
     return true;
 }
 

@@ -177,4 +177,6 @@ bool write_mods_off(const std::string &path, const std::vector<std::string> &nam
     return (bool)out;
 }
 
+std::string launcher_request_path() { return user_data_dir() + "/launcher-request"; }
+
 } // namespace cnp

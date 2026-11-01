@@ -27,7 +27,8 @@ struct ChildProcess {
     bool running() const { return id != -1; }
     bool start(const std::string &prog, const std::vector<std::string> &args,
                const std::string &dir, const std::string &log, std::string &err);
-    bool exited();   // true once it ended (and then id is -1)
+    bool exited();   // true once it ended (and then id is -1, exit_code its code)
+    int  exit_code = -1;   // -1 until exited() saw it end, or when it was killed
     void stop();
 };
 

@@ -9544,6 +9544,19 @@ void save_servers(const std::vector<ServerRow> &rows)
 
 constexpr const char *kLocalAccount = "local", *kHostAccount = "host";
 std::string g_play_world;   // --play-world NAME: straight into that saved world (title_choose)
+std::string g_join_listed;  // --join-listed HOST:PORT: that row of the server list, joined as if clicked
+
+// Started by the launcher, which can start another version: a server that
+// wants one is handed back to it (core/paths.h, kExitWantsVersion) rather than
+// left at "needs version". Never returns when it hands it back.
+void hand_to_launcher(const std::string &address, const std::string &version)
+{
+    if (std::getenv("CNP_LAUNCHER") == nullptr || version.empty()) return;
+    std::ofstream(launcher_request_path()) << "server = " << address << "\nversion = " << version << "\n";
+    std::printf("the server wants version %s: back to the launcher\n", version.c_str());
+    gfx_shutdown();
+    std::exit(kExitWantsVersion);
+}
 
 enum class MenuPage { Title, Player, Options, Look, Worlds, NewWorld, EditWorld, Server, Starting };
 
@@ -10099,6 +10112,13 @@ MenuChoice title_menu(Scene &s, TitleMenu &m, bool &debug)
         }
         // A server in the list, or the one hosted here, is joined with the
         // account of THAT server: chosen first, then asked who one is there.
+        // A server that speaks another version: before its account is asked
+        // for, since this build cannot join it whoever one is.
+        if (id.rfind("server:", 0) == 0) {
+            const ServerRow &row = m.servers[std::strtoul(id.c_str() + 7, nullptr, 10)];
+            if (row.has_status && !row.status.speaks(net::kMinProtocol, net::kProtocol))
+                hand_to_launcher(row.address, row.status.version);
+        }
         std::string account = id == "host" ? kHostAccount : "";
         if (id.rfind("server:", 0) == 0)
             account = m.servers[std::strtoul(id.c_str() + 7, nullptr, 10)].address;
@@ -10527,6 +10547,15 @@ bool title_choose(Scene &s, TitleMenu &m, bool &debug, LocalServer &local, std::
     for (;;) {
         // --play-world NAME (the launcher's): that saved world, as its row on the
         // Play page would be clicked, once; the title screen when it is not there.
+        // --join-listed: the server list's way back to a restarted server,
+        // without its wait.
+        if (!g_join_listed.empty()) {
+            m.rejoin       = g_join_listed;
+            m.servers      = saved_servers();
+            m.rejoin_from  = 0.0;
+            m.rejoin_until = plat_time() + 60.0;
+            g_join_listed.clear();
+        }
         MenuChoice choice = MenuChoice::Quit;
         bool       direct = false;
         if (!g_play_world.empty()) {
@@ -19510,6 +19539,7 @@ int client_main(int argc, char **argv)
         if (std::strcmp(argv[i], "--mods") == 0 && i + 1 < argc) mods_dir = argv[++i];
         else if (std::strcmp(argv[i], "--user-mods") == 0 && i + 1 < argc) user_mods_dir = argv[++i];
         else if (std::strcmp(argv[i], "--play-world") == 0 && i + 1 < argc) g_play_world = argv[++i];
+        else if (std::strcmp(argv[i], "--join-listed") == 0 && i + 1 < argc) g_join_listed = argv[++i];
         if (std::strcmp(argv[i], "--facing") == 0) facing = true;
         if (std::strcmp(argv[i], "--dual-bench") == 0) dual_bench = true;
         if (std::strcmp(argv[i], "--dual") == 0) dual_scene = true;
@@ -20012,6 +20042,7 @@ int client_main(int argc, char **argv)
         // no list to go back to, so for that one a failure is still the end.
         std::string     err;
         net::ClientState why = net::ClientState::Idle;
+        bool             refused_version = false;
         for (;;) {
             cfg.host = connect_host;
             cfg.port = connect_port;
@@ -20039,6 +20070,9 @@ int client_main(int argc, char **argv)
                 if (opened.state() == net::ClientState::Playing) break;
 
                 why = opened.state();
+                refused_version = why == net::ClientState::Refused &&
+                                  (opened.refusal().reason == net::RefuseReason::VersionTooOld ||
+                                   opened.refusal().reason == net::RefuseReason::VersionTooNew);
                 err = std::string(net::client_state_text(why)) +
                       (opened.error().empty() ? "" : " -- " + opened.error());
                 net_sessions.close(self_session);
@@ -20046,6 +20080,10 @@ int client_main(int argc, char **argv)
 
             std::fprintf(stderr, "could not join %s:%u: %s\n", connect_host,
                          (unsigned)connect_port, err.c_str());
+            // Refused for its version by a server whose status did not say
+            // (one from before the protocol range): the launcher can follow it.
+            if (refused_version && menu.chose_row < menu.servers.size() && menu.servers[menu.chose_row].has_status)
+                hand_to_launcher(menu.servers[menu.chose_row].address, menu.servers[menu.chose_row].status.version);
             if (!menu_up) {
                 gfx_shutdown();
                 // The same codes the probe uses, for the same reason: "it did
