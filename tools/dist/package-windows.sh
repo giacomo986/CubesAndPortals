@@ -20,7 +20,7 @@ command -v zig > /dev/null || { echo "package-windows.sh: no zig on the PATH" >&
 [ -f "$BUILD/build.ninja" ] ||
     cmake -G Ninja -S "$ROOT" -B "$BUILD" -DCMAKE_BUILD_TYPE=Release -DCNP_PORTABLE=ON \
           -DCMAKE_TOOLCHAIN_FILE="$ROOT/tools/dist/zig-windows.cmake" > /dev/null
-cmake --build "$BUILD" --target cnp_client cnp_server cnp_modpack
+cmake --build "$BUILD" --target cnp_launcher cnp_client cnp_server cnp_modpack
 
 VERSION="$(sed -n 's/.*kEngineVersion = "\([^"]*\)".*/\1/p' "$ROOT/src/core/version.h")"
 "$(dirname "$0")/archive-old.sh" "$OUT" "$VERSION"   # older versions to $OUT/vecchie
@@ -29,7 +29,7 @@ STAGE="$OUT/$NAME"
 
 rm -rf "$STAGE"
 mkdir -p "$STAGE"
-cp "$BUILD/src/client/cnp_client.exe" "$BUILD/src/server/cnp_server.exe" \
+cp "$BUILD/src/launcher/cnp_launcher.exe" "$BUILD/src/client/cnp_client.exe" "$BUILD/src/server/cnp_server.exe" \
    "$BUILD/tools/cnp_modpack.exe" "$STAGE/"
 "$ROOT/tools/dist/stage.sh" "$STAGE"
 
@@ -37,7 +37,9 @@ cp "$BUILD/src/client/cnp_client.exe" "$BUILD/src/server/cnp_server.exe" \
 sed 's/$/\r/' > "$STAGE/README.txt" <<TXT
 Cubes and Portals $VERSION, Windows x86_64
 
-  cnp_client.exe                    the title screen (double-click it); worlds
+  cnp_launcher.exe                  versions of the game, worlds and mods
+                                    (double-click it), then Play
+  cnp_client.exe                    the title screen; worlds
                                     are kept in %APPDATA%\\cubes-and-portals
   cnp_server.exe --listen 25000     a world other people can join (from cmd)
   cnp_modpack.exe pack mods\\ore     a mod as one file

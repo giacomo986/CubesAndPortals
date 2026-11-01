@@ -5,6 +5,36 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
+## 0.11.0-alpha.1 — 2026-11-01
+
+Protocol 112: it does not play with 0.10 servers or clients (the launcher fetches the version a
+server wants). It reads 0.10's worlds.
+
+- **The launcher** (`cnp_launcher`), now what every package opens, in the look of the title
+  screen:
+  - **Versions**: the one in the package and others downloaded from the releases page, side by
+    side; one is the default Play starts. A download runs only if the release's signed
+    `release.manifest` lists it and its size and hash match; a version is removed with a second
+    click that says how many worlds it made.
+  - **Worlds**: played straight from the list; one from another save line asks first, and a
+    newer version copies a world into `backups/` before it opens it.
+  - **Mods**: everywhere or per world, the game's (read only) and yours; what each needs, what
+    it asks for, on and off, removed, and added by dropping a folder or a `.cnpmod` on the window.
+  - **Following a server**: a server listed "needs version X" (or refusing this version) sends
+    the game back to the launcher, which starts X, fetching it if needed, on that server.
+  - The game alone is still there: `cnp_client`, or `AppRun game` / `flatpak run ... game`.
+- Your own mods: `~/.cubes-and-portals/mods` (Windows `%APPDATA%\cubes-and-portals\mods`) loads
+  in every world's sandbox; a world's own `mods/` and `mods.conf` (`off = a, b`) add mods and turn
+  them off there. Servers: `--user-mods DIR`, `--no-mod NAME`.
+- Pedestals show what they hold, floating and turning over them (`core.show_item`): the
+  chambers' gun, the ruins' shards, the key altar's next key.
+- `/giveup`: leave a world's trial; you die and come back on the sandbox outside its gate.
+- Chat commands are English (`/journal`, `/giveup`, `/town`, `/pieces`, `/vehicle`), and every
+  command is in `docs/COMMANDS.md`.
+- A server's status says which protocols it speaks.
+- Parkour: the body and the view turn round an inside corner on a wall run, the corner jump may
+  come before the corner, and hazard stripes run unbroken from block to block.
+
 ## 0.10.0-alpha.2 — 2026-11-01
 
 Protocol 111, as 0.10.0-alpha.1: it plays with its servers and clients and reads its worlds

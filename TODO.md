@@ -2055,8 +2055,19 @@ restart rejoin does. Seen in Xephyr with a 0.11.0-alpha.1/protocol 113 build
 in versions/ and its server: 0.10 listed "needs version 0.11.0-alpha.1", the
 click handed back, 0.11 opened on the account prompt and joined (server log:
 protocol 113). Not seen: the install-first path (no signed 0.11 release) and
-the refusal path (needs a server older than the status range). Next: step 10,
-packages.
+the refusal path (needs a server older than the status range). Step 10 done
+2026-11-01: every package opens cnp_launcher (tarball, AppImage's AppRun and
+the flatpak's command default to it; `game` as first argument is the client
+alone; the .app's CFBundleExecutable); CI and win/mac scripts build it;
+README/BUILDING (+it); version 0.11.0-alpha.1 (protocol 112 does not play with
+0.10) with CHANGELOG. Seen: the 0.11.0-alpha.1 tarball's launcher lists its
+build, loads Italian, Play starts its client; inside org.freedesktop.Platform
+25.08 (the flatpak's runtime) it installed the real tarball from a signed
+file:// release (curl 8, GNU tar 1.35 there); the Windows zip built (zig) and
+its launcher lists its client under wine. Not seen: the AppImage (appimagetool
+not downloadable here; the CI builds it), the flatpak installed (would replace
+the installed one), macOS at all. Launcher done; open: denser text (above),
+macOS installs (.dmg), the online mod catalogue (future).
 **Launcher text, to do (asked 2026-11-01):** make the launcher's text denser so
 more fits on one screen: smaller type for details, two columns where it reads
 well, shorter labels, fewer rows spent on one line of text.

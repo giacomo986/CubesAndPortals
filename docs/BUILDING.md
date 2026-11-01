@@ -41,6 +41,7 @@ Three programs come out:
 
 | | |
 |---|---|
+| `build/src/launcher/cnp_launcher` | the launcher: versions, worlds, mods; what the packages open |
 | `build/src/client/cnp_client` | the game: menu, saved worlds, multiplayer |
 | `build/src/server/cnp_server` | a world for other players, with no window |
 | `build/tools/cnp_modpack` | a mod into a `.cnpmod` file and back |
@@ -74,17 +75,17 @@ All three come from the same portable build:
 
 ```sh
 cmake -S . -B build-dist -G Ninja -DCNP_PORTABLE=ON
-cmake --build build-dist --target cnp_client cnp_server cnp_modpack
+cmake --build build-dist --target cnp_launcher cnp_client cnp_server cnp_modpack
 tools/dist/package-linux.sh build-dist        # .tar.gz
 tools/dist/package-appimage.sh build-dist     # .AppImage (needs appimagetool)
 tools/dist/package-flatpak.sh build-dist      # .flatpak (needs the runtime, below)
 ```
 
-- **Tarball** (~25 MB): unpack it anywhere and run `./cnp_client`. It runs on any glibc from 2.38
+- **Tarball** (~25 MB): unpack it anywhere and run `./cnp_launcher` (or `./cnp_client` for the game alone). It runs on any glibc from 2.38
   on, that is from the machine it was built on onwards: to reach older distributions it has to be
   built on an older one. `package-linux.sh` refuses a build without `CNP_PORTABLE`.
-- **AppImage** (~23 MB): a single file. Run, it is the client; `… server` and `… modpack` are the
-  other two. Download `appimagetool` from <https://github.com/AppImage/appimagetool/releases>
+- **AppImage** (~23 MB): a single file. Run, it is the launcher; `… game`, `… server` and `… modpack` are the
+  other three. Download `appimagetool` from <https://github.com/AppImage/appimagetool/releases>
   (continuous) and put it in the `PATH` or in `$APPIMAGETOOL`.
 - **Flatpak** (~17 MB): the tarball inside `/app/lib/cubes-and-portals`, on the
   `org.freedesktop.Platform//25.08` runtime. It is built with flatpak's own commands only, without
@@ -92,7 +93,8 @@ tools/dist/package-flatpak.sh build-dist      # .flatpak (needs the runtime, bel
   `flatpak install --user flathub org.freedesktop.Platform//25.08`. Whoever receives the file
   installs it with `flatpak install --user <file>.flatpak`, and the runtime comes from Flathub. From
   there it starts from the desktop menu or with `flatpak run io.github.giacomoperin.CubesAndPortals`
-  (here too `server` and `modpack` as the first argument). Worlds and options live in
+  (here too `game`, `server` and `modpack` as the first argument). The launcher's downloaded versions
+  run inside it too: the runtime has the `curl` and `tar` it uses. Worlds and options live in
   `~/.var/app/io.github.giacomoperin.CubesAndPortals/`.
 
 #### The Flatpak repository (updates with `flatpak update`)
@@ -149,8 +151,8 @@ the compiler and the MinGW (`tools/dist/zig-windows.cmake`).
 tools/dist/package-windows.sh                 # configures and builds in build-win/, then the zip
 ```
 
-The zip (~25 MB) holds `cnp_client.exe`, `cnp_server.exe`, `cnp_modpack.exe` and the data. Unpack
-it anywhere and double-click the client. It needs Windows 10 or newer, since it uses only system
+The zip (~25 MB) holds `cnp_launcher.exe`, `cnp_client.exe`, `cnp_server.exe`, `cnp_modpack.exe` and
+the data. Unpack it anywhere and double-click the launcher. It needs Windows 10 or newer, since it uses only system
 DLLs (UCRT, OpenGL32, Winsock). Worlds and options live in `%APPDATA%\cubes-and-portals`. To try it
 on Linux: `wine cnp_client.exe`. Under wine in Xephyr clicks do not reach the menu, and a `--quick`
 or a `--connect` tries it just the same.

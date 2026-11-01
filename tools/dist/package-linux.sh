@@ -39,7 +39,7 @@ ARCH="$(uname -m)"
 NAME="cubes-and-portals-$VERSION-linux-$ARCH"
 STAGE="$OUT/$NAME"
 
-for binary in src/client/cnp_client src/server/cnp_server tools/cnp_modpack; do
+for binary in src/launcher/cnp_launcher src/client/cnp_client src/server/cnp_server tools/cnp_modpack; do
     [ -x "$BUILD/$binary" ] || {
         echo "package-linux.sh: $BUILD/$binary is not built" >&2
         exit 1
@@ -62,6 +62,7 @@ fi
 rm -rf "$STAGE"
 mkdir -p "$STAGE"
 
+cp "$BUILD/src/launcher/cnp_launcher" "$STAGE/"
 cp "$BUILD/src/client/cnp_client" "$STAGE/"
 cp "$BUILD/src/server/cnp_server" "$STAGE/"
 cp "$BUILD/tools/cnp_modpack"     "$STAGE/"
@@ -73,6 +74,7 @@ cp "$BUILD/tools/cnp_modpack"     "$STAGE/"
 cat > "$STAGE/README.txt" <<TXT
 Cubes and Portals $VERSION, Linux $ARCH
 
+  ./cnp_launcher                    versions of the game, worlds and mods; Play
   ./cnp_client                      the title screen: a new world or a saved one,
                                     kept in ~/.local/share/cubes-and-portals/worlds
   ./cnp_client --quick              straight into a test world, nothing saved
@@ -89,7 +91,7 @@ TXT
 
 # Stripped, because a release is not a debugging session: the binaries carry
 # -rdynamic for the crash stack, and that table is what stays.
-strip --strip-debug "$STAGE/cnp_client" "$STAGE/cnp_server" "$STAGE/cnp_modpack" 2>/dev/null || true
+strip --strip-debug "$STAGE/cnp_launcher" "$STAGE/cnp_client" "$STAGE/cnp_server" "$STAGE/cnp_modpack" 2>/dev/null || true
 
 TARBALL="$OUT/$NAME.tar.gz"
 rm -f "$TARBALL"

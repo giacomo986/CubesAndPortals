@@ -39,8 +39,9 @@ HERE="$(dirname "$(readlink -f "$0")")"
 case "${1:-}" in
     server)  shift; exec "$HERE/cnp_server" "$@" ;;
     modpack) shift; exec "$HERE/cnp_modpack" "$@" ;;
+    game)    shift; exec "$HERE/cnp_client" "$@" ;;
 esac
-exec "$HERE/cnp_client" "$@"
+exec "$HERE/cnp_launcher" "$@"
 RUN
 chmod +x "$APPDIR/AppRun"
 

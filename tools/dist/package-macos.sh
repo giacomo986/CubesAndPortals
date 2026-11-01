@@ -22,7 +22,7 @@ OUT="${2:-$BUILD/dist}"
 [ -f "$BUILD/build.ninja" ] ||
     cmake -G Ninja -S "$ROOT" -B "$BUILD" -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 > /dev/null
-cmake --build "$BUILD" --target cnp_client cnp_server cnp_modpack
+cmake --build "$BUILD" --target cnp_launcher cnp_client cnp_server cnp_modpack
 
 VERSION="$(sed -n 's/.*kEngineVersion = "\([^"]*\)".*/\1/p' "$ROOT/src/core/version.h")"
 "$(dirname "$0")/archive-old.sh" "$OUT" "$VERSION"   # older versions to $OUT/vecchie
@@ -31,7 +31,7 @@ APP="$OUT/Cubes and Portals.app"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BUILD/src/client/cnp_client" "$BUILD/src/server/cnp_server" "$BUILD/tools/cnp_modpack" \
+cp "$BUILD/src/launcher/cnp_launcher" "$BUILD/src/client/cnp_client" "$BUILD/src/server/cnp_server" "$BUILD/tools/cnp_modpack" \
    "$APP/Contents/MacOS/"
 "$ROOT/tools/dist/stage.sh" "$APP/Contents/Resources"
 
@@ -53,7 +53,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleIdentifier</key>         <string>io.github.giacomoperin.CubesAndPortals</string>
     <key>CFBundleVersion</key>            <string>$VERSION</string>
     <key>CFBundleShortVersionString</key> <string>$VERSION</string>
-    <key>CFBundleExecutable</key>         <string>cnp_client</string>
+    <key>CFBundleExecutable</key>         <string>cnp_launcher</string>
     <key>CFBundleIconFile</key>           <string>icon</string>
     <key>CFBundlePackageType</key>        <string>APPL</string>
     <key>LSMinimumSystemVersion</key>     <string>11.0</string>

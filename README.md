@@ -72,7 +72,7 @@ Reports from real Windows and macOS machines are especially welcome.
 Ready-made packages are on the **[Releases](../../releases)** page. For every version (a `v*`
 tag) GitHub Actions builds them for all three systems and publishes them as a pre-release.
 
-- **Linux**: unpack the `.tar.gz` anywhere and run `./cnp_client`; or make the `.AppImage`
+- **Linux**: unpack the `.tar.gz` anywhere and run `./cnp_launcher`; or make the `.AppImage`
   executable (`chmod +x`) and run it; or install the Flatpak from its repository, which keeps it
   up to date (`flatpak update` brings each new release):
 
@@ -82,8 +82,15 @@ tag) GitHub Actions builds them for all three systems and publishes them as a pr
 
   The `.flatpak` file of each release installs too (`flatpak install --user <file>.flatpak`),
   but a Flatpak installed from a file is never updated: install it from the repository instead.
-- **Windows**: unpack the `.zip` and double-click `cnp_client.exe`.
+- **Windows**: unpack the `.zip` and double-click `cnp_launcher.exe`.
 - **macOS**: open the `.dmg` and drag the app wherever you like.
+
+Every package opens the **launcher**: Play starts the game; Versions keeps several versions side
+by side (downloaded from the Releases page, each checked against the release's signed manifest
+before it runs); Worlds plays a saved world, copying it first when a newer version opens it; Mods
+shows, adds (drop a folder or a `.cnpmod` on the window), turns off and removes mods, everywhere
+or per world. A server that wants another version sends the game back to the launcher, which
+starts that one. The game alone is `cnp_client` (`AppRun game`, `flatpak run … game`).
 
 The packages are not signed. On the first run, Windows SmartScreen asks for confirmation ("More
 info", then "Run anyway"); on macOS, right-click the app and choose Open.
@@ -123,6 +130,7 @@ The build makes three programs:
 
 | | |
 |---|---|
+| `build/src/launcher/cnp_launcher` | the launcher: versions, worlds, mods; what the packages open |
 | `build/src/client/cnp_client` | the game: menus, saved worlds, multiplayer |
 | `build/src/server/cnp_server` | a world for other players, without a window |
 | `build/tools/cnp_modpack` | packs a mod into a single `.cnpmod` file |

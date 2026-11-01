@@ -49,8 +49,9 @@ D=/app/lib/cubes-and-portals
 case "${1:-}" in
     server)  shift; exec "$D/cnp_server" "$@" ;;
     modpack) shift; exec "$D/cnp_modpack" "$@" ;;
+    game)    shift; exec "$D/cnp_client" "$@" ;;
 esac
-exec "$D/cnp_client" "$@"
+exec "$D/cnp_launcher" "$@"
 RUN
 chmod +x "$DIR/files/bin/cubes-and-portals"
 

@@ -5,6 +5,37 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
+## 0.11.0-alpha.1 — 2026-11-01
+
+Protocollo 112: non gioca con server o client 0.10 (il launcher scarica la versione che un server
+vuole). Legge i mondi della 0.10.
+
+- **Il launcher** (`cnp_launcher`), ora quello che ogni pacchetto apre, con l'aspetto della
+  schermata del titolo:
+  - **Versioni**: quella del pacchetto e altre scaricate dalla pagina delle release, una accanto
+    all'altra; una è la predefinita che Gioca avvia. Un download parte solo se il
+    `release.manifest` firmato della release lo elenca e dimensione e hash corrispondono; una
+    versione si toglie con un secondo clic che dice quanti mondi ha creato.
+  - **Mondi**: si giocano dall'elenco; uno di un'altra serie chiede prima, e una versione più
+    nuova copia il mondo in `backups/` prima di aprirlo.
+  - **Mod**: ovunque o per mondo, quelle del gioco (sola lettura) e le tue; cosa serve a
+    ciascuna, cosa chiede, accese e spente, tolte, e aggiunte trascinando una cartella o un
+    `.cnpmod` sulla finestra.
+  - **Seguire un server**: un server segnato "needs version X" (o che rifiuta questa versione)
+    rimanda il gioco al launcher, che avvia X, scaricandola se serve, su quel server.
+  - Il gioco da solo c'è ancora: `cnp_client`, oppure `AppRun game` / `flatpak run ... game`.
+- Le tue mod: `~/.cubes-and-portals/mods` (Windows `%APPDATA%\cubes-and-portals\mods`) si carica
+  nella sandbox di ogni mondo; la cartella `mods/` e il `mods.conf` (`off = a, b`) di un mondo
+  aggiungono mod e le spengono lì. Server: `--user-mods DIR`, `--no-mod NOME`.
+- I piedistalli mostrano cosa contengono, sospeso e rotante sopra di loro (`core.show_item`): la
+  pistola delle camere, i frammenti delle rovine, la prossima chiave dell'altare.
+- `/giveup`: abbandona la prova di un mondo; muori e torni nella sandbox fuori dal suo portale.
+- I comandi della chat sono in inglese (`/journal`, `/giveup`, `/town`, `/pieces`, `/vehicle`), e
+  ogni comando è in `docs/COMMANDS.it.md`.
+- Lo stato di un server dice quali protocolli parla.
+- Parkour: corpo e visuale girano attorno a un angolo interno nella corsa sul muro, il salto
+  d'angolo può venire prima dell'angolo, e le strisce di pericolo continuano da un blocco all'altro.
+
 ## 0.10.0-alpha.2 — 2026-11-01
 
 Protocollo 111, come la 0.10.0-alpha.1: gioca con i suoi server e client e ne legge i mondi

@@ -73,7 +73,7 @@ Segnalazioni da Windows e da macOS veri sono particolarmente utili.
 I pacchetti già compilati sono nella pagina **[Releases](../../releases)**. A ogni versione (un
 tag `v*`) GitHub Actions li costruisce per tutti e tre i sistemi e li pubblica come pre-release.
 
-- **Linux**: si scompatta il `.tar.gz` dove si vuole e si avvia `./cnp_client`; oppure si rende
+- **Linux**: si scompatta il `.tar.gz` dove si vuole e si avvia `./cnp_launcher`; oppure si rende
   eseguibile l'`.AppImage` (`chmod +x`) e lo si avvia; oppure si installa il Flatpak dal suo
   repository, che lo tiene aggiornato (`flatpak update` porta ogni versione nuova):
 
@@ -83,8 +83,16 @@ tag `v*`) GitHub Actions li costruisce per tutti e tre i sistemi e li pubblica c
 
   Anche il `.flatpak` di ogni release si installa (`flatpak install --user <file>.flatpak`),
   ma un Flatpak installato da file non si aggiorna mai: meglio dal repository.
-- **Windows**: si scompatta lo `.zip` e si fa doppio clic su `cnp_client.exe`.
+- **Windows**: si scompatta lo `.zip` e si fa doppio clic su `cnp_launcher.exe`.
 - **macOS**: si apre il `.dmg` e si trascina l'app dove si vuole.
+
+Ogni pacchetto apre il **launcher**: Gioca avvia il gioco; Versioni tiene più versioni una
+accanto all'altra (scaricate dalla pagina Releases, ognuna controllata con il manifest firmato
+della release prima di girare); Mondi gioca un mondo salvato, copiandolo prima quando lo apre una
+versione più nuova; Mod mostra, aggiunge (trascinando una cartella o un `.cnpmod` sulla finestra),
+spegne e toglie le mod, ovunque o per mondo. Un server che vuole un'altra versione rimanda il
+gioco al launcher, che avvia quella. Il gioco da solo è `cnp_client` (`AppRun game`,
+`flatpak run … game`).
 
 I pacchetti non sono firmati. Al primo avvio Windows SmartScreen chiede conferma ("Ulteriori
 informazioni", poi "Esegui comunque"); su macOS si fa clic destro sull'app e Apri.
@@ -123,6 +131,7 @@ Il build produce tre programmi:
 
 | | |
 |---|---|
+| `build/src/launcher/cnp_launcher` | il launcher: versioni, mondi, mod; quello che aprono i pacchetti |
 | `build/src/client/cnp_client` | il gioco: menù, mondi salvati, multiplayer |
 | `build/src/server/cnp_server` | un mondo per altri giocatori, senza finestra |
 | `build/tools/cnp_modpack` | impacchetta un mod in un file `.cnpmod` |
