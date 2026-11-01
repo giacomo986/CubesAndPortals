@@ -111,6 +111,11 @@ void plat_debug_text(const char *text, int x, int y, int size);
 // after the fact, not just watchable live.
 void plat_screenshot(const char *name);
 
+// Files or folders dropped on the window since the last call: how many, and
+// each path until the next call (the launcher's "drop a mod here").
+int         plat_take_dropped(void);
+const char *plat_dropped_path(int i);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

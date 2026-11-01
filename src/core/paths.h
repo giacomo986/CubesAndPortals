@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 // Where a build looks for the files it ships with.
 //
@@ -47,5 +48,18 @@ std::string user_data_dir();
 // The options file the client keeps (the language among them): $XDG_CONFIG_HOME
 // or ~/.config, or %APPDATA%, then cubes-and-portals/options.
 std::string options_path();
+
+// The player's own mods. Beside the worlds on Windows; elsewhere a hidden folder
+// in the home, ~/.cubes-and-portals/mods, where a player looks for it (the
+// flatpak is given that folder and no other).
+std::string user_mods_dir();
+
+// The mods turned off everywhere: mods.conf beside user_mods_dir.
+std::string user_mods_conf();
+
+// A mods.conf's `off = a, b` (a world's, or user_mods_conf): the names, in
+// order. `#` starts a comment; a missing file is an empty list.
+std::vector<std::string> read_mods_off(const std::string &path);
+bool                     write_mods_off(const std::string &path, const std::vector<std::string> &names);
 
 } // namespace cnp

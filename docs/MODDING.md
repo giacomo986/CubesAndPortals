@@ -319,6 +319,11 @@ mods/             <- mods for this world only, as above
 mods.conf         <- off = some_mod, other_mod
 ```
 
+The same `off = ...` line in `~/.cubes-and-portals/mods.conf` (beside the mods folder) turns a mod
+off in every world. The launcher's **Mods** page writes both: it lists the game's mods (read only),
+yours everywhere and a world's own, says what each needs and what it asks for, turns them off or
+on, removes them, and adds one dropped on its window (a folder or a `.cnpmod`).
+
 A mod turned off is named in the log (`mod 'x' left out by this world`) and not loaded; a
 server takes it as `--no-mod NAME`, and `--user-mods` more than once. Its blocks already in the
 world become magenta placeholders until it is turned back on, and are themselves again then.

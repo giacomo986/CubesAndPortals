@@ -1,6 +1,10 @@
 #include "core/paths.h"
 
 #include <cstdlib>
+#include <sstream>
+#include <fstream>
+#include <cctype>
+#include <algorithm>
 
 #include <filesystem>
 #include <system_error>
@@ -121,6 +125,56 @@ std::string options_path()
     if (const char *home = std::getenv("HOME"); home != nullptr && home[0] != '\0')
         return std::string(home) + "/.config/cubes-and-portals/options";
     return "";
+}
+
+std::string user_mods_dir()
+{
+#ifdef _WIN32
+    return user_data_dir() + "/mods";
+#else
+    if (const char *home = std::getenv("HOME"); home != nullptr && home[0] != '\0')
+        return std::string(home) + "/.cubes-and-portals/mods";
+    return user_data_dir() + "/mods";
+#endif
+}
+
+std::string user_mods_conf()
+{
+    return std::filesystem::path(user_mods_dir()).parent_path().string() + "/mods.conf";
+}
+
+std::vector<std::string> read_mods_off(const std::string &path)
+{
+    std::vector<std::string> out;
+    std::ifstream            in(path);
+    const auto strip = [](std::string &t) {
+        std::erase_if(t, [](unsigned char c) { return std::isspace(c); });
+    };
+    for (std::string line; std::getline(in, line);) {
+        line = line.substr(0, line.find('#'));
+        const size_t eq = line.find('=');
+        if (eq == std::string::npos) continue;
+        std::string key = line.substr(0, eq);
+        strip(key);
+        if (key != "off") continue;
+        std::stringstream names(line.substr(eq + 1));
+        for (std::string n; std::getline(names, n, ',');) {
+            strip(n);
+            if (!n.empty() && std::find(out.begin(), out.end(), n) == out.end()) out.push_back(n);
+        }
+    }
+    return out;
+}
+
+bool write_mods_off(const std::string &path, const std::vector<std::string> &names)
+{
+    std::error_code ec;
+    std::filesystem::create_directories(std::filesystem::path(path).parent_path(), ec);
+    std::ofstream out(path);
+    out << "# Mods turned off here (the launcher writes this line).\noff = ";
+    for (size_t i = 0; i < names.size(); ++i) out << (i ? ", " : "") << names[i];
+    out << "\n";
+    return (bool)out;
 }
 
 } // namespace cnp

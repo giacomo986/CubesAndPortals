@@ -348,6 +348,12 @@ mods/             <- mod solo di questo mondo, come sopra
 mods.conf         <- off = un_mod, altro_mod
 ```
 
+La stessa riga `off = ...` in `~/.cubes-and-portals/mods.conf` (accanto alla cartella dei mod)
+spegne un mod in ogni mondo. La pagina **Mod** del launcher scrive tutti e due: elenca i mod del
+gioco (sola lettura), i tuoi ovunque e quelli di un mondo, dice cosa serve a ciascuno e cosa
+chiede, li spegne o li accende, li toglie, e ne aggiunge uno trascinato sulla sua finestra (una
+cartella o un `.cnpmod`).
+
 Un mod spento è nominato nel log (`mod 'x' left out by this world`) e non viene caricato; un
 server lo prende come `--no-mod NOME`, e `--user-mods` più di una volta. I suoi blocchi già nel
 mondo diventano segnaposto magenta finché non viene riacceso, e poi tornano quelli di prima.

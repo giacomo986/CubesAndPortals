@@ -2035,7 +2035,18 @@ last one copies it first into <data>/backups/<world>-<version>/ (lock files
 left out, once per version); <world>/launcher_last keeps the newest build that
 opened it. Seen in Xephyr: an old fake world asked, then was copied and
 launched; a real world opened straight from the launcher into the plaza.
-Next: step 8, mods.
+Step 8 done 2026-11-01 (src/launcher/mods.cpp): the Mods page, everywhere or
+per world (the top button cycles), the player's mods first then the game's
+(read only); a row opens what the mod is, where it is, its problems with the
+default build (mod API from the build's kept release.manifest, depends absent,
+off or too old, a name already loaded) and its capabilities; Turn off/on
+writes ~/.cubes-and-portals/mods.conf or <world>/mods.conf (the client now
+passes both as --no-mod); Remove asks twice; a folder or .cnpmod dropped on
+the window is shown, then added. Headless `--mods`, `--add-mod PATH [--world
+NAME]`. Seen: headless add, duplicate refused, package into a world, a wrong
+API and a too-old dependency named; in Xephyr list, detail, off everywhere
+shown in the world view, remove. Not seen: a real drop (xdotool cannot drag
+files). Next: step 9, follow the server's version.
 
 **OPEN-40 -- macOS never run; Windows only under wine.** Packages, 2026-10-10:
 tarball and AppImage (23 MB; until now they lacked `assets/sounds` and

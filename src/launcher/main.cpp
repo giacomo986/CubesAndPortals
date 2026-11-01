@@ -14,6 +14,7 @@
 #include "client/ui/lang.h"
 #include "client/ui/title.h"
 #include "launcher/fetch.h"
+#include "launcher/mods.h"
 #include "core/os.h"
 #include "core/paths.h"
 #include "core/update_check.h"
@@ -96,12 +97,112 @@ std::string options_language()
     return lang::from_environment();
 }
 
-enum class Page { Main, Builds, Download, Worlds };
+enum class Page { Main, Builds, Download, Worlds, Mods, ModDetail, ModInstall };
+
+// The mods pages' state: which view (0 everywhere, k the k-th world), what is in
+// it, which row is open, and a mod dropped on the window waiting to be installed.
+struct ModsView {
+    size_t                         scope = 0;
+    std::vector<std::string>       worlds;
+    std::vector<launcher::ModEntry> mods;
+    unsigned                       api_oldest = 0, api_newest = 0;
+    size_t                         first = 0, open = 0;
+    launcher::ModEntry             pending;
+    std::string                    confirm;
+
+    std::string world() const { return scope == 0 ? "" : worlds[scope - 1]; }
+};
+
+constexpr size_t kModsShown = 5;
+
+std::string where_text(const launcher::ModEntry &m)
+{
+    return m.where == launcher::Where::Game         ? lang::tr("the game's")
+           : m.where == launcher::Where::Everywhere ? lang::tr("yours, everywhere")
+                                                    : lang::tr("this world's");
+}
+
+// What a mod is, for the detail and install pages: name, where, description,
+// what stands in its way, what it may do.
+float mod_lines(ui::Panel &p, const ModsView &v, const launcher::ModEntry &m, float y)
+{
+    panel_label(p, m.manifest.name + " " + m.manifest.version.str() + "   (" + where_text(m) + ")", 0.5f, y);
+    y += 0.9f;
+    if (!m.manifest.description.empty()) {
+        panel_label(p, m.manifest.description.substr(0, 70), 0.5f, y);
+        y += 0.9f;
+    }
+    const std::vector<std::string> trouble = launcher::problems(m, v.mods, v.api_oldest, v.api_newest);
+    if (trouble.empty()) panel_label(p, "Works with this version", 0.5f, y);
+    for (const std::string &t : trouble) {
+        panel_label(p, "! " + t.substr(0, 68), 0.5f, y);
+        y += 0.8f;
+    }
+    if (trouble.empty()) y += 0.9f;
+    if (m.manifest.capabilities.empty()) {
+        panel_label(p, "Asks for nothing beyond the world", 0.5f, y);
+        y += 0.9f;
+    } else {
+        panel_label(p, "Asks to:", 0.5f, y);
+        y += 0.8f;
+        for (const std::string &c : m.manifest.capabilities) {
+            panel_label(p, "  " + launcher::capability_meaning(c), 0.5f, y);
+            y += 0.8f;
+        }
+    }
+    return y + 0.2f;
+}
+
+float mods_panel(ui::Panel &p, Page page, const ModsView &v, float y)
+{
+    const std::string view = v.scope == 0 ? std::string(lang::tr("Mods everywhere"))
+                                          : std::string(lang::tr("Mods in")) + " " + v.world();
+    if (page == Page::Mods) {
+        panel_button(p, "scope", view + "   >", 0.5f, y, 11.0f);
+        y += 1.3f;
+        for (size_t i = v.first; i < v.mods.size() && i < v.first + kModsShown; ++i) {
+            const launcher::ModEntry &m = v.mods[i];
+            std::string text = m.manifest.name.empty() ? m.path.substr(m.path.find_last_of("/\\") + 1)
+                                                       : m.manifest.name + " " + m.manifest.version.str();
+            if (m.where == launcher::Where::Game) text += std::string("   ") + lang::tr("(game)");
+            if (m.off) text += std::string("   ") + lang::tr(m.off_all ? "(off everywhere)" : "(off)");
+            if (!launcher::problems(m, v.mods, v.api_oldest, v.api_newest).empty()) text = "! " + text;
+            panel_add(p, ui::ElemKind::Button, "mod:" + std::to_string(i), text, 0.5f, y, 11.0f);
+            y += 1.1f;
+        }
+        y += 0.2f;
+        panel_label(p, "Drop a mod folder or a .cnpmod on this window to add it", 0.5f, y);
+        y += 1.1f;
+        if (v.first > 0) panel_button(p, "mods_prev", "<", 0.5f, y, 1.2f);
+        panel_button(p, "back", "Back", 2.0f, y, 8.0f);
+        if (v.first + kModsShown < v.mods.size()) panel_button(p, "mods_next", ">", 10.3f, y, 1.2f);
+        return y + 1.3f;
+    }
+    if (page == Page::ModDetail) {
+        const launcher::ModEntry &m = v.mods[v.open];
+        y = mod_lines(p, v, m, y);
+        if (m.where != launcher::Where::Game && !m.off_all) {
+            panel_button(p, "toggle", m.off ? "Turn on" : "Turn off", 0.5f, y, 5.4f);
+            const bool mine = (m.where == launcher::Where::Everywhere) == (v.scope == 0);
+            if (mine)
+                panel_button(p, "mod_remove", v.confirm == m.path ? "Click again to remove" : "Remove", 6.1f, y, 5.4f);
+            y += 1.3f;
+        }
+        panel_button(p, "mods", "Back", 0.5f, y, 11.0f);
+        return y + 1.3f;
+    }
+    // ModInstall: what was dropped, before it is copied anywhere.
+    y = mod_lines(p, v, v.pending, y);
+    panel_button(p, "mod_install", std::string(lang::tr("Add to")) + " " + view, 0.5f, y, 11.0f);
+    y += 1.3f;
+    panel_button(p, "mods", "Cancel", 0.5f, y, 11.0f);
+    return y + 1.3f;
+}
 
 ui::Panel launcher_panel(Page page, const std::vector<Build> &builds, size_t chosen,
                          const std::vector<std::string> &remote,
-                         const std::vector<launcher::World> &worlds, const std::string &confirm,
-                         const std::string &error)
+                         const std::vector<launcher::World> &worlds, const ModsView &mods,
+                         const std::string &confirm, const std::string &error)
 {
     ui::Panel p;
     p.name = "launcher";
@@ -118,6 +219,8 @@ ui::Panel launcher_panel(Page page, const std::vector<Build> &builds, size_t cho
         p.elements.back().h = 1.6f;
         y += 2.0f;
         panel_button(p, "worlds", "Worlds", 0.5f, y, 11.0f);
+        y += 1.3f;
+        panel_button(p, "mods", "Mods", 0.5f, y, 11.0f);
         y += 1.3f;
         panel_button(p, "builds", "Versions", 0.5f, y, 11.0f);
         y += 1.3f;
@@ -167,6 +270,8 @@ ui::Panel launcher_panel(Page page, const std::vector<Build> &builds, size_t cho
         y += 0.2f;
         panel_button(p, "back", "Back", 0.5f, y, 11.0f);
         y += 1.3f;
+    } else if (page == Page::Mods || page == Page::ModDetail || page == Page::ModInstall) {
+        y = mods_panel(p, page, mods, y);
     } else {
         panel_label(p, "Versions on the releases page", 0.5f, y);
         y += 1.2f;
@@ -204,7 +309,8 @@ int main(int argc, char **argv)
     // Without a window, for a script and for checking: the same calls the
     // screens make.
     bool        headless = false;
-    std::string install_v, remove_v;
+    std::string install_v, remove_v, add_mod, mods_world;
+    bool        list_mods = false;
     for (int i = 1; i < argc; ++i) {
         const std::string a = argv[i];
         if (a == "--releases-from" && i + 1 < argc) launcher::g_download_base = argv[++i];
@@ -212,11 +318,40 @@ int main(int argc, char **argv)
         else if (a == "--install" && i + 1 < argc) install_v = argv[++i], headless = true;
         else if (a == "--remove" && i + 1 < argc) remove_v = argv[++i], headless = true;
         else if (a == "--list") headless = true;
+        else if (a == "--add-mod" && i + 1 < argc) add_mod = argv[++i], headless = list_mods = true;
+        else if (a == "--mods") headless = list_mods = true;
+        else if (a == "--world" && i + 1 < argc) mods_world = argv[++i];
         else {
             std::fprintf(stderr, "usage: cnp_launcher [--releases-from URL] [--releases-api URL]\n"
-                                 "                    [--list | --install VERSION | --remove VERSION]\n");
+                                 "                    [--list | --install VERSION | --remove VERSION]\n"
+                                 "                    [--mods | --add-mod PATH] [--world NAME]\n");
             return 2;
         }
+    }
+    if (headless && list_mods) {
+        // The mods of the packaged build's view, as the mods page shows them.
+        const std::vector<Build> all = find_builds();
+        const auto b = std::find_if(all.begin(), all.end(), [](const Build &x) { return x.bundled; });
+        const std::string game = b == all.end() ? "" : launcher::game_mods_dir(b->client, true);
+        std::vector<launcher::ModEntry> mods = launcher::list_mods(game, mods_world);
+        if (!add_mod.empty()) {
+            launcher::ModEntry m;
+            std::string        err;
+            if (launcher::read_mod(add_mod, m, err)) err = launcher::install_mod(m, mods_world, mods);
+            if (!err.empty()) {
+                std::fprintf(stderr, "cnp_launcher: %s\n", err.c_str());
+                return 1;
+            }
+            mods = launcher::list_mods(game, mods_world);
+        }
+        for (const launcher::ModEntry &m : mods) {
+            if (m.where == launcher::Where::Game) continue;
+            std::printf("%s %s%s%s\n", m.manifest.name.c_str(), m.manifest.version.str().c_str(),
+                        m.off ? " off" : "", m.where == launcher::Where::World ? " (world)" : "");
+            for (const std::string &t : launcher::problems(m, mods, kModApiOldest, kModApi))
+                std::printf("  ! %s\n", t.c_str());
+        }
+        return 0;
     }
     if (headless) {
         launcher::Progress progress;
@@ -256,6 +391,7 @@ int main(int argc, char **argv)
     const Build             *start = nullptr;
     std::vector<std::string> start_args;
     std::vector<launcher::World> worlds;
+    ModsView                     mods;
     bool        pressed_here = false;
 
     std::vector<std::string>              remote;
@@ -288,8 +424,25 @@ int main(int argc, char **argv)
             if (remote.empty()) error = "the releases page did not answer";
         }
 
-        const ui::Panel p = launcher_panel(page, builds, chosen, remote, worlds, confirm, error);
-        const ui::PanelPlacement at = ui::place_panel(p, gfx_screen_width(), gfx_screen_height());
+        // A mod dropped on the window, on any mods page: shown before it is added.
+        if (const int dropped = plat_take_dropped();
+            dropped > 0 && (page == Page::Mods || page == Page::ModDetail || page == Page::ModInstall)) {
+            std::string err;
+            if (launcher::read_mod(plat_dropped_path(0), mods.pending, err)) {
+                mods.pending.where = mods.scope == 0 ? launcher::Where::Everywhere : launcher::Where::World;
+                page               = Page::ModInstall;
+                error.clear();
+            } else {
+                error = err;
+            }
+        }
+
+        const ui::Panel p = launcher_panel(page, builds, chosen, remote, worlds, mods, confirm, error);
+        // Below the game's name when it fits there: the mods pages are taller
+        // than any of the title screen's.
+        ui::PanelPlacement at = ui::place_panel(p, gfx_screen_width(), gfx_screen_height());
+        const float        top = (float)gfx_screen_height() * 0.19f;
+        if (at.y < top && top + p.h * at.cell <= (float)gfx_screen_height()) at.y = top;
         float mx = 0.0f, my = 0.0f;
         plat_mouse_position(&mx, &my);
         const int hover = at.button_at(p, mx, my);
@@ -309,7 +462,7 @@ int main(int argc, char **argv)
         if (plat_mouse_released(PLAT_MOUSE_LEFT)) pressed_here = false;
         if (plat_key_pressed(PLAT_KEY_ESC)) id = page == Page::Main ? "quit" : "back";
 
-        if (!id.empty() && id.rfind("remove:", 0) != 0 && id.rfind("world:", 0) != 0) {
+        if (!id.empty() && id.rfind("remove:", 0) != 0 && id.rfind("world:", 0) != 0 && id != "mod_remove") {
             confirm.clear();
             if (!installing.valid()) error.clear();
         }
@@ -318,6 +471,60 @@ int main(int argc, char **argv)
         if (id == "worlds") {
             worlds = launcher::list_worlds();
             page   = Page::Worlds;
+        }
+        const auto reload_mods = [&] {
+            mods.mods = launcher::list_mods(builds.empty() ? "" : launcher::game_mods_dir(builds[chosen].client, builds[chosen].bundled),
+                                            mods.world());
+            if (!builds.empty()) launcher::api_range(builds[chosen].client, builds[chosen].bundled, mods.api_oldest, mods.api_newest);
+            mods.first = std::min(mods.first, mods.mods.empty() ? 0 : (mods.mods.size() - 1) / kModsShown * kModsShown);
+        };
+        if (id == "mods") {
+            if (page == Page::Main) {
+                mods.scope  = 0;
+                mods.worlds.clear();
+                for (const launcher::World &w : launcher::list_worlds()) mods.worlds.push_back(w.name);
+            }
+            mods.confirm.clear();
+            reload_mods();
+            page = Page::Mods;
+        }
+        if (id == "scope") {
+            mods.scope = (mods.scope + 1) % (mods.worlds.size() + 1);
+            mods.first = 0;
+            reload_mods();
+        }
+        if (id == "mods_prev") mods.first -= std::min(mods.first, kModsShown);
+        if (id == "mods_next") mods.first += kModsShown;
+        if (id.rfind("mod:", 0) == 0) {
+            mods.open    = std::min(mods.mods.size() - 1, (size_t)std::strtoul(id.c_str() + 4, nullptr, 10));
+            mods.confirm.clear();
+            page = Page::ModDetail;
+        }
+        if (id == "toggle") {
+            const launcher::ModEntry &m = mods.mods[mods.open];
+            launcher::set_off(mods.world(), m.manifest.name, !m.off);
+            const std::string path = m.path;
+            reload_mods();
+            for (size_t i = 0; i < mods.mods.size(); ++i)
+                if (mods.mods[i].path == path) mods.open = i;
+        }
+        if (id == "mod_remove") {
+            const launcher::ModEntry &m = mods.mods[mods.open];
+            if (mods.confirm != m.path) {
+                mods.confirm = m.path;
+            } else {
+                const std::string err = launcher::remove_mod(m);
+                error = err.empty() ? m.manifest.name + " " + lang::tr("removed") : err;
+                mods.confirm.clear();
+                reload_mods();
+                page = Page::Mods;
+            }
+        }
+        if (id == "mod_install") {
+            const std::string err = launcher::install_mod(mods.pending, mods.world(), mods.mods);
+            error = err.empty() ? mods.pending.manifest.name + " " + lang::tr("added") : err;
+            reload_mods();
+            page = Page::Mods;
         }
         if (id.rfind("world:", 0) == 0 && !builds.empty() && !installing.valid()) {
             // Which build last had it: what made it, or a newer one the launcher

@@ -9359,23 +9359,9 @@ bool pause_frame(Scene &s, LookSettle &settle, bool &debug, bool esc, bool inter
 
 std::string worlds_dir() { return user_data_dir() + "/worlds"; }
 
-// The player's own mods. Beside the worlds on Windows; elsewhere a hidden folder
-// in the home, ~/.cubes-and-portals/mods, where a player looks for it (the
-// flatpak is given that folder and no other).
-std::string user_mods_dir()
-{
-#ifdef _WIN32
-    return user_data_dir() + "/mods";
-#else
-    if (const char *home = std::getenv("HOME"); home != nullptr && home[0] != '\0')
-        return std::string(home) + "/.cubes-and-portals/mods";
-    return user_data_dir() + "/mods";
-#endif
-}
-
 // The flags that give a world of this machine its player's mods: --user-mods for
-// the global folder and the world's own `mods`, --no-mod for each name the
-// world's mods.conf turns off (`off = a, b`; `#` starts a comment).
+// the global folder and the world's own `mods`, --no-mod for each name turned
+// off everywhere or in this world (core/paths.h, read_mods_off).
 std::vector<std::string> world_mod_flags(const std::string &world_dir)
 {
     std::vector<std::string> out;
@@ -9385,22 +9371,12 @@ std::vector<std::string> world_mod_flags(const std::string &world_dir)
             out.push_back("--user-mods");
             out.push_back(d);
         }
-    std::ifstream in(world_dir + "/mods.conf");
-    for (std::string line; std::getline(in, line);) {
-        line = line.substr(0, line.find('#'));
-        const size_t eq = line.find('=');
-        if (eq == std::string::npos) continue;
-        std::string key = line.substr(0, eq);
-        std::erase_if(key, [](unsigned char c) { return std::isspace(c); });
-        if (key != "off") continue;
-        std::stringstream names(line.substr(eq + 1));
-        for (std::string n; std::getline(names, n, ',');) {
-            std::erase_if(n, [](unsigned char c) { return std::isspace(c); });
-            if (n.empty()) continue;
+    // Off everywhere (the launcher's "everywhere" list), then off in this world.
+    for (const std::string &conf : {user_mods_conf(), world_dir + "/mods.conf"})
+        for (const std::string &n : read_mods_off(conf)) {
             out.push_back("--no-mod");
             out.push_back(n);
         }
-    }
     return out;
 }
 

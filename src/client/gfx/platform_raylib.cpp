@@ -178,3 +178,20 @@ void plat_screenshot(const char *name)
 {
     TakeScreenshot(name);
 }
+
+static FilePathList g_dropped = {};
+
+extern "C" int plat_take_dropped(void)
+{
+    if (g_dropped.paths != nullptr) UnloadDroppedFiles(g_dropped);
+    g_dropped = FilePathList{};
+    if (!IsFileDropped()) return 0;
+    g_dropped = LoadDroppedFiles();
+    return (int)g_dropped.count;
+}
+
+extern "C" const char *plat_dropped_path(int i)
+{
+    return i >= 0 && (unsigned)i < g_dropped.count ? g_dropped.paths[i] : "";
+}
+

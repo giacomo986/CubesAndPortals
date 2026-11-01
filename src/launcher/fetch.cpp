@@ -150,6 +150,9 @@ std::string install(const std::string &version, Progress &progress)
     if (!fs::is_directory(top, ec)) return package + " does not hold the folder it should";
     fs::rename(top, final, ec);
     if (ec) return "cannot move it into " + final.string();
+    // Kept beside the build: what it says of the mod API is what the mods page
+    // checks mods against (launcher/mods.h, api_range).
+    fs::copy_file(manifest_path, final / release::kManifestName, ec);
     return "";
 }
 
