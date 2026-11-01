@@ -1153,7 +1153,12 @@ checked on a wall two high in the plaza, hung at 23 - 1.85, jump pulled up
 onto it, 0 corrections. Applies to games/lab too. The tower's stations not
 re-climbed by hand with the grab on.
 
-**Chambers.** A crossing kept no speed into an opening higher than its other
+**Chambers.** Fixed 2026-11-01: a linked pair's opening animation (the
+membrane parting) started again at every Portals message, so shooting the gun
+looped it: the openings linked before were read after the list was emptied,
+so none ever was. Seen: 40 s in the chambers, 3 Portals messages, 1 opening
+animation (the first link); the gun's own shots not replayed by hand.
+A crossing kept no speed into an opening higher than its other
 end: exit_velocity evened out the raw height between the two (chamber 04, 4
 nodes: 5.89 m/s in, 0 out); now the height the map sends the body to (fixed
 2026-10-10, 5.89 out). Not played by hand with the mouse (aiming, picking up a cube,

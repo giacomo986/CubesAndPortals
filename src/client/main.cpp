@@ -13381,12 +13381,15 @@ void apply_server_portals(Scene &s, const net::Portals &ps)
     // Unlinked here, both of them: the openings just moved or just arrived,
     // and a link kept from before is drawn where they used to be. The caller
     // relinks every mouth whose world is up in the same frame.
+    // What was there before, to see which openings have just been linked:
+    // taken before the lists are emptied. Taken after, nothing was ever linked
+    // before, and every Portals message -- a chamber's server sends one for
+    // each change of its openings -- started a linked pair's opening again.
+    const std::vector<Portal> was_closed = s.act().closed_openings;
+    const std::vector<Portal> was_linked = s.act().linked_openings;
     s.act().more_links.clear();
     s.act().linked_openings.clear();
     s.act().linked_to.clear();
-    // What was there before, to see which openings have just been linked.
-    const std::vector<Portal> was_closed = s.act().closed_openings;
-    const std::vector<Portal> was_linked = s.act().linked_openings;
     const auto same = [](const Portal &a, const Portal &b) {
         return a.axis == b.axis && length_sq(a.center - b.center) < 1e-4f;
     };
