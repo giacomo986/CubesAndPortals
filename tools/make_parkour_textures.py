@@ -62,12 +62,13 @@ for x in range(4, N, 8):
     d.ellipse([x - 1, N - 4, x + 1, N - 2], fill=(140, 146, 154))
 save(img, "steel")
 
-# Hazard: yellow and black diagonal stripes.
+# Hazard: yellow and black diagonal stripes, 8 wide: their period, 16, divides
+# the tile, so they run on unbroken from one block into the next.
 img = Image.new("RGB", (N, N))
 px = img.load()
 for y in range(N):
     for x in range(N):
-        px[x, y] = (236, 196, 30) if ((x + y) // 6) % 2 == 0 else (30, 30, 32)
+        px[x, y] = (236, 196, 30) if ((x + y) // 8) % 2 == 0 else (30, 30, 32)
 save(img, "hazard")
 
 # Pad: a bright orange checkpoint, a white ring on it.
