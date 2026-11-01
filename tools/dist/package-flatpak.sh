@@ -66,10 +66,12 @@ Categories=Game;
 Terminal=false
 DESKTOP
 
+# The player's own mods are in ~/.cubes-and-portals/mods: that folder only.
 # X11 only: the client's GLFW is built without Wayland, so on a Wayland
 # desktop it runs through XWayland.
 flatpak build-finish "$DIR" --command=cubes-and-portals \
-    --share=network --share=ipc --socket=x11 --socket=pulseaudio --device=dri > /dev/null
+    --share=network --share=ipc --socket=x11 --socket=pulseaudio --device=dri \
+    --filesystem=~/.cubes-and-portals:create > /dev/null
 # Signed when a key is given (the CI's, from its secret): the repository it
 # exports into is the one tools/dist/flatpak-site.sh publishes for `flatpak
 # update`. FLATPAK_GPG_KEY_ID and, if not gpg's own, FLATPAK_GPG_HOMEDIR.

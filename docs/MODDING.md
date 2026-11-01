@@ -305,11 +305,23 @@ involved are refused one by one, each saying what it was waiting for.
 ### The player's own mods
 
 Besides the game's `mods/`, a world started from the title screen loads the mods in the
-player's data folder -- `~/.local/share/cubes-and-portals/mods` on Linux,
+player's mods folder -- `~/.cubes-and-portals/mods`, hidden in the home, on Linux and macOS,
 `%APPDATA%/cubes-and-portals/mods` on Windows -- directories or `.cnpmod` files, in its sandbox
 only (the themed worlds are the game's). A server takes the same with `--user-mods DIR`. The two
 folders are **one set**: a mod there may `depends` on one of the game's, and a mod with the name
 of one of the game's is refused, saying where the first comes from.
+
+A world can have mods of its own and turn global ones off. In the world's folder
+(`~/.local/share/cubes-and-portals/worlds/<world>/`):
+
+```
+mods/             <- mods for this world only, as above
+mods.conf         <- off = some_mod, other_mod
+```
+
+A mod turned off is named in the log (`mod 'x' left out by this world`) and not loaded; a
+server takes it as `--no-mod NAME`, and `--user-mods` more than once. Its blocks already in the
+world become magenta placeholders until it is turned back on, and are themselves again then.
 
 ---
 

@@ -550,7 +550,7 @@ L'elenco completo è in `main()` di [`src/client/main.cpp`](src/client/main.cpp)
 | `--world N` `--seed N` `--world-file FILE` | Lato della regione generata all'avvio (default 128; il mondo non ha bordo), seme (default 1), file SQLite dove salvarlo. Un solo server per file: il secondo trova il lucchetto ed esce |
 | `--save-every S` | Ogni quanto scrivere quello che è cambiato (default 10 s; 0 solo alla chiusura). Ctrl+C o SIGTERM salvano e chiudono |
 | `--mods DIR` `--no-mods` | I mod del mondo |
-| `--user-mods DIR` | Altri mod, quelli del giocatore, caricati con `--mods` come un solo insieme: un solo ordine per `depends`, e un nome già caricato rifiutato. Un mondo avviato dalla schermata del titolo passa `<dati>/cubes-and-portals/mods` alla sua stanza sandbox |
+| `--user-mods DIR` (ripetibile) `--no-mod NOME` (ripetibile) | Altri mod, quelli del giocatore, caricati con `--mods` come un solo insieme: un solo ordine per `depends`, e un nome già caricato rifiutato. Un mondo avviato dalla schermata del titolo passa `~/.cubes-and-portals/mods` (Windows: `%APPDATA%/cubes-and-portals/mods`) alla sua stanza sandbox, poi la cartella `mods/` del mondo, e `--no-mod` per ogni nome che il suo `mods.conf` spegne (`off = a, b`) |
 | `--textures DIR` `--no-textures` | I media che il mondo serve |
 | `--day-length S` `--time T` | Ciclo giorno/notte |
 | `--key-file FILE` `--no-encryption` | L'identità del server; cifratura spenta (solo per prove) |

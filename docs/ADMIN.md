@@ -213,7 +213,8 @@ webhook = https://example.org/hooks/server
 | `--watchdog S` | A room stuck for S seconds aborts the server with its stack printed |
 | `--federation PORT` | Friend servers' TCP port, under the ticket key (`--ticket-key`, or WORLD.sign) |
 | `--webhook URL` | Admin actions, start, stop and reports POSTed there |
-| `--user-mods DIR` | Mods of your own beside the game's, loaded with them as one set; in a `[room NAME]` for that room only ([MODDING](MODDING.md#the-players-own-mods)) |
+| `--user-mods DIR` (repeatable) | Mods of your own beside the game's, loaded with them as one set; in a `[room NAME]` for that room only ([MODDING](MODDING.md#the-players-own-mods)) |
+| `--no-mod NAME` (repeatable) | That mod is found and not loaded; its blocks in the world turn magenta until it is back |
 | `--max-players N` `--require-identity` `--no-observers` | Seats; players must have a key; no portal windows from other worlds |
 | `--report FILE` `--since 7d` `--json` | No server: what a world file remembers, printed; `--json` as one JSON object |
 | `--names` `--free-name NAME` | No server: who owns each name; let one go |

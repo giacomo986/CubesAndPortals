@@ -1984,11 +1984,17 @@ in `games/` do not load mods/jetpack.
 **Launcher (planned 2026-11-01, 10 steps).** Separate `cnp_launcher`, menu style,
 every package flatpak included, global + per-world mods, picks the version a
 server speaks; online mod catalogue later. Step 1 done 2026-11-01: the player's
-mods folder (`<data>/cubes-and-portals/mods`, `--user-mods DIR`) loaded with the
+mods folder (`~/.cubes-and-portals/mods`, Windows `%APPDATA%/cubes-and-portals/mods`; `--user-mods DIR`) loaded with the
 game's as one set, sandbox room only. Seen: a user mod with `depends = keys`
 loads, a copy of `whisper` is refused naming the game's, the chambers room does
-not load it. Not seen yet: a title-screen world picking the folder up (GUI).
-Next: step 2, per-world mods.
+not load it. Step 2 done 2026-11-01: a world's own `mods/` and `mods.conf`
+(`off = a, b`), server `--no-mod NAME`, `--user-mods` repeatable. Seen in
+Xephyr from the title screen: new world loads the global mods; reopened with a
+world mod (depends on a global one) and `off = tst_off, nothing`, the log says
+`left out by this world` and the world mod runs; an unknown name is ignored.
+No block-loss guard: a mod off leaves magenta placeholders that come back
+(world_db.h), so the launcher warns instead of blocking. Next: step 3,
+protocol in Status.
 
 **OPEN-40 -- macOS never run; Windows only under wine.** Packages, 2026-10-10:
 tarball and AppImage (23 MB; until now they lacked `assets/sounds` and

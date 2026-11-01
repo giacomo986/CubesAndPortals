@@ -790,6 +790,10 @@ int ModHost::load_dirs(const std::vector<std::string> &dirs)
         ModManifest m;
         std::string err;
         if (read_manifest(d, m, err)) {
+            if (std::find(m_left_out.begin(), m_left_out.end(), m.name) != m_left_out.end()) {
+                std::printf("mod '%s' left out by this world\n", m.name.c_str());
+                continue;
+            }
             pending.push_back(std::move(m));
         } else {
             Mod failed;

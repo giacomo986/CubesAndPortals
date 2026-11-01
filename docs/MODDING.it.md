@@ -334,11 +334,23 @@ stava aspettando.
 ### I mod del giocatore
 
 Oltre a `mods/` del gioco, un mondo avviato dalla schermata del titolo carica i mod nella
-cartella dei dati del giocatore -- `~/.local/share/cubes-and-portals/mods` su Linux,
+cartella dei mod del giocatore -- `~/.cubes-and-portals/mods`, nascosta nella home, su Linux e macOS,
 `%APPDATA%/cubes-and-portals/mods` su Windows -- cartelle o file `.cnpmod`, solo nella sua
 sandbox (i mondi tematici sono del gioco). Un server prende lo stesso con `--user-mods DIR`. Le
 due cartelle sono **un solo insieme**: un mod lì può avere `depends` su uno del gioco, e un mod
 con il nome di uno del gioco viene rifiutato, dicendo da dove viene il primo.
+
+Un mondo può avere mod suoi e spegnere quelli globali. Nella cartella del mondo
+(`~/.local/share/cubes-and-portals/worlds/<mondo>/`):
+
+```
+mods/             <- mod solo di questo mondo, come sopra
+mods.conf         <- off = un_mod, altro_mod
+```
+
+Un mod spento è nominato nel log (`mod 'x' left out by this world`) e non viene caricato; un
+server lo prende come `--no-mod NOME`, e `--user-mods` più di una volta. I suoi blocchi già nel
+mondo diventano segnaposto magenta finché non viene riacceso, e poi tornano quelli di prima.
 
 ---
 

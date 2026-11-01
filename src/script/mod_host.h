@@ -195,6 +195,11 @@ public:
     // among these runs on the server only, and is not missing here.
     void set_world_code_mods(std::vector<std::string> names) { m_world_code_mods = std::move(names); }
 
+    // Mods this world leaves out (--no-mod): found, named in the log, not loaded.
+    // A world turns off a mod of the player's that it does not want; its blocks
+    // already in the world become placeholders until it is back (world_db.h).
+    void set_left_out(std::vector<std::string> names) { m_left_out = std::move(names); }
+
     // Loads every enabled mod found in `mods_dir`. Returns how many are running.
     // A mod that fails to load is kept in the list with its error, so the
     // failure is visible in the log and in --bench output instead of silent.
@@ -274,6 +279,7 @@ private:
     ModSide          m_side       = ModSide::Both;
     bool             m_world_code = false;
     std::vector<std::string> m_world_code_mods;
+    std::vector<std::string> m_left_out;
 };
 
 // While mod code is on the stack this names the mod that is running. Host

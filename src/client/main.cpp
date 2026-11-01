@@ -9408,6 +9408,51 @@ std::string user_data_dir()
 
 std::string worlds_dir() { return user_data_dir() + "/worlds"; }
 
+// The player's own mods. Beside the worlds on Windows; elsewhere a hidden folder
+// in the home, ~/.cubes-and-portals/mods, where a player looks for it (the
+// flatpak is given that folder and no other).
+std::string user_mods_dir()
+{
+#ifdef _WIN32
+    return user_data_dir() + "/mods";
+#else
+    if (const char *home = std::getenv("HOME"); home != nullptr && home[0] != '\0')
+        return std::string(home) + "/.cubes-and-portals/mods";
+    return user_data_dir() + "/mods";
+#endif
+}
+
+// The flags that give a world of this machine its player's mods: --user-mods for
+// the global folder and the world's own `mods`, --no-mod for each name the
+// world's mods.conf turns off (`off = a, b`; `#` starts a comment).
+std::vector<std::string> world_mod_flags(const std::string &world_dir)
+{
+    std::vector<std::string> out;
+    std::error_code          ec;
+    for (const std::string &d : {user_mods_dir(), world_dir + "/mods"})
+        if (std::filesystem::is_directory(d, ec)) {
+            out.push_back("--user-mods");
+            out.push_back(d);
+        }
+    std::ifstream in(world_dir + "/mods.conf");
+    for (std::string line; std::getline(in, line);) {
+        line = line.substr(0, line.find('#'));
+        const size_t eq = line.find('=');
+        if (eq == std::string::npos) continue;
+        std::string key = line.substr(0, eq);
+        std::erase_if(key, [](unsigned char c) { return std::isspace(c); });
+        if (key != "off") continue;
+        std::stringstream names(line.substr(eq + 1));
+        for (std::string n; std::getline(names, n, ',');) {
+            std::erase_if(n, [](unsigned char c) { return std::isspace(c); });
+            if (n.empty()) continue;
+            out.push_back("--no-mod");
+            out.push_back(n);
+        }
+    }
+    return out;
+}
+
 // A world directory holds the server's world file, its key, its log, and
 // `seed`: the seed the world was made with, which the world file insists on,
 // written again at every start so its time is when the world was last played.
@@ -10511,14 +10556,16 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
                                [](const char *a) { return std::strcmp(a, "sandbox") == 0; });
         args.insert(at == args.end() ? at : at + 1, "--survival");
     }
-    // The player's own mods (user_data_dir/mods), the sandbox's only: the themed
-    // worlds are the game's, and a mod of somebody's is not part of their trial.
-    const std::string user_mods = user_data_dir() + "/mods";
-    if (std::filesystem::is_directory(user_mods, ec)) {
+    // The player's own mods, the sandbox's only: the themed worlds are the
+    // game's, and a mod of somebody's is not part of their trial. The global ones
+    // (user_mods_dir), this world's own (<world>/mods), and the global ones this
+    // world turns off (<world>/mods.conf, `off = name, name`).
+    const std::vector<std::string> mod_flags = world_mod_flags(dir);
+    {
         auto at = std::find_if(args.begin(), args.end(),
                                [](const char *a) { return std::strcmp(a, "sandbox") == 0; });
-        at = args.insert(at == args.end() ? at : at + 1, "--user-mods");
-        args.insert(at + 1, user_mods.c_str());
+        if (at != args.end()) ++at;
+        for (const std::string &f : mod_flags) at = args.insert(at, f.c_str()) + 1;
     }
     const int rooms_up = rooms ? 11 : 1;   // "listening on UDP" once per room
 
