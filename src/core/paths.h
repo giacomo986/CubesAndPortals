@@ -39,4 +39,13 @@ std::string data_dir(const std::string &name, const std::string &built_at);
 // reads somebody else's mods must be able to say so without an strace.
 std::string data_dir_reason(const std::string &chosen, const std::string &built_at);
 
+// This player's files that are not options: the worlds, the identity they join
+// them with, the launcher's versions. $XDG_DATA_HOME or ~/.local/share, or
+// %APPDATA% on Windows, then cubes-and-portals; empty with no home at all.
+std::string user_data_dir();
+
+// The options file the client keeps (the language among them): $XDG_CONFIG_HOME
+// or ~/.config, or %APPDATA%, then cubes-and-portals/options.
+std::string options_path();
+
 } // namespace cnp

@@ -1,5 +1,7 @@
 #include "core/paths.h"
 
+#include <cstdlib>
+
 #include <filesystem>
 #include <system_error>
 
@@ -93,6 +95,32 @@ std::string data_dir_reason(const std::string &chosen, const std::string &built_
     const std::string here = exe_dir();
     if (!here.empty() && chosen.rfind(here, 0) == 0) return "next to the program";
     return "found";
+}
+
+std::string user_data_dir()
+{
+#ifdef _WIN32
+    if (const char *app = std::getenv("APPDATA"); app != nullptr && app[0] != '\0')
+        return std::string(app) + "/cubes-and-portals";
+#endif
+    if (const char *xdg = std::getenv("XDG_DATA_HOME"); xdg != nullptr && xdg[0] != '\0')
+        return std::string(xdg) + "/cubes-and-portals";
+    if (const char *home = std::getenv("HOME"); home != nullptr && home[0] != '\0')
+        return std::string(home) + "/.local/share/cubes-and-portals";
+    return "";
+}
+
+std::string options_path()
+{
+#ifdef _WIN32
+    if (const char *app = std::getenv("APPDATA"); app != nullptr && app[0] != '\0')
+        return std::string(app) + "/cubes-and-portals/options";
+#endif
+    if (const char *xdg = std::getenv("XDG_CONFIG_HOME"); xdg != nullptr && xdg[0] != '\0')
+        return std::string(xdg) + "/cubes-and-portals/options";
+    if (const char *home = std::getenv("HOME"); home != nullptr && home[0] != '\0')
+        return std::string(home) + "/.config/cubes-and-portals/options";
+    return "";
 }
 
 } // namespace cnp

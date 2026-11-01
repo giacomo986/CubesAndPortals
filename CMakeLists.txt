@@ -168,6 +168,7 @@ add_subdirectory(src/modpack)
 add_subdirectory(src/script)
 add_subdirectory(src/server)
 add_subdirectory(src/client)
+add_subdirectory(src/launcher)
 
 enable_testing()
 add_subdirectory(tests)

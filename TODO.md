@@ -2001,11 +2001,19 @@ no status from a new server, shown without "N playing"). The server list says
 listed "0 playing" in Xephyr; "needs version" not seen (no older server built).
 Step 4 done 2026-11-01: `release.manifest` (core/release.h) signed with the
 release key (private: ~/.config/cubes-and-portals-release/release.sign.key and
-secret RELEASE_SIGN_KEY, still to set with `gh secret set`); `cnp_release
+secret RELEASE_SIGN_KEY, set 2026-11-01); `cnp_release
 key|sign|check`; the publish job signs and checks, and stops without the
 secret. Seen: a signed dir checks ok; one changed byte in a package, an edited
 manifest, a manifest signed with another key are all refused. Not seen: the CI
-job itself (next tag). Next: step 5, cnp_launcher skeleton.
+job itself (next tag). Step 5 done 2026-11-01: `cnp_launcher` (src/launcher),
+the title screen's look (shared client/ui/title.cpp; user_data_dir and
+options_path moved to core/paths): Play <default version>, Versions (the
+packaged build and each <data>/versions/<v>/cnp_client, newest first; a click
+makes it the default, kept in <data>/launcher). Play closes the window, starts
+the build and waits for it (the game dies with the launcher, PR_SET_PDEATHSIG).
+Seen in Xephyr: a fake 0.9.0-alpha.3 listed, chosen, started in its own
+folder, launcher gone after it; the real client started from the build tree.
+Not in the packages yet (step 10). Next: step 6, download and remove builds.
 
 **OPEN-40 -- macOS never run; Windows only under wine.** Packages, 2026-10-10:
 tarball and AppImage (23 MB; until now they lacked `assets/sounds` and

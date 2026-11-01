@@ -354,3 +354,9 @@ close this panel = chiudi questo pannello
 Updates: on = Aggiornamenti: sì
 Updates: off = Aggiornamenti: no
 New version {}: download = Nuova versione {}: scarica
+
+# --- Launcher ---
+Versions = Versioni
+Versions: the one marked is the one Play starts = Versioni: quella segnata è quella che Gioca avvia
+(in this package) = (in questo pacchetto)
+no build of the game found = nessuna versione del gioco trovata
