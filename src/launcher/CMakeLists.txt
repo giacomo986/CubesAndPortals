@@ -2,6 +2,7 @@
 # client's own title-screen code.
 add_executable(cnp_launcher
     main.cpp
+    fetch.cpp
     ../client/gfx/gfx_raylib.cpp
     ../client/gfx/platform_raylib.cpp
     ../client/ui/hud.cpp

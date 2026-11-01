@@ -2013,7 +2013,21 @@ makes it the default, kept in <data>/launcher). Play closes the window, starts
 the build and waits for it (the game dies with the launcher, PR_SET_PDEATHSIG).
 Seen in Xephyr: a fake 0.9.0-alpha.3 listed, chosen, started in its own
 folder, launcher gone after it; the real client started from the build tree.
-Not in the packages yet (step 10). Next: step 6, download and remove builds.
+Not in the packages yet (step 10). Step 6 done 2026-11-01 (src/launcher/fetch.cpp):
+"Download another version" lists the releases page's tags (only plain
+version strings), and installing one fetches release.manifest, checks it
+against the release key, fetches this platform's package only if listed,
+checks size and hash, unpacks into a stage and moves it whole into
+versions/<v>. A build's "x" asks once (saying how many worlds were made with
+it) then removes it. Headless: `cnp_launcher --install V | --remove V | --list`,
+`--releases-from URL --releases-api URL` (file:// works). Seen: a signed fake
+release installs; again says already here; one without manifest, one with a
+changed byte (nothing left behind), and a version with shell characters are
+refused; in Xephyr the download page lists the fake tags, the refusal shows,
+remove asks then removes. Not seen: a GUI install's progress (headless only),
+real GitHub (no release has a manifest before the next tag). macOS: no
+install (.dmg). curl and tar via the shell; is curl in the flatpak runtime?
+Check at step 10. Next: step 7, worlds.
 
 **OPEN-40 -- macOS never run; Windows only under wine.** Packages, 2026-10-10:
 tarball and AppImage (23 MB; until now they lacked `assets/sounds` and

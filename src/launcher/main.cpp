@@ -13,6 +13,7 @@
 #include "client/ui/hud.h"
 #include "client/ui/lang.h"
 #include "client/ui/title.h"
+#include "launcher/fetch.h"
 #include "core/os.h"
 #include "core/paths.h"
 #include "core/update_check.h"
@@ -22,6 +23,7 @@
 #include <chrono>
 #include <cstdio>
 #include <filesystem>
+#include <future>
 #include <fstream>
 #include <string>
 #include <thread>
@@ -94,9 +96,10 @@ std::string options_language()
     return lang::from_environment();
 }
 
-enum class Page { Main, Builds };
+enum class Page { Main, Builds, Download };
 
 ui::Panel launcher_panel(Page page, const std::vector<Build> &builds, size_t chosen,
+                         const std::vector<std::string> &remote, const std::string &confirm,
                          const std::string &error)
 {
     ui::Panel p;
@@ -117,7 +120,7 @@ ui::Panel launcher_panel(Page page, const std::vector<Build> &builds, size_t cho
         y += 1.3f;
         panel_button(p, "quit", "Quit", 0.5f, y, 11.0f);
         y += 1.3f;
-    } else {
+    } else if (page == Page::Builds) {
         panel_label(p, "Versions: the one marked is the one Play starts", 0.5f, y);
         y += 1.2f;
         for (size_t i = 0; i < builds.size(); ++i) {
@@ -126,7 +129,34 @@ ui::Panel launcher_panel(Page page, const std::vector<Build> &builds, size_t cho
             std::string text = builds[i].version;
             if (builds[i].bundled) text += std::string("   ") + lang::tr("(in this package)");
             if (i == chosen) text = "> " + text + " <";
-            panel_add(p, ui::ElemKind::Button, "build:" + std::to_string(i), text, 0.5f, y, 11.0f);
+            panel_add(p, ui::ElemKind::Button, "build:" + std::to_string(i), text, 0.5f, y,
+                      builds[i].bundled ? 11.0f : 9.8f);
+            if (!builds[i].bundled) {
+                // Twice: the first click says what it takes with it.
+                const bool armed = confirm == builds[i].version;
+                panel_add(p, ui::ElemKind::Button, "remove:" + std::to_string(i), armed ? "!" : "x",
+                          10.5f, y, 1.0f);
+            }
+            y += 1.2f;
+        }
+        y += 0.2f;
+        panel_button(p, "download", "Download another version", 0.5f, y, 11.0f);
+        y += 1.3f;
+        panel_button(p, "back", "Back", 0.5f, y, 11.0f);
+        y += 1.3f;
+    } else {
+        panel_label(p, "Versions on the releases page", 0.5f, y);
+        y += 1.2f;
+        size_t shown = 0;
+        for (size_t i = 0; i < remote.size() && shown < 8; ++i) {
+            if (std::any_of(builds.begin(), builds.end(), [&](const Build &b) { return b.version == remote[i]; }))
+                continue;
+            panel_add(p, ui::ElemKind::Button, "get:" + remote[i], remote[i], 0.5f, y, 11.0f);
+            y += 1.2f;
+            ++shown;
+        }
+        if (shown == 0) {
+            panel_label(p, remote.empty() ? "asking ..." : "every version is here already", 0.5f, y);
             y += 1.2f;
         }
         y += 0.2f;
@@ -145,8 +175,37 @@ ui::Panel launcher_panel(Page page, const std::vector<Build> &builds, size_t cho
 
 int main(int argc, char **argv)
 {
-    (void)argc;
-    (void)argv;
+    // Without a window, for a script and for checking: the same calls the
+    // screens make.
+    bool        headless = false;
+    std::string install_v, remove_v;
+    for (int i = 1; i < argc; ++i) {
+        const std::string a = argv[i];
+        if (a == "--releases-from" && i + 1 < argc) launcher::g_download_base = argv[++i];
+        else if (a == "--releases-api" && i + 1 < argc) launcher::g_releases_api = argv[++i];
+        else if (a == "--install" && i + 1 < argc) install_v = argv[++i], headless = true;
+        else if (a == "--remove" && i + 1 < argc) remove_v = argv[++i], headless = true;
+        else if (a == "--list") headless = true;
+        else {
+            std::fprintf(stderr, "usage: cnp_launcher [--releases-from URL] [--releases-api URL]\n"
+                                 "                    [--list | --install VERSION | --remove VERSION]\n");
+            return 2;
+        }
+    }
+    if (headless) {
+        launcher::Progress progress;
+        const std::string  err = !install_v.empty() ? launcher::install(install_v, progress)
+                                 : !remove_v.empty() ? launcher::remove(remove_v)
+                                                     : "";
+        if (!err.empty()) {
+            std::fprintf(stderr, "cnp_launcher: %s\n", err.c_str());
+            return 1;
+        }
+        for (const Build &b : find_builds())
+            std::printf("%s%s  %s\n", b.version.c_str(), b.bundled ? " (package)" : "", b.client.c_str());
+        return 0;
+    }
+
     lang::load(data_dir("assets/lang", CNP_SOURCE_ROOT "/assets/lang"), options_language());
 
     std::vector<Build> builds = find_builds();
@@ -171,8 +230,37 @@ int main(int argc, char **argv)
     const Build *start = nullptr;
     bool        pressed_here = false;
 
+    std::vector<std::string>              remote;
+    std::future<std::vector<std::string>> asking;
+    std::future<std::string>              installing;
+    std::string                           installing_v, confirm;
+    launcher::Progress                    progress;
+
     while (!plat_should_close() && start == nullptr) {
-        const ui::Panel          p  = launcher_panel(page, builds, chosen, error);
+        // An install going on says how far it is; one that ended says how.
+        if (installing.valid()) {
+            if (installing.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                const std::string err = installing.get();
+                error = err.empty() ? installing_v + " installed" : err;
+                const std::string keep = builds.empty() ? "" : builds[chosen].version;
+                builds = find_builds();
+                for (size_t i = 0; i < builds.size(); ++i)
+                    if (builds[i].version == keep) chosen = i;
+                page = Page::Builds;
+            } else {
+                std::error_code ec;
+                const uint64_t  have = fs::file_size(launcher::download_path(installing_v), ec);
+                const uint64_t  all  = progress.size;
+                error = std::string(lang::tr("downloading")) + " " + installing_v +
+                        (all > 0 && !ec ? "  " + std::to_string(have * 100 / all) + "%" : "");
+            }
+        }
+        if (asking.valid() && asking.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            remote = asking.get();
+            if (remote.empty()) error = "the releases page did not answer";
+        }
+
+        const ui::Panel p = launcher_panel(page, builds, chosen, remote, confirm, error);
         const ui::PanelPlacement at = ui::place_panel(p, gfx_screen_width(), gfx_screen_height());
         float mx = 0.0f, my = 0.0f;
         plat_mouse_position(&mx, &my);
@@ -193,15 +281,49 @@ int main(int argc, char **argv)
         if (plat_mouse_released(PLAT_MOUSE_LEFT)) pressed_here = false;
         if (plat_key_pressed(PLAT_KEY_ESC)) id = page == Page::Main ? "quit" : "back";
 
+        if (!id.empty() && id.rfind("remove:", 0) != 0) {
+            confirm.clear();
+            if (!installing.valid()) error.clear();
+        }
         if (id == "quit") break;
         if (id == "builds") page = Page::Builds;
-        if (id == "back") page = Page::Main;
+        if (id == "back") page = page == Page::Download ? Page::Builds : Page::Main;
+        if (id == "download") {
+            page = Page::Download;
+            if (remote.empty() && !asking.valid()) asking = std::async(std::launch::async, launcher::remote_versions);
+        }
+        if (id.rfind("get:", 0) == 0 && !installing.valid()) {
+            installing_v  = id.substr(4);
+            progress.size = 0;
+            installing    = std::async(std::launch::async, [v = installing_v, &progress] {
+                return launcher::install(v, progress);
+            });
+            page = Page::Builds;
+        }
+        if (id.rfind("remove:", 0) == 0) {
+            const Build &b = builds[std::min(builds.size() - 1, (size_t)std::strtoul(id.c_str() + 7, nullptr, 10))];
+            if (confirm != b.version) {
+                confirm = b.version;
+                const size_t worlds = launcher::worlds_made_with(b.version).size();
+                error = worlds == 0 ? std::string(lang::tr("click again to remove")) + " " + b.version
+                                    : std::to_string(worlds) + " " + lang::tr("world(s) were made with it: click again to remove it");
+            } else {
+                const std::string keep = builds[chosen].version, err = launcher::remove(b.version);
+                error   = err.empty() ? b.version + " " + lang::tr("removed") : err;
+                confirm.clear();
+                builds = find_builds();
+                chosen = 0;
+                for (size_t i = 0; i < builds.size(); ++i)
+                    if (builds[i].version == keep) chosen = i;
+                if (!builds.empty() && builds[chosen].version != keep) write_default(builds[chosen].version);
+            }
+        }
         if (id.rfind("build:", 0) == 0) {
             chosen = std::min(builds.size() - 1, (size_t)std::strtoul(id.c_str() + 6, nullptr, 10));
             write_default(builds[chosen].version);
             page = Page::Main;
         }
-        if (id == "play" && !builds.empty()) start = &builds[chosen];
+        if (id == "play" && !builds.empty() && !installing.valid()) start = &builds[chosen];
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
