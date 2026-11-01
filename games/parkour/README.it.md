@@ -37,7 +37,10 @@ e chi cade nel vuoto (sotto y 12) torna sull'ultimo pad toccato.
 Stazione 6 provata con la fisica del motore, cercando fra i tempi (corda dopo il salto, tenuta,
 stacco, seconda corda, tenuta): 6011 combinazioni su 22218 arrivano, tutte usando entrambe le
 travi. Stazione 7: saltando dal bordo o due nodi prima, la corsa incontra l'angolo entro i suoi
-cinque nodi, gira al salto e atterra a z +6; senza salto si cade. Stazioni 8 e 9 provate allo
+cinque nodi, gira al salto e atterra a z +6; senza salto si cade. Il salto può venire fino a 1,5 nodi prima
+dell'angolo (tenuto 0,4 s): il secondo salto atterra su 0,5 s di tempi, 137 su 400, dove prima doveva
+venire dopo l'arresto della corsa (0,33 s, 88 su 400; prima era un calcio via dal muro di destra). La
+corsa parte solo attaccati al muro di destra. Stazioni 8 e 9 provate allo
 stesso modo, con il corpo che guarda la trave dopo (i tasti spingono l'oscillazione dove si
 guarda): arrivano 1392 combinazioni su 8464 sulla 8, 337 su 4096 sulla 9 e 358 su 4096 sulla 10,
 nessuna saltando una trave.

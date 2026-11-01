@@ -422,8 +422,22 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
             player.wall_side = 0;
             player.used_dx = player.used_dz = 0;
             player.corner    = 0.0f;
+            player.corner_buf = 0.0f;
         }
-        player.corner = std::max(0.0f, player.corner - dt);
+        player.corner     = std::max(0.0f, player.corner - dt);
+        player.corner_buf = std::max(0.0f, player.corner_buf - dt);
+        // Jump on a run along a wall with a wall across its way just ahead:
+        // kept for the corner, not a kick off the wall beside -- the run goes
+        // on and turns where it meets that wall.
+        bool held = false;
+        if (jump_pressed && player.wall_side != 0 && !player.on_ground) {
+            const int ax = player.wall_dx != 0 ? 0 : (player.velocity.x < 0.0f ? -1 : 1);
+            const int az = player.wall_dx != 0 ? (player.velocity.z < 0.0f ? -1 : 1) : 0;
+            if (touches(world, reg, player, half, ax, az, kCornerAhead)) {
+                player.corner_buf = kCornerTime;
+                held              = true;
+            }
+        }
         // Jump on a rope lets go of it, with a little lift.
         if (player.roped && jump_pressed) {
             player.roped      = false;
@@ -457,7 +471,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         // it goes on low, at a crouch.
         if (player.low && player.slide <= 0.0f && room) player.low = false;
 
-        if (!player.on_ground && !player.roped && !kicked && jump_pressed && player.corner > 0.0f &&
+        if (!player.on_ground && !player.roped && !kicked && (jump_pressed || player.corner_buf > 0.0f) && player.corner > 0.0f &&
             touches(world, reg, player, half, player.corner_dx, player.corner_dz, kKickReach)) {
             // Round an inside corner: the run that met the wall across its
             // way goes on along that wall, level, away from the first one --
@@ -475,6 +489,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
             player.used_dx    = player.corner_dx;
             player.used_dz    = player.corner_dz;
             player.corner     = 0.0f;
+            player.corner_buf = 0.0f;
             on_wall           = true;
             kicked            = true;
         }
@@ -483,7 +498,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
             // between two walls, from one to the other and higher each time.
             // Not off a wall on the same side twice running: one wall is not
             // climbed.
-            if (jump_pressed) {
+            if (jump_pressed && !held) {
                 const int sides[5][2] = {{player.wall_dx, player.wall_dz}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}};
                 for (int i = player.wall_side != 0 ? 0 : 1; i < 5 && !kicked; ++i) {
                     const int dx = sides[i][0], dz = sides[i][1];

@@ -36,7 +36,10 @@ into the void (below y 12) goes back to the last pad touched.
 Station 6 tried in the engine's physics, by search over the timings (rope after the jump, hold,
 release, second rope, hold): 6011 of 22218 land, all of them on both beams. Station 7: jumped at
 the takeoff's edge or two nodes before it, the run meets the corner inside its five nodes, turns
-at the jump and lands at z +6; without the jump the body falls. Stations 8 and 9 tried the same
+at the jump and lands at z +6; without the jump the body falls. The jump may come up to 1.5 nodes
+before the corner (kept 0.4 s): the second press lands across 0.5 s of timings, 137 of 400, where it
+had to come after the run stopped (0.33 s, 88 of 400; earlier was a kick off the right wall). The run
+only starts hugging the right wall. Stations 8 and 9 tried the same
 way, the body looking at the next beam (the keys pump the swing the way it looks): 1392 of 8464
 timings land on 8, 337 of 4096 on 9 and 358 of 4096 on 10, and none with a beam left out.
 

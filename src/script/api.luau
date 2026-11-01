@@ -955,7 +955,7 @@ local api: { Fn } = {
         doc = "Says that bodies in THIS world do parkour: in the air, forward held fast along a "
            .. "wall beside them, they run along it level for up to 5 nodes, and a run stopped by "
            .. "a wall across its way (an inside corner) turns onto that wall at a jump within "
-           .. "0.4 s, running on along it away from the first; jump against a wall "
+           .. "0.4 s of meeting it, or pressed up to 1.5 nodes before it, running on along it away from the first; jump against a wall "
            .. "in the air kicks off it, away and up, so two walls are climbed by kicking from one "
            .. "to the other; crouch pressed at a run slides on the back, under a block; jump "
            .. "with back held is a backflip, onto a block two high behind; and core.rope hangs "
