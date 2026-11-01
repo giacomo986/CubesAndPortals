@@ -47,6 +47,11 @@ node("exit", { 40, 160, 70 }, 8)
 node("rim_blue", { 40, 130, 255 }, 10)
 node("rim_orange", { 255, 140, 20 }, 10)
 core.node_glass(node("glass", { 190, 220, 235 }), 60)
+-- The dissolving field's emitter, in the walls either side of a field (the
+-- field itself is light chambers_game draws: a body walks through it).
+node("emitter", { 90, 180, 255 }, 9)
+-- A trigger's floor tile: something happens when a body stands here.
+node("target", { 230, 180, 20 })
 
 -- Flat things a body stands on or beside: the floor button (and pressed), the
 -- launch plate, the push button on its stalk, the pedestal.

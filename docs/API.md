@@ -2746,7 +2746,7 @@ Has a body play a clip until told otherwise, "" to stop: holding cards at a tabl
 core.player_wear(player: number, slot: number, model: number?, tint: number?) -> number
 ```
 
-Dresses a body in a model of a mod's own, drawn on their skeleton bone by bone as a worn piece is, for everybody to see (protocol 102): a sword bound whole to hand_R, a helm to head. Up to ten, apart from what the engine's bag has them wear; they stay until taken off or the player leaves. On a server everybody else sees them; on a player's machine (only their own id) its own drawing of the body wears them. Returns 1, or 0 for a player who is not here, a slot out of range or a model nobody registered.
+Dresses a body in a model of a mod's own, drawn on their skeleton bone by bone as a worn piece is, for everybody to see (protocol 102): a sword bound whole to hand_R, a helm to head. Up to ten, apart from what the engine's bag has them wear; they stay until taken off or the player leaves. On a server everybody else sees them; on a player's machine (only their own id) its own drawing of the body wears them. A body of another species wears the world's "<model>_<species>" (human, mole, frog) when there is one, refitted to it. Returns 1, or 0 for a player who is not here, a slot out of range or a model nobody registered.
 
 | argomento | tipo | default | note |
 |---|---|---|---|

@@ -141,4 +141,19 @@ for name, rgb in (("chambers_core_rim_blue", (40, 130, 255)), ("chambers_core_ri
     img = noisy(rgb, 8)
     save(img, name)
 
+# The dissolving field's emitter: dark metal, a bright blue strip down it.
+img = noisy((60, 66, 74), 4)
+d = ImageDraw.Draw(img)
+d.rectangle([12, 0, 19, 31], fill=(90, 180, 255))
+d.line([(11, 0), (11, 31)], fill=(30, 34, 40))
+d.line([(20, 0), (20, 31)], fill=(30, 34, 40))
+save(img, "chambers_core_emitter")
+
+# A trigger's floor tile: a yellow target on the white.
+img = noisy((226, 228, 230), 3)
+d = ImageDraw.Draw(img)
+d.ellipse([4, 4, 27, 27], outline=(230, 180, 20), width=3)
+d.ellipse([12, 12, 19, 19], fill=(230, 180, 20))
+save(img, "chambers_core_target")
+
 print("chambers: textures in", TEX)

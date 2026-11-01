@@ -5,6 +5,21 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
+## Not handed out yet
+
+- Test chambers 11-13: the long fall (into a floor portal at the bottom of a pit, out of one in the
+  floor going up, onto a ledge), three sentry turrets with contempt to spare (knocked over by a
+  thrown cube or lifted from behind), and a dissolving field that closes your portals and
+  dissolves what you carry. Trigger zones open doors and portals and wake turrets.
+- Parkour: the bounce pad aims its throw at the landing, wherever you touched it.
+- Action RPG: you arrive in a hall with the ordinary camera, and the view from above starts at
+  its door; the ways home and back face the camera. Armour, helms, gloves, boots and belts fit
+  the human, the mole-man and the frog-man.
+- Rails climb and go down a step by themselves, from the rails beside them.
+- Assault: a tank costs 220 (was 350), and one stuck in a hole is lifted out.
+- The mayor of a village on a plaza world says what the village makes of the arches.
+- The launcher's text is denser: smaller type, two columns, more on one screen.
+
 ## 0.11.0-alpha.1 — 2026-11-01
 
 Protocol 113: it does not play with 0.10 servers or clients (the launcher fetches the version a

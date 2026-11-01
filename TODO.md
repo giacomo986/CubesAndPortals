@@ -26,9 +26,9 @@ by playing, not by a test:
 Run so far (2026-10-09): three clients (anna, bruno, carla) on a fresh
 `tools/track.sh` in Xephyr, 0 corrections on any side; all three had been put
 at the same spawn, inside one another -- fixed, each next join stands a node
-along x, alternating sides (39.5, 40.5, 41.5 saved). Half an hour, a race,
-chess and cards with two people: still to be played by hand. Check 4
-passed (see Saving).
+along x, alternating sides (39.5, 40.5, 41.5 saved). Check 4 passed (see
+Saving). Checks 1-3 played by hand by Giacomo (said 2026-11-01): the half
+hour with two, every trial to its end, every way out and altar walked.
 
 **A new world takes 25 s to start (2026-10-11).** It took about 80 s:
 `core:world_ready` ran outside a LightRun, so every cell the track and the
@@ -155,9 +155,22 @@ Open:
   cast_nova, war_cry, dagger_stab, spin_slash), turns only, made from each
   body's own file; arpg_game plays them, with sword_slash and sword_overhead,
   for every blow, shot and spell (core.player_clip until the clip has
-  played). Seen in Xephyr on all three classes. Open: fitted to the robot
-  only, a species wears the robot's pieces; a weapon held at rest points
+  played). Seen in Xephyr on all three classes. Since 2026-11-01 what is
+  worn (18 bases: helms, armour, gloves, boots, belts, amulet) is refitted to
+  each species too, gear_<base>_<species>: each part moved and scaled from
+  the robot's bone box onto the species' (tools/make_arpg_gear.py); the
+  client wears "<piece>_<species>" on a body of that species when the world
+  has it (any mod's core.player_wear). Seen on a frog: helm, plate, greaves.
+  Open: weapons stay the robot's (same hands); a weapon held at rest points
   ahead, as the robot's tools do; nothing shows a ring.
+  Arpg ways in and out (2026-11-01): the arch from the sandbox stands in a
+  hall (cobble, a roof, two fires, a door into the town) where the camera
+  is the eye's; out of its door the camera rises to the view from above
+  (0.8 s), clicks do nothing in it and the class picker waits for the town.
+  A world made before has the hall written in at its next start. The crypt's
+  way home now has its back to the east and faces -x, and a level's way
+  back faces -x: the camera looks from -x -z, so it sees their fronts.
+  Checked in Xephyr: the hall in first person, the town from above.
   Arpg rework (2026-10-18): the endless waste is gone. arpg_game lays out a
   town (Ashbury: smith, jeweller, alchemist, stash, waypoint) and three zones
   of areas and corridors cut through high ground two nodes up (three hid a
@@ -299,7 +312,6 @@ Open:
   marks "exit" near a world's way home and puts the body in the sandbox at
   that world's arch, a row along the plaza's north edge (z 96, x 24 + 8n),
   not at its gate. Checked: parkour summit to the plaza (57, 21.5, 88.75).
-  Open: the other worlds' ways out not walked through one by one.
   Sealed ways out (2026-10-10, from play: "a red membrane on the exits that
   opens, from the sandbox side too, once the world is won"): the arches are
   mouths now (sandbox openings 8-14 -> each world's way out; protocol 90: 16
@@ -319,7 +331,6 @@ Open:
   one forward and two aside of every way out (not in the lab). Walking up to
   it gives the key -- not a click: the rope gun and the guns own the right
   button. Checked: parkour summit, earned, walked to the altar, key in bag.
-  Open: the other six altars not walked to one by one.
 - The laboratory (2026-10-09): games/lab/mods/lab (side both) and lab_core.
   l'Ospite (tools/make_ospite.py, Blender: a dark mass with a ring of eyes,
   a maw, tentacles; its cage of light and its orb) is the lab's own entity,
@@ -388,11 +399,10 @@ Open:
   swimming to the valves, the torch and the frost by real clicks, driving
   the tunnel; the numbers (1000 points, 36 a shotgun shot, orbs of 3) are
   guesses.
-- The pedestal's panel was not seen on screen (the scripted click did not
-  reach it). The keys have held models since 2026-10-09
-  (tools/make_held_models.py), seen in the hand.
-- The mayor's line about the portals is not written (mods/villagers is at 194
-  of 200 locals).
+- The mayor's line about the portals (2026-11-01): in a world with a plaza
+  the mayor's panel says what the village makes of the arches ("Some who go
+  in come back with a key. We keep away."); in survival the panel sells the
+  nearest portal's place as before.
 
 **Network client's own checks in Xephyr (2026-10-11).** Its frame check
 asks for more than 30 FPS and Xephyr draws with llvmpipe: a kart lap through
@@ -409,15 +419,41 @@ catalogue and a grave on death. Measured: seeds 1, 42, 777 have 110, 122, 121 si
 the spawn, every world within 1000, mean d 1.0 under 300, 2.2 at 300-600, 3.9 at 900-1200, 6.2 at
 1500-1800. Played in Xephyr site by site, with scratch commands standing in for finishing a level,
 and with two clients through two chambers' sites at once. Open:
-- No level finished by hand from start to end: the arena's waves, the circuit's three laps, the
-  arpg lord, the chambers' puzzles are untried with a player's hands; the backrooms' doorway back
-  and the parkour's bounce pads and slabs were not walked.
-- The chambers' level is a stretch of a copy of their row, not new rooms: templates mixed and
-  mirrored, and the catalogue's new mechanics (dissolving fields, angled panels, light bridges,
-  beams, gels, turrets), are not built. Neither are the arpg's, the front's and the
-  assault's new pieces (plan 5b); the Inferno's are (2026-10-31, games/inferno/README.md), its
-  level walked by script only; the track has its own pieces in its circuits.
-- The parkour's bounce pad throws by a fixed launch (13 on, 13 up), measured by reckoning only.
+- The chambers' level is a stretch of a copy of their row, not new rooms (templates mixed and
+  mirrored not built). Of the catalogue's mechanics the dissolving field, turrets, the fling and
+  trigger zones are built (chambers 11-13, below); angled panels, light bridges, beams and gels are
+  not. Neither are the arpg's, the front's and the assault's new pieces (plan 5b); the Inferno's
+  are (2026-10-31, games/inferno/README.md), its level walked by script only.
+- Parkour bounce pad (2026-11-01): aimed, not a fixed launch. Each pad cell keeps its landing (the
+  middle of the floor 3 up and 8-12 on); touched, the body is thrown on a curve up to 1.5 over the
+  higher end and down onto that middle from wherever it stood (at most 16 m/s up, so at most 5.1
+  above). The levels' shapes are unchanged, so saved levels still fit. Not jumped by hand.
+
+**Chambers 11-13 (2026-11-01).** Three more chambers before the last room; the row is longer
+than 300, so a survival site's copies moved from x 20000 to 40000 (old copies left where they
+were), plan 9 builds the chambers again, and a stretch draws from 13 chambers.
+- 11 the long fall: a pit six wide whose bottom is white, a white patch by a ledge five high;
+  portals at the bottom and on the patch, jump in, come out going up as fast as you fell.
+  Measured headless (portals opened by script, a real client falling): from the floor at 20 to
+  28.9, three over the ledge's top. A second below the floor (not at once) is now what sends a
+  body back to the room's start, or the pit's portal could not be reached.
+- 12 three sentry turrets (tools/make_chambers_turret.py, Blender: standing and knocked over;
+  sounds tools/make_turret_sounds.py): seen within 18 and 55 degrees with nothing between, shot
+  after 0.7 s, 2 points every 0.4 s, a red aim line and a bolt on every screen; knocked over for
+  good by a cube flying into one or picked up from behind (from the front it refuses); the door
+  opens when all are down. They talk with contempt (eight kinds of line). A screen at the way
+  in to hide behind. Checked headless: shot, killed, a cube knocked one over, lifted from the
+  front refused, from behind taken, the door open.
+- 13 the dissolving field: crossing it closes your portals and dissolves what you carry (a cube
+  goes back to its vent); a thing thrown through dissolves too; a portal's own crossing does
+  not count. The cube goes round it by portal, then the long fall cube in hand up to the button.
+  Checked headless: portals closed on crossing. Drawn as a curtain of blue light.
+- Trigger zones (TRIGGERS in chambers_game): a box whose first visitor runs its actions -- open a
+  door, open a linked pair of portals, wake a room's turrets, say a line -- once until the room
+  starts again. Used: 11's target opens its door, 12's first step wakes the turrets, 13's ledge
+  opens a way down by portal. Checked headless (door, wake, portal).
+- Open: none of the three solved by hand; turret lines in English only, translated in it.txt;
+  fall damage off the ledges (6 high: 2-3 points).
 
 ## The sandbox: what comes next (planned 2026-10-28)
 
@@ -542,7 +578,12 @@ the villagers and start with questions (memory: villagers-need-design-first).
    the tangent and the rise round; a corner also joins a side rail lying
    either way) -- checked: the L track ridden backwards round its corner;
    wheels clack every two nodes (tools/make_cart_sounds.py); boat and cart
-   have icons (tools/make_item_textures.py). Open: a rail laid by a mod
+   have icons (tools/make_item_textures.py). Since 2026-11-01 slopes are
+   laid by themselves too: a plain rail becomes an up slope where the rail
+   ahead along its run is a block higher (none level there), a down slope
+   where the one behind is; a slope broken gives a plain rail (rail_up/down
+   drop building:rail). Checked headless: a line flat, up a step, level, down
+   a step, then a step broken and the slope below it flat again. Open: a rail laid by a mod
    (set_block) keeps its shape until a hand lays or breaks one beside it. Found on the way: the recipe
    clash message now names both results, which showed rocks:stone_bricks never
    craftable (craft:brick's shape) -- now four smooth stone.
@@ -1205,9 +1246,12 @@ seated as gunner so a bot drives): all four strongholds, hall, rising and
 escape in one run; the bot driver gets through every obstacle (lanes round
 the barricades, the post, the pillars and the holes), about 60 s from the
 garage to the rock with the giant some 50 m behind (10 to 16 m/s, +6 past 50
-m); some tries end at a smash hole and the road is built again. Open: not
-played by hand; numbers (garrisons, pylon and core hp, giant speed) await
-tuning; no sounds of its own (the front's).
+m); some tries end at a smash hole and the road is built again. Played by
+hand by Giacomo (said 2026-11-01). Open: no sounds of its own (the front's).
+From that play: tanks were dear and stuck easily in holes. Since 2026-11-01 a
+tank costs 220 (was 350), and one driven (a player's keys or a bot's) that
+does not move for 1.2 s is lifted 5 m/s and nudged 3 m/s the way it is driven.
+Not tried by hand yet.
 
 **The assault: a hundred allies, a shop that fits (2026-10-24).** Allies up
 to 100, bought five at a time (150); with 102 bots on the allies' side
@@ -1293,8 +1337,8 @@ lava), a tank within 55 (50 hp at about 4 a hit: it blows inside his 40),
 ranked before him. Measured, player seated idle, bots alone: every valve and
 rocks shot (valves with him 33-125 away), one tank of four blown with him 2
 away, none wasted; the jeep reached the rock (before: caught at about 1100 m).
-Open: the tanks are behind the jeep when ripe and mostly out of sight; maybe
-too easy now with bots alone.
+Open: the tanks are behind the jeep when ripe and mostly out of sight (not
+too easy, from play).
 
 **The assault, bots at the wheel and in the last fight (2026-10-24).** Asked:
 bots in machines ran into trees and stopped; bots to help in the final fight.
@@ -2082,13 +2126,14 @@ README/BUILDING (+it); version 0.11.0-alpha.1 (protocol 112 does not play with
 build, loads Italian, Play starts its client; inside org.freedesktop.Platform
 25.08 (the flatpak's runtime) it installed the real tarball from a signed
 file:// release (curl 8, GNU tar 1.35 there); the Windows zip built (zig) and
-its launcher lists its client under wine. Not seen: the AppImage (appimagetool
-not downloadable here; the CI builds it), the flatpak installed (would replace
-the installed one), macOS at all. Launcher done; open: denser text (above),
-macOS installs (.dmg), the online mod catalogue (future).
-**Launcher text, to do (asked 2026-11-01):** make the launcher's text denser so
-more fits on one screen: smaller type for details, two columns where it reads
-well, shorter labels, fewer rows spent on one line of text.
+its launcher lists its client under wine. The AppImage run by Giacomo on this
+machine, fine (2026-11-01). Not seen: the flatpak installed (would replace the
+installed one), macOS at all. Launcher done; open: macOS installs (.dmg), the
+online mod catalogue (future).
+**Launcher text denser (2026-11-01):** cells 0.78 of the title screen's (the
+type with them), rows 1.1 apart and lines 0.75, Worlds/Mods/Versions/Quit two
+by two under Play, versions, worlds and downloads in two columns (16 of each),
+eight mods a page. Seen in Xephyr: main, worlds, versions.
 
 **OPEN-40 -- macOS never run; Windows only under wine.** Packages, 2026-10-10:
 tarball and AppImage (23 MB; until now they lacked `assets/sounds` and

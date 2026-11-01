@@ -2398,7 +2398,7 @@ end
 local function show_mayor(p: number, rk: string)
     local name = panel_of(p, "mayor")
     local price = AID.pt.price(p)
-    core.ui_define(name, 13, if price then 11.8 else 10.4)
+    core.ui_define(name, 13, 11.8)
     local waiting = #(orders[rk] or {})
     core.ui_label(name, 0.4, 0.3, "The mayor: land in this village, for rubies.")
     core.ui_label(name, 0.4, 1.0, (if waiting > 0 then `The builder has {waiting} order(s) before yours.`
@@ -2411,6 +2411,12 @@ local function show_mayor(p: number, rk: string)
     local y = 8.9
     if price then
         core.ui_button(name, "portal", 0.4, y, 12.2, 1.2, `Where exactly is the nearest portal? {price} rubies`)
+        y += 1.4
+    else
+        -- A world with a plaza: the portals stand there, and the mayor says
+        -- what the village makes of them.
+        core.ui_label(name, 0.4, y, "\"The arches on the plaza were there before the first house.")
+        core.ui_label(name, 0.4, y + 0.6, "Some who go in come back with a key. We keep away.\"")
         y += 1.4
     end
     core.ui_button(name, "close", 0.4, y, 12.2, 1.1, "Not now")

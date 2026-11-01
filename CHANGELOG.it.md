@@ -5,6 +5,22 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
+## Non ancora consegnato
+
+- Camere di prova 11-13: la lunga caduta (in un portale sul fondo di un pozzo, fuori da uno nel
+  pavimento verso l'alto, su una sporgenza), tre torrette sentinella dal disprezzo facile (si
+  abbattono con un cubo lanciato o prendendole da dietro) e un campo dissolvente che chiude i tuoi
+  portali e dissolve quello che porti. Zone di trigger aprono porte e portali e svegliano le
+  torrette.
+- Parkour: il pad di rimbalzo mira il lancio sull'approdo, da dovunque lo tocchi.
+- Action RPG: si arriva in una sala con la telecamera normale, e la vista dall'alto parte dalla sua
+  porta; le vie di casa e di ritorno guardano la telecamera. Armature, elmi, guanti, stivali e
+  cinture calzano all'umano, all'uomo-talpa e all'uomo-rana.
+- I binari salgono e scendono un gradino da soli, dai binari accanto.
+- Assalto: un carro armato costa 220 (era 350), e uno bloccato in una buca viene sollevato fuori.
+- Il sindaco di un villaggio in un mondo con la piazza dice cosa pensa il villaggio degli archi.
+- Il testo del launcher è più compatto: caratteri più piccoli, due colonne, più cose in una schermata.
+
 ## 0.11.0-alpha.1 — 2026-11-01
 
 Protocollo 113: non gioca con server o client 0.10 (il launcher scarica la versione che un server

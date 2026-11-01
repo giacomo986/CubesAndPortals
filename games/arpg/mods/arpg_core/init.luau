@@ -99,6 +99,15 @@ for _, base in { "short_sword", "long_sword", "broad_sword", "war_sword", "hand_
                  "heavy_belt", "amulet" } do
     core.register_model(`arpg_core:gear_{base}`, `gear_{base}.gltf`)
 end
+-- What is worn refitted to each species (tools/make_arpg_gear.py): the client
+-- draws "<piece>_<species>" on a human, a mole-man or a frog-man.
+for _, base in { "cap", "helm", "great_helm", "hood", "quilted_armor", "leather_armor", "chain_mail", "plate_mail",
+                 "leather_gloves", "chain_gloves", "gauntlets", "boots", "chain_boots", "greaves", "sash", "belt",
+                 "heavy_belt", "amulet" } do
+    for _, sp in { "human", "mole", "frog" } do
+        core.register_model(`arpg_core:gear_{base}_{sp}`, `gear_{base}_{sp}.gltf`)
+    end
+end
 
 -- What a character breaks for what is inside (tools/make_arpg_props.py): a
 -- barrel, a crate, an urn. Workers that stand where arpg_game puts them, never

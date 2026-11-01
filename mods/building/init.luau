@@ -822,12 +822,18 @@ if serving then
     core.recipe_shaped("building:rail_up", 1, "building:rail", "rocks:cobblestone")
     core.recipe_shaped("building:rail_down", 1, "rocks:cobblestone", "building:rail")
     -- What a plain rail looks like is worked out from the rails round it, as
-    -- the engine rides it: straight on where one lies behind along its run,
+    -- the engine rides it: a slope where the rail ahead along its run is a
+    -- block higher (up) or the one behind is (down) and none is on its own
+    -- level there; else straight on where one lies behind along its run,
     -- else turned towards a side one -- one running into it first, then one
     -- lying along that side's axis either way. Every rail, whatever its
-    -- kind, joins the line; only plain ones change shape.
+    -- kind, joins the line; only plain ones and slopes change shape. So a line
+    -- laid up or down a step of the ground climbs it by itself; a slope broken
+    -- gives a plain rail back.
     local RUN = { { 0, -1 }, { -1, 0 }, { 0, 1 }, { 1, 0 } }
-    local PLAIN = { [RAIL] = true, [CORNER_R] = true, [CORNER_L] = true }
+    local PLAIN = { [RAIL] = true, [CORNER_R] = true, [CORNER_L] = true, [RAIL_UP] = true, [RAIL_DOWN] = true }
+    core.node_drop(RAIL_UP, RAIL)
+    core.node_drop(RAIL_DOWN, RAIL)
     local ANY = { [RAIL] = true, [CORNER_R] = true, [CORNER_L] = true, [PRAIL] = true, [PRAIL_ON] = true,
                   [SWITCH] = true, [SWITCH_ON] = true, [RAIL_UP] = true, [RAIL_DOWN] = true }
     local function run_at(x: number, y: number, z: number): { number }?
@@ -842,6 +848,15 @@ if serving then
         end
         local f = core.get_facing(x, y, z)
         local o = RUN[f % 4 + 1]
+        local function step(sx: number, sz: number): boolean   -- a rail a block up that way, none level
+            return run_at(sx, y + 1, sz) ~= nil and run_at(sx, y, sz) == nil
+        end
+        local up, down = step(x + o[1], z + o[2]), step(x - o[1], z - o[2])
+        if up ~= down then
+            core.set_block(x, y, z, if up then RAIL_UP else RAIL_DOWN)
+            core.set_facing(x, y, z, f)
+            return
+        end
         for dy = -1, 1 do
             local r = run_at(x - o[1], y + dy, z - o[2])
             if r and r[1] * o[1] + r[2] * o[2] ~= 0 then

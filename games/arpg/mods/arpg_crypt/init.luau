@@ -82,18 +82,31 @@ for _, z in { SZ0 - 2, SZ1 + 2 } do
 end
 box(DX + 77, GROUND + 3, SZ0 - 1, DX + 77, GROUND + 3, SZ1 + 1, MOSSY)
 
--- The world's way home (its second opening, facing +x) moved down here, in
--- a frame of cobble near the third floor's east wall: out after the Custode,
--- not back up the steps.
+-- The world's way home (its second opening) moved down here, in a frame of
+-- cobble near the third floor's east wall: out after the Custode, not back
+-- up the steps. Its back to the east and facing -x, turned so at the start
+-- (core.portal_place): the camera looks from -x -z and sees its front.
 local OUT = { DX + 160, FLOORS[3].fy + 1, DZ + 60 }
 for y = OUT[2], OUT[2] + 3 do
-    box(OUT[1] - 1, y, OUT[3] - 1, OUT[1] - 1, y, OUT[3] + 1, COBBLE)
+    box(OUT[1] + 1, y, OUT[3] - 1, OUT[1] + 1, y, OUT[3] + 1, COBBLE)
     box(OUT[1], y, OUT[3] - 1, OUT[1], y, OUT[3] - 1, MOSSY)
     box(OUT[1], y, OUT[3] + 1, OUT[1], y, OUT[3] + 1, MOSSY)
 end
 box(OUT[1], OUT[2] + 2, OUT[3], OUT[1], OUT[2] + 2, OUT[3], GLOW)
 box(OUT[1], OUT[2] + 3, OUT[3], OUT[1], OUT[2] + 3, OUT[3], COBBLE)
-core.set_portal(1, OUT[1] + 0.6, OUT[2] + 1, OUT[3] + 0.5)
+core.set_portal(1, OUT[1] + 0.4, OUT[2] + 1, OUT[3] + 0.5)
+core.event.on("core:world_ready", function()
+    if core.side() ~= "client" then
+        core.portal_place(1, OUT[1] + 0.4, OUT[2] + 1, OUT[3] + 0.5, 1, -1, 0.5, 1.0)
+        -- A world made with the frame's back to the west: turned round.
+        for y = OUT[2], OUT[2] + 3 do
+            for z = OUT[3] - 1, OUT[3] + 1 do
+                if core.get_block(OUT[1] - 1, y, z) == COBBLE then core.set_block(OUT[1] - 1, y, z, 0) end
+                core.set_block(OUT[1] + 1, y, z, COBBLE)
+            end
+        end
+    end
+end)
 
 core.register_mapgen("arpg_crypt:crypt", function(ctx)
     for _, b in BOXES do

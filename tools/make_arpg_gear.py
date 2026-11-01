@@ -16,6 +16,15 @@
 # weapon is held in the right fist at GRIP and points along +Y, as the robot's
 # own sword does (its clips swing it so); a bow, an orb in the left fist; a
 # shield on the left forearm. Leaves the work in assets/blender/arpg_gear.blend.
+#
+# And what is worn (helms, armour, gloves, boots, belts, the amulet) once
+# more for each species of tools/make_species.py, as gear_<base>_<species>:
+# every part moved and scaled from the robot's bone it is bound to onto that
+# species' own -- the box round the vertices each one's body binds to that
+# bone, the robot's and the species', centre onto centre, each axis by the
+# ratio of their sizes (0.75 to 1.5). The client draws those on a body of that
+# species (species_model). Weapons, shields and orbs are held, not worn, and
+# stay as they are.
 import math
 import os
 
@@ -416,10 +425,55 @@ def material(name, rgb, metal, rough, glow=False):
     return m
 
 
-def build(rig, key, maker, trim):
+WORN = {"cap", "helm", "great_helm", "hood", "quilted_armor", "leather_armor", "chain_mail", "plate_mail",
+        "leather_gloves", "chain_gloves", "gauntlets", "boots", "chain_boots", "greaves", "sash", "belt",
+        "heavy_belt", "amulet"}
+SPECIES = ("human", "mole", "frog")
+
+
+def bone_boxes(path):
+    """Per bone, the box (lo, hi) round the vertices bound to it, at rest, of
+    the model at path (imported, measured, removed)."""
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=path)
+    new = [o for o in bpy.data.objects if o not in before]
+    boxes = {}
+    for o in new:
+        if o.type != "MESH":
+            continue
+        names = {g.index: g.name for g in o.vertex_groups}
+        for v in o.data.vertices:
+            co = o.matrix_world @ v.co
+            for g in v.groups:
+                if g.weight < 0.5:
+                    continue
+                b = names.get(g.group, "")
+                if b.startswith("tool_") or b.startswith("sway"):
+                    continue
+                lo, hi = boxes.get(b, (co.copy(), co.copy()))
+                boxes[b] = (Vector(map(min, lo, co)), Vector(map(max, hi, co)))
+    for o in new:
+        bpy.data.objects.remove(o, do_unlink=True)
+    return boxes
+
+
+def fit_of(robot, species):
+    """bone, point -> the point on the species: robot's box onto the species' box."""
+    def move(bone, co):
+        a, b = robot.get(bone), species.get(bone)
+        if a is None or b is None:
+            return co
+        ca, cb = (a[0] + a[1]) / 2, (b[0] + b[1]) / 2
+        k = [min(1.5, max(0.75, (b[1][i] - b[0][i]) / max(0.02, a[1][i] - a[0][i]))) for i in range(3)]
+        d = co - ca
+        return cb + Vector((d.x * k[0], d.y * k[1], d.z * k[2]))
+    return move
+
+
+def build(rig, key, maker, trim, fit=None, suffix=""):
     piece = Piece(key, trim)
     maker(piece)
-    name = f"gear_{key}"
+    name = f"gear_{key}{suffix}"
     me = bpy.data.meshes.new(name)
     ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
@@ -434,6 +488,9 @@ def build(rig, key, maker, trim):
         if mat not in used:
             used.append(mat)
         verts = make(bm)
+        if fit is not None:
+            for v in verts:
+                v.co = fit(bone, v.co)
         bm.verts.ensure_lookup_table()
         for v in verts:
             v[dl][groups[bone]] = 1.0
@@ -466,19 +523,24 @@ def main():
         if o.type == "MESH":
             o.hide_set(True)
 
-    for key, (maker, trim) in GEAR.items():
-        ob = build(rig, key, maker, trim)
+    robot = bone_boxes(os.path.join(ROOT, "mods", "robot", "robot.gltf"))
+    fits = {sp: fit_of(robot, bone_boxes(os.path.join(ROOT, "mods", "robot", f"robot_{sp}.gltf"))) for sp in SPECIES}
+    jobs = [(key, maker, trim, None, "") for key, (maker, trim) in GEAR.items()]
+    jobs += [(key, maker, trim, fits[sp], "_" + sp) for sp in SPECIES for key, (maker, trim) in GEAR.items()
+             if key in WORN]
+    for key, maker, trim, fit, suffix in jobs:
+        ob = build(rig, key, maker, trim, fit, suffix)
         for x in bpy.data.objects:
             x.select_set(False)
         ob.select_set(True)
         rig.select_set(True)
         bpy.context.view_layer.objects.active = ob
         bpy.ops.export_scene.gltf(
-            filepath=os.path.join(OUT, f"gear_{key}.gltf"), export_format="GLTF_SEPARATE",
+            filepath=os.path.join(OUT, f"gear_{key}{suffix}.gltf"), export_format="GLTF_SEPARATE",
             use_selection=True, export_animations=False, export_skins=True,
             export_apply=True, export_yup=True)
         ob.hide_set(True)
-        print(f"GEAR {key}: {len(ob.data.polygons)} faces")
+        print(f"GEAR {key}{suffix}: {len(ob.data.polygons)} faces")
 
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "arpg_gear.blend"))
 

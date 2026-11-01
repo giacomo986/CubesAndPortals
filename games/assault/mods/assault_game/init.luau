@@ -1862,6 +1862,7 @@ if serving then
         local k = s and s.keys or { 0, 0, 0 }
         local craft, pose = m.k.craft, m.pose
         if craft == "wheeled" or craft == "tracked" or pose == nil then
+            m.want = k[1]
             core.craft.keys(id, k[1], k[2], 0, 0)
             return
         end
@@ -2048,6 +2049,22 @@ if serving then
                 if pose.y < -14 or pose.x < -20 or pose.z < -20 or pose.x > SIZE + 20 or pose.z > 1100 then
                     M.destroy(id, m.last_by or 0, "crash")
                     continue
+                end
+                -- A tank driven and not moving -- its belly on a hole's lip, a
+                -- track in a crater -- is lifted and nudged the way it is
+                -- driven after a second and a bit: the tracks alone could not.
+                if m.k.craft == "tracked" then
+                    if math.abs(m.want or 0) > 0.3 and pose.speed < 0.8 then
+                        m.stuck = (m.stuck or 0) + dt
+                        if m.stuck > 1.2 then
+                            m.stuck = 0
+                            local d = if (m.want or 0) > 0 then 1 else -1
+                            core.craft.push(id, math.sin(pose.yaw) * 3 * d, 5, -math.cos(pose.yaw) * 3 * d)
+                        end
+                    else
+                        m.stuck = 0
+                    end
+                    m.want = 0
                 end
                 local driver = m.riders[1]
                 if driver then
@@ -2354,6 +2371,7 @@ if serving then
         fwd, right = if math.abs(turn) > 1.2 then 0.4 elseif math.abs(turn) > 0.5 then 0.7 else 1, math.clamp(turn * 2, -1, 1)
         if clock < (m.back_until or 0) then fwd, right = -1, -right end
         m.bot_fwd = fwd
+        m.want = fwd
         core.craft.keys(id, fwd, right, 0, 0)
     end
 
@@ -3279,7 +3297,7 @@ if serving then
         { id = "hulls", name = "Mezzi +25% resistenza", cost = 180, grow = 1.6, max = 6 },
         { id = "blast", name = "Antiesplosione -15%", cost = 140, grow = 1.7, max = 4 },
         { id = "jeep", name = "Jeep", cost = 100, machine = "jeep" },
-        { id = "tank", name = "Carro armato", cost = 350, machine = "tank" },
+        { id = "tank", name = "Carro armato", cost = 220, machine = "tank" },
         { id = "heli", name = "Elicottero", cost = 500, machine = "heli" },
     }
     A.MAX_ALLIES = 100

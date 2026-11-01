@@ -343,7 +343,7 @@ if serving then
     -- they began, behind two cells of concrete under a dark lamp.
     local LF = 30
     type Plan = { boxes: { { number } }, pads: { { number } }, hints: { string }, start: { number },
-                  back: { number }, exit: { number }, top: { number } }
+                  back: { number }, exit: { number }, top: { number }, bounces: { [string]: { number } } }
     local PLANS: { [number]: Plan } = {}
 
     local function lcg(seed: number): () -> number
@@ -363,7 +363,8 @@ if serving then
         local dd, rnd = tonumber(d) or 1, lcg((tonumber(seed) or 1) + slot * 7919)
         local ox, oz = 8192 + (slot % 16) * 2048 + 1024, (slot // 16) * 2048 + 1024
         local plan: Plan = { boxes = {}, pads = {}, hints = {}, start = { ox + 2, LF, oz },
-                             back = { ox + 6, LF + 1, oz + 3 }, exit = { ox + 12, LF + 1, oz }, top = {} }
+                             back = { ox + 6, LF + 1, oz + 3 }, exit = { ox + 12, LF + 1, oz }, top = {},
+                             bounces = {} }
         into = plan.boxes
         local reach = 0.6 + 0.25 * (dd - 1) / 9
         local flat, up = math.max(2, math.floor(5.1 * reach)), math.max(2, math.floor(3.8 * reach))
@@ -398,11 +399,18 @@ if serving then
             floor(x - 1 - flat // 2 - 4, x - 1 - flat // 2, F, zc - 2, zc + 2)
             return x - flat // 2 - 6, F
         end
-        -- A bounce pad at the end of the takeoff: thrown 8 on and 3 up.
+        -- A bounce pad at the end of the takeoff, and where it throws to: the
+        -- middle of a floor 3 higher and 8 to 12 on. Each pad cell keeps its
+        -- landing (plan.bounces): the throw is aimed there from wherever the
+        -- body touched the pad. (The shape is the one levels already saved
+        -- were built with: no new rnd() draw, no new sizes.)
         local function bounce(xs: number, F: number, zc: number): (number, number)
             floor(xs - 2, xs, F, zc - 2, zc + 2)
             box(xs - 2, F, zc - 1, xs - 2, F, zc + 1, BOUNCE)
             floor(xs - 14, xs - 10, F + 3, zc - 2, zc + 2)
+            for z = zc - 1, zc + 1 do
+                plan.bounces[`{xs - 2},{F},{z}`] = { xs - 12 + 0.5, F + 4, zc + 0.5 }
+            end
             return xs - 15, F + 3
         end
         -- Slabs over a gap that give way under a body (and come back).
@@ -544,8 +552,26 @@ if serving then
             local pads = if plan then plan.pads else PADS
             local under = core.get_block(math.floor(x), math.floor(y - 0.1) , math.floor(z))
             if under == BOUNCE and (thrown[p] or 0) < clock then
-                thrown[p] = clock + 0.8
-                core.player_launch(p, -13, 13, 0, 1.2)
+                -- Aimed: up to 1.5 over the higher of here and the landing,
+                -- then down onto its middle (kept in the lane across it). A
+                -- pad with no landing throws the way the body looks.
+                local to = if plan then plan.bounces[`{math.floor(x)},{math.floor(y - 0.1)},{math.floor(z)}`] else nil
+                local G = 25
+                if to then
+                    local tz = math.clamp(z, to[3] - 1.5, to[3] + 1.5)
+                    -- 16 m/s up at most (player_launch) reaches 5.1 higher.
+                    local apex = math.min(math.max(y, to[2]) + 1.5, y + 5.1)
+                    local vy = math.sqrt(2 * G * (apex - y))
+                    local t = vy / G + math.sqrt(2 * (apex - to[2]) / G)
+                    local vx, vz = math.clamp((to[1] - x) / t, -16, 16), math.clamp((tz - z) / t, -16, 16)
+                    core.player_launch(p, vx, vy, vz, t + 0.3)
+                    thrown[p] = clock + t
+                else
+                    local dx, _, dz = core.player_look(p)
+                    local l = math.max(0.01, math.sqrt((dx or 0) ^ 2 + (dz or 0) ^ 2))
+                    core.player_launch(p, (dx or 0) / l * 10, 13, (dz or 0) / l * 10, 1.2)
+                    thrown[p] = clock + 0.8
+                end
             elseif under == CRUMBLE then
                 local key = `{math.floor(x)},{math.floor(y - 0.1)},{math.floor(z)}`
                 if giving[key] == nil then giving[key] = clock + 0.6 end

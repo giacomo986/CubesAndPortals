@@ -698,6 +698,15 @@ end
 
 -- The town's places, around its middle.
 L.TX, L.TZ = L.OX, L.OZ
+-- The hall a player from the sandbox arrives in (opening 0 in its north
+-- wall), cells x0..x1, z0..z1: under its roof the camera is the eye's, out
+-- of its door into the town the camera rises to the view from above.
+L.HALL = { L.TX - 5, L.TZ - 21, L.TX + 5, L.TZ - 12 }
+L.HALL_BOXES = {} :: { { any } }
+function L.in_hall(x: number, y: number, z: number): boolean
+    local h = L.HALL
+    return x >= h[1] and x < h[3] + 1 and z >= h[2] and z < h[4] and y < GROUND + 4
+end
 L.SPAWN = { L.TX + 0.5, GROUND, L.TZ + 4.5 }
 L.NPCS = {
     { kind = "smith", name = "THE SMITH", x = L.TX - 12, z = L.TZ - 9 },
@@ -934,8 +943,9 @@ if serving then
     function L.level_done(e: any)
         local first = L.AREAS[L.SLOTS[e.slot]]
         local here = L.AREAS[e.area]
-        local a = core.portal_open(here.cx + 0.5, GROUND + 1, here.cz + 4.5, 1, 1, 0, 0.5, 1.0)
-        local b = core.portal_open(first.cx - 3.5, GROUND + 1, first.cz + 4.5, 1, 1, 0, 0.5, 1.0)
+        -- Both facing -x: the camera looks from -x -z, and sees their fronts.
+        local a = core.portal_open(here.cx + 0.5, GROUND + 1, here.cz + 4.5, 1, -1, 0, 0.5, 1.0)
+        local b = core.portal_open(first.cx - 3.5, GROUND + 1, first.cz + 4.5, 1, -1, 0, 0.5, 1.0)
         if a >= 0 and b >= 0 then core.portal_link(a, b) end
         for p, slot in level_slot do
             if slot == e.slot then
@@ -1007,6 +1017,25 @@ if serving then
         box(tx, GROUND, tz - 21, tx, GROUND + 1, tz - 21, "air")
         box(tx, GROUND + 2, tz - 21, tx, GROUND + 2, tz - 21, "waystone")
         box(tx - 1, G1, tz - 20, tx + 1, G1, tz - 8, "flags")
+        -- The hall round the arch: cobble walls four high, a roof, flags on
+        -- its floor, a fire in each long wall, a door south into the town.
+        -- Kept too (L.HALL_BOXES): a world made before the hall has it
+        -- written in at its next start.
+        local h = L.HALL
+        local function hb(x0, y0, z0, x1, y1, z1, b: string)
+            box(x0, y0, z0, x1, y1, z1, b)
+            table.insert(L.HALL_BOXES, { x0, y0, z0, x1, y1, z1, b })
+        end
+        hb(h[1], GROUND, h[2] + 1, h[1], GROUND + 3, h[4], "cobble")
+        hb(h[3], GROUND, h[2] + 1, h[3], GROUND + 3, h[4], "cobble")
+        hb(h[1], GROUND, h[4], h[3], GROUND + 3, h[4], "cobble")
+        hb(tx - 1, GROUND, h[4], tx + 1, GROUND + 2, h[4], "air")
+        hb(h[1] - 1, GROUND + 4, h[2], h[3] + 1, GROUND + 4, h[4] + 1, "roof")
+        hb(h[1] + 1, G1, h[2] + 1, h[3] - 1, G1, h[4] - 1, "flags")
+        for _, z in { tz - 18, tz - 14 } do
+            hb(h[1], GROUND + 2, z, h[1], GROUND + 2, z, "brazier")
+            hb(h[3], GROUND + 2, z, h[3], GROUND + 2, z, "brazier")
+        end
         -- Stalls: a back of planks, two posts, an awning, a lamp.
         for _, n in L.NPCS do
             if n.kind ~= "guard" then
@@ -1036,6 +1065,21 @@ if serving then
         end
         box(tx + 8, G1, tz - 2, tx + 20, G1, tz + 2, "flags")
     end
+
+    core.event.on("core:world_ready", function()
+        if core.storage_get("hall") ~= "1" then
+            blocks()
+            for _, b in L.HALL_BOXES do
+                local id = if b[7] == "air" then 0 else B[b[7]]
+                for x = b[1], b[4] do
+                    for y = b[2], b[5] do
+                        for z = b[3], b[6] do core.set_block(x, y, z, id) end
+                    end
+                end
+            end
+            core.storage_set("hall", "1")
+        end
+    end)
 
     -- The waypoints: three by three of waystone in the floor.
     for _, w in L.WPS do
@@ -3826,7 +3870,7 @@ if drawing then
         if C.bag_open then
             draw_bag()
         end
-        if C.picking then
+        if C.picking and not C.hall then
             draw_picker()
         end
         C.hover = if mx then region_at(mx, my) else nil
@@ -3864,6 +3908,11 @@ if drawing then
     core.event.on("core:input", function(ev)
         C.me = ev.player
         local a = ev.action
+        if C.hall and (a == "mouse_left" or a == "mouse_right") then
+            -- Under the hall's roof the eye looks about: nothing to click.
+            ev.cancel = true
+            return
+        end
         if a == "mouse_left" then
             ev.cancel = true
             local r = over_ui()
@@ -3920,12 +3969,24 @@ if drawing then
 
     -- ---------------------------------------------------------------- walking
 
-    local camera_set = false
+    -- In the hall the eye's camera, outside the view from above; eased over
+    -- 0.8 s each way, cut at the first frame.
+    local hall_was: boolean? = nil
 
     function client_step(dt: number)
-        if not camera_set then
-            camera_set = true
-            core.iso_view(30, 135, 55, 40, 0)
+        do
+            local x, y, z = core.player_pos(C.me)
+            local inside = x ~= nil and L.in_hall(x, y, z)
+            if inside ~= hall_was then
+                local first = hall_was == nil
+                hall_was = inside
+                C.hall = inside
+                if inside then
+                    core.iso_view(0, 135, 55, 40, if first then 0 else 0.8)
+                else
+                    core.iso_view(30, 135, 55, 40, if first then 0 else 0.8)
+                end
+            end
         end
         if C.held then
             C.again -= dt

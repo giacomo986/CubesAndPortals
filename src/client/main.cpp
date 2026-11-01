@@ -6664,10 +6664,16 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
                 draw_pack_tools(w.models, piece->model, pack, on, b.arm, projection, view, place, light,
                                 livery_tag(b.livery));
         }
-        for (int k = 0; k < 10; ++k)   // what a mod dresses them in (core.player_wear)
+        // What a mod dresses them in (core.player_wear): a species wears the
+        // world's "<piece>_<species>" when it has one (tools/make_arpg_gear.py
+        // refits armour so), else the piece made on the robot.
+        for (int k = 0; k < 10; ++k)
             if (const ModelStore::Entry *piece = b.dress[k] != 0 ? w.models.entry(b.dress[k]) : nullptr)
-                if (b.dress[k] != b.model && vehicle_part(e->name, piece->name).empty())   // the vehicle's own
-                    draw_worn(w.models, on.model, posed, piece->name, projection, view, place, b.dress_tint[k]);
+                if (b.dress[k] != b.model && vehicle_part(e->name, piece->name).empty()) {   // the vehicle's own
+                    const ModelStore::Entry *fit = w.models.entry(species_model(w.models, b.dress[k], b.livery));
+                    draw_worn(w.models, on.model, posed, (fit ? fit : piece)->name, projection, view, place,
+                              b.dress_tint[k]);
+                }
         if (b.hand_known)
             draw_held_block(s.held_bodies[(uint64_t)b.hand_block * 1000003u + (uint64_t)(uintptr_t)&on.model],
                             w, on.model, posed, b.hand, b.hand_block, projection, view, place, "",

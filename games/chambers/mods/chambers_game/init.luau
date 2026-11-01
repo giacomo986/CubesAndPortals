@@ -15,6 +15,19 @@
 --   08  two buttons and two cubes, one button across a pit
 --   09  the launch plates again, then a pit only a portal crosses
 --   10  a push button and a pit: portals shot first, ten seconds to get through
+--   11  the long fall: a portal at the bottom of a deep pit and one in the
+--       floor by a high ledge -- jump in, come out going up as fast as you
+--       fell, land on the ledge; a target there opens the door
+--   12  three sentry turrets: knocked over by a thrown cube, or picked up from
+--       behind (a portal behind them helps); the door opens when all are down
+--   13  a dissolving field: crossing it closes your portals and dissolves what
+--       you carry, so the cube goes round it through a portal; then the long
+--       fall again, cube in hand, up to the button on a ledge
+--
+-- Trigger zones (TRIGGERS): a box that, when a body comes into it, does what
+-- it lists -- opens a door, opens a linked pair of portals, wakes a room's
+-- turrets, says a line. Fields (FIELDS) and turrets (TURRETS) likewise are
+-- data; a survival site's copy of the row gets its own of each.
 --
 -- The last room gives the Chiave della Prova (mods/keys) to whoever reaches it.
 --
@@ -62,6 +75,12 @@ if serving then
     -- thrown. Nothing comes out of the dark.
     core.register_mob("chambers_game:cube", CUBE_MODEL, 1000, 0, "worker", 0, 0, 1, "", 0, 0, false, 0, false,
                       "chambers_game:never")
+    -- The sentry turret, standing and knocked over (tools/make_chambers_turret.py):
+    -- workers that never walk; what one sees and shoots is this mod's.
+    core.register_mob("chambers_game:turret", core.register_model("chambers_game:turret", "turret.gltf"), 1000, 0,
+                      "worker", 0, 0, 1, "", 0, 0, false, 0, false, "chambers_game:never")
+    core.register_mob("chambers_game:turret_down", core.register_model("chambers_game:turret_down", "turret_down.gltf"),
+                      1000, 0, "worker", 0, 0, 1, "", 0, 0, false, 0, false, "chambers_game:never")
 
     local function id(name: string): number
         return core.node_id(`chambers_core:{name}`)
@@ -78,6 +97,7 @@ if serving then
     local DOOR_FRAMES = { DOOR, id("door_1"), id("door_2"), id("door_3"), id("door_4"), DOOR_OPEN }
     local SHELL_LOW, SHELL_HIGH, SHELL_ONE = id("shell_low"), id("shell_high"), id("shell_one")
     local SHELL_FLAT = id("shell_flat")
+    local EMITTER, TARGET = id("emitter"), id("target")
     -- A face's index as a wallmounted cell's byte means it: +X -X +Y -Y +Z -Z.
     local function face_byte(nx: number, ny: number, nz: number): number
         return if nx > 0 then 0 elseif nx < 0 then 1 elseif ny > 0 then 2 elseif ny < 0 then 3
@@ -102,7 +122,10 @@ if serving then
         { x0 = 160, x1 = 179, h = 8, name = "Test chamber 08: two buttons" },
         { x0 = 183, x1 = 214, h = 10, name = "Test chamber 09: over the pit" },
         { x0 = 218, x1 = 241, h = 8, name = "Test chamber 10: the shortcut" },
-        { x0 = 245, x1 = 252, h = 5, name = "Testing complete. The portal home is on the west wall." },
+        { x0 = 245, x1 = 266, h = 14, name = "Test chamber 11: the long fall" },
+        { x0 = 270, x1 = 293, h = 8, name = "Test chamber 12: the sentries" },
+        { x0 = 297, x1 = 320, h = 14, name = "Test chamber 13: the dissolving field" },
+        { x0 = 324, x1 = 331, h = 5, name = "Testing complete. The portal home is on the west wall." },
     }
     local Z1 = 11
     local DZ0, DZ1 = 5, 6   -- the doors' cells across
@@ -290,6 +313,7 @@ if serving then
         { x = 154, y = FL + 4, z = 9, door = 8, pressed = false },  -- 07, on the ledge
         { x = 167, y = FL, z = 9, door = 9, pressed = false },      -- 08, both of them
         { x = 177, y = FL, z = 3, door = 9, pressed = false },
+        { x = 317, y = FL + 6, z = 1, door = 14, pressed = false },   -- 13, on the ledge
     }
     type Vent = { x: number, z: number, top: number, room: number, cube: number }
     local vents: { Vent } = {
@@ -298,6 +322,8 @@ if serving then
         { x = 140, z = 1, top = FL + 8, room = 8, cube = 0 },   -- 07, behind the glass
         { x = 162, z = 2, top = FL + 7, room = 9, cube = 0 },   -- 08, two
         { x = 164, z = 9, top = FL + 7, room = 9, cube = 0 },
+        { x = 271, z = 9, top = FL + 7, room = 13, cube = 0 },   -- 12
+        { x = 298, z = 9, top = FL + 13, room = 14, cube = 0 },  -- 13, before the field
     }
     type Plate = { x: number, z: number, vx: number, vy: number, vz: number }
     local plates: { Plate } = {
@@ -319,6 +345,45 @@ if serving then
         { x = 220, y = FL, z = 2, door = 11, time = 10 },   -- 10
     }
     local timers: { [number]: number } = {}   -- seconds left, by door
+
+    -- Trigger zones: a box (cells x0..x1, z0..z1 inclusive, y0..y1 in
+    -- metres) in a room; the first body to come into it does its actions, once
+    -- until the room starts again (somebody comes into it with nobody there):
+    --   { "door", k }               open room k's door, and keep it open
+    --   { "portal", ax, ay, az, bx, by, bz }
+    --                               two portals in east walls (facing -x), each
+    --                               ay/by its bottom, linked, their walls hollowed
+    --   { "wake", k }               room k's turrets start looking
+    --   { "say", text }             a line for everybody in the room
+    type Trigger = { room: number, x0: number, x1: number, y0: number, y1: number, z0: number, z1: number,
+                     actions: { { any } }, fired: boolean }
+    local TRIGGERS: { Trigger } = {
+        -- 11: the target on the ledge opens the door.
+        { room = 12, x0 = 263, x1 = 264, y0 = FL + 5.5, y1 = FL + 9, z0 = 9, z1 = 10,
+          actions = { { "door", 12 }, { "say", "The door is open. Mind the step down." } }, fired = false },
+        -- 12: a step into the room wakes the turrets.
+        { room = 13, x0 = 275, x1 = 276, y0 = FL - 1, y1 = FL + 4, z0 = 0, z1 = Z1,
+          actions = { { "wake", 13 } }, fired = false },
+        -- 13: on the ledge, a way down by portal to the door.
+        { room = 14, x0 = 313, x1 = 320, y0 = FL + 5.5, y1 = FL + 9, z0 = 0, z1 = 3,
+          actions = { { "portal", 321, FL + 6, 1, 321, FL, 9 } }, fired = false },
+    }
+    -- Dissolving fields: the plane x + 0.5 across a room, z0..z1 and y0..y1.
+    type Field = { x: number, room: number, y0: number, y1: number, z0: number, z1: number }
+    local FIELDS: { Field } = {
+        { x = 301, room = 14, y0 = FL, y1 = FL + 14, z0 = 0, z1 = Z1 + 1 },
+    }
+    -- Sentry turrets: where, the way they face, their room; `id` the creature
+    -- while there is one, `state` idle (asleep), awake, down (knocked over,
+    -- silent for good) or gone (dissolved).
+    type Turret = { x: number, z: number, fx: number, fz: number, room: number, id: number, state: string,
+                    seen: number, next: number, lost: number, aimed: number }
+    local function turret(x: number, z: number, room: number): Turret
+        return { x = x, z = z, fx = -1, fz = 0, room = room, id = 0, state = "idle", seen = 0, next = 0, lost = 0,
+                 aimed = 0 }
+    end
+    local TURRETS: { Turret } = { turret(287.5, 2.5, 13), turret(290.5, 5.5, 13), turret(287.5, 9.5, 13) }
+    local fields_told: () -> () = function() end   -- set with the fields' code, below
     -- Come by a survival site (mods/keys' keys:level), a push button holds its
     -- door 1.2 - 0.04 d of its time (d 1 116%, d 10 80%); the last to come sets it.
     local hold = 1.0
@@ -456,6 +521,46 @@ if serving then
         fill(238, 241, FL, FL + 3, Z1 + 1, Z1 + 1, PANEL)
         fill(ROOMS[11].x1 + 1, ROOMS[11].x1 + 1, FL + 3, FL + 3, DZ0, DZ1, CLOCK)
 
+        -- 11: a pit six wide, its bottom white, its ends shut; on the far side
+        -- a white patch of floor beside a ledge five high along the north
+        -- wall, a target on it.
+        local function deep_pit(x0: number, x1: number)
+            pit(x0, x1)
+            fill(x0, x1, FL - 10, FL - 10, 0, Z1, PANEL)
+            fill(x0 - 1, x0 - 1, FL - 9, FL - 2, 0, Z1, METAL)
+            fill(x1 + 1, x1 + 1, FL - 9, FL - 2, 0, Z1, METAL)
+        end
+        deep_pit(251, 256)
+        fill(259, 262, FL - 1, FL - 1, 6, 7, PANEL)
+        fill(259, 266, FL, FL + 5, 8, Z1, METAL)
+        fill(263, 264, FL + 5, FL + 5, 9, 10, TARGET)
+
+        -- 12: a screen three high past the way in and two low walls to hide
+        -- behind, white on the south wall by the way in and on the north wall
+        -- behind the turrets (seen over the low walls), the vent.
+        fill(277, 277, FL, FL + 2, 4, 7, METAL)
+        fill(278, 278, FL, FL + 1, 1, 4, METAL)
+        fill(283, 283, FL, FL + 1, 7, 10, METAL)
+        fill(271, 274, FL, FL + 3, -1, -1, PANEL)
+        fill(289, 293, FL, FL + 3, Z1 + 1, Z1 + 1, PANEL)
+        put(271, FL + 8, 9, VENT)
+
+        -- 13: the vent by the way in, white on the south wall either side of
+        -- the field, the field's emitters in both long walls, a deep pit, a
+        -- white patch beside a ledge along the south wall with the button on
+        -- it, and the rims of the way down from the ledge.
+        put(298, FL + 14, 9, VENT)
+        fill(297, 299, FL, FL + 3, -1, -1, PANEL)
+        fill(302, 303, FL, FL + 3, -1, -1, PANEL)
+        fill(301, 301, FL, FL + 13, -1, -1, EMITTER)
+        fill(301, 301, FL, FL + 13, Z1 + 1, Z1 + 1, EMITTER)
+        deep_pit(305, 310)
+        fill(314, 317, FL - 1, FL - 1, 4, 5, PANEL)
+        fill(313, 320, FL, FL + 5, 0, 3, METAL)
+        button(317, FL + 6, 1)
+        rim(321, 1, FL + 6, false, RIM_BLUE)
+        rim(321, 9, FL, false, RIM_ORANGE)
+
         -- The last room: the way home's rim.
         rim(ROOMS[#ROOMS].x0 - 1, 9, FL, false, RIM_BLUE)
         recess(ROOMS[#ROOMS].x0 - 1, 9, FL, 0)
@@ -465,7 +570,9 @@ if serving then
     -- the column, there however far a player is.
     -- A survival site's copy of the chambers (see "a site's chambers"): the
     -- whole row again, CHW apart from CH0 on, slot by slot.
-    local CH0, CHW = 20000, 300
+    -- (Plan 9 made the row longer than 300: its copies moved from 20000 to
+    -- 40000, the old ones left where they were, out of the way.)
+    local CH0, CHW = 40000, 400
     local copies: { [number]: boolean } = {}
     core.register_mapgen("chambers_game:chambers", function(ctx)
         if ctx.max_z < -2 or ctx.min_z > 13 then
@@ -498,7 +605,7 @@ if serving then
     -- doors of four blocks each drawing a whole door. The plan's version is
     -- kept, and a world behind it has the chambers built again over it, all
     -- of them, at its start (writes to columns not made yet wait for them).
-    local CHAMBERS = "8"
+    local CHAMBERS = "9"
     core.event.on("core:world_ready", function()
         if core.storage_get("chambers") ~= CHAMBERS then
             build()
@@ -528,7 +635,7 @@ if serving then
 
     type Shot = { x: number, y: number, z: number, idx: number, at: any }
     type P = { blue: Shot?, orange: Shot?, carry: number, room: number, plate_at: number, level: number,
-               name: string }
+               name: string, low: number, px: number?, py: number?, pz: number?, said: number }
     local players: { [number]: P } = {}
 
     -- A room by its key: k in the chambers, k + 100 * slot in a site's copy.
@@ -824,7 +931,11 @@ if serving then
         dx, dy, dz = dx / len, dy / len, dz / len
         local ox, oy, oz = x, y + EYE, z
         local best, which = 0.6, 0
-        for c in cubes do
+        local things = table.clone(cubes)
+        for _, t in TURRETS do
+            if t.id ~= 0 then things[t.id] = true end
+        end
+        for c in things do
             local cx, cy, cz = core.mob_pos(c)
             if cx ~= nil then
                 local vx, vy, vz = cx - ox, cy + 0.35 - oy, cz - oz
@@ -868,7 +979,7 @@ if serving then
         local c = s.carry
         s.carry = 0
         core.mob_unseen(c, 0)
-        tell(p, "hold 0")
+        tell(p, "hold -")
         if throw then
             local dx, dy, dz = core.player_look(p)
             if dx ~= nil then
@@ -876,6 +987,323 @@ if serving then
             end
         else
             core.mob_velocity(c, 0, 0, 0)
+        end
+    end
+
+    -- ------------------------------------------------------------ turrets
+    --
+    -- A turret awake looks the way it faces: whoever is within 18, inside 55
+    -- degrees of that and not behind a block is seen; seen for 0.7 s, shot, 2
+    -- points every 0.4 s (two turrets empty a full bar in about 3 s), a bolt
+    -- drawn on every screen. It is put
+    -- out of action for good by being knocked over -- a cube thrown into it,
+    -- or picked up (only from behind or the side: from the front it refuses)
+    -- -- and then it lies there as turret_down. It talks, with contempt.
+
+    local LINES = {
+        wake = { "Turret: Oh. A visitor. How tedious.", "Turret: Somebody's here. I'll pretend to be pleased." },
+        spot = { "Turret: There you are. Not that I was looking.", "Turret: I see you. Unfortunately.",
+                 "Turret: Hold still. It's the least you can do.", "Turret: Target acquired. Standards lowered." },
+        lost = { "Turret: Hiding. Very brave.", "Turret: Gone? Typical.", "Turret: Come back. I was nearly interested." },
+        kill = { "Turret: That was quicker than I expected. Not that I expected much.",
+                 "Turret: Don't take it personally. I do." },
+        front = { "Turret: From the front? I'm a turret, not an idiot.", "Turret: Nice try. Hands where I can shoot them." },
+        lift = { "Turret: Put me down. This is undignified.", "Turret: Hands off. I have a reputation." },
+        tip = { "Turret: Fine. I wasn't trying anyway.", "Turret: I'll remember this. I have excellent memory.",
+                "Turret: Ow. Rude, but effective." },
+        last = { "Turret: Congratulations on defeating the furniture." },
+    }
+    local said_n = 0
+    local function line(kind: string): string
+        said_n += 1
+        local l = LINES[kind]
+        return l[said_n % #l + 1]
+    end
+    -- A line for everybody in room key k, at most one a player every 2 s.
+    local function say_in(k: number, text: string, force: boolean?)
+        for p, s in players do
+            if s.room == k and (force or clock >= s.said) then
+                core.notice(p, text)
+                s.said = clock + 2
+            end
+        end
+    end
+
+    local function turret_of(id: number): Turret?
+        for _, t in TURRETS do
+            if t.id == id and id ~= 0 then return t end
+        end
+        return nil
+    end
+
+    local function knock_over(t: Turret, why: string)
+        if t.state == "down" or t.state == "gone" then return end
+        t.state = "down"
+        core.mob_act(t.id, "")
+        core.mob_become(t.id, "chambers_game:turret_down")
+        local x, y, z = core.mob_pos(t.id)
+        if x ~= nil then core.play_sound("chambers_game:turret_tip", x, y + 0.6, z) end
+        local left = 0
+        for _, o in TURRETS do
+            if o.room == t.room and (o.state == "idle" or o.state == "awake") then left += 1 end
+        end
+        say_in(t.room, if left == 0 then line("last") else line(why), true)
+    end
+
+    -- Picked up by player p: refused from the front of a turret still on its
+    -- feet; otherwise knocked over by it. True when it may be carried.
+    local function lift_turret(p: number, t: Turret): boolean
+        if t.state == "idle" or t.state == "awake" then
+            local x, _, z = core.player_pos(p)
+            local tx, _, tz = core.mob_pos(t.id)
+            if x ~= nil and tx ~= nil then
+                local dx, dz = x - tx, z - tz
+                local l = math.max(0.01, math.sqrt(dx * dx + dz * dz))
+                if (dx * t.fx + dz * t.fz) / l > 0.3 then
+                    core.notice(p, line("front"))
+                    return false
+                end
+            end
+            knock_over(t, "lift")
+        end
+        return true
+    end
+
+    -- A room's turrets as new, standing, asleep (on somebody coming into it
+    -- with nobody there).
+    local function reset_turrets(k: number)
+        for _, t in TURRETS do
+            if t.room == k then
+                if t.id ~= 0 then
+                    for _, s in players do
+                        if s.carry == t.id then s.carry = 0 end
+                    end
+                    core.mob_remove(t.id)
+                end
+                t.id = core.spawn_mob("chambers_game:turret", t.x, FL, t.z)
+                t.state, t.seen, t.next, t.lost = "idle", 0, 0, 0
+                if t.id ~= 0 then core.mob_face(t.id, t.x + t.fx * 8, t.z + t.fz * 8) end
+            end
+        end
+    end
+
+    -- Who turret t sees: the nearest player in its cone with nothing between.
+    local function sighted(t: Turret): (number, number, number, number)
+        local tx, ty, tz = core.mob_pos(t.id)
+        if tx == nil then return 0, 0, 0, 0 end
+        local ey = ty + 0.85
+        local best, who, wx, wy, wz = 18.0, 0, 0, 0, 0
+        for p in players do
+            local x, y, z = core.player_pos(p)
+            if x ~= nil and core.health(p) > 0 then
+                local dx, dy, dz = x - tx, y + 1.1 - ey, z - tz
+                local flat = math.sqrt(dx * dx + dz * dz)
+                local d = math.sqrt(flat * flat + dy * dy)
+                if d < best and flat > 0.01 and (dx * t.fx + dz * t.fz) / flat > 0.57 then
+                    local _, _, _, wall = core.raycast(tx, ey, tz, dx, dy, dz, d)
+                    if wall == nil or wall > d - 0.3 then
+                        best, who, wx, wy, wz = d, p, x, y + 1.1, z
+                    end
+                end
+            end
+        end
+        return who, wx, wy, wz
+    end
+
+    local cube_was: { [number]: { number } } = {}
+    local function step_turrets(dt: number)
+        -- A cube flying into a turret on its feet knocks it over.
+        for c in cubes do
+            local x, y, z = core.mob_pos(c)
+            local was = cube_was[c]
+            if x ~= nil and was ~= nil then
+                local v = math.sqrt((x - was[1]) ^ 2 + (y - was[2]) ^ 2 + (z - was[3]) ^ 2) / math.max(dt, 1e-3)
+                if v > 3 then
+                    for _, t in TURRETS do
+                        if t.id ~= 0 and (t.state == "idle" or t.state == "awake") then
+                            local tx, ty, tz = core.mob_pos(t.id)
+                            if tx ~= nil and (x - tx) ^ 2 + (z - tz) ^ 2 < 0.8 * 0.8 and y < ty + 1.2 and y > ty - 0.8 then
+                                knock_over(t, "tip")
+                            end
+                        end
+                    end
+                end
+            end
+            cube_was[c] = if x ~= nil then { x, y, z } else nil
+        end
+        for _, t in TURRETS do
+            if t.state ~= "awake" or t.id == 0 then continue end
+            local who, wx, wy, wz = sighted(t)
+            if who == 0 then
+                if t.seen > 0 then
+                    t.seen = 0
+                    t.lost = clock
+                    core.mob_act(t.id, "")
+                    say_in(t.room, line("lost"))
+                end
+                continue
+            end
+            local tx, ty, tz = core.mob_pos(t.id)
+            core.mob_face(t.id, wx, wz)
+            if t.seen == 0 then
+                core.play_sound("chambers_game:turret_spot", tx, ty + 0.8, tz)
+                if clock - t.lost > 4 then say_in(t.room, line("spot")) end
+            end
+            t.seen += dt
+            if clock >= t.aimed then
+                t.aimed = clock + 0.1
+                tell(0, string.format("aim %d %.2f %.2f %.2f %.2f %.2f %.2f", t.id, tx, ty + 0.85, tz, wx, wy, wz))
+            end
+            if t.seen >= 0.7 and clock >= t.next then
+                t.next = clock + 0.4
+                core.mob_act(t.id, "shoot")
+                core.play_sound("chambers_game:turret_shot", tx, ty + 0.8, tz)
+                tell(0, string.format("shot %.2f %.2f %.2f %.2f %.2f %.2f", tx, ty + 0.75, tz, wx, wy - 0.2, wz))
+                if core.damage(who, 2) <= 0 then
+                    say_in(t.room, line("kill"), true)
+                end
+            end
+        end
+        -- A room whose turrets are all down or gone lets you out.
+        local standing: { [number]: boolean } = {}
+        for _, t in TURRETS do
+            if standing[t.room] == nil then standing[t.room] = false end
+            if t.id == 0 or t.state == "idle" or t.state == "awake" then standing[t.room] = true end
+        end
+        for k, up in standing do
+            set_door(k, not up)
+        end
+    end
+
+    -- ------------------------------------------------------ trigger zones
+
+    local function do_action(a: { any }, room: number)
+        local what = a[1]
+        if what == "door" then
+            set_door(a[2], true)
+        elseif what == "say" then
+            say_in(room, a[2], true)
+        elseif what == "wake" then
+            for _, t in TURRETS do
+                if t.room == a[2] and t.state == "idle" then t.state = "awake" end
+            end
+            say_in(a[2], line("wake"), true)
+        elseif what == "portal" then
+            local ids = {}
+            for k = 0, 1 do
+                local x, y, z = a[2 + 3 * k], a[3 + 3 * k], a[4 + 3 * k]
+                for dy = 0, 1 do
+                    core.set_block(x, y + dy, z, if dy == 0 then SHELL_LOW else SHELL_HIGH)
+                    core.set_facing(x, y + dy, z, 1)
+                end
+                ids[k + 1] = core.portal_open(x + 0.4, y + 1, z + 0.5, 1, -1, 0, 0.5, 1.0)
+            end
+            if ids[1] >= 0 and ids[2] >= 0 then core.portal_link(ids[1], ids[2]) end
+        end
+    end
+
+    local function step_triggers()
+        for _, t in TRIGGERS do
+            if t.fired then continue end
+            for p in players do
+                local x, y, z = core.player_pos(p)
+                if x ~= nil and x >= t.x0 and x < t.x1 + 1 and z >= t.z0 and z < t.z1 + 1 and y >= t.y0 and y <= t.y1 then
+                    t.fired = true
+                    for _, a in t.actions do do_action(a, t.room) end
+                    break
+                end
+            end
+        end
+    end
+    -- Somebody came into room key k with nobody else there: it starts again.
+    local function room_starts(k: number, who: number)
+        for p, s in players do
+            if p ~= who and s.room == k then return end
+        end
+        for _, t in TRIGGERS do
+            if t.room == k then t.fired = false end
+        end
+        reset_turrets(k)
+    end
+
+    -- ------------------------------------------------------- dissolving fields
+
+    -- What crossing a field takes: the body's portals, and whatever it
+    -- carries (a cube goes back to its vent, a turret is gone).
+    local function dissolve_thing(c: number)
+        for _, v in vents do
+            if v.cube == c then
+                dispense(v)
+                return
+            end
+        end
+        local t = turret_of(c)
+        if t then
+            core.mob_remove(c)
+            t.id, t.state = 0, "gone"
+        end
+    end
+    local function crossed(f: Field, ax: number, ay: number, az: number, bx: number, by: number, bz: number): boolean
+        local px = f.x + 0.5
+        if (ax - px) * (bx - px) > 0 or (ax - bx) ^ 2 + (az - bz) ^ 2 > 4 then return false end
+        local z, y = (az + bz) / 2, (ay + by) / 2
+        return z >= f.z0 and z <= f.z1 and y >= f.y0 - 1 and y <= f.y1
+    end
+    local thing_was: { [number]: { number } } = {}
+    local function step_fields()
+        for p, s in players do
+            local x, y, z = core.player_pos(p)
+            if x == nil then continue end
+            if s.px ~= nil then
+                for _, f in FIELDS do
+                    if crossed(f, s.px :: number, s.py :: number, s.pz :: number, x, y, z) then
+                        local had = s.blue ~= nil or s.orange ~= nil or s.carry ~= 0
+                        close_shot(s.blue)
+                        close_shot(s.orange)
+                        s.blue, s.orange = nil, nil
+                        rim_told(p, "blue", nil)
+                        rim_told(p, "orange", nil)
+                        link_pair(p)
+                        crosshair(p)
+                        if s.carry ~= 0 then
+                            local c = s.carry
+                            drop(p, false)
+                            dissolve_thing(c)
+                        end
+                        if had then
+                            core.play_sound("chambers_game:field_fizzle", x, y + 1, z)
+                            tell(p, "fizzle")
+                        end
+                    end
+                end
+            end
+            s.px, s.py, s.pz = x, y, z
+        end
+        -- And a thing thrown or fallen through one.
+        local things = table.clone(cubes)
+        for _, t in TURRETS do
+            if t.id ~= 0 then things[t.id] = true end
+        end
+        for c in things do
+            local x, y, z = core.mob_pos(c)
+            local was = thing_was[c]
+            if x ~= nil and was ~= nil then
+                for _, f in FIELDS do
+                    if crossed(f, was[1], was[2], was[3], x, y, z) then
+                        core.play_sound("chambers_game:field_fizzle", x, y + 0.4, z)
+                        dissolve_thing(c)
+                        x = nil
+                        break
+                    end
+                end
+            end
+            thing_was[c] = if x ~= nil then { x, y, z } else nil
+        end
+    end
+    -- Every client draws the fields it is told of: "field x y0 z0 y1 z1".
+    fields_told = function()
+        for _, f in FIELDS do
+            tell(0, string.format("field %d %.1f %.1f %.1f %.1f", f.x, f.y0, f.z0, f.y1, f.z1))
         end
     end
 
@@ -918,11 +1346,15 @@ if serving then
         if which == "right" then
             local c = aimed_cube(p)
             if c ~= 0 then
+                local t = turret_of(c)
+                if t ~= nil and not lift_turret(p, t) then
+                    return
+                end
                 s.carry = c
                 -- Drawn by their own client at their eye, not trailing it:
                 -- left out of their world while it is in their hands.
                 core.mob_unseen(c, p)
-                tell(p, "hold 1")
+                tell(p, if t then "hold turret_down" else "hold cube")
                 return
             end
             if has_orange then
@@ -979,7 +1411,8 @@ if serving then
     -- first, under a dark lamp; the room past the last is the level done, and
     -- a portal there leads back to the first.
     local base = { buttons = table.clone(buttons), vents = table.clone(vents), plates = table.clone(plates),
-                   pedestals = table.clone(pedestals), pushes = table.clone(PUSHES), fixed = table.clone(fixed) }
+                   pedestals = table.clone(pedestals), pushes = table.clone(PUSHES), fixed = table.clone(fixed),
+                   triggers = table.clone(TRIGGERS), fields = table.clone(FIELDS), turrets = table.clone(TURRETS) }
     local function make_copy(slot: number)
         if copies[slot] then return end
         copies[slot] = true
@@ -1006,6 +1439,30 @@ if serving then
             fixed[`{name}_{slot}`] = { x = f.x + o, y = f.y, z = f.z, axis = f.axis, sign = f.sign, idx = -1,
                                        pair = if f.pair then `{f.pair}_{slot}` else nil }
         end
+        for _, t in base.triggers do
+            local acts = {}
+            for _, a in t.actions do
+                local b = table.clone(a)
+                if b[1] == "door" or b[1] == "wake" then
+                    b[2] += 100 * slot
+                elseif b[1] == "portal" then
+                    b[2] += o
+                    b[5] += o
+                end
+                table.insert(acts, b)
+            end
+            table.insert(TRIGGERS, { room = t.room + 100 * slot, x0 = t.x0 + o, x1 = t.x1 + o, y0 = t.y0, y1 = t.y1,
+                                     z0 = t.z0, z1 = t.z1, actions = acts, fired = false })
+        end
+        for _, f in base.fields do
+            table.insert(FIELDS, { x = f.x + o, room = f.room + 100 * slot, y0 = f.y0, y1 = f.y1, z0 = f.z0, z1 = f.z1 })
+        end
+        for _, t in base.turrets do
+            local c = turret(t.x + o, t.z, t.room + 100 * slot)
+            c.fx, c.fz = t.fx, t.fz
+            table.insert(TURRETS, c)
+        end
+        fields_told()
         fixed_open = false
         -- Built now, the columns not made yet waiting for their writes; and by
         -- the stage for any made later.
@@ -1036,7 +1493,7 @@ if serving then
         make_copy(ev.slot)
         ev.cancel = true
         local count = math.clamp(2 + ev.d // 2, 2, 7)
-        local a = 2 + math.floor((ev.d - 1) * (10 - count) / 9)
+        local a = 2 + math.floor((ev.d - 1) * (13 - count) / 9)
         local first, done_at = a + 100 * ev.slot, a + count + 100 * ev.slot
         level_of[ev.player] = { slot = ev.slot, first = first, done_at = done_at, done = false }
         -- The guns the first chamber of the stretch wants: 03 gives the blue,
@@ -1130,7 +1587,7 @@ if serving then
     -- start for a respawn; a vent drops its cube as somebody comes into its
     -- room with none in it; falling into a pit is a fall back to the room's
     -- start, and a cube that falls in comes again out of its vent.
-    local function step_zones()
+    local function step_zones(dt: number)
         for p, s in players do
             local x, y, z = core.player_pos(p)
             if x == nil then
@@ -1150,13 +1607,18 @@ if serving then
                 if lv and k == lv.done_at then level_done(p, lv) end
                 local sx, sy, sz = start_of(k)
                 core.player_spawn(p, sx, sy, sz)
+                room_starts(k, p)
                 for _, v in vents do
                     if v.room == k and (v.cube == 0 or core.mob_pos(v.cube) == nil) then
                         dispense(v)
                     end
                 end
             end
-            if y < FL - 3 then
+            -- A second below the floor, not at once: the long fall's pit is
+            -- a way through when a portal is at its bottom.
+            s.low = if y < FL - 3 then s.low + dt else 0
+            if s.low > 1.0 then
+                s.low = 0
                 local sx, sy, sz = start_of(if s.room ~= 0 then s.room else 1)
                 core.player_place(p, sx, sy, sz, 1, 0, 0)
                 drop(p, false)
@@ -1242,7 +1704,7 @@ if serving then
                 local x, y, z = carry_point(p)
                 if x == nil or core.mob_pos(s.carry) == nil then
                     s.carry = 0
-                    tell(p, "hold 0")
+                    tell(p, "hold -")
                 else
                     core.mob_place(s.carry, x, y, z)
                 end
@@ -1261,8 +1723,9 @@ if serving then
             if players[p] == nil then
                 local name = core.player_name(p)
                 players[p] = { carry = 0, room = 0, plate_at = 0, name = name,
-                               level = tonumber(core.storage_get(`gun {name}`)) or 0 }
+                               level = tonumber(core.storage_get(`gun {name}`)) or 0, low = 0, said = 0 }
                 crosshair(p)
+                fields_told()
                 for q, o in players do
                     if o.blue then rim_told(q, "blue", o.blue.at) end
                     if o.orange then rim_told(q, "orange", o.orange.at) end
@@ -1285,7 +1748,10 @@ if serving then
         step_carry()
         step_buttons()
         step_doors()
-        step_zones()
+        step_zones(dt)
+        step_triggers()
+        step_fields()
+        step_turrets(dt)
         step_plates()
         step_pedestals()
         step_timer(dt)
@@ -1296,7 +1762,13 @@ end
 
 if drawing then
     local blue_up, orange_up = false, false
-    local holding = false
+    local holding = ""   -- the model of what this player carries, or ""
+    -- Turrets' aim lines (by creature, until when), their shots (fading),
+    -- and the dissolving fields.
+    local aims: { [string]: { number } } = {}
+    local shots: { { number } } = {}
+    local fields: { [string]: { number } } = {}
+    local now = 0.0
     local clock_left = 0.0
     local flash = 0.0
 
@@ -1304,7 +1776,17 @@ if drawing then
     heard = function(text: string)
         local w = string.split(text, " ")
         if w[1] == "hold" then
-            holding = w[2] == "1"
+            holding = if w[2] == "-" then "" else "chambers_game:" .. w[2]
+        elseif w[1] == "aim" or w[1] == "shot" then
+            local v = {}
+            for i = 1, 6 do
+                v[i] = tonumber(w[i + (if w[1] == "aim" then 2 else 1)]) or 0
+            end
+            v[7] = now + (if w[1] == "aim" then 0.2 else 0.12)
+            if w[1] == "aim" then aims[w[2]] = v else table.insert(shots, v) end
+        elseif w[1] == "field" then
+            fields[`{w[2]} {w[4]}`] = { tonumber(w[2]) or 0, tonumber(w[3]) or 0, tonumber(w[4]) or 0,
+                                        tonumber(w[5]) or 0, tonumber(w[6]) or 0 }
         elseif w[1] == "rim" then
             local key = `{w[2]} {w[3]}`
             if w[4] == "-" then
@@ -1380,9 +1862,41 @@ if drawing then
         end
     end)
 
+    -- The turrets' red aim lines and their shots, and the fields: a curtain
+    -- of thin blue lightning across the room, flickering.
+    core.render.pass("chambers_game:light", 100, function()
+        for k, v in aims do
+            if now > v[7] then
+                aims[k] = nil
+            else
+                core.render.fx("bolt", v[1], v[2], v[3], 0.015, 255, 30, 20, 160, 0.3, v[4], v[5], v[6])
+            end
+        end
+        local left = {}
+        for _, v in shots do
+            if now < v[7] then
+                core.render.fx("bolt", v[1], v[2], v[3], 0.05, 255, 200, 80, 255, 1 - (v[7] - now) / 0.12,
+                               v[4], v[5], v[6])
+                table.insert(left, v)
+            end
+        end
+        shots = left
+        for _, f in fields do
+            local x = f[1] + 0.5
+            local z = f[3]
+            while z <= f[5] do
+                local t = (now * 0.7 + z * 0.37) % 1
+                core.render.fx("bolt", x, f[2], z, 0.04, 90, 170, 255, 70, t, x, f[4], z + 0.2)
+                z += 0.5
+            end
+            core.render.fx("bolt", x, f[2] + 0.05, f[3], 0.06, 120, 200, 255, 150, (now * 1.3) % 1, x, f[2] + 0.05, f[5])
+            core.render.fx("bolt", x, f[4] - 0.05, f[3], 0.06, 120, 200, 255, 150, (now * 1.1) % 1, x, f[4] - 0.05, f[5])
+        end
+    end)
+
     -- Looked up when first drawn: the world's model table comes after the
     -- mod loads.
-    local CUBE_DRAWN = 0
+    local drawn_ids: { [string]: number } = {}
     -- The cube in this player's hands, where their eye is this frame: the
     -- server's cube is left out of their world while they carry it (it
     -- trailed their view, jumping with every position the server heard).
@@ -1390,7 +1904,7 @@ if drawing then
     core.render.pass("chambers_game:held_cube", 100, function()
         -- This machine's player, as its own world code names it.
         local me = core.players()[1]
-        if not holding or me == nil then
+        if holding == "" or me == nil then
             return
         end
         local x, y, z = core.player_pos(me)
@@ -1401,10 +1915,10 @@ if drawing then
         local cx, cy, cz = x + dx * 1.6, math.max(y + 0.95, y + EYE + dy * 1.6), z + dz * 1.6
         -- The cube's own model (Blender), its feet half its height down,
         -- turned with the view.
-        if CUBE_DRAWN == 0 then
-            CUBE_DRAWN = core.model_id("chambers_game:cube")
+        if (drawn_ids[holding] or 0) == 0 then
+            drawn_ids[holding] = core.model_id(holding)
         end
-        core.render.model(CUBE_DRAWN, cx, cy - 0.35, cz, math.atan2(dx, dz))
+        core.render.model(drawn_ids[holding], cx, cy - 0.35, cz, math.atan2(dx, dz))
     end)
 
     -- The crosshair: a ring of two halves, blue on the left and orange on the
@@ -1430,6 +1944,7 @@ if drawing then
     end)
 
     function client_step(dt: number)
+        now += dt
         if clock_left > 0 then
             clock_left = math.max(0, clock_left - dt)
         end

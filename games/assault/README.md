@@ -77,7 +77,7 @@ the rocket launcher, 26).
   to 6), the light machine gun (120), the sniper rifle (120) and the rocket launcher (200) for
   everybody; upgrades in levels, each dearer than the last: weapons +15% damage (150, x1.6, up to
   8), machines +25% toughness (180, x1.6, up to 6), blast armour -15% (140, x1.7, up to 4); a jeep
-  (100), a tank (350), a helicopter (500). You start with rifle, pistol, grenades, four soldiers and
+  (100), a tank (220), a helicopter (500). You start with rifle, pistol, grenades, four soldiers and
   two builders.
 * **Bonus zones**: at the sides of each fortress (x 10 and 118) a clearing with a beacon, held by
   three of the legion; its beam is seen from afar, violet or blue. Taken (standing at the beacon

@@ -113,7 +113,20 @@ struct ModsView {
     std::string world() const { return scope == 0 ? "" : worlds[scope - 1]; }
 };
 
-constexpr size_t kModsShown = 5;
+constexpr size_t kModsShown = 8;
+
+// Denser than the game's title screen (asked 2026-11-01): the launcher's cells
+// are this much of the game's, so its text is smaller and more of it fits;
+// rows are closer, and lists of versions and worlds run in two columns.
+constexpr float kDense = 0.78f;
+constexpr float kRow   = 1.1f;    // a button's row
+constexpr float kLine  = 0.75f;   // a line of text
+constexpr float kWide  = 16.0f;   // a page with two columns
+
+// Item i of a two-column list starting at y: its x, its y; the list's rows.
+float col_x(size_t i) { return i % 2 == 0 ? 0.5f : 8.2f; }
+float col_y(size_t i, float y) { return y + (float)(i / 2) * kRow; }
+float rows(size_t n) { return (float)((n + 1) / 2) * kRow; }
 
 std::string where_text(const launcher::ModEntry &m)
 {
@@ -127,27 +140,27 @@ std::string where_text(const launcher::ModEntry &m)
 float mod_lines(ui::Panel &p, const ModsView &v, const launcher::ModEntry &m, float y)
 {
     panel_label(p, m.manifest.name + " " + m.manifest.version.str() + "   (" + where_text(m) + ")", 0.5f, y);
-    y += 0.9f;
+    y += kLine;
     if (!m.manifest.description.empty()) {
-        panel_label(p, m.manifest.description.substr(0, 70), 0.5f, y);
-        y += 0.9f;
+        panel_label(p, m.manifest.description.substr(0, 90), 0.5f, y);
+        y += kLine;
     }
     const std::vector<std::string> trouble = launcher::problems(m, v.mods, v.api_oldest, v.api_newest);
     if (trouble.empty()) panel_label(p, "Works with this version", 0.5f, y);
     for (const std::string &t : trouble) {
-        panel_label(p, "! " + t.substr(0, 68), 0.5f, y);
-        y += 0.8f;
+        panel_label(p, "! " + t.substr(0, 88), 0.5f, y);
+        y += kLine;
     }
-    if (trouble.empty()) y += 0.9f;
+    if (trouble.empty()) y += kLine;
     if (m.manifest.capabilities.empty()) {
         panel_label(p, "Asks for nothing beyond the world", 0.5f, y);
-        y += 0.9f;
+        y += kLine;
     } else {
         panel_label(p, "Asks to:", 0.5f, y);
-        y += 0.8f;
+        y += kLine;
         for (const std::string &c : m.manifest.capabilities) {
             panel_label(p, "  " + launcher::capability_meaning(c), 0.5f, y);
-            y += 0.8f;
+            y += kLine;
         }
     }
     return y + 0.2f;
@@ -158,8 +171,8 @@ float mods_panel(ui::Panel &p, Page page, const ModsView &v, float y)
     const std::string view = v.scope == 0 ? std::string(lang::tr("Mods everywhere"))
                                           : std::string(lang::tr("Mods in")) + " " + v.world();
     if (page == Page::Mods) {
-        panel_button(p, "scope", view + "   >", 0.5f, y, 11.0f);
-        y += 1.3f;
+        panel_button(p, "scope", view + "   >", 0.5f, y, kWide - 1.0f);
+        y += kRow + 0.1f;
         for (size_t i = v.first; i < v.mods.size() && i < v.first + kModsShown; ++i) {
             const launcher::ModEntry &m = v.mods[i];
             std::string text = m.manifest.name.empty() ? m.path.substr(m.path.find_last_of("/\\") + 1)
@@ -167,36 +180,35 @@ float mods_panel(ui::Panel &p, Page page, const ModsView &v, float y)
             if (m.where == launcher::Where::Game) text += std::string("   ") + lang::tr("(game)");
             if (m.off) text += std::string("   ") + lang::tr(m.off_all ? "(off everywhere)" : "(off)");
             if (!launcher::problems(m, v.mods, v.api_oldest, v.api_newest).empty()) text = "! " + text;
-            panel_add(p, ui::ElemKind::Button, "mod:" + std::to_string(i), text, 0.5f, y, 11.0f);
-            y += 1.1f;
+            panel_add(p, ui::ElemKind::Button, "mod:" + std::to_string(i), text, 0.5f, y, kWide - 1.0f);
+            y += kRow;
         }
-        y += 0.2f;
+        y += 0.1f;
         panel_label(p, "Drop a mod folder or a .cnpmod on this window to add it", 0.5f, y);
-        y += 1.1f;
+        y += kLine + 0.2f;
         if (v.first > 0) panel_button(p, "mods_prev", "<", 0.5f, y, 1.2f);
-        panel_button(p, "back", "Back", 2.0f, y, 8.0f);
-        if (v.first + kModsShown < v.mods.size()) panel_button(p, "mods_next", ">", 10.3f, y, 1.2f);
-        return y + 1.3f;
+        panel_button(p, "back", "Back", 2.0f, y, kWide - 4.0f);
+        if (v.first + kModsShown < v.mods.size()) panel_button(p, "mods_next", ">", kWide - 1.7f, y, 1.2f);
+        return y + kRow;
     }
     if (page == Page::ModDetail) {
         const launcher::ModEntry &m = v.mods[v.open];
         y = mod_lines(p, v, m, y);
         if (m.where != launcher::Where::Game && !m.off_all) {
-            panel_button(p, "toggle", m.off ? "Turn on" : "Turn off", 0.5f, y, 5.4f);
+            panel_button(p, "toggle", m.off ? "Turn on" : "Turn off", 0.5f, y, 7.4f);
             const bool mine = (m.where == launcher::Where::Everywhere) == (v.scope == 0);
             if (mine)
-                panel_button(p, "mod_remove", v.confirm == m.path ? "Click again to remove" : "Remove", 6.1f, y, 5.4f);
-            y += 1.3f;
+                panel_button(p, "mod_remove", v.confirm == m.path ? "Click again to remove" : "Remove", 8.1f, y, 7.4f);
+            y += kRow;
         }
-        panel_button(p, "mods", "Back", 0.5f, y, 11.0f);
-        return y + 1.3f;
+        panel_button(p, "mods", "Back", 0.5f, y, kWide - 1.0f);
+        return y + kRow;
     }
     // ModInstall: what was dropped, before it is copied anywhere.
     y = mod_lines(p, v, v.pending, y);
-    panel_button(p, "mod_install", std::string(lang::tr("Add to")) + " " + view, 0.5f, y, 11.0f);
-    y += 1.3f;
-    panel_button(p, "mods", "Cancel", 0.5f, y, 11.0f);
-    return y + 1.3f;
+    panel_button(p, "mod_install", std::string(lang::tr("Add to")) + " " + view, 0.5f, y, 7.4f);
+    panel_button(p, "mods", "Cancel", 8.1f, y, 7.4f);
+    return y + kRow;
 }
 
 ui::Panel launcher_panel(Page page, const std::vector<Build> &builds, size_t chosen,
@@ -218,83 +230,85 @@ ui::Panel launcher_panel(Page page, const std::vector<Build> &builds, size_t cho
                      0.5f, y, 11.0f);
         p.elements.back().h = 1.6f;
         y += 2.0f;
-        panel_button(p, "worlds", "Worlds", 0.5f, y, 11.0f);
-        y += 1.3f;
-        panel_button(p, "mods", "Mods", 0.5f, y, 11.0f);
-        y += 1.3f;
-        panel_button(p, "builds", "Versions", 0.5f, y, 11.0f);
-        y += 1.3f;
-        panel_button(p, "quit", "Quit", 0.5f, y, 11.0f);
-        y += 1.3f;
+        // Two by two under Play.
+        panel_button(p, "worlds", "Worlds", 0.5f, y, 5.4f);
+        panel_button(p, "mods", "Mods", 6.1f, y, 5.4f);
+        y += kRow;
+        panel_button(p, "builds", "Versions", 0.5f, y, 5.4f);
+        panel_button(p, "quit", "Quit", 6.1f, y, 5.4f);
+        y += kRow;
     } else if (page == Page::Builds) {
+        p.w = kWide;
         panel_label(p, "Versions: the one marked is the one Play starts", 0.5f, y);
-        y += 1.2f;
+        y += kLine + 0.2f;
         for (size_t i = 0; i < builds.size(); ++i) {
             // Translated in pieces here: the panel looks up whole strings, and
             // a version number is in none.
             std::string text = builds[i].version;
             if (builds[i].bundled) text += std::string("   ") + lang::tr("(in this package)");
             if (i == chosen) text = "> " + text + " <";
-            panel_add(p, ui::ElemKind::Button, "build:" + std::to_string(i), text, 0.5f, y,
-                      builds[i].bundled ? 11.0f : 9.8f);
+            panel_add(p, ui::ElemKind::Button, "build:" + std::to_string(i), text, col_x(i), col_y(i, y),
+                      builds[i].bundled ? 7.3f : 6.2f);
             if (!builds[i].bundled) {
                 // Twice: the first click says what it takes with it.
                 const bool armed = confirm == builds[i].version;
                 panel_add(p, ui::ElemKind::Button, "remove:" + std::to_string(i), armed ? "!" : "x",
-                          10.5f, y, 1.0f);
+                          col_x(i) + 6.4f, col_y(i, y), 0.9f);
             }
-            y += 1.2f;
         }
-        y += 0.2f;
-        panel_button(p, "download", "Download another version", 0.5f, y, 11.0f);
-        y += 1.3f;
-        panel_button(p, "back", "Back", 0.5f, y, 11.0f);
-        y += 1.3f;
+        y += rows(builds.size()) + 0.1f;
+        panel_button(p, "download", "Download another version", 0.5f, y, 7.3f);
+        panel_button(p, "back", "Back", 8.2f, y, 7.3f);
+        y += kRow;
     } else if (page == Page::Worlds) {
+        p.w = kWide;
         panel_label(p, builds.empty() ? std::string("Worlds")
                                       : std::string(lang::tr("Worlds, played with")) + " " + builds[chosen].version,
                     0.5f, y);
-        y += 1.2f;
-        for (size_t i = 0; i < worlds.size() && i < 8; ++i) {
+        y += kLine + 0.2f;
+        const size_t n = std::min<size_t>(worlds.size(), 16);
+        for (size_t i = 0; i < n; ++i) {
             const launcher::World &w = worlds[i];
             std::string text = w.name;
             if (!w.made_with.empty()) text += "   (" + w.made_with + ")";
             if (confirm == "world:" + w.name) text = "! " + text + " !";
-            panel_add(p, ui::ElemKind::Button, "world:" + std::to_string(i), text, 0.5f, y, 11.0f);
-            y += 1.2f;
+            panel_add(p, ui::ElemKind::Button, "world:" + std::to_string(i), text, col_x(i), col_y(i, y), 7.3f);
         }
+        y += rows(n);
         if (worlds.empty()) {
             panel_label(p, "no world yet: Play makes one", 0.5f, y);
-            y += 1.2f;
+            y += kLine;
         }
-        y += 0.2f;
-        panel_button(p, "back", "Back", 0.5f, y, 11.0f);
-        y += 1.3f;
+        y += 0.1f;
+        panel_button(p, "back", "Back", 0.5f, y, kWide - 1.0f);
+        y += kRow;
     } else if (page == Page::Mods || page == Page::ModDetail || page == Page::ModInstall) {
+        p.w = kWide;
         y = mods_panel(p, page, mods, y);
     } else {
+        p.w = kWide;
         panel_label(p, "Versions on the releases page", 0.5f, y);
-        y += 1.2f;
+        y += kLine + 0.2f;
         size_t shown = 0;
-        for (size_t i = 0; i < remote.size() && shown < 8; ++i) {
+        for (size_t i = 0; i < remote.size() && shown < 16; ++i) {
             if (std::any_of(builds.begin(), builds.end(), [&](const Build &b) { return b.version == remote[i]; }))
                 continue;
-            panel_add(p, ui::ElemKind::Button, "get:" + remote[i], remote[i], 0.5f, y, 11.0f);
-            y += 1.2f;
+            panel_add(p, ui::ElemKind::Button, "get:" + remote[i], remote[i], col_x(shown), col_y(shown, y), 7.3f);
             ++shown;
         }
+        y += rows(shown);
         if (shown == 0) {
             panel_label(p, remote.empty() ? "asking ..." : "every version is here already", 0.5f, y);
-            y += 1.2f;
+            y += kLine;
         }
-        y += 0.2f;
-        panel_button(p, "back", "Back", 0.5f, y, 11.0f);
-        y += 1.3f;
+        y += 0.1f;
+        panel_button(p, "back", "Back", 0.5f, y, kWide - 1.0f);
+        y += kRow;
     }
     for (size_t at = 0; at < error.size();) {   // a line a row
         const size_t nl = error.find('\n', at);
-        panel_label(p, error.substr(at, std::min<size_t>(70, nl == std::string::npos ? std::string::npos : nl - at)), 0.5f, y);
-        y += 0.8f;
+        panel_label(p, error.substr(at, std::min<size_t>(90, nl == std::string::npos ? std::string::npos : nl - at)), 0.5f, y);
+        y += kLine;
         at = nl == std::string::npos ? error.size() : nl + 1;
     }
     if (!error.empty()) y += 0.2f;
@@ -477,6 +491,9 @@ int main(int argc, char **argv)
             // Below the game's name when it fits there: the mods pages are taller
             // than any of the title screen's.
             ui::PanelPlacement at = ui::place_panel(p, gfx_screen_width(), gfx_screen_height());
+            at.cell *= kDense;
+            at.x = ((float)gfx_screen_width() - p.w * at.cell) * 0.5f;
+            at.y = ((float)gfx_screen_height() - p.h * at.cell) * 0.5f;
             const float        top = (float)gfx_screen_height() * 0.19f;
             if (at.y < top && top + p.h * at.cell <= (float)gfx_screen_height()) at.y = top;
             float mx = 0.0f, my = 0.0f;

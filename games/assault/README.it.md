@@ -90,7 +90,7 @@ ripari, lenti, 28 di vita), **demoni** (all'assalto, veloci, 18) e
   precisione (120) e lanciarazzi (200) a tutti; potenziamenti a livelli, ogni
   livello più caro del precedente: armi +15% di danno (150, x1.6, fino a 8),
   mezzi +25% di resistenza (180, x1.6, fino a 6), corazza antiesplosione -15%
-  (140, x1.7, fino a 4); jeep (100), carro (350), elicottero (500). Si parte
+  (140, x1.7, fino a 4); jeep (100), carro (220), elicottero (500). Si parte
   con fucile, pistola, granate, quattro soldati e due costruttori.
 * **Zone bonus**: ai lati di ogni fortezza (x 10 e 118) una radura con un
   faro, tenuta da tre della legione; il suo fascio di luce si vede da
