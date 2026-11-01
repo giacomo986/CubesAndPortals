@@ -15148,6 +15148,10 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             player.pitch    = std::asin(std::clamp(moved.look_y, -1.0f, 1.0f));
             player.on_ground = false;
             player.cb_shift  = 0.0f;
+            // Off any rope: kept, the swing's constraint pulled the body from
+            // where it was put straight back onto the rope's sphere -- a
+            // respawn under a swing looked like the view snapping.
+            player.roped     = false;
             s.roll           = moved.roll;
             if (moved.reason == "portal") {
                 ahead_of_crossing(s, player, eye_before, look_before);
@@ -15447,7 +15451,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             fwd = Vec3{std::sin(player.ride_yaw) * flat, fwd.y, -std::cos(player.ride_yaw) * flat};
         }
         conn->send_move(player.pos.x, player.pos.y, player.pos.z, fwd.x, fwd.y, fwd.z, now,
-                        player.flying, player.velocity);
+                        player.flying, player.velocity, player.roped);
 
         // And a viewpoint for every world being looked into, or nothing is
         // streamed: an observer's chunks follow its claim like anybody's.

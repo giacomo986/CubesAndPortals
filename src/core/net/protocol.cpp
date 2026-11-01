@@ -657,7 +657,7 @@ bool Move::decode(ByteReader &r, Move &out)
         if (e.built) e.missing = r.u32();
     }
     if (!r.done()) return false;
-    if (out.flags & ~kMoveFlying) return false;
+    if (out.flags & ~(kMoveFlying | kMoveRoped)) return false;
     if (!sane(out.vx) || !sane(out.vy) || !sane(out.vz)) return false;
 
     // A scope this build does not know is not a claim it can decide what to do

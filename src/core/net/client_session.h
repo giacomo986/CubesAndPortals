@@ -265,7 +265,7 @@ public:
     // (record_drive), the velocity, and which placement and which numbers the
     // body is on, for the server to drive the same kart (TODO.md OPEN-47).
     bool send_move(float x, float y, float z, float look_x, float look_y, float look_z,
-                   double now, bool flying = false, Vec3 velocity = {});
+                   double now, bool flying = false, Vec3 velocity = {}, bool roped = false);
 
     // What this frame's chassis did (core/physics/vehicle.h), to go with the
     // next claims. Recorded against the numbers the body moves by now.

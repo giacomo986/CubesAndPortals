@@ -1209,7 +1209,7 @@ void ClientSession::record_drive(const std::vector<DriveEvent> &events)
 }
 
 bool ClientSession::send_move(float x, float y, float z, float look_x, float look_y, float look_z,
-                              double now, bool flying, Vec3 velocity)
+                              double now, bool flying, Vec3 velocity, bool roped)
 {
     if (m_state != ClientState::Playing) return false;
     if (m_last_move >= 0.0 && now - m_last_move < m_cfg.move_interval) return false;
@@ -1225,7 +1225,7 @@ bool ClientSession::send_move(float x, float y, float z, float look_x, float loo
     // it lands. Those are different on any link with a round trip in it, and
     // the difference is what this field exists to let the server see.
     m.scope = (uint8_t)m_cfg.scope;
-    m.flags = flying ? kMoveFlying : 0;
+    m.flags = (uint8_t)((flying ? kMoveFlying : 0) | (roped ? kMoveRoped : 0));
     m.epoch = m_epoch;
     m.gen   = m_gen;
     m.vx = velocity.x; m.vy = velocity.y; m.vz = velocity.z;

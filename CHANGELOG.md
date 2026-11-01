@@ -7,7 +7,7 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
 ## 0.11.0-alpha.1 — 2026-11-01
 
-Protocol 112: it does not play with 0.10 servers or clients (the launcher fetches the version a
+Protocol 113: it does not play with 0.10 servers or clients (the launcher fetches the version a
 server wants). It reads 0.10's worlds.
 
 - **The launcher** (`cnp_launcher`), now what every package opens, in the look of the title

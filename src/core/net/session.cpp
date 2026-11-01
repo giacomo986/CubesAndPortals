@@ -649,6 +649,12 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
             if (s.scope == Scope::Enter) {
                 if (v.y < kBelowWorld) {
                     kill_body(s, now);
+                } else if ((move.flags & kMoveRoped) && s.movement.parkour) {
+                    // Hanging on a rope (core.rope): the swing down is not a
+                    // fall, and one let go of starts where it was let go.
+                    // ponytail: the client's word, in a parkour world only;
+                    // check a solid block within kRopeReach if it is abused.
+                    fall_reset(s.fall, v.y);
                 } else if ((move.flags & kMoveFlying) && s.movement.fly > 0.0f &&
                            s.movement.accel <= 0.0f) {
                     // Flown here, on a world where this body flies: a flight

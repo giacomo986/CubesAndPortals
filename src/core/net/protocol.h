@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 112; // 112 a Drop on show (core.show_item)
+inline constexpr uint16_t kProtocol    = 113; // 113 a claim says the body is on a rope
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -364,7 +364,9 @@ inline constexpr uint16_t kProtocol    = 112; // 112 a Drop on show (core.show_i
 // client refuses; and bit 3 of BodyMovement's moves byte for a body in a cart.
 // 112 marks a Drop on show (core.show_item) with bit 1 of its flags, which a
 // 111 client refuses.
-inline constexpr uint16_t kMinProtocol = 112;
+// 113 says in a Move's flags that the body hangs on a rope (kMoveRoped), which
+// a 112 server refuses as a malformed claim.
+inline constexpr uint16_t kMinProtocol = 113;
 
 // What a player picked to look like (protocol 93): the three colours of their
 // model's tint_1..3 materials -- primary, secondary, accent -- five bits each,
@@ -1230,7 +1232,7 @@ struct Move {
     // session still is that.
     uint8_t  scope = (uint8_t)Scope::Enter;
 
-    // What the body was doing when it got here: kMoveFlying, or nothing. Only
+    // What the body was doing when it got here: kMoveFlying, kMoveRoped. Only
     // the fall watch reads it. A body that says it is flying starts its fall
     // again where it is instead of being charged the descent -- and only on a
     // world where that body may fly, so saying it where flying is off buys
@@ -1263,6 +1265,10 @@ struct Move {
 };
 
 inline constexpr uint8_t kMoveFlying = 1;
+// On a rope (core.rope, protocol 113): the swing's descent is not a fall. Only
+// taken where bodies do parkour (MovementRules::parkour), the one place a rope
+// can be shot.
+inline constexpr uint8_t kMoveRoped = 2;
 
 // The most records one claim carries: a second at 60 steps is more than three
 // claims' worth, and a claim of them is still one packet.

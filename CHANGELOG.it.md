@@ -7,7 +7,7 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
 ## 0.11.0-alpha.1 — 2026-11-01
 
-Protocollo 112: non gioca con server o client 0.10 (il launcher scarica la versione che un server
+Protocollo 113: non gioca con server o client 0.10 (il launcher scarica la versione che un server
 vuole). Legge i mondi della 0.10.
 
 - **Il launcher** (`cnp_launcher`), ora quello che ogni pacchetto apre, con l'aspetto della
