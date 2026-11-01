@@ -824,7 +824,7 @@ local OBSIDIAN    = core.register_node("track_core:obsidian", 22, 16, 34, true, 
 -- then still has these in it.
 core.register_node("track_core:scoria", 110, 36, 34)
 core.register_node("track_core:glowrock", 240, 200, 110, true, 15)
-core.node_liquid(core.register_node("track_core:lava", 230, 100, 20, false, 15), 250)
+core.node_liquid(core.register_node("track_core:lava", 230, 100, 20, false, 15), 130)
 
 -- The two frames on this side: the column the opening stands in, the first z
 -- of its hole (8 across, 8 up from the road); both face east, +x.

@@ -314,6 +314,13 @@ struct LiquidCell {
     // which is what keeps a lake from being a stack of translucent walls. A
     // cell inside the water has none and is handed over all the same.
     uint8_t faces = 0;
+
+    // Which corners touch a block that is not liquid, so that they stay where
+    // they are while the rest of the liquid moves (the renderer's ripple):
+    // bit i for the bottom corner i (indexed like `h`), bit 4 + i for the top
+    // one. A corner is shared by the cells round its vertical edge, and each
+    // of them works it out from the same cells, so they agree.
+    uint8_t pin = 0;
 };
 
 // Clears them but keeps their capacity, so a steady state stops allocating.

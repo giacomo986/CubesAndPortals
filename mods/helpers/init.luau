@@ -16,7 +16,7 @@
 --   Dig stone       with a pick: the same for stone and rock
 --   Find ores       with a pick: tunnels to the nearest ore under and about
 --                   it, steps down and all, and brings it out (gold, diamond,
---                   cinnabar and emerald want an iron pick); gravel or sand
+--                   cinnabar and ruby want an iron pick); gravel or sand
 --                   over a tunnel is propped with a cobblestone, a cave under
 --                   it bridged with one, and it climbs out a cell at a time,
 --                   a cobblestone under its feet, as a player gets out of a hole
@@ -121,9 +121,9 @@ local STONE = { "core:stone", "rocks:cobblestone", "rocks:mossy_cobblestone", "r
                 "rocks:diorite", "rocks:granite", "rocks:deepslate", "rocks:tuff", "rocks:calcite",
                 "rocks:sandstone", "tools:granite" }
 local ORES = { "ore:coal_ore", "ore:copper_ore", "ore:iron", "ore:lapis_ore", "ore:gold",
-               "ore:cinnabar_ore", "ore:diamond_ore", "ore:emerald_ore" }
+               "ore:cinnabar_ore", "ore:diamond_ore", "ore:ruby_ore" }
 local IRON_ONLY = { ["ore:gold"] = true, ["ore:cinnabar_ore"] = true, ["ore:diamond_ore"] = true,
-                    ["ore:emerald_ore"] = true }
+                    ["ore:ruby_ore"] = true }
 local CHESTS = { "chest:box", "chest:double_l", "chest:double_r" }
 local FURNACES = { "furnace:furnace", "furnace:lit" }
 local RAW = { "pets:fish", "pets:carp", "pets:trout", "pets:cod", "pets:eel", "pets:tuna",

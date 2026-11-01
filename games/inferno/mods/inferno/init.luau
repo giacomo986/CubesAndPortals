@@ -25,7 +25,7 @@ local QUARTZ     = core.register_node("inferno:quartz_ore", 150, 70, 64, true, 0
 local BRICKS     = core.register_node("inferno:bricks", 50, 22, 28, true, 0, "", 1, 3.0, "stone")
 local OBSIDIAN   = core.register_node("inferno:obsidian", 22, 16, 34, true, 0, "", 1, 12.0, "stone")
 local LAVA       = core.register_node("inferno:lava", 230, 100, 20, false, 15)
-core.node_liquid(LAVA, 250)
+core.node_liquid(LAVA, 130)
 
 -- Lava that flows, in the manner of mods/lakes's water and slower: a level for
 -- each cell of its reach, the source 5 and four levels of flow after it.
@@ -36,7 +36,7 @@ local LAVA_FLOW_NAMES: { string } = {}
 for level = 1, LAVA_SOURCE - 1 do
     local name = `inferno:lava_flow{level}`
     local id   = core.register_node(name, 230, 100, 20, false, 15)
-    core.node_liquid(id, 250, level * 2)
+    core.node_liquid(id, 130, level * 2)
     LAVA_FLOW[level] = id
     LAVA_LEVEL[id]   = level
     table.insert(LAVA_FLOW_NAMES, name)
@@ -566,6 +566,9 @@ end)
 
 -- A fortress's chest, the first time it is opened: what the legion of the
 -- Inferno left in it. A chest a player put down is theirs and stays empty.
+-- In the survival sites' levels (x from 8000, inferno_heart) less: half as
+-- likely, at most half as many, and never the rare things.
+local LEVELS = 8000
 local LOOT = {
     { "inferno:gold_nugget", 3, 9, 1.0 }, { "inferno:cinder_rod", 1, 3, 0.7 }, { "inferno:quartz", 2, 6, 0.7 },
     { "inferno:wraith_tear", 1, 2, 0.4 }, { "inferno:obsidian", 1, 4, 0.5 }, { "furnace:iron_ingot", 1, 4, 0.5 },
@@ -579,10 +582,12 @@ core.event.on("core:used", -20, function(ev)
     if core.get_block(ev.x, ev.y - 1, ev.z) ~= BRICKS then return end
     core.meta_set(ev.x, ev.y, ev.z, "loot", "taken")
     core.container_make(ev.x, ev.y, ev.z, 27)
+    local cut = ev.x >= LEVELS
     for _, l in LOOT do
         local item = core.item_id(l[1])
-        if item ~= 0 and math.random() < l[4] then
-            core.container_add(ev.x, ev.y, ev.z, item, math.random(l[2], l[3]))
+        if item ~= 0 and not (cut and l[4] < 0.35) and math.random() < (if cut then l[4] / 2 else l[4]) then
+            core.container_add(ev.x, ev.y, ev.z, item,
+                               math.random(l[2], if cut then math.max(l[2], l[3] // 2) else l[3]))
         end
     end
 end)

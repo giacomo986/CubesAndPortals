@@ -21,7 +21,7 @@ struct WaterUniforms {
     void set(const Mat4 &projection, const Mat4 &view) const;
     void off() const;   // for a draw that is not in the world, like a blit
 
-    int water = -1, lo = -1, hi = -1, colour = -1, cells = -1;
+    int water = -1, lo = -1, hi = -1, colour = -1, lava = -1, cells = -1;
     int eye = -1, near = -1, ray_x = -1, ray_y = -1, ray_z = -1;
 };
 

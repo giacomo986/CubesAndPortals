@@ -584,15 +584,15 @@ end
 -- again done before). Queued by mods/keys in shared "reward:<who>" as
 -- "room d first site;" and put in a chest by the site when its player is back.
 local REWARD: { [string]: { base: { { any } }, rare: { any } } } = {
-    pista = { base = { { "ore:emerald", 3 }, { "building:rail", 8 } }, rare = { "carts:cart", 1 } },
+    pista = { base = { { "ore:ruby", 3 }, { "building:rail", 8 } }, rare = { "carts:cart", 1 } },
     inferno = { base = { { "furnace:gold_ingot", 3 }, { "infernoportal:obsidian", 4 } }, rare = { "ore:diamond", 1 } },
     arena = { base = { { "archery:arrow", 12 }, { "armor:iron_helmet", 1 } }, rare = { "armor:iron_chestplate", 1 } },
-    arpg = { base = { { "ore:lapis", 6 }, { "ore:emerald", 2 } }, rare = { "ore:diamond", 2 } },
+    arpg = { base = { { "ore:lapis", 6 }, { "ore:ruby", 2 } }, rare = { "ore:diamond", 2 } },
     chambers = { base = { { "furnace:iron_ingot", 4 }, { "conveyor:belt", 6 } }, rare = { "furnace:gold_ingot", 4 } },
     backrooms = { base = { { "furnace:iron_ingot", 2 }, { "ore:coal", 6 }, { "animals:steak", 3 } }, rare = { "ore:diamond", 2 } },
-    parkour = { base = { { "ore:emerald", 3 }, { "farm:bread", 4 } }, rare = { "jetpack:jetpack", 1 } },
-    front = { base = { { "furnace:iron_ingot", 6 }, { "ore:emerald", 4 } }, rare = { "ore:diamond", 2 } },
-    assalto = { base = { { "ore:emerald", 8 }, { "furnace:gold_ingot", 4 } }, rare = { "ore:diamond", 3 } },
+    parkour = { base = { { "ore:ruby", 3 }, { "farm:bread", 4 } }, rare = { "jetpack:jetpack", 1 } },
+    front = { base = { { "furnace:iron_ingot", 6 }, { "ore:ruby", 4 } }, rare = { "ore:diamond", 2 } },
+    assalto = { base = { { "ore:ruby", 8 }, { "furnace:gold_ingot", 4 } }, rare = { "ore:diamond", 3 } },
 }
 
 -- The chest by a site (two along -z from the gate) with what was won there.

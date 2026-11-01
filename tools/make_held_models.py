@@ -265,6 +265,8 @@ M = {
     "yolk": material("Yolk", (0.98, 0.75, 0.15)),
     "leather": material("Leather", (0.55, 0.30, 0.16)),
     "seed": material("Seed", (0.36, 0.46, 0.18)),
+    "melon_seed": material("MelonSeed", (0.10, 0.07, 0.05)),
+    "pumpkin_seed": material("PumpkinSeed", (0.93, 0.87, 0.66)),
     "grip": material("Grip", (0.20, 0.22, 0.28)),
     "wool": material("Wool", (0.92, 0.92, 0.90)),
     "cover": material("Cover", (0.50, 0.30, 0.15)),
@@ -287,7 +289,7 @@ M = {
     "fleck": material("Fleck", (0.95, 0.80, 0.30)),
     "cinnabar": material("Cinnabar", (0.85, 0.08, 0.06), glow=True),
     "diamond": material("Diamond", (0.40, 0.90, 0.90), 0.0, 0.05),
-    "emerald": material("Emerald", (0.20, 0.80, 0.40), 0.0, 0.05),
+    "ruby": material("Ruby", (0.80, 0.06, 0.32), 0.0, 0.05),
     "red": material("Red", (0.75, 0.15, 0.15)),
     "green": material("Green", (0.20, 0.65, 0.25)),
     "blue": material("Blue", (0.20, 0.35, 0.85)),
@@ -562,6 +564,12 @@ ITEMS = {
     "animals:seeds": [(ball(0.012, segs=6, rings=4, at=(x, 0.04 + y, z), scale=(1, 1.5, 0.8)), "seed")
                       for x, y, z in ((0, 0, 0), (0.025, 0.02, 0.005), (-0.02, 0.025, -0.004),
                                       (0.012, -0.022, 0.006), (-0.025, -0.012, 0.002))],
+    "farm:melon_seeds": [(ball(0.011, segs=6, rings=4, at=(x, 0.04 + y, z), scale=(1, 1.6, 0.5)), "melon_seed")
+                         for x, y, z in ((0, 0, 0), (0.024, 0.018, 0.004), (-0.022, 0.022, -0.003),
+                                         (0.01, -0.024, 0.005))],
+    "farm:pumpkin_seeds": [(ball(0.014, segs=6, rings=4, at=(x, 0.04 + y, z), scale=(1, 1.5, 0.45)), "pumpkin_seed")
+                           for x, y, z in ((0, 0, 0), (0.028, 0.02, 0.004), (-0.026, 0.024, -0.003),
+                                           (0.012, -0.028, 0.005))],
     "animals:shears": [
         (slab([(0.0, 0.0), (0.012, 0.0), (0.004, 0.16), (-0.004, 0.14)], 0.006, at=(0, 0, 0.004),
               rot=(0, 0, 12)), "iron"),
@@ -605,7 +613,7 @@ ITEMS = {
                     [(box((0.012, 0.012, 0.012), at=(x, 0.04 + y, 0.0)), "cinnabar")
                      for x, y in ((0.06, 0.04), (-0.06, 0.03), (0.02, -0.06), (-0.04, -0.05))],
     "ore:diamond": gem(0.05, 0.02, 0.05, 8, "diamond"),
-    "ore:emerald": gem(0.035, 0.05, 0.05, 6, "emerald"),
+    "ore:ruby": gem(0.035, 0.05, 0.05, 6, "ruby"),
     "palette:brush": [(cyl(0.012, 0.3, segs=6, at=(0, -0.08, 0)), "wood"),
                       (cyl(0.014, 0.04, segs=8, at=(0, 0.22, 0)), "iron"),
                       (cyl(0.014, 0.05, segs=8, r2=0.004, at=(0, 0.26, 0)), "red"),
@@ -980,6 +988,8 @@ ICONS = {
     "conveyor:belt": tuple(math.degrees(a) for a in (
         Matrix.Rotation(math.radians(30), 3, "X") @ Matrix.Rotation(math.radians(45), 3, "Y")).to_euler("XYZ")),
     "furnace:charcoal": (-20, 0, 15),
+    "farm:melon_seeds": (0, 0, 0),
+    "farm:pumpkin_seeds": (0, 0, 0),
     "deep:shard": (0, 0, -30),
     "deep:heart": (0, 0, 0),
     "jetpack:jetpack": (0, 0, 0),

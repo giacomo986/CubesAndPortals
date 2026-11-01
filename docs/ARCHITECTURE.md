@@ -190,7 +190,7 @@ goes on reading the levels and `daylight_at`.
 | `animals`, `pets` | Pigs, cows, sheep, chickens (food, wool, eggs, leather, breeding); cat, dog, fishing rod |
 | `armor` | Sixteen pieces of armour in the four worn slots |
 | `infernoportal` | Obsidian and the Inferno's portal built by hand |
-| `farm` | Hoe, tilled soil, wheat in four stages, bread |
+| `farm` | Hoe, tilled soil, wheat in four stages, bread, melon and pumpkin stems |
 | `bed` | Bed: respawn; at night you lie down and with everybody in bed it is dawn, not with monsters near (`core.player_spawn`, `core.set_time`, `core.monsters_near`) |
 | `screwdriver` | Screwdriver: turns a block already placed (`core.node_turns`) |
 | `compact` | Blocks of nine ingots, gems or dusts |

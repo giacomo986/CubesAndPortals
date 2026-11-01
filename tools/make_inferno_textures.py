@@ -137,7 +137,16 @@ def main():
     # Its top and bottom clear: a fire is its four sides of flame.
     for face in ("top", "bottom"):
         Image.new("RGBA", (2 * N, 2 * N), (0, 0, 0, 0)).save(os.path.join(OUT, f"inferno_fire_{face}.png"))
-    print(f"{len(tiles) + 3} textures in {os.path.normpath(OUT)}")
+    # A level's way back (inferno_heart:return): obsidian with a ring of fire
+    # in it, lit once the guardian is dead.
+    ret = tiles["obsidian"].copy()
+    for y in range(N):
+        for x in range(N):
+            r = ((x - 7.5) ** 2 + (y - 7.5) ** 2) ** 0.5
+            if 3.5 <= r <= 5.5:
+                ret.putpixel((x, y), shade((255, 140, 50), 1.0 + rng.uniform(-0.15, 0.1)))
+    ret.resize((2 * N, 2 * N), Image.NEAREST).convert("RGBA").save(os.path.join(OUT, "inferno_heart_return.png"))
+    print(f"{len(tiles) + 4} textures in {os.path.normpath(OUT)}")
 
 
 if __name__ == "__main__":

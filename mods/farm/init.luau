@@ -15,6 +15,13 @@
 -- crop and all. A crop is not solid, so it is walked through, and has a box
 -- its height, which is what it is aimed at by. Its pictures and models are
 -- tools/make_farm_assets.py.
+--
+-- Melons and pumpkins too: a melon slice is a melon seed, a pumpkin four
+-- pumpkin seeds, sown on soil as wheat is. The stem grows through four stages
+-- by wheat's rules, and grown it puts a fruit (mods/plants' block) on a free
+-- cell beside it over dirt, grass or soil -- one at a time: a stem with its
+-- fruit beside it waits for that to be picked. Broken, a stem gives its seed
+-- back.
 local SOIL = core.register_node("farm:soil", 92, 62, 40, true, 0, "", 0, 0.6, "soil")
 core.node_drop(SOIL, core.node_id("core:dirt"))
 
@@ -29,6 +36,35 @@ for n = 0, 3 do
     STAGES[n + 1] = id
 end
 local RIPE = STAGES[4]
+
+-- What each growing thing gives when it goes (broken, its soil gone, popped):
+-- by id, the item.
+local DROPS: { [number]: string } = {}
+for n, id in STAGES do
+    DROPS[id] = if n == 4 then "farm:wheat" else "animals:seeds"
+end
+
+-- The stems: kind -> its four stages, its seed and the fruit it gives.
+type Stem = { stages: { number }, seed: string, fruit: number }
+local STEMS: { [string]: Stem } = {}
+local STEM_OF: { [number]: Stem } = {}   -- each stage's id -> its stem
+local STEM_HEIGHTS = { 4 / 16, 7 / 16, 10 / 16, 13 / 16 }
+for _, kind in { "melon", "pumpkin" } do
+    local stem: Stem = { stages = {}, seed = `farm:{kind}_seeds`, fruit = core.node_id(`plants:{kind}`) }
+    core.register_item(stem.seed, 64, "", 0, 1.0, "")
+    for n = 0, 3 do
+        local id = core.register_node(`farm:{kind}_stem_{n}`, 90, 160, 50, false, 0, "", 0, 0.0, "")
+        core.node_model(id, core.register_model(`farm:{kind}_stem_{n}`, `{kind}_stem_{n}.gltf`))
+        core.node_box(id, 0.2, 0, 0.2, 0.8, STEM_HEIGHTS[n + 1], 0.8)
+        core.node_drop_item(id, stem.seed)
+        stem.stages[n + 1] = id
+        STEM_OF[id] = stem
+        DROPS[id] = stem.seed
+    end
+    STEMS[kind] = stem
+end
+core.recipe_shapeless("farm:melon_seeds", 1, "plants:melon_slice")
+core.recipe_shapeless("farm:pumpkin_seeds", 4, "plants:pumpkin")
 
 core.register_item("farm:hoe", 1, "", 0, 1.0, "", 0, "", 0, 59)   -- the wooden one; tools and furnace make the rest
 core.register_item("farm:wheat", 64, "", 0, 1.0, "")
@@ -50,9 +86,12 @@ core.event.on("core:used", function(ev)
         core.set_block(ev.x, ev.y, ev.z, SOIL)
         core.wear_held(ev.player, 1)
         ev.cancel = true
-    elseif ev.held == "animals:seeds" and ev.id == SOIL then
+    elseif (ev.held == "animals:seeds" or ev.held == "farm:melon_seeds" or ev.held == "farm:pumpkin_seeds")
+        and ev.id == SOIL then
         if core.take_item(ev.player, ev.held, 1) > 0 then
-            core.set_block(ev.x, ev.y + 1, ev.z, STAGES[1])
+            local first = if ev.held == "animals:seeds" then STAGES[1]
+                else STEMS[if ev.held == "farm:melon_seeds" then "melon" else "pumpkin"].stages[1]
+            core.set_block(ev.x, ev.y + 1, ev.z, first)
         end
         ev.cancel = true
     elseif ev.held == "farm:bread" then
@@ -103,41 +142,63 @@ end
 -- Every 30 s one crop in three goes up a stage: 90 s a stage on average with
 -- water near, twice that without. A crop whose soil has gone some way other
 -- than being dug (a mod, a flood) pops off as what it would have dropped.
-core.register_abm("farm:grow", { "farm:wheat_0", "farm:wheat_1", "farm:wheat_2", "farm:wheat_3" },
+local SIDES = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }
+local BEARS = { [core.node_id("core:dirt")] = true, [core.node_id("core:grass")] = true, [SOIL] = true }
+
+-- A grown stem's fruit, on a free cell beside it, unless one is there already.
+local function bear(x: number, y: number, z: number, stem: Stem)
+    local free = {}
+    for _, s in SIDES do
+        local fx, fz = x + s[1], z + s[2]
+        local here = core.get_block(fx, y, fz)
+        if here == stem.fruit then return end
+        if here == 0 and BEARS[core.get_block(fx, y - 1, fz)] then table.insert(free, { fx, fz }) end
+    end
+    if #free == 0 then return end
+    local at = free[math.random(#free)]
+    core.set_block(at[1], y, at[2], stem.fruit)
+    if core.node_turns(stem.fruit) > 1 then core.set_facing(at[1], y, at[2], math.random(0, 3)) end
+end
+
+local CROPS = { "farm:wheat_0", "farm:wheat_1", "farm:wheat_2", "farm:wheat_3" }
+for _, kind in { "melon", "pumpkin" } do
+    for n = 0, 3 do table.insert(CROPS, `farm:{kind}_stem_{n}`) end
+end
+core.register_abm("farm:grow", CROPS,
     30.0, 3, function(cell)
         local id = core.get_block(cell.x, cell.y, cell.z)
         if core.get_block(cell.x, cell.y - 1, cell.z) ~= SOIL then
             core.set_block(cell.x, cell.y, cell.z, 0)
-            local what = if id == RIPE then "farm:wheat" else "animals:seeds"
-            core.drop_item(cell.x, cell.y, cell.z, core.item_id(what), 1)
+            core.drop_item(cell.x, cell.y, cell.z, core.item_id(DROPS[id] or "animals:seeds"), 1)
             return
         end
-        if id == RIPE or core.light(cell.x, cell.y, cell.z) < 9
+        local stem = STEM_OF[id]
+        local grown = id == RIPE or (stem ~= nil and id == stem.stages[4])
+        if core.light(cell.x, cell.y, cell.z) < 9
             or (season == "winter" and core.block_light(cell.x, cell.y, cell.z) < 9)
             or (season == "autumn" and math.random(2) == 1)
             or (not watered(cell.x, cell.y - 1, cell.z) and math.random(2) == 1) then
             return
         end
+        if grown then
+            if stem then bear(cell.x, cell.y, cell.z, stem) end
+            return
+        end
+        local stages = if stem then stem.stages else STAGES
         for i = 1, 3 do
-            if STAGES[i] == id then
-                core.set_block(cell.x, cell.y, cell.z, STAGES[i + 1])
+            if stages[i] == id then
+                core.set_block(cell.x, cell.y, cell.z, stages[i + 1])
                 return
             end
         end
     end)
 
-local GROWING = {}
-for _, id in STAGES do
-    GROWING[id] = true
-end
-
 -- Soil back to dirt, taking what grows on it along as what it would drop.
 local function undo_soil(x: number, y: number, z: number)
     local above = core.get_block(x, y + 1, z)
-    if GROWING[above] then
+    if DROPS[above] then
         core.set_block(x, y + 1, z, 0)
-        local what = if above == RIPE then "farm:wheat" else "animals:seeds"
-        core.drop_item(x, y + 1, z, core.item_id(what), 1)
+        core.drop_item(x, y + 1, z, core.item_id(DROPS[above]), 1)
     end
     core.set_block(x, y, z, core.node_id("core:dirt"))
 end
@@ -179,10 +240,9 @@ end)
 core.event.on("core:broken", function(ev)
     if ev.id == SOIL then
         local above = core.get_block(ev.x, ev.y + 1, ev.z)
-        if GROWING[above] then
+        if DROPS[above] then
             core.set_block(ev.x, ev.y + 1, ev.z, 0)
-            local what = if above == RIPE then "farm:wheat" else "animals:seeds"
-            core.drop_item(ev.x, ev.y + 1, ev.z, core.item_id(what), 1)
+            core.drop_item(ev.x, ev.y + 1, ev.z, core.item_id(DROPS[above]), 1)
         end
     elseif ev.id == RIPE then
         local more = math.random(1, 3)
@@ -193,10 +253,10 @@ core.event.on("core:broken", function(ev)
     end
 end)
 
-core.log("farm: a hoe tills grass, seeds grow into wheat, three wheat are bread")
+core.log("farm: a hoe tills grass, seeds grow into wheat, three wheat are bread; melon and pumpkin stems")
 
 -- What each item looks like in a hand: its own model, drawn in the palm
 -- (tools/make_held_models.py).
-for _, n in { "bread", "hoe", "wheat" } do
+for _, n in { "bread", "hoe", "wheat", "melon_seeds", "pumpkin_seeds" } do
     core.register_model(`farm:{n}_held`, `{n}_held.gltf`)
 end

@@ -253,7 +253,7 @@ def main():
     for name, colour in (("coal", (34, 32, 36)), ("copper", (196, 110, 72)),
                          ("iron", (216, 216, 216)), ("gold", (246, 208, 60)),
                          ("lapis", (34, 66, 170)), ("cinnabar", (170, 20, 16)),
-                         ("diamond", (100, 220, 214)), ("emerald", (40, 190, 90))):
+                         ("diamond", (100, 220, 214)), ("ruby", (190, 20, 84))):
         compact(name, colour, rng)
     bed(rng)
     dust("dust", (110, 16, 12), rng)

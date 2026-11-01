@@ -58,7 +58,7 @@ end
 core.node_drop(POINT_UP, POINT_DOWN)
 
 core.node_glass(ICE, 190)
-core.node_liquid(LAVA, 235)
+core.node_liquid(LAVA, 130)
 
 core.register_item("rocks:clay_ball", 64, "", 0, 1.0, "")
 core.register_item("rocks:brick", 64, "", 0, 1.0, "")

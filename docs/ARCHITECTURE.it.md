@@ -188,7 +188,7 @@ a leggere i livelli e `daylight_at`.
 | `animals`, `pets` | Maiali, mucche, pecore, galline (cibo, lana, uova, pelle, allevamento); gatto, cane, canna da pesca |
 | `armor` | Sedici pezzi d'armatura nei quattro slot indossati |
 | `infernoportal` | Ossidiana e portale dell'inferno costruito a mano |
-| `farm` | Zappa, terra arata, grano in quattro stadi, pane |
+| `farm` | Zappa, terra arata, grano in quattro stadi, pane, gambi di anguria e zucca |
 | `bed` | Letto: rinascita; di notte ci si sdraia e con tutti a letto è l'alba, non con mostri vicini (`core.player_spawn`, `core.set_time`, `core.monsters_near`) |
 | `screwdriver` | Cacciavite: gira un blocco già piazzato (`core.node_turns`) |
 | `compact` | Blocchi da nove lingotti, gemme o polveri |

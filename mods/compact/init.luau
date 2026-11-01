@@ -11,7 +11,7 @@ local BLOCKS = {
     { "lapis",    "ore:lapis",            34, 66, 170,  1, 3.0 },
     { "cinnabar", "ore:cinnabar",         170, 20, 16,  0, 5.0 },
     { "diamond",  "ore:diamond",          100, 220, 214, 2, 5.0 },
-    { "emerald",  "ore:emerald",          40, 190, 90,  2, 5.0 },
+    { "ruby",     "ore:ruby",             190, 20, 84,  2, 5.0 },
 }
 
 for _, b in BLOCKS do
@@ -22,3 +22,5 @@ for _, b in BLOCKS do
     core.recipe_shaped(name, 1, row, row, row)
     core.recipe_shapeless(item, 9, name)
 end
+core.node_alias("compact:emerald", "compact:ruby")   -- renamed 2026-11-01
+core.item_alias("compact:emerald", "compact:ruby")

@@ -1,10 +1,10 @@
 --!strict
 -- Travel: a WAYSTONE stands by the well of every village laid out since, and
--- one is made of smooth stone round an emerald and a cinnabar. It only works
+-- one is made of smooth stone round a ruby and a cinnabar. It only works
 -- on owned ground -- a village's, or a player's territory (mods/territory):
 -- put down anywhere else it comes back to the bag. Right click one: it is
 -- remembered for that player (attuned), and they are shown the others they
--- remember, nearest first, each with its price -- an emerald every 200 nodes,
+-- remember, nearest first, each with its price -- a ruby every 200 nodes,
 -- one at least. Pick one: paid, a portal opens beside this stone onto one
 -- beside that one, both ways, for five minutes and for anybody (a new trip from
 -- or to either stone replaces it). Broken, a stone is forgotten by everybody.
@@ -20,11 +20,11 @@ core.node_box(STONE, 0.25, 0.2, 0.25, 0.75, 0.85, 0.75)
 core.node_box(STONE, 0.18, 0.85, 0.18, 0.82, 1.0, 0.82)
 core.register_model("travel:waystone_held", "waystone_held.gltf")   -- tools/make_held_models.py
 core.recipe_shaped("travel:waystone", 1,
-    "rocks:smooth_stone  ore:emerald   rocks:smooth_stone",
+    "rocks:smooth_stone  ore:ruby   rocks:smooth_stone",
     "rocks:smooth_stone  ore:cinnabar  rocks:smooth_stone",
     "rocks:smooth_stone  rocks:smooth_stone  rocks:smooth_stone")
 
-local PER = 200     -- nodes an emerald
+local PER = 200     -- nodes a ruby
 local OPEN = 300    -- seconds a paid way stays open
 local SHOWN = 8     -- destinations on the panel at most
 local VILLAGE = 65536          -- mods/territory: a village's ground from here,
@@ -243,7 +243,7 @@ local function show(p: number, from: Stone)
     for i, s in list do
         local n = price(from, s)
         core.ui_button(name, tostring(i), 0.4, 1.6 + (i - 1) * 1.1, 10.2, 0.9,
-            `{s.name} -- {n} emerald{if n == 1 then "" else "s"}`)
+            `{s.name} -- {n} {if n == 1 then "ruby" else "rubies"}`)
     end
     core.ui_button(name, "close", 0.4, 1.7 + #list * 1.1, 10.2, 0.9, "close")
     core.ui_show(name, true, p)
@@ -322,17 +322,17 @@ core.event.on("core:ui_click", function(ev)
         return
     end
     local n = price(o.from, to)
-    local paid = core.take_item(p, "ore:emerald", n)
+    local paid = core.take_item(p, "ore:ruby", n)
     if paid < n then
         if paid > 0 then
-            core.give_item(p, "ore:emerald", paid)
+            core.give_item(p, "ore:ruby", paid)
         end
-        core.notice(p, `That is {n} emerald{if n == 1 then "" else "s"}`)
+        core.notice(p, `That is {n} {if n == 1 then "ruby" else "rubies"}`)
         return
     end
     core.ui_show(ev.panel, false, p)
     if not open_way(o.from, to) then
-        core.give_item(p, "ore:emerald", n)
+        core.give_item(p, "ore:ruby", n)
         core.notice(p, "There is no room by one of the waystones for a portal")
         return
     end

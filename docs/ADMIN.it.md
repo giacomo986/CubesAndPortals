@@ -115,6 +115,7 @@ il proprietario di quel nome in questo mondo, o il nome e basta.
 | `/backup` | backup | Copia ora ogni file di mondo |
 | `/metrics` | logs | Da quanto è acceso, giocatori e finestre per stanza, il vuoto più lungo fra due tick |
 | `/weather [clear\|rain\|storm] [MINUTI]` | admin | Il cielo del sandbox (`mods/weather`): senza parola, com'è e quanto dura; con una, quel cielo adesso, per MINUTI o il tempo solito |
+| `/time [day\|noon\|dusk\|night\|midnight\|dawn\|HH:MM]` | admin | L'orologio (`mods/weather`): senza parola, l'ora adesso; con una, quell'ora subito per tutti. Portato indietro oltre la mezzanotte conta un giorno, come una notte dormita |
 | `/season [spring\|summer\|autumn\|winter]` | admin | La stagione del sandbox (`mods/weather`, cinque giorni l'una): senza parola, quale e che giorno; con una, il primo giorno di quella stagione quest'anno |
 | `/village siege\|feast\|caravan\|incoming` | admin | Avvia subito uno degli eventi dei villaggi nel villaggio dove sta l'admin (`mods/villagers`): un assedio annunciato ora che arriva al calar della notte, la festa del raccolto nella sua piazza, una carovana verso l'altro villaggio più vicino (nessuna se ce n'è già una in giro o i suoi bauli non hanno niente da dare), o una che arriva da un villaggio a 100-900 che nessuno ha visitato, lungo i sentieri (nessuna se nessun villaggio così è collegato) |
 
@@ -127,6 +128,8 @@ il proprietario di quel nome in questo mondo, o il nome e basta.
 | `/whois NOME` | whois | Chiave, nomi usati, indirizzi, avvertimenti, note, ban |
 | `/alts NOME` | alts | Altri giocatori entrati da un indirizzo da cui è entrato questo, e quali sono banditi |
 | `/bag NOME` | bag | Cosa porta un giocatore, casella per casella, e cosa tengono i suoi zaini; offline, la borsa tenuta qui; e se è andata a un server amico |
+| `/kill [NOME]` | chiunque (sé stesso), moderator (un altro) | Muore e torna al suo letto o allo spawn, in modalità creativa o no (`mods/creative`); l'armatura si consuma un poco, come per un colpo qualsiasi |
+| `/creative on\|off` | admin | La modalità creativa per sé (`mods/creative`): volo senza jetpack, nessun danno, scavo dieci volte più veloce. Tenuta per nome tra un riavvio e l'altro. In un mondo del menù del titolo il giocatore è il proprietario, quindi lì è libera. `/creative TESTO` resta la ricerca del catalogo, sotto il permesso `creative` |
 | `/give NOME OGGETTO [QUANTI]` | give | Oggetti per nome (`chest:box`) nella borsa di un giocatore online |
 | `/report NOME cosa è successo` | chiunque | Un rapporto per lo staff, detto subito a chi è online |
 | `/reports` | reports | Gli ultimi rapporti |

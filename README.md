@@ -264,13 +264,13 @@ winning anything: the ways out, the arches, the laboratory's gate, the front and
   garrisons by d. Every level's way out is closed, near where it starts and hidden behind its own
   wall under a dark lamp; done, the wall falls, the lamp lights, and a doorway or the circuit
   itself brings the player back to it. Two sites of one world can be entered at once.
-- **Rewards and keys.** Back at the portal, a chest holds what that world gives (emeralds and rails
+- **Rewards and keys.** Back at the portal, a chest holds what that world gives (rubies and rails
   from the track, gold and obsidian from the Inferno, arrows and armour from the arena, ...), 40%
   more for each step of d, a quarter of it for a level done before, now and then something rare. A
   world's key comes only from a level of d 4 or more.
 - **Directions** (`mods/villagers`): a villager now and then tells of the nearest portal, vaguely
   (what it looks like, which way, near or far, how those who went came back); a caravan, of one near
-  the village it comes from; the mayor, for 2 + d emeralds, exactly, with the way on the map.
+  the village it comes from; the mayor, for 2 + d rubies, exactly, with the way on the map.
 
 ### The sandbox
 
@@ -290,7 +290,7 @@ job, meals and a bed. Every village has:
   and a thief is forgiven once, then hunted);
 - a mayor who sells plots and houses, and a builder who builds them block by block with materials
   brought by the village's lumberjacks, miners and diggers;
-- a merchant and workers who trade in emeralds, with prices set by supply, and a treasury;
+- a merchant and workers who trade in rubies, with prices set by supply, and a treasury;
 - a mine, a craftsman who remakes tools, and homes for every role.
 
 **Territories** (`mods/territory`): a boundary stone founds a territory that grows while its
@@ -316,7 +316,7 @@ taken and paid (from its treasury) at the mayor and the merchant; after five, th
 
 **Village events**, rung on the hall's bell and posted on the board: caravans of a merchant and a mule
 carrying real goods to another village (buy from them on the road, or escort them for pay), rare night
-sieges warned of at dusk (three waves against the watch: no villager lost, emeralds for the defenders),
+sieges warned of at dusk (three waves against the watch: no villager lost, rubies for the defenders),
 caravans from villages you have not seen yet (their merchant shows you the way, on your map too),
 and the harvest feast on the last day of summer -- stalls and lanterns in the square, food at half
 price, music, fireworks in the evening (`mods/fireworks`).
@@ -343,7 +343,7 @@ put back on their pedestals.
 held shows the land round you where you have been, kept by the server across sessions.
 
 **Waystones** (`mods/travel`). A waystone stands by every village's well, and one can be made
-for a territory: touch one to remember it, then pay an emerald every 200 nodes to open a portal
+for a territory: touch one to remember it, then pay a ruby every 200 nodes to open a portal
 from any waystone to one you remember, for anybody to walk through, for five minutes. A world
 holds as many portals as are built; only the ones near players are live at once.
 
@@ -370,7 +370,7 @@ sheep and chickens graze, breed and grow; a dog and a cat can be tamed and follo
 **Survival and crafting.** Bag and hotbar, crafting, chests (two side by side make a double one),
 a furnace with input, fuel and output rows, tools in five materials that wear out, armour in
 four, hunger, experience and an enchanting table, beds that skip the night, farming (hoe, seeds,
-wheat, bread, water and light), fishing, sugar cane, paper and books, doors, ladders and
+wheat, bread, melons and pumpkins, water and light), fishing, sugar cane, paper and books, doors, ladders and
 trapdoors.
 
 **Machines.** Cinnabar circuits (`mods/cinnabar`): dust, levers, buttons, torches, repeaters,
@@ -387,7 +387,9 @@ two to five players, with the table playing the empty seats.
 **Characters and gear.** Choose robot, human, mole man or frog man, a style, three colours and
 two accessories, all seen by everyone. On your back: a jetpack to fly, a leather backpack with
 27 slots of its own, or a metal backpack with two jointed arms that each hold a tool. The
-creative catalogue (C) has a search box.
+creative catalogue (C) has a search box. `/creative on` is creative mode: flying without the
+jetpack, no damage, fast digging (free in a world of your own, admin on a server). `/time` sets
+the hour, `/kill` takes you back to your bed or the spawn when you are stuck.
 
 ### The engine
 
@@ -576,7 +578,7 @@ server running across restarts and crashes, with a log a day.
 | | |
 |---|---|
 | `tools/play.sh` (`local`, `--fresh`) | Builds in Release, starts server and client with every mod and a world saved in `worlds/play/` |
-| `tools/track.sh` (`--fresh`) | A server with the sandbox and every world as rooms, as the title menu starts it (worlds and logs in `worlds/track/`) |
+| `tools/track.sh` (`--fresh`) | A server with the sandbox and every world as rooms, as the title menu starts it (worlds and logs in `worlds/track/`); `--fresh` also makes you its owner, so the creative catalogue (C) is open |
 | `tools/arpg.sh`, `tools/fps.sh`, `tools/chambers.sh` (`--fresh`) | The sandbox and one world, for working on that world |
 | `build/tools/cnp_modpack pack mods/ore` | A mod in a `.cnpmod` file, which loads from `mods/` like a directory |
 | `tools/dist/package-*.sh` | The packages for Linux, Windows and macOS ([`docs/BUILDING.md`](docs/BUILDING.md)) |

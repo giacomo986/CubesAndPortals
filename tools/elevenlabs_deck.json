@@ -171,7 +171,7 @@
   {
    "name": "3_spade",
    "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the THREE of SWORDS (Tre di Spade). Exactly 3 straight long swords, upright, every sword the same design: a blue blade, a golden crossguard with curled ends and a red oval gem in the middle, a red grip wrapped in a golden spiral, a golden pommel, all exactly the same size, short enough that every sword fits whole inside the picture with a margin above and below, arranged one above the other in a column, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
-   "done": false
+   "done": true
   },
   {
    "name": "4_spade",
@@ -181,12 +181,12 @@
   {
    "name": "5_spade",
    "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the FIVE of SWORDS (Cinque di Spade). Exactly 5 straight long swords, upright, every sword the same design: a blue blade, a golden crossguard with curled ends and a red oval gem in the middle, a red grip wrapped in a golden spiral, a golden pommel, all exactly the same size, short enough that every sword fits whole inside the picture with a margin above and below, arranged two at the top, one in the middle, two at the bottom, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
-   "done": false
+   "done": true
   },
   {
    "name": "6_spade",
    "prompt": "Artwork for the face of a traditional Neapolitan (Napoletane) playing card: the SIX of SWORDS (Sei di Spade). Exactly 6 straight long swords, upright, every sword the same design: a blue blade, a golden crossguard with curled ends and a red oval gem in the middle, a red grip wrapped in a golden spiral, a golden pommel, all exactly the same size, short enough that every sword fits whole inside the picture with a margin above and below, arranged in two columns of three, nothing else in the picture. Style: classic 19th-century Italian woodcut card art, flat bright colours (red, blue, yellow, green) with bold black outlines, simple shading. Plain cream background filling the whole picture edge to edge, no border, no frame, no text, no numbers, no letters. Portrait composition, centred, filling the height.",
-   "done": false
+   "done": true
   },
   {
    "name": "7_spade",

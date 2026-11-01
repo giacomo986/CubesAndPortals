@@ -97,7 +97,7 @@ end
 -- ------------------------------------------------------------ the chests
 
 local SLOTS = 27
-local LOOT = { { "ore:emerald", 4, 8 }, { "furnace:gold_ingot", 2, 6 }, { "furnace:iron_ingot", 3, 8 },
+local LOOT = { { "ore:ruby", 4, 8 }, { "furnace:gold_ingot", 2, 6 }, { "furnace:iron_ingot", 3, 8 },
                { "ore:diamond", 0, 2 }, { "ore:lapis", 4, 12 } }
 
 local function stock(x: number, y: number, z: number, h: number)

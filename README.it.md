@@ -266,13 +266,13 @@ stanza sandbox, `tools/track.sh --survival`) fa lo stesso gioco senza piazza:
   a dove si comincia e nascosta dietro una sua parete sotto una lampada spenta; a livello fatto la
   parete cade, la lampada si accende, e una porta o il circuito stesso riporta lì. Due siti dello
   stesso mondo si possono attraversare insieme.
-- **Ricompense e chiavi.** Al ritorno al portale una cassa tiene ciò che quel mondo dà (smeraldi e
+- **Ricompense e chiavi.** Al ritorno al portale una cassa tiene ciò che quel mondo dà (rubini e
   binari dalla pista, oro e ossidiana dall'Inferno, frecce e armatura dall'arena, ...), il 40% in
   più per ogni gradino di d, un quarto per un livello già fatto, ogni tanto qualcosa di raro. La
   chiave di un mondo viene solo da un livello di d 4 o più.
 - **Indicazioni** (`mods/villagers`): un abitante ogni tanto parla del portale più vicino, in modo
   vago (com'è, da che parte, vicino o lontano, come sono tornati quelli che ci sono andati); una
-  carovana, di uno vicino al villaggio da cui viene; il sindaco, per 2 + d smeraldi, esattamente,
+  carovana, di uno vicino al villaggio da cui viene; il sindaco, per 2 + d rubini, esattamente,
   con la strada sulla mappa. I portali visti vanno sulla mappa, verdi una volta fatti.
 
 ### Il sandbox
@@ -293,7 +293,7 @@ e un letto. Ogni villaggio ha:
   furto viene marcato, e un ladro è perdonato una volta, poi braccato);
 - un sindaco che vende lotti e case, e un costruttore che le alza blocco per blocco con i
   materiali portati dai taglialegna, dai minatori e dagli scavatori del villaggio;
-- un mercante e dei lavoratori che commerciano a smeraldi, con prezzi che seguono l'offerta, e
+- un mercante e dei lavoratori che commerciano a rubini, con prezzi che seguono l'offerta, e
   una cassa del villaggio;
 - una miniera, un artigiano che rifà gli attrezzi, e una casa per ogni ruolo.
 
@@ -322,7 +322,7 @@ dopo cinque, il mercante fa lo sconto.
 **Eventi del villaggio**, annunciati dalla campana del municipio e sulla bacheca: carovane di un mercante
 e un mulo che portano merci vere a un altro villaggio (si compra da loro per strada, o si scortano a
 pagamento), rari assedi notturni annunciati al tramonto (tre ondate contro la guardia: nessun abitante
-perso, smeraldi a chi difende) carovane da villaggi non ancora visitati (il mercante indica la strada, anche sulla mappa) e la festa
+perso, rubini a chi difende) carovane da villaggi non ancora visitati (il mercante indica la strada, anche sulla mappa) e la festa
 del raccolto l'ultimo giorno d'estate -- bancarelle e lanterne
 in piazza, cibo a metà prezzo, musica, fuochi d'artificio la sera (`mods/fireworks`).
 
@@ -349,8 +349,8 @@ da contare e scavare, frammenti da rimettere sui piedistalli.
 in mano mostra il terreno attorno dove si è già stati, tenuto dal server fra una sessione e l'altra.
 
 **Pietre del viaggio** (`mods/travel`). Ogni villaggio ne ha una accanto al pozzo, e una si
-fabbrica per il proprio territorio: toccarla la fa ricordare, e da qualunque pietra si paga uno
-smeraldo ogni 200 nodi per aprire un portale verso una di quelle ricordate, attraversabile da tutti
+fabbrica per il proprio territorio: toccarla la fa ricordare, e da qualunque pietra si paga un
+rubino ogni 200 nodi per aprire un portale verso una di quelle ricordate, attraversabile da tutti
 per cinque minuti. Un mondo tiene quanti portali si vuole; sono attivi solo quelli vicini ai
 giocatori.
 
@@ -377,7 +377,7 @@ li ha presi (`mods/mobs`, `mods/animals`, `mods/pets`).
 **Sopravvivenza e costruzione.** Borsa e hotbar, craft, casse (due affiancate fanno una doppia),
 una fornace con le righe per materiale, combustibile e prodotto, attrezzi in cinque materiali che
 si consumano, armature in quattro, fame, esperienza e tavolo da incantamento, letti che fanno
-passare la notte, campi (zappa, semi, grano, pane, acqua e luce), pesca, canna da zucchero, carta
+passare la notte, campi (zappa, semi, grano, pane, angurie e zucche, acqua e luce), pesca, canna da zucchero, carta
 e libri, porte, scale a pioli e botole.
 
 **Macchine.** Circuiti di cinnabar (`mods/cinnabar`): polvere, leve, pulsanti, torce, ripetitori,
@@ -395,7 +395,9 @@ tresette, da due a cinque giocatori, con il tavolo che gioca i posti vuoti.
 **Personaggi ed equipaggiamento.** Si sceglie robot, umano, uomo talpa o uomo rana, uno stile,
 tre colori e due accessori, visti da tutti. Sulla schiena: un jetpack per volare, uno zaino di
 cuoio con 27 slot suoi, o uno zaino di metallo con due braccia snodate che tengono uno strumento
-ciascuna. Il catalogo creativo (C) ha una casella di ricerca.
+ciascuna. Il catalogo creativo (C) ha una casella di ricerca. `/creative on` è la modalità creativa: volo
+senza jetpack, nessun danno, scavo veloce (libera in un mondo tuo, da admin su un server). `/time`
+cambia l'ora, `/kill` riporta al letto o allo spawn quando si resta bloccati.
 
 ### L'engine
 
@@ -588,7 +590,7 @@ server acceso tra riavvii e crash, con un log al giorno.
 | | |
 |---|---|
 | `tools/play.sh` (`local`, `--fresh`) | Compila in Release, avvia server e client con tutti i mod e un mondo salvato in `worlds/play/` |
-| `tools/track.sh` (`--fresh`) | Un server con il sandbox e tutti i mondi come stanze, come lo avvia il menù del titolo (mondi e log in `worlds/track/`) |
+| `tools/track.sh` (`--fresh`) | Un server con il sandbox e tutti i mondi come stanze, come lo avvia il menù del titolo (mondi e log in `worlds/track/`); `--fresh` ti fa anche suo proprietario, così il catalogo creativo (C) è aperto |
 | `tools/arpg.sh`, `tools/fps.sh`, `tools/chambers.sh` (`--fresh`) | Il sandbox e un mondo solo, per lavorare su quel mondo |
 | `build/tools/cnp_modpack pack mods/ore` | Un mod in un file `.cnpmod`, che si carica da `mods/` come una directory |
 | `tools/dist/package-*.sh` | I pacchetti per Linux, Windows e macOS ([`docs/BUILDING.md`](docs/BUILDING.it.md)) |

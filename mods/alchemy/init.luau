@@ -266,6 +266,8 @@ if drawing then
         table.sort(shown, function(a, b) return a[1] < b[1] end)
     end
     if serving then
+        -- One process, server and screen: the server half hands it over here.
+        core.event.define("alchemy:shown", { fields = { text = "string" }, cancellable = false })
         core.event.on("alchemy:shown", function(ev) took(ev.text) end)
     else
         core.event.on("core:net_message", function(ev) took(ev.text) end)

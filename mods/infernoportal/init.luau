@@ -47,6 +47,10 @@ local function is_obsidian(id: number): boolean
 end
 
 local MAX = 8      -- the widest and tallest hole a frame may hold
+-- Past this x a frame lights and leads nowhere: in the Inferno the survival
+-- sites' levels begin there (games/inferno's inferno_heart, slots from 8192),
+-- and in the world above it is where a twin would land among them.
+local EDGE = if IN_INFERNO then 8000 else 8000 * SCALE
 
 type Gate = { x: number, y: number, z: number, axis: number, sign: number, w: number, h: number }
 
@@ -280,6 +284,11 @@ core.event.on("core:used", function(ev)
         g.sign = if g.axis == 0 then (if pz >= cz then 1 else -1) else (if px >= cx then 1 else -1)
     end
     ev.cancel = true
+    if centre(g) >= EDGE then
+        core.play_sound("inferno:ignite", ev.x + 0.5, ev.y + 0.5, ev.z + 0.5)
+        core.notice(ev.player, "the frame flares and goes dark: no way opens from here")
+        return
+    end
     if place(g) then
         core.notice(ev.player, if IN_INFERNO then "the portal opens back onto the world above" else "the portal opens onto the Inferno")
     else

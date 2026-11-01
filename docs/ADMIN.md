@@ -115,6 +115,7 @@ owner of that name on this world, or the bare name.
 | `/backup` | backup | Copy every world file now |
 | `/metrics` | logs | Uptime, players and windows per room, the longest gap between ticks |
 | `/weather [clear\|rain\|storm] [MINUTES]` | admin | The sandbox's sky (`mods/weather`): with no word, what it is and how long it lasts; with one, that sky now, for MINUTES or the usual time |
+| `/time [day\|noon\|dusk\|night\|midnight\|dawn\|HH:MM]` | admin | The clock (`mods/weather`): with no word, the hour now; with one, that hour at once for everybody. Turned back past midnight it counts a day, as a night slept through does |
 | `/season [spring\|summer\|autumn\|winter]` | admin | The sandbox's season (`mods/weather`, five days each): with no word, which and what day of it; with one, the first day of that season this year |
 | `/village siege\|feast\|caravan\|incoming` | admin | Starts one of the villages' events now in the village the admin stands in (`mods/villagers`): a siege warned of now and coming at nightfall, the harvest feast in its square, a caravan to the nearest other village (none when one is out already or its chests have nothing to spare), or one coming from a village 100-900 away nobody has visited, along the paths (none when no such village is joined by them) |
 
@@ -127,6 +128,8 @@ owner of that name on this world, or the bare name.
 | `/whois NAME` | whois | Key, names used, addresses, warnings, notes, bans |
 | `/alts NAME` | alts | Other players who came in from an address this one came from, and which are banned |
 | `/bag NAME` | bag | What a player carries, square by square, and what their backpacks hold; offline, the bag kept here; and whether it went to a friend server |
+| `/kill [NAME]` | anybody (themselves), moderator (somebody else) | Dies and comes back at their bed or the spawn, creative mode or not (`mods/creative`); armour wears a little, as from any blow |
+| `/creative on\|off` | admin | Creative mode for themselves (`mods/creative`): flying without the jetpack, no damage, digging ten times as fast. Kept by name across restarts. In a world of the title screen its player is the owner, so it is free there. `/creative TEXT` is still the catalogue's search, under the `creative` permission |
 | `/give NAME ITEM [COUNT]` | give | Items by name (`chest:box`) into an online player's bag |
 | `/report NAME what happened` | anybody | A report for the staff, told at once to those online |
 | `/reports` | reports | The latest reports |

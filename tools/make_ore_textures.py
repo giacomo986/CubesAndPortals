@@ -24,7 +24,7 @@ OUT = os.path.join(os.path.dirname(__file__), "..", "assets", "textures")
 # Where the flecks sit, on the 16 grid, and the same layout for every ore so
 # the ores are told apart by colour and shape of the cluster, as in the classic block game.
 # Two layouts: a few big clumps (coal, copper, iron, gold) and many small
-# specks (cinnabar, lapis, diamond, emerald).
+# specks (cinnabar, lapis, diamond, ruby).
 CLUMPS = [
     [(3, 2), (4, 2), (3, 3), (4, 3), (5, 3)],
     [(10, 4), (11, 4), (11, 5), (12, 5)],
@@ -52,7 +52,7 @@ ORES = {
     "cinnabar_ore": (SPECKS, (220, 20, 20), (255, 110, 100), (130, 8, 8)),
     "lapis_ore":    (SPECKS, (32, 72, 200), (96, 140, 255), (16, 36, 120)),
     "diamond_ore":  (SPECKS, (98, 224, 222), (210, 255, 252), (40, 140, 140)),
-    "emerald_ore":  (SPECKS, (40, 200, 90), (150, 255, 170), (10, 110, 44)),
+    "ruby_ore":     (SPECKS, (200, 20, 90), (255, 130, 180), (110, 6, 44)),
 }
 
 
@@ -145,7 +145,7 @@ MASKS = {
         ".....#####......",
         "................",
     ],
-    "emerald": [
+    "ruby": [
         "................",
         ".......##.......",
         "......####......",
@@ -208,7 +208,7 @@ def main():
         "ore_raw_copper": ("raw", (214, 118, 70), ((110, 180, 150), 0.2)),
         "ore_cinnabar": ("dust", (210, 24, 24), None),
         "ore_lapis": ("lapis", (40, 80, 210), ((220, 200, 90), 0.08)),
-        "ore_emerald": ("emerald", (44, 206, 96), ((170, 255, 190), 0.12)),
+        "ore_ruby": ("ruby", (206, 22, 92), ((255, 160, 200), 0.12)),
         "furnace_copper_ingot": ("ingot", (224, 128, 76), None),
     }
     for name, (mask, colour, flecks) in items.items():

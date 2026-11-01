@@ -153,15 +153,101 @@ if serving then
         fill(ev.player)
     end)
 
-    core.command("creative", "[text] -- the catalogue, only the items whose names hold the text", "creative")
+    -- Creative mode, /creative on|off: flying without the pack, no blows taken,
+    -- digging as fast as the engine lets a body dig. "admin" on a server; in a
+    -- world of the title screen its one player is the owner, so it is theirs.
+    -- Kept by name, so it comes back with them after a restart.
+    local mode: { [number]: boolean } = {}   -- who has it applied, now
+
+    local function fly(player: number, on: boolean)
+        -- mods/jetpack owns flight where it is loaded; elsewhere the world's
+        -- own flying speed (0 in a puzzle world) is what player_fly gives back.
+        if not pcall(core.event.emit, "jetpack:free", { player = player, on = on }) and on then
+            core.player_fly(player, true)
+        end
+    end
+
+    local function apply(player: number, on: boolean)
+        mode[player] = on
+        if on then
+            core.player_factors(player, 1, 10, 0, 1, "creative")
+        else
+            core.player_factors(player, 1, 1, 1, 1, "creative")
+        end
+        fly(player, on)
+    end
+
+    local function kept(player: number): boolean
+        return core.storage_get("on:" .. core.player_name(player)) == "1"
+    end
+
+    core.event.on("core:tick", function()
+        local here: { [number]: boolean } = {}
+        for _, p in core.players() do
+            here[p] = true
+            if mode[p] == nil then
+                if kept(p) then apply(p, true) else mode[p] = false end
+            end
+        end
+        for p in mode do
+            if not here[p] then mode[p] = nil end
+        end
+    end)
+
+    core.command("creative", "[on|off|text] -- creative mode, or the catalogue narrowed to the text")
 
     core.event.on("core:command", function(ev)
         if ev.name ~= "creative" then
             return
         end
+        local arg = string.lower(string.match(ev.args, "^%s*(.-)%s*$") or "")
+        if arg == "on" or arg == "off" then
+            if core.has_perm(ev.player, "admin") == 0 then
+                core.chat(ev.player, "Creative mode is for admins on this server.")
+                return
+            end
+            apply(ev.player, arg == "on")
+            core.storage_set("on:" .. core.player_name(ev.player), if arg == "on" then "1" else "")
+            core.chat(ev.player, if arg == "on" then "Creative mode on: F flies, C opens the catalogue."
+                                                else "Creative mode off.")
+            return
+        end
         query[ev.player] = string.sub(ev.args, 1, 64)
         row[ev.player] = 0
         open_for(ev.player)
+    end)
+
+    -- /kill: your own body for anybody stuck, somebody else's for a moderator.
+    -- Hit until it falls, a body's worth each time, so armour wears a little
+    -- and not to nothing; a creative body is made hurtable for the moment.
+    core.command("kill", "[name] -- die and go back to your bed or the spawn")
+    core.event.on("core:command", function(ev)
+        if ev.name ~= "kill" then
+            return
+        end
+        local name = string.match(ev.args, "^%s*(%S*)") or ""
+        local who = ev.player
+        if name ~= "" and name ~= core.player_name(ev.player) then
+            if core.has_perm(ev.player, "moderator") == 0 then
+                core.chat(ev.player, "Only a moderator may /kill somebody else.")
+                return
+            end
+            who = 0
+            for _, p in core.players() do
+                if core.player_name(p) == name then who = p end
+            end
+            if who == 0 then
+                core.chat(ev.player, `Nobody called {name} is here.`)
+                return
+            end
+        end
+        if mode[who] then core.player_factors(who, 1, 10, 1, 1, "creative") end
+        for _ = 1, 100 do
+            local hp = core.health(who)
+            if hp <= 0 or core.damage(who, hp) == 0 then break end
+        end
+        if mode[who] then core.player_factors(who, 1, 10, 0, 1, "creative") end
+        if who ~= ev.player then core.chat(ev.player, `{name} killed.`) end
     end)
 
     turn = function(player: number, by: number)

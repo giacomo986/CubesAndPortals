@@ -844,11 +844,11 @@ int main(int argc, char **argv)
         Fixture f;
         build(f, 1, 64, 1, mods_dir);
 
-        // Emerald last and not required: it is only under the peaks, and a
+        // Ruby last and not required: it is only under the peaks, and a
         // 64-square world may have none.
         const char *names[] = {"ore:coal_ore", "ore:copper_ore", "ore:iron",
                                "ore:lapis_ore", "ore:gold", "ore:cinnabar_ore",
-                               "ore:diamond_ore", "ore:emerald_ore"};
+                               "ore:diamond_ore", "ore:ruby_ore"};
         constexpr int kOres = 8;
         BlockId ids[kOres];
         bool    registered = true;

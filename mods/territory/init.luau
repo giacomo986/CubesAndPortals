@@ -1,7 +1,7 @@
 --!strict
 -- territory: ground a player owns.
 --
--- A BOUNDARY STONE (8 cobblestone round an emerald) founds it: 5x5 cells round
+-- A BOUNDARY STONE (8 cobblestone round a ruby) founds it: 5x5 cells round
 -- the stone, which grow by one cell every 5 seconds while one of its owners is
 -- on it -- the free cell on its edge nearest to where they stand, never
 -- further than 64 from the stone (128x128 at most). Right click on the stone:
@@ -66,7 +66,7 @@ if serving then
     local STONE = core.register_node("territory:boundary_stone", 120, 130, 120, true, 0, "", 1, 3.0, "stone")
     core.recipe_shaped("territory:boundary_stone", 1,
         "rocks:cobblestone rocks:cobblestone rocks:cobblestone",
-        "rocks:cobblestone ore:emerald       rocks:cobblestone",
+        "rocks:cobblestone ore:ruby       rocks:cobblestone",
         "rocks:cobblestone rocks:cobblestone rocks:cobblestone")
 
     core.event.define("territory:lot", {

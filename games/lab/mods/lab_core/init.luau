@@ -46,7 +46,7 @@ node("valve_open", { 230, 120, 40 }, 6)      -- the lava's: shut by a right clic
 node("valve_shut", { 70, 90, 70 })
 node("seal", { 50, 30, 70 }, 4)              -- the way out, shut until the end
 local LAVA = node("lava", { 230, 100, 20 }, 10, false)
-core.node_liquid(LAVA, 250)
+core.node_liquid(LAVA, 130)
 
 -- A panel a portal is in: chambers_core's shells (a sixteenth thick, open to
 -- the room, drawn as nothing), so a body walks into a portal on a wall.

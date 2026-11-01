@@ -724,12 +724,14 @@ core.node_liquid(id: number, opacity: number?, fill: number?) -> number
 
 Makes a registered block a liquid: a body goes through it and swims in it -- it sinks slowly, rises while jump is held, and moves at half its pace -- light passes through it, it is drawn see-through, and nothing digs it out. Returns 1, or 0 for an id nobody registered.
 
+Its surface ripples a little and its faces sway, a full column's too. Seen through, what lies behind it fades with how much of it is in the way: water to a blue murk, a liquid that gives light (lava) to its own colour and much sooner -- a node of it lets most through, eight hide all. Far from the eye a glowing one is drawn opaque.
+
 The server tells every client that joins what each block does to a body, so a client without the mod swims in the lake too.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
 | `id` | number | — |  |
-| `opacity` | number | `150` | 0..254: how much of what is behind it is hidden. 0 hides nothing. |
+| `opacity` | number | `150` | 0..254: how much of what is behind it is hidden at its surface. 0 hides nothing. Also the most its picture may cover: a texture file's alpha is capped at it. |
 | `fill` | number | `8` | How full a cell of it is, in eighths: 8 is a whole cell. Water running off a source is a block per level with less in each, and a client draws each at its own height with the surface sloping between neighbours. |
 
 ## `core.movement`

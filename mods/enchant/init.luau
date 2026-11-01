@@ -2,7 +2,7 @@
 -- enchant: The classic block game's experience and enchanting table, cut down.
 --
 -- Experience comes from ore dug (coal 1, cinnabar 2, lapis 3, diamond and
--- emerald 5), from creatures killed (3) and from smelting, and fills levels as the classic block game's
+-- ruby 5), from creatures killed (3) and from smelting, and fills levels as the classic block game's
 -- does: 7 points for the first, two more for each after. A green bar with the
 -- level over it sits above the hunger row.
 --
@@ -106,7 +106,7 @@ if serving then
 
     local ORE_XP: { [string]: number } = {
         ["ore:coal_ore"] = 1, ["ore:cinnabar_ore"] = 2, ["ore:lapis_ore"] = 3,
-        ["ore:diamond_ore"] = 5, ["ore:emerald_ore"] = 5,
+        ["ore:diamond_ore"] = 5, ["ore:ruby_ore"] = 5,
     }
     core.event.on("core:broken", function(ev)
         local n = ORE_XP[core.node_name(ev.id)]

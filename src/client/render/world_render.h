@@ -14,6 +14,7 @@
 #include "core/voxel/mesher.h"
 #include "core/world/daylight.h"
 
+#include <array>
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -71,7 +72,11 @@ struct PartVertex {
     // Which way the picture runs, for a liquid: 0 still, 1..8 one of eight
     // directions across a surface (downhill), 9 straight down a falling side.
     // Every box leaves it 0. It was the padding byte, so it costs nothing.
+    // Over that, for a liquid's vertex: kFlowLiquid always, kFlowSurface on
+    // its top (which ripples), kFlowDense for a glowing one such as lava,
+    // kFlowPinned on a corner against a block (it stays put).
     uint8_t flow = 0;
+    static constexpr uint8_t kFlowLiquid = 16, kFlowSurface = 32, kFlowDense = 64, kFlowPinned = 128;
     uint8_t lamp;   // Vertex::lamp
     uint8_t classic;   // Vertex::classic
 
@@ -402,6 +407,8 @@ private:
     struct WaterCell {
         uint8_t x, y, z;   // chunk-local
         uint8_t h[4];      // LiquidCell::h
+        bool    dense;     // a glowing liquid, lava: its own murk (uLavaColor)
+        uint8_t rgb[3];    // its colour, when dense
     };
 
     struct ChunkMesh {
@@ -504,6 +511,7 @@ private:
     int         m_loc_atlas_tiles = -1;
     int         m_atlas_tiles     = 4;
     int         m_tile_px         = kTilePixels;
+    std::vector<std::array<uint8_t, 3>> m_tile_rgb;   // each tile's mean colour
     int         m_tiles_used      = 0;
     bool        m_tiles_moved     = false;
     int         m_over_budget     = 0;
@@ -565,6 +573,7 @@ private:
         bool                 stale  = true;
         bool                 any    = false;
         int                  lo[3] = {0, 0, 0}, hi[3] = {0, 0, 0};   // uWaterLo/Hi
+        float                lava[4] = {0.9f, 0.4f, 0.08f, 1.0f};      // uLavaColor
     };
     void mark_water_stale()
     {

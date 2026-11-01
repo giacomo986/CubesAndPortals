@@ -331,6 +331,17 @@ void WorldRenderer::build_atlas(NodeRegistry &reg, const MediaSource &media,
             const auto it = pictures.find(src.file);
             if (it != pictures.end() && it->second.size == m_tile_px) {
                 blit_tile(pixels, m_atlas_tiles, m_tile_px, (int)t, it->second.px.data());
+                // A liquid's opacity (core.node_liquid) is the most its picture
+                // may cover: lava drawn opaque would hide how deep it is.
+                const NodeDef &def = reg.get((BlockId)src.node);
+                if (src.node != 0 && def.liquid && def.opacity < 255) {
+                    const int ox = ((int)t % m_atlas_tiles) * m_tile_px, oy = ((int)t / m_atlas_tiles) * m_tile_px;
+                    for (int y = 0; y < m_tile_px; ++y)
+                        for (int x = 0; x < m_tile_px; ++x) {
+                            uint8_t &a = pixels[((size_t)(oy + y) * atlas_px + ox + x) * 4 + 3];
+                            a = std::min(a, def.opacity);
+                        }
+                }
                 ++m_from_file;
                 continue;
             }
@@ -389,6 +400,18 @@ void WorldRenderer::build_atlas(NodeRegistry &reg, const MediaSource &media,
     if (items)
         for (size_t i = 0; i < plan.item_tile.size() && i < items->size(); ++i)
             items->set_icon((ItemId)i, plan.item_tile[i]);
+
+    // Each tile's mean colour: what a liquid looks like from inside it (a
+    // block's own colour is the server's, and a client has only a placeholder).
+    m_tile_rgb.assign(plan.tiles.size(), {0, 0, 0});
+    for (size_t t = 0; t < plan.tiles.size(); ++t) {
+        const int ox = ((int)t % m_atlas_tiles) * m_tile_px, oy = ((int)t / m_atlas_tiles) * m_tile_px;
+        uint32_t  sum[3] = {0, 0, 0};
+        for (int y = 0; y < m_tile_px; ++y)
+            for (int x = 0; x < m_tile_px; ++x)
+                for (int k = 0; k < 3; ++k) sum[k] += pixels[((size_t)(oy + y) * atlas_px + ox + x) * 4 + k];
+        for (int k = 0; k < 3; ++k) m_tile_rgb[t][k] = (uint8_t)(sum[k] / (uint32_t)(m_tile_px * m_tile_px));
+    }
 
     if (m_texture.id) gfx_texture_destroy(m_texture);
     m_texture = gfx_texture_create(pixels.data(), atlas_px, atlas_px, GFX_PF_RGBA8,
@@ -726,8 +749,13 @@ void WorldRenderer::sync(World &world, const NodeRegistry &reg, int max_uploads_
             std::vector<WaterCell> &water = it->second.water;
             if (!water.empty() || !m_scratch_result.liquids.empty()) mark_water_stale();
             water.clear();
-            for (const LiquidCell &c : m_scratch_result.liquids)
-                water.push_back({c.x, c.y, c.z, {c.h[0], c.h[1], c.h[2], c.h[3]}});
+            for (const LiquidCell &c : m_scratch_result.liquids) {
+                const NodeDef &def = reg.get(c.block);
+                const std::array<uint8_t, 3> rgb =
+                    def.tex[2] < m_tile_rgb.size() ? m_tile_rgb[def.tex[2]] : std::array<uint8_t, 3>{230, 100, 20};
+                water.push_back({c.x, c.y, c.z, {c.h[0], c.h[1], c.h[2], c.h[3]}, def.light_source > 0,
+                                 {rgb[0], rgb[1], rgb[2]}});
+            }
         }
 
         if (budget_ms > 0.0 && spent() >= budget_ms) break;
@@ -931,6 +959,7 @@ void emit_liquid_cell(const LiquidCell &cell, const NodeDef &def, std::vector<Pa
 
     // Which of `h`'s corners each of the top's vertices is.
     static const int kTopCorner[4] = {2, 3, 1, 0};
+    const uint8_t kind = PartVertex::kFlowLiquid | (def.light_source > 0 ? PartVertex::kFlowDense : 0);
 
     for (int f = 0; f < kFaceCount; ++f) {
         if (!(cell.faces & (1u << f))) continue;
@@ -948,7 +977,14 @@ void emit_liquid_cell(const LiquidCell &cell, const NodeDef &def, std::vector<Pa
             quad[c].face_ao = pack_face_ao(f, 3, def.tex[f]);
             quad[c].set_light(f == 2 ? cell.top_light[kTopCorner[c]] : cell.light[f]);
             quad[c].tex     = (uint8_t)(def.tex[f] & 0xFF);
-            quad[c].flow    = flow;
+            // The top's corners, and a side's two at the top, ripple together;
+            // not one at the very top of its cell, which is where the cell over
+            // it begins (a waterfall's sides), and a seam would open.
+            const bool surface = (f == 2 || (f != 3 && c >= 2)) && k.y < y0 + 0.999f;
+            const int  corner  = (k.x > x0 ? 1 : 0) + (k.z > z0 ? 2 : 0);
+            const bool pinned  = cell.pin & (k.y > y0 + 0.001f ? 16 << corner : 1 << corner);
+            quad[c].flow       = (uint8_t)(flow | kind | (surface ? PartVertex::kFlowSurface : 0) |
+                                     (pinned ? PartVertex::kFlowPinned : 0));
         }
 
         // Split along the diagonal whose ends differ LEAST, so a surface that
@@ -1150,6 +1186,12 @@ void WorldRenderer::refresh_water()
                     const int u = (y % 8) * kWaterBox[0] + x, v = (y / 8) * kWaterBox[2] + z;
                     uint8_t  *px = &w.px[((size_t)v * kWaterTexW + u) * 4];
                     for (int i = 0; i < 4; ++i) px[i] = c.h[i];
+                    // A dense cell says so in the top bit of its first corner
+                    // (heights are 0..16), and the box takes its colour.
+                    if (c.dense) {
+                        px[0] |= 128;
+                        for (int k = 0; k < 3; ++k) w.lava[k] = c.rgb[k] / 255.0f;
+                    }
                     w.any = true;
                     const int at[3] = {x, y, z};
                     for (int k = 0; k < 3; ++k) {
@@ -1186,6 +1228,7 @@ void WaterUniforms::locate(gfx_shader shader)
     lo     = gfx_uniform_location(shader, "uWaterLo");
     hi     = gfx_uniform_location(shader, "uWaterHi");
     colour = gfx_uniform_location(shader, "uWaterColor");
+    lava   = gfx_uniform_location(shader, "uLavaColor");
     cells  = gfx_uniform_location(shader, "uWaterCells");
     eye    = gfx_uniform_location(shader, "uWaterEye");
     near   = gfx_uniform_location(shader, "uWaterNear");
@@ -1219,6 +1262,7 @@ void WaterUniforms::set(const Mat4 &projection, const Mat4 &view) const
     gfx_uniform_set_v4(lo, from, 1);
     gfx_uniform_set_v4(hi, to, 1);
     gfx_uniform_set_v4(colour, rgb, 1);
+    gfx_uniform_set_v4(lava, w.lava, 1);
 
     // The camera, out of the matrices. The eye is -R^T t for V = R * T(-eye),
     // and R's rows are the camera's right, up and back -- so the point at clip

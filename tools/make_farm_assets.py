@@ -3,7 +3,7 @@
 
 Into assets/textures: tilled soil (its top in furrows, its sides dirt), and the
 hoe, the wheat and the bread as 16x16 masks doubled to 32 px. Into mods/farm:
-wheat in four stages, each a model of four upright quads crossed in a '#' --
+wheat in four stages, and melon and pumpkin stems in four, each a model of four upright quads crossed in a '#' --
 The classic block game's crop shape -- with its picture beside it, cut out by its alpha.
 The pictures of the stages are 16 px blown up to 64 with no smoothing, because
 a model's texture is filtered linearly and 16 px of stalk would blur to a smear.
@@ -132,7 +132,7 @@ def stage(n, rng):
     return h / 16.0
 
 
-def crop_gltf(n, height):
+def crop_gltf(name, height):
     # Four quads, two along x at z 0.25 and 0.75 and two along z, the whole
     # cell wide: the '#' a crop is drawn as. One material, both sides drawn.
     quads = []
@@ -152,15 +152,15 @@ def crop_gltf(n, height):
         "asset": {"version": "2.0", "generator": "cubes-and-portals tools/make_farm_assets.py"},
         "scene": 0,
         "scenes": [{"nodes": [0]}],
-        "nodes": [{"name": f"wheat_{n}", "mesh": 0}],
-        "meshes": [{"name": f"wheat_{n}", "primitives": [
+        "nodes": [{"name": name, "mesh": 0}],
+        "meshes": [{"name": name, "primitives": [
             {"attributes": {"POSITION": 0, "NORMAL": 1, "TEXCOORD_0": 2}, "indices": 3,
              "material": 0}]}],
         "materials": [{"name": "wheat", "doubleSided": True, "alphaMode": "MASK",
                        "pbrMetallicRoughness": {"baseColorTexture": {"index": 0},
                                                 "metallicFactor": 0, "roughnessFactor": 1}}],
         "textures": [{"source": 0}],
-        "images": [{"uri": f"wheat_{n}.png"}],
+        "images": [{"uri": f"{name}.png"}],
         "buffers": [{"byteLength": len(buf),
                      "uri": "data:application/octet-stream;base64," + base64.b64encode(buf).decode()}],
         "bufferViews": [
@@ -178,8 +178,29 @@ def crop_gltf(n, height):
             {"bufferView": 1, "componentType": 5123, "count": len(idx), "type": "SCALAR"},
         ],
     }
-    with open(os.path.join(MOD, f"wheat_{n}.gltf"), "w") as f:
+    with open(os.path.join(MOD, f"{name}.gltf"), "w") as f:
         f.write(json.dumps(gltf, indent=1) + "\n")
+
+
+# A melon's or a pumpkin's stem at stage n: a stalk up the middle with a leaf
+# either side every few pixels, green, going yellow-green once it is grown
+# (when it starts to give fruit beside it).
+def stem(kind, n, rng):
+    h = (4, 7, 10, 13)[n]
+    green = [(70, 150, 50), (80, 160, 50), (90, 165, 55), (150, 160, 60)][n]
+    leaf = (60, 130, 40) if kind == "melon" else (80, 140, 40)
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    for x in (5, 10):
+        top = 16 - h + rng.randint(0, 1)
+        for y in range(top, 16):
+            img.putpixel((x, y), shade(green, rng.uniform(0.8, 1.1)) + (255,))
+            if (y - top) % 3 == 1:
+                for dx in (-1, -2, 1, 2):
+                    if rng.random() < 0.8:
+                        img.putpixel((x + dx, y), shade(leaf, rng.uniform(0.75, 1.1)) + (255,))
+    img = img.resize((64, 64), Image.NEAREST)
+    img.save(os.path.join(MOD, f"{kind}_stem_{n}.png"))
+    return h / 16.0
 
 
 def main():
@@ -190,7 +211,11 @@ def main():
     item("farm_wheat", MASKS["wheat"], (214, 180, 80), ((240, 214, 120), 0.2), rng)
     item("farm_bread", MASKS["bread"], (196, 132, 60), ((230, 180, 100), 0.2), rng)
     for n in range(4):
-        crop_gltf(n, stage(n, rng))
+        crop_gltf(f"wheat_{n}", stage(n, rng))
+    # After the wheat, so its files come out as they did.
+    for kind in ("melon", "pumpkin"):
+        for n in range(4):
+            crop_gltf(f"{kind}_stem_{n}", stem(kind, n, rng))
 
 
 main()

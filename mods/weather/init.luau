@@ -267,6 +267,30 @@ if serving then
         end
     end)
 
+    -- The clock, 0 midnight to 1 (core.time_of_day). Turned back past midnight
+    -- it counts a day, as a night slept through does (the tick above).
+    local CLOCK = { day = 0.3, noon = 0.5, dusk = 0.75, night = 0.85, midnight = 0.0, dawn = 0.25 }
+    core.command("time", "[day|noon|dusk|night|midnight|dawn|HH:MM] -- the hour now, or set it", "admin")
+    core.event.on("core:command", function(ev)
+        if ev.name ~= "time" then
+            return
+        end
+        local what = string.lower(string.match(ev.args, "^%s*(%S*)%s*$") or "?")
+        local h, m = string.match(what, "^(%d%d?):(%d%d)$")
+        local t = CLOCK[what]
+        if h and tonumber(h) < 24 and tonumber(m) < 60 then
+            t = (tonumber(h) * 60 + tonumber(m)) / 1440
+        end
+        if t then
+            core.set_time(t)
+        elseif what ~= "" then
+            core.chat(ev.player, "Usage: /time [day|noon|dusk|night|midnight|dawn|HH:MM]")
+            return
+        end
+        local mins = math.floor(core.time_of_day() * 1440 + 0.5) % 1440
+        core.chat(ev.player, string.format("Time: %02d:%02d.", mins // 60, mins % 60))
+    end)
+
     core.command("season", "[spring|summer|autumn|winter] -- the season now, or set it", "admin")
     core.event.on("core:command", function(ev)
         if ev.name ~= "season" then

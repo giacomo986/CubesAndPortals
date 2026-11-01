@@ -5,8 +5,18 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
-## Non ancora uscito
+## 0.10.0-alpha.2 — 2026-11-01
 
+Protocollo 111, come la 0.10.0-alpha.1: gioca con i suoi server e client e ne legge i mondi
+(i loro smeraldi si caricano come rubini).
+
+- `/time [day|noon|dusk|night|midnight|dawn|HH:MM]` (admin), `/kill [nome]` (sé stessi per tutti,
+  un altro per un moderatore) e `/creative on|off`: modalità creativa, volo senza jetpack,
+  nessun danno, scavo veloce; libera in un mondo tuo, da admin su un server. Funziona anche nel
+  mondo `--quick`, e lì alchemy torna a caricarsi.
+- Lo smeraldo ora è il rubino, ovunque: minerale, gemma, blocco, la moneta dei villaggi, pietre
+  di viaggio, cippi di confine, bottini. Cremisi, per non confonderlo col cinabro. I mondi salvati
+  prima caricano i loro smeraldi come rubini.
 - Il Flatpak si aggiorna: installato una volta dal repository
   (`flatpak install --user https://giacomo986.github.io/CubesAndPortals/cubes-and-portals.flatpakref`),
   `flatpak update` porta ogni versione nuova. Il repository è firmato e sta su GitHub Pages;
@@ -26,6 +36,22 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
   foreste di funghi e deserti di cenere; bauli lungo le fortezze; le palle di fuoco accendono fuochi
   brevi (nuovo evento `core:burst`); suoni e cenere nell'aria; e una cornice accesa nell'Inferno vi
   porta la via di ritorno, con la gemella costruita otto volte più lontano nel mondo di sopra.
+- L'Inferno da un sito sopravvivenza è un livello del sito, separato dall'Inferno aperto: una
+  fortezza di bracieri secondo d (gallerie, un ponte sulla lava, una galleria di spettri, colonne
+  di basalto, un braciere sotto la lava, il buio), il guardiano nella sua sala, e una via di ritorno
+  alla partenza. Il cuore della piazza è sempre d 1. In un livello una cornice di ossidiana non
+  porta da nessuna parte e i bauli danno meno.
+- Liquidi: le superfici oscillano (l'onda ombreggiata dalla sua pendenza, la lava più lenta), e
+  ogni loro faccia ondeggia un poco di lato, anche le colonne piene; un angolo contro un blocco
+  resta fermo, così il liquido aderisce al blocco senza fessure né sovrapposizioni. La
+  lava è un poco trasparente: ciò che sta sotto sfuma nel suo colore con la profondità, quasi
+  sparito a otto nodi, e lontano dall'occhio è opaca. L'opacità di un liquido ora limita l'alpha
+  della sua texture (le immagini delle lave erano opache qualunque cosa dicesse la mod); le lave
+  sono a 130.
+- `tools/track.sh --fresh` fa del giocatore il proprietario: il catalogo creativo (C) è aperto.
+- Angurie e zucche si coltivano: una fetta è un seme d'anguria, una zucca quattro semi di zucca;
+  seminato sulla terra arata, un gambo cresce in quattro stadi come il grano e, cresciuto, mette
+  un frutto in una cella libera accanto, uno alla volta.
 
 ## 0.10.0-alpha.1 — 2026-10-31
 

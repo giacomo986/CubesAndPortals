@@ -22,7 +22,7 @@
 --          at least depth under the column's own surface. The world is 64 tall
 --          with the ground near 20, so the classic block game's -64..320 comes in at about
 --          one block for eight: diamond and cinnabar in the bottom few layers,
---          coal and iron up into the mountains, emerald only in them.
+--          coal and iron up into the mountains, ruby only in them.
 --   len    how many cells the vein walks.
 --
 -- The iron and gold blocks keep the names they had before there were eight
@@ -54,8 +54,8 @@ local ORES = {
       every = 220, low = 1, high = 7, depth = 10, len = 3 },
     -- One block at a time and only under the peaks, as in the classic block game's
     -- mountains; common there, because the peaks are few.
-    { name = "ore:emerald_ore",  rgb = { 70, 190, 110 },  dig = 2, secs = 6.0,
-      drop = "ore:emerald", min = 1, max = 1,
+    { name = "ore:ruby_ore",     rgb = { 190, 60, 110 },  dig = 2, secs = 6.0,
+      drop = "ore:ruby", min = 1, max = 1,
       every = 12, low = 14, high = 60, depth = 4, len = 1, biome = "core:peaks" },
 }
 
@@ -72,6 +72,11 @@ end
 core.node_alias("ore:coal", "ore:coal_ore")
 core.item_alias("ore:iron", "ore:raw_iron")
 core.item_alias("ore:gold", "ore:raw_gold")
+-- The gem was an emerald until 2026-11-01: seams, stacks and storage blocks
+-- saved under the old names load as ruby.
+core.node_alias("ore:emerald_ore", "ore:ruby_ore")
+core.item_alias("ore:emerald_ore", "ore:ruby_ore")
+core.item_alias("ore:emerald", "ore:ruby")
 
 -- node_drop_item gives one; the rest of a handful of cinnabar or lapis comes
 -- here, into the bag, and onto the ground where the bag is full.
@@ -204,6 +209,6 @@ end)
 
 -- What each item looks like in a hand: its own model, drawn in the palm
 -- (tools/make_held_models.py).
-for _, n in { "coal", "raw_copper", "raw_iron", "raw_gold", "lapis", "cinnabar", "diamond", "emerald" } do
+for _, n in { "coal", "raw_copper", "raw_iron", "raw_gold", "lapis", "cinnabar", "diamond", "ruby" } do
     core.register_model(`ore:{n}_held`, `{n}_held.gltf`)
 end

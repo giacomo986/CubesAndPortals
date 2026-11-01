@@ -47,6 +47,34 @@ accende un fuoco nella cella davanti alla faccia colpita: 3 s sulla roccia, 8 su
 funghi e simili; non si propaga mai, e brucia 1 ogni mezzo secondo chi ci sta dentro. La
 resistenza al fuoco lo tiene lontano.
 
+## Due Inferni: quello aperto e i livelli dei siti
+
+L'Inferno aperto è quello a cui portano una cornice di ossidiana e la piazza: un mondo solo per
+tutti, le caverne, le fortezze e la via 1:8, e il cuore vicino all'arrivo come prova della piazza
+(sempre d 1). Chi arriva da un sito sopravvivenza ha invece un livello suo, nello slot di quel
+sito oltre x 8192 (mods/keys), così due siti non si incontrano mai e nessuno incontra il mondo
+aperto. I pezzi vengono dal seme del sito, un'idea nuova alla volta, la più nuova per prima:
+
+| d | i pezzi | bracieri |
+|---|---|---|
+| 1-2 | gallerie semplici | 2 |
+| 3-4 | + un ponte su un lago di lava, bruti sopra, buchi di due da d 4 | 2 |
+| 5-6 | + una galleria di spettri sulle cornici; colonne di basalto su e giù sopra la lava | 3 |
+| 7-8 | + un braciere in fondo a una vasca di lava profonda sei: serve la resistenza al fuoco | 3 |
+| 9-10 | uno qualsiasi, e niente pietra luminosa: fanno luce solo i bracieri | 4 |
+
+Una stanza di partenza con l'uscita nascosta nel muro ovest (una lampada spenta sopra), i pezzi
+verso est, ognuno chiuso da un braciere, poi il cancello e la sala. Accesi tutti i bracieri il
+cancello si apre; chi entra nella sala ci torna dopo la morte, e il guardiano si leva, più
+robusto del 15% per ogni passo di d, con d - 1 bruti e spettri. La sua morte chiude il livello per
+chi è entrato nella sala: la chiave da d 4, l'uscita si apre, e una cella del pavimento della sala
+si accende e li riporta alla partenza. Chi arriva in un livello dove non c'è nessuno lo trova da
+capo: bracieri spenti, cancello chiuso.
+
+In un livello una cornice di ossidiana si accende e non porta da nessuna parte (oltre x 8000 qui,
+64000 sopra), e un baule di fortezza dà meno: probabilità a metà, al massimo metà quantità, mai
+le cose rare.
+
 ## La via d'ingresso e quella del ritorno (1:8)
 
 Un nodo qui vale otto nel mondo di sopra. Una cornice di ossidiana accesa con l'accendino nel
@@ -65,7 +93,8 @@ giocatore 160 fiocchi di cenere scendono attorno all'occhio e uno su nove è una
 
 ## File
 
-- `tools/make_inferno_textures.py`: le immagini dei blocchi (`games/inferno/textures`)
+- `tools/make_inferno_textures.py`: le immagini dei blocchi (`games/inferno/textures`), tra
+  cui la via del ritorno dei livelli
 - `tools/make_inferno_sounds.py`: i quattro suoni
 - `tools/make_held_models.py` (`ONLY=inferno:quartz,...`): gli oggetti in mano e le loro icone
 
@@ -77,3 +106,9 @@ lava a 20 su 20 con la resistenza al fuoco; una palla di fuoco contro un muro se
 con la sua faccia (una prova unitaria del motore); una cornice accesa a 36 30 32 che dà la gemella
 a 292 27 260, e tutte e due a casa dopo averla rotta. Non visti: una palla di fuoco di uno spettro
 che accende un fuoco in gioco, una cornice accesa nel sandbox dopo la modifica, i suoni ascoltati.
+
+I livelli (stesso giorno), headless: costruiti a d 1, 3, 5, 7 e 9, ogni braciere, cancello,
+uscita nascosta e via del ritorno dove previsto, il cancello aperto coi bracieri accesi. In
+Xephyr un livello d 7 percorso da script (la vasca, il ponte, la galleria), il guardiano levato
+con la scorta, ucciso dallo script, il pavimento acceso, calpestato, e di nuovo alla partenza.
+Non provati: un livello combattuto a mano, una cornice accesa in un livello, un baule aperto lì.

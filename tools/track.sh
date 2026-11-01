@@ -5,7 +5,8 @@
 # a tema sulla piazza (mods/gates), e in ognuno un portale per tornare.
 #
 #   tools/track.sh                # un server con undici stanze e un client nel sandbox
-#   tools/track.sh --fresh        # butta via i mondi salvati; l'assalto con 100000 crediti
+#   tools/track.sh --fresh        # butta via i mondi salvati; l'assalto con 100000 crediti;
+#                                 # tu proprietario (--owner): il catalogo creativo (C)
 #   tools/track.sh --survival     # niente piazza, spawn sulla terra, portali sparsi (worlds/track-survival/)
 #   tools/track.sh -- --shot 20   # quello dopo -- va al client
 #
@@ -31,6 +32,7 @@ NAME="${NAME:-${USER:-giocatore}}"
 HERE="${CNP_TRACK_DIR:-$ROOT/worlds/track}"
 
 FRESH=0
+OWNER=()
 SURVIVAL=()
 CLIENT_ARGS=()
 while [ $# -gt 0 ]; do
@@ -38,7 +40,7 @@ while [ $# -gt 0 ]; do
         --fresh) FRESH=1 ;;
         --survival) SURVIVAL=(--survival); HERE="${CNP_TRACK_DIR:-$ROOT/worlds/track-survival}" ;;
         --)      shift; CLIENT_ARGS=("$@"); break ;;
-        -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "track.sh: non conosco '$1' (--fresh, --survival, -- ARGOMENTI DEL CLIENT)"; exit 2 ;;
     esac
     shift
@@ -60,6 +62,10 @@ if [ "$FRESH" = 1 ]; then
     rm -f "$HERE"/sandbox.world* "$HERE"/pista.world* "$HERE"/inferno.world* \
           "$HERE"/arena.world* "$HERE"/arpg.world* "$HERE"/chambers.world* "$HERE"/backrooms.world* "$HERE"/parkour.world* "$HERE"/laboratorio.world* "$HERE"/front.world*
     echo "== mondi salvati cancellati"
+    # Proprietario del server: il permesso creative (moderatore in su) apre il
+    # catalogo con C. In survival resta chiuso (creative a nobody).
+    OWNER=(--owner "$NAME")
+    echo "== $NAME proprietario: catalogo creativo con C"
 fi
 
 # L'assalto: con --fresh anche tools/assault_test, 100000 crediti per provare
@@ -97,7 +103,7 @@ trap 'exit 130' INT TERM
 
 echo "== avvio il server (sandbox, pista, inferno, arena, arpg, camere di prova, backrooms, parkour, laboratorio, fronte e assalto) sulla porta $PORT"
 # --ticks 0: senza, un server in ascolto si ferma dopo 50 s.
-"$SRV" --listen "$PORT" --ticks 0 --seed "$SEED" --portals \
+"$SRV" --listen "$PORT" --ticks 0 --seed "$SEED" --portals ${OWNER[@]+"${OWNER[@]}"} \
     --room sandbox ${SURVIVAL[@]+"${SURVIVAL[@]}"} --mods "$ROOT/mods" --world-file "$HERE/sandbox.world" \
         --portal-to @pista/0 --portal-to @inferno/0 --portal-to @arena/0 --portal-to @arpg/0 \
         --portal-to @chambers/0 --portal-to @backrooms/0 --portal-to @parkour/0 \

@@ -134,6 +134,8 @@ Like core.terrain_height, a function of the seed and the column and not of the w
     node_glass: (id: number, opacity: number?) -> number,
     -- Makes a registered block a liquid: a body goes through it and swims in it -- it sinks slowly, rises while jump is held, and moves at half its pace -- light passes through it, it is drawn see-through, and nothing digs it out. Returns 1, or 0 for an id nobody registered.
 
+Its surface ripples a little and its faces sway, a full column's too. Seen through, what lies behind it fades with how much of it is in the way: water to a blue murk, a liquid that gives light (lava) to its own colour and much sooner -- a node of it lets most through, eight hide all. Far from the eye a glowing one is drawn opaque.
+
 The server tells every client that joins what each block does to a body, so a client without the mod swims in the lake too.
     node_liquid: (id: number, opacity: number?, fill: number?) -> number,
     -- Says how a body moves in THIS world: how fast it walks, sprints, flies and jumps, and how hard it falls. Returns 1 when the numbers were taken and 0 when they were refused, with the reason in the log.

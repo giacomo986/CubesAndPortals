@@ -123,7 +123,7 @@ end
 local MINE_LOOT = { { "ore:coal", 12 }, { "furnace:iron_ingot", 5 }, { "torches:torch", 8 }, { "farm:bread", 4 },
                     { "furnace:iron_pick", 1 }, { "timber:planks", 10 }, { "furnace:gold_ingot", 3 },
                     { "ore:cinnabar", 8 }, { "ore:diamond", 1 } }
-local CRYPT_LOOT = { { "mobs:bone", 10 }, { "furnace:gold_ingot", 5 }, { "ore:emerald", 3 }, { "ore:diamond", 2 },
+local CRYPT_LOOT = { { "mobs:bone", 10 }, { "furnace:gold_ingot", 5 }, { "ore:ruby", 3 }, { "ore:diamond", 2 },
                      { "archery:arrow", 12 }, { "furnace:iron_ingot", 4 }, { "torches:torch", 6 } }
 
 -- An abandoned mine round (cx, y, cz).

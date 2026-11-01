@@ -25,6 +25,14 @@ core.event.on("core:world_ready", function()
         "furnace:iron_ingot -                  furnace:iron_ingot")
 end)
 
+-- Flight without the pack, for whoever another mod says: mods/creative's
+-- creative mode emits "jetpack:free" with { player = id, on = bool }.
+local free: { [number]: boolean } = {}
+core.event.define("jetpack:free", { fields = { player = "number", on = "boolean" }, cancellable = false })
+core.event.on("jetpack:free", function(ev)
+    free[ev.player] = ev.on or nil
+end)
+
 -- Looked at every tick, and said only when it changes: take it off in the air
 -- and down you come.
 local flies: { [number]: boolean } = {}
@@ -32,7 +40,7 @@ core.event.on("core:tick", function(ev)
     local here: { [number]: boolean } = {}
     for _, p in core.players() do
         here[p] = true
-        local on = core.worn_item(p, "back") == "jetpack:jetpack"
+        local on = free[p] == true or core.worn_item(p, "back") == "jetpack:jetpack"
         if flies[p] ~= on and core.player_fly(p, on) == 1 then
             flies[p] = on
         end
@@ -40,6 +48,7 @@ core.event.on("core:tick", function(ev)
     for p in flies do
         if not here[p] then
             flies[p] = nil
+            free[p] = nil
         end
     end
 end)

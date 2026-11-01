@@ -739,9 +739,9 @@ local function region_of(x: number, z: number): string
     return `{math.floor(x / REGION)},{math.floor(z / REGION)}`
 end
 
--- A village's treasury, a storage key: every emerald paid to it (land,
+-- A village's treasury, a storage key: every ruby paid to it (land,
 -- houses, guards, its goods) and every one its miners dig; what it buys from
--- players is paid out of it and it buys nothing with it empty. Emeralds come
+-- players is paid out of it and it buys nothing with it empty. Rubies come
 -- into the world only as ore. A village starts with 32.
 local function treasury(rk: string): number
     return tonumber(core.storage_get(`treasury {rk}`)) or 32
@@ -1483,7 +1483,7 @@ end
 -- ------------------------------------------- land, the mayor and the builder
 
 -- A village sells land through its MAYOR (right click): a lot of 7 by 7 for
--- 8 emeralds, levelled and with a way to it, for the buyer to build on; or a
+-- 8 rubies, levelled and with a way to it, for the buyer to build on; or a
 -- house on one for 20. The lot is the buyer's (mods/territory: `territory:lot`)
 -- and the village's ground grows to take it in. Its BUILDER levels it, puts
 -- the house up block by block and lays a way of cobblestone, with steps, from
@@ -1673,7 +1673,7 @@ local STYLES = {
     brick = { wall = "craft:brick", corner = "timber:log", roof = "steps:dark_oak_stair",
               ridge = "woods:dark_oak_planks" },
 }
-local SIZES = { small = { 5, 5, 14 }, medium = { 7, 7, 20 }, large = { 9, 7, 30 } }   -- w, d, emeralds
+local SIZES = { small = { 5, 5, 14 }, medium = { 7, 7, 20 }, large = { 9, 7, 30 } }   -- w, d, rubies
 
 local function fence_mask(ring: { [string]: boolean }, x: number, z: number): string
     local mask = 0
@@ -2323,7 +2323,7 @@ local selling: { [number]: string } = {}   -- player -> the village they talk to
 -- (mods/gates' sites, asked with gates:ask): a worker now and then tells of
 -- the nearest, vaguely -- what it looks like, which way, near or far, and
 -- whether those who went came back; a caravan, of one near the village it
--- comes from; the mayor, for 2 + d emeralds, exactly, and draws the way on
+-- comes from; the mayor, for 2 + d rubies, exactly, and draws the way on
 -- the player's map (maps:route).
 type Portal = { room: string, d: number, x: number, z: number }
 -- In AID, as the rest: the file is at Luau's 200 locals.
@@ -2400,17 +2400,17 @@ local function show_mayor(p: number, rk: string)
     local price = AID.pt.price(p)
     core.ui_define(name, 13, if price then 11.8 else 10.4)
     local waiting = #(orders[rk] or {})
-    core.ui_label(name, 0.4, 0.3, "The mayor: land in this village, for emeralds.")
+    core.ui_label(name, 0.4, 0.3, "The mayor: land in this village, for rubies.")
     core.ui_label(name, 0.4, 1.0, (if waiting > 0 then `The builder has {waiting} order(s) before yours.`
-        else "The builder is free.") .. ` The treasury holds {treasury(rk)} emeralds.`)
-    core.ui_button(name, "lot", 0.4, 1.9, 12.2, 1.2, `A lot of 7 by 7, levelled, a way to it: {LOT} emeralds`)
+        else "The builder is free.") .. ` The treasury holds {treasury(rk)} rubies.`)
+    core.ui_button(name, "lot", 0.4, 1.9, 12.2, 1.2, `A lot of 7 by 7, levelled, a way to it: {LOT} rubies`)
     core.ui_button(name, "house", 0.4, 3.3, 12.2, 1.2, "A house on a lot of its own...")
     core.ui_button(name, "extend", 0.4, 4.7, 12.2, 1.2, "More for the house you have here...")
-    core.ui_button(name, "guard", 0.4, 6.1, 12.2, 1.2, `A guard for your territory, a day: {GUARD_DAY} emeralds`)
+    core.ui_button(name, "guard", 0.4, 6.1, 12.2, 1.2, `A guard for your territory, a day: {GUARD_DAY} rubies`)
     core.ui_button(name, "errands", 0.4, 7.5, 12.2, 1.2, "Errands for the village...")
     local y = 8.9
     if price then
-        core.ui_button(name, "portal", 0.4, y, 12.2, 1.2, `Where exactly is the nearest portal? {price} emeralds`)
+        core.ui_button(name, "portal", 0.4, y, 12.2, 1.2, `Where exactly is the nearest portal? {price} rubies`)
         y += 1.4
     end
     core.ui_button(name, "close", 0.4, y, 12.2, 1.1, "Not now")
@@ -2441,8 +2441,8 @@ local function show_extend(p: number, rk: string)
     local name = panel_of(p, "mayor")
     core.ui_define(name, 13, 5.2)
     core.ui_label(name, 0.4, 0.3, "For the house you have in this village:")
-    core.ui_button(name, "x floor", 0.4, 1.0, 12.2, 1.2, `A second storey, a ladder up: {FLOOR_PRICE} emeralds`)
-    core.ui_button(name, "x garden", 0.4, 2.4, 12.2, 1.2, `A fenced garden of wheat beside it: {GARDEN_PRICE} emeralds`)
+    core.ui_button(name, "x floor", 0.4, 1.0, 12.2, 1.2, `A second storey, a ladder up: {FLOOR_PRICE} rubies`)
+    core.ui_button(name, "x garden", 0.4, 2.4, 12.2, 1.2, `A fenced garden of wheat beside it: {GARDEN_PRICE} rubies`)
     core.ui_button(name, "close", 0.4, 3.8, 12.2, 1.1, "Not now")
     selling[p] = rk
     core.ui_show(name, true, p)
@@ -2471,16 +2471,16 @@ local function queue(p: number, rk: string, o: Order, price: number, what: strin
         core.notice(p, `Yours: {what} at {cx} {cz}. The builder needs {lack_said(o.need)}.`)
     end
     core.log(`villagers: {rk}: {if o.buyer == "" then "the village" else o.buyer} ordered {what} at {cx} {o.floor} {cz}, a way of {#o.road} cells; `
-        .. `it needs {lack_said(o.need)} ({price} emeralds)`)
+        .. `it needs {lack_said(o.need)} ({price} rubies)`)
 end
 
 local function pay(p: number, rk: string, price: number): boolean
-    local paid = core.take_item(p, "ore:emerald", price)
+    local paid = core.take_item(p, "ore:ruby", price)
     if paid < price then
         if paid > 0 then
-            core.give_item(p, "ore:emerald", paid)
+            core.give_item(p, "ore:ruby", paid)
         end
-        core.notice(p, `That is {price} emeralds.`)
+        core.notice(p, `That is {price} rubies.`)
         return false
     end
     to_treasury(rk, price)
@@ -2678,16 +2678,16 @@ core.event.on("core:ui_click", function(ev)
     core.ui_show(ev.panel, false, ev.player)
     selling[ev.player] = nil
     if ev.id == "guard" then
-        local paid = core.take_item(ev.player, "ore:emerald", GUARD_DAY)
+        local paid = core.take_item(ev.player, "ore:ruby", GUARD_DAY)
         if paid < GUARD_DAY then
             if paid > 0 then
-                core.give_item(ev.player, "ore:emerald", paid)
+                core.give_item(ev.player, "ore:ruby", paid)
             end
-            core.notice(ev.player, `That is {GUARD_DAY} emeralds.`)
+            core.notice(ev.player, `That is {GUARD_DAY} rubies.`)
             return
         end
         if core.event.emit("territory:hire", { player = ev.player, days = 1 }) then
-            core.give_item(ev.player, "ore:emerald", GUARD_DAY)
+            core.give_item(ev.player, "ore:ruby", GUARD_DAY)
         else
             to_treasury(rk, GUARD_DAY)
         end
@@ -2729,11 +2729,11 @@ end)
 
 -- The MERCHANT (right click) sells what the village has in its chests -- the
 -- mine's and its houses', not a player's -- and buys what a player holds, for
--- emeralds. A bundle's price is its base where the village has four bundles
+-- rubies. A bundle's price is its base where the village has four bundles
 -- of it, up to twice that when it has less, down to half when it has more;
--- it buys at half its price (two bundles for one emerald where that is one).
+-- it buys at half its price (two bundles for one ruby where that is one).
 -- What it buys goes into the village's chests, paid out of its treasury.
-local GOODS = {   -- item, how many a bundle, base price in emeralds
+local GOODS = {   -- item, how many a bundle, base price in rubies
     { "farm:bread", 4, 1 }, { "pets:cooked_fish", 4, 1 }, { "animals:steak", 4, 1 },
     { "farm:wheat", 12, 1 }, { "animals:wool", 8, 1 }, { "animals:leather", 4, 1 },
     { "trees:trunk", 8, 1 }, { "timber:planks", 32, 1 }, { "rocks:cobblestone", 32, 1 },
@@ -2818,7 +2818,7 @@ local function said(item: string): string
     return (string.gsub(string.gsub(item, "^.*:", ""), "_", " "))
 end
 local function ems(n: number): string
-    return `{n} emerald{if n == 1 then "" else "s"}`
+    return `{n} {if n == 1 then "ruby" else "rubies"}`
 end
 
 -- A row: the good, how many, the price, and true when the player sells it.
@@ -2896,10 +2896,10 @@ local function buy(p: number, t: { rk: string, who: string, rows: { { any } } },
         core.notice(p, "That is gone.")
         return
     end
-    local paid = core.take_item(p, "ore:emerald", price)
+    local paid = core.take_item(p, "ore:ruby", price)
     if paid < price then
         if paid > 0 then
-            core.give_item(p, "ore:emerald", paid)
+            core.give_item(p, "ore:ruby", paid)
         end
         core.notice(p, `That is {ems(price)}.`)
         return
@@ -2957,7 +2957,7 @@ local function sell_to(p: number, t: { rk: string, who: string, rows: { { any } 
         pay = math.max(1, pay * (n - left) // n)
     end
     to_treasury(t.rk, -pay)
-    core.give_item(p, "ore:emerald", pay)
+    core.give_item(p, "ore:ruby", pay)
     core.notice(p, `You sold {n - left} {said(good[1])} for {ems(pay)}.`)
 end
 
@@ -3042,7 +3042,7 @@ end
 -- only. What the gatherers bring (wood, stone, earth: cost_of) the builder
 -- needs as for a house; any other block (glass, wool, an ore block) the
 -- player hands over, all of it, when the order is made; the labour is paid in
--- emeralds, four and one more for each forty blocks.
+-- rubies, four and one more for each forty blocks.
 AID.bp = { got = {} :: { [string]: { any } } }
 core.event.on("blueprints:cells", function(ev)
     local cells = {}
@@ -3119,7 +3119,7 @@ end
 -- ------------------------------------------------------------ errands
 --
 -- ERRANDS the mayor and the merchant post for strangers, at most three a
--- village, each paid in emeralds out of the treasury -- none is posted that
+-- village, each paid in rubies out of the treasury -- none is posted that
 -- the treasury cannot pay, and its pay is set aside when it is taken. They
 -- are seen on a NOTICE BOARD (villagers:board, by the well or put up by a
 -- player in the village) and taken and handed in at the panel of whoever
@@ -3175,6 +3175,7 @@ E.load = function(rk: string): { Errand }
     for part in string.gmatch(core.storage_get(`errands {rk}`), "[^;]+") do
         local f = string.split(part, "|")
         if #f >= 13 then
+            if f[4] == "ore:emerald" then f[4] = "ore:ruby" end   -- saved before 2026-11-01
             table.insert(l, { id = tonumber(f[1]) :: number, kind = f[2], giver = f[3], item = f[4],
                               n = tonumber(f[5]) :: number, x = tonumber(f[6]) :: number, z = tonumber(f[7]) :: number,
                               to = f[8], pay = tonumber(f[9]) :: number, posted = tonumber(f[10]) :: number,
@@ -3416,7 +3417,7 @@ end
 -- Paid out of what was set aside, and remembered.
 E.finish = function(p: number, e: Errand, rk: string)
     local who = core.player_name(p)
-    core.give_item(p, "ore:emerald", e.pay)
+    core.give_item(p, "ore:ruby", e.pay)
     local l = E.load(rk)
     for i, x in l do
         if x == e then
@@ -3602,7 +3603,7 @@ end
 --            waves of zombies and skeletons (villagers:raider, its archer)
 --            come from the edge for its people and the players; the watch
 --            fights them (monster_in) and keeps awake. No villager lost: the
---            players who stood there are paid 5 emeralds from the treasury
+--            players who stood there are paid 5 rubies from the treasury
 --            each, it counts as two errands done (the merchant's fifth off),
 --            and any strike against them is forgotten.
 --   CARAVAN  about once a day a village with a player near sends a merchant
@@ -3873,7 +3874,7 @@ EV.end_siege = function(rk: string, s: Siege)
         to_treasury(rk, -pay)
         for _, q in core.players() do
             if core.player_name(q) == name then
-                core.give_item(q, "ore:emerald", 5)
+                core.give_item(q, "ore:ruby", 5)
             end
         end
         E.credit(rk, name, 2)
@@ -3885,7 +3886,7 @@ EV.end_siege = function(rk: string, s: Siege)
     end
     table.sort(names)
     EV.announce(rk, `The siege is over and no one was lost. The mayor thanks {if #names > 0
-        then table.concat(names, ", ") else "the watch"}{if #names > 0 then ": 5 emeralds each" else ""}.`)
+        then table.concat(names, ", ") else "the watch"}{if #names > 0 then ": 5 rubies each" else ""}.`)
 end
 
 EV.run_siege = function(rk: string, s: Siege)
@@ -4056,7 +4057,7 @@ core.event.on("core:world_ready", function()
         if #f >= 6 then
             local goods = {}
             for item, n in string.gmatch(f[6], "([^,=]+)=(%d+)") do
-                goods[item] = tonumber(n) :: number
+                goods[if item == "ore:emerald" then "ore:ruby" else item] = tonumber(n) :: number
             end
             table.insert(EV.caravans, { from = f[1], to = f[2], x = tonumber(f[3]) :: number, y = tonumber(f[4]) :: number,
                                         z = tonumber(f[5]) :: number, goods = goods, m = 0, mule = 0, escort = f[7] or "",
@@ -4373,7 +4374,7 @@ EV.arrive = function(i: number, c: Caravan, tx: number, tz: number): boolean
     for _, p in core.players() do
         local px, _, pz = core.player_pos(p)
         if core.player_name(p) == c.escort and px and pz and (px - c.x) ^ 2 + (pz - c.z) ^ 2 < 40 * 40 then
-            core.give_item(p, "ore:emerald", pay)
+            core.give_item(p, "ore:ruby", pay)
             to_treasury(c.from, -pay)
             core.notice(p, `The caravan is in: {ems(pay)} for the escort.`)
             E.credit(c.from, c.escort, 1)
@@ -4609,10 +4610,10 @@ core.event.on("core:ui_click", function(ev)
     if r == nil or (c.goods[r[1][1]] or 0) < r[1][2] then
         return
     end
-    local got = core.take_item(ev.player, "ore:emerald", r[2])
+    local got = core.take_item(ev.player, "ore:ruby", r[2])
     if got < r[2] then
         if got > 0 then
-            core.give_item(ev.player, "ore:emerald", got)
+            core.give_item(ev.player, "ore:ruby", got)
         end
         core.notice(ev.player, `That is {ems(r[2])}.`)
         return
@@ -5451,7 +5452,7 @@ local function to_mine_chest(v: V, mn: { number }, stone_too: boolean): boolean
     act(v, "gather", "", 1.6, cx, cz)
     local room = true
     for item, n in table.clone(v.inv) do
-        if item == "ore:emerald" then
+        if item == "ore:ruby" then
             take(v, item, n)
             to_treasury(region_of(v.hx, v.hz), n)
         elseif item:sub(1, 4) == "ore:" or (stone_too and mat_of(item) == "stone") then

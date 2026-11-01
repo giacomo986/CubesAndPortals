@@ -1238,6 +1238,10 @@ struct Scene {
     bool          died   = false;
     bool          has_bed = false;   // core.player_spawn
     bool          no_regen = false;  // core.player_regen
+    // core.player_factors, as the server's Session keeps them: each source's
+    // four, and their product in force.
+    std::map<std::string, std::array<float, 4>> factor_sources;
+    float walk_factor = 1.0f, dig_factor = 1.0f, hurt_factor = 1.0f, regen_factor = 1.0f;
     Vec3          bed{};
 
     // Where the one player is, for core.players and core.player_pos. A pointer
@@ -2571,6 +2575,10 @@ int host_body_movement(void *ud, int player, double walk, double sprint, double 
         sess.fly_held = rules.fly;
         rules.fly     = 0.0f;
     }
+    // And the factor in force (core.player_factors), as host_body_movement on a server.
+    const float walk_by = static_cast<Scene *>(ud)->walk_factor;
+    rules.walk *= walk_by;
+    rules.sprint *= walk_by;
 
     sess.movement = rules;
     return 1;
@@ -3231,6 +3239,40 @@ int host_player_regen(void *ud, int player, int on)
     Scene *s = static_cast<Scene *>(ud);
     if ((ui::PlayerId)player != ui::kLocalPlayer) return 0;
     s->no_regen = on == 0;
+    return 1;
+}
+
+// core.player_factors for the one body here; the server's is in src/server/main.cpp.
+int host_player_factors(void *ud, int player, double walk, double dig, double hurt, double regen,
+                        const char *source)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    if ((ui::PlayerId)player != ui::kLocalPlayer) return 0;
+    if (!(walk >= 0.25 && walk <= 4.0) || !(dig >= 0.1 && dig <= 10.0) ||
+        !(hurt >= 0.0 && hurt <= 10.0) || !(regen >= 0.0 && regen <= 10.0))
+        return 0;
+
+    const std::string from = source ? source : "";
+    if (walk == 1.0 && dig == 1.0 && hurt == 1.0 && regen == 1.0)
+        s->factor_sources.erase(from);
+    else
+        s->factor_sources[from] = {(float)walk, (float)dig, (float)hurt, (float)regen};
+    float w = 1.0f, d = 1.0f, h = 1.0f, r = 1.0f;
+    for (const auto &[_, f] : s->factor_sources) {
+        w *= f[0];
+        d *= f[1];
+        h *= f[2];
+        r *= f[3];
+    }
+    w = std::clamp(w, 0.25f, 4.0f);
+
+    Session &sess  = s->act();
+    sess.movement.walk *= w / s->walk_factor;
+    sess.movement.sprint *= w / s->walk_factor;
+    s->walk_factor  = w;
+    s->dig_factor   = std::clamp(d, 0.1f, 10.0f);
+    s->hurt_factor  = std::clamp(h, 0.0f, 10.0f);
+    s->regen_factor = std::clamp(r, 0.0f, 10.0f);
     return 1;
 }
 
@@ -3971,9 +4013,9 @@ void sound_body(Scene &s, const Player &p, float dt)
     snd_loop(s.sounds.jetpack, jet, p.flying);
 }
 
-void hurt_local(Scene *s, uint16_t amount, bool armoured = true)
+void hurt_local(Scene *s, uint16_t amount, bool armoured = true, bool factored = true)
 {
-    if (s != nullptr && amount > 0) play_here(*s, s->sounds.hurt.any());
+    if (s != nullptr && amount > 0 && (!factored || s->hurt_factor > 0.0f)) play_here(*s, s->sounds.hurt.any());
 
     if (s->health == nullptr || amount == 0) return;
     if (!s->health->alive()) return;   // a body at zero is not a bank
@@ -3984,6 +4026,11 @@ void hurt_local(Scene *s, uint16_t amount, bool armoured = true)
         amount = cnp::ecs::armoured(amount, s->bag->armor(s->act().items));
         s->bag->wear_out(s->act().items, wear);
     }
+    // core.player_factors: at least a point of a blow, unless they take none.
+    if (factored && s->hurt_factor != 1.0f)
+        amount = s->hurt_factor <= 0.0f ? (uint16_t)0
+                                        : (uint16_t)std::max(1.0f, std::round((float)amount * s->hurt_factor));
+    if (amount == 0) return;
 
     cnp::ecs::hurt(*s->health, amount);
     if (s->regen != nullptr) cnp::ecs::regen_interrupt(*s->regen);
@@ -18539,7 +18586,7 @@ int run_interactive(Scene &s, double seconds)
         // same two rules the server runs, through the same functions: see
         // core/physics/fall.h, which is in core for exactly this reason.
         if (player.pos.y < kBelowWorld) {
-            hurt_local(&s, demo_health.max, false);
+            hurt_local(&s, demo_health.max, false, false);   // kill_body on the server
         } else if (player.flying) {
             // The server's rule: a flight down to the ground is not a fall.
             fall_reset(demo_fall, player.pos.y);
@@ -18594,7 +18641,8 @@ int run_interactive(Scene &s, double seconds)
         }
 
         {
-            const uint16_t back = s.no_regen ? 0 : ecs::regen_step(demo_regen, demo_health, dt);
+            const uint16_t back = s.no_regen || s.regen_factor <= 0.0f
+                                      ? 0 : ecs::regen_step(demo_regen, demo_health, dt * s.regen_factor);
             if (back > 0) ecs::heal(demo_health, back);
         }
 
@@ -18743,7 +18791,8 @@ int run_interactive(Scene &s, double seconds)
                 const double need = dig_need(
                     s.act().registry, s.act().items, under,
                     bag.at(net::best_dig_slot(s.act().items, bag.slots(), bag.selected(),
-                                              s.act().registry.get(under).material)));
+                                              s.act().registry.get(under).material)),
+                    s.dig_factor);
 
                 if (dig_step(s.dig, plat_mouse_pressed(PLAT_MOUSE_LEFT), true, s.target.hit,
                              s.target.x, s.target.y, s.target.z, under, need, demo_clock,
@@ -19312,6 +19361,7 @@ script_host make_client_host(Scene &scene)
     host.wear_held      = host_wear_held;
     host.item_alias     = host_item_alias;
     host.player_regen   = host_player_regen;
+    host.player_factors = host_player_factors;
     host.player_max_health = host_player_max_health;
     host.time_of_day    = host_time_of_day;
     host.set_time       = host_set_time;

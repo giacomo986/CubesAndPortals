@@ -404,6 +404,23 @@ void mesh_snapshot_into(const ChunkSnapshot &snap, const NodeRegistry &reg,
                     }
                     if (open(x, y - 1, z)) c.faces |= 1 << 3;
 
+                    // A corner against a block: one of the three other cells
+                    // round its vertical edge, in the row it is in -- both rows
+                    // for one at a whole node, which the cell above or below
+                    // shares.
+                    const auto wall = [&](int nx, int ny, int nz) {
+                        const BlockId n = snap.block(nx, ny, nz);
+                        return n != kAir && !reg.is_liquid(n);
+                    };
+                    for (int corner = 0; corner < 4; ++corner) {
+                        const int dx = (corner & 1) ? 1 : -1, dz = (corner >> 1) ? 1 : -1;
+                        const auto row = [&](int ry) {
+                            return wall(x + dx, ry, z) || wall(x, ry, z + dz) || wall(x + dx, ry, z + dz);
+                        };
+                        if (row(y - 1) || row(y)) c.pin |= (uint8_t)(1 << corner);
+                        if (row(y) || (c.h[corner] >= 16 && row(y + 1))) c.pin |= (uint8_t)(16 << corner);
+                    }
+
                     // Every cell, faces or not: the renderer draws the faces
                     // and also needs the whole body, to know how much of a
                     // line of sight runs through water.

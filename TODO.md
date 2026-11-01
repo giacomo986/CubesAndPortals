@@ -414,8 +414,9 @@ and with two clients through two chambers' sites at once. Open:
   and the parkour's bounce pads and slabs were not walked.
 - The chambers' level is a stretch of a copy of their row, not new rooms: templates mixed and
   mirrored, and the catalogue's new mechanics (dissolving fields, angled panels, light bridges,
-  beams, gels, turrets), are not built. Neither are the Inferno's, the arpg's, the front's and the
-  assault's new pieces (plan 5b); the track has its own pieces in its circuits.
+  beams, gels, turrets), are not built. Neither are the arpg's, the front's and the
+  assault's new pieces (plan 5b); the Inferno's are (2026-10-31, games/inferno/README.md), its
+  level walked by script only; the track has its own pieces in its circuits.
 - The parkour's bounce pad throws by a fixed launch (13 on, 13 up), measured by reckoning only.
 
 ## The sandbox: what comes next (planned 2026-10-28)
@@ -1147,6 +1148,23 @@ difficulty). After `core.player_place` the client may keep only the yaw.
 The single-process client's own crossings keep no speed.
 
 ## World, blocks and content
+
+**Melons and pumpkins (2026-10-31, mods/farm).** Seeds from a slice / a pumpkin, stems in four
+stages on soil (wheat's ABM and rules), grown ones bear the fruit of mods/plants beside them, one
+at a time (tools/make_farm_assets.py, held seeds by make_held_models.py). Seen in Xephyr: the
+eight stages drawn, bear() twice gives one fruit each. Not seen: a stem grown from seed by the
+ABM, sowing by hand.
+
+**Liquids (2026-10-31).** Surfaces ripple and every liquid vertex sways sideways by its world position (full columns too,
+no seams: seen on a 3x3x8 water column; a corner against any block that is not liquid is
+pinned, LiquidCell::pin, flow bit 128 -- seen: a pool walled in stone with a pillar) in the world shader (flow byte flags 16/32/64:
+liquid, surface vertex, glowing); lava's murk is its own (the water box marks dense cells in
+the first corner's top bit, colour = its tile's mean, since a client knows only a placeholder
+colour for a server's block); lava opacity 130, murk 0.35 a node; past 8-24 from the eye a
+glowing liquid closes. Seen in Xephyr: strips 1, 2, 4 deep over fungus caps (the cap shows
+faintly at 1), inside lava an orange fog, a water pool unchanged, frames 0.7 s apart differ.
+Open: lava beyond the water box (more than 16 above or below the eye, 32 across) shows no depth,
+only the distance fade; the ripple not seen moving by a person.
 
 **The assault (2026-10-23).** A co-op final world against Basoalth
 (games/assault, room `assalto`, sandbox mouth 16, gate at 90.5 21 76.5; opens
@@ -1935,6 +1953,17 @@ entered next wins. Beds, chests and tables stay per room, as places.
 
 **Characters kept by name** (arpg, track boards): a name is a label where the
 server does not require identity.
+
+**/time, /kill, /creative on|off** -- built 2026-11-01 (a YouTube player's
+asks). Checked headless with a client: /time noon 0.500, 18:30 0.771; creative
+took 0 of a 5 blow, /kill killed it anyway, off took 5 again. The
+single-process (--quick) world has core.player_factors too since the same day
+(same four, same product, the void still kills): 0 of 5 in creative, 5 after.
+Flight with the jetpack: worn on flies, creative on, pack off keeps flying,
+creative off grounds. The emerald became the ruby the same day (ids, textures,
+held model, aliases for saved worlds; errands and caravans saved with
+ore:emerald read it as ruby -- villagers' own stock is not saved). Alchemy did
+not load in --quick (an undeclared event); fixed.
 
 **Backpack and dyes.** A mod reload does not undo `core.recipe_dye`; the games
 in `games/` do not load mods/jetpack.

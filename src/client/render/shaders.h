@@ -23,7 +23,9 @@ layout(location = 1) in float aFaceAo;   // face in bits 0..2, AO in bits 3..4
 layout(location = 2) in vec2  aUV;       // tiles, wraps once per block
 layout(location = 3) in float aSky;      // brightness of the sky seen here, 0..255
 layout(location = 4) in float aTex;      // texture layer
-layout(location = 5) in float aFlow;     // a liquid's picture runs: 0 still, 1..8, 9 down
+layout(location = 5) in float aFlow;     // a liquid's picture runs: 0 still, 1..8, 9 down;
+                                         // +16 a liquid (sways), +32 its surface (ripples),
+                                         // +64 a glowing one, +128 held by a block
 layout(location = 6) in float aLamp;     // brightness of the lamps here, already turned to the face, 0..255
 layout(location = 7) in float aClassic;  // the classic look's light: sun in the high nibble, block in the low
 layout(location = 8) in float aFoliage;  // 1: takes the season's colour (core.foliage)
@@ -44,6 +46,9 @@ flat out float vTex;
 flat out int   vFace;
 flat out float vFoliage;
 out vec3  vWorld;                        // for the water the eye looks through
+out float vWave;                         // a liquid surface's ripple, as light: 1 elsewhere
+out float vDist;                         // how far from the eye
+flat out float vDense;                   // 1 on a glowing liquid, lava
 
 out float gl_ClipDistance[5];
 
@@ -80,13 +85,44 @@ void main()
 
     // A running liquid's picture slides the way it runs. A cube has no fifth
     // attribute and reads the default 0, so nothing else moves.
-    int flow = int(aFlow + 0.5);
+    int flags = int(aFlow + 0.5);
+    int flow  = flags & 15;
+    vDense    = float((flags & 64) != 0);
+    vWave     = 1.0;
+    // A liquid's surface ripples: three slow waves over x and z, only ever
+    // down from where the mesher put it (so it never rises through a bank),
+    // and shaded by their slope -- a face's light is flat, so without that a
+    // ripple seen from above would not show. Lava is heavier: slower, lower.
+    // A corner against a block stays where it is: the liquid holds to it.
+    bool pinned = (flags & 128) != 0;
+    if ((flags & 32) != 0) {
+        float amp = vDense > 0.5 ? 0.03 : 0.04;
+        float t   = uTime * (vDense > 0.5 ? 0.45 : 1.0);
+        vec3  a   = vec3(world.x * 0.9 + t * 1.6, world.z * 1.15 - t * 1.25,
+                         (world.x + world.z) * 1.9 + t * 2.2);
+        float h   = 0.5 * (sin(a.x) + sin(a.y)) + 0.35 * sin(a.z);
+        if (!pinned) world.y += amp * (h - 1.35);
+        float dx  = 0.45 * cos(a.x) + 0.665 * cos(a.z);
+        float dz  = 0.575 * cos(a.y) + 0.665 * cos(a.z);
+        vWave     = 1.0 + 0.06 * (dx + dz);
+        if (face == 2) vUV += 0.04 * vec2(sin(a.y), sin(a.x));
+    }
+    // And every vertex of a liquid sways a little sideways, a full column's
+    // too: by where it is in the world alone, so the cells it is shared by
+    // move it together and no seam opens.
+    if ((flags & 16) != 0 && !pinned) {
+        float t   = uTime * (vDense > 0.5 ? 0.45 : 1.0);
+        float amp = vDense > 0.5 ? 0.025 : 0.035;
+        world.x  += amp * sin(world.y * 1.3 + world.z * 0.7 + t * 1.1);
+        world.z  += amp * sin(world.y * 1.1 + world.x * 0.8 - t * 1.3);
+    }
     if (flow > 0) {
         vec2 d = (flow == 9) ? vec2(0.0, -1.0)
                              : vec2(cos(float(flow - 1) * 0.785398), sin(float(flow - 1) * 0.785398));
         vUV -= d * uTime * ((flow == 9) ? 1.4 : 0.7);
     }
     vWorld = world.xyz;
+    vDist  = length((uView * world).xyz);
 
     for (int k = 0; k < 5; ++k)
         gl_ClipDistance[k] = (k < uClipCount) ? dot(vec4(world.xyz, 1.0), uClipPlanes[k]) : 1.0;
@@ -113,16 +149,20 @@ uniform vec4      uWater;        // xyz the box's lowest corner, w 1 when any of
 uniform vec4      uWaterLo;      // the cells of it that hold any water: from xyz,
 uniform vec4      uWaterHi;      // to xyz, far side excluded, in the box's own frame
 uniform vec4      uWaterColor;   // vec4 because the setter the renderer has uploads four
+uniform vec4      uLavaColor;    // a glowing liquid's, lava's: the box's dense cells
 uniform sampler2D uWaterCells;   // the box, 64 x 32 x 64 cells, its 32 layers in 8 x 4 tiles
 
 const ivec3 kWaterBox = ivec3(64, 32, 64);
 
 // Cell c's surface at its four corners, 0..1, x + 2 z as the mesher has them;
-// all four 0 where the cell is not water.
-vec4 water_corners(ivec3 c)
+// all four 0 where the cell is not water. `dense` 1 for lava, which the box
+// marks in the top bit of the first corner.
+vec4 water_corners(ivec3 c, out float dense)
 {
-    return texelFetch(uWaterCells, ivec2((c.y % 8) * 64 + c.x, (c.y / 8) * 64 + c.z), 0) *
-           (255.0 / 16.0);
+    vec4 raw = texelFetch(uWaterCells, ivec2((c.y % 8) * 64 + c.x, (c.y / 8) * 64 + c.z), 0) * 255.0;
+    dense    = step(127.5, raw.x);
+    raw.x   -= 128.0 * dense;
+    return raw / 16.0;
 }
 
 // How much of p + d t, t from ta to tb, is under the plane y = k + a x + b z,
@@ -157,7 +197,8 @@ float water_in_cell(vec4 h, vec3 p, vec3 d, float ta, float tb)
            water_below(sa > 0.0 ? lo : hi, p, d, tf, tb);
 }
 
-// How much of the straight line from a to b runs under water, in nodes. Only
+// How much of the straight line from a to b runs under water, in nodes, and
+// (y) how much under lava. Only
 // the part of it that crosses the cells holding water is walked. Past the edge
 // of the box the water is taken to go on if the line leaves the box through a
 // cell of it, and not to be there otherwise.
@@ -165,9 +206,9 @@ float water_in_cell(vec4 h, vec3 p, vec3 d, float ta, float tb)
 // ponytail: one texel fetch per cell crossed inside the span of the water, so
 // a line skimming a lake end to end costs up to ~130; skip empty bricks with a
 // coarser box if a frame over a big lake measures slow.
-float water_between(vec3 a, vec3 b)
+vec2 water_between(vec3 a, vec3 b)
 {
-    if (uWater.w < 0.5) return 0.0;
+    if (uWater.w < 0.5) return vec2(0.0);
     vec3 p  = a - uWater.xyz;
     vec3 d  = b - a;
     vec3 ds = mix(d, vec3(1e-9), lessThan(abs(d), vec3(1e-9)));
@@ -177,7 +218,7 @@ float water_between(vec3 a, vec3 b)
     vec3  tl = min(t0, t1), th = max(t0, t1);
     float t    = max(0.0, max(tl.x, max(tl.y, tl.z)));
     float tend = min(1.0, min(th.x, min(th.y, th.z)));
-    if (t >= tend) return 0.0;
+    if (t >= tend) return vec2(0.0);
 
     // Where the line leaves the box itself, for the water past its edge.
     vec3  tb   = max(-p / ds, (vec3(kWaterBox) - p) / ds);
@@ -191,18 +232,20 @@ float water_between(vec3 a, vec3 b)
                      equal(go, ivec3(0)));
 
     float len   = length(d);
-    float under = 0.0;
+    vec2  under = vec2(0.0);
     for (int i = 0; i < 160; ++i) {
         if (any(lessThan(cell, lo)) || any(greaterThanEqual(cell, hi))) break;
         float out_t = min(min(next.x, next.y), min(next.z, tend));
-        vec4  h     = water_corners(cell);
+        float dense;
+        vec4  h     = water_corners(cell, dense);
+        vec2  kind  = vec2(1.0 - dense, dense);
         bool  wet   = h.x > 0.0;
-        if (wet) under += water_in_cell(h, p - vec3(cell), d, t, out_t);
+        if (wet) under += kind * water_in_cell(h, p - vec3(cell), d, t, out_t);
         if (out_t >= tend) {
-            if (wet && tend >= tbox - 1e-6) under += 1.0 - tend;
+            if (wet && tend >= tbox - 1e-6) under += kind * (1.0 - tend);
             break;
         }
-        if (under * len > 20.0) break;   // as murky as it gets
+        if ((under.x + 12.0 * under.y) * len > 20.0) break;   // as murky as it gets
         t = out_t;
         if (next.x <= next.y && next.x <= next.z) { cell.x += go.x; next.x += adv.x; }
         else if (next.y <= next.z)                { cell.y += go.y; next.y += adv.y; }
@@ -212,17 +255,27 @@ float water_between(vec3 a, vec3 b)
 }
 
 // Ten nodes of it take half of what is behind, and never more than three
-// quarters: a lake is murky, not a wall.
-float water_murk(float under) { return min(0.75, 1.0 - exp(-0.07 * under)); }
+// quarters: a lake is murky, not a wall. Lava is: under a node of it 30% is
+// gone, under eight nearly all.
+float water_murk(vec2 under) { return min(0.75, 1.0 - exp(-0.07 * under.x)); }
+float lava_murk(vec2 under) { return min(0.97, 1.0 - exp(-0.35 * under.y)); }
 
 // What `rgb` looks like with `under` nodes of water in front of it. Tinted as
 // soon as there is water in the way, over a quarter of a node rather than at
 // once: the surface itself lies ON the line between wet and dry, and a step
 // there speckles it.
-vec3 water_shade(vec3 rgb, float under)
+vec3 water_shade(vec3 rgb, vec2 under)
 {
-    vec3 tint = mix(vec3(1.0), vec3(0.80, 0.92, 1.0), min(1.0, under * 4.0));
-    return mix(rgb * tint, uWaterColor.rgb, water_murk(under));
+    vec3 tint = mix(vec3(1.0), vec3(0.80, 0.92, 1.0), min(1.0, under.x * 4.0));
+    return mix(mix(rgb * tint, uWaterColor.rgb, water_murk(under)), uLavaColor.rgb, lava_murk(under));
+}
+
+// The same over nothing, the sky: the colour and how much it covers.
+vec4 water_veil(vec2 under)
+{
+    float w = water_murk(under), l = lava_murk(under);
+    float a = 1.0 - (1.0 - w) * (1.0 - l);
+    return vec4((uWaterColor.rgb * w * (1.0 - l) + uLavaColor.rgb * l) / max(a, 1e-4), a);
 }
 
 // The camera: xyz the eye; the near plane in the world, >= 0 in front of it;
@@ -268,6 +321,9 @@ flat in float vTex;
 flat in int   vFace;
 flat in float vFoliage;
 in vec3  vWorld;
+in float vWave;
+in float vDist;
+flat in float vDense;
 
 uniform sampler2D uTexture;
 uniform vec4      uFoliage;      // core.foliage: the season's colour, and how much of it
@@ -353,13 +409,17 @@ void main()
     vec3  lit = max(max(sky, vLamp * kLampTint), vec3(uNightSight * 0.55));
     vec3  rgb = texel.rgb * vAo * (kLightFloor + (1.0 - kLightFloor) * min(lit, vec3(1.0)));
     if (uClassic > 0.5) rgb = texel.rgb * vClassic;
+    rgb *= vWave;
 
     if (uWater.w > 0.5) {
         // Where this pixel's line leaves the near plane.
         vec3 lens = mix(uWaterEye.xyz, vWorld, water_lens(vWorld));
         rgb       = water_shade(rgb, water_between(lens, vWorld));
     }
-    fragColor = vec4(rgb, texel.a);
+    // Lava lets a little through near the eye, where the box beneath gives
+    // its depth (lava_murk); farther, past that box, it closes.
+    float alpha = vDense > 0.5 ? mix(texel.a, 1.0, smoothstep(8.0, 24.0, vDist)) : texel.a;
+    fragColor = vec4(rgb, alpha);
 }
 )";
 
@@ -408,7 +468,7 @@ out vec4 fragColor;
 void main()
 {
     vec3 vNear = vNearH.xyz / vNearH.w, vFar = vFarH.xyz / vFarH.w;
-    fragColor = vec4(uWaterColor.rgb, water_murk(water_between(vNear, vFar)));
+    fragColor = water_veil(water_between(vNear, vFar));
 }
 )";
 

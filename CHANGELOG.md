@@ -5,8 +5,18 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
-## Not released yet
+## 0.10.0-alpha.2 — 2026-11-01
 
+Protocol 111, as 0.10.0-alpha.1: it plays with its servers and clients and reads its worlds
+(their emeralds load as rubies).
+
+- `/time [day|noon|dusk|night|midnight|dawn|HH:MM]` (admin), `/kill [name]` (yourself for anybody,
+  somebody else for a moderator) and `/creative on|off`: creative mode, flying without the
+  jetpack, no damage, fast digging; free in a world of your own, admin on a server. It works in
+  the `--quick` world too, and alchemy loads there again.
+- The emerald is now the ruby, everywhere: ore, gem, storage block, the villages' money,
+  waystones, boundary stones, loot. Crimson, so it is not mistaken for cinnabar. Worlds saved
+  before load their emeralds as rubies.
 - The Flatpak updates itself: installed once from the repository
   (`flatpak install --user https://giacomo986.github.io/CubesAndPortals/cubes-and-portals.flatpakref`),
   `flatpak update` brings every new release. The repository is signed and lives on GitHub Pages;
@@ -26,6 +36,20 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
   wastes; chests along the fortresses; fireballs set short fires (new event `core:burst`); sounds
   and ash in the air; and a frame lit in the Inferno opens the way back there, with its twin built
   eight times as far out in the world above.
+- The Inferno by a survival site is a level of the site's own, apart from the open Inferno: a
+  fortress of braziers by d (tunnels, a bridge over lava, a gallery of wraiths, basalt columns, a
+  brazier under lava, the dark), the guardian in its hall, and a way back to the start. The
+  plaza's heart is always d 1. In a level a frame of obsidian leads nowhere and chests give less.
+- Liquids: their surfaces ripple (the wave shaded by its slope, lava slower), and every face of
+  them sways a little sideways, full columns too; a corner against a block stays put, so the
+  liquid holds to the block with no gap or overlap. Lava is a little
+  see-through: what lies under it fades to its colour with depth, nearly gone at eight nodes, and
+  far from the eye it is opaque. A liquid's opacity now caps its texture file's alpha (the lavas'
+  pictures were opaque whatever the mod said); the lavas are at 130.
+- `tools/track.sh --fresh` makes the player its owner: the creative catalogue (C) is open.
+- Melons and pumpkins are grown: a slice is a melon seed, a pumpkin four pumpkin seeds; sown on
+  soil, a stem grows in four stages as wheat does and, grown, puts a fruit on a free cell beside
+  it, one at a time.
 
 ## 0.10.0-alpha.1 — 2026-10-31
 
