@@ -530,8 +530,15 @@ int main()
             check(Move::decode(fr, fo) && fo.flags == kMoveFlying && out.flags == 0,
                   "a flown claim says so, and one that says nothing was walked");
 
+            Move       roped = m;
+            roped.flags      = kMoveRoped;
+            const auto rb    = roped.encode();
+            Move       ro;
+            ByteReader rr(rb);
+            check(Move::decode(rr, ro) && ro.flags == kMoveRoped, "a claim on a rope says so");
+
             Move       unknown = m;
-            unknown.flags      = 2;
+            unknown.flags      = 4;
             const auto ub      = unknown.encode();
             Move       uo;
             ByteReader ur(ub);
