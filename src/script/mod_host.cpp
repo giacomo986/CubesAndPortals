@@ -730,10 +730,14 @@ bool ModHost::unpack_package(const std::string &file, std::string &dir, std::str
 
 int ModHost::load_dir(const std::string &mods_dir)
 {
+    return load_dir(std::vector<std::string>{mods_dir});
+}
+
+int ModHost::load_dir(const std::vector<std::string> &mods_dirs)
+{
     namespace fs = std::filesystem;
 
     std::error_code ec;
-    if (!fs::is_directory(mods_dir, ec)) return 0;
 
     // Alphabetical first, so that whatever the dependency order leaves free is
     // still the same on every machine: a directory iteration order is not a
@@ -741,13 +745,17 @@ int ModHost::load_dir(const std::string &mods_dir)
     // bug worth finding on the developer's machine rather than on a user's.
     std::vector<std::string> dirs;
     std::vector<std::string> packages;
-    for (const fs::directory_entry &e : fs::directory_iterator(mods_dir, ec)) {
-        if (e.is_directory(ec)) {
-            dirs.push_back(e.path().string());
-        } else if (e.path().extension() == kModPackageExtension) {
-            packages.push_back(e.path().string());
+    for (const std::string &mods_dir : mods_dirs) {
+        if (mods_dir.empty() || !fs::is_directory(mods_dir, ec)) continue;
+        for (const fs::directory_entry &e : fs::directory_iterator(mods_dir, ec)) {
+            if (e.is_directory(ec)) {
+                dirs.push_back(e.path().string());
+            } else if (e.path().extension() == kModPackageExtension) {
+                packages.push_back(e.path().string());
+            }
         }
     }
+    if (dirs.empty() && packages.empty()) return 0;
     std::sort(dirs.begin(), dirs.end());
     std::sort(packages.begin(), packages.end());
 

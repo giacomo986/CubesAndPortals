@@ -302,6 +302,15 @@ alphabetical order, and at the first run with two mods `core.node_id("spike:copp
 A missing dependency is a refusal that names it. A cycle does not block loading: the mods
 involved are refused one by one, each saying what it was waiting for.
 
+### The player's own mods
+
+Besides the game's `mods/`, a world started from the title screen loads the mods in the
+player's data folder -- `~/.local/share/cubes-and-portals/mods` on Linux,
+`%APPDATA%/cubes-and-portals/mods` on Windows -- directories or `.cnpmod` files, in its sandbox
+only (the themed worlds are the game's). A server takes the same with `--user-mods DIR`. The two
+folders are **one set**: a mod there may `depends` on one of the game's, and a mod with the name
+of one of the game's is refused, saying where the first comes from.
+
 ---
 
 ## Hot reload

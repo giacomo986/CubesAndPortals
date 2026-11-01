@@ -5801,6 +5801,7 @@ int serve_room(int argc, char **argv)
     // wins, so a copied build reads the mods it was shipped with. core/paths.h
     // has the order and the reason.
     std::string mods_dir = data_dir("mods", CNP_SOURCE_ROOT "/mods");
+    std::string user_mods;   // --user-mods: the player's own, loaded with mods_dir as one set
     bool        use_mods = true;
 
     // Where the art is. A world serves its own media, so this is the server's
@@ -5832,6 +5833,8 @@ int serve_room(int argc, char **argv)
             extent = std::atoi(argv[++i]);
         else if (std::strcmp(argv[i], "--mods") == 0 && i + 1 < argc)
             mods_dir = argv[++i];
+        else if (std::strcmp(argv[i], "--user-mods") == 0 && i + 1 < argc)
+            user_mods = argv[++i];
         else if (std::strcmp(argv[i], "--no-mods") == 0)
             use_mods = false;
         else if (std::strcmp(argv[i], "--quiet") == 0)
@@ -6483,6 +6486,7 @@ int serve_room(int argc, char **argv)
         // two different machines' worth of difference.
         std::printf("mods from %s (%s)\n", mods_dir.c_str(),
                     data_dir_reason(mods_dir, CNP_SOURCE_ROOT "/mods").c_str());
+        if (!user_mods.empty()) std::printf("and the player's mods from %s\n", user_mods.c_str());
 
         // A mod builds its scene while it loads -- mods/palette writes twenty
         // cells, and somebody's structure mod would write ten thousand -- so
@@ -6490,7 +6494,7 @@ int serve_room(int argc, char **argv)
         int running = 0;
         {
             LightRun lights(s);
-            running = s.mods.load_dir(mods_dir);
+            running = s.mods.load_dir(std::vector<std::string>{mods_dir, user_mods});
         }
 
         // core.mapgen_only: the stages of the mods loaded here for what they

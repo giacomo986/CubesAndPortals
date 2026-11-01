@@ -528,6 +528,7 @@ dei mod, chat e testi dell'HUD. Una riga assente lascia il testo com'è.
 | `--textures DIR` (ripetibile) `--no-textures` | Texture pack; con più di uno F7 li alterna |
 | `--models DIR` `--no-models` `--model FILE.gltf` | Dove cercare i modelli; un personaggio davanti allo spawn |
 | `--mods DIR` `--seed N` `--world N` | Mondo locale: mod, seme, lato in blocchi |
+| `--user-mods DIR` | Mondo locale: altri mod, caricati con `--mods` come un solo insieme |
 | `--day-length S` `--time T` | Durata del giorno in secondi, ora di partenza (0..1) |
 | `--dual` `--facing` `--oriented` | Scene di prova: due mondi, due portali affacciati, un portale coricato |
 | `--recursion N` `--portal-scale F` `--portal-config FILE` | Profondità della ricorsione (0-3), risoluzione dei target, forma del portale ([`config/portal.cfg`](config/portal.cfg)) |
@@ -549,6 +550,7 @@ L'elenco completo è in `main()` di [`src/client/main.cpp`](src/client/main.cpp)
 | `--world N` `--seed N` `--world-file FILE` | Lato della regione generata all'avvio (default 128; il mondo non ha bordo), seme (default 1), file SQLite dove salvarlo. Un solo server per file: il secondo trova il lucchetto ed esce |
 | `--save-every S` | Ogni quanto scrivere quello che è cambiato (default 10 s; 0 solo alla chiusura). Ctrl+C o SIGTERM salvano e chiudono |
 | `--mods DIR` `--no-mods` | I mod del mondo |
+| `--user-mods DIR` | Altri mod, quelli del giocatore, caricati con `--mods` come un solo insieme: un solo ordine per `depends`, e un nome già caricato rifiutato. Un mondo avviato dalla schermata del titolo passa `<dati>/cubes-and-portals/mods` alla sua stanza sandbox |
 | `--textures DIR` `--no-textures` | I media che il mondo serve |
 | `--day-length S` `--time T` | Ciclo giorno/notte |
 | `--key-file FILE` `--no-encryption` | L'identità del server; cifratura spenta (solo per prove) |

@@ -205,6 +205,12 @@ public:
     // this call has to know which of the two a mod arrived as.
     int load_dir(const std::string &mods_dir);
 
+    // The same over several directories at once, as one set: the base game's
+    // mods and the player's own (--user-mods) are ordered by `depends` together,
+    // and a name found in two of them is refused the second time. A directory
+    // that does not exist is skipped.
+    int load_dir(const std::vector<std::string> &mods_dirs);
+
     // The mods in these directories, in `depends` order: what load_dir does
     // once it has them, and what a world's code arriving as media goes through.
     int load_dirs(const std::vector<std::string> &dirs);

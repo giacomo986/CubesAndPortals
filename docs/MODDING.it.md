@@ -331,6 +331,15 @@ Una dipendenza assente è un rifiuto che la nomina. Un ciclo non blocca il
 caricamento: i mod coinvolti vengono rifiutati uno per uno, ciascuno dicendo cosa
 stava aspettando.
 
+### I mod del giocatore
+
+Oltre a `mods/` del gioco, un mondo avviato dalla schermata del titolo carica i mod nella
+cartella dei dati del giocatore -- `~/.local/share/cubes-and-portals/mods` su Linux,
+`%APPDATA%/cubes-and-portals/mods` su Windows -- cartelle o file `.cnpmod`, solo nella sua
+sandbox (i mondi tematici sono del gioco). Un server prende lo stesso con `--user-mods DIR`. Le
+due cartelle sono **un solo insieme**: un mod lì può avere `depends` su uno del gioco, e un mod
+con il nome di uno del gioco viene rifiutato, dicendo da dove viene il primo.
+
 ---
 
 ## Hot reload

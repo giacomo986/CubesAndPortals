@@ -10511,6 +10511,15 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
                                [](const char *a) { return std::strcmp(a, "sandbox") == 0; });
         args.insert(at == args.end() ? at : at + 1, "--survival");
     }
+    // The player's own mods (user_data_dir/mods), the sandbox's only: the themed
+    // worlds are the game's, and a mod of somebody's is not part of their trial.
+    const std::string user_mods = user_data_dir() + "/mods";
+    if (std::filesystem::is_directory(user_mods, ec)) {
+        auto at = std::find_if(args.begin(), args.end(),
+                               [](const char *a) { return std::strcmp(a, "sandbox") == 0; });
+        at = args.insert(at == args.end() ? at : at + 1, "--user-mods");
+        args.insert(at + 1, user_mods.c_str());
+    }
     const int rooms_up = rooms ? 11 : 1;   // "listening on UDP" once per room
 
     if (!srv.start(prog, std::vector<std::string>(args.begin() + 1, args.end()), dir, log, err))
@@ -19510,6 +19519,7 @@ int client_main(int argc, char **argv)
     // Where this process's mods come from. A gate points it at a fixture; a
     // player never passes it and gets the ones that ship.
     std::string mods_dir = data_dir("mods", CNP_SOURCE_ROOT "/mods");
+    std::string user_mods_dir;   // --user-mods: more mods for the local world, with mods_dir
     bool   facing = false;
     bool   dual_bench = false;
     bool   dual_scene = false;
@@ -19542,6 +19552,7 @@ int client_main(int argc, char **argv)
         if (std::strcmp(argv[i], "--verify") == 0) verify = true;
         if (std::strcmp(argv[i], "--model") == 0 && i + 1 < argc) model_path = argv[++i];
         if (std::strcmp(argv[i], "--mods") == 0 && i + 1 < argc) mods_dir = argv[++i];
+        else if (std::strcmp(argv[i], "--user-mods") == 0 && i + 1 < argc) user_mods_dir = argv[++i];
         if (std::strcmp(argv[i], "--facing") == 0) facing = true;
         if (std::strcmp(argv[i], "--dual-bench") == 0) dual_bench = true;
         if (std::strcmp(argv[i], "--dual") == 0) dual_scene = true;
@@ -20584,7 +20595,7 @@ int client_main(int argc, char **argv)
         std::printf("mods from %s (%s)\n", mods_dir.c_str(),
                     data_dir_reason(mods_dir, CNP_SOURCE_ROOT "/mods").c_str());
 
-        const int running = scene.act().mods.load_dir(mods_dir);
+        const int running = scene.act().mods.load_dir(std::vector<std::string>{mods_dir, user_mods_dir});
         const size_t adopted = scene.act().items.adopt_blocks(scene.act().registry);
         std::printf("scripting: %s, %d mods running, %zu block(s) can be held, %zu item(s) in all\n",
                     script_backend_name(), running, adopted, scene.act().items.size() - 1);

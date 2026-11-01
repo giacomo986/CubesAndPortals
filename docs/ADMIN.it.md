@@ -214,6 +214,7 @@ webhook = https://example.org/hooks/server
 | `--watchdog S` | Una stanza bloccata per S secondi ferma il server stampando lo stack |
 | `--federation PORTA` | La porta TCP dei server amici, sotto la chiave dei ticket (`--ticket-key`, o WORLD.sign) |
 | `--webhook URL` | Azioni di amministrazione, avvio, arresto e rapporti mandati lì con POST |
+| `--user-mods DIR` | Mod tuoi accanto a quelli del gioco, caricati con loro come un solo insieme; in una `[room NOME]` solo per quella stanza ([MODDING](MODDING.it.md#i-mod-del-giocatore)) |
 | `--max-players N` `--require-identity` `--no-observers` | Posti; i giocatori devono avere una chiave; niente finestre dei portali da altri mondi |
 | `--report FILE` `--since 7d` `--json` | Senza server: cosa ricorda un file di mondo, stampato; `--json` come un oggetto JSON |
 | `--names` `--free-name NOME` | Senza server: chi possiede ogni nome; liberarne uno |
