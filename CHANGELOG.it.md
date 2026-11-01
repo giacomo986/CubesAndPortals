@@ -33,6 +33,10 @@ vuole). Legge i mondi della 0.10.
 - I comandi della chat sono in inglese (`/journal`, `/giveup`, `/town`, `/pieces`, `/vehicle`), e
   ogni comando è in `docs/COMMANDS.it.md`.
 - Lo stato di un server dice quali protocolli parla.
+- Parkour, la corda: il server sa dove si aggancia e quando viene lasciata, e la discesa
+  dell'oscillazione non è più una caduta. Prima ogni oscillazione toglieva salute, qualcuna
+  uccideva, e la rinascita lasciava la corda agganciata: il corpo scattava di nuovo su di essa a
+  metà oscillazione.
 - Parkour: corpo e visuale girano attorno a un angolo interno nella corsa sul muro, il salto
   d'angolo può venire prima dell'angolo, e le strisce di pericolo continuano da un blocco all'altro.
 

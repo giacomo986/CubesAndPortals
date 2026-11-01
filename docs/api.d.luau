@@ -216,7 +216,7 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     arms_clip: (clip: string) -> (),
     -- Narrows or widens this machine's view: a bow drawn, a spyglass. Called as often as it changes, so a mod eases it in and out. For a world's code on a player's machine.
     zoom: (factor: number?) -> (),
-    -- Shoots this machine's rope from the eye along the look, up to 40 nodes, into the first solid block, and hangs the body on it: it swings about where it holds, the keys pump the swing, crouch lets rope out and sprint takes it in, jump lets go. false lets go. Only where the world does parkour (core.parkour). Returns 1 on a rope, 0 when nothing was hit or this world has no parkour. For a world's code on a player's machine.
+    -- Shoots this machine's rope from the eye along the look, up to 40 nodes, into the first solid block, and hangs the body on it: it swings about where it holds, the keys pump the swing, crouch lets rope out and sprint takes it in, jump lets go. false lets go. Only where the world does parkour (core.parkour). Returns 1 on a rope, 0 when nothing was hit or this world has no parkour. For a world's code on a player's machine. The server is told where the rope holds and when it is let go, checks the hook (a solid block within the rope's reach) and does not count the swing down as a fall; anything that moves the body (a respawn, core.player_place) lets go.
     rope: (on: boolean?) -> number,
     -- What the hand holds in first person, instead of the held item's own model: a bow as it bends while it is drawn. For a world's code on a player's machine.
     held_model: (name: string?) -> (),

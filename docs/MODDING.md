@@ -1536,7 +1536,10 @@ and goes in the welcome like the rest (protocol 87):
   a step 2 high behind you;
 * **rope**: `core.rope(true)`, from the world's code on the client, fires the rope from the eye up to
   40 nodes; the body swings round the point it hooks (the hands stay a rope's length away), the keys
-  push the swing, crouch lengthens, sprint shortens, jump or `core.rope(false)` lets go.
+  push the swing, crouch lengthens, sprint shortens, jump or `core.rope(false)` lets go. The client
+  tells the server where the rope holds and when it lets go; the server keeps the hook only on a
+  solid block within reach of the hands, and while the body hangs within that reach its swing down
+  is not a fall. A respawn or `core.player_place` lets go, on both ends.
 
 In such a world hands do **not** grab ledges (there a wall 2 high is a backflip and a tall one is a
 chimney), and the server allows what these moves do: 20 m/s of swing, any height, a body slid under a

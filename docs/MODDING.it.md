@@ -1702,7 +1702,11 @@ il box del corpo resta alto 1.8. `mods/robot` dice 1.5, la visiera del robot.
 * **corda**: `core.rope(true)`, dal codice del mondo sul client, spara la corda
   dall'occhio fino a 40 nodi; il corpo oscilla attorno al punto dove si aggancia
   (le mani restano a distanza di corda), i tasti spingono l'oscillazione,
-  crouch allunga, sprint accorcia, salto o `core.rope(false)` stacca.
+  crouch allunga, sprint accorcia, salto o `core.rope(false)` stacca. Il client
+  dice al server dove la corda si aggancia e quando la lascia; il server tiene
+  l'aggancio solo su un blocco solido alla portata delle mani, e finché il corpo
+  resta entro quella portata la discesa dell'oscillazione non è una caduta. Una
+  rinascita o `core.player_place` staccano la corda, da tutte e due le parti.
 
 In un mondo così le mani **non** si aggrappano alle sporgenze (lì un muro alto 2
 è una capriola e uno alto è un camino), e il server permette quello che queste

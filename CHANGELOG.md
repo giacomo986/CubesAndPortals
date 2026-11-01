@@ -32,6 +32,9 @@ server wants). It reads 0.10's worlds.
 - Chat commands are English (`/journal`, `/giveup`, `/town`, `/pieces`, `/vehicle`), and every
   command is in `docs/COMMANDS.md`.
 - A server's status says which protocols it speaks.
+- Parkour, the rope: the server is told where it holds and when it is let go, and a swing down is
+  no longer a fall. Before, each swing hurt, a few killed, and the respawn left the rope on, so the
+  body snapped straight back onto it mid-swing.
 - Parkour: the body and the view turn round an inside corner on a wall run, the corner jump may
   come before the corner, and hazard stripes run unbroken from block to block.
 

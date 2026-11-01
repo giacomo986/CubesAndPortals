@@ -1308,7 +1308,9 @@ local api: { Fn } = {
            .. "keys pump the swing, crouch lets rope out and sprint takes it in, jump lets go. "
            .. "false lets go. Only where the world does parkour (core.parkour). Returns 1 on a "
            .. "rope, 0 when nothing was hit or this world has no parkour. For a world's code on "
-           .. "a player's machine.",
+           .. "a player's machine. The server is told where the rope holds and when it is let go, "
+           .. "checks the hook (a solid block within the rope's reach) and does not count the swing "
+           .. "down as a fall; anything that moves the body (a respawn, core.player_place) lets go.",
     },
     {
         name = "held_model",
