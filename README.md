@@ -518,6 +518,7 @@ notices, chat and HUD text. A missing line leaves the text as it is.
 | `--models DIR` `--no-models` `--model FILE.gltf` | Where to look for models; a character in front of the spawn |
 | `--mods DIR` `--seed N` `--world N` | Local world: mods, seed, side in blocks |
 | `--user-mods DIR` | Local world: more mods, loaded with `--mods` as one set |
+| `--play-world NAME` | Straight into that saved world, past the title screen (what the launcher starts) |
 | `--day-length S` `--time T` | Day length in seconds, starting time (0..1) |
 | `--dual` `--facing` `--oriented` | Test scenes: two worlds, two facing portals, a portal lying down |
 | `--recursion N` `--portal-scale F` `--portal-config FILE` | Recursion depth (0-3), render target resolution, portal shape ([`config/portal.cfg`](config/portal.cfg)) |

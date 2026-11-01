@@ -2027,7 +2027,15 @@ refused; in Xephyr the download page lists the fake tags, the refusal shows,
 remove asks then removes. Not seen: a GUI install's progress (headless only),
 real GitHub (no release has a manifest before the next tag). macOS: no
 install (.dmg). curl and tar via the shell; is curl in the flatpak runtime?
-Check at step 10. Next: step 7, worlds.
+Check at step 10. Step 7 done 2026-11-01: launcher "Worlds" lists the saved
+worlds (last played first) with the version that made them; a click plays it
+with the default build (client `--play-world NAME`). A world whose save line
+(0.MINOR) differs from the build's asks twice; a build newer than the world's
+last one copies it first into <data>/backups/<world>-<version>/ (lock files
+left out, once per version); <world>/launcher_last keeps the newest build that
+opened it. Seen in Xephyr: an old fake world asked, then was copied and
+launched; a real world opened straight from the launcher into the plaza.
+Next: step 8, mods.
 
 **OPEN-40 -- macOS never run; Windows only under wine.** Packages, 2026-10-10:
 tarball and AppImage (23 MB; until now they lacked `assets/sounds` and

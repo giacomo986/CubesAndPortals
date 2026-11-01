@@ -170,6 +170,64 @@ std::vector<std::string> worlds_made_with(const std::string &version)
     return out;
 }
 
+std::vector<World> list_worlds()
+{
+    std::vector<World> out;
+    std::error_code    ec;
+    for (const fs::directory_entry &e : fs::directory_iterator(user_data_dir() + "/worlds", ec)) {
+        if (!e.is_directory(ec)) continue;
+        World w;
+        w.name = e.path().filename().string();
+        std::ifstream a(e.path() / "version"), b(e.path() / "launcher_last");
+        std::getline(a, w.made_with);
+        std::getline(b, w.last_opened);
+        const auto t = fs::last_write_time(e.path() / "seed", ec);
+        w.played     = ec ? 0 : (long long)t.time_since_epoch().count();
+        out.push_back(std::move(w));
+    }
+    std::sort(out.begin(), out.end(), [](const World &a, const World &b) { return a.played > b.played; });
+    return out;
+}
+
+std::string save_line(const std::string &version)
+{
+    const size_t a = version.find('.');
+    const size_t b = a == std::string::npos ? a : version.find('.', a + 1);
+    return version.substr(0, b);
+}
+
+std::string backup_world(const std::string &name, const std::string &tag)
+{
+    std::error_code ec;
+    const fs::path  from = fs::path(user_data_dir()) / "worlds" / name;
+    const fs::path  to   = fs::path(user_data_dir()) / "backups" / (name + "-" + tag);
+    if (fs::exists(to, ec)) return "";
+    const fs::path stage = to.string() + ".part";
+    fs::remove_all(stage, ec);
+    for (const fs::directory_entry &e : fs::recursive_directory_iterator(from, ec)) {
+        const fs::path rel = fs::relative(e.path(), from, ec);
+        if (e.is_directory(ec)) {
+            fs::create_directories(stage / rel, ec);
+        } else if (e.path().extension() != ".lock") {
+            fs::create_directories((stage / rel).parent_path(), ec);
+            fs::copy_file(e.path(), stage / rel, fs::copy_options::overwrite_existing, ec);
+        }
+        if (ec) return "the copy of " + name + " failed: " + ec.message();
+    }
+    fs::rename(stage, to, ec);
+    return ec ? "the copy of " + name + " failed: " + ec.message() : "";
+}
+
+void opened_with(const std::string &name, const std::string &version)
+{
+    const fs::path p = fs::path(user_data_dir()) / "worlds" / name / "launcher_last";
+    std::ifstream  in(p);
+    std::string    was;
+    std::getline(in, was);
+    in.close();
+    if (was.empty() || update::compare(version, was) > 0) std::ofstream(p) << version << "\n";
+}
+
 std::string remove(const std::string &version)
 {
     if (!plain_version(version)) return "not a version: " + version;

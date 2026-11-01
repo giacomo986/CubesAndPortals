@@ -96,10 +96,11 @@ std::string options_language()
     return lang::from_environment();
 }
 
-enum class Page { Main, Builds, Download };
+enum class Page { Main, Builds, Download, Worlds };
 
 ui::Panel launcher_panel(Page page, const std::vector<Build> &builds, size_t chosen,
-                         const std::vector<std::string> &remote, const std::string &confirm,
+                         const std::vector<std::string> &remote,
+                         const std::vector<launcher::World> &worlds, const std::string &confirm,
                          const std::string &error)
 {
     ui::Panel p;
@@ -116,6 +117,8 @@ ui::Panel launcher_panel(Page page, const std::vector<Build> &builds, size_t cho
                      0.5f, y, 11.0f);
         p.elements.back().h = 1.6f;
         y += 2.0f;
+        panel_button(p, "worlds", "Worlds", 0.5f, y, 11.0f);
+        y += 1.3f;
         panel_button(p, "builds", "Versions", 0.5f, y, 11.0f);
         y += 1.3f;
         panel_button(p, "quit", "Quit", 0.5f, y, 11.0f);
@@ -144,6 +147,26 @@ ui::Panel launcher_panel(Page page, const std::vector<Build> &builds, size_t cho
         y += 1.3f;
         panel_button(p, "back", "Back", 0.5f, y, 11.0f);
         y += 1.3f;
+    } else if (page == Page::Worlds) {
+        panel_label(p, builds.empty() ? std::string("Worlds")
+                                      : std::string(lang::tr("Worlds, played with")) + " " + builds[chosen].version,
+                    0.5f, y);
+        y += 1.2f;
+        for (size_t i = 0; i < worlds.size() && i < 8; ++i) {
+            const launcher::World &w = worlds[i];
+            std::string text = w.name;
+            if (!w.made_with.empty()) text += "   (" + w.made_with + ")";
+            if (confirm == "world:" + w.name) text = "! " + text + " !";
+            panel_add(p, ui::ElemKind::Button, "world:" + std::to_string(i), text, 0.5f, y, 11.0f);
+            y += 1.2f;
+        }
+        if (worlds.empty()) {
+            panel_label(p, "no world yet: Play makes one", 0.5f, y);
+            y += 1.2f;
+        }
+        y += 0.2f;
+        panel_button(p, "back", "Back", 0.5f, y, 11.0f);
+        y += 1.3f;
     } else {
         panel_label(p, "Versions on the releases page", 0.5f, y);
         y += 1.2f;
@@ -163,10 +186,13 @@ ui::Panel launcher_panel(Page page, const std::vector<Build> &builds, size_t cho
         panel_button(p, "back", "Back", 0.5f, y, 11.0f);
         y += 1.3f;
     }
-    if (!error.empty()) {
-        panel_label(p, error.substr(0, 70), 0.5f, y);
-        y += 1.0f;
+    for (size_t at = 0; at < error.size();) {   // a line a row
+        const size_t nl = error.find('\n', at);
+        panel_label(p, error.substr(at, std::min<size_t>(70, nl == std::string::npos ? std::string::npos : nl - at)), 0.5f, y);
+        y += 0.8f;
+        at = nl == std::string::npos ? error.size() : nl + 1;
     }
+    if (!error.empty()) y += 0.2f;
     p.h = y;
     return p;
 }
@@ -227,7 +253,9 @@ int main(int argc, char **argv)
 
     Page        page = Page::Main;
     std::string error = builds.empty() ? "no build of the game found" : "";
-    const Build *start = nullptr;
+    const Build             *start = nullptr;
+    std::vector<std::string> start_args;
+    std::vector<launcher::World> worlds;
     bool        pressed_here = false;
 
     std::vector<std::string>              remote;
@@ -260,7 +288,7 @@ int main(int argc, char **argv)
             if (remote.empty()) error = "the releases page did not answer";
         }
 
-        const ui::Panel p = launcher_panel(page, builds, chosen, remote, confirm, error);
+        const ui::Panel p = launcher_panel(page, builds, chosen, remote, worlds, confirm, error);
         const ui::PanelPlacement at = ui::place_panel(p, gfx_screen_width(), gfx_screen_height());
         float mx = 0.0f, my = 0.0f;
         plat_mouse_position(&mx, &my);
@@ -281,13 +309,47 @@ int main(int argc, char **argv)
         if (plat_mouse_released(PLAT_MOUSE_LEFT)) pressed_here = false;
         if (plat_key_pressed(PLAT_KEY_ESC)) id = page == Page::Main ? "quit" : "back";
 
-        if (!id.empty() && id.rfind("remove:", 0) != 0) {
+        if (!id.empty() && id.rfind("remove:", 0) != 0 && id.rfind("world:", 0) != 0) {
             confirm.clear();
             if (!installing.valid()) error.clear();
         }
         if (id == "quit") break;
         if (id == "builds") page = Page::Builds;
-        if (id == "back") page = page == Page::Download ? Page::Builds : Page::Main;
+        if (id == "worlds") {
+            worlds = launcher::list_worlds();
+            page   = Page::Worlds;
+        }
+        if (id.rfind("world:", 0) == 0 && !builds.empty() && !installing.valid()) {
+            // Which build last had it: what made it, or a newer one the launcher
+            // opened it with since. A save line apart is asked twice; a newer
+            // build gets a copy of the world as it was first, kept in backups/.
+            const launcher::World &w = worlds[std::min(worlds.size() - 1, (size_t)std::strtoul(id.c_str() + 6, nullptr, 10))];
+            const Build &b   = builds[chosen];
+            std::string  ref = w.made_with;
+            if (!w.last_opened.empty() && (ref.empty() || update::compare(w.last_opened, ref) > 0)) ref = w.last_opened;
+            const bool apart = !ref.empty() && launcher::save_line(ref) != launcher::save_line(b.version);
+            if (apart && confirm != "world:" + w.name) {
+                confirm = "world:" + w.name;
+                error   = ref + " " + lang::tr("made it: this version may not open it.") + "\n" +
+                          lang::tr("Click again to play; a copy is kept first.");
+            } else {
+                std::string err;
+                if (ref.empty() || update::compare(b.version, ref) > 0)
+                    err = launcher::backup_world(w.name, ref.empty() ? "before-" + b.version : ref);
+                confirm.clear();
+                if (!err.empty()) {
+                    error = err;
+                } else {
+                    launcher::opened_with(w.name, b.version);
+                    start      = &b;
+                    start_args = {"--play-world", w.name};
+                }
+            }
+        }
+        if (id == "back") {
+            page = page == Page::Download ? Page::Builds : Page::Main;
+            confirm.clear();
+        }
         if (id == "download") {
             page = Page::Download;
             if (remote.empty() && !asking.valid()) asking = std::async(std::launch::async, launcher::remote_versions);
@@ -304,9 +366,9 @@ int main(int argc, char **argv)
             const Build &b = builds[std::min(builds.size() - 1, (size_t)std::strtoul(id.c_str() + 7, nullptr, 10))];
             if (confirm != b.version) {
                 confirm = b.version;
-                const size_t worlds = launcher::worlds_made_with(b.version).size();
-                error = worlds == 0 ? std::string(lang::tr("click again to remove")) + " " + b.version
-                                    : std::to_string(worlds) + " " + lang::tr("world(s) were made with it: click again to remove it");
+                const size_t made = launcher::worlds_made_with(b.version).size();
+                error = made == 0 ? std::string(lang::tr("click again to remove")) + " " + b.version
+                                    : std::to_string(made) + " " + lang::tr("world(s) were made with it: click again to remove it");
             } else {
                 const std::string keep = builds[chosen].version, err = launcher::remove(b.version);
                 error   = err.empty() ? b.version + " " + lang::tr("removed") : err;
@@ -339,7 +401,7 @@ int main(int argc, char **argv)
     ChildProcess game;
     std::string  err;
     const std::string dir = fs::path(start->client).parent_path().string();
-    if (!game.start(start->client, {}, dir, user_data_dir() + "/game.log", err)) {
+    if (!game.start(start->client, start_args, dir, user_data_dir() + "/game.log", err)) {
         std::fprintf(stderr, "cnp_launcher: %s: %s\n", start->client.c_str(), err.c_str());
         return 1;
     }

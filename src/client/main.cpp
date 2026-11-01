@@ -9567,6 +9567,7 @@ void save_servers(const std::vector<ServerRow> &rows)
 }
 
 constexpr const char *kLocalAccount = "local", *kHostAccount = "host";
+std::string g_play_world;   // --play-world NAME: straight into that saved world (title_choose)
 
 enum class MenuPage { Title, Player, Options, Look, Worlds, NewWorld, EditWorld, Server, Starting };
 
@@ -10548,7 +10549,30 @@ bool title_choose(Scene &s, TitleMenu &m, bool &debug, LocalServer &local, std::
                   uint16_t &port, std::string &pin_key)
 {
     for (;;) {
-        const MenuChoice choice = title_menu(s, m, debug);
+        // --play-world NAME (the launcher's): that saved world, as its row on the
+        // Play page would be clicked, once; the title screen when it is not there.
+        MenuChoice choice = MenuChoice::Quit;
+        bool       direct = false;
+        if (!g_play_world.empty()) {
+            for (const SavedWorld &w : saved_worlds())
+                if (w.name == g_play_world) {
+                    bool        created = false;
+                    std::string key_err;
+                    if (!net::load_or_create_sign_key(user_data_dir() + "/player.key", m.identity, created, key_err))
+                        break;
+                    m.has_identity = true;
+                    m.identity_for = kLocalAccount;
+                    if (trimmed(m.player).empty()) m.player = "Player";
+                    m.dir        = worlds_dir() + "/" + w.name;
+                    m.world_seed = w.seed;
+                    m.chose_row  = SIZE_MAX;
+                    m.survival   = false;
+                    direct       = true;
+                }
+            g_play_world.clear();
+        }
+        if (direct) choice = MenuChoice::World;
+        else choice = title_menu(s, m, debug);
         if (choice == MenuChoice::Quit) return false;
         if (choice == MenuChoice::Server) {
             host = m.host;
@@ -19509,6 +19533,7 @@ int client_main(int argc, char **argv)
         if (std::strcmp(argv[i], "--model") == 0 && i + 1 < argc) model_path = argv[++i];
         if (std::strcmp(argv[i], "--mods") == 0 && i + 1 < argc) mods_dir = argv[++i];
         else if (std::strcmp(argv[i], "--user-mods") == 0 && i + 1 < argc) user_mods_dir = argv[++i];
+        else if (std::strcmp(argv[i], "--play-world") == 0 && i + 1 < argc) g_play_world = argv[++i];
         if (std::strcmp(argv[i], "--facing") == 0) facing = true;
         if (std::strcmp(argv[i], "--dual-bench") == 0) dual_bench = true;
         if (std::strcmp(argv[i], "--dual") == 0) dual_scene = true;

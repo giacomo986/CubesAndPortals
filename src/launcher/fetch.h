@@ -43,6 +43,27 @@ std::string install(const std::string &version, Progress &progress);
 // The worlds of this machine whose `version` file names `version`.
 std::vector<std::string> worlds_made_with(const std::string &version);
 
+// A world of this machine: the version that made it (its `version` file), the
+// newest build the launcher last opened it with (`launcher_last`), when it
+// was played. Newest played first.
+struct World {
+    std::string name, made_with, last_opened;
+    long long   played = 0;   // seconds, for ordering only
+};
+std::vector<World> list_worlds();
+
+// The two numbers that decide whether a build reads a world: "0.10" of
+// "0.10.0-alpha.2" (docs/BUILDING.md, "Versions": MINOR moves when saves break).
+std::string save_line(const std::string &version);
+
+// A copy of world `name` into <data>/backups/<name>-<tag>/, lock files left
+// out; nothing when that copy is there already. Empty on success.
+std::string backup_world(const std::string &name, const std::string &tag);
+
+// Records that `version` opened world `name` (launcher_last), when it is newer
+// than what the file said.
+void opened_with(const std::string &name, const std::string &version);
+
 // Takes <data>/versions/<version> away. Empty on success.
 std::string remove(const std::string &version);
 
