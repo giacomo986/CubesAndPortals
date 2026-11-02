@@ -158,6 +158,47 @@ to set it up = per impostarlo
 {} is open -- build another frame for its other end = {} è aperto -- costruisci un'altra cornice per l'altra estremità
 {} closed: {} = {} chiuso: {}
 there is already a frame called {} = c'è già una cornice di nome {}
+done = fatto
+its frame is broken = la sua cornice è rotta
+
+# --- Portals to other servers (portal:server_frame) ---
+WARNING: {} = ATTENZIONE: {}
+the link waits and is kept while the other server is unreachable, maybe for ever = il collegamento aspetta e resta mentre l'altro server è irraggiungibile, magari per sempre
+{} x {}, to another server, facing {} = {} x {}, verso un altro server, rivolto a {}
+leads to {} on {} = porta a {} su {}
+asked {} for {}: waiting for it to take the link = chiesto a {} il portale {}: in attesa che accetti il collegamento
+leads nowhere: {} = non porta da nessuna parte: {}
+leads nowhere = non porta da nessuna parte
+unlink = scollega
+no friend server shares portals (/friend add ... portals, --federation) = nessun server amico condivide portali (/friend add ... portals, --federation)
+available to (click a server to add or take it off): = disponibile per (clic su un server per aggiungerlo o toglierlo):
+[x] {} (not reachable) = [x] {} (non raggiungibile)
+[ ] {} (not reachable) = [ ] {} (non raggiungibile)
+their portals available to this server -- click one to connect: = i loro portali disponibili per questo server -- clic su uno per collegarlo:
+tick a server above first = prima spunta un server qui sopra
+none yet: the server must offer a portal to this one too = ancora nessuno: anche quel server deve offrire un portale a questo
+> linked: {}, on {} = > collegato: {}, su {}
+busy: {}, on {} = occupato: {}, su {}
+no: {}, on {} = no: {}, su {}
+{}, on {} = {}, su {}
+{} leads to {} on {} = {} porta a {} su {}
+{} leads nowhere yet: an admin sets it up = {} non porta ancora da nessuna parte: lo imposta un admin
+a portal to another server stands up: build it as a wall, not a floor = un portale verso un altro server sta in piedi: costruiscilo come un muro, non come un pavimento
+this server has no portals to other servers (no world running yet?) = questo server non ha portali verso altri server (nessun mondo ancora avviato?)
+{} is whole -- an admin's right click sets up where it leads = {} è completo -- il clic destro di un admin imposta dove porta
+there is already a portal called {} = c'è già un portale di nome {}
+unlink it first: the far server knows it by its name = prima scollegalo: il server lontano lo conosce per nome
+cannot connect to {} on {}: {} = impossibile collegarsi a {} su {}: {}
+{}: asked {} for {} = {}: chiesto a {} il portale {}
+checks before a link (click to do without one): = controlli prima di un collegamento (clic per farne a meno):
+do not need the other server online = non serve l'altro server online
+do not need a protocol in common = non serve un protocollo in comune
+do not need holes of one size = non servono fori della stessa misura
+a client not speaking the other's protocol is refused at the crossing = un client che non parla il protocollo dell'altro viene rifiutato al passaggio
+a body out of a smaller hole may come out in its frame and be stuck = un corpo che esce da un foro più piccolo può finire nella cornice e restare bloccato
+{} checks again: {} = {} controlla di nuovo: {}
+[x] {} = [x] {}
+[ ] {} = [ ] {}
 {} is now called {} = {} ora si chiama {}
 
 # --- Cards ---

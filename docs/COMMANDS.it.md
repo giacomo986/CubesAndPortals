@@ -122,7 +122,7 @@ quello sotto). `/perm` mostra e cambia quale ruolo chiede un permesso;
 | Comando | Permesso | Cosa fa |
 |---|---|---|
 | `/portals` | portals (admin) | Dove portano le aperture di ogni stanza, e quali server mandano giocatori |
-| `/friend add NOME HOST:PORTA CHIAVE [condivisi]` | federation (owner) | Un server amico; `condivisi` è un elenco tra `bans,presence,chat,bags`, tutti di default |
+| `/friend add NOME HOST:PORTA CHIAVE [condivisi]` | federation (owner) | Un server amico; `condivisi` è un elenco tra `bans,presence,chat,bags,portals`, tutti di default; un NOME già presente viene sostituito (un amico la cui chiave è cambiata) |
 | `/friend remove NOME` | federation (owner) | Non più amici; i suoi ban qui vengono tolti |
 | `/friend list` | federation (owner) | Gli amici, e quando si è sentito ciascuno l'ultima volta |
 

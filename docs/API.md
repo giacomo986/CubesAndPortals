@@ -188,6 +188,78 @@ Shuts one mouth to one player, or opens it again, on a server: sealed, that play
 | `index` | number | — | A mouth onto another room (--portal-to), 0..15. |
 | `sealed` | boolean | — |  |
 
+## `core.far_portal_set`
+
+```luau
+core.far_portal_set(name: string, x: number, y: number, z: number, axis: number, sign: number, half_w: number, half_h: number, offered: string, ignore: string?) -> number
+```
+
+Opens or reshapes a portal to another server, on a server with --federation: it is offered to those friend servers (the ones sharing portals), whose portals offered to this server core.far_portals lists, and leads nowhere -- no opening at all -- until core.far_portal_link links it to one of them and that server takes the link. Then it is one of the world's mouths: an opening onto the other server, crossed on a ticket this server signs, and the far server's key is checked by the client. A link made is kept in the world file and outlives either server being off; it comes undone when either side unlinks, closes, stops offering or resizes its portal, or when either server's signing key changes. Returns 1, or 0 for a bad name, a lying shape or no server.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — | What friends see it called: 1 to 96 printable characters, one per room. |
+| `x` | number | — | The centre of the hole. |
+| `y` | number | — |  |
+| `z` | number | — |  |
+| `axis` | number | — | 0 XY (it faces along z), 1 YZ (along x): it stands up. |
+| `sign` | number | — | 1 or -1: which way its front faces. |
+| `half_w` | number | — | Half its width, up to 16. |
+| `half_h` | number | — | Half its height, up to 16. |
+| `offered` | string | — | The friend servers (/friend) it is offered to, comma separated; empty for none. |
+| `ignore` | string | `` | Checks this portal does without, comma separated: offline (the friend need not have been heard from, and a link asked for waits for it for ever), protocol (no protocol in common), size (holes of two sizes). Each one makes a link easier and a crossing likelier to fail. |
+
+## `core.far_portal_close`
+
+```luau
+core.far_portal_close(name: string) -> number
+```
+
+Closes a portal to another server: its link goes, on both servers, and its mouth is given back. Returns 1, or 0 for no such portal.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — |  |
+
+## `core.far_portal_link`
+
+```luau
+core.far_portal_link(name: string, server: string, room: string, far_name: string) -> string
+```
+
+Links a portal to another server to one a friend offers this server, after every check that can be made from here: the friend shares portals and was heard from in the last 90 s, this portal is offered to it, its portal is offered here and linked to no other, some protocol is spoken by both servers, and the two holes are the same size -- less what far_portal_set's `ignore` leaves out. Asked for, the link is made when the friend takes it -- it checks the same on its side, by its own portal's `ignore`, and says why when it refuses -- and comes undone if it does not within a minute, unless `offline` is ignored: then it waits (core.far_portal_state). Returns "" when asked for or unlinked, or why not.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — | One of this room's, as far_portal_set named it. |
+| `server` | string | — | The friend server, as /friend named it; empty unlinks. |
+| `room` | string | — | Its room the portal is in, as core.far_portals says. |
+| `far_name` | string | — |  |
+
+## `core.far_portal_state`
+
+```luau
+core.far_portal_state(name: string) -> string
+```
+
+Where a portal to another server leads: "none" (then a tab and why, when a link came undone), "asking FRIEND\tROOM\tNAME" while the friend has not taken it, or "linked FRIEND\tROOM\tNAME".
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — |  |
+
+## `core.far_portals`
+
+```luau
+core.far_portals(name: string?) -> string
+```
+
+The friend servers sharing portals and what each offers this server, a line each. "S\tFRIEND\tok\tENGINE" for a friend that can be linked to, or a reason instead of ok (not heard from, no protocol in common); "P\tFRIEND\tROOM\tNAME\tSTATE\tWHY" for each of its portals, STATE free, busy (linked to another) or yours (linked to `name`), WHY empty when `name` could be linked to it.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | `` | This room's portal the list is for: each far one then says whether it fits it. |
+
 ## `core.log`
 
 ```luau

@@ -591,8 +591,8 @@ barra, via RCON (`tools/admin.sh`), o con i pulsanti della pagina `/admin`. Ruol
 player, helper, moderator, admin, owner, anche per stanza), ban, mute, whitelist,
 avvertimenti, segnalazioni e note, regole da accettare, account doppi, riavvii con avvisi e manutenzione, messaggio del giorno,
 visite e `--report`, `/inspect` e `/rollback` di quello che un giocatore ha cambiato, backup,
-webhook, `/bag` e `/give`, e server amici che condividono ban, presenza, una chat e un solo
-zaino per ogni giocatore.
+webhook, `/bag` e `/give`, e server amici che condividono ban, presenza, una chat, un solo
+zaino per ogni giocatore e i portali costruiti fra loro (una cornice d'oro che un admin imposta dal suo menù).
 
 **Ogni comando, permesso, flag e chiave di `server.conf` è in [`docs/ADMIN.md`](docs/ADMIN.it.md);
 ogni comando della chat, anche quelli dei giocatori, con cosa fa, in [`docs/COMMANDS.it.md`](docs/COMMANDS.it.md).**

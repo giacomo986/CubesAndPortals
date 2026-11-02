@@ -7,6 +7,17 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
 ## Not handed out yet
 
+- **Portals between servers built in the world**: a gold ring of `portal:server_frame` (eight
+  portal frames round a ruby). An admin's right click opens its menu: its name, the friend
+  servers it is available to, and the portals they offer this server, one click to connect. The
+  other server takes the link once its portal is offered back; both check first that they hear
+  each other, speak a protocol in common and that the holes are the same size. Friend servers
+  share it as `portals` (on by default for new friends; add an old one again). A link once made
+  lasts through either server, or both, being off, and goes only when an admin lets go on either
+  side or a server's signing key changes. Three boxes in the menu do without a check each (the
+  other server online, a protocol in common, holes of one size), each with its warning.
+- `/friend add` with a name already there replaces that friend: a server whose key changed is
+  added again under the same name.
 - Test chambers 11-13: the long fall (into a floor portal at the bottom of a pit, out of one in the
   floor going up, onto a ledge), three sentry turrets with contempt to spare (knocked over by a
   thrown cube or lifted from behind), and a dissolving field that closes your portals and

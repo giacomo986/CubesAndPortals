@@ -1292,6 +1292,14 @@ public:
     // and no port, a room of this same server.
     void set_destination(int opening, const std::string &host, uint16_t port,
                          uint16_t portal = 0, const std::string &room = {});
+    // Leads nowhere again, its key forgotten: a server portal let go
+    // (src/server/far_portals.h).
+    void clear_destination(int opening)
+    {
+        if (opening < 0 || opening >= kMaxMouths) return;
+        m_away[opening] = PortalAway{};
+        openings_changed();
+    }
     bool leads_away() const { return m_away[0].leads_away(); }
     // Where one of the two openings leads (set_destination).
     const PortalAway &away(int opening) const { return m_away[opening]; }

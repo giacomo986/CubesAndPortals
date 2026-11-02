@@ -2,6 +2,7 @@
 
 #include "core/net/crypto.h"
 #include "core/ui/page.h"
+#include "server/far_portals.h"
 
 #include <sqlite3.h>
 
@@ -34,6 +35,7 @@
 #include <filesystem>
 #include <chrono>
 #include <mutex>
+#include <iterator>
 #include <sstream>
 #include <thread>
 
@@ -1272,7 +1274,7 @@ const Command kCommands[] = {
     {"metrics", "logs", "-- how the server is doing", cmd_metrics},
     {"backup", "backup", "-- copy every world file now", cmd_backup},
     {"portals", "portals", "-- links out, and who sends players in", cmd_portals},
-    {"friend", "federation", "add NAME HOST:PORT KEY [bans,presence,chat,bags]|remove NAME|list -- friend servers", cmd_friend},
+    {"friend", "federation", "add NAME HOST:PORT KEY [bans,presence,chat,bags,portals]|remove NAME|list -- friend servers", cmd_friend},
     {"fed", nullptr, "TEXT -- to the players of every friend server", cmd_fed},
     {"where", nullptr, "NAME -- here, or on which friend server", cmd_where},
 };
@@ -2288,7 +2290,7 @@ struct Presence {
 };
 std::unordered_map<std::string, Presence> g_presence;   // by friend key
 std::unordered_map<std::string, int64_t>  g_heard;
-int64_t     g_next_presence = 0, g_next_bans = 0, g_next_bans_look = 0;
+int64_t     g_next_presence = 0, g_next_bans = 0, g_next_bans_look = 0, g_next_portals = 0;
 std::string g_last_bans, g_last_presence;
 
 int64_t now_ms()
@@ -2638,6 +2640,12 @@ void apply(const Friend &f, const std::string &payload, const Hooks &h)
         std::printf("        federation: %s bans %d key(s) here\n", f.name.c_str(), n);
     } else if (f.shares_("bags") && kind.rfind("bag", 0) == 0) {
         apply_bag(f, kind, in, h);
+    } else if (kind == "portals" && f.shares_("portals")) {
+        std::string body((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        farp::offer_in(f.name, f.key.substr(4), body);
+    } else if (kind == "portals_unlink" && f.shares_("portals")) {
+        std::string body((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        farp::unlink_in(f.name, f.key.substr(4), body);
     } else if (kind == "chat" && f.shares_("chat")) {
         std::string line;
         std::getline(in, line);
@@ -2654,10 +2662,14 @@ void cmd_friend(const Who &c, const Args &a, const Hooks &, std::vector<std::str
         uint8_t key[net::kSignPublicBytes];
         if (a.words.size() < 4 || !net::from_hex(a.words[3], key, sizeof(key)) ||
             a.words[2].find(':') == std::string::npos) {
-            out.push_back("/friend add NAME HOST:PORT KEY [bans,presence,chat,bags]");
+            out.push_back("/friend add NAME HOST:PORT KEY [bans,presence,chat,bags,portals]");
             return;
         }
-        const std::string shares = a.words.size() > 4 ? a.words[4] : "bans,presence,chat,bags";
+        const std::string shares = a.words.size() > 4 ? a.words[4] : "bans,presence,chat,bags,portals";
+        // One friend a name: added again under a new key (it changed its
+        // signature) it is that friend, and the old key is not.
+        for (const Friend &f : friends())
+            if (f.name == a.words[1] && f.key != "key:" + net::to_hex(key, sizeof(key))) drop("friend", f.key);
         put("friend", "key:" + net::to_hex(key, sizeof(key)), a.words[1], a.words[2] + " " + shares, c.name, 0);
         log(c, "friend", a.words[1], a.words[2] + " " + shares);
         g_next_presence = g_next_bans = 0;   // tell it now
@@ -2781,6 +2793,10 @@ bool start_federation(int port, const net::SignKeyPair &me, std::string &err)
         }
     }).detach();
     g_fed_on = true;
+    // The portals between servers as they were (far_portals.h), under this
+    // server's key.
+    Row kept;
+    farp::load(g_me_hex, find("farportals", "all", kept) ? kept.value : std::string());
     return true;
 }
 
@@ -2818,6 +2834,29 @@ void federation_tick(const Hooks &h)
             std::printf("        federation: no bag from a friend in 5 s; the one here\n");
             bag_done(id, h, true);
         }
+    }
+    // The portals offered to each friend (far_portals.h): every ten seconds,
+    // and at once when one is linked, let go or offered.
+    const bool dirty = farp::take_dirty();
+    if (farp::take_save()) put("farportals", "all", "", farp::dump(), "server", 0);   // links outlive a restart
+    if (const auto un = farp::take_unlinks(); !un.empty()) {
+        const std::vector<Friend> fs = friends();
+        for (const auto &[name, line] : un)
+            for (const Friend &f : fs)
+                if (f.name == name) fed_send(f, line);
+    }
+    if (t >= g_next_portals || dirty) {
+        const bool          timed = t >= g_next_portals;
+        std::vector<Friend> fs    = friends();
+        if (timed) {
+            g_next_portals = t + 10;
+            std::vector<farp::Friend> list;
+            for (const Friend &f : fs)
+                if (f.shares_("portals")) list.push_back({f.name, f.host, f.key.substr(4)});
+            farp::set_friends(list);
+        }
+        for (const Friend &f : fs)
+            if (f.shares_("portals")) fed_send(f, farp::offer_for(f.name));
     }
     // Who is here every thirty seconds, and as soon as it changes.
     std::string p = "presence";

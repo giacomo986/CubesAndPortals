@@ -72,18 +72,18 @@ local function cell(axis: number, x: number, y: number, z: number, u: number, v:
     return x + u, y, z + v
 end
 
-local function is_frame(axis: number, x: number, y: number, z: number, u: number, v: number): boolean
+local function is_frame(block: number, axis: number, x: number, y: number, z: number, u: number, v: number): boolean
     local cx, cy, cz = cell(axis, x, y, z, u, v)
-    return core.get_block(cx, cy, cz) == FRAME
+    return core.get_block(cx, cy, cz) == block
 end
 
 local STEPS = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }
 
--- The hole of a whole frame that the air at x, y, z belongs to, in plane
--- `axis`, or nil. The air is filled across the plane from there, four ways; more
+-- The hole of a whole frame of `block` that the air at x, y, z belongs to, in
+-- plane `axis`, or nil. The air is filled across the plane from there, four ways; more
 -- than MAX across either way is the open sky and not a hole. What it filled has
 -- to be a full rectangle, and every cell round it, corners too, a frame.
-local function hole(axis: number, x: number, y: number, z: number): Frame?
+local function hole(block: number, axis: number, x: number, y: number, z: number): Frame?
     if core.get_block(x, y, z) ~= 0 then
         return nil
     end
@@ -128,12 +128,12 @@ local function hole(axis: number, x: number, y: number, z: number): Frame?
         return nil   -- a standing hole one node tall fits nobody
     end
     for u = u0 - 1, u1 + 1 do
-        if not is_frame(axis, x, y, z, u, v0 - 1) or not is_frame(axis, x, y, z, u, v1 + 1) then
+        if not is_frame(block, axis, x, y, z, u, v0 - 1) or not is_frame(block, axis, x, y, z, u, v1 + 1) then
             return nil
         end
     end
     for v = v0, v1 do
-        if not is_frame(axis, x, y, z, u0 - 1, v) or not is_frame(axis, x, y, z, u1 + 1, v) then
+        if not is_frame(block, axis, x, y, z, u0 - 1, v) or not is_frame(block, axis, x, y, z, u1 + 1, v) then
             return nil
         end
     end
@@ -151,15 +151,15 @@ local function hole(axis: number, x: number, y: number, z: number): Frame?
              slot = -1, name = "" }
 end
 
--- The whole frame the frame block at x, y, z is part of, or nil: a hole next to
+-- The whole frame the `block` at x, y, z is part of, or nil: a hole next to
 -- it, straight or corner-wise, in any of the three planes.
-local function around(x: number, y: number, z: number): Frame?
+local function around(x: number, y: number, z: number, block: number): Frame?
     for axis = 0, 2 do
         for du = -1, 1 do
             for dv = -1, 1 do
                 if du ~= 0 or dv ~= 0 then
                     local cx, cy, cz = cell(axis, x, y, z, du, dv)
-                    local f = hole(axis, cx, cy, cz)
+                    local f = hole(block, axis, cx, cy, cz)
                     if f then
                         return f
                     end
@@ -403,7 +403,7 @@ core.event.on("core:placed", function(ev)
     if ev.id ~= FRAME then
         return
     end
-    local f = around(ev.x, ev.y, ev.z)
+    local f = around(ev.x, ev.y, ev.z, FRAME)
     if f then
         try_open(f, ev.player)
     end
@@ -421,7 +421,7 @@ core.event.on("core:broken", function(ev)
 
     -- The last thing in a whole frame's hole, dug out.
     for axis = 0, 2 do
-        local f = hole(axis, ev.x, ev.y, ev.z)
+        local f = hole(FRAME, axis, ev.x, ev.y, ev.z)
         if f then
             try_open(f, ev.player)
             return
@@ -443,7 +443,7 @@ core.event.on("core:used", function(ev)
         end
     end
     if f == nil then
-        local whole = around(ev.x, ev.y, ev.z)
+        local whole = around(ev.x, ev.y, ev.z, FRAME)
         if whole == nil then
             return
         end
@@ -596,4 +596,463 @@ core.event.on("core:tick", function(_)
     end
     save()
     core.log(`portal: {#frames} frame(s) open again, {pairs_open // 2} linked pair(s)`)
+end)
+
+-- Portals to OTHER SERVERS: a ring of portal:server_frame, gold, round a hole
+-- standing up. Anybody may build one; it leads nowhere -- nothing in the hole
+-- -- until an admin sets it up. Their right click opens its menu: its name, the
+-- friend servers (/friend, sharing portals) it is offered to, and the portals
+-- those servers offer this one, each a button that links it there. The far
+-- server takes the link when its portal is offered here, free and the same
+-- size (core.far_portal_link says what the engine checks); then the hole is a
+-- mouth onto that server, crossed on a ticket. Anybody else's right click says
+-- where it leads. Three boxes in the menu let it do without one of the checks
+-- each, with a warning: the other server heard from, a protocol in common,
+-- holes of one size. Kept in core.storage "servers" and set up again on the
+-- first ticks after a restart; the link itself the engine keeps in the world
+-- file, and it lasts while both servers keep their signing keys, through
+-- either being off.
+
+local SERVER = core.register_node("portal:server_frame", 220, 170, 40, true, 7, "", 0, 1.0, "stone")
+core.recipe_shaped("portal:server_frame", 8,
+    "portal:frame portal:frame portal:frame",
+    "portal:frame ore:ruby     portal:frame",
+    "portal:frame portal:frame portal:frame")
+
+type Far = { server: string, room: string, name: string }
+local servers: { Frame } = {}
+local offered: { [Frame]: { string } } = {}
+local far_of: { [Frame]: Far } = {}       -- what it leads to, or asks for, as last read
+local ignored: { [Frame]: { string } } = {}   -- the checks it does without
+
+-- The checks a portal can do without, what the box says, and the warning.
+local CHECKS = {
+    { id = "offline", text = "do not need the other server online",
+      warn = "the link waits and is kept while the other server is unreachable, maybe for ever" },
+    { id = "protocol", text = "do not need a protocol in common",
+      warn = "a client not speaking the other's protocol is refused at the crossing" },
+    { id = "size", text = "do not need holes of one size",
+      warn = "a body out of a smaller hole may come out in its frame and be stuck" },
+}
+
+local function server_named(name: string): Frame?
+    for _, g in servers do
+        if g.name == name then
+            return g
+        end
+    end
+    return nil
+end
+
+-- What a player typed for a name: trimmed, without the characters the saved
+-- rows are split on, 32 characters at most.
+local function clean(text: string): string
+    local name = string.gsub(string.gsub(text, "[|;,\t]", ""), "^%s*(.-)%s*$", "%1")
+    local cut = utf8.offset(name, 33)
+    if cut then
+        name = string.sub(name, 1, cut - 1)
+    end
+    return name
+end
+
+local function far_set(f: Frame): boolean
+    local cx, cy, cz = centre(f)
+    local w, h = size(f)
+    return core.far_portal_set(f.name, cx, cy, cz, f.axis, f.sign, w / 2, h / 2,
+        table.concat(offered[f] or {}, ","), table.concat(ignored[f] or {}, ",")) == 1
+end
+
+local function save_servers()
+    local rows = {}
+    for _, f in servers do
+        local far = far_of[f]
+        table.insert(rows, `{f.name}|{f.x} {f.y} {f.z} {f.ex} {f.ey} {f.ez} {f.axis} {f.sign}|`
+            .. `{table.concat(offered[f] or {}, ",")}|`
+            .. (if far then `{far.server}\t{far.room}\t{far.name}` else "")
+            .. `|{table.concat(ignored[f] or {}, ",")}`)
+    end
+    core.storage_set("servers", table.concat(rows, ";"))
+end
+
+-- "linked", "asking" or "none", the far end, and why a link came undone.
+local function far_state(f: Frame): (string, Far?, string)
+    local st = core.far_portal_state(f.name)
+    local word, rest = string.match(st, "^(%a+)%s?(.*)$")
+    local parts = string.split(rest or "", "\t")
+    if (word == "linked" or word == "asking") and #parts == 3 then
+        return word, { server = parts[1], room = parts[2], name = parts[3] }, ""
+    end
+    return "none", nil, parts[2] or parts[1] or ""
+end
+
+-- The friend servers and what they offer, as core.far_portals says.
+type Server = { name: string, status: string, engine: string }
+type Offer = { server: string, room: string, name: string, state: string, why: string }
+local function far_list(f: Frame): ({ Server }, { Offer })
+    local list, offers = {}, {}
+    for line in string.gmatch(core.far_portals(f.name), "[^\n]+") do
+        local w = string.split(line, "\t")
+        if w[1] == "S" then
+            table.insert(list, { name = w[2], status = w[3] or "", engine = w[4] or "" })
+        elseif w[1] == "P" then
+            table.insert(offers, { server = w[2], room = w[3] or "", name = w[4] or "", state = w[5] or "",
+                                   why = w[6] or "" })
+        end
+    end
+    return list, offers
+end
+
+local SPANEL = "portal:server_menu"
+local sshown: Frame? = nil
+local sviewer = 0
+local choices: { Offer } = {}    -- the link buttons on the menu now, by number
+local friends_shown: { string } = {}
+
+local function server_menu()
+    local f = sshown
+    if f == nil or sviewer == 0 then
+        return
+    end
+    local list, offers = far_list(f)
+    local mine = offered[f] or {}
+    local function is_offered(name: string): boolean
+        return table.find(mine, name) ~= nil
+    end
+    choices = {}
+    for _, o in offers do
+        if is_offered(o.server) and #choices < 12 then
+            table.insert(choices, o)
+        end
+    end
+    friends_shown = {}
+    for _, s in list do
+        if #friends_shown < 9 then
+            table.insert(friends_shown, s.name)
+        end
+    end
+
+    local frows = math.max(1, math.ceil(#friends_shown / 3))
+    local skipped = ignored[f] or {}
+    local ctop = 4.0 + frows
+    local top = ctop + 0.6 + #CHECKS * 0.9 + #skipped * 0.6 + 0.4
+    if core.ui_define(SPANEL, 18.0, top + 1.2 + math.max(1, #choices) * 0.9) == 0 then
+        return
+    end
+    local w, h = size(f)
+    core.ui_box(SPANEL, 0.2, 0.2, 17.6, 0.9, 56, 44, 20)
+    core.ui_field(SPANEL, "name", 0.3, 0.3, 9.0, 0.7, f.name)
+    core.ui_label(SPANEL, 9.6, 0.45, `{w} x {h}, to another server, facing {facing(f)}`)
+
+    local st, far, why = far_state(f)
+    if st == "linked" and far then
+        core.ui_label(SPANEL, 0.5, 1.4, `leads to {far.name} on {far.server}`)
+    elseif st == "asking" and far then
+        core.ui_label(SPANEL, 0.5, 1.4, `asked {far.server} for {far.name}: waiting for it to take the link`)
+    else
+        core.ui_label(SPANEL, 0.5, 1.4, if why ~= "" then `leads nowhere: {why}` else "leads nowhere")
+    end
+
+    core.ui_button(SPANEL, "flip", 0.5, 2.1, 5.5, 0.8, "turn the front round")
+    core.ui_button(SPANEL, "unlink", 6.2, 2.1, 5.5, 0.8, "unlink")
+    core.ui_button(SPANEL, "close", 11.9, 2.1, 5.6, 0.8, "done")
+
+    if #friends_shown == 0 then
+        core.ui_label(SPANEL, 0.5, 3.3, "no friend server shares portals (/friend add ... portals, --federation)")
+    else
+        core.ui_label(SPANEL, 0.5, 3.3, "available to (click a server to add or take it off):")
+        for i, name in friends_shown do
+            local s = list[i]
+            local col, row = (i - 1) % 3, (i - 1) // 3
+            local mark = if is_offered(name) then "[x] " else "[ ] "
+            local note = if s.status == "ok" then "" else " (not reachable)"
+            core.ui_button(SPANEL, `offer:{i}`, 0.5 + col * 5.8, 3.9 + row, 5.6, 0.8, `{mark}{name}{note}`)
+        end
+    end
+
+    core.ui_label(SPANEL, 0.5, ctop, "checks before a link (click to do without one):")
+    for i, c in CHECKS do
+        local off = table.find(skipped, c.id) ~= nil
+        core.ui_button(SPANEL, `check:{i}`, 0.5, ctop + 0.6 + (i - 1) * 0.9, 17.0, 0.8,
+            `{if off then "[x]" else "[ ]"} {c.text}`)
+    end
+    local wy = ctop + 0.6 + #CHECKS * 0.9
+    for _, c in CHECKS do
+        if table.find(skipped, c.id) then
+            core.ui_label(SPANEL, 0.5, wy, `WARNING: {c.warn}`)
+            wy += 0.6
+        end
+    end
+
+    core.ui_label(SPANEL, 0.5, top, "their portals available to this server -- click one to connect:")
+    if #choices == 0 then
+        core.ui_label(SPANEL, 0.5, top + 0.8, if #mine == 0 then "tick a server above first"
+            else "none yet: the server must offer a portal to this one too")
+    end
+    for i, o in choices do
+        local tag = if o.state == "yours" then "> linked: "
+            elseif o.state == "busy" then "busy: "
+            elseif o.why ~= "" then "no: "
+            else ""
+        local text = `{tag}{o.name}, on {o.server}{if o.room ~= "" then ` ({o.room})` else ""}`
+        if o.why ~= "" and o.state ~= "yours" then
+            text ..= ` -- {o.why}`
+        end
+        core.ui_button(SPANEL, `link:{i}`, 0.5, top + 0.8 + (i - 1) * 0.9, 17.0, 0.8, string.sub(text, 1, 120))
+    end
+    core.ui_show(SPANEL, true, sviewer)
+end
+
+-- A whole server frame: standing, its front towards whoever finished it, and
+-- a name. Nil for a lying one.
+local function server_open(f: Frame, player: number): Frame?
+    for _, g in servers do
+        if g.x == f.x and g.y == f.y and g.z == f.z and g.axis == f.axis then
+            return g
+        end
+    end
+    if f.axis == 2 then
+        core.notice(player, "a portal to another server stands up: build it as a wall, not a floor")
+        return nil
+    end
+    local px, _, pz = core.player_pos(player)
+    if px ~= nil and pz ~= nil then
+        local cx, _, cz = centre(f)
+        local ahead = if f.axis == 0 then pz - cz else px - cx
+        f.sign = if ahead < 0 then -1 else 1
+    end
+    local n = (tonumber(core.storage_get("server_count")) or 0) + 1
+    core.storage_set("server_count", tostring(n))
+    f.name = `server portal {n}`
+    if not far_set(f) then
+        core.notice(player, "this server has no portals to other servers (no world running yet?)")
+        return nil
+    end
+    table.insert(servers, f)
+    offered[f] = {}
+    save_servers()
+    core.notice(player, `{f.name} is whole -- an admin's right click sets up where it leads`)
+    core.log(`{f.name} built at {f.x} {f.y} {f.z}, {f.ex} x {f.ey} x {f.ez}, facing {facing(f)}`)
+    return f
+end
+
+local function server_shut(i: number, player: number, why: string)
+    local f = servers[i]
+    core.far_portal_close(f.name)
+    table.remove(servers, i)
+    offered[f], far_of[f], ignored[f] = nil, nil, nil
+    save_servers()
+    core.notice(player, `{f.name} closed: {why}`)
+    core.log(`{f.name} at {f.x} {f.y} {f.z} closed: {why}`)
+    if sshown == f then
+        sshown = nil
+        if sviewer ~= 0 then
+            core.ui_show(SPANEL, false, sviewer)
+            sviewer = 0
+        end
+    end
+end
+
+core.event.on("core:placed", function(ev)
+    if ev.id == SERVER then
+        local f = around(ev.x, ev.y, ev.z, SERVER)
+        if f then
+            server_open(f, ev.player)
+        end
+    end
+end)
+
+core.event.on("core:broken", function(ev)
+    if ev.id == SERVER then
+        for i = #servers, 1, -1 do
+            if on_ring(servers[i], ev.x, ev.y, ev.z) then
+                server_shut(i, ev.player, "its frame is broken")
+            end
+        end
+        return
+    end
+    for axis = 0, 1 do
+        local f = hole(SERVER, axis, ev.x, ev.y, ev.z)
+        if f then
+            server_open(f, ev.player)
+            return
+        end
+    end
+end)
+
+core.event.on("core:used", function(ev)
+    if ev.id ~= SERVER then
+        return
+    end
+    local f: Frame? = nil
+    for _, g in servers do
+        if on_ring(g, ev.x, ev.y, ev.z) then
+            f = g
+        end
+    end
+    if f == nil then
+        local whole = around(ev.x, ev.y, ev.z, SERVER)
+        if whole == nil then
+            return
+        end
+        f = server_open(whole, ev.player)
+    end
+    ev.cancel = true
+    if f == nil then
+        return
+    end
+    if core.has_perm(ev.player, "admin") == 0 then
+        local st, far = far_state(f)
+        core.notice(ev.player, if st == "linked" and far then `{f.name} leads to {far.name} on {far.server}`
+            else `{f.name} leads nowhere yet: an admin sets it up`)
+        return
+    end
+    sshown = f
+    sviewer = ev.player
+    server_menu()
+end)
+
+core.event.on("core:ui_click", function(ev)
+    if ev.panel ~= SPANEL then
+        return
+    end
+    local f = sshown
+    if ev.id == "close" or f == nil or core.has_perm(ev.player, "admin") == 0 then
+        core.ui_show(SPANEL, false, ev.player)
+        if sviewer == ev.player then
+            sviewer = 0
+        end
+        return
+    end
+    sviewer = ev.player
+    local id = ev.id
+    if id == "flip" then
+        f.sign = -f.sign
+        far_set(f)
+    elseif id == "unlink" then
+        core.far_portal_link(f.name, "", "", "")
+        far_of[f] = nil
+    elseif id == "name" then
+        local name = clean(ev.text)
+        if name ~= "" and name ~= f.name then
+            if server_named(name) then
+                core.notice(ev.player, `there is already a portal called {name}`)
+            elseif far_of[f] then
+                core.notice(ev.player, "unlink it first: the far server knows it by its name")
+            else
+                core.far_portal_close(f.name)
+                core.log(`{f.name} renamed {name}`)
+                f.name = name
+                far_set(f)
+            end
+        end
+    elseif string.sub(id, 1, 6) == "offer:" then
+        local name = friends_shown[tonumber(string.sub(id, 7)) or 0]
+        if name then
+            local mine = offered[f] or {}
+            local at = table.find(mine, name)
+            if at then
+                table.remove(mine, at)
+            else
+                table.insert(mine, name)
+            end
+            offered[f] = mine
+            far_set(f)
+            core.log(`{f.name} offered to {if #mine == 0 then "nobody" else table.concat(mine, ", ")}`)
+        end
+    elseif string.sub(id, 1, 6) == "check:" then
+        local c = CHECKS[tonumber(string.sub(id, 7)) or 0]
+        if c then
+            local mine = ignored[f] or {}
+            local at = table.find(mine, c.id)
+            if at then
+                table.remove(mine, at)
+                core.notice(ev.player, `{f.name} checks again: {c.text}`)
+            else
+                table.insert(mine, c.id)
+                core.notice(ev.player, `WARNING: {c.warn}`)
+            end
+            ignored[f] = mine
+            far_set(f)
+            core.log(`{f.name} does without: {if #mine == 0 then "nothing" else table.concat(mine, ", ")}`)
+        end
+    elseif string.sub(id, 1, 5) == "link:" then
+        local o = choices[tonumber(string.sub(id, 6)) or 0]
+        if o then
+            local no = core.far_portal_link(f.name, o.server, o.room, o.name)
+            if no ~= "" then
+                core.notice(ev.player, `cannot connect to {o.name} on {o.server}: {no}`)
+            else
+                far_of[f] = { server = o.server, room = o.room, name = o.name }
+                core.notice(ev.player, `{f.name}: asked {o.server} for {o.name}`)
+                core.log(`{f.name} asks {o.server} for {o.room}/{o.name}`)
+            end
+        end
+    end
+    save_servers()
+    server_menu()
+end)
+
+-- Restored on the first ticks that have a world to open them in (their links
+-- are the engine's, kept in the world file). Every two seconds what each
+-- leads to is read back -- the far server takes a link, or lets go of it --
+-- and an open menu shown again.
+local servers_restored = false
+local restore_tries = 0
+local next_look = 0.0
+local clock = 0.0
+core.event.on("core:tick", function(ev)
+    clock += ev.dt or 0.05
+    if not servers_restored then
+        restore_tries += 1
+        local rows: { Frame } = {}
+        for _, row in string.split(core.storage_get("servers"), ";") do
+            local parts = string.split(row, "|")
+            local n: { number } = {}
+            for _, word in string.split(parts[2] or "", " ") do
+                table.insert(n, tonumber(word) or 0)
+            end
+            if #parts >= 3 and #n == 8 then
+                local f: Frame = { x = n[1], y = n[2], z = n[3], ex = n[4], ey = n[5], ez = n[6], axis = n[7],
+                                   sign = n[8], rot = 0, slot = -1, name = parts[1] }
+                offered[f] = if parts[3] == "" then {} else string.split(parts[3], ",")
+                ignored[f] = if (parts[5] or "") == "" then {} else string.split(parts[5], ",")
+                table.insert(rows, f)
+            end
+        end
+        -- No world to open them in yet: asked again on the next tick.
+        local first = rows[1]
+        if first and not far_set(first) and restore_tries < 200 then
+            return
+        end
+        servers_restored = true
+        for i, f in rows do
+            if i == 1 or far_set(f) then
+                table.insert(servers, f)
+            end
+        end
+        if #rows > 0 then
+            core.log(`portal: {#servers} portal(s) to other servers set up again`)
+        end
+        return
+    end
+    if clock < next_look then
+        return
+    end
+    next_look = clock + 2.0
+    local changed = false
+    for _, f in servers do
+        local _, now_far = far_state(f)
+        local was = far_of[f]
+        if (now_far == nil) ~= (was == nil) or (now_far and was and (now_far.server ~= was.server
+            or now_far.room ~= was.room or now_far.name ~= was.name)) then
+            far_of[f] = now_far   -- taken, or let go, by the far side
+            changed = true
+        end
+    end
+    if changed then
+        save_servers()
+    end
+    if sshown and sviewer ~= 0 then
+        server_menu()
+    end
 end)

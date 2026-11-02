@@ -220,6 +220,87 @@ local api: { Fn } = {
            .. "an index that is not a mouth.",
     },
     {
+        name = "far_portal_set",
+        host = "far_portal_set",
+        ret  = "int",
+        args = {
+            { name = "name", type = "string", doc = "What friends see it called: 1 to 96 printable characters, one per room." },
+            { name = "x", type = "float", doc = "The centre of the hole." },
+            { name = "y", type = "float" },
+            { name = "z", type = "float" },
+            { name = "axis", type = "int", doc = "0 XY (it faces along z), 1 YZ (along x): it stands up." },
+            { name = "sign", type = "int", doc = "1 or -1: which way its front faces." },
+            { name = "half_w", type = "float", doc = "Half its width, up to 16." },
+            { name = "half_h", type = "float", doc = "Half its height, up to 16." },
+            { name = "offered", type = "string", doc = "The friend servers (/friend) it is offered to, comma separated; empty for none." },
+            { name = "ignore", type = "string", default = "", doc = "Checks this portal does without, comma separated: offline (the friend need not have been heard from, and a link asked for waits for it for ever), protocol (no protocol in common), size (holes of two sizes). Each one makes a link easier and a crossing likelier to fail." },
+        },
+        doc = "Opens or reshapes a portal to another server, on a server with --federation: "
+           .. "it is offered to those friend servers (the ones sharing portals), whose portals "
+           .. "offered to this server core.far_portals lists, and leads nowhere -- no opening at "
+           .. "all -- until core.far_portal_link links it to one of them and that server takes "
+           .. "the link. Then it is one of the world's mouths: an opening onto the other server, "
+           .. "crossed on a ticket this server signs, and the far server's key is checked by "
+           .. "the client. A link made is kept in the world file and outlives either server "
+           .. "being off; it comes undone when either side unlinks, closes, stops offering or "
+           .. "resizes its portal, or when either server's signing key changes. Returns 1, or "
+           .. "0 for a bad name, a lying shape or no server.",
+    },
+    {
+        name = "far_portal_close",
+        host = "far_portal_close",
+        ret  = "int",
+        args = {
+            { name = "name", type = "string" },
+        },
+        doc = "Closes a portal to another server: its link goes, on both servers, and its mouth "
+           .. "is given back. Returns 1, or 0 for no such portal.",
+    },
+    {
+        name = "far_portal_link",
+        host = "far_portal_link",
+        ret  = "string",
+        args = {
+            { name = "name", type = "string", doc = "One of this room's, as far_portal_set named it." },
+            { name = "server", type = "string", doc = "The friend server, as /friend named it; empty unlinks." },
+            { name = "room", type = "string", doc = "Its room the portal is in, as core.far_portals says." },
+            { name = "far_name", type = "string" },
+        },
+        doc = "Links a portal to another server to one a friend offers this server, after every "
+           .. "check that can be made from here: the friend shares portals and was heard from "
+           .. "in the last 90 s, this portal is offered to it, its portal is offered here and "
+           .. "linked to no other, some protocol is spoken by both servers, and the two holes "
+           .. "are the same size -- less what far_portal_set's `ignore` leaves out. Asked for, "
+           .. "the link is made when the friend takes it -- it checks the same on its side, by "
+           .. "its own portal's `ignore`, and says why when it refuses -- and comes undone if it "
+           .. "does not within a minute, unless `offline` is ignored: then it waits "
+           .. "(core.far_portal_state). Returns \"\" when asked for or unlinked, or why not.",
+    },
+    {
+        name = "far_portal_state",
+        host = "far_portal_state",
+        ret  = "string",
+        args = {
+            { name = "name", type = "string" },
+        },
+        doc = "Where a portal to another server leads: \"none\" (then a tab and why, when a link "
+           .. "came undone), \"asking FRIEND\\tROOM\\tNAME\" while the friend has not taken it, "
+           .. "or \"linked FRIEND\\tROOM\\tNAME\".",
+    },
+    {
+        name = "far_portals",
+        host = "far_portals",
+        ret  = "string",
+        args = {
+            { name = "name", type = "string", default = "", doc = "This room's portal the list is for: each far one then says whether it fits it." },
+        },
+        doc = "The friend servers sharing portals and what each offers this server, a line each. "
+           .. "\"S\\tFRIEND\\tok\\tENGINE\" for a friend that can be linked to, or a reason "
+           .. "instead of ok (not heard from, no protocol in common); \"P\\tFRIEND\\tROOM\\tNAME"
+           .. "\\tSTATE\\tWHY\" for each of its portals, STATE free, busy (linked to another) or "
+           .. "yours (linked to `name`), WHY empty when `name` could be linked to it.",
+    },
+    {
         name = "log",
         host = "log",
         args = {

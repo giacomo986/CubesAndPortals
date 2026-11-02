@@ -1987,6 +1987,54 @@ Open:
 - The client's far-key check is behind the ticket check, which refuses
   first; a server lying about tickets is the only case it catches.
 
+**Done 2026-11-02, portals between servers built in the world:** a ring of
+`portal:server_frame` (mods/portal); an admin's right click opens its menu
+(name, friend servers it is available to, their portals offered here, a
+click links). src/server/far_portals.cpp: friends sharing `portals` send
+each other every 10 s, and at once on a change, the portals offered to that
+friend (room, name, mouth, size, link state, UDP port, protocol range); a
+link is asked ("ask") and made when the other side's offer says it took it.
+Checks on both sides: friend heard within 90 s, offered both ways, far one
+free, protocol ranges overlap, same hole size; not taken in 60 s it comes
+undone. A linked one takes the room's next mouth (the last moved into a
+hole), with the friend's key and ticket trust; API core.far_portal_set,
+_close, _link, _state, core.far_portals.
+
+Checked: two servers federated on loopback. Engine API: linked in one offer
+round; refusals said (sizes 1x2 against 2x3, not offered, linked to another,
+no such friend); unlink on B undoes A within a second, mouths given back. A
+scripted client crossed A->B->A through the mouths, answered in 206 ms, on
+A's ticket and B's. The mod in Xephyr: the frame built, the menu ticked "b",
+listed beta and delta, a click linked; after a restart the frame and its
+link came back by themselves; walked through on foot into B (bag from A).
+
+**Done 2026-11-02, durable links and checks to do without:** a link made
+is kept in the world file (`farportals` row: entries, links with both keys,
+the friends' last offers) and loaded with the federation; silence, a
+restart or an offer without it never undo it. It goes by a
+`portals_unlink` line (sent when either side lets go; an offer still
+saying "ok" about a portal not linked back is answered with one), or a
+signing key not the one it was made under (this server's at load, the
+friend's at its first line under a new key). Menu boxes: offline (no 90 s
+heard check, asks wait for ever), protocol, size; each a warning. Refusals
+are told back with the reason. `/friend add` with a name already there
+replaces it (two rows "b" with two keys made links bounce).
+
+Checked, two servers on loopback, fresh worlds: linked (alpha-beta 1x2,
+gamma 2x3 with delta 1x2, size ignored both sides); B off 100 s, A still
+linked; B back, "2 link(s) as they were", mouths open at once; both
+restarted, still linked; A unlinked while B was off, B told on its return
+("alpha there let go of it"); B's key changed: B dropped its links at
+start, A at B's first line after /friend add with the new key; offline
+ignored: an ask made with B off waited 85 s and was taken when B came up.
+
+Open:
+- A linked portal is a mouth: 24 per room, shared with --portal-to, not
+  virtual like core.portal_open's.
+- The far server is reached at the host /friend add gave for it.
+- While linked, the room takes the friend's tickets for any opening.
+- One menu at a time per world, as the frame menu (the last admin's).
+
 ## Mods and scripting
 
 **Items on show (core.show_item, protocol 112), 2026-11-01.** The key over

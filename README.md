@@ -579,7 +579,8 @@ RCON (`tools/admin.sh`), or with the buttons of the `/admin` page. Roles (guest,
 helper, moderator, admin, owner, also per room), bans, mutes, the whitelist, warnings,
 reports and notes, rules to accept, alt accounts, restarts with warnings and maintenance, the message of the day, visits and
 `--report`, `/inspect` and `/rollback` of what a player changed, backups, webhooks, `/bag` and
-`/give`, and friend servers that share bans, presence, a chat and one bag for each player.
+`/give`, and friend servers that share bans, presence, a chat, one bag for each player and portals
+built between them (a gold frame an admin sets up from its menu).
 
 **Every command, permission, flag and `server.conf` key is in [`docs/ADMIN.md`](docs/ADMIN.md);
 every chat command, the players' too, with what it does, in [`docs/COMMANDS.md`](docs/COMMANDS.md).**

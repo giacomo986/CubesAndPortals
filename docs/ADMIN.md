@@ -152,7 +152,7 @@ owner of that name on this world, or the bare name.
 | Command | Permission | What it does |
 |---|---|---|
 | `/portals` | portals | Where each room's openings lead, and which servers send players in, how many, from where |
-| `/friend add NAME HOST:PORT KEY [shares]` | federation | A friend server; `shares` is any of `bans,presence,chat,bags`, all by default |
+| `/friend add NAME HOST:PORT KEY [shares]` | federation | A friend server; `shares` is any of `bans,presence,chat,bags,portals`, all by default; a NAME already there is replaced |
 | `/friend remove NAME` `/friend list` | federation | Stop being friends (its bans are lifted here); the friends, and when each was last heard |
 | `/fed TEXT` | anybody | Chat to the players of every friend server |
 | `/where NAME` | anybody | Here (and in which room), or on which friend server |
@@ -336,6 +336,66 @@ tickets another server signs, `--require-ticket` takes nobody else. A client cro
 that the far server's key is the one the link names, through a portal window and through the
 slow redirect alike. `/portals` shows both directions.
 
+### Portals built in the world
+
+Between [friend servers](#friend-servers) that share **portals**, a portal can be built and set
+up in the game instead of on the command line:
+
+1. Build a ring of **portal:server_frame** (gold; eight `portal:frame` round a ruby) round a hole
+   standing up, 1 to 8 wide and 2 to 8 tall. Anybody may build it; it leads nowhere until an
+   admin sets it up.
+2. An admin's right click on the frame opens its menu: the name (the field on top; the far
+   server knows the portal by it, so it changes only while unlinked), **available to**, one
+   button per friend server sharing portals (`[x]` it is offered to that server), and the
+   portals those servers offer this one, each a button that connects to it.
+3. On the other server an admin does the same: offers its portal to this server. Once both are
+   offered, a click on the far one in either menu links them; the other server takes the link by
+   itself within seconds. Anybody else's right click only says where the portal leads.
+
+Before a link is asked for, and again on the far server before it takes it: the friend is in
+the list, shares portals and was heard from in the last 90 s; the portal is offered to it and
+its portal to this server; the far portal is linked to no other; the two servers speak a
+protocol in common (the far one's range is in every offer); the two holes are the same size.
+A link not taken within a minute comes undone, with the reason in the menu; a server that
+refuses one says why, and the asker's menu shows it. Then the client
+checks what it always does when it crosses: the far server's key against the friend's key, its
+own protocol in the handshake, and the ticket this server signs for the player.
+
+A linked portal is one of the room's mouths (24, shared with `--portal-to`): an opening onto the
+other server, crossed on a ticket, and while it is linked the room takes that friend's tickets.
+
+**A link once made lasts**: it is kept in the world file (`farportals` row) with both servers'
+signing keys, and holds while either server, or both, are off or cannot be reached -- the
+mouth stays, at the address and port the friend had, and opens onto it again when it is back.
+It comes undone only when:
+
+- an admin unlinks it, breaks its frame, stops offering it to that friend or resizes it, on
+  either side: the other is told at once, or, if it was off, the first time it says it is still
+  linked;
+- either server's signing key (WORLD.sign or `--ticket-key`) is not the one it was linked under:
+  a server whose key changed drops its links when it starts, and the other drops them as soon
+  as a line comes from the new key -- which it takes once `/friend add` is given again with the
+  same name and the new key (the old key is then forgotten);
+- the friend is removed (`/friend remove`).
+
+#### Doing without a check
+
+Three boxes in the menu make a portal do without one check each, for pairings that are easier
+to make and keep. Each says a warning when ticked, and the menu keeps it under the boxes:
+
+| Box | Does without | The risk |
+|---|---|---|
+| do not need the other server online | the friend heard from in the last 90 s | a link asked for while it is off waits for it for ever, instead of coming undone after a minute; the far portals listed are the last ones it said |
+| do not need a protocol in common | some protocol spoken by both servers | a player whose client does not speak the far server's protocol is refused at the crossing |
+| do not need holes of one size | the two holes the same size | a body coming out of a smaller hole may come out in its frame and be stuck |
+
+Each server checks by its own portal's boxes: for holes of two sizes both portals need the box.
+`/portals` lists the frames, what each is offered to and linked with, and the checks it does
+without.
+
+The far server is reached at the host its `/friend add` names, with the UDP port it says in its
+offers: add a friend under the address players reach it by.
+
 ## Friend servers
 
 Two servers that add each other share, over their `--federation` port:
@@ -345,6 +405,8 @@ Two servers that add each other share, over their `--federation` port:
 - **presence**: who is online, for `/where`.
 - **chat**: `/fed`.
 - **bags**: one bag for a player on all of them (below).
+- **portals**: the portals built in the world each offers the other ([above](#portals-built-in-the-world)).
+  A friend added before this share existed (0.11.0-alpha.1 and earlier) is added again (`/friend add` with the same name) to share them.
 
 Setting up two friends:
 
@@ -393,7 +455,7 @@ In the first room's world file (one store for every room), next to the world:
 
 | Table | What |
 |---|---|
-| `admin` | One row a thing: `role`, `ban`, `mute`, `allow` (whitelist), `setting` (whitelist on, maintenance, message of the day, rules), `accepted` (which rules a player accepted), `perm`, `addr` (last address), `friend`, `fedskip` (a friend's ban lifted here), `bagaway` (whose bag went to which friend), `baggen` (how often a bag moved), `hidden` and `packs` (what a player carries that this world does not know, and what its backpacks hold) |
+| `admin` | One row a thing (`farportals`: the portals between servers and their links): `role`, `ban`, `mute`, `allow` (whitelist), `setting` (whitelist on, maintenance, message of the day, rules), `accepted` (which rules a player accepted), `perm`, `addr` (last address), `friend`, `fedskip` (a friend's ban lifted here), `bagaway` (whose bag went to which friend), `baggen` (how often a bag moved), `hidden` and `packs` (what a player carries that this world does not know, and what its backpacks hold) |
 | `admin_log` | Every admin action, start, stop, unclean stop, report, note, warning |
 | `sessions` | One row a visit |
 | `edits` | Every block a player changed, a month |

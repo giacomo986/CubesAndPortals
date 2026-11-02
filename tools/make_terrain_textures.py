@@ -272,6 +272,9 @@ def main():
     save(lamp((255, 240, 180), (120, 110, 90), rng), "beacons_beacon")
     for i in range(20):
         save(hue(i, rng), f"palette_hue{i}")
+    # Added later, from a seed of its own so the ones above stay the same.
+    rng = random.Random(2112026)
+    save(plate((220, 170, 40), rng), "portal_server_frame")
 
 
 if __name__ == "__main__":

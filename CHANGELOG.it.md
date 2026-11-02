@@ -7,6 +7,18 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
 ## Non ancora consegnato
 
+- **Portali fra server costruiti nel mondo**: un anello d'oro di `portal:server_frame` (otto
+  cornici di portale attorno a un rubino). Il clic destro di un admin apre il suo menù: il nome, i
+  server amici per cui è disponibile e i portali che quelli offrono a questo server, un clic per
+  collegarsi. L'altro server accetta il collegamento quando il suo portale è offerto a sua volta;
+  prima entrambi controllano di sentirsi, di parlare un protocollo in comune e che i fori abbiano
+  la stessa misura. I server amici lo condividono come `portals` (attivo per i nuovi amici; un
+  amico vecchio va aggiunto di nuovo). Un collegamento fatto dura anche con uno dei due server, o
+  entrambi, spenti, e cade solo quando un admin lo lascia da una delle due parti o cambia la
+  chiave di firma di un server. Tre caselle nel menù fanno a meno di un controllo ciascuna (l'altro
+  server online, un protocollo in comune, fori della stessa misura), ognuna con il suo avviso.
+- `/friend add` con un nome già presente sostituisce quell'amico: un server la cui chiave è
+  cambiata si aggiunge di nuovo con lo stesso nome.
 - Camere di prova 11-13: la lunga caduta (in un portale sul fondo di un pozzo, fuori da uno nel
   pavimento verso l'alto, su una sporgenza), tre torrette sentinella dal disprezzo facile (si
   abbattono con un cubo lanciato o prendendole da dietro) e un campo dissolvente che chiude i tuoi

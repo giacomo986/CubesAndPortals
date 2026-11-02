@@ -155,6 +155,68 @@ int l_portal_seal(lua_State *L)
     return 1;
 }
 
+// core.far_portal_set(name: string, x: number, y: number, z: number, axis: number, sign: number, half_w: number, half_h: number, offered: string, ignore: string?) -> number
+int l_far_portal_set(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_checkstring(L, 1);
+    const float x = (float)luaL_checknumber(L, 2);
+    const float y = (float)luaL_checknumber(L, 3);
+    const float z = (float)luaL_checknumber(L, 4);
+    const int axis = (int)luaL_checkinteger(L, 5);
+    const int sign = (int)luaL_checkinteger(L, 6);
+    const float half_w = (float)luaL_checknumber(L, 7);
+    const float half_h = (float)luaL_checknumber(L, 8);
+    const char *offered = (const char *)luaL_checkstring(L, 9);
+    const char *ignore = (const char *)luaL_optstring(L, 10, "");
+    const int result = (vm && vm->host.far_portal_set) ? vm->host.far_portal_set(vm->host.ud, name, x, y, z, axis, sign, half_w, half_h, offered, ignore) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.far_portal_close(name: string) -> number
+int l_far_portal_close(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_checkstring(L, 1);
+    const int result = (vm && vm->host.far_portal_close) ? vm->host.far_portal_close(vm->host.ud, name) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.far_portal_link(name: string, server: string, room: string, far_name: string) -> string
+int l_far_portal_link(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_checkstring(L, 1);
+    const char *server = (const char *)luaL_checkstring(L, 2);
+    const char *room = (const char *)luaL_checkstring(L, 3);
+    const char *far_name = (const char *)luaL_checkstring(L, 4);
+    const char *result = (vm && vm->host.far_portal_link) ? vm->host.far_portal_link(vm->host.ud, name, server, room, far_name) : nullptr;
+    lua_pushstring(L, result ? result : "");
+    return 1;
+}
+
+// core.far_portal_state(name: string) -> string
+int l_far_portal_state(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_checkstring(L, 1);
+    const char *result = (vm && vm->host.far_portal_state) ? vm->host.far_portal_state(vm->host.ud, name) : nullptr;
+    lua_pushstring(L, result ? result : "");
+    return 1;
+}
+
+// core.far_portals(name: string?) -> string
+int l_far_portals(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_optstring(L, 1, "");
+    const char *result = (vm && vm->host.far_portals) ? vm->host.far_portals(vm->host.ud, name) : nullptr;
+    lua_pushstring(L, result ? result : "");
+    return 1;
+}
+
 // core.log(message: string) -> ()
 int l_log(lua_State *L)
 {
@@ -2942,6 +3004,16 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "portal_close");
     lua_pushcfunction(L, l_portal_seal, "core.portal_seal");
     lua_setfield(L, -2, "portal_seal");
+    lua_pushcfunction(L, l_far_portal_set, "core.far_portal_set");
+    lua_setfield(L, -2, "far_portal_set");
+    lua_pushcfunction(L, l_far_portal_close, "core.far_portal_close");
+    lua_setfield(L, -2, "far_portal_close");
+    lua_pushcfunction(L, l_far_portal_link, "core.far_portal_link");
+    lua_setfield(L, -2, "far_portal_link");
+    lua_pushcfunction(L, l_far_portal_state, "core.far_portal_state");
+    lua_setfield(L, -2, "far_portal_state");
+    lua_pushcfunction(L, l_far_portals, "core.far_portals");
+    lua_setfield(L, -2, "far_portals");
     lua_pushcfunction(L, l_log, "core.log");
     lua_setfield(L, -2, "log");
     lua_pushcfunction(L, l_register_node, "core.register_node");

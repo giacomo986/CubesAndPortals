@@ -50,6 +50,7 @@
 #include "script/mod_host.h"
 #include "script/world_code.h"
 #include "server/admin.h"
+#include "server/far_portals.h"
 #include "core/update_check.h"
 
 #include <algorithm>
@@ -288,6 +289,16 @@ struct ServerState {
     ModStore     mod_store;
     std::string  storage_scratch;
     std::string  name_scratch;   // and a player_name's, for the same reason
+    std::string  far_scratch;    // and core.far_portal_*'s
+
+    // Portals to other servers (src/server/far_portals.h): what each mouth was
+    // last made, so a mouth is set again only when it changes (each change is
+    // a new Portals message to everybody); and the keys whose tickets this
+    // room takes, --trust's and then the linked friends'.
+    std::string far_applied[net::kMaxMouths];
+    std::vector<std::string> far_trusted;
+    std::vector<std::array<uint8_t, net::kSignPublicBytes>> base_trusted;
+    bool base_trusted_kept = false;
 
     // core.player_fly: the players who may not fly, and the flying speed each
     // gets back when they may again.
@@ -4711,6 +4722,113 @@ admin::Who admin_who(const net::Session &p, const std::string *room)
     return w;
 }
 
+// Portals to other servers (core.far_portal_*): the table is the process's,
+// each room's by name.
+const std::string &room_name() { return g_router.rooms[(size_t)g_room].name; }
+
+int host_far_portal_set(void *ud, const char *name, float x, float y, float z, int axis, int sign, float half_w,
+                        float half_h, const char *offered, const char *ignore)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (!s->sessions || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) || axis < 0 || axis > 1 ||
+        (sign != 1 && sign != -1) || !(half_w > 0.0f && half_w <= 16.0f) || !(half_h > 0.0f && half_h <= 16.0f))
+        return 0;
+    Portal p;
+    p.center      = Vec3{x, y, z};
+    p.axis        = (PortalAxis)axis;
+    p.normal_sign = sign;
+    p.half_w      = half_w;
+    p.half_h      = half_h;
+    std::string why;
+    if (!farp::set(room_name(), name ? name : "", p, offered ? offered : "", ignore ? ignore : "", why)) {
+        const ModManifest *m = mod_host_current();
+        std::printf("[mod] %s: far_portal_set: %s\n", m ? m->name.c_str() : "?", why.c_str());
+        return 0;
+    }
+    return 1;
+}
+int host_far_portal_close(void *, const char *name) { return farp::close(room_name(), name ? name : "") ? 1 : 0; }
+const char *host_far_portal_link(void *ud, const char *name, const char *fr, const char *room, const char *far)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    s->far_scratch = farp::link(room_name(), name ? name : "", fr ? fr : "", room ? room : "", far ? far : "");
+    return s->far_scratch.c_str();
+}
+const char *host_far_portal_state(void *ud, const char *name)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    s->far_scratch = farp::state(room_name(), name ? name : "");
+    return s->far_scratch.c_str();
+}
+const char *host_far_portals(void *ud, const char *name)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    s->far_scratch = farp::list(room_name(), name ? name : "");
+    return s->far_scratch.c_str();
+}
+
+// Once a tick: this room's mouths as the table wants them, and whose tickets
+// it takes.
+void sync_far_portals(ServerState &s)
+{
+    if (!s.sessions) return;
+    net::ServerSessions &ss = *s.sessions;
+    if (!s.base_trusted_kept) {
+        s.base_trusted      = ss.config().trusted_issuers;
+        s.base_trusted_kept = true;
+    }
+    std::vector<int>         freed;
+    std::vector<std::string> trusted;
+    const std::vector<farp::Mouth> mouths =
+        farp::sync(room_name(), [&](int k) { return ss.away(k).leads_away(); }, freed, trusted);
+    for (const int k : freed) {
+        if (s.far_applied[k].empty()) continue;
+        s.far_applied[k].clear();
+        ss.clear_destination(k);
+        ss.close_opening(k);
+        std::printf("        far portals: opening %d given back\n", k);
+    }
+    for (const farp::Mouth &m : mouths) {
+        char desc[512];
+        std::snprintf(desc, sizeof(desc), "%d|%s|%u|%s|%u|%s|%.3f %.3f %.3f %d %d %.3f %.3f", m.open ? 1 : 0,
+                      m.host.c_str(), (unsigned)m.port, m.far_room.c_str(), (unsigned)m.far_index,
+                      net::to_hex(m.key, sizeof(m.key)).c_str(), (double)m.shape.center.x,
+                      (double)m.shape.center.y, (double)m.shape.center.z, (int)m.shape.axis, m.shape.normal_sign,
+                      (double)m.shape.half_w, (double)m.shape.half_h);
+        if (s.far_applied[m.index] == desc) continue;
+        s.far_applied[m.index] = desc;
+        // A virtual portal holding this opening gives it back: it gets
+        // another on the next schedule.
+        for (ServerState::VirtualPortal &v : s.vportals)
+            if (v.slot == m.index) {
+                v.slot         = -1;
+                s.vportal_next = 0.0;
+            }
+        ss.link_portals(m.index, -1);
+        ss.clear_destination(m.index);
+        ss.set_destination(m.index, m.host, m.port, m.far_index, m.far_room);
+        if (m.open) {
+            ss.set_destination_key(m.index, m.key);
+            ss.move_opening(m.index, m.shape);
+        } else {
+            ss.close_opening(m.index);
+        }
+        std::printf("        far portals: opening %d %s %s:%u%s%s/%u\n", m.index,
+                    m.open ? "leads to" : "is kept for", m.host.c_str(), (unsigned)m.port,
+                    m.far_room.empty() ? "" : " room ", m.far_room.c_str(), (unsigned)m.far_index);
+    }
+    if (trusted != s.far_trusted) {
+        s.far_trusted = trusted;
+        auto &list    = ss.config().trusted_issuers;
+        list          = s.base_trusted;
+        for (const std::string &hex : trusted) {
+            std::array<uint8_t, net::kSignPublicBytes> k{};
+            if (net::from_hex(hex, k.data(), k.size()) && std::find(list.begin(), list.end(), k) == list.end())
+                list.push_back(k);
+        }
+    }
+}
+
 // What an admin command reaches: the players of every room, a portal window
 // included, and the way out -- the refusal first, flushed, then the cut, so
 // they read why. The room hears the Disconnected and lets go of the body.
@@ -4818,6 +4936,7 @@ admin::Hooks admin_hooks()
             if (!r.trusted.empty())
                 out.push_back(room + " takes tickets from " + std::to_string(r.trusted.size()) + " server(s).");
         }
+        for (const std::string &l : farp::lines()) out.push_back(l);
         return out;
     };
     h.metrics = [] {
@@ -6150,6 +6269,11 @@ int serve_room(int argc, char **argv)
         host.portal_close  = host_portal_close;
         host.portal_seal   = host_portal_seal;
         host.portal_link   = host_portal_link;
+        host.far_portal_set   = host_far_portal_set;
+        host.far_portal_close = host_far_portal_close;
+        host.far_portal_link  = host_far_portal_link;
+        host.far_portal_state = host_far_portal_state;
+        host.far_portals      = host_far_portals;
         host.take_item     = host_take_item;
         host.bag_count     = host_bag_count;
         host.owned_area    = host_owned_area;
@@ -7704,6 +7828,7 @@ int serve_room(int argc, char **argv)
             std::printf("server: %s\n", err.c_str());
             return 1;
         }
+        farp::set_self(port);   // said to friend servers with the portals offered them
         std::printf("server: listening on UDP %d, up to %d players%s, %s\n", port,
                     config.max_players,
                     require_identity ? ", identity required" : ", anonymous joins allowed",
@@ -8869,6 +8994,7 @@ int serve_room(int argc, char **argv)
                 for (const auto &[peer, mask] : s.mod_seals)
                     transport.send(peer, net::Channel::Event, net::Seal{mask}.encode(), true);
                 s.mod_seals.clear();
+                sync_far_portals(s);
                 schedule_portals(s, seconds_since(t_start));
 
 

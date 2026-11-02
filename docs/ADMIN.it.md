@@ -152,7 +152,7 @@ il proprietario di quel nome in questo mondo, o il nome e basta.
 | Comando | Permesso | Cosa fa |
 |---|---|---|
 | `/portals` | portals | Dove portano le aperture di ogni stanza, e quali server mandano giocatori, quanti, da dove |
-| `/friend add NOME HOST:PORTA CHIAVE [cosa]` | federation | Un server amico; `cosa` è uno qualunque di `bans,presence,chat,bags`, tutti se non si dice |
+| `/friend add NOME HOST:PORTA CHIAVE [cosa]` | federation | Un server amico; `cosa` è uno qualunque di `bans,presence,chat,bags,portals`, tutti se non si dice; un NOME già presente viene sostituito |
 | `/friend remove NOME` `/friend list` | federation | Smettere di essere amici (i suoi ban qui si tolgono); gli amici, e quando si è sentito ognuno l'ultima volta |
 | `/fed TESTO` | chiunque | Chat con i giocatori di ogni server amico |
 | `/where NOME` | chiunque | Qui (e in quale stanza), o su quale server amico |
@@ -339,6 +339,71 @@ attraversa controlla che la chiave del server lontano sia quella che il collegam
 attraverso una finestra di portale come attraverso il redirect lento. `/portals` mostra le due
 direzioni.
 
+### Portali costruiti nel mondo
+
+Fra [server amici](#server-amici) che condividono **portals**, un portale si può costruire e
+impostare nel gioco invece che dalla riga di comando:
+
+1. Costruire un anello di **portal:server_frame** (oro; otto `portal:frame` attorno a un rubino)
+   attorno a un foro in piedi, largo da 1 a 8 e alto da 2 a 8. Può costruirlo chiunque; non porta
+   da nessuna parte finché un admin non lo imposta.
+2. Il clic destro di un admin sulla cornice apre il suo menù: il nome (il campo in alto; il
+   server lontano conosce il portale per nome, quindi si cambia solo da scollegato),
+   **disponibile per**, un pulsante per ogni server amico che condivide portali (`[x]` è offerto
+   a quel server), e i portali che quei server offrono a questo, ognuno un pulsante che vi si
+   collega.
+3. Sull'altro server un admin fa lo stesso: offre il suo portale a questo server. Quando sono
+   offerti entrambi, un clic su quello lontano in uno dei due menù li collega; l'altro server
+   accetta il collegamento da solo in pochi secondi. Il clic destro di chiunque altro dice solo
+   dove porta il portale.
+
+Prima di chiedere un collegamento, e di nuovo sul server lontano prima di accettarlo: l'amico è
+nell'elenco, condivide portali e si è fatto sentire negli ultimi 90 s; il portale è offerto a lui
+e il suo a questo server; il portale lontano non è collegato a nessun altro; i due server parlano
+un protocollo in comune (l'intervallo di quello lontano è in ogni offerta); i due fori hanno la
+stessa misura. Un collegamento non accettato entro un minuto si scioglie, con il motivo nel menù; un server
+che lo rifiuta dice perché, e il menù di chi l'ha chiesto lo mostra.
+Poi il client controlla quello che controlla sempre quando attraversa: la chiave del server
+lontano contro quella dell'amico, il proprio protocollo nell'handshake e il ticket che questo
+server firma per il giocatore.
+
+Un portale collegato è una delle mouth della stanza (24, in comune con `--portal-to`): un'apertura
+sull'altro server, attraversata con un ticket, e finché è collegato la stanza accetta i ticket di
+quell'amico.
+
+**Un collegamento fatto dura**: resta nel world file (riga `farportals`) con le chiavi di firma
+dei due server, e tiene mentre uno dei due server, o entrambi, sono spenti o irraggiungibili --
+la mouth resta, all'indirizzo e alla porta che l'amico aveva, e si riapre su di lui quando torna.
+Cade solo quando:
+
+- un admin lo scollega, rompe la cornice, smette di offrirlo a quell'amico o lo ridimensiona, da
+  una delle due parti: l'altra lo sa subito o, se era spenta, la prima volta che dice di essere
+  ancora collegata;
+- la chiave di firma di uno dei due server (WORLD.sign o `--ticket-key`) non è quella con cui è
+  stato collegato: un server la cui chiave è cambiata lascia i suoi collegamenti all'avvio, e
+  l'altro li lascia appena arriva una riga dalla chiave nuova -- che accetta quando gli si dà di
+  nuovo `/friend add` con lo stesso nome e la chiave nuova (la chiave vecchia è dimenticata);
+- l'amico viene tolto (`/friend remove`).
+
+#### Fare a meno di un controllo
+
+Tre caselle nel menù fanno fare a un portale a meno di un controllo ciascuna, per accoppiamenti
+più facili da fare e da tenere. Ognuna dà un avviso quando la si spunta, e il menù lo tiene sotto
+le caselle:
+
+| Casella | Fa a meno di | Il rischio |
+|---|---|---|
+| non serve l'altro server online | l'amico sentito negli ultimi 90 s | un collegamento chiesto mentre è spento lo aspetta per sempre, invece di sciogliersi dopo un minuto; i portali lontani elencati sono gli ultimi che ha detto |
+| non serve un protocollo in comune | un protocollo parlato da entrambi i server | un giocatore il cui client non parla il protocollo del server lontano viene rifiutato al passaggio |
+| non servono fori della stessa misura | i due fori della stessa misura | un corpo che esce da un foro più piccolo può finire nella cornice e restare bloccato |
+
+Ogni server controlla secondo le caselle del proprio portale: per fori di misure diverse serve la
+casella su entrambi. `/portals` elenca le cornici, a chi è offerta e con cosa è collegata ognuna,
+e i controlli di cui fa a meno.
+
+Il server lontano si raggiunge all'host che nomina il suo `/friend add`, con la porta UDP che dice
+nelle sue offerte: aggiungere un amico con l'indirizzo con cui lo raggiungono i giocatori.
+
 ## Server amici
 
 Due server che si aggiungono a vicenda condividono, sulla loro porta `--federation`:
@@ -348,6 +413,8 @@ Due server che si aggiungono a vicenda condividono, sulla loro porta `--federati
 - **presenza**: chi è online, per `/where`.
 - **chat**: `/fed`.
 - **borse**: una borsa per giocatore su tutti (sotto).
+- **portals**: i portali costruiti nel mondo che ognuno offre all'altro ([sopra](#portali-costruiti-nel-mondo)).
+  Un amico aggiunto prima che esistesse questa condivisione (0.11.0-alpha.1 e precedenti) va aggiunto di nuovo (`/friend add` con lo stesso nome) per condividerli.
 
 Per fare amici due server:
 
@@ -394,7 +461,7 @@ Nel file di mondo della prima stanza (un archivio per tutte le stanze), accanto 
 
 | Tabella | Cosa |
 |---|---|
-| `admin` | Una riga per cosa: `role`, `ban`, `mute`, `allow` (whitelist), `setting` (whitelist accesa, manutenzione, messaggio del giorno, regole), `accepted` (quali regole ha accettato un giocatore), `perm`, `addr` (ultimo indirizzo), `friend`, `fedskip` (il ban di un amico tolto qui), `bagaway` (la borsa di chi è andata a quale amico), `baggen` (quante volte una borsa si è mossa), `hidden` e `packs` (quello che un giocatore porta che questo mondo non conosce, e cosa tengono i suoi zaini) |
+| `admin` | Una riga per cosa (`farportals`: i portali fra server e i loro collegamenti): `role`, `ban`, `mute`, `allow` (whitelist), `setting` (whitelist accesa, manutenzione, messaggio del giorno, regole), `accepted` (quali regole ha accettato un giocatore), `perm`, `addr` (ultimo indirizzo), `friend`, `fedskip` (il ban di un amico tolto qui), `bagaway` (la borsa di chi è andata a quale amico), `baggen` (quante volte una borsa si è mossa), `hidden` e `packs` (quello che un giocatore porta che questo mondo non conosce, e cosa tengono i suoi zaini) |
 | `admin_log` | Ogni azione di amministrazione, avvio, arresto, arresto sporco, rapporto, nota, avvertimento |
 | `sessions` | Una riga per visita |
 | `edits` | Ogni blocco cambiato da un giocatore, un mese |
