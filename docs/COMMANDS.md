@@ -65,7 +65,10 @@ everything below it). `/perm` shows and changes which role a permission wants;
 | `/weather [clear\|rain\|storm] [MINUTES]` | admin | The sandbox's sky: with no word, what it is and how long it lasts; with one, that sky now, for MINUTES or its usual time (`mods/weather`) |
 | `/time [day\|noon\|dusk\|night\|midnight\|dawn\|HH:MM]` | admin | The clock: with no word, the hour; with one, that hour at once for everybody. Turned back past midnight it counts a day, as a night slept through (`mods/weather`) |
 | `/season [spring\|summer\|autumn\|winter]` | admin | The sandbox's season (five days each): with no word, which and what day of it; with one, the first day of that season (`mods/weather`) |
-| `/peaceful [on\|off]` | admin | A peaceful world: no creature that fights comes out or stays, at once and across restarts (WORLD.peaceful); with no word, which it is. A dungeon's spawner then leaves what its creatures would, the deep's altar gives its heart and shards unfought, villages have no sieges (`mods/mobs`) |
+| `/difficulty [peaceful\|easy\|normal\|hard]` | admin | How hard the world is, at once and across restarts (WORLD.difficulty): peaceful, no creature that fights comes out or stays -- a dungeon's spawner leaves what its creatures would, the deep's altar gives its heart and shards unfought, villages have no sieges; easy halves a creature's blow and how many come out, and hunger; hard adds half to both. With no word, which it is (`mods/rules`) |
+| `/peaceful [on\|off]` | admin | `/difficulty peaceful`, or normal again (`mods/rules`) |
+| `/rule [NAME on\|off]` | admin | The world's rules, across restarts (WORLD.rules): `keep_bag` (a survival world's bag kept on death, no grave), `day_cycle` (the sun moves), `weather_cycle` (the weather changes by itself), `hunger`. With no word, the list (`mods/rules`) |
+| `/goals` | anybody | How many of the sandbox's goals you have reached; `/page goals` lists them with hints for the next (`mods/goals`) |
 | `/village siege\|feast\|caravan\|incoming` | admin | Starts a village event now in the village you stand in: a siege warned of now and coming at nightfall, the harvest feast, a caravan to the nearest other village, or one coming from an unvisited village along the paths (`mods/villagers`) |
 
 ### Players

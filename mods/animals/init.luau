@@ -312,3 +312,122 @@ core.event.on("core:tick", function(ev)
         end
     end
 end)
+
+-- ------------------------------------------------------------ the pony
+-- A mount. Ponies graze on grass by day as the others do; right click one
+-- holding a saddle and you ride it: the pony is worn under your feet
+-- (core.player_wear: its own bones under your feet' bone, its legs playing
+-- worn_walk or worn_run as you go -- tools/make_pony_ridden.py) and you sit
+-- astride it, feet in the stirrups (ride_idle, ride: tools/make_ride_clips.py) and you go at its pace, a canter on sprint, and jump a block
+-- and more. Ctrl (crouch), or a right click on the ground, gets off: it
+-- stands there again and the saddle is back in the bag. Dying, or leaving, puts it down where you were.
+local PONY = {
+    MODEL = core.register_model("animals:pony", "pony.gltf"),   -- tools/make_pony_model.py
+    RIDDEN = core.register_model("animals:pony_ridden", "pony_ridden.gltf"),   -- tools/make_pony_ridden.py
+    SLOT = 9,                 -- of core.player_wear's ten (mods/boats has the 10th)
+    riding = {} :: { [number]: { x: number, y: number, z: number, clip: string } },
+}
+core.register_mob("animals:pony", PONY.MODEL, 16, 2.6, "pet", 0, 1.6, 1.0, "animals:leather", 1, 0, false, 0,
+                  false, "core:grass")
+core.register_item("animals:saddle", 1, "", 0, 1.0, "")
+core.register_model("animals:saddle_held", "saddle_held.gltf")   -- tools/make_held_models.py
+core.recipe_shaped("animals:saddle", 1,
+    "animals:leather  animals:leather     animals:leather",
+    "-                furnace:iron_ingot  -")
+
+function PONY.off(p: number, x: number?, y: number?, z: number?)
+    local was = PONY.riding[p]
+    if was == nil then
+        return
+    end
+    PONY.riding[p] = nil
+    local px, py, pz = x or was.x, y or was.y, z or was.z
+    core.spawn_mob("animals:pony", px, py, pz)
+    if core.player_pos(p) ~= nil then
+        core.player_wear(p, PONY.SLOT, 0)
+        core.player_clip(p, "")
+        core.body_movement(p)
+        if core.give_item(p, "animals:saddle", 1) < 1 then
+            core.drop_item(math.floor(px), math.floor(py), math.floor(pz), core.item_id("animals:saddle"), 1)
+        end
+    else
+        core.drop_item(math.floor(px), math.floor(py), math.floor(pz), core.item_id("animals:saddle"), 1)
+    end
+end
+
+core.event.on("core:used_mob", function(ev)
+    if core.mob_kind(ev.target) ~= "animals:pony" or ev.held ~= "animals:saddle" or PONY.riding[ev.player] then
+        return
+    end
+    local x, y, z = core.mob_pos(ev.target)
+    if x == nil or core.take_item(ev.player, "animals:saddle", 1) < 1 then
+        return
+    end
+    core.mob_remove(ev.target)
+    PONY.riding[ev.player] = { x = x, y = y, z = z, clip = "ride_idle" }
+    core.player_clip(ev.player, "ride_idle")   -- astride (tools/make_ride_clips.py)
+    core.player_place(ev.player, x, y, z)
+    core.player_wear(ev.player, PONY.SLOT, PONY.RIDDEN)
+    core.body_movement(ev.player, 7.0, 11.0, 14.0, 10.0)
+    core.notice(ev.player, "Riding: Ctrl, or right click the ground, to get off")
+end)
+
+-- Off onto the ground clicked, beside it.
+core.event.on("core:used", -20, function(ev)
+    if PONY.riding[ev.player] and core.get_block(ev.x, ev.y + 1, ev.z) == 0 then
+        ev.cancel = true
+        local x, y, z = core.player_pos(ev.player)
+        PONY.off(ev.player, ev.x + 0.5, ev.y + 1, ev.z + 0.5)
+        if x then
+            core.player_place(ev.player, x, y, z)
+        end
+    end
+end)
+
+core.event.on("core:died", function(ev)
+    PONY.off(ev.player, ev.x, ev.y, ev.z)
+end)
+
+local pony_since = 0
+core.event.on("core:tick", function(ev)
+    -- Ctrl (crouch) gets off where you are, the pony beside you.
+    for p in PONY.riding do
+        if core.player_crouching(p) then
+            local x, y, z = core.player_pos(p)
+            if x then
+                local lx, _, lz = core.player_look(p)
+                local len = math.max(0.01, math.sqrt((lx or 0) ^ 2 + (lz or 0) ^ 2))
+                PONY.off(p, x - (lz or 0) / len * 1.2, y, z + (lx or 0) / len * 1.2)
+            else
+                PONY.off(p)
+            end
+        end
+    end
+    pony_since += ev.dt
+    if pony_since < 0.5 then
+        return
+    end
+    pony_since = 0
+    local here: { [number]: boolean } = {}
+    for _, p in core.players() do
+        here[p] = true
+        local r = PONY.riding[p]
+        if r then
+            local x, y, z = core.player_pos(p)
+            if x then
+                -- Under way or standing: the rider's clip as the pony's legs go.
+                local clip = if (x - r.x) ^ 2 + (z - r.z) ^ 2 > 0.3 * 0.3 then "ride" else "ride_idle"
+                if clip ~= r.clip then
+                    r.clip = clip
+                    core.player_clip(p, clip)
+                end
+                r.x, r.y, r.z = x, y, z
+            end
+        end
+    end
+    for p in PONY.riding do
+        if not here[p] then
+            PONY.off(p)   -- left riding: the pony stays where they were
+        end
+    end
+end)

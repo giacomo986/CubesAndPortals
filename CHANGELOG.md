@@ -5,15 +5,47 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
-## Not handed out yet
+## 0.12.0-alpha.1 — 2026-11-03
 
-- A peaceful sandbox: no monster comes out of the dark, and those about go. Chosen when a world is
-  made ("Monsters" on the new world page), in a saved world's Edit page before loading it, or in
-  play with `/peaceful on|off` (admin); kept across restarts. What only monsters leave is still to
-  be had: a dungeon's spawner, quiet now, leaves now and then what its creatures would (bones,
-  flesh, gunpowder, arrows); the deep's altar gives its heart and shards without waking the
-  guardian; villages have no sieges. Servers: `--peaceful`. For mods: `core.peaceful()`,
-  `core.set_peaceful(on)`, `core.mob_leave(kind, x, y, z)`.
+- How hard the sandbox is: peaceful, easy, normal or hard. Chosen when a world is made ("Monsters"
+  on the new world page), in a saved world's Edit page, or in play (`/difficulty`, `/peaceful`, or
+  the pause menu's new **World** button); kept across restarts. Peaceful lets no monster out and
+  sends those about away, and what only monsters leave is still to be had: a dungeon's spawner,
+  quiet now, leaves now and then what its creatures would (bones, flesh, gunpowder, arrows); the
+  deep's altar gives its heart and shards without waking the guardian; villages have no sieges.
+  Easy halves a creature's blow, how many come out and hunger; hard adds half to each. Servers:
+  `--difficulty`, `--peaceful`.
+- The world's rules (`/rule`, the World page): keep the bag on death in a survival world, the sun
+  moving, the weather changing by itself, hunger. The World page also sets the weather, the hour
+  and the season for an admin.
+- Goals: 21 things to do in the sandbox, from the first wood and a night in bed to a village, a
+  relic, the guardian's heart and every world's key, told with a chime as they are reached and
+  listed with hints on `/page goals`.
+- Storms: the bolt lights the land, by night too, with a flash and a flicker; under a storm the
+  creatures of the dark come out and do not burn.
+- Crouched, you no longer walk off an edge: you stop at it and slide along it.
+- Creatures: struck and aimed at in their whole model (a guardian at its head); players and
+  creatures push each other aside; one chasing you in the sun goes for shade first if there is any.
+- The map shows the land as built -- trees, houses, roads, water -- where it has been seen, and
+  repaints what is near as it changes; relics and villages are marked on it, as portals were.
+- Pressure plates (on under a player or a creature) and spike traps (up while powered, a blow twice
+  a second) for cinnabar circuits; doors open for a plate too.
+- Ponies, on the grass by day: right click one with a saddle (three leather and an iron ingot) to
+  ride it -- faster, a canter on sprint, a higher jump -- and Ctrl (or a right click on the ground)
+  to get off. You sit
+  astride, feet in the stirrups and hands on the reins, rising with its stride; its legs walk and
+  canter under you, seen in first person too.
+- Saddle, peat and mushroom stew have their own models in the hand and pictures in the bag.
+- Two rare lands in the plains: swamps of mud, pools, reeds and willows over peat (a fuel), and
+  groves of giant mushrooms on mycelium with glowcaps under their caps (a light); two brown
+  mushrooms and a red make a stew.
+- Market stalls: stock one, set the price and the lot, and other players buy from it while you
+  are away; the takings wait in its till.
+- The Italian translation covers the mods' messages too (villages, weather, waystones, blueprints,
+  the worlds' trials), and the English the worlds written in Italian.
+- For mods: `core.difficulty`, `core.set_difficulty`, `core.peaceful`, `core.set_peaceful`,
+  `core.rule`, `core.set_rule`, `core.day_cycle`, `core.set_day_cycle`, `core.mob_leave`,
+  `core.sky_flash`; `core.overcast` on a server darkens the day the creatures read.
 - **Protocol 114**: it does not play with 113 servers or clients.
 - The test chambers' storage cube is a real box now: it falls, slides, tips over edges, rolls and
   bounces, and lies the way it lands; thrown or knocked it turns over as it goes, and through a

@@ -47,6 +47,9 @@ local function cell_at(x: number, y: number, z: number): (number, number, number
 end
 
 core.event.on("core:died", function(ev)
+    if core.rule("keep_bag") == "on" then
+        return   -- the rule (mods/rules): the engine's way, the bag kept
+    end
     local x, y, z = cell_at(ev.x, ev.y, ev.z)
     core.set_block(x, y, z, GRAVE)
     core.container_make(x, y, z, SLOTS)

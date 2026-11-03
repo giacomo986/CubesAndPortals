@@ -92,11 +92,14 @@ server side, and the 20 Hz tick: the peers' messages, the mods' and ECS systems'
 columns generated or read back round whoever is there and let go where nobody is, chunk
 streaming by interest, entities, health, time, doors between servers.
 
-**Peaceful** is one flag of the room (`ServerState::peaceful`), kept as `<world file>.peaceful`
-(there or not) so the title menu reads and writes it without a server. Two gates only: the
-natural spawner is skipped and `host_spawn_mob` refuses a kind that `fights()`; turning it on
-removes those about. What a mod does in its own fights (sieges, an altar's boss) it asks
-`core.peaceful()` for, and `core.mob_leave` gives a kind's drops with no creature.
+**Difficulty** is one number of the room (`ServerState::difficulty`, 0 peaceful .. 3 hard), kept
+as `<world file>.difficulty` so the title menu reads and writes it without a server. Peaceful has
+two gates only: the natural spawner is skipped and `host_spawn_mob` refuses a kind that `fights()`;
+turning it on removes those about. Easy and hard scale the spawn cap and the blow a creature lands
+on a player (the hurt callback of `step_mobs`). What a mod does in its own fights (sieges, an
+altar's boss) it asks `core.peaceful()` for, and `core.mob_leave` gives a kind's drops with no
+creature. The world's **rules** (`core.rule`) are names and values the engine keeps in
+`<world file>.rules` and gives no meaning: each mod reads its own.
 
 **The world has no edge.** A column of chunks comes into memory when a session gets within four
 columns of it: from the world file if it is there, from the generator if not (core and the mods'

@@ -1483,9 +1483,19 @@ local api: { Fn } = {
         },
         doc = "Weather over this world's sky: the sky and its clouds go grey by this much, the "
            .. "sun's light on the ground weaker and its shadows fainter, the hours kept. 0 takes "
-           .. "it away. Only drawn: the light a crop or a creature reads (core.light) is the "
-           .. "hour's. Called as it changes, so a mod fades it in. For a world's code on a "
-           .. "player's machine.",
+           .. "it away. Called as it changes, so a mod fades it in, on a player's machine. On a "
+           .. "server it darkens the day the creatures and core.light read: at 1 the sun's share "
+           .. "is 0.4 of the hour's, so the dark's creatures come out in a storm and do not burn.",
+    },
+    {
+        name = "sky_flash",
+        host = "sky_flash",
+        args = {
+            { name = "amount", type = "float", doc = "0 none .. 1 a bolt's whole flash; clamped" },
+        },
+        doc = "Lights this world as a bolt does, this frame: the land as bright as at noon and the "
+           .. "sky towards a pale blue by this much, by night too. Called every frame it lasts. "
+           .. "For a world's code on a player's machine.",
     },
     {
         name = "node_foliage",
@@ -1940,8 +1950,8 @@ local api: { Fn } = {
         host = "peaceful",
         ret  = "bool",
         args = {},
-        doc = "Whether this world is peaceful (--peaceful, /peaceful, the title screen's world "
-           .. "settings): no creature that fights (register_mob fight \"melee\" or \"archer\") comes "
+        doc = "Whether this world is peaceful (core.difficulty \"peaceful\": --peaceful, /difficulty, "
+           .. "the title screen's world settings): no creature that fights (register_mob fight \"melee\" or \"archer\") comes "
            .. "out of the dark or is put in the world -- core.spawn_mob gives 0 for one. What a mod "
            .. "that makes fights of its own asks first, and what it asks to give what only those "
            .. "creatures leave some other way. False off a server.",
@@ -1951,9 +1961,69 @@ local api: { Fn } = {
         host = "set_peaceful",
         ret  = "int",
         args = { { name = "on", type = "bool", default = true } },
-        doc = "Makes this world peaceful, or not, at once and across restarts (the world file's "
-           .. "<file>.peaceful, which the title screen reads). On, every creature that fights goes, "
-           .. "playing no death and leaving nothing. Returns how many went.",
+        doc = "core.set_difficulty(\"peaceful\"), or \"normal\" for false. Returns how many "
+           .. "creatures went.",
+    },
+    {
+        name = "difficulty",
+        host = "difficulty",
+        ret  = "string",
+        args = {},
+        doc = "How hard this world is: \"peaceful\", \"easy\", \"normal\" or \"hard\" (--difficulty, "
+           .. "/difficulty, the title screen's world settings). Peaceful is core.peaceful; easy halves a "
+           .. "creature's blow on a player and how many come out near each (3), hard adds half to both "
+           .. "(9; normal 6). What a mod scales its own by -- hunger, a siege. Empty off a server.",
+    },
+    {
+        name = "set_difficulty",
+        host = "set_difficulty",
+        ret  = "int",
+        args = { { name = "name", type = "string", doc = "peaceful, easy, normal or hard." } },
+        doc = "Makes this world that hard, at once and across restarts (the world file's "
+           .. "<file>.difficulty, which the title screen reads). Peaceful, every creature that fights "
+           .. "goes, playing no death and leaving nothing. Returns how many went, or -1 for a name "
+           .. "that is no difficulty.",
+    },
+    {
+        name = "rule",
+        host = "rule",
+        ret  = "string",
+        args = { { name = "name", type = "string" } },
+        doc = "One of this world's rules, as core.set_rule left it, or an empty string for one "
+           .. "never set: what each mod then takes as its default. Every mod of the world reads the "
+           .. "same rules (mods/rules lists the game's: keep_bag, day_cycle, weather_cycle, hunger). "
+           .. "Empty off a server.",
+    },
+    {
+        name = "set_rule",
+        host = "set_rule",
+        ret  = "int",
+        args = {
+            { name = "name", type = "string", doc = "1 to 32 of a-z, 0-9 and _." },
+            { name = "value", type = "string", doc = "At most 64 characters, one line; empty forgets it." },
+        },
+        doc = "Sets one of this world's rules, at once and across restarts (the world file's "
+           .. "<file>.rules, `name = value` a line, which the title screen reads too). The engine "
+           .. "gives a rule no meaning: the mod that reads it does. Returns 1, or 0 for a bad name "
+           .. "or value.",
+    },
+    {
+        name = "day_cycle",
+        host = "day_cycle",
+        ret  = "bool",
+        args = {},
+        doc = "Whether the world's clock goes: false once core.set_day_cycle(false) stopped it. "
+           .. "True off a server.",
+    },
+    {
+        name = "set_day_cycle",
+        host = "set_day_cycle",
+        ret  = "int",
+        args = { { name = "on", type = "bool", default = true } },
+        doc = "Stops the clock where it is, or starts it again at the world's day length "
+           .. "(--day-length): every client sees the sky stand still, as it mirrors the server's "
+           .. "hour. Not kept by the engine across restarts: a mod that wants it so sets it at "
+           .. "its first core:tick (before, there is no clock yet). Returns 1, 0 off a server.",
     },
     {
         name = "mob_leave",
@@ -1973,8 +2043,17 @@ local api: { Fn } = {
         host = "mob_remove",
         ret  = "int",
         args = { { name = "id", type = "int" } },
-        doc = "Takes a worker out of the world at once, leaving nothing and playing no death: "
-           .. "its mod taking it back. Returns 1, or 0 for one that is gone or not a worker.",
+        doc = "Takes a creature out of the world at once, leaving nothing and playing no death: "
+           .. "its mod taking it back, a mount taken up. Returns 1, or 0 for one that is gone or "
+           .. "no creature.",
+    },
+    {
+        name = "player_crouching",
+        host = "player_crouching",
+        ret  = "bool",
+        args = { { name = "player", type = "int" } },
+        doc = "Whether that player's body is crouched (Ctrl held on foot), as their client last "
+           .. "said: how a rider gets off a mount. False for somebody not here.",
     },
     {
         name = "body_player",

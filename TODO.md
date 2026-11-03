@@ -2113,19 +2113,63 @@ image had the eye, no further back than the box fits in the opening's node
 F): out inside F's hole, falls out onto the platform, 0 corrections.
 Open: the 0.92 left -- only a camera crossing with the eye could remove it.
 
-**Done 2026-11-03, peaceful sandbox:** ServerState::peaceful, kept as
-<world file>.peaceful (there or not; `--peaceful` forces it on). Off the
-natural spawner, core.spawn_mob gives 0 for a kind that fights (melee,
-archer), set on removes those about. Title menu: "Monsters" on New World and
-Edit (writes world.db.peaceful), /peaceful in mods/mobs. Mob-only items:
-dungeons' spawner leaves a creature's drops (core.mob_leave) 1 in 10 of its
-5 s turns; the deep's altar gives heart + guardian drops unfought; villagers'
-raiders and sieges off (raiders about removed, a siege ends untold).
-Checked headless: peaceful start, zombie 0, off then zombie 500 + pig 501,
-on removed 1, mob_leave 2 (zombie) and 3 (skeleton); the file read back at
-the next start, gone = not peaceful. Menus seen in Xephyr (it).
-Open: only the sandbox room (themed worlds keep their fights); hunger and
-health stay as they are; other rooms' world files have no peaceful file.
+**Done 2026-11-03, difficulty, rules, goals and the rest of the sandbox list:**
+- Difficulty (ServerState::difficulty, <world file>.difficulty, --difficulty,
+  /difficulty, title menu "Monsters" 4 ways, pause menu World -> /page world in
+  mods/rules). Peaceful: natural spawn off, spawn_mob 0 for fights(), those about
+  removed; dungeon spawner leaves drops (core.mob_leave) 1 in 10 of its 5 s
+  turns; deep altar gives heart + drops; villagers' raiders/sieges off. Easy:
+  blow /2 (min 1), cap 3, hunger 0.5; hard: blow x1.5, cap 9, hunger 1.5.
+  Checked headless: zombie 0 peaceful, 500 normal, removal 1, mob_leave 2/3,
+  file read back, bad name -1, --difficulty hard over the file. GUI: World page,
+  Peaceful clicked -> sandbox.world.difficulty "peaceful".
+- Rules (core.rule/set_rule, <world file>.rules): keep_bag (grave off),
+  day_cycle (set_day_length 0 stops the clock: clients mirror the hour),
+  weather_cycle, hunger. Checked: day_cycle off holds 0.5008 over 180 ticks,
+  kept across a restart (applied at the first tick: world_ready is before the
+  sessions).
+- Goals (mods/goals, 21): bag polled every 2 s, bed:home, maps:pin 1/3/4. Seen:
+  page, "Pane (1 di 21)" notice on buying bread.
+- Storm: server core.overcast (rain 0.75, storm 1) -> world_daylight x(1-0.6o)
+  for spawn, burn and core.light; client core.sky_flash. 25 fps capture at
+  night: brightness 26 -> 89-96 at a bolt, back in 0.5 s.
+- Crouch at edges (player.cpp, per axis, kStepHeight probe): test in
+  physics_box_test (held y 11.00 at x 3.30, slant stays, standing falls).
+- Creatures: MobKind/Brain hit_height/hit_half from the model (<= 8 x 3) for
+  in_reach and the client's aim box; players shove mobs (step_mobs, as the
+  crowd), the client shoves its player out of mobs (no wall); a burning
+  fighter more than 4 away goes to shade first. Seen: walked into a cow, it
+  went aside. Open: "creatures do not hang" left as it was (unclear).
+- Map: top block's colour as built where loaded (32 colours), near pixels
+  repainted; pins 3 relic (mods/relics), 4 village (mods/villages, 96 away).
+- Cinnabar: plate (ABM 0.25 s, players and mob_ids) and spikes (2 a half
+  second); doors already opened by power -- plate_on added to their list.
+  Checked headless: spikes up/down with a lever, plate off with nobody.
+- Pony (mods/animals): pet kind on grass, saddle, ridden = pony_ridden.gltf
+  worn on root (tools/make_pony_ridden.py), body_movement 7/11/jump 10. Seen
+  ridden in third person. Then (same day): pony_ridden.gltf has its own bones
+  (pony_body, pony_head, four legs under root) and clips worn_idle/walk/run,
+  which draw_worn plays on a mod-worn piece by Body::speed (0.6 and 6 m/s);
+  the rider plays ride_idle / ride (tools/make_ride_clips.py, IK of
+  make_cart_clips, added to robot, frog, human, mole by gltf_add_clips),
+  switched by the mod every 0.5 s on 0.3 nodes moved. Seen: legs changing frame
+  to frame walking, rider astride, first person from the posed head with the
+  pony's neck and ears ahead, dismount back to idle. Held models + icons for
+  animals:saddle, wilds:peat, wilds:mushroom_stew (make_held_models.py, ONLY=).
+  Fixed (Giacomo's report): the pony clicked stayed and the rider rode a copy
+  -- core.mob_remove took only workers; now any creature. Ctrl gets off
+  (core.player_crouching, the avatar's Crouching), beside the rider. Seen:
+  creatures near 2 -> 1 mounting, back to 2 after Ctrl.
+- Wilds (mods/wilds): swamp and grove regions of 160; seed 1 swamp 64,-96
+  (under a dark oak wood), grove 32,-160: 8794 mud, 6303 peat, 134 stems,
+  378+463 caps, 113 glowcaps in 80x80 each. Peat in furnace FUELS (5), stew
+  in hunger FOOD (6).
+- Trade (mods/trade): stall 27 squares raw/fuel/product, lot in meta. Seen:
+  "Comprati 5 bread", 1 lot left. container_add returns what did NOT fit.
+- Translations: 137 + 70 lines (it.txt, en.txt); tools: the extractor is not
+  kept (fragments of composed lines stay English).
+- Open: difficulty only in the sandbox room; WORLD.rules not on the title
+  menu.
 
 **Done 2026-11-03, a cube that tumbles:** core/physics/rigid (a Jolt box in
 a world of its own with the blocks round it, as a machine; fixed 60 Hz,

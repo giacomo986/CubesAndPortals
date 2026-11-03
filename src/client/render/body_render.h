@@ -50,6 +50,7 @@ struct Body {
     // Read off how the body has moved (animate_body), not off the wire.
     float steer     = 0.0f;
     float travelled = 0.0f;
+    float speed     = 0.0f;   // across the ground, m/s: what a worn mount's gait follows (draw_worn)
 
     // What its model plays: the clip fading out, then the one fading in. And
     // who sits in it when it is a vehicle (a model id, 0 for nobody), playing

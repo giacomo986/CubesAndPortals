@@ -55,6 +55,19 @@ for _, rgb in { { 98, 156, 66 }, { 214, 196, 130 }, { 220, 228, 230 }, { 150, 15
         table.insert(PALETTE, { math.min(255, rgb[1] * k), math.min(255, rgb[2] * k), math.min(255, rgb[3] * k) })
     end
 end
+-- Then what the land is AS BUILT, where its column is loaded: the top block's
+-- colour, to the nearest of these -- grass, leaves, sand, snow, stone, dirt,
+-- wood, roofs, roads, glass, lamps and the like.
+local BUILT_FROM = #PALETTE + 1
+for _, rgb in { { 70, 120, 50 }, { 45, 95, 40 }, { 120, 170, 80 }, { 30, 70, 35 }, { 160, 190, 90 },
+                { 210, 190, 120 }, { 235, 220, 170 }, { 240, 245, 250 }, { 190, 200, 210 }, { 120, 120, 125 },
+                { 90, 90, 95 }, { 160, 160, 160 }, { 60, 60, 65 }, { 120, 85, 55 }, { 90, 60, 40 },
+                { 170, 130, 80 }, { 200, 160, 100 }, { 140, 100, 60 }, { 160, 60, 45 }, { 120, 40, 35 },
+                { 200, 90, 60 }, { 110, 100, 85 }, { 150, 140, 120 }, { 180, 210, 220 }, { 240, 220, 120 },
+                { 230, 150, 50 }, { 200, 60, 160 }, { 70, 90, 200 }, { 40, 150, 150 }, { 220, 40, 40 },
+                { 30, 30, 30 }, { 250, 250, 250 } } do
+    table.insert(PALETTE, rgb)
+end
 
 -- ------------------------------------------------------------ the machine
 
@@ -103,7 +116,8 @@ end
 
 core.event.define("maps:route", { fields = { player = "number", label = "string", points = "string" },
                                   cancellable = false })
--- A pin's colour: 1 violet (a portal), 2 green (a portal done).
+-- A pin's colour: 1 violet (a portal), 2 green (a portal done), 3 gold (a
+-- relic, mods/relics), 4 orange (a village, mods/villages).
 core.event.define("maps:pin", { fields = { player = "number", label = "string", x = "number", z = "number",
                                            colour = "number" },
                                 cancellable = false })
@@ -122,10 +136,51 @@ if serving then
     type Seen = { tiles: { [string]: { number } }, names: { string }, dirty: { [string]: boolean },
                   name: string }
 
-    -- A pixel's colour on the palette, from the generator.
+    -- A pixel as built: the top block over its middle, if that column is in
+    -- memory, as the nearest colour of the palette's built part; water as
+    -- water. Nil where the column is not loaded.
+    local function built(x: number, z: number, h: number, w: number): number?
+        local top = math.max(h, w) + 24
+        if core.loaded(x, top, z) ~= 1 then
+            return nil
+        end
+        for y = top, math.max(h, w) - 12, -1 do
+            local b = core.get_block(x, y, z)
+            if b ~= 0 then
+                if string.find(core.node_name(b), "water", 1, true) then
+                    local deep = 0
+                    while deep < 8 and string.find(core.node_name(core.get_block(x, y - deep - 1, z)), "water", 1, true) do
+                        deep += 1
+                    end
+                    return if deep >= 8 then 1 elseif deep >= 3 then 2 else 3
+                end
+                local c = core.node_colour(b)
+                if c ~= 0 then
+                    local r, g, bl = c // 65536, (c // 256) % 256, c % 256
+                    local best, at = math.huge, BUILT_FROM
+                    for i = BUILT_FROM, #PALETTE do
+                        local q = PALETTE[i]
+                        local d = (q[1] - r) ^ 2 + (q[2] - g) ^ 2 + (q[3] - bl) ^ 2
+                        if d < best then
+                            best, at = d, i
+                        end
+                    end
+                    return at
+                end
+            end
+        end
+        return nil
+    end
+
+    -- A pixel's colour on the palette: as built where it can be seen, else
+    -- from the generator.
     local function paint(px: number, pz: number): number
         local x, z = px * PIXEL + PIXEL // 2, pz * PIXEL + PIXEL // 2
         local h, w = core.terrain_height(x, z), core.water_level(x, z)
+        local b = built(x, z, h, w)
+        if b then
+            return b
+        end
         if w > h then
             return if w - h >= 8 then 1 elseif w - h >= 3 then 2 else 3
         end
@@ -298,10 +353,15 @@ if serving then
                         table.insert(s.names, t)
                     end
                     local i = (pz - tz * TILE) * TILE + (px - tx * TILE) + 1
-                    if codes[i] == 0 then
-                        codes[i] = paint(px, pz)
-                        changed[t] = true
-                        s.dirty[t] = true
+                    -- Unseen, or close by and seen before: painted again, so a
+                    -- house built since shows once its builder walks past it.
+                    if codes[i] == 0 or dx * dx + dz * dz <= 9 then
+                        local c = paint(px, pz)
+                        if c ~= codes[i] then
+                            codes[i] = c
+                            changed[t] = true
+                            s.dirty[t] = true
+                        end
                     end
                 end
             end
@@ -470,6 +530,8 @@ if drawing then
         for _, pin in pins do
             mark(pin[1], pin[2], 20, 10, 30, cell * 2.4)
             if pin[3] == 2 then mark(pin[1], pin[2], 80, 200, 90, cell * 1.5)
+            elseif pin[3] == 3 then mark(pin[1], pin[2], 235, 195, 60, cell * 1.5)    -- a relic
+            elseif pin[3] == 4 then mark(pin[1], pin[2], 205, 125, 60, cell * 1.5)    -- a village
             else mark(pin[1], pin[2], 170, 80, 230, cell * 1.5) end
         end
         mark(home_x, home_z, 200, 30, 30, cell * 2.4)

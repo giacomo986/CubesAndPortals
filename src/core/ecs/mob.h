@@ -135,6 +135,10 @@ struct MobKind {
     // How far from its middle another creature is kept: its model's own
     // half width, not held to the body's (a cow is wider than 0.6).
     float spread = kMobHalfWidth;
+    // The box a blow and an aim find it in: its model's whole size, not held
+    // to the walking body's (a guardian is struck at its head, not at 1.8).
+    float hit_height = kMobHeight;
+    float hit_half   = kMobHalfWidth;
 };
 
 // Whether creatures of this kind go for players: what keeps a sleeper
@@ -469,6 +473,8 @@ struct Brain {
     float    height = kMobHeight;   // its kind's body, for whoever strikes it
     float    half   = kMobHalfWidth;
     float    spread = kMobHalfWidth;   // its kind's, halved for a young one
+    float    hit_height = kMobHeight;   // the box a blow finds it in (MobKind::hit_height)
+    float    hit_half   = kMobHalfWidth;
     float    vy   = 0.0f;       // falling, or jumping
     float    heading = 0.0f;    // where it walks when it has nobody to go for
     bool     strolling = false;

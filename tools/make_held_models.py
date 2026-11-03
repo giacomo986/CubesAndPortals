@@ -970,6 +970,34 @@ ITEMS["carts:cart"] = miniature("mods/carts/cart.gltf", 0.18)
 # The ones with no icon, and how each is turned for its picture, which is seen
 # the way first person sees it: long things lie corner to corner like the
 # tools' icons.
+# A saddle (mods/animals), a peat brick and a bowl of mushroom stew (mods/wilds).
+M["peat"] = material("Peat", (0.24, 0.17, 0.11), 0.0, 0.95)
+M["peat_fibre"] = material("PeatFibre", (0.38, 0.30, 0.16), 0.0, 0.95)
+M["stew"] = material("Stew", (0.36, 0.22, 0.10), 0.0, 0.3)
+M["mush_red"] = material("MushRed", (0.80, 0.15, 0.12))
+M["mush_brown"] = material("MushBrown", (0.62, 0.46, 0.32))
+ITEMS.update({
+    "animals:saddle": [
+        (box((0.12, 0.17, 0.026), at=(0, 0.04, 0), rot=(4, 0, 0)), "leather"),            # the seat
+        (box((0.06, 0.03, 0.05), at=(0, 0.115, 0.025)), "dark_leather"),                  # pommel
+        (box((0.10, 0.025, 0.05), at=(0, -0.035, 0.025)), "dark_leather"),                # cantle
+        (box((0.016, 0.09, 0.08), at=(0.058, 0.045, -0.035)), "leather"),                 # flaps
+        (box((0.016, 0.09, 0.08), at=(-0.058, 0.045, -0.035)), "leather"),
+        (ring(0.018, 0.004, at=(0.07, 0.045, -0.095), rot=(0, 90, 0), minor_segs=4), "iron"),   # stirrups
+        (ring(0.018, 0.004, at=(-0.07, 0.045, -0.095), rot=(0, 90, 0), minor_segs=4), "iron"),
+    ],
+    "wilds:peat": [(box((0.085, 0.13, 0.05), bevel=0.006, at=(0, 0.04, 0)), "peat")] +
+                  [(box((0.06, 0.004, 0.004), at=(x, 0.04 + y, 0.026), rot=(0, 0, r)), "peat_fibre")
+                   for x, y, r in ((0.01, -0.03, 20), (-0.01, 0.01, -15), (0.005, 0.045, 35))],
+    "wilds:mushroom_stew": [
+        (cyl(0.045, 0.035, segs=14, r2=0.068, at=(0, 0.04, -0.02), rot=(90, 0, 0)), "wood"),   # the bowl
+        (cyl(0.058, 0.003, segs=14, at=(0, 0.04, 0.0155), rot=(90, 0, 0)), "stew"),
+        (ball(0.014, segs=8, rings=5, at=(0.02, 0.05, 0.02), scale=(1, 1, 0.5)), "mush_red"),
+        (ball(0.013, segs=8, rings=5, at=(-0.022, 0.03, 0.02), scale=(1, 1, 0.5)), "mush_brown"),
+        (ball(0.011, segs=8, rings=5, at=(0.0, 0.015, 0.02), scale=(1, 1, 0.5)), "mush_brown"),
+    ],
+})
+
 ICONS = {
     # Three quarters from above, as a block: turned 45 about the screen's up,
     # then its top tipped 30 towards the eye.
@@ -988,6 +1016,9 @@ ICONS = {
     "conveyor:belt": tuple(math.degrees(a) for a in (
         Matrix.Rotation(math.radians(30), 3, "X") @ Matrix.Rotation(math.radians(45), 3, "Y")).to_euler("XYZ")),
     "furnace:charcoal": (-20, 0, 15),
+    "animals:saddle": (-60, 0, 35),
+    "wilds:peat": (-20, 0, 15),
+    "wilds:mushroom_stew": (-40, 0, 0),
     "farm:melon_seeds": (0, 0, 0),
     "farm:pumpkin_seeds": (0, 0, 0),
     "deep:shard": (0, 0, -30),

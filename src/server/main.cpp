@@ -350,11 +350,23 @@ struct ServerState {
     // before there are sessions to ask): core.world_spawn answers it then.
     Vec3 early_spawn{};
     bool early_spawn_known = false;
-    // Peaceful (--peaceful, /peaceful, core.set_peaceful): no creature that
-    // fights comes out or is put in the world. Kept as <world file>.peaceful,
-    // there or not, so the title screen's world list reads and sets it too.
-    bool        peaceful = false;
-    std::string peaceful_file;
+    // How hard the world is (--difficulty, /difficulty, core.set_difficulty):
+    // 0 peaceful -- no creature that fights comes out or is put in the world --
+    // 1 easy, 2 normal, 3 hard. Kept as <world file>.difficulty, its name a
+    // line, so the title screen's world list reads and sets it too.
+    int         difficulty = 2;
+    bool        peaceful   = false;   // difficulty == 0
+    std::string difficulty_file;
+    // How grey the sky is (core.overcast, the weather mod's, 0..1): a storm's
+    // dark lets the creatures of the dark out under it, and spares them the sun.
+    float overcast = 0.0f;
+    // The world's rules (core.rule): a name and its value, kept as
+    // <world file>.rules, `name = value` a line, read once at the start.
+    std::map<std::string, std::string> rules;
+    std::string                        rules_file;
+    // The day's length from --day-length, for the clock started again
+    // (core.set_day_cycle).
+    double day_length = kDayLength;
 
     // Which columns are in memory, and what coming in, being lit and being let
     // go of does to them (TODO.md OPEN-35, OPEN-38; core/storage/column_keeper.h).
@@ -1219,6 +1231,13 @@ const char *host_player_carried(void *ud, int player)
     return s->name_scratch.c_str();
 }
 
+bool host_player_crouching(void *ud, int player)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    const net::Session *sess = s->sessions ? s->sessions->find((net::PeerId)player) : nullptr;
+    return sess && sess->avatar.is_alive() && sess->avatar.has<cnp::ecs::Crouching>();
+}
+
 int host_player_pos(void *ud, int player, float *x, float *y, float *z)
 {
     ServerState *s = static_cast<ServerState *>(ud);
@@ -1825,11 +1844,19 @@ float host_time_of_day(void *ud)
     return s->sessions ? (float)s->sessions->time_of_day() : 0.0f;
 }
 
+// The sun's share of a block's sky light at this hour, under this sky: a
+// storm (overcast 1) brings it to 0.4 of the hour's, dark enough at noon for
+// the dark's creatures. None in a world with a mod's sky.
+float world_daylight(const ServerState &s, double time_of_day)
+{
+    return s.has_sky ? 0.0f : daylight_at(time_of_day) * (1.0f - 0.6f * s.overcast);
+}
+
 int host_light(void *ud, int x, int y, int z)
 {
     ServerState  *s     = static_cast<ServerState *>(ud);
     const uint8_t l     = s->world.get_light(x, y, z);
-    const float   day   = s->has_sky ? 0.0f : daylight_at(host_time_of_day(ud));
+    const float   day   = world_daylight(*s, host_time_of_day(ud));
     const float   sky   = (float)sun_light(l) * day;
     return std::max((int)block_light(l), (int)std::lround(sky));
 }
@@ -2140,21 +2167,51 @@ int host_mob_velocity(void *ud, int id, double vx, double vy, double vz)
                        : 0;
 }
 
-bool host_peaceful(void *ud) { return static_cast<ServerState *>(ud)->peaceful; }
+constexpr const char *kDifficulties[] = {"peaceful", "easy", "normal", "hard"};
 
-// On, every creature that fights goes at once, playing no death and leaving
-// nothing: peaceful is a world without them, not one where they all fell.
-int host_set_peaceful(void *ud, bool on)
+int difficulty_of(const char *name)
+{
+    for (int i = 0; i < 4; ++i)
+        if (name && std::strcmp(name, kDifficulties[i]) == 0) return i;
+    return -1;
+}
+
+// A creature's blow on a player, and how many may be out near each, by the
+// difficulty: half on easy, half again on hard.
+uint16_t blow_by_difficulty(int difficulty, uint16_t amount)
+{
+    if (amount == 0) return 0;
+    if (difficulty == 1) return (uint16_t)std::max(1, amount / 2);
+    if (difficulty == 3) return (uint16_t)(amount + (amount + 1) / 2);
+    return amount;
+}
+int cap_by_difficulty(int difficulty) { return difficulty == 1 ? 3 : difficulty == 3 ? 9 : 6; }
+
+void host_overcast(void *ud, double amount)
+{
+    if (std::isfinite(amount)) static_cast<ServerState *>(ud)->overcast = (float)std::clamp(amount, 0.0, 1.0);
+}
+
+bool        host_peaceful(void *ud) { return static_cast<ServerState *>(ud)->peaceful; }
+const char *host_difficulty(void *ud) { return kDifficulties[static_cast<ServerState *>(ud)->difficulty]; }
+
+// Peaceful, every creature that fights goes at once, playing no death and
+// leaving nothing: peaceful is a world without them, not one where they all
+// fell. Returns how many went, or -1 for a name that is no difficulty.
+int host_set_difficulty(void *ud, const char *name)
 {
     ServerState *s = static_cast<ServerState *>(ud);
-    s->peaceful    = on;
-    if (!s->peaceful_file.empty()) {
+    const int    d = difficulty_of(name);
+    if (d < 0) return -1;
+    s->difficulty = d;
+    s->peaceful   = d == 0;
+    if (!s->difficulty_file.empty()) {
         std::error_code ec;
-        if (on) std::ofstream(s->peaceful_file) << "peaceful\n";
-        else std::filesystem::remove(s->peaceful_file, ec);
+        if (d == 2) std::filesystem::remove(s->difficulty_file, ec);
+        else std::ofstream(s->difficulty_file) << kDifficulties[d] << "\n";
     }
     int gone = 0;
-    if (on && s->sessions) {
+    if (s->peaceful && s->sessions) {
         std::vector<flecs::entity_t> fighters;
         s->sessions->ecs().each([&](flecs::entity e, const cnp::ecs::Brain &b, cnp::ecs::Mob) {
             if (b.kind < s->mob_kinds.size() && cnp::ecs::fights(s->mob_kinds[b.kind])) fighters.push_back(e.id());
@@ -2163,6 +2220,51 @@ int host_set_peaceful(void *ud, bool on)
         gone = (int)fighters.size();
     }
     return gone;
+}
+
+int host_set_peaceful(void *ud, bool on)
+{
+    return host_set_difficulty(ud, on ? "peaceful" : "normal");
+}
+
+const char *host_rule(void *ud, const char *name)
+{
+    ServerState *s  = static_cast<ServerState *>(ud);
+    const auto   it = s->rules.find(name ? name : "");
+    return it == s->rules.end() ? "" : it->second.c_str();
+}
+
+// Kept at once, the whole file written again: a handful of lines.
+int host_set_rule(void *ud, const char *name, const char *value)
+{
+    ServerState      *s = static_cast<ServerState *>(ud);
+    const std::string n = name ? name : "", v = value ? value : "";
+    if (n.empty() || n.size() > 32 || v.size() > 64 ||
+        n.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_") != std::string::npos ||
+        v.find_first_of("\n\r") != std::string::npos)
+        return 0;
+    if (v.empty()) s->rules.erase(n);
+    else s->rules[n] = v;
+    if (!s->rules_file.empty()) {
+        std::ofstream out(s->rules_file);
+        for (const auto &[k, val] : s->rules) out << k << " = " << val << "\n";
+    }
+    return 1;
+}
+
+bool host_day_cycle(void *ud)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    return s->sessions == nullptr || s->sessions->day_length() > 0.0;
+}
+
+// The clock stopped where it is, or going again at the world's day length.
+int host_set_day_cycle(void *ud, bool on)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (s->sessions == nullptr) return 0;
+    s->sessions->set_day_length(on ? s->day_length : 0.0);
+    return 1;
 }
 
 // What one of a kind leaves when it dies, put down at x, y, z with no
@@ -5956,7 +6058,7 @@ int serve_room(int argc, char **argv)
     // (core.plaza() is nil). The world's mode is this and only this: a mod
     // reads the plaza, never the mode.
     bool        survival = false;
-    bool        peaceful = false;   // --peaceful: and kept so (host_set_peaceful)
+    const char *difficulty = nullptr;   // --difficulty NAME (--peaceful): and kept so (host_set_difficulty)
 
     // Whether a player has to say who they are. DESIGN.md 4.4. Off by default,
     // which is the LAN case; on, nobody joins without a key they hold.
@@ -6052,7 +6154,14 @@ int serve_room(int argc, char **argv)
         else if (std::strcmp(argv[i], "--survival") == 0)
             survival = true;
         else if (std::strcmp(argv[i], "--peaceful") == 0)
-            peaceful = true;
+            difficulty = "peaceful";
+        else if (std::strcmp(argv[i], "--difficulty") == 0 && i + 1 < argc) {
+            difficulty = argv[++i];
+            if (difficulty_of(difficulty) < 0) {
+                std::printf("server: --difficulty is peaceful, easy, normal or hard, not '%s'\n", difficulty);
+                return 1;
+            }
+        }
         else if (std::strcmp(argv[i], "--require-identity") == 0)
             require_identity = true;
         else if (std::strcmp(argv[i], "--no-observers") == 0)
@@ -6141,9 +6250,21 @@ int serve_room(int argc, char **argv)
     std::setvbuf(stdout, nullptr, _IOLBF, 0);
 
     ServerState s;
-    if (world_file) s.peaceful_file = std::string(world_file) + ".peaceful";
-    host_set_peaceful(&s, peaceful || (!s.peaceful_file.empty() && std::filesystem::exists(s.peaceful_file)));
-    if (s.peaceful) std::printf("        peaceful: no creature that fights\n");
+    if (world_file) s.difficulty_file = std::string(world_file) + ".difficulty";
+    if (world_file) {
+        s.rules_file = std::string(world_file) + ".rules";
+        std::ifstream in(s.rules_file);
+        for (std::string line; std::getline(in, line);)
+            if (const size_t eq = line.find(" = "); eq != std::string::npos)
+                s.rules[line.substr(0, eq)] = line.substr(eq + 3);
+    }
+    {
+        std::string kept = "normal";
+        if (!s.difficulty_file.empty()) std::ifstream(s.difficulty_file) >> kept;
+        if (difficulty_of(kept.c_str()) < 0) kept = "normal";
+        host_set_difficulty(&s, difficulty ? difficulty : kept.c_str());
+        if (s.difficulty != 2) std::printf("        difficulty: %s\n", kDifficulties[s.difficulty]);
+    }
     s.extent = extent;
     s.seed   = seed;
     for (size_t k = 0; k < portal_to.size() && k < (size_t)net::kMaxMouths; ++k) {
@@ -6278,7 +6399,15 @@ int serve_room(int argc, char **argv)
     host.mob_unseen     = host_mob_unseen;
     host.mob_tumble     = host_mob_tumble;
     host.peaceful       = host_peaceful;
+    host.overcast       = host_overcast;
     host.set_peaceful   = host_set_peaceful;
+    host.difficulty     = host_difficulty;
+    host.set_difficulty = host_set_difficulty;
+    host.day_cycle      = host_day_cycle;
+    host.player_crouching = host_player_crouching;
+    host.rule           = host_rule;
+    host.set_rule       = host_set_rule;
+    host.set_day_cycle  = host_set_day_cycle;
     host.mob_leave      = host_mob_leave;
     host.player_launch  = host_player_launch;
     host.mob_hunt       = host_mob_hunt;
@@ -7492,6 +7621,7 @@ int serve_room(int argc, char **argv)
         // The world's clock. One of these per world and none on any client:
         // core/world/daylight.h says why there is nothing to interpolate.
         sessions.set_day_length(day_length);
+        s.day_length = day_length > 0.0 ? day_length : kDayLength;
         sessions.set_time(start_time);
         s.sessions = &sessions;
         sessions.set_own_cell([&s](int x, int y, int z) {
@@ -8424,9 +8554,10 @@ int serve_room(int argc, char **argv)
                 }});
                 cnp::ecs::step_mobs(sessions.ecs(), s.world, s.registry, s.mob_kinds, targets,
                                     (float)kTickSeconds, mob_now,
-                                    (s.has_sky ? 0.0f : daylight_at(sessions.time_of_day())),
+                                    world_daylight(s, sessions.time_of_day()),
                                     [&](uint32_t peer, uint16_t amount, uint16_t bare, Vec3 push) {
-                                        sessions.hurt((net::PeerId)peer, amount, mob_now, bare);
+                                        sessions.hurt((net::PeerId)peer, blow_by_difficulty(s.difficulty, amount),
+                                                      mob_now, blow_by_difficulty(s.difficulty, bare));
                                         transport.send((net::PeerId)peer, net::Channel::Event,
                                                        net::Push{push.x, push.y, push.z}.encode(),
                                                        true);
@@ -8469,7 +8600,7 @@ int serve_room(int argc, char **argv)
                 if (natural_mobs && !s.peaceful && tick % 40 == 0) {
                     const cnp::ecs::SpawnResult sr = cnp::ecs::spawn_and_despawn(
                         sessions.ecs(), s.world, s.registry, s.mob_kinds, targets,
-                        (s.has_sky ? 0.0f : daylight_at(sessions.time_of_day())), 6, (uint32_t)tick, mob_now);
+                        world_daylight(s, sessions.time_of_day()), cap_by_difficulty(s.difficulty), (uint32_t)tick, mob_now);
                     if ((sr.came || sr.went) && !quiet)
                         std::printf("        creatures: %d came out of the dark, %d went\n",
                                     sr.came, sr.went);

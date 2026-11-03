@@ -3884,7 +3884,7 @@ bool ServerSessions::in_reach(Session &s, flecs::entity e, const ecs::Position &
     // player standing beside it.
     // A creature by its kind's body (a dog is not a player's height).
     const ecs::Brain    *brain  = e.try_get<ecs::Brain>();
-    const float          height = brain ? brain->height : e.has<ecs::Mob>() ? ecs::kMobHeight : kPlayerHeight;
+    const float          height = brain ? brain->hit_height : e.has<ecs::Mob>() ? ecs::kMobHeight : kPlayerHeight;
     const MovementState &at     = s.authority();
     const Vec3           eye{at.x, at.y + eye_of(s), at.z};
     const Vec3           middle{p->x, p->y + height * 0.5f, p->z};
@@ -3910,7 +3910,7 @@ bool ServerSessions::in_reach(Session &s, flecs::entity e, const ecs::Position &
     // middle is hidden and whose head shows over a wall is refused.
     if (has_authority() && away > 1e-3f) {
         const Vec3  dir  = (middle - eye) * (1.0f / away);
-        const float half = brain ? brain->half : e.has<ecs::Mob>() ? ecs::kMobHalfWidth : m_limits.half_width;
+        const float half = brain ? brain->hit_half : e.has<ecs::Mob>() ? ecs::kMobHalfWidth : m_limits.half_width;
         const AABB  box{Vec3{p->x - half, p->y, p->z - half},
                        Vec3{p->x + half, p->y + height, p->z + half}};
 
@@ -4257,7 +4257,7 @@ void ServerSessions::set_time(double t)
 
 void ServerSessions::set_day_length(double seconds)
 {
-    if (seconds > 0.0) m_day_length = seconds;
+    if (seconds >= 0.0) m_day_length = seconds;   // 0: the clock stands still (core.set_day_cycle)
 }
 
 void ServerSessions::step_time(double dt)

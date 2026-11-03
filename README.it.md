@@ -249,13 +249,19 @@ due mondi:
 niente: le uscite, gli archi, il cancello del laboratorio, il fronte e l'assalto. `false` è il
 gioco come viene distribuito.
 
-### Pacifico: niente mostri
+### Difficoltà, regole e obiettivi
 
-"Mostri: nessuno" nella pagina del mondo nuovo, o nella pagina Modifica di un mondo salvato, o
-`/peaceful on|off` in partita (`cnp_server --peaceful`): nessuna creatura che combatte esce, e
-quelle in giro spariscono. Quello che lasciano solo i mostri si trova ancora: lo spawner quieto di
-un dungeon lascia ogni tanto ossa, carne, polvere da sparo e frecce, l'altare del profondo dà cuore
-e frammenti senza lotta, i villaggi non hanno assedi.
+"Mostri" nella pagina del mondo nuovo, o nella pagina Modifica di un mondo salvato, sceglie quanto è
+difficile il sandbox: nessuno (pacifico), pochi e deboli (facile), come sempre, tanti e forti
+(difficile); `/difficulty` in partita (`cnp_server --difficulty`). Pacifico non fa uscire nessuna
+creatura che combatte e manda via quelle in giro, e quello che lasciano solo i mostri si trova
+ancora: lo spawner quieto di un dungeon lascia ogni tanto ossa, carne, polvere da sparo e frecce,
+l'altare del profondo dà cuore e frammenti senza lotta, i villaggi non hanno assedi. Facile dimezza
+il colpo di una creatura, quante ne escono e la fame; difficile aggiunge metà a tutti e tre. Le
+regole (`/rule`): tenere la borsa alla morte in un mondo survival, il sole che si muove, il meteo
+che cambia, la fame. Il pulsante **Mondo** del menu di pausa mostra tutto, con meteo, ora e
+stagione, come pulsanti per un admin, e porta agli **obiettivi**: 21 cose da fare, dal primo legno
+alla chiave di ogni mondo, annunciate quando le raggiungi (`/page goals`).
 
 ### Survival: i mondi sparsi sulla terra
 

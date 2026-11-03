@@ -242,8 +242,10 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     ghost_clear: () -> (),
     -- How much this player sees in the dark: every block and creature drawn at least this bright, whatever the hour or the cave. A potion's, a lamp worn on the head. 0 takes it away. Only drawn: no creature or crop reads it. For a world's code on a player's machine.
     night_sight: (amount: number) -> (),
-    -- Weather over this world's sky: the sky and its clouds go grey by this much, the sun's light on the ground weaker and its shadows fainter, the hours kept. 0 takes it away. Only drawn: the light a crop or a creature reads (core.light) is the hour's. Called as it changes, so a mod fades it in. For a world's code on a player's machine.
+    -- Weather over this world's sky: the sky and its clouds go grey by this much, the sun's light on the ground weaker and its shadows fainter, the hours kept. 0 takes it away. Called as it changes, so a mod fades it in, on a player's machine. On a server it darkens the day the creatures and core.light read: at 1 the sun's share is 0.4 of the hour's, so the dark's creatures come out in a storm and do not burn.
     overcast: (amount: number) -> (),
+    -- Lights this world as a bolt does, this frame: the land as bright as at noon and the sky towards a pale blue by this much, by night too. Called every frame it lasts. For a world's code on a player's machine.
+    sky_flash: (amount: number) -> (),
     -- Marks a block as foliage: it takes the colour core.foliage gives -- leaves that turn in autumn. Only drawn; the world around is drawn again with it. Returns 1, or 0 for an id that is not a block. For a world's code on a player's machine.
     node_foliage: (id: number, on: boolean?) -> number,
     -- The season's colour on every block marked by core.node_foliage: its picture's brightness in this colour, mixed in by `amount`. Called as it changes, so a mod fades it. For a world's code on a player's machine.
@@ -304,14 +306,28 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     mob_tumble: (id: number, on: boolean?, mass: number?) -> number,
     -- Leaves a worker out of one player's world: everybody else sees it, that player's client is told it is held and draws nothing for it (protocol 91) -- a thing they carry, which the world's code on their machine draws where their eye is, so it does not trail behind their view; held and not gone, so no death plays where it was picked up. Returns 1, or 0 for one that is gone or not a worker.
     mob_unseen: (id: number, player: number) -> number,
-    -- Whether this world is peaceful (--peaceful, /peaceful, the title screen's world settings): no creature that fights (register_mob fight "melee" or "archer") comes out of the dark or is put in the world -- core.spawn_mob gives 0 for one. What a mod that makes fights of its own asks first, and what it asks to give what only those creatures leave some other way. False off a server.
+    -- Whether this world is peaceful (core.difficulty "peaceful": --peaceful, /difficulty, the title screen's world settings): no creature that fights (register_mob fight "melee" or "archer") comes out of the dark or is put in the world -- core.spawn_mob gives 0 for one. What a mod that makes fights of its own asks first, and what it asks to give what only those creatures leave some other way. False off a server.
     peaceful: () -> boolean,
-    -- Makes this world peaceful, or not, at once and across restarts (the world file's <file>.peaceful, which the title screen reads). On, every creature that fights goes, playing no death and leaving nothing. Returns how many went.
+    -- core.set_difficulty("peaceful"), or "normal" for false. Returns how many creatures went.
     set_peaceful: (on: boolean?) -> number,
+    -- How hard this world is: "peaceful", "easy", "normal" or "hard" (--difficulty, /difficulty, the title screen's world settings). Peaceful is core.peaceful; easy halves a creature's blow on a player and how many come out near each (3), hard adds half to both (9; normal 6). What a mod scales its own by -- hunger, a siege. Empty off a server.
+    difficulty: () -> string,
+    -- Makes this world that hard, at once and across restarts (the world file's <file>.difficulty, which the title screen reads). Peaceful, every creature that fights goes, playing no death and leaving nothing. Returns how many went, or -1 for a name that is no difficulty.
+    set_difficulty: (name: string) -> number,
+    -- One of this world's rules, as core.set_rule left it, or an empty string for one never set: what each mod then takes as its default. Every mod of the world reads the same rules (mods/rules lists the game's: keep_bag, day_cycle, weather_cycle, hunger). Empty off a server.
+    rule: (name: string) -> string,
+    -- Sets one of this world's rules, at once and across restarts (the world file's <file>.rules, `name = value` a line, which the title screen reads too). The engine gives a rule no meaning: the mod that reads it does. Returns 1, or 0 for a bad name or value.
+    set_rule: (name: string, value: string) -> number,
+    -- Whether the world's clock goes: false once core.set_day_cycle(false) stopped it. True off a server.
+    day_cycle: () -> boolean,
+    -- Stops the clock where it is, or starts it again at the world's day length (--day-length): every client sees the sky stand still, as it mirrors the server's hour. Not kept by the engine across restarts: a mod that wants it so sets it at its first core:tick (before, there is no clock yet). Returns 1, 0 off a server.
+    set_day_cycle: (on: boolean?) -> number,
     -- Puts down at x, y, z what one creature of that kind leaves when it dies -- its drop and a roll of its core.mob_drop -- with no creature: how a peaceful world still gives what only creatures that fight leave (a dungeon's quiet spawner). Returns how many items, 0 for a kind nobody registered.
     mob_leave: (name: string, x: number, y: number, z: number) -> number,
-    -- Takes a worker out of the world at once, leaving nothing and playing no death: its mod taking it back. Returns 1, or 0 for one that is gone or not a worker.
+    -- Takes a creature out of the world at once, leaving nothing and playing no death: its mod taking it back, a mount taken up. Returns 1, or 0 for one that is gone or no creature.
     mob_remove: (id: number) -> number,
+    -- Whether that player's body is crouched (Ctrl held on foot), as their client last said: how a rider gets off a mount. False for somebody not here.
+    player_crouching: (player: number) -> boolean,
     -- The player whose body that is, or 0 for a creature, a thing or nothing: who was struck, when core:hit's target is a player. On a server.
     body_player: (id: number) -> number,
     -- What kind a creature is, by the name it was registered under (register_mob), or an empty string for one that is gone or no creature. What a mod answering core:used_mob reads to know a cow from a sheep.

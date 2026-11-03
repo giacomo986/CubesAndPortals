@@ -920,6 +920,35 @@ int main()
         check(from_back && back_top >= 4.99f, "and climbed onto from its back, as a block one high");
     }
 
+    // ------------------------------------------- a crouch holds at an edge
+    //
+    // A ledge three wide over a drop: walked off at a crouch, the body stops
+    // over the edge and stays up; walked off standing, it falls.
+    {
+        World ledge;
+        for (int x = 0; x < 3; ++x)
+            for (int z = -8; z < 8; ++z) ledge.set_block(x, 10, z, stone);
+        const auto walk = [&](bool crouch, float yaw) {
+            Player p;
+            p.pos = Vec3{1.5f, 11.0f, 0.5f};
+            p.yaw = yaw;
+            MovementRules rules;
+            for (int i = 0; i < 60 * 3; ++i) {
+                PlayerInput in;
+                in.move_forward = 1.0f;
+                in.descend      = crouch;
+                player_update(p, ledge, reg, rules, in, 1.0f / 60.0f);
+            }
+            return p.pos;
+        };
+        const Vec3 held = walk(true, 1.5708f), fell = walk(false, 1.5708f);
+        const Vec3 slant = walk(true, 1.2f);   // at a slant: along the edge, still up
+        std::printf("        off a ledge at a crouch: y %.2f x %.2f; at a slant y %.2f z %.2f; standing y %.2f\n",
+                    (double)held.y, (double)held.x, (double)slant.y, (double)slant.z, (double)fell.y);
+        check(held.y > 10.9f && held.x < 3.5f && slant.y > 10.9f && fell.y < 10.0f,
+              "a crouched body stops at an edge, a standing one walks off it");
+    }
+
     std::printf(g_failures == 0 ? "the box rules agree\n" : "THE BOX RULES DISAGREE\n");
     return g_failures == 0 ? 0 : 1;
 }

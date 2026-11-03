@@ -891,6 +891,7 @@ struct Session {
     float storm_rgb[3]{};
     float funnel[16]{};   // core.storm_funnel: four of x, y, z, on
     float overcast = 0.0f;   // core.overcast: how grey the sky of the hour is, 0..1
+    float flash    = 0.0f;   // core.sky_flash: a bolt's light this frame, 0..1
     // core.ghost_cell: blocks drawn seen-through where they would go (a
     // blueprint laid out), and their triangles by block, made again when one
     // changes.
@@ -4559,6 +4560,11 @@ void host_storm_funnel(void *ud, int slot, double x, double y, double z, int on)
     f[3] = on ? 1.0f : 0.0f;
 }
 
+void host_sky_flash(void *ud, double amount)
+{
+    if (std::isfinite(amount)) static_cast<Scene *>(ud)->act().flash = (float)std::clamp(amount, 0.0, 1.0);
+}
+
 void host_overcast(void *ud, double amount)
 {
     if (!std::isfinite(amount)) return;
@@ -6676,13 +6682,16 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
         }
         // What a mod dresses them in (core.player_wear): a species wears the
         // world's "<piece>_<species>" when it has one (tools/make_arpg_gear.py
-        // refits armour so), else the piece made on the robot.
+        // refits armour so), else the piece made on the robot. A piece with
+        // bones of its own plays worn_idle, worn_walk or worn_run on them by
+        // how fast the body goes -- a mount's legs (mods/animals' pony).
+        const char *gait = b.speed > 6.0f ? "worn_run" : b.speed > 0.6f ? "worn_walk" : "worn_idle";
         for (int k = 0; k < 10; ++k)
             if (const ModelStore::Entry *piece = b.dress[k] != 0 ? w.models.entry(b.dress[k]) : nullptr)
                 if (b.dress[k] != b.model && vehicle_part(e->name, piece->name).empty()) {   // the vehicle's own
                     const ModelStore::Entry *fit = w.models.entry(species_model(w.models, b.dress[k], b.livery));
                     draw_worn(w.models, on.model, posed, (fit ? fit : piece)->name, projection, view, place,
-                              b.dress_tint[k]);
+                              b.dress_tint[k], gait);
                 }
         if (b.hand_known)
             draw_held_block(s.held_bodies[(uint64_t)b.hand_block * 1000003u + (uint64_t)(uintptr_t)&on.model],
@@ -6727,10 +6736,12 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
         if (!b.arms_only) {   // nothing worn shows from inside the head
             draw_extras(w.models, *e, posed, b.livery, false, projection, view, place);
             if (r == nullptr) dress(*e);
-        } else if (b.dress_in_view) {   // but a cart sat in, seen from inside
+        } else if (b.dress_in_view) {   // but a cart sat in, or a pony ridden, seen from inside
+            const char *gait = b.speed > 6.0f ? "worn_run" : b.speed > 0.6f ? "worn_walk" : "worn_idle";
             for (int k = 0; k < 10; ++k)
                 if (const ModelStore::Entry *piece = b.dress[k] != 0 ? w.models.entry(b.dress[k]) : nullptr)
-                    draw_worn(w.models, e->model, posed, piece->name, projection, view, place, b.dress_tint[k]);
+                    draw_worn(w.models, e->model, posed, piece->name, projection, view, place, b.dress_tint[k],
+                              gait);
         }
     } else {
         e->renderer.draw(projection, view, place, e->model.bind_pose, gfx_texture{0}, light, b.alpha);
@@ -7620,12 +7631,22 @@ void apply_clocks(Scene &s)
             const float lum = 0.3f * w.sky[0] + 0.55f * w.sky[1] + 0.15f * w.sky[2];
             for (int c = 0; c < 3; ++c) w.sky[c] += (lum * 0.62f - w.sky[c]) * 0.95f * o;
         }
-        w.world_render.set_daylight(sunlight_at(w.time_of_day) * (1.0f - 0.45f * o),
-                                    daylight_at(w.time_of_day) * (1.0f - 0.3f * o));
+        // A bolt (core.sky_flash): towards a pale blue noon, whatever the hour.
+        const float f = w.flash;
+        if (f > 0.0f) {
+            constexpr float kBolt[3] = {0.78f, 0.84f, 1.0f};
+            for (int c = 0; c < 3; ++c) w.sky[c] += (kBolt[c] - w.sky[c]) * 0.8f * f;
+        }
+        const float day_sun = sunlight_at(w.time_of_day) * (1.0f - 0.45f * o);
+        const float day_all = daylight_at(w.time_of_day) * (1.0f - 0.3f * o);
+        w.world_render.set_daylight(day_sun + (1.0f - day_sun) * f, day_all + (1.0f - day_all) * f);
         SkyLight sun = sky_light_at(w.time_of_day);
         for (int c = 0; c < 3; ++c) {
             sun.direct[c]  *= 1.0f - 0.85f * o;
             sun.ambient[c] *= 1.0f - 0.25f * o;
+            // Lit from the whole sky at once: every face as bright as under
+            // a white noon sky, the sun's own light no help.
+            sun.ambient[c] += (1.1f - sun.ambient[c]) * f;
         }
         w.world_render.set_sky_light(&sun);
         // Still while a gate captures: its frames compare a view against a
@@ -8498,6 +8519,7 @@ void animate_body(Session &w, uint64_t key, Body &b, Vec3 feet, uint16_t rider,
     }
     b.steer     = m.steer;
     b.travelled = m.travelled;
+    b.speed     = m.speed;
 
     const ModelStore::Entry *e = w.models.entry(b.model);
     if (e == nullptr) return;
@@ -9349,6 +9371,11 @@ ui::Panel pause_panel(const Scene &s, bool debug)
     panel_button(p, "options", "Options", 0.5f, 2.5f, 3.4f);
     panel_button(p, "look", "Character", 4.1f, 2.5f, 3.4f);
     float y = 3.8f;
+    // The world's settings are its server's page (mods/rules), so only with one.
+    if (s.conn != nullptr) {
+        panel_button(p, "world", "World: difficulty and rules", 0.5f, y, 7.0f);
+        y += 1.3f;
+    }
     if (g_from_title) {
         panel_button(p, "title", "Quit to title", 0.5f, y, 7.0f);
         y += 1.3f;
@@ -9423,6 +9450,10 @@ bool pause_frame(Scene &s, LookSettle &settle, bool &debug, bool esc, bool inter
     if (id == "resume") resume();
     else if (id == "options") s.pause.options = true;
     else if (id == "look") s.pause.look = true;
+    else if (id == "world" && s.conn != nullptr) {
+        resume();
+        s.conn->send_chat("/page world");   // the page frees the cursor as it comes
+    }
     else if (id == "back") s.pause.options = s.pause.look = false;
     else if (s.pause.look && look_click(id)) {
         // Seen at once here, and by everybody else as soon as the server hears.
@@ -9448,6 +9479,27 @@ bool pause_frame(Scene &s, LookSettle &settle, bool &debug, bool esc, bool inter
 // single-process world, which is what a test or a scene wants.
 
 std::string worlds_dir() { return user_data_dir() + "/worlds"; }
+
+// How hard a world of the title screen's is: its sandbox's world.db.difficulty,
+// as the server keeps it (host_set_difficulty), none being normal.
+constexpr const char *kDifficultyNames[] = {"peaceful", "easy", "normal", "hard"};
+constexpr const char *kMonstersLabel[]   = {"Monsters: none -- peaceful", "Monsters: few and weak -- easy",
+                                            "Monsters: out of the dark -- normal",
+                                            "Monsters: many and strong -- hard"};
+int world_difficulty(const std::string &dir)
+{
+    std::string name;
+    std::ifstream(dir + "/world.db.difficulty") >> name;
+    for (int i = 0; i < 4; ++i)
+        if (name == kDifficultyNames[i]) return i;
+    return 2;
+}
+void set_world_difficulty(const std::string &dir, int d)
+{
+    std::error_code ec;
+    if (d == 2) std::filesystem::remove(dir + "/world.db.difficulty", ec);
+    else std::ofstream(dir + "/world.db.difficulty") << kDifficultyNames[d] << "\n";
+}
 
 // The flags that give a world of this machine its player's mods: --user-mods for
 // the global folder and the world's own `mods`, --no-mod for each name turned
@@ -9668,10 +9720,11 @@ struct TitleMenu {
     // spawn somewhere on the land, the worlds behind portals scattered over
     // it). Written to the world's `mode` file when it is first served.
     bool                    survival = false;
-    // Peaceful (no creature that fights): the sandbox's <world>/world.db.peaceful,
-    // there or not, which its server reads and /peaceful writes. Chosen here
+    // How hard (0 peaceful .. 3 hard): the sandbox's <world>/world.db.difficulty,
+    // its name a line (none is normal), which its server reads and /difficulty
+    // writes. Chosen here
     // for a new world; a saved one's is toggled in its settings.
-    bool                    peaceful = false;
+    int                     difficulty = 2;
     std::string             address;     // what is typed into the list of servers
     std::vector<ServerRow>  servers;
     bool                    hosting   = false;   // the world list is picking a world to HOST
@@ -9962,8 +10015,7 @@ ui::Panel title_panel(const TitleMenu &m, bool debug)
                      m.survival ? "Mode: Survival -- portals scattered over the land"
                                 : "Mode: Sandbox -- the plaza and its portals",
                      0.5f, 5.1f, 9.0f);
-        panel_button(p, "peaceful",
-                     m.peaceful ? "Monsters: none -- a peaceful world" : "Monsters: out of the dark",
+        panel_button(p, "difficulty", kMonstersLabel[m.difficulty],
                      0.5f, 6.3f, 9.0f);
         panel_button(p, "create", "Create", 0.5f, 7.5f, 9.0f);
         panel_button(p, "back", "Back", 0.5f, 8.7f, 9.0f);
@@ -9976,10 +10028,8 @@ ui::Panel title_panel(const TitleMenu &m, bool debug)
         panel_add(p, ui::ElemKind::Field, "rename", m.rename, 0.5f, 1.0f, 9.0f);
         panel_button(p, "do_rename", "Rename", 0.5f, 2.3f, 9.0f);
         std::error_code ec;
-        const bool      peaceful =
-            std::filesystem::exists(worlds_dir() + "/" + m.worlds[m.editing].name + "/world.db.peaceful", ec);
-        panel_button(p, "peaceful",
-                     peaceful ? "Monsters: none -- a peaceful world" : "Monsters: out of the dark", 0.5f,
+        panel_button(p, "difficulty",
+                     kMonstersLabel[world_difficulty(worlds_dir() + "/" + m.worlds[m.editing].name)], 0.5f,
                      3.6f, 9.0f);
         panel_button(p, "delete",
                      m.confirm_delete ? "Delete it for good? Click again" : "Delete", 0.5f,
@@ -10315,21 +10365,19 @@ MenuChoice title_menu(Scene &s, TitleMenu &m, bool &debug)
             m.page = MenuPage::NewWorld;
         } else if (id == "mode") {
             m.survival = !m.survival;
-        } else if (id == "peaceful" && m.page == MenuPage::NewWorld) {
-            m.peaceful = !m.peaceful;
-        } else if (id == "peaceful") {
-            const std::string dir = worlds_dir() + "/" + m.worlds[m.editing].name, file = dir + "/world.db.peaceful";
-            std::error_code   ec;
-            if (world_in_use(dir)) m.error = "a server is running on it: /peaceful there";
-            else if (std::filesystem::exists(file, ec)) std::filesystem::remove(file, ec);
-            else std::ofstream(file) << "peaceful\n";
+        } else if (id == "difficulty" && m.page == MenuPage::NewWorld) {
+            m.difficulty = (m.difficulty + 1) % 4;
+        } else if (id == "difficulty") {
+            const std::string dir = worlds_dir() + "/" + m.worlds[m.editing].name;
+            if (world_in_use(dir)) m.error = "a server is running on it: /difficulty there";
+            else set_world_difficulty(dir, (world_difficulty(dir) + 1) % 4);
         } else if (id.rfind("world:", 0) == 0) {
             const SavedWorld &w = m.worlds[std::strtoul(id.c_str() + 6, nullptr, 10)];
             m.dir        = worlds_dir() + "/" + w.name;
             m.world_seed = w.seed;
             m.chose_row  = SIZE_MAX;
             m.survival   = false;   // a world made before `mode` is a sandbox
-            m.peaceful   = false;   // and its own file says whether it is peaceful
+            m.difficulty = 2;       // and its own file says how hard it is
             return MenuChoice::World;
         } else if (id.rfind("edit:", 0) == 0) {
             m.editing        = std::strtoul(id.c_str() + 5, nullptr, 10);
@@ -10415,7 +10463,7 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
     if (!(std::ifstream(dir + "/mode") >> mode)) {
         mode = m.survival ? "survival" : "sandbox";
         std::ofstream(dir + "/mode") << mode << "\n";
-        if (m.peaceful) std::ofstream(dir + "/world.db.peaceful") << "peaceful\n";
+        set_world_difficulty(dir, m.difficulty);
     }
     const bool survival = mode == "survival";
 
@@ -15108,6 +15156,25 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         } else {
             player_update(player, s.act().world, s.act().registry, s.act().movement, in, dt,
                           &drive_log);
+            // Out of the creatures it stands in, as they are shoved out of it
+            // (step_mobs): a push, never through a wall. Not in a kart.
+            if (!player.vehicle) {
+                float push_x = 0.0f, push_z = 0.0f;
+                for (const net::RemotePlayer &c : conn->players()) {
+                    if (c.kind != net::EntityKind::Mob || c.chassis || c.held) continue;
+                    if (player.pos.y >= c.y + ecs::kMobHeight || c.y >= player.pos.y + kPlayerHeight) continue;
+                    const float dx = player.pos.x - c.x, dz = player.pos.z - c.z, reach = 2.0f * kPlayerHalfWidth;
+                    const float d2 = dx * dx + dz * dz;
+                    if (d2 >= reach * reach) continue;
+                    const float d = std::sqrt(d2);
+                    push_x += (d > 1e-3f ? dx / d : 1.0f) * (reach - d) * 4.0f;
+                    push_z += (d > 1e-3f ? dz / d : 0.0f) * (reach - d) * 4.0f;
+                }
+                const Vec3 to{player.pos.x + push_x * dt, player.pos.y, player.pos.z + push_z * dt};
+                if ((push_x != 0.0f || push_z != 0.0f) &&
+                    !box_hits_world(s.act().world, s.act().registry, body_box(to, s.act().movement.width * 0.5f)))
+                    player.pos = to;
+            }
         }
         s.step.note(player, was_grounded, y_before);
         s.step.settle(dt);
@@ -15475,6 +15542,18 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             if (p.kind == net::EntityKind::Thing) body.pitch = p.pitch;
             // A machine, rolled (98).
             if (p.kind == net::EntityKind::Thing && p.chassis) body.roll = p.body_roll;
+            // A creature is aimed at in its model's whole box, as the server
+            // finds a blow in it (MobKind::hit_height): a guardian at its head.
+            if (p.kind == net::EntityKind::Mob && !p.chassis && p.model != 0)
+                if (const ModelStore::Entry *me = s.act().models.entry(p.model);
+                    me && me->model.max.y > me->model.min.y) {
+                    const float h  = std::clamp(me->model.max.y, 0.3f, 8.0f);
+                    const float hw = std::clamp(std::max({std::fabs(me->model.min.x), std::fabs(me->model.max.x),
+                                                          std::fabs(me->model.min.z), std::fabs(me->model.max.z)}),
+                                                0.1f, 3.0f);
+                    body.center = Vec3{p.x, p.y + h * 0.5f, p.z};
+                    body.half   = Vec3{hw, h * 0.5f, hw};
+                }
             // A creature that tumbles (114): as it lies, about its model's middle.
             if (p.kind == net::EntityKind::Mob && p.chassis) {
                 body.tumbles = true;
@@ -19333,6 +19412,7 @@ script_host make_client_host(Scene &scene)
     host.world_storm     = host_world_storm;
     host.storm_funnel    = host_storm_funnel;
     host.overcast        = host_overcast;
+    host.sky_flash       = host_sky_flash;
     host.night_sight     = host_night_sight;
     host.ghost_cell      = host_ghost_cell;
     host.ghost_clear     = host_ghost_clear;

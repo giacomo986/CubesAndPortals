@@ -1071,6 +1071,15 @@ int l_overcast(lua_State *L)
     return 0;
 }
 
+// core.sky_flash(amount: number) -> ()
+int l_sky_flash(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const float amount = (float)luaL_checknumber(L, 1);
+    if (vm && vm->host.sky_flash) vm->host.sky_flash(vm->host.ud, amount);
+    return 0;
+}
+
 // core.node_foliage(id: number, on: boolean?) -> number
 int l_node_foliage(lua_State *L)
 {
@@ -1498,6 +1507,65 @@ int l_set_peaceful(lua_State *L)
     return 1;
 }
 
+// core.difficulty() -> string
+int l_difficulty(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *result = (vm && vm->host.difficulty) ? vm->host.difficulty(vm->host.ud) : nullptr;
+    lua_pushstring(L, result ? result : "");
+    return 1;
+}
+
+// core.set_difficulty(name: string) -> number
+int l_set_difficulty(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_checkstring(L, 1);
+    const int result = (vm && vm->host.set_difficulty) ? vm->host.set_difficulty(vm->host.ud, name) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.rule(name: string) -> string
+int l_rule(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_checkstring(L, 1);
+    const char *result = (vm && vm->host.rule) ? vm->host.rule(vm->host.ud, name) : nullptr;
+    lua_pushstring(L, result ? result : "");
+    return 1;
+}
+
+// core.set_rule(name: string, value: string) -> number
+int l_set_rule(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_checkstring(L, 1);
+    const char *value = (const char *)luaL_checkstring(L, 2);
+    const int result = (vm && vm->host.set_rule) ? vm->host.set_rule(vm->host.ud, name, value) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.day_cycle() -> boolean
+int l_day_cycle(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int result = (vm && vm->host.day_cycle) ? vm->host.day_cycle(vm->host.ud) : (int)0;
+    lua_pushboolean(L, result);
+    return 1;
+}
+
+// core.set_day_cycle(on: boolean?) -> number
+int l_set_day_cycle(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int on = lua_isnoneornil(L, 1) ? 1 : (lua_toboolean(L, 1) ? 1 : 0);
+    const int result = (vm && vm->host.set_day_cycle) ? vm->host.set_day_cycle(vm->host.ud, on) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.mob_leave(name: string, x: number, y: number, z: number) -> number
 int l_mob_leave(lua_State *L)
 {
@@ -1518,6 +1586,16 @@ int l_mob_remove(lua_State *L)
     const int id = (int)luaL_checkinteger(L, 1);
     const int result = (vm && vm->host.mob_remove) ? vm->host.mob_remove(vm->host.ud, id) : (int)0;
     lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.player_crouching(player: number) -> boolean
+int l_player_crouching(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int player = (int)luaL_checkinteger(L, 1);
+    const int result = (vm && vm->host.player_crouching) ? vm->host.player_crouching(vm->host.ud, player) : (int)0;
+    lua_pushboolean(L, result);
     return 1;
 }
 
@@ -3202,6 +3280,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "night_sight");
     lua_pushcfunction(L, l_overcast, "core.overcast");
     lua_setfield(L, -2, "overcast");
+    lua_pushcfunction(L, l_sky_flash, "core.sky_flash");
+    lua_setfield(L, -2, "sky_flash");
     lua_pushcfunction(L, l_node_foliage, "core.node_foliage");
     lua_setfield(L, -2, "node_foliage");
     lua_pushcfunction(L, l_foliage, "core.foliage");
@@ -3266,10 +3346,24 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "peaceful");
     lua_pushcfunction(L, l_set_peaceful, "core.set_peaceful");
     lua_setfield(L, -2, "set_peaceful");
+    lua_pushcfunction(L, l_difficulty, "core.difficulty");
+    lua_setfield(L, -2, "difficulty");
+    lua_pushcfunction(L, l_set_difficulty, "core.set_difficulty");
+    lua_setfield(L, -2, "set_difficulty");
+    lua_pushcfunction(L, l_rule, "core.rule");
+    lua_setfield(L, -2, "rule");
+    lua_pushcfunction(L, l_set_rule, "core.set_rule");
+    lua_setfield(L, -2, "set_rule");
+    lua_pushcfunction(L, l_day_cycle, "core.day_cycle");
+    lua_setfield(L, -2, "day_cycle");
+    lua_pushcfunction(L, l_set_day_cycle, "core.set_day_cycle");
+    lua_setfield(L, -2, "set_day_cycle");
     lua_pushcfunction(L, l_mob_leave, "core.mob_leave");
     lua_setfield(L, -2, "mob_leave");
     lua_pushcfunction(L, l_mob_remove, "core.mob_remove");
     lua_setfield(L, -2, "mob_remove");
+    lua_pushcfunction(L, l_player_crouching, "core.player_crouching");
+    lua_setfield(L, -2, "player_crouching");
     lua_pushcfunction(L, l_body_player, "core.body_player");
     lua_setfield(L, -2, "body_player");
     lua_pushcfunction(L, l_mob_kind, "core.mob_kind");

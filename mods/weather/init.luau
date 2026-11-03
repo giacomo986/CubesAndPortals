@@ -100,6 +100,9 @@ if serving then
             core.event.emit("farm:rain", { on = what ~= "clear" })
         end
         sky, left = what, secs
+        -- The server's sky too (core.overcast): a storm is dark enough for
+        -- the creatures of the dark, and keeps the sun off them.
+        core.overcast(if what == "storm" then 1 elseif what == "clear" then 0 else 0.75)
         core.log(`weather: {what} for {math.floor(secs / 60)} min`)
     end
 
@@ -191,7 +194,10 @@ if serving then
         if s ~= season then
             set_season(s)
         end
-        left -= ev.dt
+        -- The rule weather_cycle off (mods/rules) holds the sky as it is.
+        if core.rule("weather_cycle") ~= "off" then
+            left -= ev.dt
+        end
         if left <= 0 then
             local is = SEASONS[season]
             if sky == "clear" then
@@ -371,8 +377,11 @@ if drawing then
         bolt_age += ev.dt
         local want = GREY[falling] or 0
         amount += math.clamp(want - amount, -ev.dt * 0.15, ev.dt * 0.15)
-        local flash = if bolt_age < 0.15 then 0.7 else 0
-        core.overcast(math.max(0, amount - flash))
+        core.overcast(amount)
+        -- The bolt lights the land, by night too: a flash, a flicker, a
+        -- second flash, fading out over half a second.
+        core.sky_flash(if bolt_age < 0.07 then 1 elseif bolt_age < 0.13 then 0.25
+            elseif bolt_age < 0.2 then 0.8 elseif bolt_age < 0.55 then 0.8 * (0.55 - bolt_age) / 0.35 else 0)
         refresh += ev.dt
         if refresh > 3 then
             refresh = 0

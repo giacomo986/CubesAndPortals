@@ -1278,11 +1278,23 @@ How much this player sees in the dark: every block and creature drawn at least t
 core.overcast(amount: number) -> ()
 ```
 
-Weather over this world's sky: the sky and its clouds go grey by this much, the sun's light on the ground weaker and its shadows fainter, the hours kept. 0 takes it away. Only drawn: the light a crop or a creature reads (core.light) is the hour's. Called as it changes, so a mod fades it in. For a world's code on a player's machine.
+Weather over this world's sky: the sky and its clouds go grey by this much, the sun's light on the ground weaker and its shadows fainter, the hours kept. 0 takes it away. Called as it changes, so a mod fades it in, on a player's machine. On a server it darkens the day the creatures and core.light read: at 1 the sun's share is 0.4 of the hour's, so the dark's creatures come out in a storm and do not burn.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
 | `amount` | number | — | 0 a clear sky .. 1 a heavy one; clamped |
+
+## `core.sky_flash`
+
+```luau
+core.sky_flash(amount: number) -> ()
+```
+
+Lights this world as a bolt does, this frame: the land as bright as at noon and the sky towards a pale blue by this much, by night too. Called every frame it lasts. For a world's code on a player's machine.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `amount` | number | — | 0 none .. 1 a bolt's whole flash; clamped |
 
 ## `core.node_foliage`
 
@@ -1740,7 +1752,7 @@ Leaves a worker out of one player's world: everybody else sees it, that player's
 core.peaceful() -> boolean
 ```
 
-Whether this world is peaceful (--peaceful, /peaceful, the title screen's world settings): no creature that fights (register_mob fight "melee" or "archer") comes out of the dark or is put in the world -- core.spawn_mob gives 0 for one. What a mod that makes fights of its own asks first, and what it asks to give what only those creatures leave some other way. False off a server.
+Whether this world is peaceful (core.difficulty "peaceful": --peaceful, /difficulty, the title screen's world settings): no creature that fights (register_mob fight "melee" or "archer") comes out of the dark or is put in the world -- core.spawn_mob gives 0 for one. What a mod that makes fights of its own asks first, and what it asks to give what only those creatures leave some other way. False off a server.
 
 ## `core.set_peaceful`
 
@@ -1748,7 +1760,72 @@ Whether this world is peaceful (--peaceful, /peaceful, the title screen's world 
 core.set_peaceful(on: boolean?) -> number
 ```
 
-Makes this world peaceful, or not, at once and across restarts (the world file's <file>.peaceful, which the title screen reads). On, every creature that fights goes, playing no death and leaving nothing. Returns how many went.
+core.set_difficulty("peaceful"), or "normal" for false. Returns how many creatures went.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `on` | boolean | `true` |  |
+
+## `core.difficulty`
+
+```luau
+core.difficulty() -> string
+```
+
+How hard this world is: "peaceful", "easy", "normal" or "hard" (--difficulty, /difficulty, the title screen's world settings). Peaceful is core.peaceful; easy halves a creature's blow on a player and how many come out near each (3), hard adds half to both (9; normal 6). What a mod scales its own by -- hunger, a siege. Empty off a server.
+
+## `core.set_difficulty`
+
+```luau
+core.set_difficulty(name: string) -> number
+```
+
+Makes this world that hard, at once and across restarts (the world file's <file>.difficulty, which the title screen reads). Peaceful, every creature that fights goes, playing no death and leaving nothing. Returns how many went, or -1 for a name that is no difficulty.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — | peaceful, easy, normal or hard. |
+
+## `core.rule`
+
+```luau
+core.rule(name: string) -> string
+```
+
+One of this world's rules, as core.set_rule left it, or an empty string for one never set: what each mod then takes as its default. Every mod of the world reads the same rules (mods/rules lists the game's: keep_bag, day_cycle, weather_cycle, hunger). Empty off a server.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — |  |
+
+## `core.set_rule`
+
+```luau
+core.set_rule(name: string, value: string) -> number
+```
+
+Sets one of this world's rules, at once and across restarts (the world file's <file>.rules, `name = value` a line, which the title screen reads too). The engine gives a rule no meaning: the mod that reads it does. Returns 1, or 0 for a bad name or value.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — | 1 to 32 of a-z, 0-9 and _. |
+| `value` | string | — | At most 64 characters, one line; empty forgets it. |
+
+## `core.day_cycle`
+
+```luau
+core.day_cycle() -> boolean
+```
+
+Whether the world's clock goes: false once core.set_day_cycle(false) stopped it. True off a server.
+
+## `core.set_day_cycle`
+
+```luau
+core.set_day_cycle(on: boolean?) -> number
+```
+
+Stops the clock where it is, or starts it again at the world's day length (--day-length): every client sees the sky stand still, as it mirrors the server's hour. Not kept by the engine across restarts: a mod that wants it so sets it at its first core:tick (before, there is no clock yet). Returns 1, 0 off a server.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1775,11 +1852,23 @@ Puts down at x, y, z what one creature of that kind leaves when it dies -- its d
 core.mob_remove(id: number) -> number
 ```
 
-Takes a worker out of the world at once, leaving nothing and playing no death: its mod taking it back. Returns 1, or 0 for one that is gone or not a worker.
+Takes a creature out of the world at once, leaving nothing and playing no death: its mod taking it back, a mount taken up. Returns 1, or 0 for one that is gone or no creature.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
 | `id` | number | — |  |
+
+## `core.player_crouching`
+
+```luau
+core.player_crouching(player: number) -> boolean
+```
+
+Whether that player's body is crouched (Ctrl held on foot), as their client last said: how a rider gets off a mount. False for somebody not here.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `player` | number | — |  |
 
 ## `core.body_player`
 

@@ -60,6 +60,7 @@ local FUELS = {
     { "furnace:charcoal", 8 },
     { "compact:coal", 80 },
     { "inferno:cinder_rod", 12 },   -- only where games/inferno is loaded
+    { "wilds:peat", 5 },            -- a swamp's (mods/wilds)
     { "timber:log", 1.5 }, { "timber:mossy_log", 1.5 }, { "trees:trunk", 1.5 },
     { "woods:birch_log", 1.5 }, { "woods:spruce_log", 1.5 }, { "woods:jungle_log", 1.5 },
     { "woods:acacia_log", 1.5 }, { "woods:dark_oak_log", 1.5 },

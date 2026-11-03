@@ -102,7 +102,7 @@ local function powered(x: number, y: number, z: number): boolean
         local on: { [number]: boolean } = {}
         for _, n in { "cinnabar:lever_on", "cinnabar:button_on", "cinnabar:torch", "cinnabar:dust_on",
                       "cinnabar:repeater_on", "cinnabar:comparator_on", "cinnabar:observer_on",
-                      "compact:cinnabar" } do
+                      "compact:cinnabar", "cinnabar:plate_on" } do
             local id = core.node_id(n)
             if id ~= 0 then
                 on[id] = true

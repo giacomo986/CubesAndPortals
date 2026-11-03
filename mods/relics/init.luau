@@ -317,6 +317,7 @@ local function show_shard(x: number, y: number, z: number)
     if not shown[k] and core.show_item(x, y + 1, z, core.item_id("relics:shard")) == 1 then shown[k] = true end
 end
 local since = 0
+local pinned: { [string]: { [number]: boolean } } = {}   -- whose map has which, this run
 core.event.on("core:tick", function(ev)
     since += ev.dt
     if since < 2 then return end
@@ -324,6 +325,15 @@ core.event.on("core:tick", function(ev)
     for _, p in core.players() do
         local x, _, z = core.player_pos(p)
         local r = if x then relic_at(x, z) else nil
+        -- Within 64 of one: on that player's map (maps:pin, gold).
+        if r and x and z and (r.x - x) ^ 2 + (r.z - z) ^ 2 < 64 * 64 then
+            local who = core.player_name(p)
+            pinned[who] = pinned[who] or {}
+            if not pinned[who][r.x * 65536 + r.z] then
+                pinned[who][r.x * 65536 + r.z] = true
+                core.event.emit("maps:pin", { player = p, label = `relic {r.x},{r.z}`, x = r.x, z = r.z, colour = 3 })
+            end
+        end
         if r and r.kind == "ruin" then
             for _, c in pedestal_cells(r) do
                 if core.get_block(c[1], c[2], c[3]) == PEDESTAL_FULL then show_shard(c[1], c[2], c[3]) end

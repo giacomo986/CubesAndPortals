@@ -91,11 +91,14 @@ lato server, e il tick a 20 Hz: messaggi dei peer, step dei mod e dei sistemi EC
 generate o rilette attorno a chi c'è e lasciate dove non c'è nessuno, streaming dei chunk per
 interest, entità, salute, tempo, porte fra server.
 
-**Pacifico** è un flag della stanza (`ServerState::peaceful`), tenuto come `<file del mondo>.peaceful`
-(c'è o non c'è) così il menù del titolo lo legge e lo scrive senza server. Solo due cancelli: lo
-spawn naturale salta e `host_spawn_mob` rifiuta un tipo che `fights()`; accenderlo toglie quelli
-in giro. Quello che una mod fa nei suoi combattimenti (assedi, il boss di un altare) lo chiede a
-`core.peaceful()`, e `core.mob_leave` dà i drop di un tipo senza creatura.
+La **difficoltà** è un numero della stanza (`ServerState::difficulty`, 0 pacifico .. 3 difficile),
+tenuto come `<file del mondo>.difficulty` così il menù del titolo lo legge e lo scrive senza server.
+Pacifico ha solo due cancelli: lo spawn naturale salta e `host_spawn_mob` rifiuta un tipo che
+`fights()`; accenderlo toglie quelli in giro. Facile e difficile scalano il limite di spawn e il colpo
+che una creatura dà a un giocatore (il callback hurt di `step_mobs`). Quello che una mod fa nei suoi
+combattimenti (assedi, il boss di un altare) lo chiede a `core.peaceful()`, e `core.mob_leave` dà i
+drop di un tipo senza creatura. Le **regole** del mondo (`core.rule`) sono nomi e valori che l'engine
+tiene in `<file del mondo>.rules` senza dar loro significato: ogni mod legge le sue.
 
 **Il mondo non ha bordo.** Una colonna di chunk entra in memoria quando una sessione le arriva a
 quattro colonne: dal file del mondo se c'è, dal generatore se no (core e stage dei mod, scritti

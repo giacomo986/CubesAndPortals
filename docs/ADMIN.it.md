@@ -119,7 +119,8 @@ il proprietario di quel nome in questo mondo, o il nome e basta.
 | `/weather [clear\|rain\|storm] [MINUTI]` | admin | Il cielo del sandbox (`mods/weather`): senza parola, com'è e quanto dura; con una, quel cielo adesso, per MINUTI o il tempo solito |
 | `/time [day\|noon\|dusk\|night\|midnight\|dawn\|HH:MM]` | admin | L'orologio (`mods/weather`): senza parola, l'ora adesso; con una, quell'ora subito per tutti. Portato indietro oltre la mezzanotte conta un giorno, come una notte dormita |
 | `/season [spring\|summer\|autumn\|winter]` | admin | La stagione del sandbox (`mods/weather`, cinque giorni l'una): senza parola, quale e che giorno; con una, il primo giorno di quella stagione quest'anno |
-| `/peaceful [on\|off]` | admin | Un mondo pacifico (`mods/mobs`, core.set_peaceful): nessuna creatura che combatte esce, e quelle in giro spariscono subito; tenuto dopo i riavvii in WORLD.peaceful (`--peaceful`) |
+| `/difficulty [peaceful\|easy\|normal\|hard]` `/peaceful [on\|off]` | admin | Quanto è difficile il mondo (`mods/rules`, core.set_difficulty): pacifico manda via ogni creatura che combatte e non ne fa uscire; facile e difficile scalano i loro colpi, il loro numero e la fame. Tenuto in WORLD.difficulty (`--difficulty`) |
+| `/rule [NOME on\|off]` | admin | Le regole del mondo (`mods/rules`, core.set_rule): keep_bag, day_cycle, weather_cycle, hunger; tenute in WORLD.rules. Il pulsante Mondo del menu di pausa le mostra tutte in `/page world`, con meteo, ora e stagione, come pulsanti per un admin |
 | `/village siege\|feast\|caravan\|incoming` | admin | Avvia subito uno degli eventi dei villaggi nel villaggio dove sta l'admin (`mods/villagers`): un assedio annunciato ora che arriva al calar della notte, la festa del raccolto nella sua piazza, una carovana verso l'altro villaggio più vicino (nessuna se ce n'è già una in giro o i suoi bauli non hanno niente da dare), o una che arriva da un villaggio a 100-900 che nessuno ha visitato, lungo i sentieri (nessuna se nessun villaggio così è collegato) |
 
 ### Giocatori
@@ -221,7 +222,7 @@ webhook = https://example.org/hooks/server
 | `--report FILE` `--since 7d` `--json` | Senza server: cosa ricorda un file di mondo, stampato; `--json` come un oggetto JSON |
 | `--names` `--free-name NOME` | Senza server: chi possiede ogni nome; liberarne uno |
 | `--survival` | Di una stanza (il sandbox): niente piazza, lo spawn su terra asciutta scelta dal seme, i mondi a tema dietro portali sparsi sulla terra; `creative` parte a `nobody`. "Mode: Survival" nel menù del titolo scrive `survival` nel file `mode` del mondo e lo passa; anche `tools/track.sh --survival` |
-| `--peaceful` | Di una stanza (il sandbox): pacifico dall'avvio, e tenuto così in WORLD.peaceful accanto al file del mondo -- c'è o non c'è, è quello che la stanza è al prossimo avvio senza il flag. `/peaceful on\|off` e il pulsante "Mostri" del menù del titolo (mondo nuovo, o Modifica di un mondo salvato) scrivono lo stesso file |
+| `--difficulty peaceful\|easy\|normal\|hard` `--peaceful` | Di una stanza (il sandbox): quella difficoltà dall'avvio (`--peaceful` è pacifico), e tenuta così in WORLD.difficulty accanto al file del mondo, il suo nome in una riga (nessun file è normale) -- quello che la stanza è al prossimo avvio senza il flag. `/difficulty` e il pulsante "Mostri" del menù del titolo (mondo nuovo, o Modifica di un mondo salvato) scrivono lo stesso file. Le regole (`/rule`) stanno accanto in WORLD.rules, `nome = valore` una riga |
 
 Gli altri flag (mondo, mod, portali, stanze) sono nel [README](../README.it.md#server-cnp_server).
 
@@ -468,7 +469,10 @@ Nel file di mondo della prima stanza (un archivio per tutte le stanze), accanto 
 | `sessions` | Una riga per visita |
 | `edits` | Ogni blocco cambiato da un giocatore, un mese |
 
-Le borse stesse stanno nel file di mondo di ogni stanza, come sempre.
+Le borse stesse stanno nel file di mondo di ogni stanza, come sempre. Accanto al file di mondo di
+ogni stanza, due piccoli file di testo: WORLD.difficulty (il suo nome, nessuno per normale) e
+WORLD.rules (`nome = valore` una riga), scritti da `/difficulty`, `/rule` e dal menù del titolo, letti
+all'avvio.
 
 ## Limiti
 

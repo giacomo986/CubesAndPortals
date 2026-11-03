@@ -991,6 +991,35 @@ local function keep_signs()
     end
     core.storage_set("signs due", table.concat(parts, ";"))
 end
+-- Every settlement within 96 of a player, on their map (maps:pin, orange).
+local pinned: { [string]: { [string]: boolean } } = {}
+local pins_at = 0.0
+core.event.on("core:tick", function(ev)
+    pins_at += ev.dt
+    if pins_at < 3 or SEED == nil then
+        return
+    end
+    pins_at = 0
+    for _, p in core.players() do
+        local x, _, z = core.player_pos(p)
+        if x and z then
+            local who = core.player_name(p)
+            pinned[who] = pinned[who] or {}
+            local rx, rz = math.floor(x / REGION), math.floor(z / REGION)
+            for dz = -1, 1 do
+                for dx = -1, 1 do
+                    local v = village_of(rx + dx, rz + dz, SEED :: number)
+                    local key = `{rx + dx},{rz + dz}`
+                    if v and not pinned[who][key] and (v.x - x) ^ 2 + (v.z - z) ^ 2 < 96 * 96 then
+                        pinned[who][key] = true
+                        core.event.emit("maps:pin", { player = p, label = `village {key}`, x = v.x, z = v.z, colour = 4 })
+                    end
+                end
+            end
+        end
+    end
+end)
+
 local signs_at = 0.0
 core.event.on("core:tick", function(ev)
     signs_at += ev.dt

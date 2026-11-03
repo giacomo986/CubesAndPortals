@@ -247,12 +247,18 @@ tunnel and the credits. After that the sandbox stays free, and two more worlds o
 winning anything: the ways out, the arches, the laboratory's gate, the front and the assault.
 `false` is the game as it ships.
 
-### Peaceful: no monsters
+### Difficulty, rules and goals
 
-"Monsters: none" on the new-world page, or in a saved world's Edit page, or `/peaceful on|off` in
-play (`cnp_server --peaceful`): no creature that fights comes out, and those about go. What only
-monsters leave is still found: a dungeon's quiet spawner leaves bones, flesh, gunpowder and arrows
-now and then, the deep's altar gives its heart and shards unfought, villages have no sieges.
+"Monsters" on the new-world page, or in a saved world's Edit page, picks how hard the sandbox is:
+none (peaceful), few and weak (easy), as usual, many and strong (hard); `/difficulty` in play
+(`cnp_server --difficulty`). Peaceful lets no creature that fights out and sends those about away,
+and what only monsters leave is still found: a dungeon's quiet spawner leaves bones, flesh,
+gunpowder and arrows now and then, the deep's altar gives its heart and shards unfought, villages
+have no sieges. Easy halves a creature's blow, how many come out and hunger; hard adds half to all
+three. The rules (`/rule`): keep the bag on death in a survival world, the sun moving, the weather
+changing, hunger. The pause menu's **World** button shows all of it, with the weather, the hour and
+the season, as buttons for an admin, and links the **goals**: 21 things to do, from the first wood
+to every world's key, told as they are reached (`/page goals`).
 
 ### Survival: the worlds scattered over the land
 

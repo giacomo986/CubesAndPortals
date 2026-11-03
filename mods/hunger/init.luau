@@ -24,7 +24,7 @@ local FOOD: { [string]: { number } } = {
     ["pets:carp"] = { 2, 0.4 }, ["pets:trout"] = { 2, 0.4 }, ["pets:cod"] = { 2, 0.4 }, ["pets:eel"] = { 2, 0.4 },
     ["pets:tuna"] = { 3, 0.6 },
     ["animals:cheese"] = { 4, 3.2 }, ["animals:cake"] = { 10, 8 },
-    ["plants:melon_slice"] = { 2, 1.2 },
+    ["plants:melon_slice"] = { 2, 1.2 }, ["wilds:mushroom_stew"] = { 6, 7.2 },
 }
 local WALK, SPRINT, JUMP, DIG, HIT, HEAL = 0.01, 0.1, 0.05, 0.005, 0.1, 6
 local SPRINT_SPEED = 5.5   -- m/s: over the engine's walk of 4.8
@@ -69,9 +69,13 @@ if serving then
         return b
     end
 
+    -- How fast a belly empties: none with the rule hunger off or in a
+    -- peaceful world (mods/rules), half on easy, half again on hard. Read
+    -- once a tick.
+    local pace = 1
     local function tire(p: number, amount: number)
         local b = belly(p)
-        b.exhaustion += amount
+        b.exhaustion += amount * pace
         local changed = false
         while b.exhaustion >= 4 do
             b.exhaustion -= 4
@@ -87,11 +91,17 @@ if serving then
         end
     end
 
+    local PACE = { peaceful = 0, easy = 0.5, normal = 1, hard = 1.5 }
     core.event.on("core:tick", function(ev)
         local here: { [number]: boolean } = {}
+        pace = if core.rule("hunger") == "off" then 0 else PACE[core.difficulty()] or 1
         for _, p in core.players() do
             here[p] = true
             local b = belly(p)
+            if pace == 0 and b.points < MAX then
+                b.points, b.starve = MAX, 0   -- nothing to be hungry for: full again
+                tell(p, b)
+            end
             -- Where the server last heard the player was. It hears in bursts,
             -- two claims in one tick and none in the next, so walking and
             -- sprinting are told apart by the speed over a whole second.

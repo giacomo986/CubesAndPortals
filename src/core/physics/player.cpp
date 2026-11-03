@@ -646,8 +646,31 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         if (b.on) carry = Vec3{b.dx * b.speed * dt, 0.0f, b.dz * b.speed * dt};
     }
 
+    // Crouched on the ground, a body does not walk off an edge: a step along x
+    // or z that would leave nothing under the box within a step down is not
+    // taken, and the speed along it goes. Each axis alone, so it slides along
+    // the edge as it is held to it.
+    Vec3 step = player.velocity * dt + carry;
+    if (player.crouching && player.on_ground && !input.jump && !player.roped) {
+        const float hw      = box_half(player, rules);
+        const auto  footing = [&](Vec3 at) {
+            return box_hits_world(world, reg, body_box(Vec3{at.x, at.y - kStepHeight, at.z}, hw, 0.0f,
+                                                       kStepHeight - 0.01f));
+        };
+        if (footing(player.pos)) {
+            if (step.x != 0.0f && !footing(player.pos + Vec3{step.x, 0.0f, 0.0f})) {
+                step.x = 0.0f;
+                player.velocity.x = 0.0f;
+            }
+            if (step.z != 0.0f && !footing(player.pos + Vec3{step.x, 0.0f, step.z})) {
+                step.z = 0.0f;
+                player.velocity.z = 0.0f;
+            }
+        }
+    }
+
     const Vec3       before = player.pos;
-    const MoveResult r = move_body(world, reg, player.pos, player.velocity * dt + carry,
+    const MoveResult r = move_body(world, reg, player.pos, step,
                                    player.cb_shift, kStepHeight, box_half(player, rules), box_height(player));
     player.pos = r.pos;
 

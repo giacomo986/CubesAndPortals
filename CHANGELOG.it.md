@@ -5,16 +5,48 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
-## Non ancora consegnato
+## 0.12.0-alpha.1 — 2026-11-03
 
-- Un sandbox pacifico: nessun mostro esce dal buio, e quelli in giro spariscono. Si sceglie quando
-  si crea il mondo ("Mostri" nella pagina del mondo nuovo), nella pagina Modifica di un mondo
-  salvato prima di caricarlo, o in partita con `/peaceful on|off` (admin); resta dopo i riavvii.
-  Quello che lasciano solo i mostri si trova ancora: lo spawner di un dungeon, ora quieto, lascia
-  ogni tanto quello che lascerebbero le sue creature (ossa, carne, polvere da sparo, frecce);
-  l'altare del profondo dà cuore e frammenti senza svegliare il guardiano; i villaggi non hanno
-  assedi. Server: `--peaceful`. Per le mod: `core.peaceful()`, `core.set_peaceful(on)`,
-  `core.mob_leave(kind, x, y, z)`.
+- Quanto è difficile il sandbox: pacifico, facile, normale o difficile. Si sceglie quando si crea il
+  mondo ("Mostri" nella pagina del mondo nuovo), nella pagina Modifica di un mondo salvato, o in
+  partita (`/difficulty`, `/peaceful`, o il nuovo pulsante **Mondo** del menu di pausa); resta dopo i
+  riavvii. Pacifico non fa uscire mostri e manda via quelli in giro, e quello che lasciano solo i
+  mostri si trova ancora: lo spawner di un dungeon, ora quieto, lascia ogni tanto quello che
+  lascerebbero le sue creature (ossa, carne, polvere da sparo, frecce); l'altare del profondo dà
+  cuore e frammenti senza svegliare il guardiano; i villaggi non hanno assedi. Facile dimezza il
+  colpo di una creatura, quante ne escono e la fame; difficile aggiunge metà a ciascuno. Server:
+  `--difficulty`, `--peaceful`.
+- Le regole del mondo (`/rule`, la pagina Mondo): tenere la borsa alla morte in un mondo survival,
+  il sole che si muove, il meteo che cambia da solo, la fame. La pagina Mondo imposta anche meteo,
+  ora e stagione per un admin.
+- Obiettivi: 21 cose da fare nel sandbox, dal primo legno e una notte nel letto a un villaggio, una
+  reliquia, il cuore del guardiano e la chiave di ogni mondo, annunciate con un rintocco quando le
+  raggiungi ed elencate con suggerimenti in `/page goals`.
+- Temporali: il fulmine illumina la terra, anche di notte, con un lampo e un guizzo; sotto un
+  temporale le creature del buio escono e non bruciano.
+- Accovacciato non cadi più da un bordo: ti fermi e scivoli lungo il bordo.
+- Creature: colpite e mirate su tutto il loro modello (un guardiano alla testa); giocatori e creature
+  si spingono di lato; una che ti insegue al sole cerca prima l'ombra, se ce n'è.
+- La mappa mostra la terra com'è costruita -- alberi, case, strade, acqua -- dove l'hai vista, e
+  ridipinge quello che è vicino quando cambia; reliquie e villaggi ci sono segnati, come i portali.
+- Pedane a pressione (accese sotto un giocatore o una creatura) e trappole a punte (su finché c'è
+  corrente, un colpo due volte al secondo) per i circuiti di cinabro; anche una pedana apre le porte.
+- Pony, sull'erba di giorno: clic destro su uno con una sella (tre cuoio e un lingotto di ferro) per
+  cavalcarlo -- più veloce, al galoppo con lo scatto, salto più alto -- e Ctrl (o clic destro sul
+  terreno) per scendere.
+  Stai a cavalcioni, piedi nelle staffe e mani sulle redini, sollevandoti col suo passo; le sue zampe
+  camminano e galoppano sotto di te, anche in prima persona.
+- Sella, torba e stufato di funghi hanno modelli propri in mano e figure nella borsa.
+- Due terre rare nelle pianure: paludi di fango, pozze, canne e salici sopra la torba (un
+  combustibile), e boschi di funghi giganti sul micelio con funghi luminosi sotto i cappelli (una
+  luce); due funghi marroni e uno rosso fanno uno stufato.
+- Bancarelle: riforniscine una, fissa prezzo e lotto, e gli altri giocatori comprano anche quando
+  non ci sei; l'incasso aspetta nella cassa.
+- La traduzione italiana copre anche i messaggi delle mod (villaggi, meteo, pietre di viaggio,
+  progetti, le prove dei mondi), e quella inglese i mondi scritti in italiano.
+- Per le mod: `core.difficulty`, `core.set_difficulty`, `core.peaceful`, `core.set_peaceful`,
+  `core.rule`, `core.set_rule`, `core.day_cycle`, `core.set_day_cycle`, `core.mob_leave`,
+  `core.sky_flash`; `core.overcast` su un server scurisce il giorno che leggono le creature.
 - **Protocollo 114**: non gioca con server o client 113.
 - Il cubo delle camere di prova ora è una scatola vera: cade, scivola, si ribalta sugli spigoli,
   rotola e rimbalza, e resta com'è atterrato; lanciato o colpito si gira mentre vola, e

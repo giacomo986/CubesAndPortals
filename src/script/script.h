@@ -278,6 +278,7 @@ typedef struct script_host {
     void (*world_storm)(void *ud, int r, int g, int b);
     void (*storm_funnel)(void *ud, int slot, double x, double y, double z, int on);   // a twister drawn
     void (*overcast)(void *ud, double amount);   // a grey sky over the hours, 0..1
+    void (*sky_flash)(void *ud, double amount);  // a bolt lighting the land, this frame, 0..1
     void (*night_sight)(void *ud, double amount);   // drawn no darker than this, 0..1
     int (*held_id)(void *ud, int player);   // core.held_id: the hand's stack's number
     int (*held_set_id)(void *ud, int player, int id);
@@ -343,6 +344,15 @@ typedef struct script_host {
     // Peaceful: no creature that fights (core.peaceful, core.set_peaceful).
     bool (*peaceful)(void *ud);
     int (*set_peaceful)(void *ud, bool on);
+    // How hard the world is (core.difficulty), and the clock going or not.
+    const char *(*difficulty)(void *ud);
+    int (*set_difficulty)(void *ud, const char *name);
+    bool (*day_cycle)(void *ud);
+    int (*set_day_cycle)(void *ud, bool on);
+    bool (*player_crouching)(void *ud, int player);
+    // The world's rules, a value by name (core.rule).
+    const char *(*rule)(void *ud, const char *name);
+    int (*set_rule)(void *ud, const char *name, const char *value);
     int (*mob_leave)(void *ud, const char *name, double x, double y, double z);
     int (*player_launch)(void *ud, int player, double vx, double vy, double vz, double seconds);
     // A worker sent after one player (0: called off), as its kind fights.

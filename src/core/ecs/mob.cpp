@@ -743,10 +743,12 @@ int mob_unseen(flecs::world &w, uint32_t id, uint32_t peer)
     return 1;
 }
 
+// Any creature, not only a worker: a pony taken up as a mount is a grazer
+// (mods/animals), and leaving it standing put a second one under the rider.
 int mob_remove(flecs::world &w, uint32_t id)
 {
-    flecs::entity e;
-    if (worker(w, id, e) == nullptr) return 0;
+    const flecs::entity e = w.get_alive(id);
+    if (!e.is_valid() || !e.has<Mob>()) return 0;
     e.destruct();
     return 1;
 }
@@ -1034,6 +1036,9 @@ bool size_mob_kind(MobKind &k, const std::string &model_file)
     k.height = std::clamp(m.max.y, 0.3f, kMobHeight);
     k.half   = std::clamp(std::max(std::fabs(m.min.x), std::fabs(m.max.x)), 0.1f, kMobHalfWidth);
     k.spread = std::clamp(std::max(std::fabs(m.min.x), std::fabs(m.max.x)), 0.1f, 1.0f);
+    k.hit_height = std::clamp(m.max.y, 0.3f, 8.0f);
+    k.hit_half   = std::clamp(std::max({std::fabs(m.min.x), std::fabs(m.max.x), std::fabs(m.min.z), std::fabs(m.max.z)}),
+                              0.1f, 3.0f);
     return m.clip("death") >= 0;
 }
 
@@ -1058,6 +1063,8 @@ flecs::entity spawn_mob(flecs::world &w, const std::vector<MobKind> &kinds, uint
     b.height     = k.height;
     b.half       = k.half;
     b.spread     = k.spread;
+    b.hit_height = k.hit_height;
+    b.hit_half   = k.hit_half;
     b.heading    = unit((uint32_t)(x * 73.0f) ^ (uint32_t)(z * 131.0f)) * 6.2831853f;
     b.rethink_at = now;
 
@@ -1203,6 +1210,8 @@ void spawn_young(flecs::world &w, const std::vector<MobKind> &kinds, uint16_t ki
     b.height      = std::max(0.3f, k.height * 0.5f);
     b.half        = std::max(0.1f, k.half * 0.5f);
     b.spread      = std::max(0.1f, k.spread * 0.5f);
+    b.hit_height  = std::max(0.3f, k.hit_height * 0.5f);
+    b.hit_half    = std::max(0.1f, k.hit_half * 0.5f);
     e.set<Drops>({kNoItem, 1, kNoItem});
     if (k.baby_model != 0) e.set<Wears>({k.baby_model});
     // Born in a stable, kept as its parent is.
@@ -1327,6 +1336,15 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
                                  (tp->z - p.z) * (tp->z - p.z));
             }
         }
+        // Burning in the sun with its player not yet within a few strides:
+        // the shade first, if there is any near, and the chase after.
+        if (goal != nullptr && fights(k) && b.burn_at > 0.0 && dist > 4.0f) {
+            if (now >= b.shade_at) {
+                b.has_shade = find_shade(world, reg, p, b.shade);
+                b.shade_at  = now + 2.0;
+            }
+            if (b.has_shade) goal = nullptr;
+        }
         // How it fights once it has somebody: a worker with a shot shoots.
         const bool melee = k.fight == MobKind::Fight::Melee || (worker_kind && k.shot_model == 0);
         const uint16_t bare = (uint16_t)std::lround(k.damage * k.pierce);
@@ -1357,6 +1375,8 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
             b.height   = k.height;
             b.half     = k.half;
             b.spread   = k.spread;
+            b.hit_height = k.hit_height;
+            b.hit_half   = k.hit_half;
             e.set<Wears>({k.model});
             e.set<Drops>({k.drop, k.drop_count, k.lay, k.extra, k.extra_max});
         }
@@ -1654,6 +1674,19 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
                     push_z += uz * (reach - d) * kCrowdPush;
                 }
             }
+        }
+        // And out of the players it stands in, the same way: a body walked
+        // into is shoved along (the player is shoved back on their own
+        // machine, which moves them).
+        for (const Target &t : targets) {
+            if (p.y >= t.y + kPlayerHeight || t.y >= p.y + b.height) continue;
+            const float dx = p.x - t.x, dz = p.z - t.z, reach = b.spread + kPlayerHalfWidth;
+            const float d2 = dx * dx + dz * dz;
+            if (d2 >= reach * reach) continue;
+            const float d  = std::sqrt(d2);
+            const float ux = d > 1e-3f ? dx / d : 1.0f, uz = d > 1e-3f ? dz / d : 0.0f;
+            push_x += ux * (reach - d) * kCrowdPush;
+            push_z += uz * (reach - d) * kCrowdPush;
         }
         // On a belt, carried as a player is.
         const Belt belt = b.vy <= 0.0f ? belt_under(world, reg, p.x, p.y, p.z) : Belt{};

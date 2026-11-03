@@ -39,23 +39,3 @@ for _, n in { "bone", "flesh" } do
     core.register_model(`mobs:{n}_held`, `{n}_held.gltf`)
 end
 
--- /peaceful: no creature that fights (core.set_peaceful), at once and across
--- restarts; the title screen's world settings set the same.
-if side ~= "client" then
-    core.command("peaceful", "[on|off] -- no monsters in this world, or monsters again", "admin")
-    core.event.on("core:command", function(ev)
-        if ev.name ~= "peaceful" then
-            return
-        end
-        local what = string.match(ev.args, "^%s*(%a*)%s*$")
-        if what == "on" or what == "off" then
-            local gone = core.set_peaceful(what == "on")
-            core.chat(ev.player, if what == "on" then `Peaceful: no monsters ({gone} went).` else "Monsters again.")
-        elseif what == "" then
-            core.chat(ev.player, if core.peaceful() then "Peaceful. /peaceful off brings monsters back."
-                else "Not peaceful. /peaceful on sends the monsters away.")
-        else
-            core.chat(ev.player, "Usage: /peaceful [on|off]")
-        end
-    end)
-end

@@ -119,7 +119,8 @@ owner of that name on this world, or the bare name.
 | `/weather [clear\|rain\|storm] [MINUTES]` | admin | The sandbox's sky (`mods/weather`): with no word, what it is and how long it lasts; with one, that sky now, for MINUTES or the usual time |
 | `/time [day\|noon\|dusk\|night\|midnight\|dawn\|HH:MM]` | admin | The clock (`mods/weather`): with no word, the hour now; with one, that hour at once for everybody. Turned back past midnight it counts a day, as a night slept through does |
 | `/season [spring\|summer\|autumn\|winter]` | admin | The sandbox's season (`mods/weather`, five days each): with no word, which and what day of it; with one, the first day of that season this year |
-| `/peaceful [on\|off]` | admin | A peaceful world (`mods/mobs`, core.set_peaceful): no creature that fights comes out, and those about go at once; kept across restarts in WORLD.peaceful (`--peaceful`) |
+| `/difficulty [peaceful\|easy\|normal\|hard]` `/peaceful [on\|off]` | admin | How hard the world is (`mods/rules`, core.set_difficulty): peaceful sends every creature that fights away and lets none out; easy and hard scale their blows, their numbers and hunger. Kept in WORLD.difficulty (`--difficulty`) |
+| `/rule [NAME on\|off]` | admin | The world's rules (`mods/rules`, core.set_rule): keep_bag, day_cycle, weather_cycle, hunger; kept in WORLD.rules. The pause menu's World button shows them all on `/page world`, with the weather, the hour and the season, as buttons for an admin |
 | `/village siege\|feast\|caravan\|incoming` | admin | Starts one of the villages' events now in the village the admin stands in (`mods/villagers`): a siege warned of now and coming at nightfall, the harvest feast in its square, a caravan to the nearest other village (none when one is out already or its chests have nothing to spare), or one coming from a village 100-900 away nobody has visited, along the paths (none when no such village is joined by them) |
 
 ### Players
@@ -220,7 +221,7 @@ webhook = https://example.org/hooks/server
 | `--report FILE` `--since 7d` `--json` | No server: what a world file remembers, printed; `--json` as one JSON object |
 | `--names` `--free-name NAME` | No server: who owns each name; let one go |
 | `--survival` | One room's (the sandbox's): no plaza, the spawn on dry land the seed picks, the themed worlds behind portals scattered over the land; `creative` starts at `nobody`. The title menu's "Mode: Survival" writes `survival` to the world's `mode` file and passes it; `tools/track.sh --survival` too |
-| `--peaceful` | One room's (the sandbox's): peaceful from the start, and kept so in WORLD.peaceful beside the world file -- there or not, it is what the room is at its next start without the flag. `/peaceful on\|off` and the title menu's "Monsters" button (new world, or a saved world's Edit) set the same file |
+| `--difficulty peaceful\|easy\|normal\|hard` `--peaceful` | One room's (the sandbox's): that difficulty from the start (`--peaceful` is peaceful), and kept so in WORLD.difficulty beside the world file, its name a line (none is normal) -- what the room is at its next start without the flag. `/difficulty` and the title menu's "Monsters" button (new world, or a saved world's Edit) write the same file. The rules (`/rule`) are kept beside it in WORLD.rules, `name = value` a line |
 
 The rest of the flags (world, mods, portals, rooms) are in the [README](../README.md#server-cnp_server).
 
@@ -462,7 +463,9 @@ In the first room's world file (one store for every room), next to the world:
 | `sessions` | One row a visit |
 | `edits` | Every block a player changed, a month |
 
-Bags themselves are in each room's world file, as they always were.
+Bags themselves are in each room's world file, as they always were. Beside each room's world file,
+two small text files: WORLD.difficulty (its name, none for normal) and WORLD.rules (`name = value` a
+line), both written by `/difficulty`, `/rule` and the title menu, read at the start.
 
 ## Limits
 

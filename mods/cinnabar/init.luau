@@ -152,6 +152,27 @@ core.node_drop(STICKY_HEAD, STICKY)
 
 local BLOCK = core.node_id("compact:cinnabar")
 
+-- Three more, in one table (a main chunk has 200 locals): a PRESSURE PLATE, on
+-- while a player or a creature stands on it, a source like a button; SPIKES,
+-- flush with the floor and up while powered, a blow every half second to
+-- whoever is on them -- a trap. (mods/doors opens a door by power itself.)
+local MORE = {
+    PLATE = node("cinnabar:plate", 150, 150, 150, false, 0, "", 0.3),
+    PLATE_ON = node("cinnabar:plate_on", 150, 150, 150, false, 0, "", 0.3),
+    SPIKES = node("cinnabar:spikes", 110, 112, 118, true, 0, "", 1.0),
+    SPIKES_ON = node("cinnabar:spikes_on", 170, 172, 180, true, 0, "", 1.0),
+}
+core.node_box(MORE.PLATE, 0.0625, 0, 0.0625, 0.9375, 0.0625, 0.9375)
+core.node_box(MORE.PLATE_ON, 0.0625, 0, 0.0625, 0.9375, 0.03125, 0.9375)
+core.node_drop(MORE.PLATE_ON, MORE.PLATE)
+core.node_box(MORE.SPIKES, 0, 0, 0, 1, 0.25, 1)
+core.node_box(MORE.SPIKES_ON, 0, 0, 0, 1, 0.75, 1)
+core.node_drop(MORE.SPIKES_ON, MORE.SPIKES)
+core.recipe_shaped("cinnabar:plate", 1, "core:stone core:stone")
+core.recipe_shaped("cinnabar:spikes", 1,
+    "furnace:iron_ingot  furnace:iron_ingot  furnace:iron_ingot",
+    "core:stone          ore:cinnabar        core:stone")
+
 core.recipe_shaped("cinnabar:lever", 1,
     "timber:stick",
     "rocks:cobblestone")
@@ -198,7 +219,8 @@ local PART = {
     [LAMP] = true, [LAMP_ON] = true, [PISTON] = true, [PISTON_ON] = true, [STICKY] = true,
     [STICKY_ON] = true, [HEAD] = true, [STICKY_HEAD] = true, [OBSERVER] = true,
     [OBSERVER_ON] = true, [HOPPER] = true, [HOPPER_LOCKED] = true, [HOPPER_SIDE] = true,
-    [HOPPER_SIDE_LOCKED] = true,
+    [HOPPER_SIDE_LOCKED] = true, [MORE.PLATE] = true, [MORE.PLATE_ON] = true, [MORE.SPIKES] = true,
+    [MORE.SPIKES_ON] = true,
 }
 -- A wallmounted cell's front: +X, -X, +Y, -Y, +Z, -Z for faces 0..5.
 local DIR = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } }
@@ -307,7 +329,9 @@ end
 -- are set; the rest is queued. Returns the cells it changed near the edge of
 -- its box, where the circuit may go on.
 local function solve(cx: number, cy: number, cz: number): { Cell }
-    local sources = found(cx, cy, cz, { "cinnabar:lever_on", "cinnabar:button_on", "compact:cinnabar" })
+    local sources = found(cx, cy, cz, { "cinnabar:lever_on", "cinnabar:button_on", "compact:cinnabar",
+                                        "cinnabar:plate_on" })
+    local spikes = found(cx, cy, cz, { "cinnabar:spikes", "cinnabar:spikes_on" })
     local torches = found(cx, cy, cz, { "cinnabar:torch", "cinnabar:torch_off" })
     local repeaters = found(cx, cy, cz, { "cinnabar:repeater", "cinnabar:repeater_on" })
     local comparators = found(cx, cy, cz, { "cinnabar:comparator", "cinnabar:comparator_on" })
@@ -320,7 +344,7 @@ local function solve(cx: number, cy: number, cz: number): { Cell }
                                     "cinnabar:hopper_side", "cinnabar:hopper_side_locked" })
     local rails = found(cx, cy, cz, { "building:powered_rail", "building:powered_rail_on", "building:switch",
                                       "building:switch_on" })
-    if #dust + #torches + #repeaters + #comparators + #pistons + #lamps + #hoppers + #rails == 0 then
+    if #dust + #torches + #repeaters + #comparators + #pistons + #lamps + #hoppers + #rails + #spikes == 0 then
         return {}
     end
 
@@ -485,6 +509,25 @@ local function solve(cx: number, cy: number, cz: number): { Cell }
         end
     end
 
+    -- Spikes up beside power, at once.
+    local function powered_by(c: Cell): boolean
+        if (fed[k(c.x, c.y, c.z)] or 0) > 0 then
+            return true
+        end
+        for _, d in ALL6 do
+            if strength(c.x + d[1], c.y + d[2], c.z + d[3]) > 0 then
+                return true
+            end
+        end
+        return false
+    end
+    for _, c in spikes do
+        local want = if powered_by(c) then MORE.SPIKES_ON else MORE.SPIKES
+        if want == MORE.SPIKES_ON and core.get_block(c.x, c.y, c.z) ~= want then
+            core.play_sound("cinnabar:spikes", c.x + 0.5, c.y + 0.8, c.z + 0.5)
+        end
+        set(c, want)
+    end
     -- A hopper beside power is locked, at once.
     for _, h in hoppers do
         local on = false
@@ -937,4 +980,41 @@ core.event.on("core:broken", function(ev)
     core.meta_set(ev.x, ev.y, ev.z, "level", "")
     core.meta_set(ev.x, ev.y, ev.z, "base", "")
     update(ev.x, ev.y, ev.z)
+end)
+
+-- A plate under a player or a creature is on; off again once nobody is. And
+-- spikes that are up strike whoever is on them, twice a second.
+local function on_cell(x: number, y: number, z: number, top: number): ({ number }, { number })
+    local players, mobs = {}, {}
+    for _, p in core.players() do
+        local px, py, pz = core.player_pos(p)
+        if px and math.floor(px) == x and math.floor(pz) == z and py >= y - 0.1 and py <= y + top + 0.3 then
+            table.insert(players, p)
+        end
+    end
+    for _, id in core.mob_ids(x + 0.5, y + top, z + 0.5, 0.9, true) do
+        local mx, my, mz = core.mob_pos(id)
+        if mx and math.floor(mx) == x and math.floor(mz) == z and my >= y - 0.1 and my <= y + top + 0.3 then
+            table.insert(mobs, id)
+        end
+    end
+    return players, mobs
+end
+core.register_abm("cinnabar:plate", { "cinnabar:plate", "cinnabar:plate_on" }, 0.25, 1, function(cell)
+    local players, mobs = on_cell(cell.x, cell.y, cell.z, 0.0625)
+    local want = if #players + #mobs > 0 then MORE.PLATE_ON else MORE.PLATE
+    if core.get_block(cell.x, cell.y, cell.z) ~= want then
+        put(cell.x, cell.y, cell.z, want)
+        core.play_sound("cinnabar:click", cell.x + 0.5, cell.y + 0.1, cell.z + 0.5)
+        update(cell.x, cell.y, cell.z)
+    end
+end)
+core.register_abm("cinnabar:spikes", { "cinnabar:spikes_on" }, 0.5, 1, function(cell)
+    local players, mobs = on_cell(cell.x, cell.y, cell.z, 0.75)
+    for _, p in players do
+        core.damage(p, 2)
+    end
+    for _, id in mobs do
+        core.mob_hurt(id, 2, cell.x + 0.5, cell.z + 0.5)
+    end
 end)
