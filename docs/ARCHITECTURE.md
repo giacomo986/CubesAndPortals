@@ -55,7 +55,7 @@ cnp_server ─── cnp_script, cnp_net, cnp_core      (no GPU, no window)
 | `worldgen/` | `worldgen` (stages in order, a column of chunks at a time; `world_hash`), `biome`, `noise`, `spawn` (in front of an opening, on the plaza, or on dry land for a survival world) |
 | `world/` | `columns` (which columns are in memory: blocks, then light, then let go), `daylight` (the world's clock; `sky_light_at`: sun and moon for drawing), `modifiers` (ABM/LBM), `node_meta` (what a cell remembers) |
 | `registry/` | `node_registry` (blocks), `node_shape` (a block's boxes, turned), `core_nodes` (the engine's blocks), `model_registry` |
-| `physics/` | `aabb` (the player's box against the world), `movement` (limits and validation), `fall` |
+| `physics/` | `aabb` (the player's box against the world), `movement` (limits and validation), `fall`, `rigid` (boxes that tumble: one Jolt world per ECS world, the blocks round each box as static ground; `core.mob_tumble`) |
 | `portal/` | `portal_math` (oblique near plane, clip plane), `portal_traverse` (where a body comes out, facing which way), `portal_clip` (cutting the solids), `portal_tuning` (the six numbers of `config/portal.cfg`) |
 | `item/` | `item_registry`, `inventory`, `container` (chests), `recipe`, `craft_grid`, `item_codec` (on disk) |
 | `ecs/` | `components` (Flecs), `health`, `drop`, `mob`, `lua_ecs` (the mods' components and systems) |
@@ -91,6 +91,12 @@ Flags, making the world (the region round the spawn, mods, file), the mods' host
 server side, and the 20 Hz tick: the peers' messages, the mods' and ECS systems' steps, ABMs,
 columns generated or read back round whoever is there and let go where nobody is, chunk
 streaming by interest, entities, health, time, doors between servers.
+
+**Peaceful** is one flag of the room (`ServerState::peaceful`), kept as `<world file>.peaceful`
+(there or not) so the title menu reads and writes it without a server. Two gates only: the
+natural spawner is skipped and `host_spawn_mob` refuses a kind that `fights()`; turning it on
+removes those about. What a mod does in its own fights (sieges, an altar's boss) it asks
+`core.peaceful()` for, and `core.mob_leave` gives a kind's drops with no creature.
 
 **The world has no edge.** A column of chunks comes into memory when a session gets within four
 columns of it: from the world file if it is there, from the generator if not (core and the mods'

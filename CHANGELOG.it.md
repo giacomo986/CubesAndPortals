@@ -7,6 +7,23 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
 ## Non ancora consegnato
 
+- Un sandbox pacifico: nessun mostro esce dal buio, e quelli in giro spariscono. Si sceglie quando
+  si crea il mondo ("Mostri" nella pagina del mondo nuovo), nella pagina Modifica di un mondo
+  salvato prima di caricarlo, o in partita con `/peaceful on|off` (admin); resta dopo i riavvii.
+  Quello che lasciano solo i mostri si trova ancora: lo spawner di un dungeon, ora quieto, lascia
+  ogni tanto quello che lascerebbero le sue creature (ossa, carne, polvere da sparo, frecce);
+  l'altare del profondo dà cuore e frammenti senza svegliare il guardiano; i villaggi non hanno
+  assedi. Server: `--peaceful`. Per le mod: `core.peaceful()`, `core.set_peaceful(on)`,
+  `core.mob_leave(kind, x, y, z)`.
+- **Protocollo 114**: non gioca con server o client 113.
+- Il cubo delle camere di prova ora è una scatola vera: cade, scivola, si ribalta sugli spigoli,
+  rotola e rimbalza, e resta com'è atterrato; lanciato o colpito si gira mentre vola, e
+  attraversando un portale continua a girare. I cubi si urtano e si impilano; ci si sale sopra, e
+  uno lanciato contro di te ti spinge indietro. Camera di prova 14, i gradini: due pareti troppo
+  alte da scalare, un cubo portato ai piedi di ognuna è la via per salire. Camera di prova 15, tre
+  cubi: una parete mezzo blocco più alta, che si raggiunge solo da due cubi impilati, e quelli solo
+  salendo su un terzo. Per le mod: `core.mob_tumble(id)`, un worker reso corpo rigido (Jolt), disegnato com'è girato su
+  ogni client.
 - Cadendo in un portale a pavimento e uscendo da uno a parete non vieni più portato un blocco
   troppo avanti: esci dentro l'apertura della parete, dove l'immagine ti mostrava, fin dove un
   corpo ci sta.

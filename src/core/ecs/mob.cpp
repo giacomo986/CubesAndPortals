@@ -8,6 +8,7 @@
 
 #include "core/ecs/components.h"
 #include "core/ecs/drop.h"
+#include "core/ecs/machine.h"
 #include "core/item/item_registry.h"
 #include "core/media/gltf.h"
 #include "core/physics/movement.h"
@@ -1272,6 +1273,7 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
     w.defer_begin();
     w.each([&](flecs::entity e, Position &p, Look &look, Brain &b, Health &health) {
         if (b.kind >= kinds.size()) return;
+        if (e.has<Tumbling>()) return;   // a box of its own (step_tumbling)
         const MobKind &k = kinds[b.kind];
 
         // Heard: a blow since the last tick, from wherever it came, and now
@@ -1918,6 +1920,171 @@ size_t reap_dead(flecs::world &w, double now)
     }
 
     return dead.size();
+}
+
+
+// ------------------------------------------------------------------ tumbling
+
+int mob_tumble(flecs::world &w, uint32_t id, bool on, const World &world, const NodeRegistry &reg, float mass)
+{
+    flecs::entity e;
+    Brain        *b = worker(w, id, e);
+    const Position *p = b != nullptr ? e.try_get<Position>() : nullptr;
+    if (p == nullptr) return 0;
+    if (!on) {
+        e.remove<Tumbling>();
+        e.remove<Roll>();
+        if (Look *l = e.try_get_mut<Look>()) {
+            l->pitch = 0.0f;
+            e.modified<Look>();
+        }
+        return 1;
+    }
+    if (e.has<Tumbling>()) return 1;
+    if (!w.has<TumbleSpace>()) w.set<TumbleSpace>({rigid_space()});
+    const std::shared_ptr<RigidSpace> space = w.get<TumbleSpace>().space;
+
+    RigidSpec spec;
+    // The model's own width (spread), not the walking box's, which every kind
+    // has at most kMobHalfWidth: a cube on its side would lie in the floor.
+    spec.half = Vec3{b->spread, b->height * 0.5f, b->spread};
+    if (std::isfinite(mass) && mass > 0.0f) spec.mass = mass;
+    RigidState st;
+    st.centre = Vec3{p->x, p->y + spec.half.y, p->z};
+    // Standing as it stood: its yaw.
+    const Look *l   = e.try_get<Look>();
+    const float yaw = l ? l->yaw : 0.0f;
+    st.axis[0]  = Vec3{std::cos(yaw), 0.0f, std::sin(yaw)};
+    st.axis[2]  = Vec3{-std::sin(yaw), 0.0f, std::cos(yaw)};
+    st.velocity = Vec3{b->kx, b->vy, b->kz};
+    const RigidId rid = rigid_add(*space, spec, st, world, reg);
+    if (rid == 0) return 0;
+    Tumbling t;
+    t.body        = std::make_shared<TumbleBody>();
+    t.body->space = space;
+    t.body->id    = rid;
+    t.wrote       = Vec3{p->x, p->y, p->z};
+    t.wrote_vel   = st.velocity;
+    e.set<Tumbling>(t);
+    e.set<Roll>({0.0f});
+    return 1;
+}
+
+bool tumble_box(flecs::entity e, RigidState &state, RigidSpec &spec)
+{
+    const Tumbling *t = e.try_get<Tumbling>();
+    if (t == nullptr || !t->body || !t->body->space) return false;
+    state = rigid_state(*t->body->space, t->body->id);
+    spec  = rigid_spec(*t->body->space, t->body->id);
+    return true;
+}
+
+void tumble_through(flecs::entity e, const Portal &src, const Portal &dst)
+{
+    Tumbling  *t = e.try_get_mut<Tumbling>();
+    RigidState st;
+    RigidSpec  spec;
+    if (t == nullptr || !tumble_box(e, st, spec)) return;
+    for (int k = 0; k < 3; ++k) t->axis[k] = portal_transform_dir(src, dst, st.axis[k]);
+    // A spin is turned as a direction is, and back again by a mirror.
+    const float hand = dot(cross(t->axis[0], t->axis[1]), t->axis[2]) < 0.0f ? -1.0f : 1.0f;
+    t->spin    = portal_transform_dir(src, dst, st.spin) * hand;
+    t->through = true;
+}
+
+bool on_tumbling(flecs::world &w, Vec3 feet, float half_width)
+{
+    bool found = false;
+    w.each([&](flecs::entity e, const Tumbling &) {
+        RigidState st;
+        RigidSpec  spec;
+        if (found || !tumble_box(e, st, spec)) return;
+        const Vec3  ext = rigid_extent(spec, st);
+        const float top = st.centre.y + ext.y;
+        if (feet.y < top - 0.35f || feet.y > top + 0.8f) return;
+        const float lag = 0.3f + 0.33f * std::hypot(st.velocity.x, st.velocity.z);
+        found = std::fabs(feet.x - st.centre.x) < ext.x + half_width + lag &&
+                std::fabs(feet.z - st.centre.z) < ext.z + half_width + lag;
+    });
+    return found;
+}
+
+void step_tumbling(flecs::world &w, const World &world, const NodeRegistry &reg,
+                   const std::vector<Target> &targets, float dt,
+                   const std::function<void(uint32_t peer, Vec3 push)> &hit)
+{
+    if (!w.has<TumbleSpace>()) return;
+    const std::shared_ptr<RigidSpace> space = w.get<TumbleSpace>().space;
+    if (!space) return;
+
+    // What moved them since the last step, given to the boxes.
+    w.each([&](Position &p, Brain &b, Tumbling &t) {
+        if (!t.body) return;
+        const RigidId id   = t.body->id;
+        const Vec3    half = rigid_spec(*space, id).half;
+        const Vec3    feet{p.x, p.y, p.z};
+        const Vec3    told{b.kx, b.vy, b.kz};
+        RigidState    st = rigid_state(*space, id);
+        if (length(feet - t.wrote) > 1e-3f) {
+            // Put somewhere: carried, placed, or out of a portal. Still turning
+            // as a portal turned it, and not otherwise; at the speed it was
+            // given.
+            st.centre   = feet + Vec3{0.0f, half.y, 0.0f};
+            st.velocity = told;
+            st.spin     = Vec3{};
+            if (t.through) {
+                for (int k = 0; k < 3; ++k) st.axis[k] = t.axis[k];
+                st.spin   = t.spin;
+                t.through = false;
+            }
+            rigid_set(*space, id, st);
+        } else if (length(told - t.wrote_vel) > 1e-3f) {
+            // Thrown or knocked: the change given over its middle, so it turns
+            // over as it goes, as a box pushed by its top does.
+            rigid_impulse(*space, id, told - t.wrote_vel, st.centre + Vec3{0.0f, half.y * 0.55f, 0.0f});
+        }
+    });
+
+    rigid_step(*space, world, reg, dt);
+
+    // Where they are now; and a player one of them went into, knocked.
+    w.each([&](flecs::entity e, Position &p, Look &look, Brain &b, Tumbling &t) {
+        if (!t.body) return;
+        const RigidId   id   = t.body->id;
+        const RigidSpec spec = rigid_spec(*space, id);
+        RigidState      st   = rigid_state(*space, id);
+        const Vec3      ext  = rigid_extent(spec, st);
+        for (const Target &tg : targets) {
+            if (tg.peer == 0) continue;
+            const float lo = st.centre.y - ext.y, hi = st.centre.y + ext.y;
+            if (tg.y >= hi - 0.05f || tg.y + kPlayerHeight <= lo) continue;   // stood on, or passed under
+            const float dx = tg.x - st.centre.x, dz = tg.z - st.centre.z;
+            if (std::fabs(dx) >= ext.x + kPlayerHalfWidth || std::fabs(dz) >= ext.z + kPlayerHalfWidth) continue;
+            const float d  = std::hypot(dx, dz);
+            const float ux = d > 1e-3f ? dx / d : 1.0f, uz = d > 1e-3f ? dz / d : 0.0f;
+            const float closing = st.velocity.x * ux + st.velocity.z * uz;
+            if (closing < 1.5f) continue;   // a box at rest, or one being walked into
+            // The player takes what a body their weight would off a box this
+            // heavy, the box what is left, and both part.
+            const float share = 2.0f * spec.mass / (spec.mass + 80.0f);
+            if (hit) hit(tg.peer, Vec3{ux * closing * share, 1.5f + 0.2f * closing, uz * closing * share});
+            rigid_impulse(*space, id, Vec3{-ux, 0.0f, -uz} * (closing * (1.0f + 0.3f - share * 0.5f)),
+                          st.centre);
+            st = rigid_state(*space, id);
+        }
+
+        p.x = st.centre.x, p.y = st.centre.y - spec.half.y, p.z = st.centre.z;
+        b.kx = st.velocity.x, b.vy = st.velocity.y, b.kz = st.velocity.z;
+        t.wrote     = Vec3{p.x, p.y, p.z};
+        t.wrote_vel = st.velocity;
+        float yaw, pitch, roll;
+        rigid_angles(st.axis, yaw, pitch, roll);
+        look.yaw   = yaw;
+        look.pitch = pitch;
+        e.set<Roll>({roll});
+        e.modified<Position>();
+        e.modified<Look>();
+    });
 }
 
 } // namespace cnp::ecs

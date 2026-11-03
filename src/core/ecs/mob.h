@@ -29,6 +29,8 @@
 #include "core/ecs/health.h"
 #include "core/item/inventory.h"
 #include "core/physics/aabb.h"
+#include "core/physics/rigid.h"
+#include "core/portal/portal_traverse.h"
 #include "core/voxel/pathfind.h"
 
 namespace cnp {
@@ -267,6 +269,55 @@ struct UnseenBy {
     uint32_t peer = 0;
 };
 int mob_unseen(flecs::world &w, uint32_t id, uint32_t peer);
+
+// A worker that tumbles (core.mob_tumble): its body a rigid box (physics/
+// rigid.h) that slides, tips over edges, rolls, bounces and stacks, turned as
+// it lies, instead of a creature's upright walk -- a storage cube. All of one
+// world's are in one RigidSpace (the TumbleSpace singleton), so they meet.
+// Its feet (Position) are the box's middle less half its height; its turn goes
+// out as the look's yaw and pitch and a Roll (machine.h), its box to stand on
+// as a machine's hull. Whatever else moves it does so as it moves any
+// creature, and is read here as that: a Position it did not write is a place
+// it was put (carried, placed, through a portal -- tumble_through turns it
+// there), and a Brain velocity it did not write a push given at a point over
+// its middle (thrown, knocked), which turns it over as it goes.
+struct TumbleBody {
+    std::shared_ptr<RigidSpace> space;
+    RigidId                     id = 0;
+    ~TumbleBody()
+    {
+        if (space && id != 0) rigid_remove(*space, id);
+    }
+};
+struct TumbleSpace {
+    std::shared_ptr<RigidSpace> space;
+};
+struct Target;
+struct Tumbling {
+    std::shared_ptr<TumbleBody> body;
+    Vec3 wrote, wrote_vel;     // what it last put in Position and the Brain
+    bool through = false;      // a portal turned it: these replace its own
+    Vec3 axis[3];
+    Vec3 spin;
+};
+// On (made a box of its own size where it stands) or off (upright again).
+int mob_tumble(flecs::world &w, uint32_t id, bool on, const World &world, const NodeRegistry &reg,
+               float mass);
+// Every tumbling body on by dt, after the creatures' walk. A box going at a
+// player (one of `targets`) knocks them: `hit` is given who and the push, and
+// the box bounces off them.
+void step_tumbling(flecs::world &w, const World &world, const NodeRegistry &reg,
+                   const std::vector<Target> &targets, float dt,
+                   const std::function<void(uint32_t peer, Vec3 push)> &hit);
+// A tumbling body crossing from `src` to `dst`: its turn and its spin mapped
+// as a direction is, for the move cross_mobs makes of it.
+void tumble_through(flecs::entity e, const Portal &src, const Portal &dst);
+// Where it is as a box, for the wire and for whoever stands on it: its middle,
+// its turn and its size. False for one that does not tumble.
+bool tumble_box(flecs::entity e, RigidState &state, RigidSpec &spec);
+// Whether feet there may stand on a tumbling box's top, as a client a moment
+// behind draws it (the server lets such a body off its walk, as on a machine).
+bool on_tumbling(flecs::world &w, Vec3 feet, float half_width);
 //   mob_hunt   after that player (peer; 0 called off), fighting as its kind
 int mob_hunt(flecs::world &w, uint32_t id, uint32_t peer);
 //   mob_attack after that creature (0 called off), fighting as its kind

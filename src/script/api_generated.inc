@@ -1456,6 +1456,18 @@ int l_mob_velocity(lua_State *L)
     return 1;
 }
 
+// core.mob_tumble(id: number, on: boolean?, mass: number?) -> number
+int l_mob_tumble(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
+    const float mass = (float)luaL_optnumber(L, 3, 25);
+    const int result = (vm && vm->host.mob_tumble) ? vm->host.mob_tumble(vm->host.ud, id, on, mass) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.mob_unseen(id: number, player: number) -> number
 int l_mob_unseen(lua_State *L)
 {
@@ -1463,6 +1475,38 @@ int l_mob_unseen(lua_State *L)
     const int id = (int)luaL_checkinteger(L, 1);
     const int player = (int)luaL_checkinteger(L, 2);
     const int result = (vm && vm->host.mob_unseen) ? vm->host.mob_unseen(vm->host.ud, id, player) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.peaceful() -> boolean
+int l_peaceful(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int result = (vm && vm->host.peaceful) ? vm->host.peaceful(vm->host.ud) : (int)0;
+    lua_pushboolean(L, result);
+    return 1;
+}
+
+// core.set_peaceful(on: boolean?) -> number
+int l_set_peaceful(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int on = lua_isnoneornil(L, 1) ? 1 : (lua_toboolean(L, 1) ? 1 : 0);
+    const int result = (vm && vm->host.set_peaceful) ? vm->host.set_peaceful(vm->host.ud, on) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.mob_leave(name: string, x: number, y: number, z: number) -> number
+int l_mob_leave(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_checkstring(L, 1);
+    const float x = (float)luaL_checknumber(L, 2);
+    const float y = (float)luaL_checknumber(L, 3);
+    const float z = (float)luaL_checknumber(L, 4);
+    const int result = (vm && vm->host.mob_leave) ? vm->host.mob_leave(vm->host.ud, name, x, y, z) : (int)0;
     lua_pushinteger(L, result);
     return 1;
 }
@@ -3214,8 +3258,16 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "mob_place");
     lua_pushcfunction(L, l_mob_velocity, "core.mob_velocity");
     lua_setfield(L, -2, "mob_velocity");
+    lua_pushcfunction(L, l_mob_tumble, "core.mob_tumble");
+    lua_setfield(L, -2, "mob_tumble");
     lua_pushcfunction(L, l_mob_unseen, "core.mob_unseen");
     lua_setfield(L, -2, "mob_unseen");
+    lua_pushcfunction(L, l_peaceful, "core.peaceful");
+    lua_setfield(L, -2, "peaceful");
+    lua_pushcfunction(L, l_set_peaceful, "core.set_peaceful");
+    lua_setfield(L, -2, "set_peaceful");
+    lua_pushcfunction(L, l_mob_leave, "core.mob_leave");
+    lua_setfield(L, -2, "mob_leave");
     lua_pushcfunction(L, l_mob_remove, "core.mob_remove");
     lua_setfield(L, -2, "mob_remove");
     lua_pushcfunction(L, l_body_player, "core.body_player");

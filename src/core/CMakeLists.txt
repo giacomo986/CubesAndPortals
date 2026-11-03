@@ -60,6 +60,7 @@ add_library(cnp_core STATIC
     physics/player.cpp
     physics/vehicle.cpp
     physics/craft.cpp
+    physics/rigid.cpp
     track/piece.cpp
     world/columns.cpp
     world/daylight.cpp
@@ -116,7 +117,7 @@ target_link_libraries(cnp_core PRIVATE Jolt)
 # without either pass, builds it right; the vectoriser is the one given up.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     # craft.cpp's build_ground is the same loop.
-    set_source_files_properties(physics/vehicle.cpp physics/craft.cpp PROPERTIES
+    set_source_files_properties(physics/vehicle.cpp physics/craft.cpp physics/rigid.cpp PROPERTIES
                                 COMPILE_OPTIONS -fno-tree-slp-vectorize)
 endif()
 

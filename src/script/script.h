@@ -338,6 +338,12 @@ typedef struct script_host {
     int (*mob_blow_every)(void *ud, int id, double factor);
     int (*mob_velocity)(void *ud, int id, double vx, double vy, double vz);
     int (*mob_unseen)(void *ud, int id, int player);
+    // A worker made a rigid box that tumbles, or upright again (core.mob_tumble).
+    int (*mob_tumble)(void *ud, int id, bool on, double mass);
+    // Peaceful: no creature that fights (core.peaceful, core.set_peaceful).
+    bool (*peaceful)(void *ud);
+    int (*set_peaceful)(void *ud, bool on);
+    int (*mob_leave)(void *ud, const char *name, double x, double y, double z);
     int (*player_launch)(void *ud, int player, double vx, double vy, double vz, double seconds);
     // A worker sent after one player (0: called off), as its kind fights.
     int (*mob_hunt)(void *ud, int id, int player);

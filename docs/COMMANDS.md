@@ -65,6 +65,7 @@ everything below it). `/perm` shows and changes which role a permission wants;
 | `/weather [clear\|rain\|storm] [MINUTES]` | admin | The sandbox's sky: with no word, what it is and how long it lasts; with one, that sky now, for MINUTES or its usual time (`mods/weather`) |
 | `/time [day\|noon\|dusk\|night\|midnight\|dawn\|HH:MM]` | admin | The clock: with no word, the hour; with one, that hour at once for everybody. Turned back past midnight it counts a day, as a night slept through (`mods/weather`) |
 | `/season [spring\|summer\|autumn\|winter]` | admin | The sandbox's season (five days each): with no word, which and what day of it; with one, the first day of that season (`mods/weather`) |
+| `/peaceful [on\|off]` | admin | A peaceful world: no creature that fights comes out or stays, at once and across restarts (WORLD.peaceful); with no word, which it is. A dungeon's spawner then leaves what its creatures would, the deep's altar gives its heart and shards unfought, villages have no sieges (`mods/mobs`) |
 | `/village siege\|feast\|caravan\|incoming` | admin | Starts a village event now in the village you stand in: a siege warned of now and coming at nightfall, the harvest feast, a caravan to the nearest other village, or one coming from an unvisited village along the paths (`mods/villagers`) |
 
 ### Players

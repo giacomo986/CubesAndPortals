@@ -3733,6 +3733,9 @@ end
 -- ------------------------------------------------------------ the raiders
 
 EV.raider = function(name: string, x: number, y: number, z: number, rk: string, c: Caravan?): number
+    if core.peaceful() then
+        return 0   -- a peaceful world has no monsters, not even a village's
+    end
     local id = core.spawn_mob(name, x + 0.5, y, z + 0.5)
     if id ~= 0 then
         EV.raiders[id] = { rk, -1, false, c }   -- its village, whom it is after, a player?, its caravan
@@ -3809,6 +3812,9 @@ end
 -- ------------------------------------------------------------ the siege
 
 EV.begin_siege = function(rk: string)
+    if core.peaceful() then
+        return
+    end
     EV.siege[rk] = { wave = 0, next = 0, lost = 0, started = false, fought = {} }
     core.storage_set(`siege {rk}`, tostring(math.floor(age())))
     EV.announce(rk, "The mayor rings the bell: monsters are gathering, and tonight they will come. "
@@ -4646,6 +4652,8 @@ core.event.on("core:command", function(ev)
     local what = string.match(ev.args, "^%s*(%a+)")
     if rk == nil then
         core.chat(ev.player, "Not in a village.")
+    elseif what == "siege" and core.peaceful() then
+        core.chat(ev.player, "This world is peaceful: no siege.")
     elseif what == "siege" then
         EV.begin_siege(rk)
     elseif what == "feast" then
@@ -4675,7 +4683,10 @@ core.event.on("core:tick", function(ev)
     local today = math.floor(age() / DAY)
     for rk in villages do
         local s = EV.siege[rk]
-        if s then
+        if s and core.peaceful() then
+            s.started = false   -- made peaceful while it lasts: it ends, unpaid and untold
+            EV.end_siege(rk, s)
+        elseif s then
             EV.run_siege(rk, s)
         elseif t > 0.70 and t < 0.78 and EV.asked[rk] ~= today then
             EV.asked[rk] = today
@@ -4693,7 +4704,12 @@ core.event.on("core:tick", function(ev)
         end
     end
     for id, r in EV.raiders do
-        EV.steer(id, r)
+        if core.peaceful() then
+            core.mob_remove(id)
+            EV.raiders[id] = nil
+        else
+            EV.steer(id, r)
+        end
     end
     EV.roads(dt)
     if clock >= sent then

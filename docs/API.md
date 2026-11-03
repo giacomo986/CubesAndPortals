@@ -1707,6 +1707,20 @@ Sets a worker going at that speed: a thrown thing, flying on and falling as a kn
 | `vy` | number | — | m/s, up positive. |
 | `vz` | number | — |  |
 
+## `core.mob_tumble`
+
+```luau
+core.mob_tumble(id: number, on: boolean?, mass: number?) -> number
+```
+
+Makes a worker a rigid box the size of its kind's body, which the server moves with Jolt (protocol 114): it falls, slides, tips over an edge, rolls and bounces, and lies the way it lands -- a storage cube. All of a world's meet each other and stack. Thrown or knocked (core.mob_velocity, a blow), the push is given over its middle, so it turns over as it goes. Players stand on it and are kept out of it as out of a machine's hull, and one going at a player knocks them and bounces off. core.mob_place and a portal put it as they put any creature, a portal turning it and its spin with it. Its feet (core.mob_pos) are its middle less half its height, and every client draws it turned as it lies. Returns 1, or 0 for one that is gone or not a worker, or on a client.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `id` | number | — | A worker, from core.spawn_mob. |
+| `on` | boolean | `true` | false stands it upright again, a creature as before. |
+| `mass` | number | `25` | Its weight in kg: how hard a shove moves it. |
+
 ## `core.mob_unseen`
 
 ```luau
@@ -1719,6 +1733,41 @@ Leaves a worker out of one player's world: everybody else sees it, that player's
 |---|---|---|---|
 | `id` | number | — | A worker, from core.spawn_mob. |
 | `player` | number | — | The player whose client is not sent it; 0 sends it to everybody again. |
+
+## `core.peaceful`
+
+```luau
+core.peaceful() -> boolean
+```
+
+Whether this world is peaceful (--peaceful, /peaceful, the title screen's world settings): no creature that fights (register_mob fight "melee" or "archer") comes out of the dark or is put in the world -- core.spawn_mob gives 0 for one. What a mod that makes fights of its own asks first, and what it asks to give what only those creatures leave some other way. False off a server.
+
+## `core.set_peaceful`
+
+```luau
+core.set_peaceful(on: boolean?) -> number
+```
+
+Makes this world peaceful, or not, at once and across restarts (the world file's <file>.peaceful, which the title screen reads). On, every creature that fights goes, playing no death and leaving nothing. Returns how many went.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `on` | boolean | `true` |  |
+
+## `core.mob_leave`
+
+```luau
+core.mob_leave(name: string, x: number, y: number, z: number) -> number
+```
+
+Puts down at x, y, z what one creature of that kind leaves when it dies -- its drop and a roll of its core.mob_drop -- with no creature: how a peaceful world still gives what only creatures that fight leave (a dungeon's quiet spawner). Returns how many items, 0 for a kind nobody registered.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — | A kind from register_mob. |
+| `x` | number | — |  |
+| `y` | number | — |  |
+| `z` | number | — |  |
 
 ## `core.mob_remove`
 

@@ -41,6 +41,15 @@ core.register_abm("dungeons:spawn", { "dungeons:spawner" }, 5.0, 1, function(cel
         return
     end
     local kind = KINDS[1 + hash(cell.x, cell.z, cell.y) % #KINDS]
+    -- Peaceful: a quiet spawner. Now and then it leaves what one of its
+    -- creatures would have, so bones, flesh, gunpowder and arrows are still
+    -- there to be had -- about as often as a careful player would win them.
+    if core.peaceful() then
+        if math.random(10) == 1 then
+            core.mob_leave(kind, cell.x + 0.5, cell.y + 1.2, cell.z + 0.5)
+        end
+        return
+    end
     for _ = 1, math.random(1, 2) do
         local x, z = cell.x + math.random(-3, 3), cell.z + math.random(-3, 3)
         if core.get_block(x, cell.y, z) == 0 and core.get_block(x, cell.y + 1, z) == 0 then

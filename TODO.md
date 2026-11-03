@@ -2113,6 +2113,64 @@ image had the eye, no further back than the box fits in the opening's node
 F): out inside F's hole, falls out onto the platform, 0 corrections.
 Open: the 0.92 left -- only a camera crossing with the eye could remove it.
 
+**Done 2026-11-03, peaceful sandbox:** ServerState::peaceful, kept as
+<world file>.peaceful (there or not; `--peaceful` forces it on). Off the
+natural spawner, core.spawn_mob gives 0 for a kind that fights (melee,
+archer), set on removes those about. Title menu: "Monsters" on New World and
+Edit (writes world.db.peaceful), /peaceful in mods/mobs. Mob-only items:
+dungeons' spawner leaves a creature's drops (core.mob_leave) 1 in 10 of its
+5 s turns; the deep's altar gives heart + guardian drops unfought; villagers'
+raiders and sieges off (raiders about removed, a siege ends untold).
+Checked headless: peaceful start, zombie 0, off then zombie 500 + pig 501,
+on removed 1, mob_leave 2 (zombie) and 3 (skeleton); the file read back at
+the next start, gone = not peaceful. Menus seen in Xephyr (it).
+Open: only the sandbox room (themed worlds keep their fights); hunger and
+health stay as they are; other rooms' world files have no peaceful file.
+
+**Done 2026-11-03, a cube that tumbles:** core/physics/rigid (a Jolt box in
+a world of its own with the blocks round it, as a machine; fixed 60 Hz,
+LinearCast, sleeps at rest) and core.mob_tumble: a worker's walk replaced by
+it (step_tumbling, after step_mobs). What moves a creature still moves it:
+a Position it did not write is a put (carried, placed, a portal --
+tumble_through maps its axes and spin), a Brain velocity it did not write a
+push given 0.55 of its half height over the middle (thrown, knocked, a
+plate), players shove it at the height they meet it. Wire: a Mob may carry
+flag 16 and a roll (protocol 114, min 114); the client turns it about its
+model's middle and eases the whole turn by quaternion between frames.
+Checked: alone on a floor (dropped tilted 30 degrees, lands on an edge, 75
+degrees turned, flat, asleep in 1.5 s; shoved high at 6 m/s, turns over 277
+degrees and lies upside down); angles rebuilt within 0.0000 of the axes,
+quaternion there and back on 2805 turns exact; in the chambers a cube from
+a vent thrown twice (bounces 20.25 -> 20.10 -> 20.06, rests), seen turning
+in flight; dropped into chamber 11's pit through a floor portal, out of the
+other up to 26.7, down beside it, at rest. ctest 13/13.
+Then (same day) one Jolt world for all of a world's boxes (RigidSpace, the
+TumbleSpace singleton; a static ground round each): they meet and stack.
+Players: the box goes to clients as a machine's hull (World::movers, level,
+by its yaw), so they stand on it and are kept out; the server lets a body
+on one off its walk as on a machine roof (on_tumbling); a box going at a
+player over 1.5 m/s knocks them (net::Push, its share of 30 kg against 80)
+and bounces off. Chamber 14, the steps (x 324-355, plan 10): two metal
+walls 4 high across the room, a stair down to a near door, two vents at
+the foot of each. A jump's hands reach 3.38 over the feet (player.cpp),
+4.10 from a cube's top: one cube a wall (stacking two would be 4.82, no
+whole height needs exactly two).
+Checked: B put over A rests 0.72 over it; a player put on the stack stands
+there 4 s, 0 corrections; a cube thrown at 9 m/s at a player pushes them
+1.2 back and bounces; from the stack, and from one cube, W + jump at the
+wall: up on the first step (y 24.00), from the floor not (y 20.00); two
+boxes alone, one shoved at the other: the other pushed 0.51.
+Chamber 15, three cubes (x 359-380, plan 11): a metal wall 4 high and a
+chambers_core:metal_slab on it (find_ledge takes a slab's top), edge 4.5:
+out of reach from one cube (4.10), in reach from two stacked (4.82); two
+stacked are 1.44, out of a jump's 1.28, so a third is a step. Three vents.
+Checked with W + jump at it: from one cube no (20.75), from two stacked
+yes (24.50), from the floor by a step cube and the stack yes (24.50), the
+same without the step no (20.00); 0 corrections.
+Open: a box asleep is woken by a block changing within 3 nodes, not
+further; the hull a client stands on is level, a box resting tilted is
+stood on as if flat.
+
 ## Mods and scripting
 
 **Items on show (core.show_item, protocol 112), 2026-11-01.** The key over

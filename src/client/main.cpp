@@ -23,6 +23,7 @@
 #include "client/gfx/platform.h"
 #include "core/physics/player.h"
 #include "core/physics/craft.h"
+#include "core/physics/rigid.h"
 #include "client/render/body_render.h"
 #include "client/render/fx_render.h"
 #include "client/render/mod_pass.h"
@@ -729,6 +730,10 @@ struct Session {
         // (glide), instead of jumping twenty times a second.
         Vec3   glide_from, glide_to, shown;
         float  yaw_from = 0.0f, yaw_to = 0.0f, shown_yaw = 0.0f;
+        // And a tumbling creature's whole turn (protocol 114), as a
+        // quaternion x y z w: a box rolling over turns about any axis, and its
+        // three angles cannot be eased one at a time.
+        float  turn_from[4] = {0, 0, 0, 1}, turn_to[4] = {0, 0, 0, 1};
         double glide_at = -1.0, glide_seen = 0.0, glide_used = 0.0;
         float  glide_gap = 0.05f;
 
@@ -6765,6 +6770,13 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
 // roll, the right side going down.
 Mat4 body_place(const Body &b)
 {
+    if (b.tumbles) {
+        const Vec3 mid{b.center.x, b.center.y - b.half.y + b.pivot, b.center.z};
+        return mat4_multiply(
+            mat4_multiply(mat4_translate(mid), mat4_rotate_y(-b.yaw)),
+            mat4_multiply(mat4_multiply(mat4_rotate_x(b.pitch), mat4_rotate_z(-b.roll)),
+                          mat4_translate(Vec3{0.0f, -b.pivot, 0.0f})));
+    }
     return mat4_multiply(
         mat4_multiply(mat4_translate(Vec3{b.center.x, b.center.y - b.half.y, b.center.z}),
                       mat4_rotate_y(-b.yaw)),
@@ -8286,17 +8298,79 @@ void fly_lean(const Session &w, Session::BodyMotion &m, const SkinnedModel &mode
 // positions have been coming apart, so a body moves every frame and arrives as
 // the next one does. A body put somewhere -- far, or after a silence -- is put
 // there.
+// A turn as yaw, pitch and roll -- Ry(-yaw) Rx(pitch) Rz(-roll), a body's
+// model's -- and as a quaternion, both ways (rigid_angles for the angles).
+void turn_quat(float yaw, float pitch, float roll, float q[4])
+{
+    const Mat4 m = mat4_multiply(mat4_rotate_y(-yaw), mat4_multiply(mat4_rotate_x(pitch), mat4_rotate_z(-roll)));
+    const float m00 = m.at(0, 0), m11 = m.at(1, 1), m22 = m.at(2, 2), tr = m00 + m11 + m22;
+    if (tr > 0.0f) {
+        const float k = 0.5f / std::sqrt(tr + 1.0f);
+        q[3] = 0.25f / k, q[0] = (m.at(2, 1) - m.at(1, 2)) * k, q[1] = (m.at(0, 2) - m.at(2, 0)) * k,
+        q[2] = (m.at(1, 0) - m.at(0, 1)) * k;
+    } else if (m00 > m11 && m00 > m22) {
+        const float k = 2.0f * std::sqrt(1.0f + m00 - m11 - m22);
+        q[3] = (m.at(2, 1) - m.at(1, 2)) / k, q[0] = 0.25f * k, q[1] = (m.at(0, 1) + m.at(1, 0)) / k,
+        q[2] = (m.at(0, 2) + m.at(2, 0)) / k;
+    } else if (m11 > m22) {
+        const float k = 2.0f * std::sqrt(1.0f + m11 - m00 - m22);
+        q[3] = (m.at(0, 2) - m.at(2, 0)) / k, q[0] = (m.at(0, 1) + m.at(1, 0)) / k, q[1] = 0.25f * k,
+        q[2] = (m.at(1, 2) + m.at(2, 1)) / k;
+    } else {
+        const float k = 2.0f * std::sqrt(1.0f + m22 - m00 - m11);
+        q[3] = (m.at(1, 0) - m.at(0, 1)) / k, q[0] = (m.at(0, 2) + m.at(2, 0)) / k,
+        q[1] = (m.at(1, 2) + m.at(2, 1)) / k, q[2] = 0.25f * k;
+    }
+}
+
+void quat_turn(const float q[4], float &yaw, float &pitch, float &roll)
+{
+    const float x = q[0], y = q[1], z = q[2], w = q[3];
+    const Vec3 axis[3] = {Vec3{1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)},
+                          Vec3{2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)},
+                          Vec3{2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)}};
+    rigid_angles(axis, yaw, pitch, roll);
+}
+
+// The shorter way from a to b, t of it.
+void quat_slerp(const float a[4], const float b[4], float t, float out[4])
+{
+    float d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+    float s = 1.0f;
+    if (d < 0.0f) d = -d, s = -1.0f;
+    float wa = 1.0f - t, wb = t;
+    if (d < 0.9995f) {
+        const float th = std::acos(std::min(d, 1.0f)), sn = std::sin(th);
+        wa = std::sin((1.0f - t) * th) / sn, wb = std::sin(t * th) / sn;
+    }
+    float n = 0.0f;
+    for (int k = 0; k < 4; ++k) out[k] = a[k] * wa + b[k] * wb * s, n += out[k] * out[k];
+    n = std::sqrt(n);
+    for (int k = 0; k < 4; ++k) out[k] /= n > 1e-6f ? n : 1.0f;
+}
+
 void glide(Session::BodyMotion &m, net::RemotePlayer &p, double now)
 {
+    const bool tumbles = p.kind == net::EntityKind::Mob && p.chassis;
+    float      turn_now[4];
+    if (tumbles) turn_quat(p.yaw, p.pitch, p.body_roll, turn_now);
     const Vec3 sent{p.x, p.y, p.z};
     if (m.glide_at < 0.0 || now - m.glide_used > 0.5 || length(sent - m.glide_to) > 5.0f) {
         m.glide_from = m.glide_to = m.shown = sent;
         m.yaw_from = m.yaw_to = m.shown_yaw = p.yaw;
+        if (tumbles)
+            for (int k = 0; k < 4; ++k) m.turn_from[k] = m.turn_to[k] = turn_now[k];
         m.glide_at   = now;
         m.glide_seen = p.last_seen;
     } else if (p.last_seen != m.glide_seen) {
         const float gap = (float)std::clamp(p.last_seen - m.glide_seen, 1.0 / 120.0, 0.25);
         m.glide_gap += (gap - m.glide_gap) * 0.2f;
+        const float was = std::min(1.0f, (float)(now - m.glide_at) / m.glide_gap);
+        if (tumbles) {
+            float shown_turn[4];
+            quat_slerp(m.turn_from, m.turn_to, was, shown_turn);
+            for (int k = 0; k < 4; ++k) m.turn_from[k] = shown_turn[k], m.turn_to[k] = turn_now[k];
+        }
         m.glide_from = m.shown;
         m.glide_to   = sent;
         m.yaw_from   = m.shown_yaw;
@@ -8310,6 +8384,11 @@ void glide(Session::BodyMotion &m, net::RemotePlayer &p, double now)
     m.shown_yaw = m.yaw_from + std::remainder(m.yaw_to - m.yaw_from, 6.2831853f) * t;
     p.x = m.shown.x, p.y = m.shown.y, p.z = m.shown.z;
     p.yaw = m.shown_yaw;
+    if (tumbles) {
+        float q[4];
+        quat_slerp(m.turn_from, m.turn_to, t, q);
+        quat_turn(q, p.yaw, p.pitch, p.body_roll);
+    }
 }
 
 // The machine this player drives a frame on (Scene::Predicted), run with the
@@ -9589,6 +9668,10 @@ struct TitleMenu {
     // spawn somewhere on the land, the worlds behind portals scattered over
     // it). Written to the world's `mode` file when it is first served.
     bool                    survival = false;
+    // Peaceful (no creature that fights): the sandbox's <world>/world.db.peaceful,
+    // there or not, which its server reads and /peaceful writes. Chosen here
+    // for a new world; a saved one's is toggled in its settings.
+    bool                    peaceful = false;
     std::string             address;     // what is typed into the list of servers
     std::vector<ServerRow>  servers;
     bool                    hosting   = false;   // the world list is picking a world to HOST
@@ -9871,30 +9954,40 @@ ui::Panel title_panel(const TitleMenu &m, bool debug)
         p.w = 10.0f;
         p.h = 9.6f;
         panel_label(p, "Create a new world", 0.5f, 0.0f);
-        panel_label(p, "Name", 0.5f, 1.2f);
-        panel_add(p, ui::ElemKind::Field, "name", m.name, 0.5f, 2.2f, 9.0f);
-        panel_label(p, "Seed (none for a random one)", 0.5f, 3.5f);
-        panel_add(p, ui::ElemKind::Field, "seed", m.seed, 0.5f, 4.5f, 9.0f);
+        panel_label(p, "Name", 0.5f, 1.0f);
+        panel_add(p, ui::ElemKind::Field, "name", m.name, 0.5f, 1.9f, 9.0f);
+        panel_label(p, "Seed (none for a random one)", 0.5f, 3.0f);
+        panel_add(p, ui::ElemKind::Field, "seed", m.seed, 0.5f, 3.9f, 9.0f);
         panel_button(p, "mode",
                      m.survival ? "Mode: Survival -- portals scattered over the land"
                                 : "Mode: Sandbox -- the plaza and its portals",
-                     0.5f, 5.8f, 9.0f);
-        panel_button(p, "create", "Create", 0.5f, 7.1f, 9.0f);
-        panel_button(p, "back", "Back", 0.5f, 8.4f, 9.0f);
+                     0.5f, 5.1f, 9.0f);
+        panel_button(p, "peaceful",
+                     m.peaceful ? "Monsters: none -- a peaceful world" : "Monsters: out of the dark",
+                     0.5f, 6.3f, 9.0f);
+        panel_button(p, "create", "Create", 0.5f, 7.5f, 9.0f);
+        panel_button(p, "back", "Back", 0.5f, 8.7f, 9.0f);
         break;
 
-    case MenuPage::EditWorld:
+    case MenuPage::EditWorld: {
         p.w = 10.0f;
-        p.h = m.error.empty() ? 7.2f : 8.2f;
+        p.h = m.error.empty() ? 8.5f : 9.5f;
         panel_label(p, "Name", 0.5f, 0.0f);
         panel_add(p, ui::ElemKind::Field, "rename", m.rename, 0.5f, 1.0f, 9.0f);
         panel_button(p, "do_rename", "Rename", 0.5f, 2.3f, 9.0f);
+        std::error_code ec;
+        const bool      peaceful =
+            std::filesystem::exists(worlds_dir() + "/" + m.worlds[m.editing].name + "/world.db.peaceful", ec);
+        panel_button(p, "peaceful",
+                     peaceful ? "Monsters: none -- a peaceful world" : "Monsters: out of the dark", 0.5f,
+                     3.6f, 9.0f);
         panel_button(p, "delete",
                      m.confirm_delete ? "Delete it for good? Click again" : "Delete", 0.5f,
-                     3.6f, 9.0f);
-        panel_button(p, "back", "Back", 0.5f, 4.9f, 9.0f);
-        if (!m.error.empty()) panel_label(p, m.error.substr(0, 50), 0.5f, 6.2f);
+                     4.9f, 9.0f);
+        panel_button(p, "back", "Back", 0.5f, 6.2f, 9.0f);
+        if (!m.error.empty()) panel_label(p, m.error.substr(0, 50), 0.5f, 7.5f);
         break;
+    }
 
     case MenuPage::Server: {
         p.w = 12.0f;
@@ -10222,12 +10315,21 @@ MenuChoice title_menu(Scene &s, TitleMenu &m, bool &debug)
             m.page = MenuPage::NewWorld;
         } else if (id == "mode") {
             m.survival = !m.survival;
+        } else if (id == "peaceful" && m.page == MenuPage::NewWorld) {
+            m.peaceful = !m.peaceful;
+        } else if (id == "peaceful") {
+            const std::string dir = worlds_dir() + "/" + m.worlds[m.editing].name, file = dir + "/world.db.peaceful";
+            std::error_code   ec;
+            if (world_in_use(dir)) m.error = "a server is running on it: /peaceful there";
+            else if (std::filesystem::exists(file, ec)) std::filesystem::remove(file, ec);
+            else std::ofstream(file) << "peaceful\n";
         } else if (id.rfind("world:", 0) == 0) {
             const SavedWorld &w = m.worlds[std::strtoul(id.c_str() + 6, nullptr, 10)];
             m.dir        = worlds_dir() + "/" + w.name;
             m.world_seed = w.seed;
             m.chose_row  = SIZE_MAX;
             m.survival   = false;   // a world made before `mode` is a sandbox
+            m.peaceful   = false;   // and its own file says whether it is peaceful
             return MenuChoice::World;
         } else if (id.rfind("edit:", 0) == 0) {
             m.editing        = std::strtoul(id.c_str() + 5, nullptr, 10);
@@ -10313,6 +10415,7 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
     if (!(std::ifstream(dir + "/mode") >> mode)) {
         mode = m.survival ? "survival" : "sandbox";
         std::ofstream(dir + "/mode") << mode << "\n";
+        if (m.peaceful) std::ofstream(dir + "/world.db.peaceful") << "peaceful\n";
     }
     const bool survival = mode == "survival";
 
@@ -15283,7 +15386,8 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                     p.yaw += ahead.yaw - drawn_yaw;
                 }
             }
-            if (p.kind == net::EntityKind::Thing && p.hull_w > 0.0f && !(is_carried && p.id == carried.host)) {
+            if ((p.kind == net::EntityKind::Thing || p.kind == net::EntityKind::Mob) && p.hull_w > 0.0f &&
+                !(is_carried && p.id == carried.host)) {
                 const float mid = p.y + p.hull_ride;
                 movers.push_back({p.id, p.x, p.z, p.yaw, p.hull_w, p.hull_l, mid - p.hull_h, mid + p.hull_h});
             }
@@ -15371,6 +15475,14 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             if (p.kind == net::EntityKind::Thing) body.pitch = p.pitch;
             // A machine, rolled (98).
             if (p.kind == net::EntityKind::Thing && p.chassis) body.roll = p.body_roll;
+            // A creature that tumbles (114): as it lies, about its model's middle.
+            if (p.kind == net::EntityKind::Mob && p.chassis) {
+                body.tumbles = true;
+                body.pitch   = p.pitch;
+                body.roll    = p.body_roll;
+                const ModelStore::Entry *me = p.model != 0 ? s.act().models.entry(p.model) : nullptr;
+                body.pivot = me ? 0.5f * (me->model.min.y + me->model.max.y) : body.half.y;
+            }
             // Somebody in a kart: tipped as its chassis sits and stood on
             // the bottom of it, not on the wheel that touches highest.
             if (p.kind == net::EntityKind::Player && p.chassis) {

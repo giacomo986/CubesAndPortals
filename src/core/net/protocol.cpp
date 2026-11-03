@@ -1499,7 +1499,8 @@ std::vector<uint8_t> Entities::encode() const
         w.u16(e.model);
         const bool dressed = e.kind == EntityKind::Player &&
                              (e.worn[0] | e.worn[1] | e.worn[2] | e.worn[3] | e.worn[4]) != 0;
-        const bool chassis = (e.kind == EntityKind::Player || e.kind == EntityKind::Thing) && e.chassis;
+        const bool chassis = (e.kind == EntityKind::Player || e.kind == EntityKind::Thing ||
+                              e.kind == EntityKind::Mob) && e.chassis;   // a tumbling creature (114)
         const bool tinted  = e.kind == EntityKind::Player && e.item_tint != 0;
         const bool clip    = (e.kind == EntityKind::Mob || e.kind == EntityKind::Thing) && !e.clip.empty();
         const bool posed   = e.kind == EntityKind::Player && !e.clip.empty();   // 92
@@ -1530,7 +1531,7 @@ std::vector<uint8_t> Entities::encode() const
             for (const uint16_t t : e.worn_tint) w.u16(t);
         if (dressed)
             for (const uint16_t id : e.arm) w.u16(id);   // 96
-        if (chassis && e.kind == EntityKind::Thing) {
+        if (chassis && (e.kind == EntityKind::Thing || e.kind == EntityKind::Mob)) {
             w.f32(e.body_roll);   // a thing's roll (98); its pitch is the look's
             for (const float f : {e.hull_w, e.hull_h, e.hull_l, e.hull_ride})   // its hull (100)
                 w.u8((uint8_t)std::clamp(std::lround(f * 16.0f), 0L, 255L));
@@ -1632,9 +1633,12 @@ bool Entities::decode(ByteReader &r, Entities &out)
             for (uint16_t &t : e.worn_tint) t = r.u16();
         if (flags & 8)
             for (uint16_t &id : e.arm) id = r.u16();
-        // Only a person drives (66), and a mod's thing is rolled (98).
-        if ((flags & 16) && e.kind != EntityKind::Player && e.kind != EntityKind::Thing) return false;
-        if ((flags & 16) && e.kind == EntityKind::Thing) {
+        // Only a person drives (66), a mod's thing is rolled (98), and a
+        // creature tumbles (114).
+        if ((flags & 16) && e.kind != EntityKind::Player && e.kind != EntityKind::Thing &&
+            e.kind != EntityKind::Mob)
+            return false;
+        if ((flags & 16) && (e.kind == EntityKind::Thing || e.kind == EntityKind::Mob)) {
             e.chassis   = true;
             e.body_roll = r.f32();
             if (!r.ok() || !(e.body_roll >= -3.2f && e.body_roll <= 3.2f)) return false;

@@ -65,6 +65,7 @@ quello sotto). `/perm` mostra e cambia quale ruolo chiede un permesso;
 | `/weather [clear\|rain\|storm] [MINUTI]` | admin | Il cielo del sandbox: senza parola, com'è e quanto dura; con una, quel cielo subito, per MINUTI o il suo tempo solito (`mods/weather`) |
 | `/time [day\|noon\|dusk\|night\|midnight\|dawn\|HH:MM]` | admin | L'orologio: senza parola, l'ora; con una, quell'ora subito per tutti. Portato indietro oltre la mezzanotte conta un giorno, come una notte dormita (`mods/weather`) |
 | `/season [spring\|summer\|autumn\|winter]` | admin | La stagione del sandbox (cinque giorni l'una): senza parola, quale e che giorno; con una, il primo giorno di quella stagione (`mods/weather`) |
+| `/peaceful [on\|off]` | admin | Un mondo pacifico: nessuna creatura che combatte esce o resta, subito e anche dopo i riavvii (WORLD.peaceful); senza parola, com'è. Lo spawner di un dungeon lascia allora quello che lascerebbero le sue creature, l'altare del profondo dà cuore e frammenti senza lotta, i villaggi non hanno assedi (`mods/mobs`) |
 | `/village siege\|feast\|caravan\|incoming` | admin | Fa partire subito un evento nel villaggio in cui sei: un assedio annunciato ora e in arrivo al tramonto, la festa del raccolto, una carovana verso il villaggio più vicino, o una in arrivo da un villaggio mai visitato lungo i sentieri (`mods/villagers`) |
 
 ### Giocatori

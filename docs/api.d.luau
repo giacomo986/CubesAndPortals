@@ -300,8 +300,16 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     mob_place: (id: number, x: number, y: number, z: number) -> number,
     -- Sets a worker going at that speed: a thrown thing, flying on and falling as a knock does, and spent on the ground. Off any errand. Through one of the world's own openings it comes out of the other with its speed turned. Returns 1, or 0 for one that is gone or not a worker.
     mob_velocity: (id: number, vx: number, vy: number, vz: number) -> number,
+    -- Makes a worker a rigid box the size of its kind's body, which the server moves with Jolt (protocol 114): it falls, slides, tips over an edge, rolls and bounces, and lies the way it lands -- a storage cube. All of a world's meet each other and stack. Thrown or knocked (core.mob_velocity, a blow), the push is given over its middle, so it turns over as it goes. Players stand on it and are kept out of it as out of a machine's hull, and one going at a player knocks them and bounces off. core.mob_place and a portal put it as they put any creature, a portal turning it and its spin with it. Its feet (core.mob_pos) are its middle less half its height, and every client draws it turned as it lies. Returns 1, or 0 for one that is gone or not a worker, or on a client.
+    mob_tumble: (id: number, on: boolean?, mass: number?) -> number,
     -- Leaves a worker out of one player's world: everybody else sees it, that player's client is told it is held and draws nothing for it (protocol 91) -- a thing they carry, which the world's code on their machine draws where their eye is, so it does not trail behind their view; held and not gone, so no death plays where it was picked up. Returns 1, or 0 for one that is gone or not a worker.
     mob_unseen: (id: number, player: number) -> number,
+    -- Whether this world is peaceful (--peaceful, /peaceful, the title screen's world settings): no creature that fights (register_mob fight "melee" or "archer") comes out of the dark or is put in the world -- core.spawn_mob gives 0 for one. What a mod that makes fights of its own asks first, and what it asks to give what only those creatures leave some other way. False off a server.
+    peaceful: () -> boolean,
+    -- Makes this world peaceful, or not, at once and across restarts (the world file's <file>.peaceful, which the title screen reads). On, every creature that fights goes, playing no death and leaving nothing. Returns how many went.
+    set_peaceful: (on: boolean?) -> number,
+    -- Puts down at x, y, z what one creature of that kind leaves when it dies -- its drop and a roll of its core.mob_drop -- with no creature: how a peaceful world still gives what only creatures that fight leave (a dungeon's quiet spawner). Returns how many items, 0 for a kind nobody registered.
+    mob_leave: (name: string, x: number, y: number, z: number) -> number,
     -- Takes a worker out of the world at once, leaving nothing and playing no death: its mod taking it back. Returns 1, or 0 for one that is gone or not a worker.
     mob_remove: (id: number) -> number,
     -- The player whose body that is, or 0 for a creature, a thing or nothing: who was struck, when core:hit's target is a player. On a server.

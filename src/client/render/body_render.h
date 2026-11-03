@@ -40,6 +40,10 @@ struct Body {
     // own kart -- the wire carries a body's yaw and nothing else.
     float pitch = 0.0f;
     float roll  = 0.0f;
+    // A creature that tumbles (core.mob_tumble, protocol 114): turned about
+    // the middle of its model, `pivot` over its feet, and not about its feet.
+    bool  tumbles = false;
+    float pivot   = 0.0f;
 
     // What its wheels are doing, for a model that has some (wheel_pose):
     // -1 .. 1 of full lock, right positive, and the metres rolled forwards.

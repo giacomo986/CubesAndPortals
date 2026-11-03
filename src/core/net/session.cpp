@@ -2204,6 +2204,8 @@ int ServerSessions::cross_mobs(double now)
             const Vec3 out{vel.x + t.velocity_delta.x, vel.y + t.velocity_delta.y,
                            vel.z + t.velocity_delta.z};
             b.kx = out.x, b.kz = out.z, b.vy = out.y;
+            // A tumbling box turned with it, and spinning on as it was.
+            ecs::tumble_through(e, m_portal[i], m_portal[j]);
             b.going = false;
             b.path.clear();
             if (look) {
@@ -4633,6 +4635,22 @@ std::vector<EntityState> ServerSessions::entities_for(PeerId peer, float radius)
             s.falling = true;
         } else if (e.has<ecs::Mob>()) {
             s.kind    = EntityKind::Mob;
+            // A tumbling one, turned as it lies (protocol 114): its pitch is the
+            // look's; and its box to stand on and be kept out of, as a
+            // machine's hull is (World::movers), level and turned by its yaw.
+            if (const ecs::Roll *r = e.try_get<ecs::Roll>()) {
+                s.chassis   = true;
+                s.body_roll = r->roll;
+                RigidState st;
+                RigidSpec  spec;
+                if (ecs::tumble_box(e, st, spec)) {
+                    const Vec3 ext = rigid_extent(spec, st);
+                    s.hull_w    = std::max(spec.half.x, spec.half.z);
+                    s.hull_l    = s.hull_w;
+                    s.hull_h    = ext.y;
+                    s.hull_ride = spec.half.y;
+                }
+            }
             s.working = e.has<ecs::Working>();   // swinging or drawing (protocol 52)
             s.burning = e.has<ecs::Burning>();   // in the sun (55)
             s.held    = held;

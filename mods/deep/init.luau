@@ -310,6 +310,14 @@ core.event.on("core:tick", function(ev)
                         end
                     end
                 elseif near and id == nil and core.storage_get("beaten " .. key) == ""
+                    and core.get_block(h.ax, ARENA_Y - 3, h.az) == ALTAR and core.peaceful() then
+                    -- Peaceful: the guardian does not wake, and the altar gives up
+                    -- what beating it would have -- its heart, and its shards.
+                    core.storage_set("beaten " .. key, "1")
+                    core.drop_item(h.ax, ARENA_Y - 2, h.az, core.item_id("deep:heart"), 1)
+                    core.mob_leave("deep:guardian", h.ax + 0.5, ARENA_Y - 2, h.az + 0.5)
+                    core.notice(p, "The guardian sleeps on; its heart lies by the altar")
+                elseif near and id == nil and core.storage_get("beaten " .. key) == ""
                     and core.get_block(h.ax, ARENA_Y - 3, h.az) == ALTAR then
                     local gid = core.spawn_mob("deep:guardian", h.ax + 3.5, ARENA_Y - 3, h.az + 0.5)
                     if gid ~= 0 then

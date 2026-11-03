@@ -247,6 +247,13 @@ tunnel and the credits. After that the sandbox stays free, and two more worlds o
 winning anything: the ways out, the arches, the laboratory's gate, the front and the assault.
 `false` is the game as it ships.
 
+### Peaceful: no monsters
+
+"Monsters: none" on the new-world page, or in a saved world's Edit page, or `/peaceful on|off` in
+play (`cnp_server --peaceful`): no creature that fights comes out, and those about go. What only
+monsters leave is still found: a dungeon's quiet spawner leaves bones, flesh, gunpowder and arrows
+now and then, the deep's altar gives its heart and shards unfought, villages have no sieges.
+
 ### Survival: the worlds scattered over the land
 
 "Mode: Survival" on the title menu's new-world page (`cnp_server --survival` on the sandbox room,

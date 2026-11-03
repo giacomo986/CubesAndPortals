@@ -7,6 +7,21 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
 ## Not handed out yet
 
+- A peaceful sandbox: no monster comes out of the dark, and those about go. Chosen when a world is
+  made ("Monsters" on the new world page), in a saved world's Edit page before loading it, or in
+  play with `/peaceful on|off` (admin); kept across restarts. What only monsters leave is still to
+  be had: a dungeon's spawner, quiet now, leaves now and then what its creatures would (bones,
+  flesh, gunpowder, arrows); the deep's altar gives its heart and shards without waking the
+  guardian; villages have no sieges. Servers: `--peaceful`. For mods: `core.peaceful()`,
+  `core.set_peaceful(on)`, `core.mob_leave(kind, x, y, z)`.
+- **Protocol 114**: it does not play with 113 servers or clients.
+- The test chambers' storage cube is a real box now: it falls, slides, tips over edges, rolls and
+  bounces, and lies the way it lands; thrown or knocked it turns over as it goes, and through a
+  portal it keeps turning. Cubes knock into each other and stack; you stand on them, and one
+  thrown at you knocks you back. Test chamber 14, the steps: two walls too high to climb, a cube
+  carried to the foot of each is the way up. Test chamber 15, three cubes: a wall half a node
+  higher, reached only from two cubes stacked, and those two only from a third. For mods:
+  `core.mob_tumble(id)`, a worker made a rigid box (Jolt), drawn turned as it lies on every client.
 - Falling into a floor portal and out of a wall one no longer carries you a node too far: you come
   out inside the wall's opening, where the picture showed you, as far as a body fits.
 - A block a mod puts down and turns at once, where the world is not loaded yet, keeps its turn:

@@ -23,6 +23,14 @@
 --   13  a dissolving field: crossing it closes your portals and dissolves what
 --       you carry, so the cube goes round it through a portal; then the long
 --       fall again, cube in hand, up to the button on a ledge
+--   14  the steps: two walls four high across the room, out of reach from
+--       the floor -- a cube carried to the foot of each and stood on is the
+--       way up (two vents at the foot of each wall, one to spare); a stair
+--       down to the door
+--   15  three cubes: a wall four and a half high, past reach from one cube
+--       (4.10) and in reach from two stacked (4.82) -- and two stacked are
+--       too high to jump onto (1.44 against 1.28), so the third is a step
+--       up to them; three vents, a stair down to the door
 --
 -- Trigger zones (TRIGGERS): a box that, when a body comes into it, does what
 -- it lists -- opens a door, opens a linked pair of portals, wakes a room's
@@ -86,6 +94,7 @@ if serving then
         return core.node_id(`chambers_core:{name}`)
     end
     local PANEL, METAL, FLOOR, LIGHT, GLASS = id("panel"), id("metal"), id("floor"), id("light"), id("glass")
+    local SLAB = id("metal_slab")
     local DOOR, VENT, CLOCK, EXIT = id("door"), id("vent"), id("clock"), id("exit")
     local DOOR_OPEN, DOOR_PART, DOOR_OPEN_PART = id("door_open"), id("door_part"), id("door_open_part")
     local BUTTON, DOWN, PLATE, PUSH, PEDESTAL = id("button"), id("button_down"), id("plate"), id("pushbutton"),
@@ -125,7 +134,9 @@ if serving then
         { x0 = 245, x1 = 266, h = 14, name = "Test chamber 11: the long fall" },
         { x0 = 270, x1 = 293, h = 8, name = "Test chamber 12: the sentries" },
         { x0 = 297, x1 = 320, h = 14, name = "Test chamber 13: the dissolving field" },
-        { x0 = 324, x1 = 331, h = 5, name = "Testing complete. The portal home is on the west wall." },
+        { x0 = 324, x1 = 355, h = 14, name = "Test chamber 14: the steps" },
+        { x0 = 359, x1 = 380, h = 12, name = "Test chamber 15: three cubes" },
+        { x0 = 384, x1 = 391, h = 5, name = "Testing complete. The portal home is on the west wall." },
     }
     local Z1 = 11
     local DZ0, DZ1 = 5, 6   -- the doors' cells across
@@ -324,6 +335,13 @@ if serving then
         { x = 164, z = 9, top = FL + 7, room = 9, cube = 0 },
         { x = 271, z = 9, top = FL + 7, room = 13, cube = 0 },   -- 12
         { x = 298, z = 9, top = FL + 13, room = 14, cube = 0 },  -- 13, before the field
+        { x = 327, z = 3, top = FL + 13, room = 15, cube = 0 },  -- 14, two at the foot of each wall
+        { x = 327, z = 8, top = FL + 13, room = 15, cube = 0 },
+        { x = 333, z = 3, top = FL + 13, room = 15, cube = 0 },
+        { x = 333, z = 8, top = FL + 13, room = 15, cube = 0 },
+        { x = 361, z = 2, top = FL + 11, room = 16, cube = 0 },  -- 15, three
+        { x = 363, z = 9, top = FL + 11, room = 16, cube = 0 },
+        { x = 366, z = 4, top = FL + 11, room = 16, cube = 0 },
     }
     type Plate = { x: number, z: number, vx: number, vy: number, vz: number }
     local plates: { Plate } = {
@@ -561,6 +579,40 @@ if serving then
         rim(321, 1, FL + 6, false, RIM_BLUE)
         rim(321, 9, FL, false, RIM_ORANGE)
 
+        -- 14: the steps. Two metal walls four high across the whole room, the
+        -- second on top of the first. A jump takes the hands to an edge 3.38
+        -- over the feet (player.cpp: 1.28 of jump, the hands 2.1 over the
+        -- feet), short of four from the floor; from a cube's top, 0.72 up,
+        -- they take it (measured: from the floor no, from one cube yes, up on
+        -- the ledge). Two vents at the foot of each wall, one to spare. Metal,
+        -- so no portal goes round them. Then a stair down, a node a cell, to
+        -- the door.
+        fill(331, 336, FL, FL + 3, 0, Z1, METAL)
+        fill(337, 341, FL, FL + 7, 0, Z1, METAL)
+        for i = 0, 6 do
+            fill(342 + i, 342 + i, FL, FL + 6 - i, 0, Z1, METAL)
+        end
+        for _, v in { { 327, 3 }, { 327, 8 }, { 333, 3 }, { 333, 8 } } do
+            put(v[1], FL + 14, v[2], VENT)
+        end
+
+        -- 15: three cubes. A metal wall four high and a slab on it across the
+        -- room: its edge 4.5 up, past what the hands take from one cube's top
+        -- (4.10) and within what they take from two stacked (4.82). Two
+        -- stacked are 1.44 high, out of a jump's 1.28 from the floor, so a
+        -- third is a step to them. Three vents, no more; metal, so no portal
+        -- goes round. Then a stair down -- half a node, then a node a cell --
+        -- to the door.
+        fill(369, 375, FL, FL + 3, 0, Z1, METAL)
+        fill(369, 375, FL + 4, FL + 4, 0, Z1, SLAB)
+        fill(376, 376, FL, FL + 3, 0, Z1, METAL)
+        for i = 0, 2 do
+            fill(377 + i, 377 + i, FL, FL + 2 - i, 0, Z1, METAL)
+        end
+        for _, v in { { 361, 2 }, { 363, 9 }, { 366, 4 } } do
+            put(v[1], FL + 12, v[2], VENT)
+        end
+
         -- The last room: the way home's rim.
         rim(ROOMS[#ROOMS].x0 - 1, 9, FL, false, RIM_BLUE)
         recess(ROOMS[#ROOMS].x0 - 1, 9, FL, 0)
@@ -605,7 +657,7 @@ if serving then
     -- doors of four blocks each drawing a whole door. The plan's version is
     -- kept, and a world behind it has the chambers built again over it, all
     -- of them, at its start (writes to columns not made yet wait for them).
-    local CHAMBERS = "9"
+    local CHAMBERS = "11"
     core.event.on("core:world_ready", function()
         if core.storage_get("chambers") ~= CHAMBERS then
             build()
@@ -919,6 +971,9 @@ if serving then
         v.cube = core.spawn_mob("chambers_game:cube", v.x + 0.5, v.top, v.z + 0.5)
         if v.cube ~= 0 then
             cubes[v.cube] = true
+            -- A box that tumbles: thrown, knocked or dropped it rolls and
+            -- lies the way it lands (core.mob_tumble).
+            core.mob_tumble(v.cube, true, 30)
         end
     end
 
@@ -1575,7 +1630,7 @@ if serving then
     -- The doors that open as somebody comes up to them: the lobby's, and
     -- those of the rooms with nothing to hold theirs open (01, 03, 05) and
     -- the last.
-    local NEAR_DOORS = { 1, 2, 4, 6, 10 }
+    local NEAR_DOORS = { 1, 2, 4, 6, 10, 15, 16 }
     local function step_doors()
         local keys_near = table.clone(NEAR_DOORS)
         for slot in copies do

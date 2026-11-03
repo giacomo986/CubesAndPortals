@@ -71,6 +71,7 @@
 
 #include <atomic>
 #include <deque>
+#include <filesystem>
 #include <fstream>
 #include <mutex>
 #include <condition_variable>
@@ -349,6 +350,11 @@ struct ServerState {
     // before there are sessions to ask): core.world_spawn answers it then.
     Vec3 early_spawn{};
     bool early_spawn_known = false;
+    // Peaceful (--peaceful, /peaceful, core.set_peaceful): no creature that
+    // fights comes out or is put in the world. Kept as <world file>.peaceful,
+    // there or not, so the title screen's world list reads and sets it too.
+    bool        peaceful = false;
+    std::string peaceful_file;
 
     // Which columns are in memory, and what coming in, being lit and being let
     // go of does to them (TODO.md OPEN-35, OPEN-38; core/storage/column_keeper.h).
@@ -2132,6 +2138,64 @@ int host_mob_velocity(void *ud, int id, double vx, double vy, double vz)
     return s->sessions ? cnp::ecs::mob_velocity(s->sessions->ecs(), (uint32_t)id, (float)vx, (float)vy,
                                                 (float)vz)
                        : 0;
+}
+
+bool host_peaceful(void *ud) { return static_cast<ServerState *>(ud)->peaceful; }
+
+// On, every creature that fights goes at once, playing no death and leaving
+// nothing: peaceful is a world without them, not one where they all fell.
+int host_set_peaceful(void *ud, bool on)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    s->peaceful    = on;
+    if (!s->peaceful_file.empty()) {
+        std::error_code ec;
+        if (on) std::ofstream(s->peaceful_file) << "peaceful\n";
+        else std::filesystem::remove(s->peaceful_file, ec);
+    }
+    int gone = 0;
+    if (on && s->sessions) {
+        std::vector<flecs::entity_t> fighters;
+        s->sessions->ecs().each([&](flecs::entity e, const cnp::ecs::Brain &b, cnp::ecs::Mob) {
+            if (b.kind < s->mob_kinds.size() && cnp::ecs::fights(s->mob_kinds[b.kind])) fighters.push_back(e.id());
+        });
+        for (const flecs::entity_t id : fighters) s->sessions->ecs().entity(id).destruct();
+        gone = (int)fighters.size();
+    }
+    return gone;
+}
+
+// What one of a kind leaves when it dies, put down at x, y, z with no
+// creature: how a peaceful world still gives what only fighters leave.
+int host_mob_leave(void *ud, const char *name, double x, double y, double z)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (!s->sessions || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z)) return 0;
+    for (const cnp::ecs::MobKind &k : s->mob_kinds) {
+        if (k.name != (name ? name : "")) continue;
+        int n = 0;
+        if (k.drop != kNoItem) {
+            cnp::ecs::spawn_drop(s->sessions->ecs(), ItemStack{k.drop, k.drop_count, 0, 0, {}}, (float)x,
+                                 (float)y, (float)z, s->now);
+            n += k.drop_count;
+        }
+        if (k.extra != kNoItem && k.extra_max > 0) {
+            const uint16_t c = (uint16_t)(std::rand() % (k.extra_max + 1));
+            if (c > 0)
+                cnp::ecs::spawn_drop(s->sessions->ecs(), ItemStack{k.extra, c, 0, 0, {}}, (float)x, (float)y,
+                                     (float)z, s->now);
+            n += c;
+        }
+        return n;
+    }
+    return 0;
+}
+
+int host_mob_tumble(void *ud, int id, bool on, double mass)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (!s->sessions || !std::isfinite(mass)) return 0;
+    return cnp::ecs::mob_tumble(s->sessions->ecs(), (uint32_t)id, on, s->world, s->registry, (float)mass);
 }
 
 int host_mob_unseen(void *ud, int id, int player)
@@ -4005,6 +4069,7 @@ int host_spawn_mob(void *ud, const char *name, double x, double y, double z)
     if (s->sessions == nullptr) return 0;
     for (size_t i = 0; i < s->mob_kinds.size(); ++i)
         if (s->mob_kinds[i].name == (name ? name : "")) {
+            if (s->peaceful && cnp::ecs::fights(s->mob_kinds[i])) return 0;
             const flecs::entity e = cnp::ecs::spawn_mob(s->sessions->ecs(), s->mob_kinds,
                                                         (uint16_t)i, (float)x, (float)y, (float)z, s->now);
             return e.is_valid() ? (int)(uint32_t)e.id() : 0;
@@ -5891,6 +5956,7 @@ int serve_room(int argc, char **argv)
     // (core.plaza() is nil). The world's mode is this and only this: a mod
     // reads the plaza, never the mode.
     bool        survival = false;
+    bool        peaceful = false;   // --peaceful: and kept so (host_set_peaceful)
 
     // Whether a player has to say who they are. DESIGN.md 4.4. Off by default,
     // which is the LAN case; on, nobody joins without a key they hold.
@@ -5985,6 +6051,8 @@ int serve_room(int argc, char **argv)
             portals = true;
         else if (std::strcmp(argv[i], "--survival") == 0)
             survival = true;
+        else if (std::strcmp(argv[i], "--peaceful") == 0)
+            peaceful = true;
         else if (std::strcmp(argv[i], "--require-identity") == 0)
             require_identity = true;
         else if (std::strcmp(argv[i], "--no-observers") == 0)
@@ -6073,6 +6141,9 @@ int serve_room(int argc, char **argv)
     std::setvbuf(stdout, nullptr, _IOLBF, 0);
 
     ServerState s;
+    if (world_file) s.peaceful_file = std::string(world_file) + ".peaceful";
+    host_set_peaceful(&s, peaceful || (!s.peaceful_file.empty() && std::filesystem::exists(s.peaceful_file)));
+    if (s.peaceful) std::printf("        peaceful: no creature that fights\n");
     s.extent = extent;
     s.seed   = seed;
     for (size_t k = 0; k < portal_to.size() && k < (size_t)net::kMaxMouths; ++k) {
@@ -6205,6 +6276,10 @@ int serve_room(int argc, char **argv)
     host.mob_ride       = host_mob_ride;
     host.mob_velocity   = host_mob_velocity;
     host.mob_unseen     = host_mob_unseen;
+    host.mob_tumble     = host_mob_tumble;
+    host.peaceful       = host_peaceful;
+    host.set_peaceful   = host_set_peaceful;
+    host.mob_leave      = host_mob_leave;
     host.player_launch  = host_player_launch;
     host.mob_hunt       = host_mob_hunt;
     host.mob_attack     = host_mob_attack;
@@ -8363,6 +8438,18 @@ int serve_room(int argc, char **argv)
                                                                 write_block(s, bx, by, bz, b, f);
                                                             });
                                     });
+                // And the boxes that tumble (core.mob_tumble), after the walk:
+                // their own Jolt, shoved by whoever walks into them.
+                cnp::ecs::step_tumbling(sessions.ecs(), s.world, s.registry, targets, (float)kTickSeconds,
+                                        [&](uint32_t peer, Vec3 push) {
+                                            // Knocked by a box going at them: off their feet a little.
+                                            const float k = net::Push::kMax;
+                                            const Vec3  v{std::clamp(push.x, -k, k), std::clamp(push.y, 0.0f, k),
+                                                          std::clamp(push.z, -k, k)};
+                                            if (sessions.launch((net::PeerId)peer, v, mob_now, 0.5))
+                                                transport.send((net::PeerId)peer, net::Channel::Event,
+                                                               net::Push{v.x, v.y, v.z}.encode(), true);
+                                        });
                 sessions.ecs().remove<cnp::ecs::MobBurst>();
                 for (const std::array<int, 6> &b : bursts) {
                     script_field f[6] = {
@@ -8379,7 +8466,7 @@ int serve_room(int argc, char **argv)
                 }
                 // And through the world's own openings: a cube thrown into a portal.
                 sessions.cross_mobs(mob_now);
-                if (natural_mobs && tick % 40 == 0) {
+                if (natural_mobs && !s.peaceful && tick % 40 == 0) {
                     const cnp::ecs::SpawnResult sr = cnp::ecs::spawn_and_despawn(
                         sessions.ecs(), s.world, s.registry, s.mob_kinds, targets,
                         (s.has_sky ? 0.0f : daylight_at(sessions.time_of_day())), 6, (uint32_t)tick, mob_now);
@@ -8980,7 +9067,8 @@ int serve_room(int argc, char **argv)
                     // as it climbs, which the movement check would take for
                     // a body running and flying. The price, said: a body on
                     // a machine is not held to a walk.
-                    if (cnp::ecs::on_machine(sessions.ecs(), Vec3{at.x, at.y, at.z}, kPlayerHalfWidth)) {
+                    if (cnp::ecs::on_machine(sessions.ecs(), Vec3{at.x, at.y, at.z}, kPlayerHalfWidth) ||
+                        cnp::ecs::on_tumbling(sessions.ecs(), Vec3{at.x, at.y, at.z}, kPlayerHalfWidth)) {
                         sessions.launch(peer, Vec3{}, now, 0.5);
                         continue;
                     }

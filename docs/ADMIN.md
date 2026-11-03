@@ -119,6 +119,7 @@ owner of that name on this world, or the bare name.
 | `/weather [clear\|rain\|storm] [MINUTES]` | admin | The sandbox's sky (`mods/weather`): with no word, what it is and how long it lasts; with one, that sky now, for MINUTES or the usual time |
 | `/time [day\|noon\|dusk\|night\|midnight\|dawn\|HH:MM]` | admin | The clock (`mods/weather`): with no word, the hour now; with one, that hour at once for everybody. Turned back past midnight it counts a day, as a night slept through does |
 | `/season [spring\|summer\|autumn\|winter]` | admin | The sandbox's season (`mods/weather`, five days each): with no word, which and what day of it; with one, the first day of that season this year |
+| `/peaceful [on\|off]` | admin | A peaceful world (`mods/mobs`, core.set_peaceful): no creature that fights comes out, and those about go at once; kept across restarts in WORLD.peaceful (`--peaceful`) |
 | `/village siege\|feast\|caravan\|incoming` | admin | Starts one of the villages' events now in the village the admin stands in (`mods/villagers`): a siege warned of now and coming at nightfall, the harvest feast in its square, a caravan to the nearest other village (none when one is out already or its chests have nothing to spare), or one coming from a village 100-900 away nobody has visited, along the paths (none when no such village is joined by them) |
 
 ### Players
@@ -219,6 +220,7 @@ webhook = https://example.org/hooks/server
 | `--report FILE` `--since 7d` `--json` | No server: what a world file remembers, printed; `--json` as one JSON object |
 | `--names` `--free-name NAME` | No server: who owns each name; let one go |
 | `--survival` | One room's (the sandbox's): no plaza, the spawn on dry land the seed picks, the themed worlds behind portals scattered over the land; `creative` starts at `nobody`. The title menu's "Mode: Survival" writes `survival` to the world's `mode` file and passes it; `tools/track.sh --survival` too |
+| `--peaceful` | One room's (the sandbox's): peaceful from the start, and kept so in WORLD.peaceful beside the world file -- there or not, it is what the room is at its next start without the flag. `/peaceful on\|off` and the title menu's "Monsters" button (new world, or a saved world's Edit) set the same file |
 
 The rest of the flags (world, mods, portals, rooms) are in the [README](../README.md#server-cnp_server).
 

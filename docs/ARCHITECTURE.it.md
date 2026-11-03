@@ -54,7 +54,7 @@ cnp_server ─── cnp_script, cnp_net, cnp_core      (nessuna GPU, nessuna fi
 | `worldgen/` | `worldgen` (stage in ordine, una colonna di chunk alla volta; `world_hash`), `biome`, `noise`, `spawn` |
 | `world/` | `columns` (quali colonne sono in memoria: blocchi, poi luce, poi lasciate), `daylight` (orologio del mondo; `sky_light_at`: sole e luna per il disegno), `modifiers` (ABM/LBM), `node_meta` (cosa ricorda una cella) |
 | `registry/` | `node_registry` (blocchi), `node_shape` (scatole di un blocco, ruotate), `core_nodes` (i blocchi del motore), `model_registry` |
-| `physics/` | `aabb` (box del giocatore contro il mondo), `movement` (limiti e validazione), `fall` |
+| `physics/` | `aabb` (box del giocatore contro il mondo), `movement` (limiti e validazione), `fall`, `rigid` (scatole che rotolano: un mondo Jolt per mondo ECS, i blocchi attorno a ogni scatola come terreno statico; `core.mob_tumble`) |
 | `portal/` | `portal_math` (near plane obliquo, clip plane), `portal_traverse` (dove esce un corpo, orientato come), `portal_clip` (taglio dei solidi), `portal_tuning` (i sei numeri di `config/portal.cfg`) |
 | `item/` | `item_registry`, `inventory`, `container` (casse), `recipe`, `craft_grid`, `item_codec` (su disco) |
 | `ecs/` | `components` (Flecs), `health`, `drop`, `mob`, `lua_ecs` (componenti e sistemi dei mod) |
@@ -90,6 +90,12 @@ Flag, creazione del mondo (la regione attorno allo spawn, mod, file), le funzion
 lato server, e il tick a 20 Hz: messaggi dei peer, step dei mod e dei sistemi ECS, ABM, colonne
 generate o rilette attorno a chi c'è e lasciate dove non c'è nessuno, streaming dei chunk per
 interest, entità, salute, tempo, porte fra server.
+
+**Pacifico** è un flag della stanza (`ServerState::peaceful`), tenuto come `<file del mondo>.peaceful`
+(c'è o non c'è) così il menù del titolo lo legge e lo scrive senza server. Solo due cancelli: lo
+spawn naturale salta e `host_spawn_mob` rifiuta un tipo che `fights()`; accenderlo toglie quelli
+in giro. Quello che una mod fa nei suoi combattimenti (assedi, il boss di un altare) lo chiede a
+`core.peaceful()`, e `core.mob_leave` dà i drop di un tipo senza creatura.
 
 **Il mondo non ha bordo.** Una colonna di chunk entra in memoria quando una sessione le arriva a
 quattro colonne: dal file del mondo se c'è, dal generatore se no (core e stage dei mod, scritti

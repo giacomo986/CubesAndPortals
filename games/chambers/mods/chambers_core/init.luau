@@ -12,6 +12,9 @@ end
 
 node("panel", { 226, 228, 230 })     -- portals go on these, and only these
 node("metal", { 112, 118, 126 })
+-- Half a node of metal: a wall's edge half a node higher than its blocks
+-- (chamber 15, where that half is what three cubes are for).
+core.node_box(node("metal_slab", { 112, 118, 126 }), 0, 0, 0, 1, 0.5, 1)
 node("floor", { 132, 134, 138 })
 node("light", { 236, 244, 250 }, 15)
 -- The automatic door: two cells wide, two tall, one deep, drawn whole from

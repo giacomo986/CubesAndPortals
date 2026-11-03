@@ -249,6 +249,14 @@ due mondi:
 niente: le uscite, gli archi, il cancello del laboratorio, il fronte e l'assalto. `false` è il
 gioco come viene distribuito.
 
+### Pacifico: niente mostri
+
+"Mostri: nessuno" nella pagina del mondo nuovo, o nella pagina Modifica di un mondo salvato, o
+`/peaceful on|off` in partita (`cnp_server --peaceful`): nessuna creatura che combatte esce, e
+quelle in giro spariscono. Quello che lasciano solo i mostri si trova ancora: lo spawner quieto di
+un dungeon lascia ogni tanto ossa, carne, polvere da sparo e frecce, l'altare del profondo dà cuore
+e frammenti senza lotta, i villaggi non hanno assedi.
+
 ### Survival: i mondi sparsi sulla terra
 
 "Mode: Survival" nella pagina del nuovo mondo del menù del titolo (`cnp_server --survival` sulla
