@@ -56,7 +56,8 @@ public:
               const std::vector<float> &bones, gfx_texture texture = gfx_texture{0},
               float light = 1.0f,    // how bright where it stands, 0..1; a body is 1
               float alpha = 1.0f,    // under 1 blended over what is behind it: fading out
-              uint32_t tag = 0);     // a stack's colours (ItemStack::tag) on its tint_1..3 materials
+              uint32_t tag = 0,      // a stack's colours (ItemStack::tag) on its tint_1..3 materials
+              float dissolve = 0.0f); // 0..1, how much of it is eaten away (core.render.model)
 
     int joint_count() const { return m_joint_count; }
 
@@ -88,6 +89,7 @@ private:
     int m_loc_glow = -1;
     int m_loc_light = -1;
     int m_loc_alpha = -1;
+    int m_loc_dissolve = -1;
     WaterUniforms m_water;
 };
 

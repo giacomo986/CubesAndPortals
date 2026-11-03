@@ -389,8 +389,10 @@ def vent():
         (box((0.02, -0.98, 0.0), (0.98, -0.02, 0.06), bevel=0.01), "white"),          # the plate
         (disc(0.37, 0.02, at=(0.5, -0.5, 0.07)), "dark"),                            # its roof
         (tube(0.42, 0.36, 1.15, at=(0.5, -0.5, 0.0)), "white"),                      # the tube
-        (tube(0.36, 0.34, 1.13, at=(0.5, -0.5, 0.0)), "dark"),                       # its inside
-        (tube(0.45, 0.33, 0.1, at=(0.5, -0.5, -1.05)), "dark"),                      # the collar
+        # Apart by a few millimetres, never on the same surface: two faces in
+        # one place flicker (seen from below, the tube's rim and the collar's).
+        (tube(0.355, 0.34, 1.13, at=(0.5, -0.5, 0.0)), "dark"),                      # its inside
+        (tube(0.45, 0.33, 0.11, at=(0.5, -0.5, -1.05)), "dark"),                     # the collar, 1 cm below the tube
         (tube(0.44, 0.40, 0.04, at=(0.5, -0.5, -0.5)), "dark"),                      # a band
         (tube(0.445, 0.40, 0.025, at=(0.5, -0.5, -0.8)), "orange"),
     ]

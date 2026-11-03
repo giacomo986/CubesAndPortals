@@ -941,7 +941,15 @@ void gfx_state_set(const gfx_state *state)
         rlDisableColorBlend();
     } else {
         rlEnableColorBlend();
+        // A change of mode makes rlgl draw what its own batch holds first, and
+        // that ends in glUseProgram(0): the shader bound for the next draw --
+        // the world's, for the glass after the opaque pass -- is gone, and the
+        // draw goes out with no program and lands nowhere. Seen as glass that
+        // was there one frame and not the next, in the test chambers both
+        // directly and through portals (2026-11-02), whenever the batch held
+        // anything (the debug text). Bound again here.
         rlSetBlendMode(state->blend == GFX_BLEND_ADD ? RL_BLEND_ADDITIVE : RL_BLEND_ALPHA);
+        if (g.current_shader != 0) rlEnableShader(g.current_shader);
     }
 
     rlColorMask(state->color_mask[0], state->color_mask[1],

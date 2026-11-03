@@ -156,6 +156,40 @@ goes on reading the levels and `daylight_at`.
 - **Classic** (`set_classic`, Options → Lighting): the old formula, from the packed light byte the
   vertex still carries; no shadows and no sun.
 
+## Traps already fallen into
+
+Each of these was a defect found in play, and each rule below is what keeps it from coming back.
+When a change touches one of them, check it the way the line says.
+
+- **rlgl unbinds our shader behind our back.** `rlSetBlendMode` on a change of mode first draws
+  raylib's own batch, and if that batch holds anything (debug text, 2D) it ends with
+  `glUseProgram(0)`: the next draw goes out with no program and lands nowhere. `gfx_state_set`
+  binds `g.current_shader` again after it. Any new call into rlgl that may flush its batch
+  (`rlDrawRenderBatch*`, `rlSetBlendMode`, `rlSetShader`) between binding a shader and drawing
+  must do the same. Symptom: glass (the translucent pass) missing in some scenes and not others,
+  directly and through portals (2026-11-02). Check: the test chambers' glass with F3 on, and
+  `tools/portallab.sh` `/lab view`.
+- **A turn waits with its block.** `core.set_facing` on a column not taking writes yet is deferred
+  and checked when it is put in, on the block that is there then -- never against the cell as it is
+  before (the air a door replaces). Symptom: doors and track pieces turned the wrong way now and
+  then. Check: the server log of `tools/track.sh` on fresh worlds has no "is not a turn".
+- **A crossing has one point of the body.** The FEET through a floor (they reach it first), the
+  EYE through a wall and a ceiling (`crossing_point`, `core/portal/portal_traverse.cpp`). Measured
+  at the feet, a ceiling took the head 1.6 into the block first. Check: `/lab head`, a jump under
+  the roof crosses.
+- **The exit continues the picture.** `exit = trigger + view` (config/portal.cfg) is right for a
+  crossing by the eye. Out of a floor into a wall the eye is still its height above the plane, so
+  the exit is where the image had it, as far back as a body fits in the opening's node. Check: the
+  jump between where the opening showed the eye and where it is put -- 0.01 wall to wall, 0.92
+  floor to wall (the rest is wall); a change that raises either is a regression.
+- **Between two horizontal openings the heading is kept** (`portal_carry_look`): only the tilt
+  follows the map, and the roll settles back level (`settle_roll`, eased, 0.25-0.6 s). The look
+  is never turned on foot after a crossing; only the horizon is. Check: `/lab bounce`, the yaw
+  stays what it was on every crossing.
+- **A dedicated scene before a guess.** `tools/portallab.sh` builds portal cases where every
+  number can be read (sunlit, no other mods). When a defect shows in a game but not there, the
+  difference between the two is the cause: list it before changing anything.
+
 ## Where a feature goes
 
 | What | Where |

@@ -629,8 +629,10 @@ typedef struct script_host {
     // `yaw` about the up: a thing drawn where only this machine knows it is
     // (a cube in the player's hands). Then tipped by `pitch` about its own
     // x and `roll` about its own z, before the yaw: a card held up in a hand.
+    // `dissolve` 0..1: how much of it is eaten away, in patches with burning
+    // edges (a cube dissolved by a field).
     int (*render_model)(void *ud, int model, double x, double y, double z, double yaw,
-                        double scale, double pitch, double roll);
+                        double scale, double pitch, double roll, double dissolve);
     // And an effect of light (core.render.fx): a kind by name ("glow", "flame",
     // "ring", "frost", "bolt", "slash", "sparks", "vortex", "jet"), where and how big,
     // its colour, how far through its life it is (0..1), and for a bolt where

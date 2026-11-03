@@ -101,6 +101,9 @@ stop_server() {
 trap stop_server EXIT
 trap 'exit 130' INT TERM
 
+# The last run's logs kept beside the new ones: a crash is told about after
+# the game was started again, and by then its log was written over.
+for f in server.log client.log; do [ -f "$HERE/$f" ] && mv -f "$HERE/$f" "$HERE/$f.prev"; done
 echo "== avvio il server (sandbox, pista, inferno, arena, arpg, camere di prova, backrooms, parkour, laboratorio, fronte e assalto) sulla porta $PORT"
 # --ticks 0: senza, un server in ascolto si ferma dopo 50 s.
 "$SRV" --listen "$PORT" --ticks 0 --seed "$SEED" --portals ${OWNER[@]+"${OWNER[@]}"} \

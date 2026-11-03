@@ -907,9 +907,11 @@ if serving then
         if v.cube ~= 0 then
             core.mob_remove(v.cube)
             cubes[v.cube] = nil
-            for _, s in players do
+            -- Somebody carrying it lets go, and their client stops drawing it.
+            for p, s in players do
                 if s.carry == v.cube then
                     s.carry = 0
+                    tell(p, "hold -")
                 end
             end
         end
@@ -1231,6 +1233,19 @@ if serving then
     -- What crossing a field takes: the body's portals, and whatever it
     -- carries (a cube goes back to its vent, a turret is gone).
     local function dissolve_thing(c: number)
+        -- Everybody sees it come apart where it is (its carrier, in their
+        -- hands: "dissolve" there), before it goes.
+        local t0 = turret_of(c)
+        local x, y, z = core.mob_pos(c)
+        local model = if t0 == nil then "cube" elseif t0.state == "down" then "turret_down" else "turret"
+        for p, s in players do
+            if s.carry == c then
+                s.carry = 0
+                tell(p, "dissolve")
+            elseif x ~= nil and y ~= nil and z ~= nil then
+                tell(p, string.format("zap %s %.2f %.2f %.2f", model, x, y, z))
+            end
+        end
         for _, v in vents do
             if v.cube == c then
                 dispense(v)
@@ -1266,9 +1281,7 @@ if serving then
                         link_pair(p)
                         crosshair(p)
                         if s.carry ~= 0 then
-                            local c = s.carry
-                            drop(p, false)
-                            dissolve_thing(c)
+                            dissolve_thing(s.carry)
                         end
                         if had then
                             core.play_sound("chambers_game:field_fizzle", x, y + 1, z)
@@ -1773,9 +1786,22 @@ if drawing then
     local flash = 0.0
 
     local rims: { [string]: { number } } = {}
+    -- Things a field is taking apart, each for DYING seconds: in this
+    -- player's hands (hand, following the view) or where it was (x, y, z).
+    type Dying = { model: string, at: number, hand: boolean, x: number, y: number, z: number }
+    local dying: { Dying } = {}
+    local DYING = 0.9
     heard = function(text: string)
         local w = string.split(text, " ")
-        if w[1] == "hold" then
+        if w[1] == "dissolve" then
+            if holding ~= "" then
+                table.insert(dying, { model = holding, at = now, hand = true, x = 0, y = 0, z = 0 })
+            end
+            holding = ""
+        elseif w[1] == "zap" then
+            table.insert(dying, { model = "chambers_game:" .. w[2], at = now, hand = false,
+                                  x = tonumber(w[3]) or 0, y = tonumber(w[4]) or 0, z = tonumber(w[5]) or 0 })
+        elseif w[1] == "hold" then
             holding = if w[2] == "-" then "" else "chambers_game:" .. w[2]
         elseif w[1] == "aim" or w[1] == "shot" then
             local v = {}
@@ -1862,6 +1888,30 @@ if drawing then
         end
     end)
 
+    -- Where the hands hold a thing now: its feet, and the yaw of the view.
+    local function in_hands(): (number?, number, number, number)
+        -- This machine's player, as its own world code names it.
+        local me = core.players()[1]
+        if me == nil then
+            return nil, 0, 0, 0
+        end
+        local x, y, z = core.player_pos(me)
+        local dx, dy, dz = core.player_look(me)
+        if x == nil or y == nil or z == nil or dx == nil or dy == nil or dz == nil then
+            return nil, 0, 0, 0
+        end
+        local cy = math.max(y + 0.95, y + EYE + dy * 1.6)
+        return x + dx * 1.6, cy - 0.35, z + dz * 1.6, math.atan2(dx, dz)
+    end
+    -- Where a dying thing is this frame, and how far through (0..1).
+    local function dying_at(d: Dying): (number?, number, number, number, number)
+        local k = (now - d.at) / DYING
+        if d.hand then
+            local x, y, z, yaw = in_hands()
+            return x, y, z, yaw, k
+        end
+        return d.x, d.y, d.z, 0, k
+    end
     -- The turrets' red aim lines and their shots, and the fields: a curtain
     -- of thin blue lightning across the room, flickering.
     core.render.pass("chambers_game:light", 100, function()
@@ -1881,6 +1931,22 @@ if drawing then
             end
         end
         shots = left
+        -- Lightning crawling over whatever a field is taking apart, sparks
+        -- off it, and a blue glow that goes out with it.
+        for _, d in dying do
+            local x, y, z, _, k = dying_at(d)
+            if x ~= nil and k < 1 then
+                local cy = y + 0.35
+                core.render.fx("glow", x, cy, z, 0.9 * (1 - k * 0.5), 90, 170, 255, math.floor(200 * (1 - k)), k)
+                core.render.fx("sparks", x, cy, z, 0.6, 140, 200, 255, 255, k)
+                for _ = 1, 5 do
+                    local ax, ay, az = (math.random() - 0.5) * 0.8, (math.random() - 0.5) * 0.8, (math.random() - 0.5) * 0.8
+                    local bx, by, bz = (math.random() - 0.5) * 0.9, (math.random() - 0.5) * 0.9, (math.random() - 0.5) * 0.9
+                    core.render.fx("bolt", x + ax, cy + ay, z + az, 0.02, 150, 210, 255, math.floor(230 * (1 - k)),
+                                   math.random(), x + bx, cy + by, z + bz)
+                end
+            end
+        end
         for _, f in fields do
             local x = f[1] + 0.5
             local z = f[3]
@@ -1901,24 +1967,35 @@ if drawing then
     -- server's cube is left out of their world while they carry it (it
     -- trailed their view, jumping with every position the server heard).
     -- 1.6 ahead.
+    local function model_of(name: string): number
+        if (drawn_ids[name] or 0) == 0 then
+            drawn_ids[name] = core.model_id(name)
+        end
+        return drawn_ids[name]
+    end
     core.render.pass("chambers_game:held_cube", 100, function()
-        -- This machine's player, as its own world code names it.
-        local me = core.players()[1]
-        if holding == "" or me == nil then
-            return
+        if holding ~= "" then
+            local x, y, z, yaw = in_hands()
+            -- The cube's own model (Blender), its feet half its height down,
+            -- turned with the view.
+            if x ~= nil then core.render.model(model_of(holding), x, y, z, yaw) end
         end
-        local x, y, z = core.player_pos(me)
-        local dx, dy, dz = core.player_look(me)
-        if x == nil or dx == nil then
-            return
+        -- Coming apart: eaten in patches by the model's dissolve shader,
+        -- shaking as the current goes through it.
+        local left = {}
+        for _, d in dying do
+            local x, y, z, yaw, k = dying_at(d)
+            if k < 1 then
+                table.insert(left, d)
+                if x ~= nil then
+                    local j = 0.025 * (1 - k)
+                    core.render.model(model_of(d.model), x + (math.random() - 0.5) * j, y + (math.random() - 0.5) * j,
+                                      z + (math.random() - 0.5) * j, yaw + (math.random() - 0.5) * 0.06, 1, 0, 0,
+                                      math.min(1, k * 1.15))
+                end
+            end
         end
-        local cx, cy, cz = x + dx * 1.6, math.max(y + 0.95, y + EYE + dy * 1.6), z + dz * 1.6
-        -- The cube's own model (Blender), its feet half its height down,
-        -- turned with the view.
-        if (drawn_ids[holding] or 0) == 0 then
-            drawn_ids[holding] = core.model_id(holding)
-        end
-        core.render.model(drawn_ids[holding], cx, cy - 0.35, cz, math.atan2(dx, dz))
+        dying = left
     end)
 
     -- The crosshair: a ring of two halves, blue on the left and orange on the

@@ -7,6 +7,30 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
 ## Non ancora consegnato
 
+- Cadendo in un portale a pavimento e uscendo da uno a parete non vieni più portato un blocco
+  troppo avanti: esci dentro l'apertura della parete, dove l'immagine ti mostrava, fin dove un
+  corpo ci sta.
+- Un blocco che una mod mette e gira subito, dove il mondo non è ancora caricato, mantiene la
+  rotazione: le porte delle camere di prova a volte stavano di traverso, e i pezzi di pista
+  potevano uscire non girati.
+- Il vetro si vede di nuovo dove mancava: nelle camere di prova non veniva disegnato affatto,
+  né direttamente né attraverso un portale, perché il disegno perdeva lo shader quando cambiava
+  la miscelazione.
+- Tra due portali a pavimento o a soffitto mantieni la direzione in cui andavi: segue il portale
+  solo l'inclinazione (guardi in giù entrando, in su uscendo), e l'orizzonte inclinato torna in
+  piano con un'animazione.
+- Un portale nel soffitto ti prende quando ci arriva la testa, non i piedi: saltandoci o volandoci
+  dentro, la vista non entra più prima nel soffitto. (Le pareti andavano già con la testa, i
+  pavimenti con i piedi, che ci arrivano per primi.)
+- `tools/portallab.sh`: una scena per controllare i portali a occhio -- vetro attraverso
+  un'apertura in parete e una nel pavimento, un'apertura nel soffitto in cui saltare.
+- Uscendo da un portale la vista non viene più girata: guardi dove il passaggio porta il tuo
+  sguardo, e viene raddrizzato solo l'orizzonte inclinato, con un'animazione morbida tra un
+  quarto e poco più di mezzo secondo. (La telecamera del kart si livella ancora.)
+- Camere di prova: un cubo portato in mano attraverso il campo dissolvente non resta più in mano;
+  si disintegra lì, elettrificato (consumato con i bordi che bruciano di blu, scintille), e gli
+  altri lo vedono disintegrarsi dov'era. Il tubo del distributore di cubi non sfarfalla più visto
+  da sotto.
 - **Portali fra server costruiti nel mondo**: un anello d'oro di `portal:server_frame` (otto
   cornici di portale attorno a un rubino). Il clic destro di un admin apre il suo menù: il nome, i
   server amici per cui è disponibile e i portali che quelli offrono a questo server, un clic per

@@ -115,6 +115,17 @@ struct Portal {
 // settles it.
 Vec3 portal_transform_dir(const Portal &src, const Portal &dst, Vec3 dir);
 
+// Where a body looks once through: the map's look, except between two
+// horizontal openings (a floor or a ceiling at both ends), where the way it
+// was heading is kept and only the map's tilt taken -- falling into a floor
+// looking north, out of the other floor looking north, up as steeply as it
+// looked down; the horizon the map tipped then settles level (the client's
+// settle_roll). Turned by the two openings' quarter turns, a body bouncing
+// between two shot floors came out facing a new way every time (reported
+// from play, 2026-11-02). Straight down there is no heading to keep: the
+// map's look.
+Vec3 portal_carry_look(const Portal &src, const Portal &dst, Vec3 look);
+
 // The same map, applied to a point: relative to the source's centre, and put
 // back relative to the destination's. The depth clamp above is applied here and
 // not in the direction form.

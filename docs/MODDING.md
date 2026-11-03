@@ -583,7 +583,7 @@ core.net.send(player, text) -> bool              -- 0 = everybody in this world
 
 core.render.pass(name, order, fn)                -- only on a client
 core.render.box(x, y, z, w, h, d, r, g, b, a)    -- only inside a pass
-core.render.model(id, x, y, z, yaw?, scale?, pitch?, roll?)   -- a model of the world, only inside a pass
+core.render.model(id, x, y, z, yaw?, scale?, pitch?, roll?, dissolve?)   -- a model of the world, only inside a pass
 core.render.fx(kind, x, y, z, size?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- a light effect, only inside a pass
 core.overcast(how_much)                          -- grey sky and clouds, 0..1: the weather (mods/weather)
 core.node_foliage(id, on?)                       -- a block that takes the season's colour
@@ -769,7 +769,10 @@ world (an id from `core.model_id`), still in its rest pose, feet at `x, y, z` an
 about the vertical (and first, if given, tilted by `pitch` about its x and `roll` about its z: a
 card held in hand, `mods/cards`): something only this machine knows the place of, like the cube in
 a player's hands in `games/chambers` (which the server does not send them, `core.mob_unseen`).
-Returns false for a model this client does not have.
+`dissolve`, 0 to 1, is how much of it is gone: the model's shader eats it away in patches of a
+noise fixed on the model, the edges burning electric blue and what is left turning blue, its
+inside showing through the holes -- the mod counts the time, as for `t` below (a cube a field takes
+apart in `games/chambers`). Returns false for a model this client does not have.
 
 `core.render.fx(kind, x, y, z, size, r, g, b, a, t)` draws a **light effect** with the engine's
 shaders (`src/client/render/fx_render.cpp`): it adds to what is behind, walls cover it and it does

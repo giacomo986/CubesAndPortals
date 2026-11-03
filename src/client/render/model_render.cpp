@@ -44,6 +44,7 @@ bool ModelRenderer::init()
     m_loc_glow    = gfx_uniform_location(m_shader, "uGlow");
     m_loc_light   = gfx_uniform_location(m_shader, "uLight");
     m_loc_alpha   = gfx_uniform_location(m_shader, "uAlpha");
+    m_loc_dissolve = gfx_uniform_location(m_shader, "uDissolve");
     m_water.locate(m_shader);
 
     // One white texel, for a material that names no texture. The alternative is
@@ -174,7 +175,7 @@ bool ModelRenderer::upload(const SkinnedModel &model, std::string &why)
 
 void ModelRenderer::draw(const Mat4 &projection, const Mat4 &view, const Mat4 &model,
                          const std::vector<float> &bones, gfx_texture texture, float light,
-                         float alpha, uint32_t tag)
+                         float alpha, uint32_t tag, float dissolve)
 {
     if (m_index_count == 0 || m_shader.id == 0) return;
 
@@ -209,6 +210,7 @@ void ModelRenderer::draw(const Mat4 &projection, const Mat4 &view, const Mat4 &m
     if (m_loc_texture >= 0) gfx_uniform_set_int(m_loc_texture, 0);
     if (m_loc_light >= 0) gfx_uniform_set_f(m_loc_light, std::max(light, night_sight * 0.55f));
     if (m_loc_alpha >= 0) gfx_uniform_set_f(m_loc_alpha, alpha);
+    if (m_loc_dissolve >= 0) gfx_uniform_set_f(m_loc_dissolve, dissolve);
     m_water.set(projection, view);   // before the parts bind their textures to unit 0
 
     gfx_state state = gfx_state_default();
@@ -229,7 +231,8 @@ void ModelRenderer::draw(const Mat4 &projection, const Mat4 &view, const Mat4 &m
         // Both sides, when the material says so. A garment modelled as a
         // surface has no inside, and culling its back faces shows the world
         // through the character.
-        state.cull = p.double_sided ? GFX_CULL_NONE : GFX_CULL_BACK;
+        // And while it dissolves: through its holes its inside shows.
+        state.cull = p.double_sided || dissolve > 0.0f ? GFX_CULL_NONE : GFX_CULL_BACK;
         gfx_state_set(&state);
 
         gfx_texture_bind(texture.id != 0 ? texture : p.texture, 0);

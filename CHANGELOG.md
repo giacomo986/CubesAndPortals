@@ -7,6 +7,26 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
 ## Not handed out yet
 
+- Falling into a floor portal and out of a wall one no longer carries you a node too far: you come
+  out inside the wall's opening, where the picture showed you, as far as a body fits.
+- A block a mod puts down and turns at once, where the world is not loaded yet, keeps its turn:
+  the test chambers' doors sometimes stood sideways, and track pieces could come out unturned.
+- Glass is drawn again wherever it was missing -- in the test chambers it was not drawn at all,
+  seen directly or through a portal: the renderer lost its shader when the blending changed.
+- Between two floor or ceiling portals you keep the way you were heading: only the tilt follows
+  the portal (looking down into one, looking up out of the other), and the tipped horizon eases
+  back level.
+- A ceiling portal takes you when your head reaches it, not your feet: jumping or flying up into
+  one, the view no longer goes into the ceiling first. (Walls already went by the head, floors by
+  the feet, which reach them first.)
+- `tools/portallab.sh`: a scene for checking portals by eye -- glass through a wall and a floor
+  opening, a ceiling opening to jump into.
+- Coming out of a portal, the view is no longer turned: you look where the crossing sends your
+  look, and only a tipped horizon is put back level, eased in and out in a quarter to just over
+  half a second. (A kart's camera still levels.)
+- Test chambers: a cube carried through the dissolving field no longer stays in your hands; it
+  comes apart there, electrified (eaten away with burning blue edges, sparks), and everybody else
+  sees it come apart where it was. The cube vent's tube no longer flickers seen from below.
 - **Portals between servers built in the world**: a gold ring of `portal:server_frame` (eight
   portal frames round a ruby). An admin's right click opens its menu: its name, the friend
   servers it is available to, and the portals they offer this server, one click to connect. The

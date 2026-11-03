@@ -608,6 +608,7 @@ server acceso tra riavvii e crash, con un log al giorno.
 | `tools/play.sh` (`local`, `--fresh`) | Compila in Release, avvia server e client con tutti i mod e un mondo salvato in `worlds/play/` |
 | `tools/track.sh` (`--fresh`) | Un server con il sandbox e tutti i mondi come stanze, come lo avvia il menù del titolo (mondi e log in `worlds/track/`); `--fresh` ti fa anche suo proprietario, così il catalogo creativo (C) è aperto |
 | `tools/arpg.sh`, `tools/fps.sh`, `tools/chambers.sh` (`--fresh`) | Il sandbox e un mondo solo, per lavorare su quel mondo |
+| `tools/portallab.sh` | Una scena per controllare i portali a occhio (games/portallab): vetro visto attraverso le aperture, una a soffitto in cui saltare, due pavimenti tra cui rimbalzare; `/lab wall`, `glass`, `head`, `bounce`, `view` |
 | `build/tools/cnp_modpack pack mods/ore` | Un mod in un file `.cnpmod`, che si carica da `mods/` come una directory |
 | `tools/dist/package-*.sh` | I pacchetti per Linux, Windows e macOS ([`docs/BUILDING.md`](docs/BUILDING.it.md)) |
 | `build/tools/cnp_netshape` | Relay UDP con ritardo e perdita, per provare link lenti |

@@ -622,7 +622,7 @@ core.net.send(player, testo) -> bool             -- 0 = tutti in questo mondo
 
 core.render.pass(nome, ordine, fn)               -- solo su un client
 core.render.box(x, y, z, w, h, d, r, g, b, a)    -- solo dentro un pass
-core.render.model(id, x, y, z, yaw?, scala?, pitch?, roll?)   -- un modello del mondo, solo dentro un pass
+core.render.model(id, x, y, z, yaw?, scala?, pitch?, roll?, dissolve?)   -- un modello del mondo, solo dentro un pass
 core.render.fx(tipo, x, y, z, misura?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- un effetto di luce, solo dentro un pass
 core.overcast(quanto)                            -- cielo e nuvole grigi, 0..1: il meteo (mods/weather)
 core.node_foliage(id, on?)                       -- un blocco che prende il colore della stagione
@@ -834,7 +834,11 @@ riposo, con i piedi in `x, y, z` e girato di `yaw` attorno alla verticale (e pri
 se dati, inclinato di `pitch` attorno alla sua x e di `roll` attorno alla sua z:
 una carta tenuta in mano, `mods/cards`): una
 cosa che solo questa macchina sa dove sta, come il cubo in mano a un giocatore
-di `games/chambers` (che il server non gli manda, `core.mob_unseen`). Restituisce
+di `games/chambers` (che il server non gli manda, `core.mob_unseen`). `dissolve`,
+da 0 a 1, è quanto ne è sparito: lo shader del modello lo consuma a chiazze di un
+rumore fisso sul modello, con i bordi che bruciano di azzurro elettrico e quello che
+resta che vira al blu, l'interno visibile dai buchi -- il tempo lo conta il mod, come
+per `t` sotto (un cubo che un campo disintegra in `games/chambers`). Restituisce
 false per un modello che questo client non ha.
 
 `core.render.fx(tipo, x, y, z, misura, r, g, b, a, t)` disegna un **effetto di

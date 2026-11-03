@@ -2035,6 +2035,84 @@ Open:
 - While linked, the room takes the friend's tickets for any opening.
 - One menu at a time per world, as the frame menu (the last admin's).
 
+**Done 2026-11-02, chambers:** a carried cube crossing the field first (it
+is 1.6 ahead of the body) was taken by dispense() without "hold -": it
+stayed drawn in the hands. Now the carrier is told "dissolve" and every
+other player "zap MODEL X Y Z"; the client draws it 0.9 s coming apart:
+core.render.model's new `dissolve` (model shader: two-octave value noise
+on the model, discard below the threshold, a white-blue burning edge,
+both sides drawn), jitter, bolts, sparks and a glow. Checked in Xephyr
+walking through chamber 13's field with a cube (16 frames, 80 ms apart).
+The vent's tube: its rim and the collar's were one plane (z -1.15), and
+its inside's wall the tube's (r 0.36): collar 1 cm lower, inside r 0.355.
+
+**Done 2026-11-02, the look after a crossing:** out of a wall looking
+steeply (aim_after_crossing) the view turned to the wall's normal, level,
+whatever the player aimed at -- away from chamber 11's ledge. On foot the
+look is now left as the crossing maps it; only the roll settles back to
+the world's up (settle_roll), now eased (smoothstep, 0.25 s for a small
+tip to 0.6 s for half a turn) instead of a constant half turn a second. A
+kart's camera still levels its pitch.
+Not replayed in chamber 11.
+
+**Done 2026-11-02, the portal lab and the ceiling:** games/portallab
+(tools/portallab.sh), a sunlit platform: a glass wall (core:glass and the
+chambers' faint glass, opacity 60, red behind) seen through a wall pair
+(W->B) and a floor-to-wall pair (A->F); a two-high roof with a ceiling
+opening C (->D) to jump into; /lab wall|glass|head|view. Measured there:
+the glass is drawn through an opening (a translucent pass of 138 vertices
+from the virtual camera) and tints the red as it does seen directly
+((80,33,33) behind the faint glass, (70,22,23) beside it, both ways); the
+chambers' glass is that faint by its texture (alpha 50, edges 200), not
+lost by the portal. The ceiling: the crossing point was the feet for any
+horizontal opening, so going up the head was 1.6 into the ceiling first;
+now crossing_point is the feet only for a floor (facing up) -- the eye
+crosses a ceiling at the depth the feet cross a floor (24.62 against
+25.38 about a centre of 25). A jump under C crosses.
+
+**Done 2026-11-02, the glass and horizontal crossings:**
+- The glass: in the chambers it was not drawn at all, directly or through
+  a portal (a wall of red glass at alpha 200 changed 172 pixels of a
+  screen; the same as opaque blocks, a red wall). Its 504 vertices were
+  sent; drawn without blending, or without the depth test, they showed.
+  gfx_state_set: rlSetBlendMode, on a change of mode, draws rlgl's own
+  batch first and ends with glUseProgram(0) when that batch holds
+  anything (the debug text): the world's shader, bound for the glass, was
+  gone. It binds the current shader again. Measured after: taking the
+  wall out changes 27600 pixels directly and 3147 inside the opening (0
+  before). The lab, with no debug text in the batch at that moment, never
+  showed it.
+- Between two horizontal openings the heading is kept (portal_carry_look,
+  core, both sides); only the tilt follows the map and the roll settles.
+  Measured in the lab's bounce (two floors a quarter turn apart): yaw 0
+  on every one of 112 crossings in a minute (was 90 after each), pitch
+  +-37, roll from ~175 to 0 in 0.6 s. This reverses 2026-09-19's "one map
+  for the picture and the body" for that case, as asked: the view snaps
+  by the two openings' turn at the crossing.
+- The crash "jumping between horizontal portals": not reproduced (ASan
+  client and server, 90 s of bouncing; a minute with the debug build).
+  Its log was written over by the next run: tools/track.sh now keeps the
+  last run's server.log and client.log as *.prev.
+
+**Done 2026-11-03, doors turned the wrong way:** core.set_facing checked
+the turn against the cell as it was before deferring it to a column not
+taking writes yet, so set_block + set_facing there was checked against the
+air the block was to replace and refused ("core.set_facing 3 is not a turn
+'core:air' has", 24 a start in the chambers, 6 for track_core): the door
+came in with facing 0. The check now runs at the replay, on the real
+block. Checked: tools/track.sh's eleven rooms from fresh worlds, 0 refused
+(30 before).
+
+**Done 2026-11-03, floor into wall:** the crossing goes by the feet
+through a floor, with the eye 1.62 above the plane, and `exit` (trigger +
+view, right for an eye crossing) put the eye 1.62 ahead of where the image
+showed it. Out of a horizontal source into a wall the exit is now where the
+image had the eye, no further back than the box fits in the opening's node
+(a tenth off its back face). Measured with portal_traverse: jump 1.62 ->
+0.92 (the rest is wall); wall -> wall unchanged at 0.01. In the lab (A ->
+F): out inside F's hole, falls out onto the platform, 0 corrections.
+Open: the 0.92 left -- only a camera crossing with the eye could remove it.
+
 ## Mods and scripting
 
 **Items on show (core.show_item, protocol 112), 2026-11-01.** The key over

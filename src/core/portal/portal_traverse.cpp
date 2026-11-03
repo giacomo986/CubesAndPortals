@@ -108,6 +108,16 @@ Vec3 portal_transform_dir(const Portal &src, const Portal &dst, Vec3 dir)
     return apply_map(src, dst, dir);
 }
 
+Vec3 portal_carry_look(const Portal &src, const Portal &dst, Vec3 look)
+{
+    const Vec3 mapped = normalize(apply_map(src, dst, look));
+    if (!src.horizontal() || !dst.horizontal()) return mapped;
+    const float flat = std::sqrt(look.x * look.x + look.z * look.z);
+    if (flat < 1e-4f) return mapped;
+    const float across = std::sqrt(std::max(0.0f, 1.0f - mapped.y * mapped.y));
+    return Vec3{look.x / flat * across, mapped.y, look.z / flat * across};
+}
+
 Vec3 portal_transform_pos(const Portal &src, const Portal &dst, Vec3 pos)
 {
     Vec3 n_d, r_d, u_d;
@@ -185,6 +195,17 @@ bool past_trigger(const Portal &p, Vec3 eye)
     return portal_depth(p, eye) < portal_tuning().trigger_depth();
 }
 
+// The point of the body that crosses: the first to reach the plane. Through a
+// floor (facing up) the feet, which go first; through a wall or a CEILING (an
+// opening facing down) the head, the eye -- going up into a ceiling the head
+// is there 1.6 nodes before the feet, and measured at the feet the camera went
+// that far into the block above before anything happened: the view looked
+// out of the wrong side of the opening (reported from play, 2026-11-02).
+static Vec3 crossing_point(const Portal &p, Vec3 feet, Vec3 eye)
+{
+    return p.horizontal() && p.normal().y > 0.0f ? feet : eye;
+}
+
 bool portal_step_trigger(const Portal &p, PortalTriggerState &state, Vec3 feet, Vec3 eye,
                          Vec3 vel)
 {
@@ -199,15 +220,15 @@ bool portal_step_trigger(const Portal &p, PortalTriggerState &state, Vec3 feet, 
         return false;
     }
 
-    // The same point the trigger below uses, and for the same reason: a floor
-    // portal is crossed by the FEET, so "did they come at it from the front"
-    // has to be asked about the feet too. Asking the eye while triggering on
+    // The same point the trigger below uses (crossing_point), and for the same
+    // reason: a floor portal is crossed by the FEET, so "did they come at it
+    // from the front" has to be asked about the feet too. Asking the eye while triggering on
     // the feet is an asymmetry 1.62 nodes wide -- somebody standing under a
     // ceiling portal with their head poking up through it counts as having
     // approached from the front, and gets pulled up through a portal they were
     // merely walking under. The two thresholds used to mask each other; moving
     // one of them is what made it visible.
-    const float depth = portal_depth(p, p.horizontal() ? feet : eye);
+    const float depth = portal_depth(p, crossing_point(p, feet, eye));
 
     if (!state.in_bounds) {
         state.in_bounds = true;
@@ -220,7 +241,9 @@ bool portal_step_trigger(const Portal &p, PortalTriggerState &state, Vec3 feet, 
         // in front of it never happened. Descending, over a horizontal opening,
         // counts as front entry anyway; without this a fall through a floor
         // portal never fires at all.
-        if (!state.entered_from_front && p.horizontal() && vel.y < -0.1f) {
+        // Rising into a ceiling is the same, the other way up.
+        if (!state.entered_from_front && p.horizontal() &&
+            (p.normal().y > 0.0f ? vel.y < -0.1f : vel.y > 0.1f)) {
             Vec3 n, r, u;
             triad(p, n, r, u);
             const Vec3  rel = feet - p.center;
@@ -233,8 +256,9 @@ bool portal_step_trigger(const Portal &p, PortalTriggerState &state, Vec3 feet, 
 
     if (state.triggered || !state.entered_from_front) return false;
 
-    // The eye for a wall, the FEET for a floor, and the difference is not a
-    // preference -- the eye version cannot be made to work.
+    // The eye for a wall and a ceiling, the FEET for a floor, and the
+    // difference is not a preference -- for a floor the eye version cannot be
+    // made to work.
     //
     // What has to be continuous through a wall portal is what you SEE, so the
     // eye is what crosses. Through a floor portal it is where you STAND: you go
@@ -245,7 +269,7 @@ bool portal_step_trigger(const Portal &p, PortalTriggerState &state, Vec3 feet, 
     // so the box override of PORTAL_SYSTEM 2.3 runs out of room and the player
     // hangs a fifth of a node short of a portal they are standing in. Measured:
     // feet arrested at 22.306 needing 22.13.
-    if (!past_trigger(p, p.horizontal() ? feet : eye)) return false;
+    if (!past_trigger(p, crossing_point(p, feet, eye))) return false;
 
     state.triggered = true;
     return true;
@@ -421,7 +445,7 @@ Traversal portal_traverse(const Portal &src, const Portal &dst, Vec3 feet, Vec3 
     triad(dst, n_d, r_d, u_d);
 
     // ------------------------------------------------------------ direction
-    out.look = normalize(apply_map(src, dst, look));
+    out.look = portal_carry_look(src, dst, look);
 
     // This engine's angles, not the original engine's: dir_from_angles is
     // (cos(pitch) sin(yaw), sin(pitch), -cos(pitch) cos(yaw)).
@@ -442,7 +466,8 @@ Traversal portal_traverse(const Portal &src, const Portal &dst, Vec3 feet, Vec3 
             // do, and +X is as good as another.
             right_before = Vec3{1.0f, 0.0f, 0.0f};
         }
-        const Vec3 rt = apply_map(src, dst, right_before);
+        // Between two horizontal openings the heading is kept (portal_carry_look).
+        const Vec3 rt = src.horizontal() && dst.horizontal() ? right_before : apply_map(src, dst, right_before);
         out.yaw       = std::atan2(rt.z, rt.x);
     } else {
         out.yaw = std::atan2(out.look.x, -out.look.z);
@@ -517,7 +542,22 @@ Traversal portal_traverse(const Portal &src, const Portal &dst, Vec3 feet, Vec3 
     // exit that makes the view before a crossing and the view after it the same
     // picture. Anything else is a jump the size of the difference, and the
     // dual-session gate measures it rather than leaving it to be noticed.
-    const float want = portal_tuning().exit_depth();
+    float want = portal_tuning().exit_depth();
+
+    // Out of a floor into a wall the crossing went by the FEET (crossing_point),
+    // with the eye still its height above the plane: the image was showing it
+    // that much further back, behind the wall's opening, and `exit` put it out
+    // in front -- the eye-height jump forward that read as being carried a
+    // node too far (measured 1.62; reported from play, 2026-11-03). As far back
+    // as the picture had it, then, but no further back than a body fits: its
+    // box inside the opening's own node, a tenth clear of the node's back face
+    // (a shell's plate is there in the test chambers). What is left is the
+    // part of the jump that is wall.
+    if (src.horizontal() && !dst.horizontal()) {
+        const float shown = dot(off, n_d) + portal_tuning().view_depth();
+        const float least = -0.5f * kNodeSize + half_width + 0.1f;
+        want              = std::min(want, std::max(shown, least));
+    }
     off = off + n_d * (want - dot(off, n_d));
 
     // A destination smaller than the source -- an 8x8 frame into a 1x2 one --

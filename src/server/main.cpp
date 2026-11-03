@@ -706,7 +706,20 @@ int host_watch_cell(void *ud, int x, int y, int z, int on)
 void host_set_facing(void *ud, int x, int y, int z, int facing)
 {
     ServerState *s = static_cast<ServerState *>(ud);
-    if (facing < 0) return;
+    if (facing < 0 || facing > 255) return;
+
+    // A column not taking writes yet holds this back with the block written
+    // before it, and the turn is checked when both are put in (the replay
+    // calls this again): checked now, against the cell as it is, a door set
+    // and turned at once in such a column was checked against the AIR it
+    // replaced, refused, and stood turned the wrong way in the test chambers
+    // (reported from play, 2026-11-03).
+    if (!s->generating && !column_takes_writes(*s, x, z)) {
+        PendingWrite w{x, y, z, kAir, (uint8_t)facing};
+        w.facing_only = true;
+        s->keeper.defer(w);
+        return;
+    }
 
     // What the byte may be is the BLOCK's business: four turns for a chest,
     // twenty-four for a log, six faces for a ladder (registry/node_registry.h).
@@ -718,13 +731,6 @@ void host_set_facing(void *ud, int x, int y, int z, int facing)
         const ModManifest *m = mod_host_current();
         std::fprintf(stderr, "mod '%s': core.set_facing %d is not a turn '%s' has\n",
                      m ? m->name.c_str() : "?", facing, def.name.c_str());
-        return;
-    }
-
-    if (!s->generating && !column_takes_writes(*s, x, z)) {
-        PendingWrite w{x, y, z, kAir, (uint8_t)facing};
-        w.facing_only = true;
-        s->keeper.defer(w);
         return;
     }
     if (s->generating && s->mapgen_ctx && !s->mapgen_ctx->owns(x, z)) return;

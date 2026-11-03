@@ -154,6 +154,42 @@ a leggere i livelli e `daylight_at`.
 - **Classica** (`set_classic`, Opzioni → Lighting): la formula di prima, dal byte di luce
   impacchettato che il vertice porta ancora; niente ombre né sole.
 
+## Trappole già incontrate
+
+Ognuna di queste è stata un difetto trovato giocando, e la regola sotto è quello che le impedisce
+di tornare. Quando una modifica tocca una di queste, va verificata come dice la riga.
+
+- **rlgl ci stacca lo shader alle spalle.** `rlSetBlendMode`, quando cambia modalità, prima
+  disegna il batch di raylib, e se quel batch contiene qualcosa (testo di debug, 2D) finisce con
+  `glUseProgram(0)`: il disegno successivo parte senza programma e non finisce da nessuna parte.
+  `gfx_state_set` rilega `g.current_shader` subito dopo. Ogni nuova chiamata a rlgl che può
+  svuotare il batch (`rlDrawRenderBatch*`, `rlSetBlendMode`, `rlSetShader`) tra il legare uno
+  shader e il disegnare deve fare lo stesso. Sintomo: il vetro (il passaggio traslucido) che manca
+  in certe scene e non in altre, direttamente e attraverso i portali (2026-11-02). Verifica: il
+  vetro delle camere di prova con F3 acceso, e `tools/portallab.sh` `/lab view`.
+- **Una rotazione aspetta con il suo blocco.** `core.set_facing` su una colonna che non accetta
+  ancora scritture va in coda e si controlla quando viene applicata, sul blocco che c'è allora --
+  mai sulla cella com'è prima (l'aria che una porta sostituisce). Sintomo: porte e pezzi di pista
+  ogni tanto girati male. Verifica: il log del server di `tools/track.sh` su mondi nuovi non ha
+  "is not a turn".
+- **Un passaggio ha un solo punto del corpo.** I PIEDI per un pavimento (ci arrivano per primi),
+  l'OCCHIO per una parete e per un soffitto (`crossing_point`, `core/portal/portal_traverse.cpp`).
+  Misurato ai piedi, un soffitto portava prima la testa 1.6 dentro il blocco. Verifica: `/lab head`,
+  un salto sotto il tetto attraversa.
+- **L'uscita continua l'immagine.** `exit = trigger + view` (config/portal.cfg) vale per un
+  passaggio con l'occhio. Da un pavimento a una parete l'occhio è ancora alla sua altezza sopra il
+  piano, quindi l'uscita è dove l'immagine lo mostrava, fin dove un corpo sta nel nodo
+  dell'apertura. Verifica: il salto tra dove l'apertura mostrava l'occhio e dove viene messo --
+  0.01 da parete a parete, 0.92 da pavimento a parete (il resto è muro); una modifica che ne alza
+  uno è una regressione.
+- **Tra due aperture orizzontali la direzione resta** (`portal_carry_look`): segue la mappa solo
+  l'inclinazione, e il rollio torna in piano (`settle_roll`, morbido, 0.25-0.6 s). A piedi lo
+  sguardo non viene mai girato dopo un passaggio; solo l'orizzonte. Verifica: `/lab bounce`, la
+  direzione resta quella di prima a ogni passaggio.
+- **Una scena dedicata prima di un'ipotesi.** `tools/portallab.sh` costruisce casi di portale in
+  cui ogni numero si può leggere (al sole, senza altre mod). Quando un difetto compare in un gioco
+  ma non lì, la differenza tra i due è la causa: elencarla prima di cambiare qualcosa.
+
 ## Dove si mette una feature
 
 | Cosa | Dove |

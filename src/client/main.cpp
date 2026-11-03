@@ -1611,6 +1611,10 @@ struct Scene {
     bool last_clip    = false;
 
     float roll = 0.0f;
+    // settle_roll's animation: the roll it started from, how far through it
+    // is, how long it takes, and the roll it left -- a crossing that sets
+    // another starts it again.
+    float roll_from = 0.0f, roll_t = 0.0f, roll_dur = 0.0f, roll_left = 0.0f;
 
     // Turning the view out of the opening a crossing came out of, and where
     // to: see aim_after_crossing.
@@ -1951,7 +1955,7 @@ int host_render_box(void *ud, double x, double y, double z, double w, double h, 
 // core.render.model: one of the world's models at rest, inside a pass, as a
 // block's model is drawn (wire_model_draw).
 int host_render_model(void *ud, int model, double x, double y, double z, double yaw, double scale,
-                      double pitch, double roll)
+                      double pitch, double roll, double dissolve)
 {
     Scene *s = static_cast<Scene *>(ud);
     if (!s->in_pass) {
@@ -1960,7 +1964,7 @@ int host_render_model(void *ud, int model, double x, double y, double z, double 
     }
     if (model <= 0 || model > 0xffff || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) ||
         !std::isfinite(yaw) || !std::isfinite(pitch) || !std::isfinite(roll) || !(scale > 0.0) ||
-        scale > 16.0)
+        scale > 16.0 || !std::isfinite(dissolve))
         return 0;
     ModelStore::Entry *e = s->act().models.entry((uint16_t)model);
     if (e == nullptr) return 0;
@@ -1968,7 +1972,8 @@ int host_render_model(void *ud, int model, double x, double y, double z, double 
                                      mat4_rotate_z((float)roll));
     const Mat4 place = mat4_multiply(mat4_multiply(mat4_translate(Vec3{(float)x, (float)y, (float)z}), turn),
                                      mat4_scale(Vec3{(float)scale, (float)scale, (float)scale}));
-    e->renderer.draw(s->pass_projection, s->pass_view, place, e->model.bind_pose, gfx_texture{0}, 1.0f);
+    e->renderer.draw(s->pass_projection, s->pass_view, place, e->model.bind_pose, gfx_texture{0}, 1.0f, 1.0f, 0,
+                     (float)std::clamp(dissolve, 0.0, 1.0));
     return 1;
 }
 
@@ -12488,21 +12493,33 @@ void swap_sessions(Scene &s)
 // stopped working, which is the failure this whole file is written against.
 bool step_portals(Scene &s, Player &player, float dt);
 
-// The horizon a crossing tipped, back to level at half a turn a second: the
-// Portal-puzzle landing yaportal does with roll_targets. Both loops, local and
-// connected: the connected one set the roll from the Teleport and never took it
-// back, so a quarter-turned portal left the view and the mouse on their side for
-// good -- reported from play.
+// The horizon a crossing tipped, back to level: the Portal-puzzle landing
+// yaportal does with roll_targets. Both loops, local and connected: the
+// connected one set the roll from the Teleport and never took it back, so a
+// quarter-turned portal left the view and the mouse on their side for good --
+// reported from play. Eased in and out (smoothstep), 0.25 s for a small tip
+// to 0.6 s for half a turn: at a constant half a turn a second it started and
+// stopped with a jolt (reported from play, 2026-11-02). Only the up turns;
+// where the player looks is theirs.
 void settle_roll(Scene &s, float dt)
 {
-    const float step = 3.14159265f * dt;
-    s.roll = (std::fabs(s.roll) <= step) ? 0.0f : s.roll - (s.roll > 0.0f ? step : -step);
+    if (s.roll == 0.0f) return;
+    if (s.roll != s.roll_left) {   // a crossing tipped it (again): from here
+        s.roll_from = s.roll;
+        s.roll_t    = 0.0f;
+        s.roll_dur  = 0.25f + 0.35f * std::min(1.0f, std::fabs(s.roll) / 3.14159265f);
+    }
+    s.roll_t += dt;
+    const float k = std::clamp(s.roll_t / s.roll_dur, 0.0f, 1.0f);
+    s.roll        = k >= 1.0f ? 0.0f : s.roll_from * (1.0f - k * k * (3.0f - 2.0f * k));
+    s.roll_left   = s.roll;
 }
 
 // A crossing out of a standing opening taken looking steeply up or down turns
 // the view out of the opening, at the roll's half a turn a second. A fall into
 // a floor portal taken looking ahead came out of a wall looking straight up and
-// stayed there; now it ends looking out along the wall's normal, level. Out of
+// stayed there. Only a kart's camera does now: on foot the look is the player's
+// and only the horizon settles (aim_after_crossing). Out of
 // a floor or a ceiling the look is left alone -- straight up is where a body
 // shot out of a floor is going -- and so is anything within 45 degrees of
 // level, which is the player's own aim carried through. The mouse ends it.
@@ -12535,7 +12552,7 @@ void ahead_of_crossing(Scene &s, Player &player, Vec3 eye_before, Vec3 look_befo
     if (box_hits_world(w.world, w.registry, body_box(feet, w.movement.width * 0.5f))) return;
     std::printf("portal: %.2f ahead of where the server put us\n", (double)length(feet - player.pos));
     player.pos = feet;
-    const Vec3 look = normalize(portal_transform_dir(src, dst, look_before));
+    const Vec3 look = portal_carry_look(src, dst, look_before);
     player.yaw      = std::atan2(look.x, -look.z);
     player.pitch    = std::asin(std::clamp(look.y, -1.0f, 1.0f));
 }
@@ -12562,8 +12579,15 @@ void aim_after_crossing(Scene &s, const Player &player)
     // opening (into the wall), which a fall never does -- looking ahead it
     // comes out along the wall, looking down into the floor out of it. Turning
     // that one round to face away was reported from play (2026-10-05).
-    s.look_settling  = std::fabs(n.y) < 0.5f && std::fabs(player.forward().y) > 0.7071f &&
-                       dot(player.forward(), n) > -0.05f;
+    const Vec3 f     = player.forward();
+    // On foot the look is the player's, wherever the crossing sent it: only
+    // the horizon is put back level (settle_roll). Turning the view out of
+    // the opening as well -- to its normal, level -- turned a player who
+    // jumped in aiming at a ledge away from it (reported from play, chamber
+    // 11, 2026-11-02). A kart's camera, whose heading is the chassis's, still
+    // tips back to level (settle_look).
+    s.look_settling  = s.act().movement.drives() && std::fabs(n.y) < 0.5f && std::fabs(f.y) > 0.7071f &&
+                       dot(f, n) > -0.05f;
     s.look_target    = normalize(Vec3{n.x, 0.0f, n.z});
     s.look_since     = plat_time();
     if (s.look_settling)
@@ -12598,7 +12622,7 @@ void settle_look(Scene &s, Player &player, float dt)
         d = f * std::cos(step) + cross(k, f) * std::sin(step);
     } else {
         s.look_settling = false;
-        std::printf("portal: looking out of the opening, level, %.2f s after the crossing\n",
+        std::printf("portal: looking out of the opening, %.2f s after the crossing\n",
                     plat_time() - s.look_since);
     }
     player.yaw   = std::atan2(d.x, -d.z);
@@ -19571,8 +19595,8 @@ int client_main(int argc, char **argv)
                         "  asked     degrees the mouse asked it to move\n"
                         "  unexplned degrees it moved that nothing asked for -- the defect\n"
                         "  clamp     degrees the pitch limit took off the top\n"
-                        "  horizon   degrees the horizon rolled; half a turn a second is the\n"
-                        "            crossing animation and not a fault\n"
+                        "  horizon   degrees the horizon rolled; easing back to level in\n"
+                        "            0.25-0.6 s is the crossing animation and not a fault\n"
                         "  crate     the sliding crate's distance from the opening's plane,\n"
                         "            along its normal; CUT while it is in two worlds at once\n",
                         (double)kViewTraceSeconds, (double)(kViewTraceSampleSeconds * 1000.0f),

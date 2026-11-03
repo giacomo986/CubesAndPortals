@@ -1060,6 +1060,7 @@ uniform vec4 uBones[252];                // 84 joints x 3 rows, 1008 components
 out vec2 vUV;
 out vec3 vNormal;
 out vec4 vClip;   // for the water in front of it
+out vec3 vObj;    // where on the model, for a dissolve's pattern
 
 void main()
 {
@@ -1080,6 +1081,7 @@ void main()
 
     vUV     = aUV;
     vNormal = normal;
+    vObj    = aPos;
     gl_Position = uMVP * vec4(skinned, 1.0);
     vClip       = gl_Position;
 }
@@ -1092,17 +1094,48 @@ inline constexpr const char *kModelFS = R"(#version 330 core
 in vec2 vUV;
 in vec3 vNormal;
 in vec4 vClip;
+in vec3 vObj;
 
 uniform sampler2D uTexture;
 uniform vec4 uColour;
 uniform float uGlow;   // 1 for a material that gives its own light
 uniform float uLight;  // how bright the cell it stands in is; 1 for a body
 uniform float uAlpha;  // 1 but for something fading out: a creature that died
+// 0, or how much of the model is gone (core.render.model's dissolve): eaten in
+// patches of a noise fixed on the model, every edge burning electric blue.
+uniform float uDissolve;
 
 out vec4 fragColour;
 )" CNP_WATER_GLSL R"(
+float dissolve_hash(vec3 p)
+{
+    return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453);
+}
+// Value noise, two octaves: patches of about a sixth of a node with grain in them.
+float dissolve_noise(vec3 p)
+{
+    float sum = 0.0, amp = 0.65;
+    for (int o = 0; o < 2; ++o) {
+        vec3 i = floor(p), f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        float a = mix(mix(dissolve_hash(i), dissolve_hash(i + vec3(1, 0, 0)), f.x),
+                      mix(dissolve_hash(i + vec3(0, 1, 0)), dissolve_hash(i + vec3(1, 1, 0)), f.x), f.y);
+        float b = mix(mix(dissolve_hash(i + vec3(0, 0, 1)), dissolve_hash(i + vec3(1, 0, 1)), f.x),
+                      mix(dissolve_hash(i + vec3(0, 1, 1)), dissolve_hash(i + vec3(1, 1, 1)), f.x), f.y);
+        sum += amp * mix(a, b, f.z);
+        p *= 2.7;
+        amp = 0.35;
+    }
+    return sum;
+}
 void main()
 {
+    float burn = 0.0;
+    if (uDissolve > 0.0) {
+        float n = dissolve_noise(vObj * 6.0);
+        if (n < uDissolve * 1.08) discard;
+        burn = 1.0 - smoothstep(0.0, 0.09, n - uDissolve * 1.08);
+    }
     vec3 n = normalize(vNormal);
     float lit = 0.45 + 0.55 * max(dot(n, normalize(vec3(0.4, 0.9, 0.25))), 0.0);
     lit = mix(lit * uLight, 1.0, uGlow);
@@ -1110,7 +1143,11 @@ void main()
     // (a vehicle's window, drawn after the rest of the model).
     vec4 tex = texture(uTexture, vUV);
     if (tex.a < 0.5) discard;
-    fragColour = vec4(water_fade(tex.rgb * uColour.rgb * lit, vClip), uAlpha * uColour.a);
+    vec3 rgb = tex.rgb * uColour.rgb * lit;
+    // What is left goes blue as it goes, and the edge is white-hot.
+    rgb = mix(rgb, rgb * vec3(0.55, 0.8, 1.3), clamp(uDissolve * 1.6, 0.0, 1.0));
+    rgb = mix(rgb, vec3(0.6, 0.85, 1.0) * 2.2, burn);
+    fragColour = vec4(water_fade(rgb, vClip), uAlpha * uColour.a);
 }
 )";
 

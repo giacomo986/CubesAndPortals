@@ -596,6 +596,7 @@ server running across restarts and crashes, with a log a day.
 | `tools/play.sh` (`local`, `--fresh`) | Builds in Release, starts server and client with every mod and a world saved in `worlds/play/` |
 | `tools/track.sh` (`--fresh`) | A server with the sandbox and every world as rooms, as the title menu starts it (worlds and logs in `worlds/track/`); `--fresh` also makes you its owner, so the creative catalogue (C) is open |
 | `tools/arpg.sh`, `tools/fps.sh`, `tools/chambers.sh` (`--fresh`) | The sandbox and one world, for working on that world |
+| `tools/portallab.sh` | A scene for checking portals by eye (games/portallab): glass seen through openings, a ceiling one to jump into, two floors to bounce between; `/lab wall`, `glass`, `head`, `bounce`, `view` |
 | `build/tools/cnp_modpack pack mods/ore` | A mod in a `.cnpmod` file, which loads from `mods/` like a directory |
 | `tools/dist/package-*.sh` | The packages for Linux, Windows and macOS ([`docs/BUILDING.md`](docs/BUILDING.md)) |
 | `build/tools/cnp_netshape` | A UDP relay with delay and loss, to try slow links |
