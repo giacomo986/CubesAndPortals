@@ -934,6 +934,48 @@ Portals -- the engine's own trick, used further:
    built in a hidden area of the world: a 3x3 hut opening on a hall. Only
    what exists (core.portal_open, core.portal_link, as mods/portal does); the
    mayor could sell them as special plots.
+   STARTED 2026-11-04 (mods/pocket). The halls are NOT in the sandbox (asked
+   by Giacomo): a room of their own, "pockets", which loads every mod the
+   sandbox loads -- the player's and the world's too, the launcher passes it
+   the same flags -- and makes no ground: core.mapgen_core(false) and
+   core.mapgen_only("pocket"), its stage the halls (15 x 15 x 6, lit, the
+   shell unbreakable), hall n in its own column of a grid from x, z 1024.
+   New: core.room() (the room a world is, known while the mods load), so one
+   mod is the doors in the sandbox and the halls in "pockets"; kMaxMouths 24
+   -> 26 (still protocol 116), the sandbox's 24-25 onto pockets 0-1, shared
+   as mods/gates shares its worlds': every half second each to the door
+   nearest a player (and first to a hall somebody is in), the pockets room
+   moving its own into that door's hall through the shared storage, so the
+   doorway shows the hall. "pocket=n" carried across; coming back, put in
+   front of the door. A frame block broken folds the door, the hall kept for
+   its owner. pocket:put lets another mod put a door (the mayor's plots).
+   mods/weather: nothing falls in the pockets room. tools/track.sh and the
+   title menu start the room (12 now). Checked: a two-room server, a test
+   mod putting a door by the spawn, the client timed in Xephyr: the hall seen
+   through the doorway, walked into (out at 1103 20 1032, inside hall 1) and
+   back (out at 44 20 51, in front of the door); track.sh's 12 rooms listen.
+   Limits worked on (2026-11-04): four doors in use at once, not two --
+   kMaxOpenings 32 -> 40 (Portals::present 64 bits) and kMaxMouths 28, the
+   sandbox's 24-27 onto pockets 0-3, which leaves mods' own portals 12
+   openings near players where they had 8; a doorway with no mouth free is
+   shut by a panel (pocket:shut, unbreakable), in the sandbox for a door
+   somebody is near and in a hall somebody is in, with a notice once, and
+   opened the tick a mouth comes (never shut on a body in it): checked with
+   one mouth and two doors, the nearer open, the other pocket:shut. The
+   mayor sells a pocket hut (mods/villagers, 30 rubies, shown only where
+   there are pocket halls): the small house of wood, 3 x 3 inside, its
+   doorway left open by the builder and, built, a pocket door with its whole
+   frame (pocket:put) for "name:<buyer>" -- a door folded is found again
+   under the key or the name. TNT (mods/building) leaves every pocket:
+   block, and a hall's shell is all pocket: blocks now (pocket:floor in
+   place of planks), so nothing breaks one.
+   Still open: a fifth hall in use at once is shut until a mouth frees (with
+   eight players at most a world, four is the usual ceiling); the mayor's hut
+   not yet bought and built in a play; not yet played by hand. The blocks
+   mods write at load near 40 20 47 (a chest, the console's switch, spike's)
+   float in the pockets room's void where nobody goes; left. Testing note:
+   the client's --mouths takes one character a mouth, '0' + k, so mouth 24
+   is "H".
 2. Cameras and screens (medium). A camera block and a screen block showing
    what it sees, from the render-to-texture the portals already draw with:
    watch the base, the kart race from the plaza, a village under a siege.

@@ -228,6 +228,13 @@ or any world started from the title menu):
 - **The parkour course** (`games/parkour`): wall runs, bounces, slides, rolls and a rope gun.
   Guide in [`games/parkour/README.md`](games/parkour/README.md).
 
+**A house bigger inside** (`mods/pocket`). A pocket door (a door and a ruby in a ring of portal
+frames) put down in a wall becomes a doorway onto a hall of your own, fifteen by fifteen and six
+tall: build a hut of three by three round it and it is bigger inside than out. The halls are in a
+room of their own, `pockets`, with every mod of the sandbox's, yours too; break the frame and the
+door folds up, to open on the same hall wherever you put it down again. A village's mayor sells a
+pocket hut ready-made; four pocket doors can be in use at once.
+
 **The seven keys** (`mods/keys`, the game's ending). The engineer who built the portals locked
 the Host in the laboratory and split the lock into seven keys, one in each world, behind a
 trial. The eighth portal on the plaza, a dark steel frame with seven pedestals, leads to the

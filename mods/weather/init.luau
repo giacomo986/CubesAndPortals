@@ -106,9 +106,11 @@ if serving then
         core.log(`weather: {what} for {math.floor(secs / 60)} min`)
     end
 
-    -- What falls on a column, from the sky over it.
+    -- What falls on a column, from the sky over it. Nothing in the room of
+    -- pocket halls (mods/pocket): it is all indoors, and its sky is nobody's.
+    local INDOORS = core.room() == "pockets"
     local function falls(x: number, z: number): string
-        if sky == "clear" then
+        if sky == "clear" or INDOORS then
             return "none"
         end
         local b = core.biome(x, z)

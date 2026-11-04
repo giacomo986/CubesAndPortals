@@ -229,6 +229,13 @@ mondo che c'è dietro (`mods/gates`), portano a sette mondi, tutti stanze dello 
 - **Il parkour** (`games/parkour`): corsa sui muri, rimbalzi, scivolate, capriole e rope gun.
   Guida in [`games/parkour/README.md`](games/parkour/README.it.md).
 
+**Una casa più grande dentro** (`mods/pocket`). Una porta tascabile (una porta e un rubino in un
+anello di cornici di portale) messa in un muro diventa un vano su una sala tutta tua, quindici per
+quindici e alta sei: costruiscici intorno una capanna tre per tre ed è più grande dentro che
+fuori. Le sale stanno in una stanza a parte, `pockets`, con tutti i mod del sandbox, anche i tuoi;
+rompi la cornice e la porta si ripiega, e rimessa giù si riapre sulla stessa sala. Il sindaco di un
+villaggio vende una capanna tascabile già fatta; quattro porte tascabili possono essere in uso insieme.
+
 **Le sette chiavi** (`mods/keys`, la fine del gioco). L'ingegnere che ha costruito i portali ha
 chiuso l'Ospite nel laboratorio e ha diviso la serratura in sette chiavi, una in ogni mondo,
 dietro una prova. L'ottavo portale della piazza, una cornice d'acciaio scuro con sette

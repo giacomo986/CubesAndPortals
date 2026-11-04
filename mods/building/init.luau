@@ -112,7 +112,8 @@ if serving then
                             light(x, y, z, 0.5 + math.random())
                         elseif id ~= 0 and id ~= LIT then
                             local name = core.node_name(id)
-                            if not HARD[name] and not string.find(name, "^lakes:") then
+                            -- Nor a pocket hall's shell or a pocket door's frame (mods/pocket).
+                            if not HARD[name] and not string.find(name, "^lakes:") and not string.find(name, "^pocket:") then
                                 core.set_block(x, y, z, 0)
                                 if math.random() < 0.3 then
                                     local item = core.item_id(name)

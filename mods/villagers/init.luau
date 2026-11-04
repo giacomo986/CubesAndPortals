@@ -1674,6 +1674,18 @@ local STYLES = {
               ridge = "woods:dark_oak_planks" },
 }
 local SIZES = { small = { 5, 5, 14 }, medium = { 7, 7, 20 }, large = { 9, 7, 30 } }   -- w, d, rubies
+-- A pocket hut (mods/pocket): a small house of wood, three by three inside,
+-- whose doorway is a pocket door onto a hall of the buyer's own. Sold only
+-- where there are pocket halls to open on.
+STYLES.pocket = STYLES.wood
+local POCKET_PRICE = 30
+local function pockets_here(): boolean
+    if core.node_id("pocket:door") == 0 then return false end
+    for k = 0, 27 do
+        if core.portal_room(k) == "pockets" then return true end
+    end
+    return false
+end
 
 local function fence_mask(ring: { [string]: boolean }, x: number, z: number): string
     local mask = 0
@@ -1818,8 +1830,10 @@ local function plan_of(o: Order): { { any } }
             end
             k += 1
         end
-        hput(door, F, 0, "doors:door", 0)
-        hput(door, F + 1, 0, "doors:door_top", 0)
+        if o.style ~= "pocket" then   -- a pocket hut's doorway is its pocket door, put when built
+            hput(door, F, 0, "doors:door", 0)
+            hput(door, F + 1, 0, "doors:door_top", 0)
+        end
         if o.kind ~= "floor" then
             -- A doorstep: the cells before the door at the floor's height,
             -- clear over it, whether a way to a street was found or not --
@@ -2398,7 +2412,8 @@ end
 local function show_mayor(p: number, rk: string)
     local name = panel_of(p, "mayor")
     local price = AID.pt.price(p)
-    core.ui_define(name, 13, 11.8)
+    local pocket = pockets_here()
+    core.ui_define(name, 13, if pocket then 13.2 else 11.8)
     local waiting = #(orders[rk] or {})
     core.ui_label(name, 0.4, 0.3, "The mayor: land in this village, for rubies.")
     core.ui_label(name, 0.4, 1.0, (if waiting > 0 then `The builder has {waiting} order(s) before yours.`
@@ -2409,6 +2424,10 @@ local function show_mayor(p: number, rk: string)
     core.ui_button(name, "guard", 0.4, 6.1, 12.2, 1.2, `A guard for your territory, a day: {GUARD_DAY} rubies`)
     core.ui_button(name, "errands", 0.4, 7.5, 12.2, 1.2, "Errands for the village...")
     local y = 8.9
+    if pocket then
+        core.ui_button(name, "pocket", 0.4, y, 12.2, 1.2, `A pocket hut, 3 by 3 and a hall inside: {POCKET_PRICE} rubies`)
+        y += 1.4
+    end
     if price then
         core.ui_button(name, "portal", 0.4, y, 12.2, 1.2, `Where exactly is the nearest portal? {price} rubies`)
         y += 1.4
@@ -2516,7 +2535,7 @@ local function sell(p: number, rk: string, kind: string, size: string?, style: s
     end
     local sz = SIZES[size or "medium"]
     local w, d = if kind == "house" then sz[1] else 7, if kind == "house" then sz[2] else 7
-    local price = if kind == "house" then sz[3] else LOT
+    local price = if style == "pocket" then POCKET_PRICE elseif kind == "house" then sz[3] else LOT
     local x0, z0, t, floor, g = find_lot(rk, w, d)
     if x0 == nil or z0 == nil or t == nil or floor == nil or g == nil then
         core.notice(p, "There is no room left round this village.")
@@ -2528,7 +2547,7 @@ local function sell(p: number, rk: string, kind: string, size: string?, style: s
     local o: Order = { kind = kind, buyer = core.player_name(p), x0 = x0, z0 = z0, t = t, floor = floor,
                        stage = "gather", g = g, road = {}, need = {}, have = { wood = 0, stone = 0, earth = 0 },
                        since = clock, asked = 0, w = w, d = d, style = style or "wood", storeys = 1 }
-    queue(p, rk, o, price, if kind == "house" then `a {size} {style} house` else "a lot")
+    queue(p, rk, o, price, if style == "pocket" then "a pocket hut" elseif kind == "house" then `a {size} {style} house` else "a lot")
 end
 
 -- A keeper with no bed in a building of its own sign -- a village made
@@ -2706,6 +2725,8 @@ core.event.on("core:ui_click", function(ev)
         sell(ev.player, rk, "lot")
     elseif ev.id == "house" then
         show_houses(ev.player, rk)
+    elseif ev.id == "pocket" then
+        if pockets_here() then sell(ev.player, rk, "house", "small", "pocket") end
     elseif ev.id == "extend" then
         show_extend(ev.player, rk)
     elseif ev.id:sub(1, 2) == "h " then
@@ -5047,6 +5068,13 @@ builder_life = function(v: V)
         else
             build(v, rk, o)
             core.log(`villagers: {rk}: {if o.buyer == "" then "the village" else o.buyer}'s {o.kind} built`)
+            if o.kind == "house" and o.style == "pocket" and pockets_here() then
+                -- Its doorway, at the front (local z 0), facing out of it.
+                local dx, dz = at(o, o.w // 2, 0)
+                local axis, sign = o.t % 2, if o.t <= 1 then -1 else 1
+                core.event.emit("pocket:put", { x = dx, y = o.floor, z = dz, axis = axis, sign = sign,
+                                                owner = "name:" .. o.buyer })
+            end
             if o.kind == "house" then
                 houses[rk] = houses[rk] or {}
                 table.insert(houses[rk], { x0 = o.x0, z0 = o.z0, t = o.t, floor = o.floor, w = o.w, d = o.d,
@@ -5068,7 +5096,8 @@ builder_life = function(v: V)
             for _, p in core.players() do
                 if core.player_name(p) == o.buyer then
                     local cx, cz = at(o, o.w // 2, o.d // 2)
-                    core.notice(p, ({ house = `Your house at {cx} {cz} is ready.`,
+                    core.notice(p, ({ house = if o.style == "pocket" then `Your pocket hut at {cx} {cz} is ready: walk in.`
+                            else `Your house at {cx} {cz} is ready.`,
                         floor = "Your house's second storey is ready.", garden = "Your garden is sown.",
                         lot = `Your lot at {cx} {cz} is ready to build on.` })[o.kind] or "Done.")
                 end

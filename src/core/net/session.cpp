@@ -1932,7 +1932,7 @@ Portals ServerSessions::portals_message() const
         d.kind        = (uint8_t)p.kind;
         d.colour      = p.colour;
 
-        msg.present |= 1u << i;
+        msg.present |= 1ull << i;
     }
 
     // Where each leads, and who is over there. This server was told that key

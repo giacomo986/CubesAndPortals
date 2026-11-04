@@ -958,7 +958,7 @@ std::vector<uint8_t> Portals::encode() const
     ByteWriter w;
     w.u8((uint8_t)MsgType::Portals);
     w.u32(version);
-    w.u32(present);
+    w.u64(present);
 
     for (int i = 0; i < kMaxOpenings; ++i) {
         if (!has(i)) continue;
@@ -1001,7 +1001,8 @@ bool Portals::decode(ByteReader &r, Portals &out)
     if (r.u8() != (uint8_t)MsgType::Portals) return false;
 
     out.version = r.u32();
-    out.present = r.u32();
+    out.present = r.u64();
+    if (kMaxOpenings < 64 && (out.present >> kMaxOpenings) != 0) return false;
 
     for (int i = 0; i < kMaxOpenings; ++i) {
         if (!out.has(i)) continue;

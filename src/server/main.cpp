@@ -4976,6 +4976,13 @@ admin::Who admin_who(const net::Session &p, const std::string *room)
 // each room's by name.
 const std::string &room_name() { return g_router.rooms[(size_t)g_room].name; }
 
+// This room's name for its mods (core.room): "" for a server of one world.
+const char *host_room(void *)
+{
+    if (g_router.rooms.size() < 2 || (size_t)g_room >= g_router.rooms.size()) return "";
+    return g_router.rooms[(size_t)g_room].name.c_str();
+}
+
 int host_far_portal_set(void *ud, const char *name, float x, float y, float z, int axis, int sign, float half_w,
                         float half_h, const char *offered, const char *ignore)
 {
@@ -6556,6 +6563,7 @@ int serve_room(int argc, char **argv)
         host.raycast       = host_raycast;
         host.get_portal    = host_get_portal;
         host.portal_room   = host_portal_room;
+        host.room          = host_room;
         host.portal_open   = host_portal_open;
         host.portal_close  = host_portal_close;
         host.portal_seal   = host_portal_seal;

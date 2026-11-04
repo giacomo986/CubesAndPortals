@@ -85,6 +85,15 @@ int l_portal_room(lua_State *L)
     return 1;
 }
 
+// core.room() -> string
+int l_room(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *result = (vm && vm->host.room) ? vm->host.room(vm->host.ud) : nullptr;
+    lua_pushstring(L, result ? result : "");
+    return 1;
+}
+
 // core.portal_place(index: number, x: number, y: number, z: number, axis: number, sign: number, half_w: number?, half_h: number?) -> number
 int l_portal_place(lua_State *L)
 {
@@ -3165,6 +3174,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "get_portal");
     lua_pushcfunction(L, l_portal_room, "core.portal_room");
     lua_setfield(L, -2, "portal_room");
+    lua_pushcfunction(L, l_room, "core.room");
+    lua_setfield(L, -2, "room");
     lua_pushcfunction(L, l_portal_place, "core.portal_place");
     lua_setfield(L, -2, "portal_place");
     lua_pushcfunction(L, l_portal_open, "core.portal_open");

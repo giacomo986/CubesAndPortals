@@ -115,11 +115,21 @@ local api: { Fn } = {
         host = "portal_room",
         ret  = "string",
         args = {
-            { name = "index", type = "int", doc = "One of the world's openings that lead to other worlds (--portal-to), 0 to 7." },
+            { name = "index", type = "int", doc = "One of the world's openings that lead to other worlds (--portal-to), 0 to 27." },
         },
         doc = "The room of this server that opening leads to (--portal-to @ROOM), or an empty "
            .. "string: no such opening, or one onto another server. Known while the mods load, "
            .. "so a mod can build each opening a gate that looks like the world behind it.",
+    },
+    {
+        name = "room",
+        host = "room",
+        ret  = "string",
+        args = {},
+        doc = "The name of the room this world is on a server of several (--room NAME), or an "
+           .. "empty string: a server of one world, or a player's machine. Known while the mods "
+           .. "load, so a mod loaded in two rooms can be something else in each: mods/pocket "
+           .. "makes doors in the sandbox and the halls behind them in the room \"pockets\".",
     },
     {
         name = "portal_place",
@@ -165,7 +175,7 @@ local api: { Fn } = {
            .. "same portal. It leads to the portal it is linked with (core.portal_link); until "
            .. "something links it, id i leads to i xor 1, so 0 and 1 are a pair, 2 and 3, and "
            .. "so on. A world holds as many as mods open: they are VIRTUAL, and every half "
-           .. "second the server gives its 32 openings to the ones within 160 nodes of a "
+           .. "second the server gives its 40 openings to the ones within 160 nodes of a "
            .. "player and to whatever those lead to, nearest first; the rest are drawn and "
            .. "crossed by nobody until somebody comes near. So the limit is how many are in "
            .. "use near players at once, and a portal opened is live on the next tick, not "

@@ -376,7 +376,10 @@ inline constexpr uint16_t kProtocol    = 116; // 116 the sounds going round (cor
 // moves byte for a body astride a mount (core.body_mount), which a 114 client
 // would walk as a body on foot.
 // 116 adds SoundLoops, the sounds a mod keeps going round (core.sound_loop),
-// which a 115 client does not know.
+// which a 115 client does not know; and lets a world have 40 openings
+// (kMaxOpenings, Portals::present 64 bits where a 115 client reads 32) of
+// which 28 mouths (kMaxMouths), four more onto the room of pocket halls
+// (mods/pocket).
 inline constexpr uint16_t kMinProtocol = 116;
 
 // What a player picked to look like (protocol 93): the three colours of their
@@ -406,13 +409,15 @@ inline constexpr size_t kMaxRoomName = 64;
 // rest are local, each leading to the one it is linked with
 // (core.portal_link). A number for the wire and for the arrays behind it, not
 // a promise about frame rate: the client draws the nearest few in sight.
-inline constexpr int kMaxOpenings = 32;
+inline constexpr int kMaxOpenings = 40;   // a bit each in Portals::present, 64 at most
 
 // How many of them may lead to other worlds. Each is a window the client keeps
-// open and draws into a target of its own, which is what bounds it. 24: a
-// survival sandbox has two for each of its seven worlds with a key, and the
-// eight openings left are what its mods' own portals share near players.
-inline constexpr int kMaxMouths = 24;
+// open and draws into a target of its own, which is what bounds it. 28: a
+// survival sandbox has two for each of its seven worlds with a key, and four
+// onto the room of pocket halls (mods/pocket, protocol 116); the twelve
+// openings left are what its mods' own portals share near players.
+inline constexpr int kMaxMouths = 28;
+static_assert(kMaxMouths <= kMaxOpenings && kMaxOpenings <= 64, "Portals::present is 64 bits");
 
 enum class Channel : uint8_t {
     Handshake = 0,   // reliable
@@ -1445,7 +1450,7 @@ struct PortalAway {
 
 struct Portals {
     uint32_t   version = 0;   // bumped on every change, so a client can skip a stale one
-    uint32_t   present = 0;   // bit i: opening i exists
+    uint64_t   present = 0;   // bit i: opening i exists
     PortalDesc opening[kMaxOpenings];
 
     // Which opening each one leads to, or -1 for none: an opening whose partner
@@ -1467,7 +1472,7 @@ struct Portals {
         for (int i = 0; i < kMaxOpenings; ++i) link[i] = (int8_t)(i ^ 1);
     }
 
-    bool has(int i) const { return i >= 0 && i < kMaxOpenings && (present & (1u << i)) != 0; }
+    bool has(int i) const { return i >= 0 && i < kMaxOpenings && (present & (1ull << i)) != 0; }
     bool leads_away() const { return away[0].leads_away(); }
     int  mouths() const
     {

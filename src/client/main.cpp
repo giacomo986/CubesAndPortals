@@ -10687,7 +10687,10 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
                       lab_mods = games + "/lab/mods", lab_tex = games + "/lab/textures",
                       lab_file = dir + "/laboratorio.db",
                       front_mods = games + "/front/mods", front_file = dir + "/front.db",
-                      assault_mods = games + "/assault/mods";
+                      assault_mods = games + "/assault/mods",
+                      // The pocket halls (mods/pocket): the sandbox's own mods, so a hall
+                      // is somewhere to keep and make things as at home.
+                      pockets_file = dir + "/pockets.db";
     const bool rooms = std::filesystem::is_directory(track_mods, ec) &&
                        std::filesystem::is_directory(inferno_mods, ec) &&
                        std::filesystem::is_directory(arena_mods, ec) &&
@@ -10717,6 +10720,9 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
                               "--portal-to", "@arena/0", "--portal-to", "@arpg/0",
                               "--portal-to", "@chambers/0", "--portal-to", "@backrooms/0",
                               "--portal-to", "@parkour/0",
+                              // The pocket halls' four (24-27), at the doors nearest a player.
+                              "--portal-to", "@pockets/0", "--portal-to", "@pockets/1",
+                              "--portal-to", "@pockets/2", "--portal-to", "@pockets/3",
                               "--room", "pista", "--mods", track_mods.c_str(), "--textures",
                               track_tex.c_str(), "--world-file", track_file.c_str(),
                               "--portal-to", "@sandbox/0", "--portal-to", "@inferno/2",
@@ -10746,7 +10752,11 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
                               front_file.c_str(), "--portal-to", "@sandbox/15",
                               // No world file: the dimension is whole again once nobody is in it.
                               "--room", "assalto", "--mods", assault_mods.c_str(),
-                              "--portal-to", "@sandbox/16", "--portal-to", "@sandbox/16"})
+                              "--portal-to", "@sandbox/16", "--portal-to", "@sandbox/16",
+                              // Every mod of the sandbox's, the player's own too (below).
+                              "--room", "pockets", "--world-file", pockets_file.c_str(),
+                              "--portal-to", "@sandbox/24", "--portal-to", "@sandbox/25",
+                              "--portal-to", "@sandbox/26", "--portal-to", "@sandbox/27"})
             args.push_back(a);
     }
     // The sandbox's own flag, never every room's: right after its --room, or
@@ -10756,18 +10766,23 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
                                [](const char *a) { return std::strcmp(a, "sandbox") == 0; });
         args.insert(at == args.end() ? at : at + 1, "--survival");
     }
-    // The player's own mods, the sandbox's only: the themed worlds are the
+    // The player's own mods, the sandbox's only (and its pocket halls'): the themed worlds are the
     // game's, and a mod of somebody's is not part of their trial. The global ones
     // (user_mods_dir), this world's own (<world>/mods), and the global ones this
     // world turns off (<world>/mods.conf, `off = name, name`).
+    // The pocket halls take the same: a hall is the sandbox's, indoors.
     const std::vector<std::string> mod_flags = world_mod_flags(dir);
-    {
+    for (const char *room : {"sandbox", "pockets"}) {
         auto at = std::find_if(args.begin(), args.end(),
-                               [](const char *a) { return std::strcmp(a, "sandbox") == 0; });
-        if (at != args.end()) ++at;
+                               [room](const char *a) { return std::strcmp(a, room) == 0; });
+        if (at == args.end()) {
+            if (std::strcmp(room, "sandbox") != 0) continue;   // a lone world: its flags at the end
+        } else {
+            ++at;
+        }
         for (const std::string &f : mod_flags) at = args.insert(at, f.c_str()) + 1;
     }
-    const int rooms_up = rooms ? 11 : 1;   // "listening on UDP" once per room
+    const int rooms_up = rooms ? 12 : 1;   // "listening on UDP" once per room
 
     if (!srv.start(prog, std::vector<std::string>(args.begin() + 1, args.end()), dir, log, err))
         return false;

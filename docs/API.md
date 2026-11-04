@@ -106,7 +106,15 @@ The room of this server that opening leads to (--portal-to @ROOM), or an empty s
 
 | argomento | tipo | default | note |
 |---|---|---|---|
-| `index` | number | — | One of the world's openings that lead to other worlds (--portal-to), 0 to 7. |
+| `index` | number | — | One of the world's openings that lead to other worlds (--portal-to), 0 to 27. |
+
+## `core.room`
+
+```luau
+core.room() -> string
+```
+
+The name of the room this world is on a server of several (--room NAME), or an empty string: a server of one world, or a player's machine. Known while the mods load, so a mod loaded in two rooms can be something else in each: mods/pocket makes doors in the sandbox and the halls behind them in the room "pockets".
 
 ## `core.portal_place`
 
@@ -133,7 +141,7 @@ Moves one of the world's two openings while the world runs, on a server: a frame
 core.portal_open(x: number, y: number, z: number, axis: number, sign: number, rot: number, half_w: number, half_h: number, colour: number?) -> number
 ```
 
-Opens a portal while the world runs, on a server, and returns its id: the lowest free one -- or, when a portal in the same plane already has this centre, that one, which takes the new shape, so a frame turned or flipped from its menu stays the same portal. It leads to the portal it is linked with (core.portal_link); until something links it, id i leads to i xor 1, so 0 and 1 are a pair, 2 and 3, and so on. A world holds as many as mods open: they are VIRTUAL, and every half second the server gives its 32 openings to the ones within 160 nodes of a player and to whatever those lead to, nearest first; the rest are drawn and crossed by nobody until somebody comes near. So the limit is how many are in use near players at once, and a portal opened is live on the next tick, not the one it was opened in. In a world whose openings 0 and 1 lead to another world (--portal-to), those mouths are not handed out. Returns -1 for a shape out of range, no world to open it in yet (a room's openings exist a few ticks after the first core:tick, so ask again until it opens), or the single-process client, whose two openings are its scene's.
+Opens a portal while the world runs, on a server, and returns its id: the lowest free one -- or, when a portal in the same plane already has this centre, that one, which takes the new shape, so a frame turned or flipped from its menu stays the same portal. It leads to the portal it is linked with (core.portal_link); until something links it, id i leads to i xor 1, so 0 and 1 are a pair, 2 and 3, and so on. A world holds as many as mods open: they are VIRTUAL, and every half second the server gives its 40 openings to the ones within 160 nodes of a player and to whatever those lead to, nearest first; the rest are drawn and crossed by nobody until somebody comes near. So the limit is how many are in use near players at once, and a portal opened is live on the next tick, not the one it was opened in. In a world whose openings 0 and 1 lead to another world (--portal-to), those mouths are not handed out. Returns -1 for a shape out of range, no world to open it in yet (a room's openings exist a few ticks after the first core:tick, so ask again until it opens), or the single-process client, whose two openings are its scene's.
 
 | argomento | tipo | default | note |
 |---|---|---|---|

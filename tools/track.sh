@@ -16,7 +16,8 @@
 # delle uscite sul bordo nord della piazza (mods/keys), sigillati in rosso a chi non ha la
 # chiave di quel mondo; 15 il fronte (90.5 ... 58.5, mods/gates), andata e ritorno; 16 l'assalto
 # (90.5 ... 76.5), il cui mondo non si salva; 17-23 una seconda entrata per
-# ognuno dei sette mondi con chiave (survival: due siti dello stesso mondo insieme). Il client guarda dentro solo le
+# ognuno dei sette mondi con chiave (survival: due siti dello stesso mondo insieme); 24-27 le
+# sale tascabili (mods/pocket: alla porta tascabile più vicina a un giocatore). Il client guarda dentro solo le
 # due più vicine. La pista dell'inferno va
 # dalla pista all'inferno e ritorno, tre bocche per stanza: la cornice A della
 # pista (apertura 1) e B dell'inferno (apertura 2) si portano l'una all'altra, e
@@ -104,7 +105,7 @@ trap 'exit 130' INT TERM
 # The last run's logs kept beside the new ones: a crash is told about after
 # the game was started again, and by then its log was written over.
 for f in server.log client.log; do [ -f "$HERE/$f" ] && mv -f "$HERE/$f" "$HERE/$f.prev"; done
-echo "== avvio il server (sandbox, pista, inferno, arena, arpg, camere di prova, backrooms, parkour, laboratorio, fronte e assalto) sulla porta $PORT"
+echo "== avvio il server (sandbox, pista, inferno, arena, arpg, camere di prova, backrooms, parkour, laboratorio, fronte, assalto e le sale tascabili) sulla porta $PORT"
 # --ticks 0: senza, un server in ascolto si ferma dopo 50 s.
 "$SRV" --listen "$PORT" --ticks 0 --seed "$SEED" --portals ${OWNER[@]+"${OWNER[@]}"} \
     --room sandbox ${SURVIVAL[@]+"${SURVIVAL[@]}"} --mods "$ROOT/mods" --world-file "$HERE/sandbox.world" \
@@ -116,6 +117,7 @@ echo "== avvio il server (sandbox, pista, inferno, arena, arpg, camere di prova,
         --portal-to @front/0 --portal-to @assalto/0 \
         --portal-to @pista/0 --portal-to @inferno/0 --portal-to @arena/0 --portal-to @arpg/0 \
         --portal-to @chambers/0 --portal-to @backrooms/0 --portal-to @parkour/0 \
+        --portal-to @pockets/0 --portal-to @pockets/1 --portal-to @pockets/2 --portal-to @pockets/3 \
     --room pista --mods "$ROOT/games/track/mods" --textures "$ROOT/games/track/textures" \
         --world-file "$HERE/pista.world" --portal-to @sandbox/0 --portal-to @inferno/2 --portal-to @inferno/1 \
         --portal-to @sandbox/8 \
@@ -138,17 +140,19 @@ echo "== avvio il server (sandbox, pista, inferno, arena, arpg, camere di prova,
         --world-file "$HERE/front.world" --portal-to @sandbox/15 \
     --room assalto --mods "$ASSAULT_MODS" \
         --portal-to @sandbox/16 --portal-to @sandbox/16 \
+    --room pockets --mods "$ROOT/mods" --world-file "$HERE/pockets.world" \
+        --portal-to @sandbox/24 --portal-to @sandbox/25 --portal-to @sandbox/26 --portal-to @sandbox/27 \
     > "$HERE/server.log" 2>&1 &
 SERVER=$!
 for _ in $(seq 1 300); do
-    [ "$(grep -c "listening on UDP" "$HERE/server.log" 2>/dev/null)" -ge 11 ] && break
+    [ "$(grep -c "listening on UDP" "$HERE/server.log" 2>/dev/null)" -ge 12 ] && break
     if ! kill -0 "$SERVER" 2>/dev/null; then
         echo "track.sh: il server si è fermato:"; tail -20 "$HERE/server.log"; exit 1
     fi
     sleep 0.1
 done
-if [ "$(grep -c "listening on UDP" "$HERE/server.log")" -lt 11 ]; then
-    echo "track.sh: le dieci stanze non ascoltano dopo 30 s:"; tail -20 "$HERE/server.log"; exit 1
+if [ "$(grep -c "listening on UDP" "$HERE/server.log")" -lt 12 ]; then
+    echo "track.sh: le undici stanze non ascoltano dopo 30 s:"; tail -20 "$HERE/server.log"; exit 1
 fi
 
 grep -h "leads to room" "$HERE/server.log" | sed 's/^ */   /'

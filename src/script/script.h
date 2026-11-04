@@ -97,6 +97,8 @@ typedef struct script_host {
     float (*get_portal)(void *ud, int index, int axis);
     // The room of this server an opening leads to, or "" (core.portal_room).
     const char *(*portal_room)(void *ud, int index);
+    // This world's room on a server of several (core.room), or "".
+    const char *(*room)(void *ud);
 
     // Opens and closes one at runtime (core.portal_open, core.portal_close): a
     // frame of blocks a player built. Which opening, or -1.
