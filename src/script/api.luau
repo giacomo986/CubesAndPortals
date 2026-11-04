@@ -1155,6 +1155,21 @@ local api: { Fn } = {
            .. "Returns 1, or 0 for a player who is not in this world.",
     },
     {
+        name = "body_mount",
+        host = "body_mount",
+        ret  = "int",
+        args = {
+            { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
+            { name = "on", type = "bool", default = true, doc = "false puts them back on their feet." },
+        },
+        doc = "Puts ONE player astride a mount, or off it, at any time like core.body_movement: the "
+           .. "body is steered, not strafed -- it goes where the rider looks, A and D turn it (the "
+           .. "view turns with it), backwards at under half its walk -- and gathers and loses pace "
+           .. "slowly, with the weight of an animal under it. How fast it goes and how high it jumps "
+           .. "are core.body_movement's; what it looks like (core.player_wear, core.player_clip) and "
+           .. "getting off are the mod's. Returns 1, or 0 for a player who is not in this world.",
+    },
+    {
         name = "register_item",
         host = "register_item",
         ret  = "int",

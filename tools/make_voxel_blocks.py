@@ -752,9 +752,12 @@ def main():
     for kind, file in (("oak", "timber_planks"), ("spruce", "woods_spruce_planks"),
                        ("dark_oak", "woods_dark_oak_planks"), ("sandstone", "rocks_sandstone")):
         alias(f"steps:{kind}_stair", file)
+    # The brick block is a wall of bricks: rocks_brick is the icon of ONE brick,
+    # transparent round it, and as a face it drew a brick on black. Its own
+    # random source, so the pictures drawn above stay what they were.
+    save(bricks((170, 80, 60), (150, 140, 128), random.Random(9008)), "craft_brick")
     # Blocks of the first tests that wear a picture another block already has
     # (tools/make_terrain_textures.py draws the rest), and flowing water.
-    alias("craft:brick", "rocks_brick")
     alias("tools:granite", "rocks_granite")
     for level in range(1, 7):
         alias(f"lakes:flow{level}", "lakes_water")

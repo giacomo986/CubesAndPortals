@@ -980,6 +980,19 @@ Puts ONE player in a cart, or out of it, at any time like core.body_movement: on
 | `player` | number | — | The id every event carries in its `player` field. |
 | `on` | boolean | `true` | false and rails are nothing to them. |
 
+## `core.body_mount`
+
+```luau
+core.body_mount(player: number, on: boolean?) -> number
+```
+
+Puts ONE player astride a mount, or off it, at any time like core.body_movement: the body is steered, not strafed -- it goes where the rider looks, A and D turn it (the view turns with it), backwards at under half its walk -- and gathers and loses pace slowly, with the weight of an animal under it. How fast it goes and how high it jumps are core.body_movement's; what it looks like (core.player_wear, core.player_clip) and getting off are the mod's. Returns 1, or 0 for a player who is not in this world.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `player` | number | — | The id every event carries in its `player` field. |
+| `on` | boolean | `true` | false puts them back on their feet. |
+
 ## `core.register_item`
 
 ```luau

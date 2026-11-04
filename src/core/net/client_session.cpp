@@ -578,6 +578,7 @@ void ClientSession::handle(const std::vector<uint8_t> &data, double now, uint8_t
                                  b.climbable);
             m_registry->set_conveyor((BlockId)id, b.conveyor, b.conveyor_height, b.conveyor_rise, b.rail);
             m_registry->set_light_source((BlockId)id, b.light);
+            m_registry->set_door((BlockId)id, b.door);
         }
 
         for (size_t id = 0; id < m_welcome.node_digs.size() && id < m_registry->size(); ++id) {

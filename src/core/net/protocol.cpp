@@ -277,7 +277,7 @@ std::vector<uint8_t> Welcome::encode() const
         const NodeBodyDesc &b = node_bodies[i];
         w.u8((uint8_t)((b.solid ? 1 : 0) | (b.opaque ? 2 : 0) | (b.liquid ? 4 : 0) |
                        (b.climbable ? 8 : 0) | (b.conveyor > 0.0f && !b.rail ? 16 : 0) |
-                       (b.rail ? 32 : 0)));
+                       (b.rail ? 32 : 0) | (b.door == 1 ? 64 : 0) | (b.door == 2 ? 128 : 0)));
         w.u8(b.opacity);
         w.u8(b.fill);
         w.u8(b.light);
@@ -457,17 +457,18 @@ bool Welcome::decode(ByteReader &r, Welcome &out)
         body.opacity = r.u8();
         body.fill    = r.u8();
         body.light   = r.u8();
-        // Six flags and nothing else (climbable since 53, conveyor since 78, rail
-        // since 110): a bit past them is a writer that means something this
-        // reader does not know. And a fill of 1..8, because an empty cell of
-        // water is air and a fuller one than a cell is nothing.
-        if (!r.ok() || flags > 63 || (flags & 48) == 48 || body.fill < 1 || body.fill > 8 ||
+        // Eight flags (climbable since 53, conveyor since 78, rail since 110, a
+        // door shut or open since 115), and a door is not both. And a fill of
+        // 1..8, because an empty cell of water is air and a fuller one than a
+        // cell is nothing.
+        if (!r.ok() || (flags & 48) == 48 || (flags & 192) == 192 || body.fill < 1 || body.fill > 8 ||
             body.light > 15)
             return false;
         body.solid  = (flags & 1) != 0;
         body.opaque = (flags & 2) != 0;
         body.liquid = (flags & 4) != 0;
         body.climbable = (flags & 8) != 0;
+        body.door      = (flags & 64) != 0 ? 1 : (flags & 128) != 0 ? 2 : 0;
         if ((flags & 16) != 0) {   // a belt (78): a speed that goes somewhere, and a top
             body.conveyor        = r.f32();
             body.conveyor_height = r.f32();
@@ -1941,8 +1942,9 @@ std::vector<uint8_t> BodyMovement::encode() const
     w.f32(rules.rise);
     w.f32(rules.eye);
     // Bit 2 a boat, which a 109 client ignores: it swims there instead.
-    // Bit 3 a cart (110).
-    w.u8((rules.parkour ? 1 : 0) | (rules.ledges ? 0 : 2) | (rules.boat ? 4 : 0) | (rules.cart ? 8 : 0));
+    // Bit 3 a cart (110). Bit 4 astride a mount (115).
+    w.u8((rules.parkour ? 1 : 0) | (rules.ledges ? 0 : 2) | (rules.boat ? 4 : 0) | (rules.cart ? 8 : 0) |
+         (rules.mount ? 16 : 0));
     w.u8(gen);
     w.f32(dig);
     return w.data();
@@ -1972,6 +1974,7 @@ bool BodyMovement::decode(ByteReader &r, BodyMovement &out)
     out.rules.ledges  = (moves & 2) == 0;
     out.rules.boat    = (moves & 4) != 0;
     out.rules.cart    = (moves & 8) != 0;
+    out.rules.mount   = (moves & 16) != 0;
     out.gen           = r.u8();
     out.dig           = r.f32();
 

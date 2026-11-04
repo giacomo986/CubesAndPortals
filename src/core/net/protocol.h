@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 114; // 114 a creature tumbles: flag 16 and its roll on a Mob
+inline constexpr uint16_t kProtocol    = 115; // 115 a block's body says it is a door; a body astride a mount
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -368,7 +368,14 @@ inline constexpr uint16_t kProtocol    = 114; // 114 a creature tumbles: flag 16
 // server does not know.
 // 114 lets a Mob carry flag 16 and its roll as a Thing does (core.mob_tumble),
 // which a 113 client refuses.
-inline constexpr uint16_t kMinProtocol = 114;
+// 115 says which blocks are doors (core.node_door): bit 64 of a block's body
+// flags for a shut one, 128 for an open one, which a 114 client refuses.
+// Without it a client never knew, and a door shut on a player standing in its
+// cell held them there -- the server lets a body walk out of the panel, the
+// client's own prediction of the step did not. And bit 4 of BodyMovement's
+// moves byte for a body astride a mount (core.body_mount), which a 114 client
+// would walk as a body on foot.
+inline constexpr uint16_t kMinProtocol = 115;
 
 // What a player picked to look like (protocol 93): the three colours of their
 // model's tint_1..3 materials -- primary, secondary, accent -- five bits each,
@@ -1061,6 +1068,7 @@ struct NodeBodyDesc {
     float   conveyor_height = 1.0f;
     float   conveyor_rise   = 0.0f;
     bool    rail            = false;  // the belt is a rail (protocol 110)
+    uint8_t door            = 0;      // 1 a shut door, 2 an open one (protocol 115)
 };
 
 // A block that is not the cell it lives in, as it travels.

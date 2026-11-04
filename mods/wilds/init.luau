@@ -102,6 +102,24 @@ local function land(x: number, z: number, seed: number): string
     return ""
 end
 
+-- Whether a swamp column is a pool's hollow: low, where the second field says
+-- so, and HELD IN -- no side of it lower than its own ground, so the water in
+-- it has mud or more water beside it and never stands with a face over air.
+-- Asked of the terrain alone, so a column asks it of its neighbours' willows
+-- and gets the answer they got.
+local SIDES = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }
+local function hollow(x: number, z: number, g: number, seed: number): boolean
+    if g > SEA + 2 or smooth(x, z, 9, seed + 0x71D4) <= 0.55 then
+        return false
+    end
+    for _, s in SIDES do
+        if core.terrain_height(x + s[1], z + s[2]) < g then
+            return false
+        end
+    end
+    return true
+end
+
 core.register_mapgen("wilds:lands", function(ctx)
     local function owns(x: number, z: number): boolean
         return x >= ctx.min_x and x <= ctx.max_x and z >= ctx.min_z and z <= ctx.max_z
@@ -131,7 +149,14 @@ core.register_mapgen("wilds:lands", function(ctx)
                             core.set_block(x, g - 4, z, PEAT)
                         end
                         -- A pool in a hollow: the mud one down, water over it.
-                        if g <= SEA + 2 and smooth(x, z, 9, ctx.seed + 0x71D4) > 0.55 then
+                        -- Not under a trunk mods/trees or mods/woods grew from
+                        -- this ground (they go first): a tree stands on mud.
+                        -- A tuft or a flower over it goes, or it would float.
+                        local above = core.get_block(x, g, z)
+                        if hollow(x, z, g, ctx.seed) and core.node_solid(above) == 0 then
+                            if above ~= 0 then
+                                core.set_block(x, g, z, 0)
+                            end
                             core.set_block(x, g - 1, z, WATER)
                             if h % 7 == 0 and core.get_block(x, g, z) == 0 then
                                 core.set_block(x, g, z, LILY)
@@ -142,7 +167,7 @@ core.register_mapgen("wilds:lands", function(ctx)
                     end
                     -- A willow, now and then: a trunk under a wide, low crown
                     -- with vines hanging to the water.
-                    if h % 97 == 0 and g > SEA then
+                    if h % 97 == 0 and g > SEA and not hollow(x, z, g, ctx.seed) then
                         local t = 4 + h // 97 % 2
                         for y = g, g + t do
                             put(x, y, z, TRUNK)

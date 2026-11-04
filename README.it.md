@@ -508,7 +508,7 @@ tools/arpg.sh --fresh
 | Tasto sinistro / destro | rompere / piazzare (a mani vuote si usa il blocco) |
 | Rotellina o 1-9, E, C, Q | slot della hotbar, borsa, catalogo creativo, buttare |
 | T, / | chat, chat con un comando (`/help`, `/list`) |
-| V, F11, ESC | terza persona, schermo intero, menù di pausa |
+| V, F11, ESC, F1 | terza persona, schermo intero, menù di pausa, nascondere mani e hotbar |
 | F3, F4, F8 | informazioni, confini dei territori, celle dove possono nascere i mostri |
 | F5, F6, F7, F2 | ricaricare i mod, profiler, texture pack successivo, occlusion culling spento |
 

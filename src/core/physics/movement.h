@@ -173,6 +173,15 @@ inline constexpr float kRailSlope = 8.0f;    // m/s^2 a node of rise
 inline constexpr float kRailTop   = 12.0f;   // m/s
 inline constexpr float kRailPush  = 2.0f;    // m/s
 
+// Astride a mount (MovementRules::mount): steered, not strafed -- it goes where
+// the rider looks, A and D turn it (and the view with it) -- gathering and
+// losing pace at kMountGrip rather than a body's kGroundGrip, so it has weight
+// under it, and backing up at kMountBack of its walk. The jump is the mod's
+// (core.body_movement): a pony clears two blocks.
+inline constexpr float kMountGrip = 2.2f;    // 1/s
+inline constexpr float kMountTurn = 2.2f;    // rad/s, A or D held
+inline constexpr float kMountBack = 0.4f;
+
 // How a body moves in ONE world: what its mods declared, or the numbers above
 // when they declared nothing (TODO.md OPEN-44, DESIGN.md M13).
 //
@@ -250,6 +259,10 @@ struct MovementRules {
     // is (core/physics/player.cpp). One body's, as `boat`.
     bool cart = false;
 
+    // Astride a mount (core.body_mount): steered, with weight (kMountGrip).
+    // One body's, as `boat`.
+    bool mount = false;
+
     bool drives() const { return accel > 0.0f; }
 
     // Whether a body here may leave the ground for longer than a jump. Nobody
@@ -273,6 +286,7 @@ inline void keep_body(MovementRules &to, const MovementRules &from)
     to.ledges  = from.ledges;
     to.boat    = from.boat;
     to.cart    = from.cart;
+    to.mount   = from.mount;
 }
 
 // What a body in a parkour world may do beyond walking (MovementRules::parkour),

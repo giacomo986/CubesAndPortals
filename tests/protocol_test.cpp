@@ -166,6 +166,21 @@ int main()
         check(wout.shapes.size() == 1 && wout.shapes[0].model == 2,
               "and the model it is drawn as, if it is drawn as one");
 
+        // Which blocks are doors (115): a client that did not know held a player
+        // a door was shut on, where the server lets them walk out of the panel.
+        {
+            Welcome doors = w;
+            doors.node_bodies.resize(3);
+            doors.node_bodies[1].door = 1;
+            doors.node_bodies[2].door = 2;
+            const auto dbuf = doors.encode();
+            Welcome    dout;
+            ByteReader dr(dbuf);
+            check(Welcome::decode(dr, dout) && dout.node_bodies.size() == 3 && dout.node_bodies[0].door == 0 &&
+                      dout.node_bodies[1].door == 1 && dout.node_bodies[2].door == 2,
+                  "and which blocks are doors, shut or open");
+        }
+
         // How a body moves in the world (TODO.md OPEN-44), which every client
         // is told and moves by -- so exactly, like the corners, and refused
         // when it is something a body cannot be moved by. A welcome is a

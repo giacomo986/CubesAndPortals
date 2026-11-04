@@ -949,6 +949,55 @@ int main()
               "a crouched body stops at an edge, a standing one walks off it");
     }
 
+    // Astride a pony (core.body_mount, mods/animals' numbers): over a wall two
+    // blocks high at a run and a jump; a strafe does not slide it sideways; and
+    // it takes a moment to get up to its pace.
+    {
+        World field;
+        for (int x = 0; x < 24; ++x)
+            for (int z = 0; z < 8; ++z) {
+                field.set_block(x, 9, z, stone);
+                if (x == 12 || (x == 13)) {   // the wall, two high and two thick
+                    field.set_block(x, 10, z, stone);
+                    field.set_block(x, 11, z, stone);
+                }
+            }
+        MovementRules rules;
+        rules.walk = 7.0f; rules.sprint = 11.0f; rules.fly = 0.0f; rules.jump = 11.0f;
+        rules.mount = true;
+        const auto ride = [&](float fwd, float right, bool jump_at_wall, float seconds) {
+            Player p;
+            p.pos = Vec3{4.5f, 10.0f, 4.0f};
+            p.yaw = 1.5708f;   // along +x
+            p.on_ground = true;
+            float top = 0.0f, quarter = -1.0f;
+            for (float t = 0.0f; t < seconds; t += 1.0f / 60.0f) {
+                PlayerInput in;
+                in.move_forward = fwd;
+                in.move_right   = right;
+                in.sprint       = true;
+                in.jump         = jump_at_wall && p.pos.x > 9.0f && p.pos.x < 11.5f;
+                player_update(p, field, reg, rules, in, 1.0f / 60.0f);
+                top = std::max(top, p.pos.y);
+                if (quarter < 0.0f && t >= 0.25f) quarter = std::sqrt(p.velocity.x * p.velocity.x + p.velocity.z * p.velocity.z);
+            }
+            return std::make_pair(p, quarter);
+        };
+        const auto [over, slow] = ride(1.0f, 0.0f, true, 2.0f);
+        std::printf("        on a pony: past the wall at x %.2f y %.2f; %.2f m/s after a quarter second\n",
+                    (double)over.pos.x, (double)over.pos.y, (double)slow);
+        check(over.pos.x > 14.5f, "a pony at a canter jumps a wall two blocks high");
+        check(slow > 1.0f && slow < 8.0f, "and gathers its pace, it does not start at it");
+        const auto [held, unused] = ride(1.0f, 0.0f, false, 2.0f);
+        (void)unused;
+        check(held.pos.x < 12.0f, "without the jump the wall stops it");
+        const auto [side, unused2] = ride(0.0f, 1.0f, false, 1.0f);
+        (void)unused2;
+        check(std::fabs(side.pos.x - 4.5f) < 0.01f && std::fabs(side.pos.z - 4.0f) < 0.01f &&
+                  std::fabs(side.yaw - 1.5708f) > 1.5f,
+              "D does not strafe it, it turns it");
+    }
+
     std::printf(g_failures == 0 ? "the box rules agree\n" : "THE BOX RULES DISAGREE\n");
     return g_failures == 0 ? 0 : 1;
 }

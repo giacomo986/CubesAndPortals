@@ -750,6 +750,10 @@ struct Session {
         // (fly_lean).
         float  lean_ahead = 0.0f, lean_right = 0.0f;
         double lean_at    = 0.0;
+        // Astride a mount, which way the animal faces: where it goes, turned
+        // to at an animal's pace (mount_heading).
+        float  mount_yaw = 0.0f;
+        double mount_at  = -1.0;
     };
     std::unordered_map<uint64_t, BodyMotion> motion;
 
@@ -1502,6 +1506,10 @@ struct Scene {
     // A loop somebody plays in: the arms are theirs whether or not F3 shows
     // the debug lines. A gate leaves it off and gets a frame without them.
     bool        play_arms  = false;
+    // F1: the hands, the bar under them, the crosshair and what the world's
+    // code draws over the screen put away, for a picture of the world alone.
+    // The bag, a panel, the chat and the pause menu still come up over it.
+    bool        hide_hud   = false;
     BlockId     hand_block = kAir;   // what it puts down, when it is a block
     uint32_t    hand_tag   = 0;      // the held stack's colours (ItemStack::tag)
     uint8_t     piece_turn = 0;      // quarter turns a track piece in hand is given (Z / X)
@@ -2646,6 +2654,14 @@ int host_body_cart(void *ud, int player, int on)
 {
     if ((ui::PlayerId)player != ui::kLocalPlayer) return 0;
     static_cast<Scene *>(ud)->act().movement.cart = on != 0;
+    return 1;
+}
+
+// core.body_mount for the one body here; the server's is in src/server/main.cpp.
+int host_body_mount(void *ud, int player, int on)
+{
+    if ((ui::PlayerId)player != ui::kLocalPlayer) return 0;
+    static_cast<Scene *>(ud)->act().movement.mount = on != 0;
     return 1;
 }
 
@@ -8472,10 +8488,38 @@ void predict_machine(Scene &s, const net::RemotePlayer &host, double rtt, double
     while (pr.history.size() > 2 && pr.history.front().first < now - 1.5) pr.history.pop_front();
 }
 
+// A body astride a mount (a clip of riding, "ride..." -- mods/animals' pony,
+// worn on the rider's feet) faces the way the animal goes, not the way the
+// rider looks: turned toward its heading at a capped rate, backing up facing
+// forwards, and left where it was when it stands. Without it the pony turned
+// with the mouse as one piece with the rider and slid sideways on a strafe --
+// a player dressed as a horse rather than one sat on it.
+void mount_heading(Session::BodyMotion &m, Body &b)
+{
+    constexpr float kMountTurn = 3.0f;   // rad/s: a half turn in a second
+    const double    now = plat_time();
+    const double    dt  = now - m.mount_at;
+    if (m.mount_at < 0.0 || dt > 0.5) {
+        m.mount_yaw = b.yaw;
+    } else {
+        float target = m.mount_yaw;
+        if (m.velocity.x * m.velocity.x + m.velocity.z * m.velocity.z > 0.25f) {
+            target = std::atan2(m.velocity.x, -m.velocity.z);   // along Player::forward
+            if (std::cos(target - b.yaw) < -0.3f) target += 3.14159265f;   // backing up
+        }
+        const float most = kMountTurn * (float)dt;
+        m.mount_yaw += std::clamp(std::remainder(target - m.mount_yaw, 6.2831853f), -most, most);
+    }
+    m.mount_at = now;
+    b.yaw      = m.mount_yaw;
+}
+
 void animate_body(Session &w, uint64_t key, Body &b, Vec3 feet, uint16_t rider,
                   const OwnBody *own = nullptr, const char *working = nullptr,
                   bool crouching = false, bool lying = false, bool flying = false)
 {
+    if (working != nullptr && std::strncmp(working, "ride", 4) == 0) mount_heading(w.motion[key], b);
+
     // A turn this fast is full lock. ponytail: one number for every world (a
     // kart on the track turns 2.6 rad/s at most); a world's own if one needs it.
     constexpr float kFullLockRate = 2.0f;
@@ -9022,9 +9066,14 @@ void add_own_body(Scene &s, const Player &player, uint16_t model)
     // it is dressed in round it.
     // Or sat in one whose name says so ("sit", a chair): seen from its head the
     // same way. Not every held clip: a rifle held is still seen down the arms.
-    const bool posed_in = s.own_clip.empty() && s.conn != nullptr && !s.conn->own_pose().clip.empty() &&
-                          (std::any_of(std::begin(b.dress), std::end(b.dress), [](uint16_t m) { return m != 0; }) ||
-                           s.conn->own_pose().clip.rfind("sit", 0) == 0);
+    // Or astride a mount in a world played here, whose clip is this machine's
+    // own (host_player_clip): from the saddle, with the pony's neck before the
+    // eye, as a client of a server sees it -- not from a standing player's eye
+    // with nothing of the animal in view.
+    const bool posed_in = (s.own_clip.empty() && s.conn != nullptr && !s.conn->own_pose().clip.empty() &&
+                           (std::any_of(std::begin(b.dress), std::end(b.dress), [](uint16_t m) { return m != 0; }) ||
+                            s.conn->own_pose().clip.rfind("sit", 0) == 0)) ||
+                          (s.conn == nullptr && s.own_clip.rfind("ride", 0) == 0);
     s.seat_view = s.act().view_distance <= 0.0f && (s.seat_on || posed_in) && !s.driving_view;
     if (s.seat_view) {
         b.arms_only     = true;
@@ -11200,8 +11249,8 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
                                         k * k * (3.0f - 2.0f * k));
         }
     }
-    if ((hud || s.play_arms) && (s.act().view_distance <= 0.0f || at_fixed_eye(s.act())) && !s.driving_view &&
-        !s.seat_view)
+    if ((hud || s.play_arms) && !s.hide_hud && (s.act().view_distance <= 0.0f || at_fixed_eye(s.act())) &&
+        !s.driving_view && !s.seat_view)
         draw_arms(s, projection);
     s.act().world_render.set_water(false);
 
@@ -11368,7 +11417,7 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
                 if (!over.empty())
                     ui::draw_item_tooltip(over, mx, my, gfx_screen_width(), gfx_screen_height());
             }
-        } else if (s.act().engine_hud) {
+        } else if (s.act().engine_hud && !s.hide_hud) {
             ui::draw_hotbar(s.hotbar.slots.data(), (int)s.hotbar.slots.size(), s.hotbar.selected,
                             *s.hotbar.items, s.act().registry, icons,
                             gfx_screen_width(), gfx_screen_height());
@@ -11423,7 +11472,7 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
 
     // What a world's code draws over the screen: over the bar and the notice,
     // under a panel, which is the thing being clicked when one is up.
-    if (s.hud_passes.size() > 0) {
+    if (s.hud_passes.size() > 0 && !s.hide_hud) {
         gfx_2d_begin(gfx_screen_width(), gfx_screen_height());
         draw_hud_passes(s);
         gfx_2d_end();
@@ -14789,6 +14838,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         if (plat_key_pressed(PLAT_KEY_F6))
             diag::prof_enable(!diag::prof_enabled());
         if (plat_key_pressed(PLAT_KEY_F2)) g_occlusion = !g_occlusion;
+        if (plat_key_pressed(PLAT_KEY_F1)) s.hide_hud = !s.hide_hud;
         if (plat_key_pressed(PLAT_KEY_F5))
             s.blit_link = (s.blit_link + 1) % 3;
         if (plat_key_pressed(PLAT_KEY_V) && !iso_engaged(s.act()))
@@ -15238,10 +15288,18 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             // the feet: every column the server sends has one, and a player
             // flying above the terrain has no chunk under them and must still
             // be able to come down.
-            const ChunkPos under = World::chunk_of((int)std::floor(player.pos.x), 0,
+            //
+            // Only within the server's reach of that layer, though: a player
+            // flown higher than vertical_radius chunks over it is not sent it
+            // at all (and is told to forget it a little higher still), so a
+            // hold up there waited for something that never came -- frozen
+            // over the clouds, unable even to come down to where it would.
+            const ChunkPos under = World::chunk_of((int)std::floor(player.pos.x),
+                                                   (int)std::floor(player.pos.y),
                                                    (int)std::floor(player.pos.z));
             static bool held = false;
-            const bool  hold = s.act().world.find_chunk(ChunkPos{under.x, 0, under.z}) == nullptr;
+            const bool  hold = under.y <= net::InterestConfig{}.vertical_radius &&
+                              s.act().world.find_chunk(ChunkPos{under.x, 0, under.z}) == nullptr;
             if (hold != held)
                 std::printf("%s ground not sent yet at %.2f %.2f %.2f\n",
                             hold ? "held over" : "no longer held over", (double)player.pos.x,
@@ -18694,6 +18752,7 @@ int run_interactive(Scene &s, double seconds)
         if (plat_key_pressed(PLAT_KEY_F6))
             diag::prof_enable(!diag::prof_enabled());
         if (plat_key_pressed(PLAT_KEY_F2)) g_occlusion = !g_occlusion;
+        if (plat_key_pressed(PLAT_KEY_F1)) s.hide_hud = !s.hide_hud;
 
         // The next texture pack. Local worlds only: a world somebody else is
         // serving is drawn from what THAT server sent, and dressing it in a
@@ -19514,6 +19573,7 @@ script_host make_client_host(Scene &scene)
     host.body_drive    = host_body_drive;
     host.body_boat     = host_body_boat;
     host.body_cart     = host_body_cart;
+    host.body_mount    = host_body_mount;
     host.notice        = host_notice;
     host.chat          = host_chat;
     host.command       = host_command;

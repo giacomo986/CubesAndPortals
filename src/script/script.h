@@ -706,6 +706,8 @@ typedef struct script_host {
     int (*body_boat)(void *ud, int player, int on);
     // And in a cart (core.body_cart): rails are ridden.
     int (*body_cart)(void *ud, int player, int on);
+    // And astride a mount (core.body_mount): steered, with weight.
+    int (*body_mount)(void *ud, int player, int on);
 
     // How wide a body is in this world, and how long when it drives
     // (core.body_width): the same moment and the same welcome.

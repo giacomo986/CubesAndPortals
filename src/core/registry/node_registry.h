@@ -516,6 +516,16 @@ public:
         if (id < m_light.size()) m_light[id] = m_defs[id].light_source;
     }
 
+    // Whether a block is a door, shut or open (protocol 115): what lets a body
+    // walk out of a panel shut on it, on the client's prediction as on the
+    // server. Only the kind -- which block is its other half stays the
+    // server's, which is the one that swaps them.
+    void set_door(BlockId id, uint8_t door)
+    {
+        if (id >= m_defs.size()) return;
+        m_defs[id].door = door <= 2 ? door : 0;
+    }
+
     void set_conveyor(BlockId id, float speed, float height, float rise, bool rail = false)
     {
         if (id >= m_defs.size()) return;

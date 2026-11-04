@@ -2759,6 +2759,18 @@ int host_body_cart(void *ud, int player, int on)
     return s->sessions->set_body_movement((net::PeerId)player, rules, s->now) ? 1 : 0;
 }
 
+// One body astride a mount, or off it (core.body_mount), as host_body_boat.
+int host_body_mount(void *ud, int player, int on)
+{
+    ServerState        *s    = static_cast<ServerState *>(ud);
+    const net::Session *body =
+        (player > 0 && s->sessions != nullptr) ? s->sessions->find((net::PeerId)player) : nullptr;
+    if (body == nullptr) return 0;
+    MovementRules rules = body->movement;
+    rules.mount         = on != 0;
+    return s->sessions->set_body_movement((net::PeerId)player, rules, s->now) ? 1 : 0;
+}
+
 int host_net_send(void *ud, int player, const char *text)
 {
     ServerState      *s    = static_cast<ServerState *>(ud);
@@ -6449,6 +6461,7 @@ int serve_room(int argc, char **argv)
         host.body_drive    = host_body_drive;
         host.body_boat     = host_body_boat;
         host.body_cart     = host_body_cart;
+        host.body_mount    = host_body_mount;
         host.side          = host_side;
         host.player_name   = host_player_name;
         host.player_key    = host_player_key;
@@ -7328,6 +7341,7 @@ int serve_room(int argc, char **argv)
             b.conveyor_height = d.conveyor_height;
             b.conveyor_rise   = d.conveyor_rise;
             b.rail            = d.rail;
+            b.door            = d.door;
             config.node_bodies.push_back(b);
         }
         config.features    = server_features();

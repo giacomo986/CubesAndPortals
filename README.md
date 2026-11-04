@@ -495,7 +495,7 @@ tools/arpg.sh --fresh
 | Left / right click | break / place (with an empty hand, use the block) |
 | Wheel or 1-9, E, C, Q | hotbar slot, bag, creative catalogue, drop |
 | T, / | chat, chat with a command (`/help`, `/list`) |
-| V, F11, ESC | third person, full screen, pause menu |
+| V, F11, ESC, F1 | third person, full screen, pause menu, hide hands and hotbar |
 | F3, F4, F8 | info, territory borders, cells where monsters can spawn |
 | F5, F6, F7, F2 | reload mods, profiler, next texture pack, occlusion culling off |
 

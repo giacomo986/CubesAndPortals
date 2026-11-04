@@ -172,10 +172,15 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
 
     // Horizontal basis: the flattened look direction, so looking up does not
     // slow you down.
+    // Astride a mount: A and D turn it, and the view with it, as a boat's
+    // rudder does; it goes only along its heading, and back slowly.
+    const bool mounted = rules.mount && !player.flying;
+    if (mounted) player.yaw += input.move_right * kMountTurn * dt;
     const Vec3 fwd{std::sin(player.yaw), 0.0f, -std::cos(player.yaw)};
     const Vec3 right{std::cos(player.yaw), 0.0f, std::sin(player.yaw)};
 
-    Vec3 wish = fwd * input.move_forward + right * input.move_right;
+    Vec3 wish = mounted ? fwd * (input.move_forward >= 0.0f ? input.move_forward : input.move_forward * kMountBack)
+                        : fwd * input.move_forward + right * input.move_right;
     if (length_sq(wish) > 1.0f) wish = normalize(wish);
 
     if (player.flying) {
@@ -576,7 +581,8 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         // at the ground's grip (kGroundGrip), which is the body's weight. Low
         // after a slide, under a block, at a crouch.
         const Vec3 h = approach(Vec3{player.velocity.x, 0.0f, player.velocity.z},
-                                wish * (player.low ? rules.walk * kCrouchPace : speed), kGroundGrip, dt);
+                                wish * (player.low ? rules.walk * kCrouchPace : speed),
+                                mounted ? kMountGrip : kGroundGrip, dt);
         player.velocity.x = h.x;
         player.velocity.z = h.z;
     } else {

@@ -318,13 +318,18 @@ end)
 -- holding a saddle and you ride it: the pony is worn under your feet
 -- (core.player_wear: its own bones under your feet' bone, its legs playing
 -- worn_walk or worn_run as you go -- tools/make_pony_ridden.py) and you sit
--- astride it, feet in the stirrups (ride_idle, ride: tools/make_ride_clips.py) and you go at its pace, a canter on sprint, and jump a block
--- and more. Ctrl (crouch), or a right click on the ground, gets off: it
+-- astride it, feet in the stirrups (ride_idle, ride: tools/make_ride_clips.py) and you go at its pace, a canter on sprint, and jump two
+-- blocks. It is ridden, not walked (core.body_mount): it goes where you look,
+-- A and D turn it, it backs up slowly and takes a moment to get going and to
+-- stop. Ctrl (crouch), or a right click on the ground, gets off: it
 -- stands there again and the saddle is back in the bag. Dying, or leaving, puts it down where you were.
 local PONY = {
     MODEL = core.register_model("animals:pony", "pony.gltf"),   -- tools/make_pony_model.py
     RIDDEN = core.register_model("animals:pony_ridden", "pony_ridden.gltf"),   -- tools/make_pony_ridden.py
     SLOT = 9,                 -- of core.player_wear's ten (mods/boats has the 10th)
+    -- Its pace: walk, canter, no flying, and a jump at 11 m/s against the
+    -- world's 25 m/s^2 -- 2.4 up, over a wall two blocks high.
+    WALK = 7.0, CANTER = 11.0, JUMP = 11.0,
     riding = {} :: { [number]: { x: number, y: number, z: number, clip: string } },
 }
 core.register_mob("animals:pony", PONY.MODEL, 16, 2.6, "pet", 0, 1.6, 1.0, "animals:leather", 1, 0, false, 0,
@@ -346,6 +351,7 @@ function PONY.off(p: number, x: number?, y: number?, z: number?)
     if core.player_pos(p) ~= nil then
         core.player_wear(p, PONY.SLOT, 0)
         core.player_clip(p, "")
+        core.body_mount(p, false)
         core.body_movement(p)
         if core.give_item(p, "animals:saddle", 1) < 1 then
             core.drop_item(math.floor(px), math.floor(py), math.floor(pz), core.item_id("animals:saddle"), 1)
@@ -368,7 +374,8 @@ core.event.on("core:used_mob", function(ev)
     core.player_clip(ev.player, "ride_idle")   -- astride (tools/make_ride_clips.py)
     core.player_place(ev.player, x, y, z)
     core.player_wear(ev.player, PONY.SLOT, PONY.RIDDEN)
-    core.body_movement(ev.player, 7.0, 11.0, 14.0, 10.0)
+    core.body_movement(ev.player, PONY.WALK, PONY.CANTER, 0, PONY.JUMP)
+    core.body_mount(ev.player, true)
     core.notice(ev.player, "Riding: Ctrl, or right click the ground, to get off")
 end)
 
