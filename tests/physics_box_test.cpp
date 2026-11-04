@@ -996,6 +996,40 @@ int main()
         check(std::fabs(side.pos.x - 4.5f) < 0.01f && std::fabs(side.pos.z - 4.0f) < 0.01f &&
                   std::fabs(side.yaw - 1.5708f) > 1.5f,
               "D does not strafe it, it turns it");
+
+        // Up a block without a jump and without losing its pace; and a
+        // ladder is not climbed.
+        World steps;
+        NodeRegistry ladders = reg;
+        const BlockId ladder = reg.find("core:glass");
+        ladders.set_body(ladder, false, false, 0, false, 8, true);
+        for (int x = 0; x < 30; ++x)
+            for (int z = 0; z < 8; ++z) {
+                steps.set_block(x, 9, z, stone);
+                if (x >= 12) steps.set_block(x, 10, z, stone);   // one block up
+                if (x == 25) for (int y = 11; y < 16; ++y) steps.set_block(x, y, z, ladder);
+            }
+        Player p;
+        p.pos = Vec3{4.5f, 10.0f, 4.0f};
+        p.yaw = 1.5708f;
+        p.on_ground = true;
+        float before = 0.0f, after = 0.0f, top = 0.0f, up = 0.0f;
+        for (float t = 0.0f; t < 3.0f; t += 1.0f / 60.0f) {
+            PlayerInput in;
+            in.move_forward = 1.0f;
+            in.sprint       = true;
+            player_update(p, steps, ladders, rules, in, 1.0f / 60.0f);
+            const float v = std::sqrt(p.velocity.x * p.velocity.x + p.velocity.z * p.velocity.z);
+            if (p.pos.x < 11.0f) before = v;
+            if (p.pos.x > 12.6f && p.pos.x < 14.0f && after == 0.0f) after = v;
+            if (p.pos.x > 18.0f && p.pos.x < 20.0f) up = p.pos.y;
+            top = std::max(top, p.pos.y);
+        }
+        std::printf("        a pony up a block: %.2f m/s before, %.2f after, on it at y %.2f; highest %.2f\n",
+                    (double)before, (double)after, (double)up, (double)top);
+        check(up > 10.9f && after >= before - 0.01f && before > 9.0f,
+              "a pony walks up a block at a canter and keeps its pace");
+        check(top < 11.1f, "and does not climb the ladder it runs into");
     }
 
     std::printf(g_failures == 0 ? "the box rules agree\n" : "THE BOX RULES DISAGREE\n");

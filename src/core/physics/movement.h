@@ -181,6 +181,9 @@ inline constexpr float kRailPush  = 2.0f;    // m/s
 inline constexpr float kMountGrip = 2.2f;    // 1/s
 inline constexpr float kMountTurn = 2.2f;    // rad/s, A or D held
 inline constexpr float kMountBack = 0.4f;
+// And it walks up a whole block as a body walks up a slab, without a jump and
+// without losing its pace -- and does not climb a ladder or a vine.
+inline constexpr float kMountStep = 1.05f;
 
 // How a body moves in ONE world: what its mods declared, or the numbers above
 // when they declared nothing (TODO.md OPEN-44, DESIGN.md M13).
@@ -418,6 +421,10 @@ struct MovementLimits {
     // How tall the box is that may not be inside a solid block, from the feet:
     // the body's, or less where a body slides under a block (kSlideHeight).
     float height = kPlayerHeight;
+
+    // How high a blocked step is tried again: a slab on foot, a block astride
+    // a mount (kMountStep). What the server walks a long claim with.
+    float step = kStepHeight;
 };
 
 // Why a world's rules are not ones this engine can run, or empty when they are.

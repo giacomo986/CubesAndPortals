@@ -5,6 +5,20 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
+## 0.13.0-alpha.1 — 2026-11-04
+
+- Andare a cavallo è cavalcare, non camminare travestiti da pony: va dove guardi e A e D lo fanno
+  girare, ci mette un momento a partire e a fermarsi, indietreggia piano, sale un blocco al passo
+  senza rallentare e ne salta due, non si arrampica sulle scale e non vola. Guarda dove va e gira
+  col suo passo invece di ruotare col mouse, per te e per chi lo guarda; in un mondo giocato da
+  soli lo vedi anche dalla sella. Per i mod: `core.body_mount`.
+- F1 nasconde le mani, la hotbar, il mirino e quello che i mod disegnano sullo schermo.
+- Volando alti sopra le nuvole non si resta più bloccati a mezz'aria senza potersi muovere.
+- Una porta chiusa addosso mentre sei sulla soglia non ti trattiene più: ne esci camminando.
+- I mattoni delle torri in rovina sono un muro di mattoni, non un mattone disegnato sul nero.
+- Le pozze delle paludi sono chiuse su ogni lato, e nessun albero ci cresce dentro.
+- **Protocollo 115**: non gioca con server o client 0.12.
+
 ## 0.12.0-alpha.1 — 2026-11-03
 
 - Quanto è difficile il sandbox: pacifico, facile, normale o difficile. Si sceglie quando si crea il

@@ -5,6 +5,20 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
+## 0.13.0-alpha.1 — 2026-11-04
+
+- Riding a pony is riding now, not walking dressed as one: it goes where you look and A and D turn
+  it, it takes a moment to get going and to stop, it backs up slowly, it walks up a block in its
+  stride without slowing down and jumps two, it does not climb ladders or fly. It faces the way it
+  goes and turns at its own pace instead of spinning with the mouse, for you and for everybody
+  watching; in a world played alone you see it from the saddle too. For mods: `core.body_mount`.
+- F1 hides the hands, the hotbar, the crosshair and what the mods draw over the screen.
+- Flying high over the clouds no longer leaves you frozen in the air, unable to move.
+- A door closed on you while you stand in its doorway no longer holds you: you walk out of it.
+- The ruined towers' bricks are a wall of bricks, not one brick drawn on black.
+- The swamps' pools are held in on every side, and no tree grows out of one.
+- **Protocol 115**: it does not play with 0.12 servers or clients.
+
 ## 0.12.0-alpha.1 — 2026-11-03
 
 - How hard the sandbox is: peaceful, easy, normal or hard. Chosen when a world is made ("Monsters"

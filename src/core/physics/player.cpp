@@ -402,7 +402,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
     // otherwise the body slides down slowly -- and walks on and off it as on
     // the ground. The numbers are core/physics/movement.h's, which the
     // server's validator is under too.
-    if (box_on_climbable(world, reg, body_box(player.pos, rules.width * 0.5f))) {
+    if (!mounted && box_on_climbable(world, reg, body_box(player.pos, rules.width * 0.5f))) {
         const Vec3 h = approach(Vec3{player.velocity.x, 0.0f, player.velocity.z},
                                 wish * (speed * kClimbPace), kGroundGrip, dt);
         player.velocity.x = h.x;
@@ -676,8 +676,8 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
     }
 
     const Vec3       before = player.pos;
-    const MoveResult r = move_body(world, reg, player.pos, step,
-                                   player.cb_shift, kStepHeight, box_half(player, rules), box_height(player));
+    const MoveResult r = move_body(world, reg, player.pos, step, player.cb_shift,
+                                   mounted ? kMountStep : kStepHeight, box_half(player, rules), box_height(player));
     player.pos = r.pos;
 
     // Zeroing vertical speed on contact is what stops gravity accumulating into
@@ -727,6 +727,9 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
     }
     // Parkour doing something is not a moment to step up or grab a ledge.
     if (player.low || player.wall_side != 0 || player.flip > 0.0f || player.roped) return;
+    // Nor astride a mount: it walks up a block in its stride (kMountStep) and
+    // has no hands to take a ledge with.
+    if (rules.mount) return;
 
     // On the ground, walking into a block one high along the axis it faces
     // most and touching it, crouch not held: up onto it, if a body fits there.
@@ -812,7 +815,7 @@ void StepSmooth::note(const Player &p, bool was_on_ground, float y_before)
 {
     const float rise = p.pos.y - y_before;
     if (was_on_ground && p.on_ground && !p.flying && !p.vehicle && rise > 0.01f &&
-        rise <= kStepHeight + 0.01f)
+        rise <= kMountStep + 0.01f)
         lag = std::max(lag - rise, -1.0f);
     // Sat down in a slide, or up out of one: the eye goes down or up as gently.
     if (p.riding != riding) {

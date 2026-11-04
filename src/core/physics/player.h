@@ -220,7 +220,7 @@ bool rope_fire(Player &player, const World &world, const NodeRegistry &reg, Vec3
 // it -- the server checks that -- and the eye lags: drawn `lag` under the
 // body's and pulled up by a critically damped spring, which starts and stops
 // without a kick. Only a rise on the ground both sides of the move and no more
-// than a step counts: a jump leaves the ground, a teleport is more than a step.
+// than a step -- a mount's, a whole block (kMountStep) -- counts: a jump leaves the ground, a teleport is more than a step.
 struct StepSmooth {
     float lag   = 0.0f;   // how far under the body's the eye is drawn (over it, sitting down)
     float speed = 0.0f;

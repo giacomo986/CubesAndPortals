@@ -308,7 +308,7 @@ MovementVerdict check_move(const MovementState &last, float x, float y, float z,
             // The world's body, not the engine's: a kart is walked as wide as
             // the client moved it.
             const auto walk = [&](Vec3 at, Vec3 by) {
-                return move_body(world, registry, at, by, 0.0f, kStepHeight, limits.half_width,
+                return move_body(world, registry, at, by, 0.0f, limits.step, limits.half_width,
                                  limits.height).pos;
             };
 
@@ -505,6 +505,7 @@ MovementLimits limits_for(const MovementRules &rules)
     // And what "inside a solid block" is measured with: the same box on foot,
     // a point for a body that drives. See MovementLimits::solid_half.
     limits.solid_half = rules.drives() ? kBoxSkin : limits.half_width;
+    limits.step       = rules.mount && !rules.drives() ? kMountStep : kStepHeight;
     limits.arrival_half =
         rules.drives() ? 0.5f * std::max(rules.width, rules.length) : rules.width * 0.5f;
 
