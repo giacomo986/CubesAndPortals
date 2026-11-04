@@ -498,6 +498,12 @@ On a server the move goes out at the end of the tick, after the blocks the mods 
     player_wear: (player: number, slot: number, model: number?, tint: number?) -> number,
     -- Plays a sound at a place, for everybody in this world, quieter with distance and heard through a portal the way round. Each client turns the name into a file of its own: mods/<mod>/<thing>.ogg (or .wav) beside the mod's init.luau, then assets/sounds/<mod>_<thing>.ogg. A client without the file hears nothing. Returns 1, or 0 for a name that is not "mod:thing".
     play_sound: (name: string, x: number, y: number, z: number) -> number,
+    -- Keeps a sound going round at a place for everybody in this world until core.sound_loop_stop (protocol 116): rain, lava, an engine, music in a hall. Found as core.play_sound finds its file; a player who comes in later hears it too. Several loops of one name are one voice, as loud as the nearest of them: a lake of lava in thirty places sounds like one lake. Up to 64 a world. Returns the loop's id, or 0 for a name that is not "mod:thing", a range or gain out of bounds or a 65th loop.
+    sound_loop: (name: string, x: number, y: number, z: number, range: number?, gain: number?) -> number,
+    -- Moves a loop, as an engine goes with its kart. Said every tick it is fine: players hear where it is ten times a second. Returns 1, or 0 for an id not going round.
+    sound_loop_move: (id: number, x: number, y: number, z: number) -> number,
+    -- Stops a loop for everybody. Returns 1, or 0 for an id not going round.
+    sound_loop_stop: (id: number) -> number,
     -- The first solid block a ray from x, y, z along dx, dy, dz runs into within `max`: its cell and how far along the ray. Returns NOTHING when it meets none.
 
 Blocks only. A body or a mod's entity is the mod's to test, against the distance this returns: a target behind a wall is further than the wall.

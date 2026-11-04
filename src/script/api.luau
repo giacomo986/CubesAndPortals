@@ -3172,6 +3172,50 @@ local api: { Fn } = {
            .. "1, or 0 for a name that is not \"mod:thing\".",
     },
     {
+        name = "sound_loop",
+        host = "sound_loop",
+        ret  = "int",
+        args = {
+            { name = "name", type = "string",
+              doc = "\"mymod:rain\": lower case, digits and _, one colon. The file has to loop cleanly by itself." },
+            { name = "x", type = "float" },
+            { name = "y", type = "float" },
+            { name = "z", type = "float" },
+            { name = "range", type = "float", default = 24.0,
+              doc = "Nodes, 1 to 256: silent at this distance, a quarter as loud at half of it." },
+            { name = "gain", type = "float", default = 1.0, doc = "0 to 1, its own loudness before distance." },
+        },
+        doc = "Keeps a sound going round at a place for everybody in this world until "
+           .. "core.sound_loop_stop (protocol 116): rain, lava, an engine, music in a hall. Found "
+           .. "as core.play_sound finds its file; a player who comes in later hears it too. "
+           .. "Several loops of one name are one voice, as loud as the nearest of them: a lake of "
+           .. "lava in thirty places sounds like one lake. Up to 64 a world. Returns the loop's "
+           .. "id, or 0 for a name that is not \"mod:thing\", a range or gain out of bounds or "
+           .. "a 65th loop.",
+    },
+    {
+        name = "sound_loop_move",
+        host = "sound_loop_move",
+        ret  = "int",
+        args = {
+            { name = "id", type = "int", doc = "From core.sound_loop." },
+            { name = "x", type = "float" },
+            { name = "y", type = "float" },
+            { name = "z", type = "float" },
+        },
+        doc = "Moves a loop, as an engine goes with its kart. Said every tick it is fine: players "
+           .. "hear where it is ten times a second. Returns 1, or 0 for an id not going round.",
+    },
+    {
+        name = "sound_loop_stop",
+        host = "sound_loop_stop",
+        ret  = "int",
+        args = {
+            { name = "id", type = "int", doc = "From core.sound_loop." },
+        },
+        doc = "Stops a loop for everybody. Returns 1, or 0 for an id not going round.",
+    },
+    {
         name = "raycast",
         host = "raycast",
         rets = { "int", "int", "int", "float" },

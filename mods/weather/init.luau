@@ -131,6 +131,11 @@ if serving then
         return nil, 0
     end
 
+    -- The rain going round each player it falls on, by player: its loop and
+    -- what it was started for, a storm louder than a shower.
+    local RAIN_GAIN: { [string]: number } = { rain = 0.35, storm = 0.6 }
+    local rain_loops: { [number]: { id: number, kind: string } } = {}
+
     local function strike(p: number)
         local px, py, pz = core.player_pos(p)
         if px == nil or py == nil or pz == nil then
@@ -206,6 +211,15 @@ if serving then
                 set_sky("clear", math.random(is.clear[1], is.clear[2]))
             end
         end
+        -- The rain heard round each player in it (core.sound_loop), moved
+        -- with them every tick: one voice however many are out in it, since
+        -- loops of one name are heard as the nearest.
+        for p, l in rain_loops do
+            local x, y, z = core.player_pos(p)
+            if x and y and z then
+                core.sound_loop_move(l.id, x, y + 3, z)
+            end
+        end
         since += ev.dt
         bolt_in -= ev.dt
         if since < 2 then
@@ -237,6 +251,25 @@ if serving then
             end
         end
         told, told_season = now, now_season
+        -- And whose rain is going round, as loud as what falls on them.
+        for p, l in rain_loops do
+            if now[p] ~= l.kind then
+                core.sound_loop_stop(l.id)
+                rain_loops[p] = nil
+            end
+        end
+        for p, kind in now do
+            local gain = RAIN_GAIN[kind]
+            if gain and rain_loops[p] == nil then
+                local x, y, z = core.player_pos(p)
+                if x and y and z then
+                    local id = core.sound_loop("weather:rain", x, y + 3, z, 20, gain)
+                    if id ~= 0 then
+                        rain_loops[p] = { id = id, kind = kind }
+                    end
+                end
+            end
+        end
         if bolt_in <= 0 then
             bolt_in = math.random(BOLT_MIN, BOLT_MAX)
             if #stormy > 0 then

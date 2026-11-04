@@ -189,6 +189,9 @@ script_host world_code_host(script_host full)
     h.player_place    = nullptr;
     h.player_lie      = nullptr;
     h.play_sound      = nullptr;
+    h.sound_loop      = nullptr;
+    h.sound_loop_move = nullptr;
+    h.sound_loop_stop = nullptr;
 
     return h;
 }

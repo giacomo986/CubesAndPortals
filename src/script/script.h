@@ -471,6 +471,14 @@ typedef struct script_host {
     // A sound by name at a place (core.play_sound), for everybody in the world
     // to hear. 1, or 0 for a name that is not "mod:thing".
     int (*play_sound)(void *ud, const char *name, double x, double y, double z);
+    // A sound going round at a place until stopped (core.sound_loop), heard
+    // within `range` nodes at `gain`: its id, or 0 when refused. Moved and
+    // stopped by id (core.sound_loop_move, core.sound_loop_stop): 1, or 0 for
+    // an id that is not going round.
+    int (*sound_loop)(void *ud, const char *name, double x, double y, double z, double range,
+                      double gain);
+    int (*sound_loop_move)(void *ud, int id, double x, double y, double z);
+    int (*sound_loop_stop)(void *ud, int id);
     int (*raycast)(void *ud, double x, double y, double z, double dx, double dy, double dz,
                    double max, int *hx, int *hy, int *hz, float *distance);
 

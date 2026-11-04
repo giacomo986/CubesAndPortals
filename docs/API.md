@@ -2993,6 +2993,50 @@ Plays a sound at a place, for everybody in this world, quieter with distance and
 | `y` | number | — |  |
 | `z` | number | — |  |
 
+## `core.sound_loop`
+
+```luau
+core.sound_loop(name: string, x: number, y: number, z: number, range: number?, gain: number?) -> number
+```
+
+Keeps a sound going round at a place for everybody in this world until core.sound_loop_stop (protocol 116): rain, lava, an engine, music in a hall. Found as core.play_sound finds its file; a player who comes in later hears it too. Several loops of one name are one voice, as loud as the nearest of them: a lake of lava in thirty places sounds like one lake. Up to 64 a world. Returns the loop's id, or 0 for a name that is not "mod:thing", a range or gain out of bounds or a 65th loop.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — | "mymod:rain": lower case, digits and _, one colon. The file has to loop cleanly by itself. |
+| `x` | number | — |  |
+| `y` | number | — |  |
+| `z` | number | — |  |
+| `range` | number | `24` | Nodes, 1 to 256: silent at this distance, a quarter as loud at half of it. |
+| `gain` | number | `1` | 0 to 1, its own loudness before distance. |
+
+## `core.sound_loop_move`
+
+```luau
+core.sound_loop_move(id: number, x: number, y: number, z: number) -> number
+```
+
+Moves a loop, as an engine goes with its kart. Said every tick it is fine: players hear where it is ten times a second. Returns 1, or 0 for an id not going round.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `id` | number | — | From core.sound_loop. |
+| `x` | number | — |  |
+| `y` | number | — |  |
+| `z` | number | — |  |
+
+## `core.sound_loop_stop`
+
+```luau
+core.sound_loop_stop(id: number) -> number
+```
+
+Stops a loop for everybody. Returns 1, or 0 for an id not going round.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `id` | number | — | From core.sound_loop. |
+
 ## `core.raycast`
 
 ```luau

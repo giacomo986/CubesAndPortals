@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Thunder for mods/weather, synthesised.
+"""Thunder and rain for mods/weather, synthesised.
 
 A strike is a crack -- white noise, bright and short -- over a rumble: brown
 noise (integrated white) through a low-pass, swelling in a few bursts as the
 sound comes back off the hills, and fading over four seconds. Pure Python to a
 .wav, then ffmpeg to a mono .ogg at 44.1 kHz like the others. Seeded.
 
-    tools/make_weather_sounds.py   # mods/weather/thunder.ogg
+Rain is a loop (core.sound_loop): a hiss of pink-ish noise under drops -- a
+short bright click each, a few hundred a second at random -- and the last
+second faded into the first, so going round it has no seam to hear.
+
+    tools/make_weather_sounds.py   # mods/weather/thunder.ogg, rain.ogg
 """
 import math
 import os
@@ -39,6 +43,29 @@ def thunder(rng, length):
     return out
 
 
+def rain(rng, length, fade=1.0):
+    n, f = int(length * RATE), int(fade * RATE)
+    body = []
+    lp = hp_in = hp = 0.0
+    drop = 0.0
+    for _ in range(n + f):
+        white = rng.uniform(-1.0, 1.0)
+        lp += (white - lp) * 0.35          # the hiss, the top taken off
+        hp = 0.97 * (hp + lp - hp_in)      # and the rumble
+        hp_in = lp
+        if rng.random() < 300.0 / RATE:    # a drop
+            drop = rng.uniform(0.3, 1.0)
+        drop *= 0.92
+        body.append(hp * 0.5 + white * drop * 0.6)
+    # The tail, faded into the head: sample i of the loop is the head rising
+    # while the tail past the end falls, equal power.
+    out = body[:n]
+    for i in range(f):
+        a = i / f
+        out[i] = body[i] * math.sin(a * math.pi / 2) + body[n + i] * math.cos(a * math.pi / 2)
+    return out
+
+
 def write(samples, path):
     peak = max(1e-6, max(abs(s) for s in samples))
     k = 0.85 / peak
@@ -57,3 +84,4 @@ def write(samples, path):
 
 if __name__ == "__main__":
     write(thunder(random.Random(7), 4.5), os.path.join(ROOT, "mods", "weather", "thunder.ogg"))
+    write(rain(random.Random(11), 6.0), os.path.join(ROOT, "mods", "weather", "rain.ogg"))

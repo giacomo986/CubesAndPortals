@@ -1863,6 +1863,51 @@ bool Sound::decode(ByteReader &r, Sound &out)
     return true;
 }
 
+std::vector<uint8_t> SoundLoops::encode() const
+{
+    ByteWriter w;
+    w.u8((uint8_t)MsgType::SoundLoops);
+    const size_t n = loops.size() < kMax ? loops.size() : kMax;
+    w.u8((uint8_t)n);
+    for (size_t i = 0; i < n; ++i) {
+        const SoundLoop &l = loops[i];
+        w.u32(l.id);
+        w.str(l.name);
+        w.f32(l.x);
+        w.f32(l.y);
+        w.f32(l.z);
+        w.f32(l.range);
+        w.f32(l.gain);
+    }
+    return w.data();
+}
+
+bool SoundLoops::decode(ByteReader &r, SoundLoops &out)
+{
+    out = SoundLoops{};
+    if (r.u8() != (uint8_t)MsgType::SoundLoops) return false;
+    const uint8_t n = r.u8();
+    if (n > kMax) return false;
+    out.loops.reserve(n);
+    for (uint8_t i = 0; i < n; ++i) {
+        SoundLoop l;
+        l.id = r.u32();
+        if (!r.str(l.name, 64)) return false;
+        l.x     = r.f32();
+        l.y     = r.f32();
+        l.z     = r.f32();
+        l.range = r.f32();
+        l.gain  = r.f32();
+        if (l.id == 0 || !sound_name_ok(l.name)) return false;
+        for (const float v : {l.x, l.y, l.z})
+            if (!std::isfinite(v) || std::fabs(v) > 1e7f) return false;
+        if (!(l.range >= SoundLoop::kMinRange && l.range <= SoundLoop::kMaxRange)) return false;
+        if (!(l.gain >= 0.0f && l.gain <= 1.0f)) return false;
+        out.loops.push_back(std::move(l));
+    }
+    return r.done();
+}
+
 std::vector<uint8_t> Lie::encode() const
 {
     ByteWriter w;
@@ -2882,6 +2927,7 @@ MsgType peek_type(const void *data, size_t size)
     case MsgType::Status:
     case MsgType::OwnPose:
     case MsgType::Rope:
+    case MsgType::SoundLoops:
         return (MsgType)t;
     }
 

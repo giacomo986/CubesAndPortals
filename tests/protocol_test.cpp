@@ -1944,6 +1944,54 @@ int main()
               "and the flips are doing work: some parse, and fewer are admitted");
     }
 
+    std::printf("\nsound loops (protocol 116)\n");
+    {
+        SoundLoops in;
+        in.loops.push_back(SoundLoop{7, "weather:rain", 1.5f, 64.0f, -3.0f, 48.0f, 0.5f});
+        in.loops.push_back(SoundLoop{9, "kart:engine", -100.0f, 12.0f, 40.25f, 16.0f, 1.0f});
+        const auto buf = in.encode();
+        SoundLoops out;
+        ByteReader r(buf);
+        check(SoundLoops::decode(r, out) && out.loops.size() == 2 && out.loops[0].id == 7 &&
+                  out.loops[0].name == "weather:rain" && out.loops[0].range == 48.0f &&
+                  out.loops[1].name == "kart:engine" && out.loops[1].z == 40.25f &&
+                  out.loops[1].gain == 1.0f,
+              "a list of loops comes back as it went");
+
+        SoundLoops none;
+        const auto empty = none.encode();
+        ByteReader re(empty);
+        check(SoundLoops::decode(re, out) && out.loops.empty(), "and an empty list stops them all");
+
+        const auto refused = [](SoundLoop l) {
+            SoundLoops m;
+            m.loops.push_back(std::move(l));
+            const auto b = m.encode();
+            SoundLoops o;
+            ByteReader rr(b);
+            return !SoundLoops::decode(rr, o);
+        };
+        check(refused(SoundLoop{0, "a:b", 0, 0, 0, 24, 1}), "id 0 is refused");
+        check(refused(SoundLoop{1, "../x", 0, 0, 0, 24, 1}), "a name that is not mod:thing is refused");
+        check(refused(SoundLoop{1, "a:b", NAN, 0, 0, 24, 1}), "a place that is not a number is refused");
+        check(refused(SoundLoop{1, "a:b", 0, 0, 0, 0.5f, 1}) && refused(SoundLoop{1, "a:b", 0, 0, 0, 300, 1}),
+              "a range out of 1..256 is refused");
+        check(refused(SoundLoop{1, "a:b", 0, 0, 0, 24, 1.5f}) && refused(SoundLoop{1, "a:b", 0, 0, 0, 24, -0.1f}),
+              "a gain out of 0..1 is refused");
+
+        bool truncated_ok = true;
+        for (size_t n = 0; n < buf.size(); ++n) {
+            std::vector<uint8_t> cut(buf.begin(), buf.begin() + (long)n);
+            ByteReader           rc(cut);
+            if (SoundLoops::decode(rc, out)) truncated_ok = false;
+        }
+        check(truncated_ok, "every truncation of a list is refused");
+
+        std::vector<uint8_t> over = {(uint8_t)MsgType::SoundLoops, (uint8_t)(SoundLoops::kMax + 1)};
+        ByteReader           ro(over);
+        check(!SoundLoops::decode(ro, out), "more than 64 loops is refused before reading them");
+    }
+
     std::printf("\nrandom input\n");
     {
         Rng rng(0x5EED1234u);
@@ -1958,6 +2006,12 @@ int main()
             // Through the same door a real packet comes in: peek the type,
             // then hand it to the matching parser.
             switch (peek_type(buf.data(), buf.size())) {
+            case MsgType::SoundLoops: {
+                SoundLoops out;
+                ByteReader r(buf);
+                if (SoundLoops::decode(r, out)) ++parsed;
+                break;
+            }
             case MsgType::Hello: {
                 Hello      out;
                 ByteReader r(buf);

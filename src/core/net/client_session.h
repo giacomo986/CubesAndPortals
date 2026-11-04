@@ -451,6 +451,10 @@ public:
     // The sounds a mod played (core.play_sound) since the last call.
     std::vector<Sound> take_sounds() { return std::exchange(m_sounds, {}); }
 
+    // The sounds going round in this world now (core.sound_loop): the last
+    // list the server sent, empty before the first.
+    const std::vector<SoundLoop> &sound_loops() const { return m_loops; }
+
     // Laid down or got up (core.player_lie) since the last call: false when
     // the server has said nothing new.
     bool take_lie(Lie &out)
@@ -898,6 +902,7 @@ private:
     Lie                      m_lie;
     bool                     m_has_lie = false;
     std::vector<Sound>       m_sounds;
+    std::vector<SoundLoop>   m_loops;
     bool                     m_has_push = false;
 
     double                   m_time     = kNoon;

@@ -564,6 +564,8 @@ core.portal_close(x, y, z) -> 0..15|-1                             -- per centro
 core.portal_link(a, b) -> 1|0       -- a e b portano l'una all'altra; b = -1 scollega a
 core.log(messaggio)
 core.play_sound("mod:cosa", x, y, z) -> 1|0  -- a tutti nel mondo; file mods/<mod>/<cosa>.ogg sul client
+core.sound_loop("mod:cosa", x, y, z, range?, gain?) -> id|0  -- in loop finché non lo si ferma; lo sente anche chi entra dopo
+core.sound_loop_move(id, x, y, z) -> 1|0      core.sound_loop_stop(id) -> 1|0
 
 core.take_item(player, nome, quanti?) -> presi   -- fino a `quanti`, dice quanti
 core.give_item(player, nome, quanti?) -> entrati -- quello che non entra resta al mod

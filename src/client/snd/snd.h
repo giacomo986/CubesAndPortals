@@ -47,7 +47,8 @@ void snd_play(snd_sound s, float gain, float pan);
 
 // A sound held going round and round while `on` is said every frame, and
 // stopped the first frame it is not. The clip has to loop cleanly by itself.
-void snd_loop(snd_sound s, float gain, bool on);
+// One voice a handle: a sound both looped and played is two handles.
+void snd_loop(snd_sound s, float gain, float pan, bool on);
 
 // The whole game's volume, 0..1 (the options' "Volume"). Kept when said before
 // the device is open, and applied when it is.

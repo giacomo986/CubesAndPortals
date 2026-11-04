@@ -1081,15 +1081,19 @@ struct SoundBank {
     // file is remembered as silent rather than looked for on every play.
     std::string                                mods_dir;
     std::unordered_map<std::string, snd_sound> by_name;
+    // The same files loaded again for core.sound_loop: a voice of their own,
+    // so a bell rung where the same bell is going round does not cut it off.
+    std::unordered_map<std::string, snd_sound> looped;
 
     //
     // A world that sent its sounds (sound_media_name) is heard with them first:
     // its creatures' voices are files beside ITS mods, not this machine's.
-    snd_sound named(const std::string &name, const MediaSource &media = nullptr)
+    snd_sound named(const std::string &name, const MediaSource &media = nullptr, bool loop = false)
     {
         if (!net::sound_name_ok(name)) return snd_sound{0};
-        const auto it = by_name.find(name);
-        if (it != by_name.end()) return it->second;
+        auto      &cache = loop ? looped : by_name;
+        const auto it    = cache.find(name);
+        if (it != cache.end()) return it->second;
 
         const size_t      at    = name.find(':');
         const std::string mod   = name.substr(0, at);
@@ -1106,7 +1110,7 @@ struct SoundBank {
               g_sounds_dir + "/" + mod + "_" + thing + ".ogg"})
             if (got.id == 0) got = snd_load(path.c_str());
         if (got.id == 0) std::printf("audio: no file for sound '%s'\n", name.c_str());
-        return by_name[name] = got;
+        return cache[name] = got;
     }
 };
 
@@ -1425,6 +1429,13 @@ struct Scene {
     // for something to disagree with.
     Listener  ear;
     SoundBank sounds;
+
+    // The sounds this process's own mods keep going round (core.sound_loop),
+    // by id; a server's come with its connection. And the voices going round
+    // now, by name, so the frame a name is gone its voice is stopped.
+    std::map<uint32_t, net::SoundLoop>         own_loops;
+    uint32_t                                   own_loop_next = 1;
+    std::unordered_map<std::string, snd_sound> loops_on;
 
     Scene() { sessions.push_back(std::make_unique<Session>()); }
 
@@ -2290,6 +2301,43 @@ int host_play_sound(void *ud, const char *name, double x, double y, double z)
     if (!name || !net::sound_name_ok(name)) return 0;
     play_at(*s, s->sounds.named(name), Vec3{(float)x, (float)y, (float)z}, s->active);
     return 1;
+}
+
+// A sound going round in the one world here (core.sound_loop); the server's
+// copy keeps it for everybody (host_sound_loop in src/server/main.cpp).
+int host_sound_loop(void *ud, const char *name, double x, double y, double z, double range,
+                    double gain)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    net::SoundLoop l;
+    l.name  = name ? name : "";
+    l.x = (float)x; l.y = (float)y; l.z = (float)z;
+    l.range = (float)range;
+    l.gain  = (float)gain;
+    if (!net::sound_name_ok(l.name) || !std::isfinite(l.x) || !std::isfinite(l.y) ||
+        !std::isfinite(l.z) || !(l.range >= net::SoundLoop::kMinRange && l.range <= net::SoundLoop::kMaxRange) ||
+        !(l.gain >= 0.0f && l.gain <= 1.0f) || s->own_loops.size() >= net::SoundLoops::kMax)
+        return 0;
+    l.id = s->own_loop_next++;
+    if (s->own_loop_next == 0) s->own_loop_next = 1;
+    s->own_loops[l.id] = l;
+    return (int)l.id;
+}
+
+int host_sound_loop_move(void *ud, int id, double x, double y, double z)
+{
+    Scene     *s  = static_cast<Scene *>(ud);
+    const auto it = s->own_loops.find((uint32_t)id);
+    if (id <= 0 || it == s->own_loops.end() || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z))
+        return 0;
+    it->second.x = (float)x; it->second.y = (float)y; it->second.z = (float)z;
+    return 1;
+}
+
+int host_sound_loop_stop(void *ud, int id)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    return id > 0 && s->own_loops.erase((uint32_t)id) > 0 ? 1 : 0;
 }
 
 int host_player_lie(void *ud, int player, int on, double x, double y, double z, double hx,
@@ -4035,7 +4083,42 @@ void sound_body(Scene &s, const Player &p, float dt)
     static float jet = 0.0f;
     const float  want = 0.03f + 0.07f * std::min(length(p.velocity) / 14.0f, 1.0f);
     jet += (want - jet) * std::min(dt * 4.0f, 1.0f);
-    snd_loop(s.sounds.jetpack, jet, p.flying);
+    snd_loop(s.sounds.jetpack, jet, 0.0f, p.flying);
+}
+
+// The sounds going round (core.sound_loop): the server's list, when there is
+// one, and this process's own. One voice a name, as loud as the nearest loop
+// of that name and from its side -- thirty blocks of lava are one lake, not
+// thirty voices fighting for the mixer.
+void sound_loops(Scene &s, const std::vector<net::SoundLoop> *remote, const MediaSource &media)
+{
+    std::unordered_map<std::string, Heard> loudest;
+    const auto add = [&](const net::SoundLoop &l) {
+        Emitter e;
+        e.pos   = Vec3{l.x, l.y, l.z};
+        e.range = l.range;
+        e.gain  = l.gain;
+        const Heard h    = hear(s.ear, e);
+        Heard      &best = loudest[l.name];
+        if (h.gain > best.gain) best = h;
+    };
+    if (remote != nullptr)
+        for (const net::SoundLoop &l : *remote) add(l);
+    for (const auto &[id, l] : s.own_loops) add(l);
+
+    for (auto it = s.loops_on.begin(); it != s.loops_on.end();) {
+        if (loudest.count(it->first) == 0) {
+            snd_loop(it->second, 0.0f, 0.0f, false);
+            it = s.loops_on.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    for (const auto &[name, h] : loudest) {
+        const snd_sound voice = s.sounds.named(name, media, true);
+        s.loops_on[name]      = voice;
+        snd_loop(voice, h.gain, h.pan, h.gain > 0.0f);
+    }
 }
 
 void hurt_local(Scene *s, uint16_t amount, bool armoured = true, bool factored = true)
@@ -15174,6 +15257,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
 
         for (const net::Sound &snd : conn->take_sounds())
             play_at(s, s.sounds.named(snd.name, world_media(conn)), Vec3{snd.x, snd.y, snd.z}, s.active);
+        sound_loops(s, &conn->sound_loops(), world_media(conn));
 
         // Laid down or got up by the server (core.player_lie).
         if (net::Lie lie; conn->take_lie(lie)) {
@@ -18863,6 +18947,7 @@ int run_interactive(Scene &s, double seconds)
         s.step.note(player, was_grounded, y_before);
         s.step.settle(dt);
         sound_body(s, player, dt);
+        sound_loops(s, nullptr, nullptr);
 
         // After the move and before the aim: a crossing changes where the
         // player is looking, and the outline should point at what they are
@@ -19567,6 +19652,9 @@ script_host make_client_host(Scene &scene)
     host.player_clip   = host_player_clip;
     host.player_wear   = host_player_wear;
     host.play_sound    = host_play_sound;
+    host.sound_loop      = host_sound_loop;
+    host.sound_loop_move = host_sound_loop_move;
+    host.sound_loop_stop = host_sound_loop_stop;
     host.raycast       = host_raycast;
     host.movement      = host_movement;
     host.body_movement = host_body_movement;

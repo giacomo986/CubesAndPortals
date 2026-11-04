@@ -467,8 +467,8 @@ the villagers and start with questions (memory: villagers-need-design-first).
    (farm:rain); snow settles a layer near players (87 layers in 12 s, forced
    in a test); a storm strikes every 6-18 s near a player, 8 points within 3
    nodes. /weather for admins. Seen in Xephyr (rain, storm, snow). Open: the
-   bolt not caught in a screenshot; no rain sound (no looping sound for a
-   mod); core.light is not dimmed, so creatures do not come out in a storm;
+   bolt not caught in a screenshot; rain heard since 2026-11-04 (a loop round
+   each player in it, core.sound_loop; see idea 6 below); core.light is not dimmed, so creatures do not come out in a storm;
    thunder is synthesised (tools/make_weather_sounds.py), the sfx model is
    gated.
 2. Seasons -- built 2026-10-28 in `mods/weather` (`core.node_foliage`,
@@ -923,6 +923,78 @@ on them; in third person the view turned a full circle and the cart stayed
 along the track. Open: models arrive some ten seconds after joining, till
 then rails are not drawn at all (the block-model has no box fallback while
 loading).
+
+## Ideas: what could come next (proposed 2026-11-04)
+
+Proposed in a review of the game and agreed as worth doing (Giacomo, 2026-11-04);
+none designed or built yet. Effort is a first guess. Suggested start: 6, 1, 13.
+
+Portals -- the engine's own trick, used further:
+1. A house bigger inside (low). A door that is a portal onto a pocket room
+   built in a hidden area of the world: a 3x3 hut opening on a hall. Only
+   what exists (core.portal_open, core.portal_link, as mods/portal does); the
+   mayor could sell them as special plots.
+2. Cameras and screens (medium). A camera block and a screen block showing
+   what it sees, from the render-to-texture the portals already draw with:
+   watch the base, the kart race from the plaza, a village under a siege.
+   Wired to cinnabar it is a visual sensor (something seen -> a signal).
+3. Moving portals (high). A portal on a cart, a boat or a kart: a train
+   entering a tunnel and leaving in another world, a door that follows you in
+   the chambers. Today core.set_portal works only while the mods load and
+   every opening is fixed in the world.
+4. Portals that scale (high). A diorama on a table that is a portal: through
+   it you are tiny in a garden world, grass blades as tall as trees. The
+   portal transform is a rotation only; it needs a uniform scale (camera,
+   body, speed, reach). A world of its own could grow from it.
+5. A passport of servers (low-medium). With --federation built: a stamp for
+   every server reached through a far portal, and a letterbox that sends an
+   item or a letter to a friend server. A reason for communities to link up.
+
+The sandbox:
+6. Looping sounds and music (medium, high value). A mod cannot play a loop
+   (see Weather above): core.sound_loop would give rain, lava, kart engines,
+   music per biome, note blocks and instruments, players at the harvest feast.
+   STARTED 2026-11-04 (protocol 116): core.sound_loop / sound_loop_move /
+   sound_loop_stop. The server keeps a world's loops (64 at most) and sends
+   the whole list (SoundLoops) to whoever has not heard its version, at most
+   ten times a second, so a late joiner hears them and a lost stop cannot
+   leave one playing; the client plays one voice a name, as loud as the
+   nearest loop of it and from its side, on a copy of the file of its own (a
+   play_sound of the same name does not cut it). mods/weather: a loop over
+   each player in rain (0.35) or a storm (0.6), moved every tick
+   (tools/make_weather_sounds.py makes rain.ogg, its end faded into its
+   start). Checked headless: protocol_test (round trip, refusals,
+   truncations, fuzz), a server and cnp_join_probe --stay (the loop starts
+   on /weather rain, stops when its player leaves, reaches a late joiner).
+   Open: not yet heard in a real client (Xephyr has no sound); a loop is
+   heard in the world it is in only, never through a portal; raylib
+   restarts the clip when it ends, a seam of a frame or so -- a Music stream
+   would be seamless; loops of a mod that dies are not stopped. Next uses:
+   lava, kart engines, music per biome, note blocks.
+7. A camera and an album (medium). Photos hung as pictures; a curator
+   villager holds a show and pays for photos of rare places (relics, the
+   Hollows, peaks).
+8. A museum and collections (low). A village building with cases for fish,
+   ores, relics and cards; the first of each brought is paid for. Uses what
+   exists, and gives the sandbox a long goal after the credits.
+9. A hang glider and a hot-air balloon (medium). Boat, cart, pony and kart
+   exist; nothing flies cheaply. The glider off mountains and gorges (it
+   suits parkour), the balloon for slow trips above the clouds.
+10. Sky events (low). A meteor shower leaving craters with a rare ore, an
+   aurora over the tundra in winter, a rare eclipse that lets monsters out by
+   day. Hooks on mods/weather and its seasons.
+11. The village paper (low). The board tells gossip of what the player really
+   did -- a theft marked, a siege defended, a caravan arrived from a named
+   village -- from data the villagers already keep.
+12. Bees and honey (low). Hives by flowers, by season (none in winter); honey
+   for alchemy and food; bees pollinate the fields round them.
+
+Multiplayer and the plaza:
+13. Voxel prop hunt (medium). Hiders become a block of the world, seekers
+   have three minutes; the arena's gong and scoring exist.
+14. Rewards after the ending (low-medium). Beaten l'Ospite, the worlds' tools
+   come to the sandbox in a limited form: the rope gun, a portal gun with
+   charges, the kart on the villages' roads. Gives the seven keys a lasting use.
 
 ## Portals and movement
 

@@ -520,6 +520,8 @@ core.portal_close(x, y, z) -> 0..15|-1                             -- by centre,
 core.portal_link(a, b) -> 1|0       -- a and b lead to each other; b = -1 unlinks a
 core.log(message)
 core.play_sound("mod:thing", x, y, z) -> 1|0  -- to everybody in the world; file mods/<mod>/<thing>.ogg on the client
+core.sound_loop("mod:thing", x, y, z, range?, gain?) -> id|0  -- going round until stopped; late joiners hear it too
+core.sound_loop_move(id, x, y, z) -> 1|0      core.sound_loop_stop(id) -> 1|0
 
 core.take_item(player, name, count?) -> taken    -- up to `count`, says how many
 core.give_item(player, name, count?) -> fitted   -- what does not fit stays the mod's

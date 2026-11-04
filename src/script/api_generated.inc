@@ -2604,6 +2604,44 @@ int l_play_sound(lua_State *L)
     return 1;
 }
 
+// core.sound_loop(name: string, x: number, y: number, z: number, range: number?, gain: number?) -> number
+int l_sound_loop(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_checkstring(L, 1);
+    const float x = (float)luaL_checknumber(L, 2);
+    const float y = (float)luaL_checknumber(L, 3);
+    const float z = (float)luaL_checknumber(L, 4);
+    const float range = (float)luaL_optnumber(L, 5, 24);
+    const float gain = (float)luaL_optnumber(L, 6, 1);
+    const int result = (vm && vm->host.sound_loop) ? vm->host.sound_loop(vm->host.ud, name, x, y, z, range, gain) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.sound_loop_move(id: number, x: number, y: number, z: number) -> number
+int l_sound_loop_move(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const float x = (float)luaL_checknumber(L, 2);
+    const float y = (float)luaL_checknumber(L, 3);
+    const float z = (float)luaL_checknumber(L, 4);
+    const int result = (vm && vm->host.sound_loop_move) ? vm->host.sound_loop_move(vm->host.ud, id, x, y, z) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.sound_loop_stop(id: number) -> number
+int l_sound_loop_stop(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const int result = (vm && vm->host.sound_loop_stop) ? vm->host.sound_loop_stop(vm->host.ud, id) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.raycast(x: number, y: number, z: number, dx: number, dy: number, dz: number, max: number?) -> (number?, number?, number?, number?)
 int l_raycast(lua_State *L)
 {
@@ -3529,6 +3567,12 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "player_wear");
     lua_pushcfunction(L, l_play_sound, "core.play_sound");
     lua_setfield(L, -2, "play_sound");
+    lua_pushcfunction(L, l_sound_loop, "core.sound_loop");
+    lua_setfield(L, -2, "sound_loop");
+    lua_pushcfunction(L, l_sound_loop_move, "core.sound_loop_move");
+    lua_setfield(L, -2, "sound_loop_move");
+    lua_pushcfunction(L, l_sound_loop_stop, "core.sound_loop_stop");
+    lua_setfield(L, -2, "sound_loop_stop");
     lua_pushcfunction(L, l_raycast, "core.raycast");
     lua_setfield(L, -2, "raycast");
     lua_pushcfunction(L, l_held_item, "core.held_item");

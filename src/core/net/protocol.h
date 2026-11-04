@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 115; // 115 a block's body says it is a door; a body astride a mount
+inline constexpr uint16_t kProtocol    = 116; // 116 the sounds going round (core.sound_loop)
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -375,7 +375,9 @@ inline constexpr uint16_t kProtocol    = 115; // 115 a block's body says it is a
 // client's own prediction of the step did not. And bit 4 of BodyMovement's
 // moves byte for a body astride a mount (core.body_mount), which a 114 client
 // would walk as a body on foot.
-inline constexpr uint16_t kMinProtocol = 115;
+// 116 adds SoundLoops, the sounds a mod keeps going round (core.sound_loop),
+// which a 115 client does not know.
+inline constexpr uint16_t kMinProtocol = 116;
 
 // What a player picked to look like (protocol 93): the three colours of their
 // model's tint_1..3 materials -- primary, secondary, accent -- five bits each,
@@ -648,6 +650,12 @@ enum class MsgType : uint8_t {
     // server needs to tell a swing from a fall. Checked there: a parkour
     // world, a solid block at that point, within a rope's reach of the body.
     Rope = 51,           // client -> server, channel 3
+
+    // "These sounds are going round, there" (core.sound_loop, protocol 116):
+    // every loop of the world each time one starts, moves or stops, so a
+    // client that joins late hears the rain already falling, and a stop can
+    // never be the one message lost that leaves a loop playing for ever.
+    SoundLoops = 52,     // server -> client, channel 3
 };
 
 // Players per world, decided in DESIGN.md, and the reason the entity message
@@ -2090,6 +2098,29 @@ struct Sound {
 // A sound name: "mod:thing", lower case, digits and '_' only, at most 64. It
 // becomes a file name on the client, so nothing in it can climb a directory.
 bool sound_name_ok(const std::string &name);
+
+// A sound a mod keeps going round at a place (core.sound_loop) until it says
+// stop: rain, lava, an engine, music. `id` is the server's, never 0.
+struct SoundLoop {
+    uint32_t    id = 0;
+    std::string name;            // sound_name_ok
+    float       x = 0.0f, y = 0.0f, z = 0.0f;
+    float       range = 24.0f;   // nodes, kMinRange..kMaxRange
+    float       gain  = 1.0f;    // 0..1
+
+    static constexpr float kMinRange = 1.0f;
+    static constexpr float kMaxRange = 256.0f;
+};
+
+// All the loops of the world, the whole list each time.
+struct SoundLoops {
+    std::vector<SoundLoop> loops;
+
+    static constexpr size_t kMax = 64;   // per world; a 65th is refused to the mod
+
+    std::vector<uint8_t> encode() const;
+    static bool decode(ByteReader &r, SoundLoops &out);
+};
 
 struct Lie {
     bool  on = false;

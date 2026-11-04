@@ -8,7 +8,7 @@
 //
 // usage: cnp_join_probe --join <host> <port> [name] [extent]
 //                       [--wrong-table] [--no-adopt] [--no-encryption]
-//                       [--server-key <hex>]
+//                       [--server-key <hex>] [--stay <seconds>]
 //
 // Exit codes: 0 joined and agreed, 1 failed, 2 refused by the server, 3 this
 // client refused what the server sent.
@@ -41,6 +41,7 @@ bool  g_pack   = false;   // --pack: wear what is in square 1 on the back, then 
 std::vector<std::string> g_say;   // --say TEXT: chat lines (a /command too), before --dig
 bool  g_far    = false;   // --far X Y Z: say at the end whether that chunk arrived
 float g_far_at[3] = {0.0f, 0.0f, 0.0f};
+float g_stay   = 0.0f;    // --stay: seconds to stand at the spawn, saying the sound loops heard
 bool  g_flown  = true;    // --walked-down: come down without saying it is flying
 
 double now_seconds()
@@ -195,6 +196,34 @@ int join_mode(const char *host, uint16_t port, const char *name, int extent,
                     client.edit_refusal().c_str());
     }
 
+    // --stay N: stand where we came down for N seconds, saying each time the
+    // sounds going round (core.sound_loop) change which loops are in it.
+    if (g_stay > 0.0f && streamed_ok) {
+        const float  y     = (float)kGroundTop + 2.0f;
+        const double until = now_seconds() + g_stay;
+        double       sent  = 0.0;
+        std::string  heard = "-";
+        while (now_seconds() < until) {
+            client.pump(now_seconds(), 10);
+            const double now = now_seconds();
+            if (now - sent >= 0.05) {
+                client.send_move(start_x, y, start_z, 1.0f, 0.0f, 0.0f, now);
+                sent = now;
+            }
+            const auto &all = client.sound_loops();
+            std::string loops;
+            for (const SoundLoop &l : all) loops += " " + std::to_string(l.id) + ":" + l.name;
+            if (loops == heard) continue;
+            heard = loops;
+            std::printf("        sound loops:%s", loops.empty() ? " none" : loops.c_str());
+            if (!all.empty())
+                std::printf(" (the first at %.1f %.1f %.1f, range %.0f, gain %.2f; we stand at %.1f %.1f)",
+                            (double)all[0].x, (double)all[0].y, (double)all[0].z, (double)all[0].range,
+                            (double)all[0].gain, (double)start_x, (double)start_z);
+            std::printf("\n");
+        }
+    }
+
     // --travel N: climb, fly N blocks along +x, hover for --hold seconds, then
     // fly down to the ground and stand there a second. A measurement by hand and
     // not a check (TODO.md OPEN-35, OPEN-38): the server has to make the world
@@ -324,6 +353,7 @@ int main(int argc, char **argv)
     for (int i = 4; i < argc; ++i) {
         const std::string arg = argv[i];
         if (arg == "--wrong-table") wrong_table = true;
+        if (arg == "--stay" && i + 1 < argc) g_stay = (float)std::atof(argv[++i]);
         if (arg == "--no-adopt") adopt = false;
         if (arg == "--no-encryption") encrypt = false;
         if (arg == "--server-key" && i + 1 < argc) pin = argv[++i];

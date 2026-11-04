@@ -129,7 +129,7 @@ void snd_play(snd_sound s, float gain, float pan)
     PlaySound(it->second.sound);
 }
 
-void snd_loop(snd_sound s, float gain, bool on)
+void snd_loop(snd_sound s, float gain, float pan, bool on)
 {
     if (!g_ready) return;
     const auto it = g_sounds.find(s.id);
@@ -141,7 +141,7 @@ void snd_loop(snd_sound s, float gain, bool on)
         return;
     }
     SetSoundVolume(snd, gain > 1.0f ? 1.0f : gain);
-    SetSoundPan(snd, 0.0f);
+    SetSoundPan(snd, pan < -1.0f ? -1.0f : (pan > 1.0f ? 1.0f : pan));
     if (!IsSoundPlaying(snd)) PlaySound(snd);
 }
 

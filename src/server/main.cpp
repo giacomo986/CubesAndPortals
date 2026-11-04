@@ -277,6 +277,15 @@ struct ServerState {
     // Sounds a mod played this tick (core.play_sound), encoded, for everybody.
     std::vector<std::vector<uint8_t>> mod_sounds;
 
+    // The sounds going round (core.sound_loop), by id, and which version of
+    // the list each player has heard. The list goes out whole when it changed,
+    // at most ten times a second: an engine moved every tick is a list a tick.
+    std::map<uint32_t, net::SoundLoop>         sound_loops;
+    uint32_t                                   sound_loop_next    = 1;
+    uint32_t                                   sound_loops_version = 0;
+    double                                     sound_loops_sent_at = -1.0;
+    std::unordered_map<net::PeerId, uint32_t>  sound_loops_sent;
+
     // What the cells of this world remember. M8: three of the four classic portal-puzzle
     // blocks are a cell that holds a value.
     NodeMetaSet  node_meta;
@@ -2411,6 +2420,62 @@ int host_play_sound(void *ud, const char *name, double x, double y, double z)
         return 0;
     }
     if (s->mod_sounds.size() < 256) s->mod_sounds.push_back(snd.encode());
+    return 1;
+}
+
+// A sound going round for everybody here until stopped (core.sound_loop).
+int host_sound_loop(void *ud, const char *name, double x, double y, double z, double range,
+                    double gain)
+{
+    ServerState  *s = static_cast<ServerState *>(ud);
+    net::SoundLoop l;
+    l.name  = name ? name : "";
+    l.x = (float)x; l.y = (float)y; l.z = (float)z;
+    l.range = (float)range;
+    l.gain  = (float)gain;
+    const char *why = nullptr;
+    if (!net::sound_name_ok(l.name)) why = "is not \"mod:thing\"";
+    else if (!std::isfinite(l.x) || !std::isfinite(l.y) || !std::isfinite(l.z) ||
+             std::fabs(l.x) > 1e7f || std::fabs(l.y) > 1e7f || std::fabs(l.z) > 1e7f)
+        why = "is not at a place";
+    else if (!(l.range >= net::SoundLoop::kMinRange && l.range <= net::SoundLoop::kMaxRange))
+        why = "has a range out of 1..256";
+    else if (!(l.gain >= 0.0f && l.gain <= 1.0f)) why = "has a gain out of 0..1";
+    else if (s->sound_loops.size() >= net::SoundLoops::kMax) why = "is one loop too many (64 a world)";
+    if (why) {
+        const std::string mod = asking_mod();
+        std::printf("[mod] %s: sound_loop: refused -- '%s' %s\n", mod.empty() ? "?" : mod.c_str(),
+                    l.name.c_str(), why);
+        return 0;
+    }
+    l.id = s->sound_loop_next++;
+    if (s->sound_loop_next == 0) s->sound_loop_next = 1;
+    s->sound_loops[l.id] = l;
+    ++s->sound_loops_version;
+    return (int)l.id;
+}
+
+// Moving one (core.sound_loop_move): the engine goes where the kart goes.
+int host_sound_loop_move(void *ud, int id, double x, double y, double z)
+{
+    ServerState *s  = static_cast<ServerState *>(ud);
+    const auto   it = s->sound_loops.find((uint32_t)id);
+    if (id <= 0 || it == s->sound_loops.end() || !std::isfinite(x) || !std::isfinite(y) ||
+        !std::isfinite(z) || std::fabs(x) > 1e7 || std::fabs(y) > 1e7 || std::fabs(z) > 1e7)
+        return 0;
+    net::SoundLoop &l = it->second;
+    if (l.x == (float)x && l.y == (float)y && l.z == (float)z) return 1;
+    l.x = (float)x; l.y = (float)y; l.z = (float)z;
+    ++s->sound_loops_version;
+    return 1;
+}
+
+// And stopping one (core.sound_loop_stop).
+int host_sound_loop_stop(void *ud, int id)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (id <= 0 || s->sound_loops.erase((uint32_t)id) == 0) return 0;
+    ++s->sound_loops_version;
     return 1;
 }
 
@@ -6485,6 +6550,9 @@ int serve_room(int argc, char **argv)
         host.player_clip   = host_player_clip;
         host.player_wear   = host_player_wear;
         host.play_sound    = host_play_sound;
+        host.sound_loop      = host_sound_loop;
+        host.sound_loop_move = host_sound_loop_move;
+        host.sound_loop_stop = host_sound_loop_stop;
         host.raycast       = host_raycast;
         host.get_portal    = host_get_portal;
         host.portal_room   = host_portal_room;
@@ -9241,6 +9309,27 @@ int serve_room(int argc, char **argv)
                     for (const net::PeerId peer : sessions.ready_peers())
                         transport.send(peer, net::Channel::Block, m, true);
                 s.mod_sounds.clear();
+
+                // The loops, to whoever has not heard this version of the
+                // list -- a player who just came in as much as one who heard
+                // the last stop.
+                if (const double now = seconds_since(t_start); now - s.sound_loops_sent_at >= 0.1) {
+                    std::vector<uint8_t> msg;
+                    for (const net::PeerId peer : sessions.ready_peers()) {
+                        uint32_t &heard = s.sound_loops_sent[peer];
+                        if (heard == s.sound_loops_version) continue;
+                        if (msg.empty()) {
+                            net::SoundLoops all;
+                            for (const auto &[id, l] : s.sound_loops) all.loops.push_back(l);
+                            msg = all.encode();
+                        }
+                        transport.send(peer, net::Channel::Event, msg, true);
+                        heard = s.sound_loops_version;
+                    }
+                    if (!msg.empty()) s.sound_loops_sent_at = now;
+                }
+                for (auto it = s.sound_loops_sent.begin(); it != s.sound_loops_sent.end();)
+                    it = sessions.find(it->first) ? std::next(it) : s.sound_loops_sent.erase(it);
 
                 // A seat that has been given up owes nobody anything.
                 for (auto it = s.owed.begin(); it != s.owed.end();)
