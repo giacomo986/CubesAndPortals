@@ -298,7 +298,10 @@ def main():
     stone("cinnabar_comparator", (140, 140, 150), rng)
     stone("cinnabar_comparator_on", (170, 140, 150), rng)
     for name, tint in (("piston", (176, 136, 84)), ("sticky_piston", (120, 170, 90))):
-        for suffix in ("", "_on", "_head"):
+        # The block is drawn as a model (tools/make_piston_models.py); these are
+        # the tiles it breaks into. cinnabar_piston.png and _sticky_piston.png
+        # are the icons (make_held_models.py).
+        for suffix in ("_on", "_head"):
             face = Image.new("RGB", (16, 16))
             for y in range(16):
                 for x in range(16):

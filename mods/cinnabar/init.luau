@@ -13,7 +13,9 @@
 -- what is at its sides (a right click switches). A lamp lights when powered. A
 -- piston pushes up to twelve blocks away from its placer when powered and
 -- takes its head back when not; a sticky one pulls the block in front back
--- with it.
+-- with it. Pistons of their own (cinnabar:piston_2 .. _5, sticky too) put
+-- their head out two to five cells, a rod in the cells between, and push what
+-- is in front on as far.
 --
 -- Power, as in the classic block game but smaller:
 --   * a lever or button that is on, a lit torch, a cinnabar block, a repeater
@@ -111,6 +113,69 @@ for _, id in { HEAD, STICKY_HEAD } do
     core.node_box(id, 0, 0, 0.75, 1, 1, 1)
     core.node_box(id, 0.375, 0.375, -0.25, 0.625, 0.625, 0.75)
 end
+-- Drawn as models (tools/make_piston_models.py, assets/blender/piston.blend):
+-- a stone body bound in iron with a wooden head plate, slimed on the sticky
+-- one; pushed out, a dark hole in the body and the rod back into it.
+local piston_models: { [string]: number } = {}
+local function piston_model(id: number, file: string)
+    if not piston_models[file] then
+        piston_models[file] = core.register_model(`cinnabar:{file}`, `{file}.gltf`)
+    end
+    core.node_model(id, piston_models[file])
+end
+for id, file in { [PISTON] = "piston", [PISTON_ON] = "piston_on", [STICKY] = "sticky_piston",
+                  [STICKY_ON] = "sticky_piston_on", [HEAD] = "piston_head",
+                  [STICKY_HEAD] = "sticky_piston_head" } do
+    piston_model(id, file)
+end
+-- In the hand and on the ground (tools/make_held_models.py, which also draws
+-- their icons, assets/textures/cinnabar_piston.png and _sticky_piston.png).
+core.register_model("cinnabar:piston_held", "piston_held.gltf")
+core.register_model("cinnabar:sticky_piston_held", "sticky_piston_held.gltf")
+
+-- What every piston is: how many cells its head goes out, whether it is
+-- sticky, and its blocks drawn in and pushed out, its head and (reaching more
+-- than one) the length of rod in each cell between body and head.
+type PistonKind = { reach: number, sticky: boolean, off: number, on: number, head: number, rod: number }
+local PISTON_KINDS: { PistonKind } = {
+    { reach = 1, sticky = false, off = PISTON, on = PISTON_ON, head = HEAD, rod = 0 },
+    { reach = 1, sticky = true, off = STICKY, on = STICKY_ON, head = STICKY_HEAD, rod = 0 },
+}
+-- Pistons of their own reaching two to five cells, each sticky or not: the
+-- body has a red band round it for every cell it reaches, the head is the
+-- one-cell piston's, and the rod runs back through the cells between. Every
+-- part of one breaks into that one, so each has its head and rod blocks.
+for reach = 2, 5 do
+    for _, sticky in { false, true } do
+        local pre = if sticky then "sticky_" else ""
+        local g = if sticky then 160 else 130
+        local function part(suffix: string): number
+            return node(`cinnabar:{pre}piston_{reach}{suffix}`, 160 - reach * 6, g, 90, true, 0, "wallmounted", 1.0)
+        end
+        local kind = { reach = reach, sticky = sticky, off = part(""), on = part("_on"),
+                       head = part("_head"), rod = part("_rod") }
+        core.node_box(kind.on, 0, 0, 0, 1, 1, 0.75)
+        core.node_box(kind.head, 0, 0, 0.75, 1, 1, 1)
+        core.node_box(kind.head, 0.375, 0.375, -0.25, 0.625, 0.625, 0.75)
+        core.node_box(kind.rod, 0.375, 0.375, -0.25, 0.625, 0.625, 1)
+        piston_model(kind.off, `{pre}piston_{reach}`)
+        piston_model(kind.on, `piston_{reach}_on`)
+        piston_model(kind.head, `{pre}piston_head`)
+        piston_model(kind.rod, "piston_rod")
+        for _, id in { kind.on, kind.head, kind.rod } do
+            core.node_drop(id, kind.off)
+        end
+        core.register_model(`cinnabar:{pre}piston_{reach}_held`, `{pre}piston_{reach}_held.gltf`)
+        table.insert(PISTON_KINDS, kind)
+    end
+end
+-- Each block of a piston, any part, to its kind.
+local KIND_OF: { [number]: PistonKind } = {}
+for _, kind in PISTON_KINDS do
+    for _, id in { kind.off, kind.on, kind.head, kind.rod } do
+        if id ~= 0 then KIND_OF[id] = kind end
+    end
+end
 
 -- An observer watches the block it was put against and, when that changes,
 -- gives a pulse out of its other side a tick later: wallmounted, its front the
@@ -200,6 +265,17 @@ core.recipe_shaped("cinnabar:piston", 1,
 core.recipe_shaped("cinnabar:sticky_piston", 1,
     "animals:egg",
     "cinnabar:piston")
+-- A piston reaching a cell further: the one before it, more iron and cinnabar.
+for reach = 2, 5 do
+    local before = if reach == 2 then "cinnabar:piston" else `cinnabar:piston_{reach - 1}`
+    core.recipe_shaped(`cinnabar:piston_{reach}`, 1,
+        "furnace:iron_ingot",
+        before,
+        "ore:cinnabar")
+    core.recipe_shaped(`cinnabar:sticky_piston_{reach}`, 1,
+        "animals:egg",
+        `cinnabar:piston_{reach}`)
+end
 -- The classic block game's has quartz; the overworld here has none, so a second cinnabar.
 core.recipe_shaped("cinnabar:observer", 1,
     "rocks:cobblestone  rocks:cobblestone  rocks:cobblestone",
@@ -211,7 +287,12 @@ core.recipe_shaped("cinnabar:hopper", 1,
     "-                   furnace:iron_ingot  -")
 
 local DUST = { [DUST_OFF] = true, [DUST_ON] = true }
-local PISTONS = { [PISTON] = true, [PISTON_ON] = true, [STICKY] = true, [STICKY_ON] = true }
+-- The bodies of every piston, drawn in and pushed out.
+local PISTONS: { [number]: boolean } = {}
+for _, kind in PISTON_KINDS do
+    PISTONS[kind.off] = true
+    PISTONS[kind.on] = true
+end
 local PART = {
     [DUST_OFF] = true, [DUST_ON] = true, [LEVER] = true, [LEVER_ON] = true,
     [BUTTON] = true, [BUTTON_ON] = true, [TORCH] = true, [TORCH_OFF] = true,
@@ -222,6 +303,9 @@ local PART = {
     [HOPPER_SIDE_LOCKED] = true, [MORE.PLATE] = true, [MORE.PLATE_ON] = true, [MORE.SPIKES] = true,
     [MORE.SPIKES_ON] = true,
 }
+for id in KIND_OF do
+    PART[id] = true
+end
 -- A wallmounted cell's front: +X, -X, +Y, -Y, +Z, -Z for faces 0..5.
 local DIR = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } }
 local SIDES = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 0, 1 }, { 0, 0, -1 } }
@@ -335,8 +419,11 @@ local function solve(cx: number, cy: number, cz: number): { Cell }
     local torches = found(cx, cy, cz, { "cinnabar:torch", "cinnabar:torch_off" })
     local repeaters = found(cx, cy, cz, { "cinnabar:repeater", "cinnabar:repeater_on" })
     local comparators = found(cx, cy, cz, { "cinnabar:comparator", "cinnabar:comparator_on" })
-    local pistons = found(cx, cy, cz, { "cinnabar:piston", "cinnabar:piston_on",
-                                        "cinnabar:sticky_piston", "cinnabar:sticky_piston_on" })
+    local piston_names = {}
+    for id in PISTONS do
+        table.insert(piston_names, core.node_name(id))
+    end
+    local pistons = found(cx, cy, cz, piston_names)
     local dust = found(cx, cy, cz, { "cinnabar:dust", "cinnabar:dust_on" })
     local lamps = found(cx, cy, cz, { "cinnabar:lamp", "cinnabar:lamp_on" })
     local observers = found(cx, cy, cz, { "cinnabar:observer_on" })
@@ -598,9 +685,8 @@ local function solve(cx: number, cy: number, cz: number): { Cell }
             end
         end
         local id = core.get_block(p.x, p.y, p.z)
-        local sticky = id == STICKY or id == STICKY_ON
-        want(p, id, if on then (if sticky then STICKY_ON else PISTON_ON)
-                    else (if sticky then STICKY else PISTON), 0, TICK)
+        local kind = KIND_OF[id]
+        want(p, id, if on then kind.on else kind.off, 0, TICK)
     end
     return edge
 end
@@ -635,8 +721,12 @@ end
 local IMMOVABLE = {
     [core.node_id("core:bedrock")] = true,
     [core.node_id("infernoportal:obsidian")] = true,
-    [PISTON_ON] = true, [STICKY_ON] = true, [HEAD] = true, [STICKY_HEAD] = true,
 }
+for _, kind in PISTON_KINDS do
+    for _, id in { kind.on, kind.head, kind.rod } do
+        if id ~= 0 then IMMOVABLE[id] = true end
+    end
+end
 IMMOVABLE[0] = nil
 local MAX_PUSH = 12
 
@@ -676,18 +766,19 @@ end
 
 -- Whoever stands in that cell -- a player, a creature -- goes one on with the
 -- push. Players by where their feet are; a head in the cell is not moved.
--- A pushed player slides the node over four ticks rather than jumping it.
+-- A pushed player slides a node every four ticks rather than jumping it.
 type Slide = { p: number, left: number, dx: number, dy: number, dz: number }
 local slides: { Slide } = {}
 
-local function push_bodies(x: number, y: number, z: number, dx: number, dy: number, dz: number)
+-- `cells` nodes along (dx, dy, dz).
+local function push_bodies(x: number, y: number, z: number, dx: number, dy: number, dz: number, cells: number)
     for _, p in core.players() do
         local px, py, pz = core.player_pos(p)
         if px and math.floor(px) == x and math.floor(py + 0.01) == y and math.floor(pz) == z then
-            table.insert(slides, { p = p, left = 4, dx = dx / 4, dy = dy / 4, dz = dz / 4 })
+            table.insert(slides, { p = p, left = 4 * cells, dx = dx / 4, dy = dy / 4, dz = dz / 4 })
         end
     end
-    core.push_mobs(x, y, z, dx, dy, dz)
+    core.push_mobs(x, y, z, dx * cells, dy * cells, dz * cells)
 end
 
 local function slide_players()
@@ -706,55 +797,82 @@ local function slide_players()
     slides = keep
 end
 
--- Pushes and puts its head out: true if it could.
-local function extend(p: Cell, sticky: boolean): boolean
+-- Pushes and puts its head out, `reach` cells: true if it could. What is in
+-- front goes on as far as the head does -- as if it had gone out a cell at a
+-- time -- so the line in front is read to the reach-th gap (air, or something
+-- crushed out of the way), and every block before that ends packed up against
+-- the head: none of them may be fixed, and no more than MAX_PUSH.
+local function extend(p: Cell, kind: PistonKind): boolean
     local dx, dy, dz = dir_of(p.x, p.y, p.z)
-    -- The line in front, to the first gap.
-    local n = 0
-    local x, y, z = p.x + dx, p.y + dy, p.z + dz
-    while true do
+    local function at(i: number): (number, number, number)
+        return p.x + dx * i, p.y + dy * i, p.z + dz * i
+    end
+    local blocks: { number } = {}    -- which cells in front hold a block to push
+    local crushed: { number } = {}
+    local gaps, i = 0, 0
+    while gaps < kind.reach do
+        i += 1
+        local x, y, z = at(i)
         local id = core.get_block(x, y, z)
-        if id == 0 then
-            break
-        end
-        if crushable(id) then
-            put(x, y, z, 0)
-            drop_as_item(x, y, z, id)
-            break
-        end
-        if not movable(x, y, z, id) or n >= MAX_PUSH then
+        if id == 0 or crushable(id) then
+            gaps += 1
+            if id ~= 0 then table.insert(crushed, i) end
+        elseif not movable(x, y, z, id) or #blocks >= MAX_PUSH then
             return false
+        else
+            table.insert(blocks, i)
         end
-        n += 1
-        x += dx
-        y += dy
-        z += dz
     end
-    -- Far end first, bodies before the block that would land on them.
-    for i = n, 1, -1 do
-        local fx, fy, fz = p.x + dx * i, p.y + dy * i, p.z + dz * i
-        push_bodies(fx + dx, fy + dy, fz + dz, dx, dy, dz)
-        move_block(fx, fy, fz, fx + dx, fy + dy, fz + dz)
-        push_bodies(fx, fy, fz, dx, dy, dz)
+    for _, c in crushed do
+        local x, y, z = at(c)
+        local id = core.get_block(x, y, z)
+        put(x, y, z, 0)
+        drop_as_item(x, y, z, id)
     end
-    push_bodies(p.x + dx, p.y + dy, p.z + dz, dx, dy, dz)
+    -- Whoever stands in the way goes on to just past whatever ends up behind
+    -- them: the head and the blocks that were before them.
+    local before = 0
+    for c = 1, i do
+        if blocks[before + 1] == c then
+            before += 1
+        end
+        local x, y, z = at(c)
+        push_bodies(x, y, z, dx, dy, dz, kind.reach + before + 1 - c)
+    end
+    -- The far end first: the b-th block lands just past the head and the b-1
+    -- before it, in a cell already emptied.
+    for b = #blocks, 1, -1 do
+        local fx, fy, fz = at(blocks[b])
+        local tx, ty, tz = at(kind.reach + b)
+        move_block(fx, fy, fz, tx, ty, tz)
+    end
     local facing = core.get_facing(p.x, p.y, p.z)
-    put(p.x + dx, p.y + dy, p.z + dz, if sticky then STICKY_HEAD else HEAD)
-    core.set_facing(p.x + dx, p.y + dy, p.z + dz, facing)
+    for c = 1, kind.reach do
+        local x, y, z = at(c)
+        put(x, y, z, if c == kind.reach then kind.head else kind.rod)
+        core.set_facing(x, y, z, facing)
+    end
     return true
 end
 
-local function retract(p: Cell, sticky: boolean)
+-- Takes the head and rod back; a sticky one pulls the block that was in front
+-- of its head back with it, to the cell in front of the body.
+local function retract(p: Cell, kind: PistonKind)
     local dx, dy, dz = dir_of(p.x, p.y, p.z)
-    local hx, hy, hz = p.x + dx, p.y + dy, p.z + dz
-    local here = core.get_block(hx, hy, hz)
-    if here == HEAD or here == STICKY_HEAD then
-        put(hx, hy, hz, 0)
+    for c = 1, kind.reach do
+        local x, y, z = p.x + dx * c, p.y + dy * c, p.z + dz * c
+        local here = core.get_block(x, y, z)
+        if here == kind.head or here == kind.rod then
+            put(x, y, z, 0)
+        end
     end
-    if sticky then
-        local id = core.get_block(hx + dx, hy + dy, hz + dz)
-        if movable(hx + dx, hy + dy, hz + dz, id) and core.node_solid(id) == 1 and not PISTONS[id] then
-            move_block(hx + dx, hy + dy, hz + dz, hx, hy, hz)
+    if kind.sticky then
+        local r = kind.reach + 1
+        local x, y, z = p.x + dx * r, p.y + dy * r, p.z + dz * r
+        local id = core.get_block(x, y, z)
+        if movable(x, y, z, id) and core.node_solid(id) == 1 and not PISTONS[id]
+            and core.get_block(p.x + dx, p.y + dy, p.z + dz) == 0 then
+            move_block(x, y, z, p.x + dx, p.y + dy, p.z + dz)
         end
     end
 end
@@ -795,13 +913,13 @@ local function apply(c: Change)
             queue[at] = { x = c.x, y = c.y, z = c.z, want = OBSERVER, level = 0, at = clock + 2 * TICK }
         end
     elseif PISTONS[id] then
-        local sticky = id == STICKY or id == STICKY_ON
-        if c.want == PISTON_ON or c.want == STICKY_ON then
-            if not extend(c, sticky) then
+        local kind = KIND_OF[id]
+        if c.want == kind.on then
+            if not extend(c, kind) then
                 return   -- blocked: tried again at the next change round it
             end
         else
-            retract(c, sticky)
+            retract(c, kind)
         end
         put(c.x, c.y, c.z, c.want)
         core.set_facing(c.x, c.y, c.z, facing)
@@ -965,14 +1083,31 @@ core.event.on("core:broken", function(ev)
         local what = if DUST[above] then "ore:cinnabar" else "cinnabar:torch"
         core.drop_item(ev.x, ev.y + 1, ev.z, core.item_id(what), 1)
     end
-    -- A piston and its head go together, as one piston: the head broken
-    -- drops the piston (node_drop) and takes the body with it.
-    for _, d in ALL6 do
-        local x, y, z = ev.x + d[1], ev.y + d[2], ev.z + d[3]
-        local id = core.get_block(x, y, z)
-        if ((ev.id == PISTON_ON or ev.id == STICKY_ON) and (id == HEAD or id == STICKY_HEAD))
-            or ((ev.id == HEAD or ev.id == STICKY_HEAD) and (id == PISTON_ON or id == STICKY_ON)) then
-            put(x, y, z, 0)
+    -- A piston, its rod and its head go together, as one piston: any of them
+    -- broken drops the piston (node_drop) and takes the rest with it -- along
+    -- the line it pushes on, as far as the body one way and the head the other.
+    local kind = KIND_OF[ev.id]
+    if kind and ev.id ~= kind.off then
+        for _, d in ALL6 do
+            local x, y, z = ev.x, ev.y, ev.z
+            while true do
+                x += d[1]
+                y += d[2]
+                z += d[3]
+                local id = core.get_block(x, y, z)
+                if id == 0 or (id ~= kind.on and id ~= kind.head and id ~= kind.rod) then
+                    break
+                end
+                -- Pointing along this line, not a piston of the kind beside it.
+                local fx, fy, fz = dir_of(x, y, z)
+                if fx * d[1] + fy * d[2] + fz * d[3] == 0 then
+                    break
+                end
+                put(x, y, z, 0)
+                if id ~= kind.rod then
+                    break   -- a body or a head is an end
+                end
+            end
         end
     end
     core.meta_set(ev.x, ev.y, ev.z, "delay", "")

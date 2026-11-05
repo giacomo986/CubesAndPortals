@@ -1168,6 +1168,39 @@ BLOCK_ICONS["travel:waystone"] = block_icon([((0.1, 0, 0.1, 0.9, 0.2, 0.9), "way
                                              ((0.25, 0.2, 0.25, 0.75, 0.85, 0.75), "waystone"),
                                              ((0.18, 0.85, 0.18, 0.82, 1.0, 0.82), "waystone_base")])
 BLOCK_ICONS["building:lantern"] = from_block("mods/building/lantern.gltf")
+# tools/make_piston_models.py
+BLOCK_ICONS["cinnabar:piston"] = from_block("mods/cinnabar/piston.gltf")
+BLOCK_ICONS["cinnabar:sticky_piston"] = from_block("mods/cinnabar/sticky_piston.gltf")
+# The pistons reaching further: at 32 pixels their red bands run together, so
+# the icon wears the reach as a figure too.
+ICON_DIGITS = {}
+for _r in (2, 3, 4, 5):
+    for _pre in ("", "sticky_"):
+        BLOCK_ICONS[f"cinnabar:{_pre}piston_{_r}"] = from_block(f"mods/cinnabar/{_pre}piston_{_r}.gltf")
+        ICON_DIGITS[f"cinnabar:{_pre}piston_{_r}"] = _r
+# 3x5 figures, a row a string.
+DIGITS = {2: ("###", "..#", "###", "#..", "###"), 3: ("###", "..#", "###", "..#", "###"),
+          4: ("#.#", "#.#", "###", "..#", "..#"), 5: ("###", "#..", "###", "..#", "###")}
+
+
+def stamp_digit(path, d):
+    """The figure d in white, outlined dark, in the bottom left corner of a
+    32x32 icon (bottom right is the stack count's)."""
+    img = bpy.data.images.load(path)
+    w, h = img.size
+    px = np.array(img.pixels[:]).reshape(h, w, 4)
+    rows = DIGITS[d]
+    x0, top = 1, 1 + 5          # Blender's rows go up from the bottom
+    for dy in range(-1, 6):
+        for dx in range(-1, 4):
+            px[top - dy, x0 + 1 + dx] = (0.10, 0.07, 0.07, 1.0)
+    for dy, row in enumerate(rows):
+        for dx, c in enumerate(row):
+            if c == "#":
+                px[top - dy, x0 + 1 + dx] = (1.0, 1.0, 1.0, 1.0)
+    img.pixels[:] = px.ravel()
+    img.save()
+    bpy.data.images.remove(img)
 M["gong"] = material("Gong", (0.85, 0.62, 0.22), 1.0, 0.3)
 BLOCK_ICONS["arena:gong"] = block_icon([((0.1, 0, 0.4, 0.2, 1, 0.6), "dark_wood"), ((0.8, 0, 0.4, 0.9, 1, 0.6), "dark_wood"),
                                         ((0.1, 0.9, 0.4, 0.9, 1, 0.6), "dark_wood"),
@@ -1210,6 +1243,8 @@ for item, parts in BLOCK_ICONS.items():
     obj = parts(item.replace(":", "_") + "_held") if callable(parts) else build(item.replace(":", "_") + "_held", parts, M)
     export(obj, item)
     render_icon(obj, os.path.join(TEXTURES, f"{mod}_{name}.png"), BLOCK_TURN)
+    if item in ICON_DIGITS:
+        stamp_digit(os.path.join(TEXTURES, f"{mod}_{name}.png"), ICON_DIGITS[item])
     if args:
         render_icon(obj, os.path.join(args[0], f"{mod}_{name}.png"), BLOCK_TURN)
     bpy.data.objects.remove(obj)
