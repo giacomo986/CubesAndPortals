@@ -760,6 +760,9 @@ struct Session {
     // What this machine's own body wears, when core.body_model said so here
     // (a kart while it drives); 0 is what the world dresses players in.
     ModelId own_body_model = kNoModel;
+    // And the block it is drawn as instead, when core.body_block said so here
+    // (a hider in the arena's prop hunt); 0 for none.
+    uint16_t own_body_block = 0;
     // And what the world dresses players in, off its welcome (0 in a local
     // world, which dresses nobody): what first-person arms are looked up by.
     uint16_t player_model_id = 0;
@@ -4631,6 +4634,17 @@ int host_body_model(void *ud, int player, int model)
     return 1;
 }
 
+// The block this machine's own body is drawn as (core.body_block), as
+// host_body_model: the server's copy draws it for everybody else.
+int host_body_block(void *ud, int player, int block)
+{
+    (void)player;
+    Scene *s = static_cast<Scene *>(ud);
+    if (block < 0 || (size_t)block >= s->act().registry.size()) return 0;
+    s->act().own_body_block = (uint16_t)block;
+    return 1;
+}
+
 void host_world_sky(void *ud, int r, int g, int b)
 {
     Session &w  = static_cast<Scene *>(ud)->act();
@@ -6747,6 +6761,14 @@ void leave_marks(Session &w, const SkinnedModel &m, const Body &b, const Mat4 &p
 bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection, const Mat4 &view)
 {
     if (b.dropped) return draw_drop(s, w, b, projection, view);
+    // A person drawn as a block (core.body_block): as that block falling.
+    if (b.as_block != kAir) {
+        Body cube       = b;
+        cube.falling    = true;
+        cube.shown      = false;
+        cube.hand_block = b.as_block;
+        return draw_drop(s, w, cube, projection, view);
+    }
     ModelStore::Entry *e = w.models.entry(b.model);
     if (e == nullptr) return false;
     const Mat4 place = body_place(b);
@@ -9064,6 +9086,11 @@ void add_own_body(Scene &s, const Player &player, uint16_t model)
     b.model  = s.act().own_body_model != 0
                    ? species_model(s.act().models, s.act().own_body_model, net::g_client_livery)
                    : model;
+    if (s.act().own_body_block != kAir && s.act().own_body_block < s.act().registry.size()) {
+        b.as_block = s.act().own_body_block;
+        b.center   = Vec3{b.center.x, b.center.y - kPlayerHeight * 0.5f + 0.5f, b.center.z};
+        b.half     = Vec3{0.5f, 0.5f, 0.5f};
+    }
     b.hand_known = true;
     b.hand       = s.hand;
     b.hand_block = s.hand_block;
@@ -15694,6 +15721,12 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 std::copy(std::begin(p.dress), std::end(p.dress), std::begin(body.dress));
                 std::copy(std::begin(p.dress_tint), std::end(p.dress_tint), std::begin(body.dress_tint));
                 body.arms_working = p.working;
+                // Drawn as a block (116): the cube is what is seen and aimed at.
+                if (p.as_block != kAir && p.as_block < s.act().registry.size()) {
+                    body.as_block = p.as_block;
+                    body.center   = Vec3{p.x, p.y + 0.5f, p.z};
+                    body.half     = Vec3{0.5f, 0.5f, 0.5f};
+                }
             }
             // An arrow's nose, which the server turns along its flight.
             if (p.kind == net::EntityKind::Thing) body.pitch = p.pitch;
@@ -19590,6 +19623,7 @@ script_host make_client_host(Scene &scene)
     host.register_model = host_register_model;
     host.player_model   = host_player_model;
     host.body_model     = host_body_model;
+    host.body_block     = host_body_block;
     host.model_id       = host_model_id;
     host.view           = host_view;
     host.iso_view       = host_iso_view;

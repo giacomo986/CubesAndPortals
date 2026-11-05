@@ -362,6 +362,12 @@ struct Posed {
     bool  faced = false;
 };
 
+// The block a person is drawn as instead of their model (core.body_block): a
+// hider in the arena's prop hunt. Drawn by everybody else; never air.
+struct Disguised {
+    uint16_t block = 0;
+};
+
 // What a mod dresses a person in (core.player_wear), slot by slot: a model on
 // their rig and its tint, 0 for an empty slot. Drawn by everybody else.
 inline constexpr int kDressSlots = 10;

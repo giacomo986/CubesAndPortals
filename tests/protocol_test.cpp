@@ -1058,6 +1058,24 @@ int main()
         ByteReader kf(kfar);
         check(!Entities::decode(kf, kout), "and so is a kart fifty nodes off its own feet");
 
+        // A player drawn as a block (116, core.body_block): after the pieces a
+        // mod dressed them in, and never air.
+        Entities prop;
+        prop.players = {{4, 1.0f, 2.0f, 3.0f, 0.0f, 0.0f}};
+        prop.players[0].dress[2] = 7;
+        prop.players[0].as_block = 300;
+        const std::vector<uint8_t> gbuf = prop.encode();
+        Entities                   gout;
+        ByteReader                 gr(gbuf);
+        check(Entities::decode(gr, gout) && gout.players[0].as_block == 300 && gout.players[0].dress[2] == 7,
+              "a player drawn as a block arrives as that block, dressed as they were");
+        prop.players[0].as_block = 0;
+        check(prop.encode().size() + 2 == gbuf.size(), "and one who is not says nothing of it");
+        std::vector<uint8_t> gair = gbuf;
+        gair[gair.size() - 2] = gair[gair.size() - 1] = 0;
+        ByteReader gz(gair);
+        check(!Entities::decode(gz, gout), "and a player drawn as air is refused");
+
         // What each body IS, which used to be read off the item id: a stack on
         // the ground was "the one carrying something" and a mob was a player
         // that happened to be smaller, which the client had no way to see.

@@ -2383,6 +2383,24 @@ int host_player_clip(void *ud, int player, const char *clip, double dx, double d
     return 1;
 }
 
+// The block a body is drawn as (core.body_block), sent with it: a hider in the
+// arena's prop hunt. Air takes it off. The client's copy is host_body_block in
+// src/client/main.cpp.
+int host_body_block(void *ud, int player, int block)
+{
+    ServerState *s    = static_cast<ServerState *>(ud);
+    net::Session *sess = s->sessions ? s->sessions->find_mutable((net::PeerId)player) : nullptr;
+    if (!sess || !sess->avatar.is_alive() || block < 0 || (size_t)block >= s->registry.size()) {
+        const std::string name = asking_mod();
+        std::printf("[mod] %s: body_block: refused -- no player %d with a body here, or no block %d\n",
+                    name.empty() ? "?" : name.c_str(), player, block);
+        return 0;
+    }
+    if (block == 0) sess->avatar.remove<ecs::Disguised>();
+    else            sess->avatar.set<ecs::Disguised>({(uint16_t)block});
+    return 1;
+}
+
 // A model of a mod's own a body wears (core.player_wear), sent with it.
 int host_player_wear(void *ud, int player, int slot, int model, int tint)
 {
@@ -6555,6 +6573,7 @@ int serve_room(int argc, char **argv)
         host.player_place  = host_player_place;
         host.player_lie    = host_player_lie;
         host.player_clip   = host_player_clip;
+        host.body_block    = host_body_block;
         host.player_wear   = host_player_wear;
         host.play_sound    = host_play_sound;
         host.sound_loop      = host_sound_loop;

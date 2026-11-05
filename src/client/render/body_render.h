@@ -75,6 +75,9 @@ struct Body {
     bool dropped = false;
     bool shown   = false;   // a dropped stack on show (core.show_item): drawn bigger
     bool falling = false;   // and it is a block falling (core.fall): `hand_block`, whole
+    // A person drawn as a block instead of their model (core.body_block), as a
+    // block falling is about `center`, which is then the cube's middle.
+    uint16_t as_block = 0;
 
     // What it wears, head to feet, by item name ("armor:iron_helmet"): each is
     // drawn as the model of that name on this body's skeleton. Empty for none.

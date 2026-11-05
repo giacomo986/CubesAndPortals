@@ -379,7 +379,9 @@ inline constexpr uint16_t kProtocol    = 116; // 116 the sounds going round (cor
 // which a 115 client does not know; and lets a world have 40 openings
 // (kMaxOpenings, Portals::present 64 bits where a 115 client reads 32) of
 // which 28 mouths (kMaxMouths), four more onto the room of pocket halls
-// (mods/pocket).
+// (mods/pocket). And bit 4 of a Player's second flags byte: drawn as a block
+// (core.body_block, the arena's prop hunt), its id after the dressed pieces,
+// which a 115 client refuses.
 inline constexpr uint16_t kMinProtocol = 116;
 
 // What a player picked to look like (protocol 93): the three colours of their
@@ -1809,6 +1811,10 @@ struct EntityState {
     // id and its tint per slot, 0 for none.
     uint16_t dress[10]      = {};
     uint16_t dress_tint[10] = {};
+    // And the block a Player is drawn as instead of their model (protocol 116,
+    // bit 16 of their second flags byte, core.body_block): a whole cube of its
+    // tiles with its bottom at their feet, as a block falling is. 0 for none.
+    uint16_t as_block = 0;
 
     // A Thing a mod rolled (protocol 98, core.craft): `chassis` and `body_roll`
     // alone, right side down; its pitch is `pitch`.

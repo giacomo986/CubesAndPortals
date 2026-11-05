@@ -326,7 +326,8 @@ owners stand in it. Inside, owners are faster and tougher, strangers weaker; wha
 there is marked stolen.
 
 **Plaza games** (`mods/chess`, `mods/arena`): the chess table also plays Italian draughts and the mill;
-a gong starts a three-minute PvP round in the ring round it, scored, with a standing kept.
+a gong starts a three-minute PvP round in the ring round it, scored, with a standing kept -- or a
+prop hunt, where the hiders become blocks of the world and the seekers have three minutes to find them.
 
 **Decoration** (`mods/building`): stained glass and panes in sixteen colours, stone and brick walls,
 glazed and chequered tiles, chairs and tables of every wood, carpets, lanterns.

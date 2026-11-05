@@ -1075,6 +1075,19 @@ Everybody else sees it at once. What the PLAYER sees of their own body, when the
 | `player` | number | — | The id every event carries in its `player` field. |
 | `model` | number | `0` | An id from core.register_model. 0 is a box. |
 
+## `core.body_block`
+
+```luau
+core.body_block(player: number, block: number?) -> number
+```
+
+Draws ONE player's body as a block instead of their model, for everybody else: a whole cube of that block's tiles, its bottom at their feet and turned as they face (core.player_clip's dx, dz holds it square), aimed at as a cube of a node. What a hider in a prop hunt is (mods/arena). Their box stays the engine's, so they walk and are stopped as ever, and what they hold and wear is not drawn. On a player's machine only their own id, which their own drawing of the body (core.view) wears. Protocol 116. Returns 1, or 0 for a player who is not here or no such block.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `player` | number | — | The id every event carries in its `player` field. |
+| `block` | number | `0` | A block's id (core.node_id); 0, air, draws their model again. |
+
 ## `core.view`
 
 ```luau

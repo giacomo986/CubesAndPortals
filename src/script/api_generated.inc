@@ -891,6 +891,17 @@ int l_body_model(lua_State *L)
     return 1;
 }
 
+// core.body_block(player: number, block: number?) -> number
+int l_body_block(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int player = (int)luaL_checkinteger(L, 1);
+    const int block = (int)luaL_optinteger(L, 2, 0);
+    const int result = (vm && vm->host.body_block) ? vm->host.body_block(vm->host.ud, player, block) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.view(distance: number?) -> number
 int l_view(lua_State *L)
 {
@@ -3306,6 +3317,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "player_model");
     lua_pushcfunction(L, l_body_model, "core.body_model");
     lua_setfield(L, -2, "body_model");
+    lua_pushcfunction(L, l_body_block, "core.body_block");
+    lua_setfield(L, -2, "body_block");
     lua_pushcfunction(L, l_view, "core.view");
     lua_setfield(L, -2, "view");
     lua_pushcfunction(L, l_iso_view, "core.iso_view");

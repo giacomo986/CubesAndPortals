@@ -1174,6 +1174,7 @@ void ClientSession::handle(const std::vector<uint8_t> &data, double now, uint8_t
             for (int k = 0; k < 2; ++k) it->arm[k] = s.arm[k];
             for (int k = 0; k < 10; ++k) it->dress[k] = s.dress[k];
             for (int k = 0; k < 10; ++k) it->dress_tint[k] = s.dress_tint[k];
+            it->as_block = s.as_block;
             it->burning   = s.burning;
             it->falling   = s.falling;
             it->shown     = s.shown;

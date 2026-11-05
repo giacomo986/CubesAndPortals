@@ -255,6 +255,8 @@ typedef struct script_host {
     // And what ONE body wears (core.body_model), at any time: a world where a
     // player walks up to a kart and gets in draws the difference with this.
     int (*body_model)(void *ud, int player, int model);
+    // And the block ONE body is drawn as instead (core.body_block), 0 for none.
+    int (*body_block)(void *ud, int player, int block);
 
     // Where this world's camera sits (core.view): nodes behind the player's
     // head, 0 for the eye. A player's machine only; a server has no camera.

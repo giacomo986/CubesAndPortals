@@ -1737,6 +1737,14 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   gira sul client può chiamare `core.body_model(0, id)` per cambiare come
   **quella macchina** disegna il proprio corpo (0 lo rimette com'era):
   `games/track` ci mette il kart mentre si guida.
+* **Un corpo disegnato come un blocco: `core.body_block(player, id)`.** Al
+  posto del modello, un cubo intero con le facce di quel blocco e il fondo ai
+  suoi piedi -- o il modello del blocco stesso, una cassa -- visto e mirato come
+  il cubo di un nodo; 0 rimette il modello. La scatola con cui urta resta quella
+  del motore, e quello che tiene in mano e indossa non si disegna. Gira con lo
+  sguardo: `core.player_clip(p, nome, 0, 1)` lo tiene in squadra. Come per
+  `core.body_model`, il codice del client chiama `core.body_block(0, id)` per il
+  proprio disegno. Il prop hunt di `mods/arena` è fatto così.
 * **Ruote che girano e sterzano.** Un modello con uno scheletro le anima da
   solo, per nome degli ossi: `steer_*` sterza attorno al proprio asse,
   `wheel_*` rotola attorno al proprio (figlio di uno `steer_*`, sterza anche),

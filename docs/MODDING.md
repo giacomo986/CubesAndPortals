@@ -1563,6 +1563,12 @@ on foot and get into a parked kart: `games/track`.
   `core.player_model`'s model: the welcome carries only one. Others see `core.body_model`'s. The
   world's code running on the client can call `core.body_model(0, id)` to change how **that machine**
   draws its own body (0 puts it back): `games/track` puts the kart there while driving.
+* **A body drawn as a block: `core.body_block(player, id)`.** Instead of a model, a whole cube of
+  that block's tiles with its bottom at their feet -- or the block's own model, a chest -- seen and
+  aimed at as a cube of a node; 0 puts the model back. The box it collides with stays the engine's,
+  and what it holds and wears is not drawn. It turns as they face: `core.player_clip(p, name, 0, 1)`
+  holds it square. As for `core.body_model`, the client's code calls `core.body_block(0, id)` for
+  its own drawing. `mods/arena`'s prop hunt is made of it.
 * **Wheels that turn and steer.** A model with a skeleton animates them by itself, by bone name:
   `steer_*` steers about its own axis, `wheel_*` rolls about its own (child of a `steer_*`, steers
   too), `steering_wheel` turns a quarter turn at full lock. "Its own axis" is the bone's Y, that is

@@ -1516,7 +1516,8 @@ std::vector<uint8_t> Entities::encode() const
             int pieces = 0;
             for (const uint16_t m : e.dress) pieces += m != 0;
             w.u8((e.flying ? 1 : 0) | (pieces > 0 ? 2 : 0) |   // 97, 102
-                 (e.chassis && e.boosting ? 4 : 0) | (e.chassis && e.sliding ? 8 : 0));   // 103
+                 (e.chassis && e.boosting ? 4 : 0) | (e.chassis && e.sliding ? 8 : 0) |   // 103
+                 (e.as_block != 0 ? 16 : 0));   // 116
             if (pieces > 0) {
                 w.u8((uint8_t)pieces);
                 for (int k = 0; k < 10; ++k)
@@ -1526,6 +1527,7 @@ std::vector<uint8_t> Entities::encode() const
                         w.u16(e.dress_tint[k]);
                     }
             }
+            if (e.as_block != 0) w.u16(e.as_block);
         }
         if (dressed)
             for (const uint16_t id : e.worn) w.u16(id);
@@ -1603,7 +1605,7 @@ bool Entities::decode(ByteReader &r, Entities &out)
         if (!r.ok()) return false;
         if (e.kind == EntityKind::Player) {   // 97
             const uint8_t more = r.u8();
-            if (!r.ok() || (more & ~15u)) return false;
+            if (!r.ok() || (more & ~31u)) return false;
             e.flying   = (more & 1) != 0;
             e.boosting = (more & 4) != 0;
             e.sliding  = (more & 8) != 0;
@@ -1617,6 +1619,10 @@ bool Entities::decode(ByteReader &r, Entities &out)
                     e.dress_tint[k] = r.u16();
                     if (!r.ok() || e.dress[k] == 0) return false;
                 }
+            }
+            if (more & 16) {   // drawn as a block (116): never air
+                e.as_block = r.u16();
+                if (!r.ok() || e.as_block == 0) return false;
             }
         }
         if ((flags & 128) && e.kind != EntityKind::Player) return false;  // only a person holds (76)

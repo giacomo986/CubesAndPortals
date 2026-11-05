@@ -1278,6 +1278,23 @@ local api: { Fn } = {
            .. "welcome carries.",
     },
     {
+        name = "body_block",
+        host = "body_block",
+        ret  = "int",
+        args = {
+            { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
+            { name = "block", type = "int", default = 0, doc = "A block's id (core.node_id); 0, air, draws their model again." },
+        },
+        doc = "Draws ONE player's body as a block instead of their model, for everybody else: a "
+           .. "whole cube of that block's tiles, its bottom at their feet and turned as they "
+           .. "face (core.player_clip's dx, dz holds it square), aimed at as a cube of a node. "
+           .. "What a hider in a prop hunt is (mods/arena). Their box stays the engine's, so "
+           .. "they walk and are stopped as ever, and what they hold and wear is not drawn. "
+           .. "On a player's machine only their own id, which their own drawing of the body "
+           .. "(core.view) wears. Protocol 116. Returns 1, or 0 for a player who is not here or "
+           .. "no such block.",
+    },
+    {
         name = "view",
         host = "view",
         ret  = "float",

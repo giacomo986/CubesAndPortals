@@ -210,6 +210,8 @@ A world where everybody drives says core.drive instead, once, and one where you 
 
 Everybody else sees it at once. What the PLAYER sees of their own body, when the camera is behind it (core.view), is still core.player_model's: the one model the welcome carries.
     body_model: (player: number, model: number?) -> number,
+    -- Draws ONE player's body as a block instead of their model, for everybody else: a whole cube of that block's tiles, its bottom at their feet and turned as they face (core.player_clip's dx, dz holds it square), aimed at as a cube of a node. What a hider in a prop hunt is (mods/arena). Their box stays the engine's, so they walk and are stopped as ever, and what they hold and wear is not drawn. On a player's machine only their own id, which their own drawing of the body (core.view) wears. Protocol 116. Returns 1, or 0 for a player who is not here or no such block.
+    body_block: (player: number, block: number?) -> number,
     -- Where a player's camera sits in THIS world: at the eye, or behind and a little above it -- pulled in when a block is in the way -- with the player's own body drawn, wearing what core.player_model says. For a world's code on a player's machine; the key V switches it too, and a server has no camera to move.
 
 Per world: a crossing into a world that said nothing is the eye again. Returns the distance it was, the key V's included: a scope that goes to the eye puts it back.

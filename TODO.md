@@ -1034,6 +1034,31 @@ The sandbox:
 Multiplayer and the plaza:
 13. Voxel prop hunt (medium). Hiders become a block of the world, seekers
    have three minutes; the arena's gong and scoring exist.
+   STARTED 2026-11-05 (mods/arena, protocol 116): core.body_block(player, id)
+   draws a body as a block for everybody (bit 16 of a Player's second flags
+   byte, the id after the dressed pieces; the client draws it as a block
+   falling, aimed at as a 1x1x1 cube; core.body_block(0, id) on a player's
+   machine for its own drawing). The gong's panel strikes a hunt for two or
+   more within 16: one in four seeks, the others hide as the block under
+   their feet and right-click a solid block to become that one, held square
+   (core.player_clip faced) and settled into the grid when still, the camera
+   stood back (core.view 3.5); seekers blind and still for 30 s
+   (body_movement 0, a dark screen), then a blow finds (player_factors hurt 0
+   for all in it) and the found seek; nothing broken or built in the ring;
+   a hider out of the ring put back on its edge, a seeker out of it leaves.
+   All found, the seekers win; at 180 s whoever is hidden. A standing of its
+   own ("hunt": found, lasted) in the panel. Checked: ctest 12/12 with a
+   round trip of the new field; two clients in Xephyr on a test copy that
+   struck a hunt by itself: the seeker's screen dark for 30 s, then the
+   hider seen as a crisp grass block on the grass, square; the hider's own
+   camera behind its own grass block.
+   Still open: a seeker's blow finding a hider, a right-click changing the
+   block, a hider walked out and put back: not yet played (the client has no
+   scripted swing). A block with boxes (a chair) is drawn as a cube of its
+   tiles, as a falling one is. The body's box stays 0.6 x 1.8: a blow aimed
+   at the cube's edge, or over it at head height, is judged by that box.
+   Testing note: the client's window is 1920 x 1080, so a smaller Xephyr
+   screen shows only its middle and a HUD line at y 0.11 falls off it.
 14. Rewards after the ending (low-medium). Beaten l'Ospite, the worlds' tools
    come to the sandbox in a limited form: the rope gun, a portal gun with
    charges, the kart on the villages' roads. Gives the seven keys a lasting use.

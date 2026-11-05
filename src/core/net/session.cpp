@@ -4686,6 +4686,7 @@ std::vector<EntityState> ServerSessions::entities_for(PeerId peer, float radius)
             s.crouching = e.has<ecs::Crouching>();
             if (const ecs::Posed *pose = e.try_get<ecs::Posed>()) s.clip = pose->clip;   // core.player_clip (92)
             if (const ecs::Livery *l = e.try_get<ecs::Livery>()) s.livery = l->bits;     // 93
+            if (const ecs::Disguised *g = e.try_get<ecs::Disguised>()) s.as_block = g->block;   // 116
             if (const ecs::Dressed *d = e.try_get<ecs::Dressed>())                     // 102
                 for (int k = 0; k < ecs::kDressSlots; ++k) {
                     s.dress[k]      = d->model[k];
