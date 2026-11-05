@@ -129,7 +129,18 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         player.wall_side = 0;
         player.slide     = 0.0f;
         player.low       = false;
-        player.roped     = false;
+        if (!rules.rope || rules.drives() || player.flying) player.roped = false;
+    }
+    // A rope without parkour (core.body_rope): jump lets go, crouch lets it
+    // out and sprint takes it in, as parkour's rope (below).
+    if (!pk && player.roped) {
+        if (jump_pressed) {
+            player.roped      = false;
+            player.velocity.y = std::max(player.velocity.y, 0.0f) + 3.0f;
+        } else {
+            if (input.descend) player.rope_len += kRopeReel * dt;
+            if (input.sprint)  player.rope_len = std::max(kRopeShortest, player.rope_len - kRopeReel * dt);
+        }
     }
 
     // Driving, the mouse tilts the view and the wheel turns the body: a body

@@ -1565,6 +1565,9 @@ by the server with them.
   alone); a wing folded high up falls from where it folded.
 * What they look like (`core.player_wear`), when a glider is ready, and getting in and out of a
   balloon are the mod's.
+* **A rope without parkour: `core.body_rope(player, on)`.** In a world that does not do parkour, lets
+  one player hang on `core.rope` -- only the rope: jump lets go, crouch lets it out, sprint takes it in,
+  and the server allows the swing. `mods/rewards`' rope gun.
 
 ### Only one gets in the kart: `core.body_drive` and `core.body_model`
 
@@ -2065,6 +2068,8 @@ Some that other mods use:
   the weather (the darker of the two holds): `mods/sky`'s eclipse, which lets the night's creatures out.
 * **`farm:season { name, left }`** (mods/farm, told by mods/weather): the season, and the days left of
   it.
+* **`keys:ended { player }`** (mods/keys): a player who has beaten l'Ospite has come into the sandbox
+  (`mods/rewards`).
 * **`museum:photo { player, tag, id }`** (mods/villagers): a photograph offered from an album (mods/album)
   of a rare place (`peak`, `hollows`, `relic`, `clouds`); the museum of the village the player stands in
   takes the first of each.

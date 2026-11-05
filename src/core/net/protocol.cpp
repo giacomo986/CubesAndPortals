@@ -1995,10 +1995,10 @@ std::vector<uint8_t> BodyMovement::encode() const
     w.f32(rules.eye);
     // Bit 2 a boat, which a 109 client ignores: it swims there instead.
     // Bit 3 a cart (110). Bit 4 astride a mount (115). Bit 5 under a glider,
-    // bit 6 in a balloon (116 too: an older parser leaves them, and the body
-    // falls or walks as it did).
+    // bit 6 in a balloon, bit 7 a rope without parkour (116 too: an older
+    // parser leaves them, and the body falls or walks as it did).
     w.u8((rules.parkour ? 1 : 0) | (rules.ledges ? 0 : 2) | (rules.boat ? 4 : 0) | (rules.cart ? 8 : 0) |
-         (rules.mount ? 16 : 0) | (rules.glide ? 32 : 0) | (rules.balloon ? 64 : 0));
+         (rules.mount ? 16 : 0) | (rules.glide ? 32 : 0) | (rules.balloon ? 64 : 0) | (rules.rope ? 128 : 0));
     w.u8(gen);
     w.f32(dig);
     return w.data();
@@ -2031,6 +2031,7 @@ bool BodyMovement::decode(ByteReader &r, BodyMovement &out)
     out.rules.mount   = (moves & 16) != 0;
     out.rules.glide   = (moves & 32) != 0;
     out.rules.balloon = (moves & 64) != 0;
+    out.rules.rope    = (moves & 128) != 0;
     out.gen           = r.u8();
     out.dig           = r.f32();
 

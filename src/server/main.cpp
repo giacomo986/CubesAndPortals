@@ -2867,6 +2867,17 @@ int host_body_glide(void *ud, int player, int on)
     return s->sessions->set_body_movement((net::PeerId)player, rules, s->now) ? 1 : 0;
 }
 
+int host_body_rope(void *ud, int player, int on)
+{
+    ServerState        *s    = static_cast<ServerState *>(ud);
+    const net::Session *body =
+        (player > 0 && s->sessions != nullptr) ? s->sessions->find((net::PeerId)player) : nullptr;
+    if (body == nullptr) return 0;
+    MovementRules rules = body->movement;
+    rules.rope          = on != 0;
+    return s->sessions->set_body_movement((net::PeerId)player, rules, s->now) ? 1 : 0;
+}
+
 int host_body_balloon(void *ud, int player, int on)
 {
     ServerState        *s    = static_cast<ServerState *>(ud);
@@ -6608,6 +6619,7 @@ int serve_room(int argc, char **argv)
         host.body_mount    = host_body_mount;
         host.body_glide   = host_body_glide;
         host.fed_send     = host_fed_send;
+        host.body_rope    = host_body_rope;
         host.body_balloon = host_body_balloon;
         host.side          = host_side;
         host.player_name   = host_player_name;

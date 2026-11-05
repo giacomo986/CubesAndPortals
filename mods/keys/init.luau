@@ -594,6 +594,25 @@ if HUB then
     end)
 end
 
+-- Who has beaten l'Ospite (the lab's keys:ending, kept as "ending:who"), told
+-- as each comes into the sandbox, so its mods can reward it (mods/rewards):
+--   keys:ended { player }
+-- The flag is this mod's own storage, which other mods cannot read.
+core.event.define("keys:ended", { fields = { player = "number" }, cancellable = false })
+if HUB then
+    local seen: { [number]: boolean } = {}
+    core.event.on("core:tick", function(_)
+        local now: { [number]: boolean } = {}
+        for _, p in core.players() do
+            now[p] = true
+            if not seen[p] and core.shared_storage_get("ending:" .. who(p)) == "1" then
+                core.event.emit("keys:ended", { player = p })
+            end
+        end
+        seen = now
+    end)
+end
+
 -- ==================================================================== sandbox
 
 local LAB = -1

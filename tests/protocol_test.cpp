@@ -249,7 +249,7 @@ int main()
             }
             {
                 // A boat, a cart, a mount, a glider and a balloon: one bit each.
-                for (int which = 0; which < 5; ++which) {
+                for (int which = 0; which < 6; ++which) {
                     BodyMovement one;
                     one.rules         = race.movement;
                     one.rules.boat    = which == 0;
@@ -257,12 +257,14 @@ int main()
                     one.rules.mount   = which == 2;
                     one.rules.glide   = which == 3;
                     one.rules.balloon = which == 4;
+                    one.rules.rope    = which == 5;
                     const auto   obuf = one.encode();
                     BodyMovement oout;
                     ByteReader   orr(obuf);
                     check(BodyMovement::decode(orr, oout) && oout.rules.boat == (which == 0) &&
                               oout.rules.cart == (which == 1) && oout.rules.mount == (which == 2) &&
-                              oout.rules.glide == (which == 3) && oout.rules.balloon == (which == 4),
+                              oout.rules.glide == (which == 3) && oout.rules.balloon == (which == 4) &&
+                              oout.rules.rope == (which == 5),
                           "a body's boat, cart, mount, glider and balloon bits round trip, one at a time");
                 }
             }

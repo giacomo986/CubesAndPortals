@@ -529,6 +529,11 @@ MovementLimits limits_for(const MovementRules &rules)
         limits.rise           = -1.0f;
         limits.height         = kSlideHeight;
     }
+    // A rope swings faster than a sprint, and up to anywhere it hooks.
+    if (rules.rope && !rules.drives()) {
+        limits.max_horizontal = std::max(limits.max_horizontal, kRopeTop);
+        limits.rise           = -1.0f;
+    }
     // A glider at its fastest dive; a balloon at any height.
     if (rules.glide && !rules.drives())
         limits.max_horizontal = std::max(limits.max_horizontal, kGlideSpeed + kGlideDive);

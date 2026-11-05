@@ -1209,6 +1209,20 @@ local api: { Fn } = {
            .. "player's machine.",
     },
     {
+        name = "body_rope",
+        host = "body_rope",
+        ret  = "int",
+        args = {
+            { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
+            { name = "on", type = "bool", default = true, doc = "false and core.rope does nothing for them." },
+        },
+        doc = "Lets ONE player hang on a rope (core.rope) in a world that does not do parkour, at "
+           .. "any time like core.body_movement: a rope gun. Only the rope: no running along walls, "
+           .. "no slides or flips. Jump lets go, crouch lets the rope out and sprint takes it in, and "
+           .. "the server allows the swing (faster than a sprint, any height). Returns 1, or 0 for a "
+           .. "player who is not in this world.",
+    },
+    {
         name = "body_balloon",
         host = "body_balloon",
         ret  = "int",

@@ -2840,6 +2840,13 @@ int host_body_balloon(void *ud, int player, int on)
     return 1;
 }
 
+int host_body_rope(void *ud, int player, int on)
+{
+    if ((ui::PlayerId)player != ui::kLocalPlayer) return 0;
+    static_cast<Scene *>(ud)->act().movement.rope = on != 0;
+    return 1;
+}
+
 int host_ecs_component(void *ud, const char *name, const char *const *fields, int count,
                        char *err, size_t err_size)
 {
@@ -4619,7 +4626,7 @@ void host_held_model(void *ud, const char *name)
 int host_rope(void *ud, int on)
 {
     Scene &s = *static_cast<Scene *>(ud);
-    if (!s.player || !s.act().movement.parkour) return 0;
+    if (!s.player || !(s.act().movement.parkour || s.act().movement.rope)) return 0;
     if (!on) {
         s.player->roped = false;
         return 1;
@@ -19911,6 +19918,7 @@ script_host make_client_host(Scene &scene)
     host.body_mount    = host_body_mount;
     host.body_glide    = host_body_glide;
     host.body_balloon  = host_body_balloon;
+    host.body_rope     = host_body_rope;
     host.notice        = host_notice;
     host.chat          = host_chat;
     host.command       = host_command;

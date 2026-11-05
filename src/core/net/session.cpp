@@ -1259,7 +1259,7 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
         const Vec3 hands{me.x, me.y + kRopeHands, me.z};
         const AABB grip{at - Vec3{0.05f, 0.05f, 0.05f}, at + Vec3{0.05f, 0.05f, 0.05f}};
         std::string why;
-        if (!s.movement.parkour) why = "this world does not do parkour";
+        if (!s.movement.parkour && !s.movement.rope) why = "this world does not do parkour";
         else if (!has_authority() || !box_hits_world(*m_world, *m_registry, grip)) why = "nothing solid there";
         else if (length(at - hands) > kRopeReach + 1.0f) why = "out of a rope's reach";
         if (!why.empty()) {

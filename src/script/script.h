@@ -738,6 +738,7 @@ typedef struct script_host {
     // A line to the mod of the same name on a friend server (core.fed_send).
     int (*fed_send)(void *ud, const char *server, const char *text);
     int (*body_balloon)(void *ud, int player, int on);
+    int (*body_rope)(void *ud, int player, int on);   // core.body_rope: a rope without parkour
 
     // How wide a body is in this world, and how long when it drives
     // (core.body_width): the same moment and the same welcome.

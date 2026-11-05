@@ -458,6 +458,27 @@ SHAPES["album_camera"] = ([
 ], {"b": (35, 35, 40), "s": (190, 192, 198), "f": (240, 240, 220), "L": (80, 82, 90),
     "l": (40, 60, 110), "h": (200, 220, 255)})
 
+# The kart (mods/rewards): seen from the side, red, its driver's seat and
+# two black wheels.
+SHAPES["rewards_kart"] = ([
+    "................",
+    "................",
+    "................",
+    "................",
+    "......ss........",
+    "......ss........",
+    "...rrrrrrrrrr...",
+    "..rrRRRRRRRRrr..",
+    ".rrrrrrrrrrrrrr.",
+    ".rrrrrrrrrrrrrr.",
+    "..ww.......ww...",
+    ".wwww.....wwww..",
+    ".wwhw.....wwhw..",
+    "..ww.......ww...",
+    "................",
+    "................",
+], {"r": (200, 40, 35), "R": (240, 90, 80), "s": (40, 40, 45), "w": (25, 25, 28), "h": (130, 130, 135)})
+
 # Honey (mods/bees): the flask full of it, and a honeycomb, wax cells round
 # their honey ("w" wax, "W" its light edge, "o" honey, "O" its glint).
 SHAPES["bees_honey_bottle"] = (FLASK, {"k": (150, 105, 60), "K": (190, 140, 85), "g": (215, 235, 240),

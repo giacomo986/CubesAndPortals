@@ -399,6 +399,10 @@ when you step off a height and carries you where you look -- look down to dive, 
 fold it and drop. A hot-air balloon goes up from open ground: jump to rise, crouch to come down, the
 keys and the wind take it slowly along, up over the clouds; landed, right click to fold it away.
 
+**After the ending** (`mods/rewards`). Whoever has beaten l'Ospite finds the worlds' tools in the
+sandbox, in a smaller way: the rope gun (thirty hooks a day), a portal gun (twelve shots a day, on any
+wall) and the kart, on the villages' streets and the paths between them. `/rewards` gives them again.
+
 **Weather** (`mods/weather`). Clear skies, then rain or a storm for a few minutes: the sky
 and the clouds go grey, rain falls round you and stops at roofs, the fields under the open sky
 are watered. In the tundra and on the peaks it snows and the snow settles; in the desert

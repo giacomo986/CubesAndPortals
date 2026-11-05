@@ -1151,6 +1151,16 @@ Multiplayer and the plaza:
 14. Rewards after the ending (low-medium). Beaten l'Ospite, the worlds' tools
    come to the sandbox in a limited form: the rope gun, a portal gun with
    charges, the kart on the villages' roads. Gives the seven keys a lasting use.
+   BUILT 2026-11-05 (mods/rewards): mods/keys says keys:ended as a player
+   who beat l'Ospite comes into the sandbox; the first time they get the
+   rope gun (core.body_rope, new: the rope without parkour, bit 7 of the
+   moves; 30 hooks a day), the portal gun (any wall two tall, core.portal_open
+   and portal_link, 12 shots a day, the pair closed when they leave) and the
+   kart (core.body_drive on a road block -- cobblestone, smooth stone, coarse
+   dirt, gravel, sandstone -- off it a second and it stops). Models and icons
+   copied from games/lab. Checked headless: the three given on keys:ended,
+   the kart started on cobblestone; protocol_test the rope bit. Open: none
+   used by hand; no rims drawn round the portals.
 
 ## Portals and movement
 

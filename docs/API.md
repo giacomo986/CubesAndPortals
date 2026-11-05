@@ -1027,6 +1027,19 @@ Sends a line to the mod of the same name on a friend server (--federation, /frie
 | `server` | string | — | A friend server, as /friend named it. |
 | `text` | string | — | Up to 4000 bytes. |
 
+## `core.body_rope`
+
+```luau
+core.body_rope(player: number, on: boolean?) -> number
+```
+
+Lets ONE player hang on a rope (core.rope) in a world that does not do parkour, at any time like core.body_movement: a rope gun. Only the rope: no running along walls, no slides or flips. Jump lets go, crouch lets the rope out and sprint takes it in, and the server allows the swing (faster than a sprint, any height). Returns 1, or 0 for a player who is not in this world.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `player` | number | — | The id every event carries in its `player` field. |
+| `on` | boolean | `true` | false and core.rope does nothing for them. |
+
 ## `core.body_balloon`
 
 ```luau

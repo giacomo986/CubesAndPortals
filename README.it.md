@@ -410,6 +410,10 @@ rallentare, accovacciati per chiuderlo e cadere. Una mongolfiera parte da un ter
 salire, accovacciati per scendere, i tasti e il vento la portano piano, fin sopra le nuvole; atterrata,
 tasto destro per ripiegarla.
 
+**Dopo il finale** (`mods/rewards`). Chi ha battuto l'Ospite trova nel sandbox gli strumenti dei mondi,
+in forma ridotta: la pistola a fune (trenta agganci al giorno), una pistola dei portali (dodici colpi al
+giorno, su qualsiasi muro) e il kart, sulle vie dei villaggi e i sentieri tra loro. `/rewards` li ridà.
+
 **Meteo** (`mods/weather`). Cielo sereno, poi pioggia o temporale per qualche minuto: il cielo
 e le nuvole si fanno grigi, la pioggia cade attorno a te e si ferma sui tetti, i campi a cielo
 aperto vengono innaffiati. Nella tundra e sulle vette nevica e la neve si posa; nel deserto

@@ -300,6 +300,10 @@ struct MovementRules {
     // to any height (kBalloonRise). One body's, as `boat`.
     bool balloon = false;
 
+    // May hang on a rope (core.rope) without the rest of parkour: a rope gun
+    // in a world that does not run along walls (core.body_rope). One body's.
+    bool rope = false;
+
     bool drives() const { return accel > 0.0f; }
 
     // Whether a body here may leave the ground for longer than a jump. Nobody
@@ -326,6 +330,7 @@ inline void keep_body(MovementRules &to, const MovementRules &from)
     to.mount   = from.mount;
     to.glide   = from.glide;
     to.balloon = from.balloon;
+    to.rope    = from.rope;
 }
 
 // What a body in a parkour world may do beyond walking (MovementRules::parkour),

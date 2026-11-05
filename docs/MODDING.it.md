@@ -1735,6 +1735,9 @@ suo client e controllati dal server con quelli.
   chiusa.
 * Che aspetto hanno (`core.player_wear`), quando un deltaplano è pronto, e salire e scendere dalla
   mongolfiera sono del mod.
+* **Una fune senza parkour: `core.body_rope(player, on)`.** In un mondo senza parkour, permette a un
+  giocatore di appendersi con `core.rope` -- solo la fune: il salto la lascia, accovacciarsi la allunga,
+  lo scatto la accorcia, e il server ammette l'oscillazione. La pistola a fune di `mods/rewards`.
 
 ### Uno solo sale in kart: `core.body_drive` e `core.body_model`
 
@@ -2328,6 +2331,8 @@ Alcuni che usano altri mod:
   sia il meteo (vale il più scuro dei due): l'eclissi di `mods/sky`, che fa uscire le creature della notte.
 * **`farm:season { name, left }`** (mods/farm, detto da mods/weather): la stagione, e i giorni che ne
   restano.
+* **`keys:ended { player }`** (mods/keys): un giocatore che ha battuto l'Ospite è entrato nel sandbox
+  (`mods/rewards`).
 * **`museum:photo { player, tag, id }`** (mods/villagers): una foto offerta da un album (mods/album) di un
   luogo raro (`peak`, `hollows`, `relic`, `clouds`); il museo del villaggio in cui sta il giocatore
   prende la prima di ognuno.
