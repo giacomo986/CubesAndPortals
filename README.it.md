@@ -452,7 +452,8 @@ estrattori. Robot aiutanti (`mods/helpers`) da programmare con fino a sei ordini
 alberi, piantare, scavare, cercare minerali, ordinare le casse, cucinare, cavare, illuminare il
 terreno, seguire chi li ha messi.
 
-**Telecamere** (`mods/cameras`). Una telecamera e uno schermo: tasto destro sulla telecamera, poi
+**Telecamere** (`mods/cameras`). Una telecamera -- a terra, su una parete o al soffitto, dove la si
+appoggia -- e uno schermo: tasto destro sulla telecamera, poi
 sullo schermo, e lo schermo mostra dal vivo cosa vede la telecamera -- la base, la gara, un villaggio.
 Tasto destro di nuovo sullo schermo per prendere i comandi: la visuale va sullo schermo e con W A S D
 si gira la telecamera.

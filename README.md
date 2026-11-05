@@ -440,7 +440,8 @@ comparators, lamps, pistons, observers and hoppers, so clocks and logic work. Co
 (`mods/helpers`) you program with up to six orders: chop trees, plant, dig, mine, sort chests,
 cook, quarry, light up the land, follow you.
 
-**Cameras** (`mods/cameras`). A camera and a screen: right click the camera, then the screen, and the
+**Cameras** (`mods/cameras`). A camera -- on a floor, a wall or a ceiling, wherever it is put -- and a
+screen: right click the camera, then the screen, and the
 screen shows live what the camera sees -- the base, the race, a village. Right click the screen again
 to take the camera's controls: the view goes onto the screen and W A S D turn the camera. A camera that sees somebody
 powers the cinnabar beside it: a door that opens, a lamp, an alarm.

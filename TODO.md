@@ -1021,7 +1021,14 @@ Portals -- the engine's own trick, used further:
    whole camera and the screen held and in the bag (make_held_models.py),
    the faces moved to _side/_top/_bottom so the plain name is the icon.
    Checked: a camera put down faces whoever put it, lamp lit as it sees
-   them; turned 1.2 right and 0.4 up its head points there.
+   them; turned 1.2 right and 0.4 up its head points there. MOUNTED
+   2026-11-05 (asked for): the camera is wallmounted -- its plate against
+   the face it was used on, a floor, a wall or a ceiling -- the stand
+   authored along the block's front (+Z out of the face) and the boxes so;
+   the head's pivot 0.05 past the cell's middle along the face's normal;
+   its first look (meta "base") out of a wall, or from a floor or a ceiling
+   towards the placer (pitch -0.1, or -0.6 from overhead), the turn kept
+   from there. Checked: on the ground and on a wall, in a client.
 3. Moving portals (high). A portal on a cart, a boat or a kart: a train
    entering a tunnel and leaving in another world, a door that follows you in
    the chambers. Today core.set_portal works only while the mods load and

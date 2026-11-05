@@ -2,9 +2,10 @@
 #
 #   flatpak run org.blender.Blender --background --python tools/make_camera_models.py
 #
-#   camera_stand.gltf    the block's own model (core.node_model): a square
-#                        foot, a post and a fork at its top, in the unit
-#                        cube, feet at 0. It does not turn.
+#   camera_stand.gltf    the block's own model (core.node_model): a plate, an
+#                        arm and a joint, out of the face the camera is put
+#                        against (wallmounted: the floor, a wall, a ceiling).
+#                        It does not turn; the head does.
 #   camera_head.gltf     the head, drawn by each player's machine where the
 #   camera_head_on.gltf  camera is turned (core.render.model): a grey box
 #                        with a hood, the lens out of its front and a lamp on
@@ -24,7 +25,7 @@ from mathutils import Matrix, Vector
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 OUT = os.path.join(ROOT, "mods", "cameras")
-PIVOT = Vector((0.5, 0.5, 0.5))   # the head's pivot in the cell (Blender: x, y, up)
+PIVOT = Vector((0.5, 0.5, 0.55))  # the head's pivot over the floor (Blender: x, y, up)
 CELL = Vector((0.0, -1.0, 0.0))   # from y 0..1, as the parts are drawn, to the glTF's z 0..1
 
 
@@ -79,11 +80,19 @@ STAND_MATS = ["Cam_dark", "Cam_metal"]
 
 
 def stand(bm):
-    box(bm, (0.28, 0.28, 0.0), (0.72, 0.72, 0.06), 0)          # the foot
-    box(bm, (0.45, 0.45, 0.06), (0.55, 0.55, 0.36), 1)         # the post
-    box(bm, (0.36, 0.45, 0.34), (0.64, 0.55, 0.39), 1)         # the fork's bar
-    box(bm, (0.33, 0.46, 0.34), (0.37, 0.54, 0.52), 1)         # its arms, either side of the head
-    box(bm, (0.63, 0.46, 0.34), (0.67, 0.54, 0.52), 1)
+    """Upright, feet on the floor: a plate, an arm up and the joint the head
+    turns on, its top at 0.44 and the head's pivot at 0.55."""
+    box(bm, (0.28, 0.28, 0.0), (0.72, 0.72, 0.06), 0)          # the plate
+    box(bm, (0.45, 0.45, 0.06), (0.55, 0.55, 0.38), 1)         # the arm
+    box(bm, (0.42, 0.42, 0.36), (0.58, 0.58, 0.45), 1)         # the joint
+
+
+# The block is wallmounted (mods/cameras): its front, the glTF's +Z, points out
+# of the face it was put against. So the stand's up has to be that front: its
+# plate on the back face, z 0, and the arm out along +Z -- in Blender, whose -Y
+# the export makes +Z, the plate at y 0 and the arm towards -y. Up (Blender z)
+# x stays.
+TO_BLOCK = Matrix(((1, 0, 0, 0), (0, 0, -1, 0), (0, 1, 0, 0), (0, 0, 0, 1)))   # (x, y, z) -> (x, -z, y)
 
 
 HEAD_MATS = ["Cam_case", "Cam_dark", "Cam_lens", "Cam_metal", "Cam_lamp"]
@@ -118,9 +127,8 @@ def main():
     material("Cam_lamp_off", (0.25, 0.05, 0.05))
     material("Cam_lamp_lit", (1.0, 0.12, 0.08), glow=True)
 
-    # In the unit cube of the glTF: Blender's -Y is its +Z, so a block's
-    # cell is y from -1 to 0 here (the stand was a cell off, in -Z).
-    st = obj("camera_stand", STAND_MATS, stand, at=CELL)
+    st = obj("camera_stand", STAND_MATS, stand)
+    st.data.transform(TO_BLOCK)
     export([st], os.path.join(OUT, "camera_stand.gltf"))
     for lit in (False, True):
         mats = HEAD_MATS[:4] + ["Cam_lamp_lit" if lit else "Cam_lamp_off"]
@@ -129,6 +137,8 @@ def main():
         if not lit:
             # The whole, as placed: the head in its fork, looking ahead (-Y is
             # the block's front, +Z of the glTF).
+            # The whole, standing on a floor, the lens to the front (+Z of the
+            # glTF): the bag's picture and the hand's (make_held_models.py).
             full_head = obj("camera_full_head", mats, head(False), at=PIVOT + CELL)
             full_stand = obj("camera_full", STAND_MATS, stand, at=CELL)
             bpy.ops.object.select_all(action="DESELECT")

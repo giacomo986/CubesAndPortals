@@ -144,7 +144,7 @@
 			"count":48,
 			"max":[
 				0.7200000286102295,
-				0.6349999904632568,
+				0.6850000023841858,
 				0.800000011920929
 			],
 			"min":[
@@ -169,29 +169,29 @@
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":192,
+			"count":144,
 			"max":[
-				0.6700000166893005,
 				0.5799999833106995,
+				0.6299999952316284,
 				0.7699999809265137
 			],
 			"min":[
-				0.33000001311302185,
+				0.41999998688697815,
 				0.05999999865889549,
-				0.44999998807907104
+				0.42000001668930054
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":4,
 			"componentType":5126,
-			"count":192,
+			"count":144,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":5,
 			"componentType":5123,
-			"count":324,
+			"count":252,
 			"type":"SCALAR"
 		},
 		{
@@ -200,12 +200,12 @@
 			"count":24,
 			"max":[
 				0.625,
-				0.6100000143051147,
+				0.6600000262260437,
 				0.699999988079071
 			],
 			"min":[
 				0.375,
-				0.4000000059604645,
+				0.45000001788139343,
 				0.25999999046325684
 			],
 			"type":"VEC3"
@@ -228,12 +228,12 @@
 			"count":96,
 			"max":[
 				0.5600000023841858,
-				0.5600000023841858,
+				0.6100000143051147,
 				0.7849999666213989
 			],
 			"min":[
 				0.4399999976158142,
-				0.4399999976158142,
+				0.49000000953674316,
 				0.7699999809265137
 			],
 			"type":"VEC3"
@@ -256,12 +256,12 @@
 			"count":24,
 			"max":[
 				0.5400000214576721,
-				0.6499999761581421,
+				0.7000000476837158,
 				0.4000000059604645
 			],
 			"min":[
 				0.46000000834465027,
-				0.6100000143051147,
+				0.6600000262260437,
 				0.3199999928474426
 			],
 			"type":"VEC3"
@@ -300,80 +300,80 @@
 		},
 		{
 			"buffer":0,
-			"byteLength":2304,
+			"byteLength":1728,
 			"byteOffset":1296,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":3600,
+			"byteLength":1728,
+			"byteOffset":3024,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":648,
-			"byteOffset":5904,
+			"byteLength":504,
+			"byteOffset":4752,
 			"target":34963
 		},
 		{
 			"buffer":0,
 			"byteLength":288,
-			"byteOffset":6552,
+			"byteOffset":5256,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":288,
-			"byteOffset":6840,
+			"byteOffset":5544,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":72,
-			"byteOffset":7128,
+			"byteOffset":5832,
 			"target":34963
 		},
 		{
 			"buffer":0,
 			"byteLength":1152,
-			"byteOffset":7200,
+			"byteOffset":5904,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":1152,
-			"byteOffset":8352,
+			"byteOffset":7056,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":360,
-			"byteOffset":9504,
+			"byteOffset":8208,
 			"target":34963
 		},
 		{
 			"buffer":0,
 			"byteLength":288,
-			"byteOffset":9864,
+			"byteOffset":8568,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":288,
-			"byteOffset":10152,
+			"byteOffset":8856,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":72,
-			"byteOffset":10440,
+			"byteOffset":9144,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":10512,
+			"byteLength":9216,
 			"uri":"camera_full.bin"
 		}
 	]
