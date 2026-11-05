@@ -20,8 +20,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -39,6 +41,14 @@ struct VmState {
     bool     interrupted      = false;
 
     int chunks_loaded = 0;
+
+    // require (below): the mod's directory, the files run so far, and the
+    // ones running now -- a file that is asked for while it is still running
+    // is a cycle.
+    std::string              root;
+    std::vector<std::string> modules;
+    std::vector<std::string> loading;
+    int                      modules_ref = -1;   // path -> what the file returned
 };
 
 // Allocator that enforces the quota. Returning null makes Lua raise a normal
@@ -1074,6 +1084,126 @@ void copy_error(lua_State *L, char *err, size_t err_size)
     std::snprintf(err, err_size, "%s", msg ? msg : "unknown error");
 }
 
+// One way of compiling, for a mod's entry and for every file it requires.
+lua_CompileOptions compile_options()
+{
+    lua_CompileOptions opts{};
+    opts.optimizationLevel = 2;
+    opts.debugLevel        = 1;
+    return opts;
+}
+
+// Compiles `source` and leaves the chunk on L's stack, or its error.
+//
+// luaL_sandboxthread marks the thread's globals "safe", which lets the VM
+// assume no global was reassigned since the first chunk was compiled against
+// them. That assumption only holds for one chunk: a mod split over several
+// files needs the flag cleared, or the second file can read a stale
+// constant-folded global. Luau's own sandboxthread carries the same warning.
+int load_chunk(VmState *vm, lua_State *L, const char *chunk_name, const char *source, size_t len)
+{
+    size_t             bytecode_size = 0;
+    lua_CompileOptions opts          = compile_options();
+    char              *bytecode      = luau_compile(source, len, &opts, &bytecode_size);
+    if (!bytecode) {
+        lua_pushstring(L, "compile failed");
+        return 1;
+    }
+    if (vm->chunks_loaded > 0) lua_setsafeenv(L, LUA_GLOBALSINDEX, false);
+    const int rc = luau_load(L, chunk_name, bytecode, bytecode_size, 0);
+    std::free(bytecode);
+    if (rc == 0) ++vm->chunks_loaded;
+    return rc;
+}
+
+bool read_text_file(const std::string &path, std::string &out)
+{
+    std::FILE *f = std::fopen(path.c_str(), "rb");
+    if (!f) return false;
+    char   buf[16384];
+    size_t got = 0;
+    out.clear();
+    while ((got = std::fread(buf, 1, sizeof buf, f)) > 0) out.append(buf, got);
+    std::fclose(f);
+    return true;
+}
+
+// require("./part"): another file of the same mod, run once, and whatever it
+// returned. Paths are Luau's own require-by-string ones, so an editor that
+// knows Luau follows them too: "./x" and "../x" from the file asking, ".luau"
+// added, and a directory meaning its init.luau. Each file is a chunk of its
+// own -- its own 200 locals, which is what a long mod runs out of -- and they
+// share the mod's globals. Nothing outside the mod's directory is reached.
+int l_require(lua_State *L)
+{
+    namespace fs = std::filesystem;
+    VmState    *vm   = host_of(L);
+    const char *spec = luaL_checkstring(L, 1);
+    if (!vm || vm->root.empty()) luaL_error(L, "require(\"%s\"): this code has no directory to look in", spec);
+
+    const std::string s = spec;
+    if (s.rfind("./", 0) != 0 && s.rfind("../", 0) != 0)
+        luaL_error(L, "require(\"%s\"): a path starts with ./ or ../, from the file asking", spec);
+
+    // The directory of the file that asked: its chunk is named by its path.
+    fs::path from = vm->root;
+    lua_Debug ar;
+    if (lua_getinfo(L, 1, "s", &ar) && ar.source && *ar.source) {
+        const fs::path caller = ar.source;
+        if (caller.has_parent_path()) from = caller.parent_path();
+    }
+
+    const fs::path root = fs::path(vm->root).lexically_normal();
+    const fs::path base = (from / s).lexically_normal();
+    const std::string rel = base.lexically_relative(root).generic_string();
+    if (rel.empty() || rel == "." || rel.rfind("..", 0) == 0)
+        luaL_error(L, "require(\"%s\"): outside the mod's directory", spec);
+
+    std::string path;
+    std::error_code ec;
+    for (const fs::path &p : { fs::path(base.string() + ".luau"), base / "init.luau" }) {
+        if (fs::is_regular_file(p, ec)) {
+            path = p.generic_string();
+            break;
+        }
+    }
+    if (path.empty()) luaL_error(L, "require(\"%s\"): no %s.luau or %s/init.luau", spec, rel.c_str(), rel.c_str());
+
+    // Run already: what it returned then.
+    lua_getref(L, vm->modules_ref);
+    lua_getfield(L, -1, path.c_str());
+    if (!lua_isnil(L, -1)) return 1;
+    lua_pop(L, 2);
+
+    for (const std::string &l : vm->loading)
+        if (l == path) luaL_error(L, "require(\"%s\"): %s is asked for while it is still running (a cycle)", spec, rel.c_str());
+
+    std::string source;
+    if (!read_text_file(path, source)) luaL_error(L, "require(\"%s\"): cannot read %s", spec, rel.c_str());
+
+    if (load_chunk(vm, L, path.c_str(), source.data(), source.size()) != 0) lua_error(L);
+
+    bool known = false;
+    for (const std::string &m : vm->modules) known |= (m == path);
+    if (!known) vm->modules.push_back(path);
+
+    vm->loading.push_back(path);
+    const int rc = lua_pcall(L, 0, 1, 0);
+    vm->loading.pop_back();
+    if (rc != 0) lua_error(L);
+
+    // A file that returned nothing is still run, and not run again.
+    if (lua_isnil(L, -1)) {
+        lua_pop(L, 1);
+        lua_pushboolean(L, 1);
+    }
+    lua_getref(L, vm->modules_ref);
+    lua_pushvalue(L, -2);
+    lua_setfield(L, -2, path.c_str());
+    lua_pop(L, 1);
+    return 1;
+}
+
 } // namespace
 
 script_vm *script_create(const script_desc *desc)
@@ -1094,6 +1224,13 @@ script_vm *script_create(const script_desc *desc)
     lua_setthreaddata(vm->L, vm);
     luaL_openlibs(vm->L);   // Luau's set: no io, no package, no loadstring
     register_api(vm->L);
+
+    if (desc->root_dir && *desc->root_dir) vm->root = desc->root_dir;
+    lua_newtable(vm->L);
+    vm->modules_ref = lua_ref(vm->L, -1);
+    lua_pop(vm->L, 1);
+    lua_pushcfunction(vm->L, l_require, "require");
+    lua_setglobal(vm->L, "require");
 
     // Whatever the caller's capability policy did not grant goes now, while the
     // global table is still writable. After luaL_sandbox it is read-only, and
@@ -1149,28 +1286,7 @@ bool script_run_source(script_vm *handle, const char *chunk_name, const char *so
     VmState *vm = reinterpret_cast<VmState *>(handle);
     if (!vm || !vm->T) return false;
 
-    size_t bytecode_size = 0;
-    lua_CompileOptions opts{};
-    opts.optimizationLevel = 2;
-    opts.debugLevel        = 1;
-
-    char *bytecode = luau_compile(source, std::strlen(source), &opts, &bytecode_size);
-    if (!bytecode) {
-        if (err && err_size) std::snprintf(err, err_size, "compile failed");
-        return false;
-    }
-
-    // luaL_sandboxthread marks the thread's globals "safe", which lets the VM
-    // assume no global was reassigned since the first chunk was compiled
-    // against them. That assumption only holds for one chunk: a mod split over
-    // several files needs the flag cleared, or the second file can read a stale
-    // constant-folded global. Luau's own sandboxthread carries the same warning.
-    if (vm->chunks_loaded > 0) lua_setsafeenv(vm->T, LUA_GLOBALSINDEX, false);
-
-    const int load_rc = luau_load(vm->T, chunk_name, bytecode, bytecode_size, 0);
-    std::free(bytecode);
-
-    if (load_rc != 0) {
+    if (load_chunk(vm, vm->T, chunk_name, source, std::strlen(source)) != 0) {
         copy_error(vm->T, err, err_size);
         lua_pop(vm->T, 1);
         return false;
@@ -1178,8 +1294,6 @@ bool script_run_source(script_vm *handle, const char *chunk_name, const char *so
 
     vm->interrupt_count = 0;
     vm->interrupted     = false;
-
-    ++vm->chunks_loaded;
 
     if (lua_pcall(vm->T, 0, 0, 0) != 0) {
         copy_error(vm->T, err, err_size);
@@ -1475,6 +1589,19 @@ void script_unref_handler(script_vm *handle, int handler_ref)
 {
     VmState *vm = reinterpret_cast<VmState *>(handle);
     if (vm && vm->L) lua_unref(vm->L, handler_ref);
+}
+
+int script_module_count(script_vm *handle)
+{
+    VmState *vm = reinterpret_cast<VmState *>(handle);
+    return vm ? (int)vm->modules.size() : 0;
+}
+
+const char *script_module_path(script_vm *handle, int i)
+{
+    VmState *vm = reinterpret_cast<VmState *>(handle);
+    if (!vm || i < 0 || i >= (int)vm->modules.size()) return "";
+    return vm->modules[(size_t)i].c_str();
 }
 
 size_t script_memory_used(script_vm *handle)

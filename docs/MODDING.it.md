@@ -222,6 +222,33 @@ come è messo.
 
 ---
 
+## Un mod in più file: `require`
+
+Il file d'ingresso di un mod (`init.luau`) può affidare parti di sé ad altri file dello stesso mod:
+
+```lua
+local ricette = require("./ricette")      -- ricette.luau, accanto al file che chiede
+local ui      = require("./ui")           -- ui.luau, o ui/init.luau se ui è una cartella
+local strada  = require("../strada")      -- da dentro una cartella, il file sopra
+```
+
+Ogni file è **un chunk a sé**, quindi ha le sue 200 variabili locali: il limite che Luau mette al
+corpo principale di un chunk, e che un mod lungo raggiunge (`mods/villagers` l'ha raggiunto). I file
+condividono le variabili globali del mod e la sua VM: la stessa quota, lo stesso budget, lo stesso
+`core`.
+
+- **I percorsi sono quelli di Luau** (require-by-string): `./` e `../` dal file che chiede, `.luau`
+  aggiunto, una cartella vuol dire il suo `init.luau`. Un editor che conosce Luau li segue anche lui.
+  Un percorso senza `./` o `../` è rifiutato: non c'è altro posto dove cercare.
+- **Solo dentro la cartella del mod.** Un percorso che ne esce è rifiutato, comunque sia scritto.
+- **Un file gira una volta sola.** Il secondo `require` riceve quello che ha ricevuto il primo: quello
+  che il file ha restituito con `return` (`true` se non ha restituito niente).
+- **Due file che si chiedono a vicenda** mentre girano ancora tutti e due sono un errore che nomina
+  il file, non una tabella costruita a metà.
+- **Modificare un file richiesto ricarica il mod** come modificare il suo ingresso.
+- Viaggia: un pacchetto, e il codice che un mondo manda alla macchina di un giocatore, sono l'intera
+  cartella.
+
 ## Un mod come un file solo
 
 Una directory non è una cosa che si possa dare a qualcuno: niente dice quali

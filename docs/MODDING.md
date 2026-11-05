@@ -202,6 +202,31 @@ cannot disagree about how it is set.
 
 ---
 
+## A mod in several files: `require`
+
+A mod's entry (`init.luau`) can hand parts of itself to other files of the same mod:
+
+```lua
+local recipes = require("./recipes")      -- recipes.luau, beside the file asking
+local ui      = require("./ui")           -- ui.luau, or ui/init.luau if ui is a directory
+local road    = require("../road")        -- from inside a directory, the file above it
+```
+
+Each file is **a chunk of its own**, so it has its own 200 locals: the limit Luau puts on a chunk's
+main body, which a long mod reaches (`mods/villagers` did). The files share the mod's globals and
+its VM -- the same quota, the same budget, the same `core`.
+
+- **Paths are Luau's own** (require-by-string): `./` and `../` from the file asking, `.luau`
+  added, a directory meaning its `init.luau`. An editor that knows Luau follows them too. A path
+  without `./` or `../` is refused: there is nothing else to look in.
+- **Only inside the mod's directory.** A path that leaves it is refused, however it is written.
+- **A file runs once.** The second `require` of it gets what the first got: what the file
+  `return`ed (`true` if it returned nothing).
+- **Two files asking for each other** while both are still running is an error naming the file,
+  not a half-built table.
+- **Editing a required file reloads the mod** like editing its entry.
+- It travels: a package, and a world's code sent to a player's machine, are the whole directory.
+
 ## A mod as a single file
 
 A directory is not a thing you can hand to somebody: nothing says which files belong to it,

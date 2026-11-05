@@ -11,8 +11,11 @@
 
 #include "script/mod_host.h"
 
+#include <chrono>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -134,9 +137,9 @@ void test_isolation(const char *mods_dir)
     mods.set_host(host);
     const int running = mods.load_dir(mods_dir);
 
-    // dependent, good, hog, runaway and timekeeper load; badcap, nomanifest,
-    // orphan and typo do not.
-    check(running == 5, "five mods loaded, four refused");
+    // dependent, good, hog, parts, runaway and timekeeper load; badcap,
+    // nomanifest, orphan and typo do not.
+    check(running == 6, "six mods loaded, four refused");
 
     const Mod *good    = find_mod(mods, "good");
     const Mod *runaway = find_mod(mods, "runaway");
@@ -156,6 +159,15 @@ void test_isolation(const char *mods_dir)
     check(orphan && !orphan->running && orphan->error.find("ghost") != std::string::npos,
           "the mod depending on something absent was refused, naming it");
     check(!log_contains(world, "SHOULD NOT RUN"), "no refused mod executed a line");
+
+    // require: files of the mod, each run once, none outside it (the mod
+    // asserts each of these itself; loading is passing).
+    const Mod *parts = find_mod(mods, "parts");
+    check(parts && parts->running && log_contains(world, "parts: loaded"),
+          "a mod in several files loads, and require keeps inside it");
+    if (parts && !parts->running) std::printf("  parts: %s\n", parts->error.c_str());
+    check(parts && parts->module_mtimes.size() == 6,
+          "the files it required are watched for a reload");
 
     // Load order is the dependency order, not the directory order: `dependent`
     // sorts before `timekeeper` and must still load after it.
@@ -203,6 +215,38 @@ void test_isolation(const char *mods_dir)
     check(mods.running_count() == 0, "shutdown closes every VM");
 }
 
+// Editing a file the mod required reloads it, as editing its entry does.
+void test_reload_of_a_required_file()
+{
+    namespace fs = std::filesystem;
+    std::printf("\nreload of a required file\n");
+
+    const fs::path dir = fs::temp_directory_path() / "cnp_require_reload_test";
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+    fs::create_directories(dir / "split", ec);
+    std::ofstream(dir / "split" / "mod.conf") << "name = split\nversion = 0.0.1\n";
+    std::ofstream(dir / "split" / "init.luau") << "core.log(`value {require(\"./part\")}`)\n";
+    std::ofstream(dir / "split" / "part.luau") << "return 1\n";
+
+    StubWorld   world;
+    script_host host{};
+    host.log = h_log;
+    host.ud  = &world;
+    ModHost mods;
+    mods.set_host(host);
+    check(mods.load_dir(dir.string()) == 1 && log_contains(world, "value 1"), "the mod loads its part");
+    check(mods.reload_changed() == 0, "nothing changed, nothing reloaded");
+
+    const fs::path part = dir / "split" / "part.luau";
+    std::ofstream(part, std::ios::trunc) << "return 2\n";
+    fs::last_write_time(part, fs::last_write_time(part) + std::chrono::seconds(2), ec);
+    check(mods.reload_changed() == 1 && log_contains(world, "value 2"), "editing the part reloads the mod");
+
+    mods.shutdown();
+    fs::remove_all(dir, ec);
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -211,6 +255,7 @@ int main(int argc, char **argv)
 
     test_manifest_parsing();
     test_isolation(mods_dir);
+    test_reload_of_a_required_file();
 
     std::printf("\n%s\n", g_failures == 0 ? "all script isolation checks passed"
                                           : "SCRIPT ISOLATION CHECKS FAILED");

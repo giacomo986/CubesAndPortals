@@ -793,6 +793,10 @@ typedef struct script_desc {
     // global table, so a name left in place there is reachable from every mod.
     const char *const *strip_globals;
     int                strip_count;
+
+    // The mod's directory: `require("./part")` finds files in it and never
+    // outside it. Null or empty, and `require` answers with an error.
+    const char *root_dir;
 } script_desc;
 
 script_vm *script_create(const script_desc *desc);
@@ -840,6 +844,11 @@ bool script_call_system(script_vm *vm, int handler_ref, script_batch *batch,
 // Releases a handler reference. Destroying the VM releases them all, so this is
 // for a mod that unregisters one while it runs.
 void script_unref_handler(script_vm *vm, int handler_ref);
+
+// The files `require` has run in this VM, in the order it first ran them, so
+// that editing one of them reloads the mod the way editing its entry does.
+int         script_module_count(script_vm *vm);
+const char *script_module_path(script_vm *vm, int i);
 
 size_t      script_memory_used(script_vm *vm);
 const char *script_backend_name(void);

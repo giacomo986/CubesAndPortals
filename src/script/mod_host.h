@@ -129,6 +129,11 @@ struct Mod {
     long long entry_mtime = 0;
     int       reloads     = 0;
 
+    // And of every file the mod has `require`d so far, by path: editing one
+    // reloads the mod like editing its entry. A file first required after the
+    // load joins the list the next time the files are looked at.
+    std::vector<std::pair<std::string, long long>> module_mtimes;
+
     script_vm *vm      = nullptr;
     bool       running = false;   // false: refused at load, or disabled after an error
     std::string error;            // why, if it is not running

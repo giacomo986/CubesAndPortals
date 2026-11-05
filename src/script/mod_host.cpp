@@ -95,6 +95,30 @@ long long file_mtime(const std::filesystem::path &p)
     return (long long)t.time_since_epoch().count();
 }
 
+// The files a mod has required, against what was noted of them. `reset` notes
+// them as they are now and answers false; otherwise a file required since is
+// noted, and the answer is whether one already noted has changed. A time of
+// zero is a file mid-save, waited for as an entry is.
+bool note_modules(Mod &mod, bool reset)
+{
+    if (reset) mod.module_mtimes.clear();
+    if (!mod.vm) return false;
+    bool changed = false;
+    const int n = script_module_count(mod.vm);
+    for (int i = 0; i < n; ++i) {
+        const std::string path = script_module_path(mod.vm, i);
+        const long long   now  = file_mtime(path);
+        bool seen = false;
+        for (const auto &m : mod.module_mtimes) {
+            if (m.first != path) continue;
+            seen = true;
+            changed |= (now != 0 && now != m.second);
+        }
+        if (!seen) mod.module_mtimes.emplace_back(path, now);
+    }
+    return changed;
+}
+
 } // namespace
 
 const ModManifest *mod_host_current()
@@ -633,6 +657,7 @@ bool ModHost::start_mod(ModManifest manifest)
     sd.interrupt_budget   = mod.manifest.interrupt_budget;
     sd.strip_globals      = strip.data();
     sd.strip_count        = (int)strip.size();
+    sd.root_dir           = mod.manifest.dir.c_str();
 
     mod.vm = script_create(&sd);
     if (!mod.vm) return refuse("could not create a VM");
@@ -664,6 +689,7 @@ bool ModHost::start_mod(ModManifest manifest)
     mod.running     = true;
     mod.conf_mtime  = file_mtime(fs::path(mod.manifest.dir) / "mod.conf");
     mod.entry_mtime = file_mtime(entry);
+    note_modules(mod, true);
     m_mods.push_back(std::move(mod));
     return true;
 }
@@ -974,6 +1000,7 @@ bool ModHost::reload(const std::string &name, std::string &error)
     sd.interrupt_budget   = manifest.interrupt_budget;
     sd.strip_globals      = strip.data();
     sd.strip_count        = (int)strip.size();
+    sd.root_dir           = manifest.dir.c_str();
 
     script_vm *fresh = script_create(&sd);
     if (!fresh) {
@@ -1020,6 +1047,7 @@ bool ModHost::reload(const std::string &name, std::string &error)
     mod->reloads++;
     mod->conf_mtime  = file_mtime(fs::path(manifest.dir) / "mod.conf");
     mod->entry_mtime = file_mtime(entry);
+    note_modules(*mod, true);
 
     if (m_cb.after_reload) m_cb.after_reload(m_cb.ud, name.c_str(), true);
     return true;
@@ -1043,7 +1071,8 @@ int ModHost::reload_changed()
         // a temporary. Waiting for it to come back is better than reloading a
         // mod out of a file that does not exist yet.
         if (conf == 0 || entry == 0) continue;
-        if (conf == m_mods[i].conf_mtime && entry == m_mods[i].entry_mtime) continue;
+        const bool modules = note_modules(m_mods[i], false);
+        if (conf == m_mods[i].conf_mtime && entry == m_mods[i].entry_mtime && !modules) continue;
 
         std::string err;
         if (reload(name, err)) {
@@ -1054,6 +1083,7 @@ int ModHost::reload_changed()
             // not be retried sixty times a second until it is fixed.
             m_mods[i].conf_mtime  = conf;
             m_mods[i].entry_mtime = entry;
+            note_modules(m_mods[i], true);
             std::fprintf(stderr, "mod '%s' reload failed, keeping the running version: %s\n",
                          name.c_str(), err.c_str());
         }
