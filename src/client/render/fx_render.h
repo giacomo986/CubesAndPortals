@@ -31,6 +31,7 @@ enum class FxKind : int {
     Jet,      // a flame out of a nozzle at the point, blown towards `to`
     Streak,   // a shooting star: its tail at the point, its head at `to`
     Aurora,   // a curtain of light hung up from the line from the point to `to`
+    Smoke,    // a puff of smoke, swelling and thinning: mixed over what is behind, not added
     Count,
 };
 

@@ -7,9 +7,17 @@
   hive    a box of planks with a band of comb round its middle, an entrance
           slot at the bottom of the sides and a lid on top; full, honey runs
           down from the slot and the band.
+  apiary  a kept hive (apiary.luau): pale painted boards, a white roof
+          band, three frames' ends showing in the side, a landing board;
+          full, honey shining between the frames.
+  press   a screw press: iron plate and screw over a wooden tub, honey in
+          the tub's top.
+  honey_lamp  amber honey in a wax frame, glowing.
   buzz    a swarm, 2 s: a dozen detuned saw buzzes, each wandering in pitch
           and swelling in and out, as bees passing.
   sting   one bee close, 0.4 s: a high whine rising and cut short.
+  press   the press screwed down, 0.6 s: a creak falling, a squelch.
+  puff    the smoker's bellows, 0.7 s: two soft breaths of noise, low.
 
 The honey and honeycomb items are tools/make_item_textures.py's. Seeded, so
 running it again makes the same files.
@@ -111,6 +119,103 @@ def hive_top(rng):
     return img
 
 
+PAINT = (226, 214, 180)
+IRON = (120, 124, 132)
+
+
+def apiary_side(rng, full):
+    img = Image.new("RGB", (16, 16))
+    for y in range(16):
+        for x in range(16):
+            c = shade(PAINT, 0.82) if y % 5 == 0 else PAINT
+            if y <= 1:
+                c = (245, 245, 240)                          # the roof band
+            img.putpixel((x, y), shade(c, rng.uniform(0.93, 1.05)))
+    for fx in (3, 7, 11):                                    # the frames' ends
+        for y in range(4, 11):
+            img.putpixel((fx, y), shade(PLANK, 0.75))
+            img.putpixel((fx + 1, y), PLANK)
+        if full:
+            for y in range(5, 10):
+                img.putpixel((fx + 2, y), HONEY if y % 2 else HONEY_LIGHT)
+    for x in range(4, 12):
+        img.putpixel((x, 13), HOLE)                          # the entrance
+        img.putpixel((x, 14), shade(PLANK, 0.9))             # the landing board
+    return img
+
+
+def apiary_top(rng):
+    img = Image.new("RGB", (16, 16))
+    for y in range(16):
+        for x in range(16):
+            edge = x in (0, 15) or y in (0, 15)
+            c = (200, 200, 196) if edge else (240, 240, 236)
+            img.putpixel((x, y), shade(c, rng.uniform(0.94, 1.04)))
+    return img
+
+
+def press_side(rng):
+    img = Image.new("RGB", (16, 16))
+    for y in range(16):
+        for x in range(16):
+            if y <= 4:
+                c = IRON if y in (3, 4) else (shade(IRON, 0.8) if x in (7, 8) else shade(PLANK, 0.55))
+            else:
+                c = shade(PLANK, 0.75) if x % 4 == 0 else PLANK  # the tub's staves
+                if y in (7, 13):
+                    c = shade(IRON, 0.9)                     # its hoops
+            img.putpixel((x, y), shade(c, rng.uniform(0.92, 1.06)))
+    return img
+
+
+def press_top(rng):
+    img = Image.new("RGB", (16, 16))
+    for y in range(16):
+        for x in range(16):
+            d = max(abs(x - 7.5), abs(y - 7.5))
+            c = shade(PLANK, 0.8) if d > 6 else (IRON if d < 2 else HONEY)
+            img.putpixel((x, y), shade(c, rng.uniform(0.92, 1.06)))
+    return img
+
+
+def honey_lamp(rng):
+    img = Image.new("RGB", (16, 16))
+    for y in range(16):
+        for x in range(16):
+            edge = x in (0, 15) or y in (0, 15)
+            hexa = (x + (y // 3) % 2 * 2) % 4 == 0 or y % 3 == 0
+            c = COMB_DARK if edge else (HONEY if hexa else HONEY_LIGHT)
+            img.putpixel((x, y), shade(c, rng.uniform(0.95, 1.05)))
+    return img
+
+
+def squelch(rng, length):
+    n = int(length * RATE)
+    out = []
+    ph = 0.0
+    for i in range(n):
+        t = i / RATE
+        f = 140 - 70 * t / length
+        ph = (ph + f / RATE) % 1.0
+        creak = (1 if ph < 0.15 else -0.2) * (1 - t / length) * 0.6
+        wet = rng.uniform(-1, 1) * max(0.0, math.sin(math.pi * t / length)) ** 3 * 0.5
+        out.append((creak + wet) * min(1.0, t / 0.01))
+    return out
+
+
+def puff(rng, length):
+    n = int(length * RATE)
+    out = []
+    lp = 0.0
+    for i in range(n):
+        t = i / RATE
+        k = (t % (length / 2)) / (length / 2)                # two breaths
+        env = math.sin(math.pi * k) ** 2
+        lp += (rng.uniform(-1, 1) - lp) * 0.08               # noise, its highs taken off
+        out.append(lp * env * 2.2)
+    return out
+
+
 def buzz(rng, length):
     n = int(length * RATE)
     out = [0.0] * n
@@ -157,7 +262,18 @@ def main():
         save(hive_side(rng, full), f"bees_hive{tail}_side")
         save(hive_top(rng), f"bees_hive{tail}_top")
         save(hive_top(rng), f"bees_hive{tail}_bottom")
+    for full in (False, True):
+        tail = "_full" if full else ""
+        save(apiary_side(rng, full), f"bees_apiary{tail}_side")
+        save(apiary_top(rng), f"bees_apiary{tail}_top")
+        save(apiary_top(rng), f"bees_apiary{tail}_bottom")
+    save(press_side(rng), "bees_press_side")
+    save(press_top(rng), "bees_press_top")
+    save(hive_top(rng), "bees_press_bottom")
+    save(honey_lamp(rng), "bees_honey_lamp")
     os.makedirs(MOD, exist_ok=True)
+    write(squelch(random.Random(9), 0.6), os.path.join(MOD, "press.ogg"))
+    write(puff(random.Random(10), 0.7), os.path.join(MOD, "puff.ogg"))
     write(buzz(random.Random(7), 2.0), os.path.join(MOD, "buzz.ogg"))
     write(sting(random.Random(8), 0.4), os.path.join(MOD, "sting.ogg"))
 

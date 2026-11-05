@@ -378,7 +378,11 @@ ciascuna. Sott'acqua l'aria dura quindici secondi (`mods/breath`).
 **Api** (`mods/bees`). Nidi selvatici tra i fiori dei prati, e arnie di assi e favi: si riempiono di
 miele tanto più in fretta quanti più fiori hanno attorno, d'inverno dormono, e aiutano a crescere i
 campi vicini. Con una fiasca si prende una bottiglia di miele (cibo), a mani nude due favi (una
-pozione, un'arnia); una torcia sotto tiene le api dal pungere. Di giorno le api ci volano attorno.
+pozione, un'arnia); una torcia sotto, o un affumicatore, tiene le api dal pungere. Di giorno le api
+ci volano attorno. Api allevate: un retino cattura la regina di un nido selvatico, e un'arnia
+artificiale la accoglie, con telaini per riempirsi prima, un'imbottitura di lana per l'inverno e un
+infusore che fa miele speciale da ciò che ha attorno (funghi luminosi, lava, ametista); una pressa
+lo lavora in lampade di miele, cera ardente per la fornace e ametista, ogni tanto un diamante.
 
 **Cavità** (`mods/deep`). Sotto la roccia madre di alcune regioni c'è un paese di caverne sigillato,
 a cui si scende da una voragine con i pioli: funghi e muschio luminosi, cristalli, laghi di lava, e un
@@ -408,7 +412,9 @@ remare al doppio del nuoto e sterzare con A e D (scansa le creature e rimbalza s
 quando scendi da un'altura e ti porta dove guardi -- guarda in basso per picchiare, in alto per
 rallentare, accovacciati per chiuderlo e cadere. Una mongolfiera parte da un terreno libero: salta per
 salire, accovacciati per scendere, i tasti e il vento la portano piano, fin sopra le nuvole; atterrata,
-tasto destro per ripiegarla.
+tasto destro per ripiegarla. Il pilota del deltaplano sta appeso prono alla barra; quello della
+mongolfiera sta nel cesto e tira la valvola del bruciatore mentre sale, con la fiamma che ruggisce nel
+pallone.
 
 **Dopo il finale** (`mods/rewards`). Chi ha battuto l'Ospite trova nel sandbox gli strumenti dei mondi,
 in forma ridotta: la pistola a fune (trenta agganci al giorno), una pistola dei portali (dodici colpi al

@@ -1081,8 +1081,17 @@ The sandbox:
    is ready and its wing worn while off the ground; the balloon boards from
    open ground and folds back landed. Models tools/make_flight_models.py.
    Checked: physics_box (speeds, dive, fold, rise, sink, drift, the limits),
-   protocol_test (the bits). Open: not yet flown in a client; no burner
-   flame or sound; no thermals.
+   protocol_test (the bits). Flown in the client 2026-11-05: both work.
+   ANIMATED 2026-11-05: the robot's clips glide (prone under the keel, hands
+   on the bar), balloon_idle (hands on the rim) and balloon_burn (the right
+   hand pulling the valve) by tools/make_flight_clips.py, added to the four
+   bodies with tools/gltf_add_clips.py; the balloon has a valve handle and a
+   glowing flame on a bone of its own, flickering by its worn_* clips, low
+   in balloon.gltf and roaring in balloon_burn.gltf, worn while it rises
+   faster than 1 m/s (held half a second). The jetpack lit astride a pony:
+   a body flying when it mounted went on flying and the fly clip beat the
+   ride; MovementRules::flies() is now false astride a mount or in a balloon.
+   Open: no burner sound; no thermals.
 10. Sky events (low). A meteor shower leaving craters with a rare ore, an
    aurora over the tundra in winter, a rare eclipse that lets monsters out by
    day. Hooks on mods/weather and its seasons.
@@ -1119,6 +1128,23 @@ The sandbox:
    entities with tools/make_bee_model.py's bee, at most 40; checked with a
    probe (out with the player, none round a nest with no flowers, gone when
    it left). Open: harvest and sting not yet played.
+   KEPT BEES 2026-11-05 (mods/bees/apiary.luau, asked for): a smoker calms
+   a nest, hive or apiary for a minute; a net catches a wild nest's queen
+   (the nest falls to a honeycomb), or a swarm's from a full apiary with a
+   frame. The apiary takes a queen, up to three frames (a honey step more
+   each), a wool wrap (works in winter) and an infuser (honey after what is
+   within 4: glowcaps/glowmoss glow, lava/fire ember, amethyst/crystal
+   crystal); six steps, 20 s, never stings. The press: honeycomb -> 2 wax,
+   glow honey -> 2 honey lamps (light 14), ember honey -> 3 ember wax (a
+   furnace fuel of 20), crystal honey -> 2 amethyst shards and a diamond one
+   time in four. The furnace melts honeycomb to wax. Checked headless: a
+   queened apiary with three frames full in about a minute. Open: the right
+   clicks (catching, upgrades, press) not yet played. The smoker puffs
+   smoke everybody within 48 sees (smoke.luau, the mod side both now: the
+   client draws only that; core.render.fx "smoke", new, mixed and not
+   added) and a bellows sound; each recipe with iron, gold, wool, string or
+   glass has a second made of the depends' things (torch, straw, flask,
+   logs) for a world without them.
 
 Multiplayer and the plaza:
 13. Voxel prop hunt (medium). Hiders become a block of the world, seekers

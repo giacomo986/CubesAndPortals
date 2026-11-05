@@ -22,8 +22,24 @@
 -- By day, out of winter, bees fly round a working nest or hive while a
 -- player is near (below).
 --
+-- Kept bees -- the smoker, the net, a queen, the apiary and its upgrades,
+-- special honeys and the press -- are apiary.luau's.
+--
 -- Pictures and sounds: tools/make_bees_assets.py; the bee
 -- tools/make_bee_model.py; the held models tools/make_held_models.py.
+
+local common = require("./common")
+
+-- The smoker's smoke is drawn where there is drawing (smoke.luau); all the
+-- rest is the server's.
+local side = core.side()
+if side ~= "server" then
+    require("./smoke")
+end
+if side == "client" then
+    return
+end
+core.net.open()
 
 local FULL_AT = 4    -- honey steps from empty to full
 local REACH = 6      -- flowers and crops this far round count
@@ -139,20 +155,21 @@ core.register_abm("bees:work", { "bees:nest", "bees:hive", "bees:nest_full", "be
         end
     end)
 
--- A torch under it, within three cells and one to either side.
+-- A torch under it, within three cells and one to either side -- or a
+-- smoker's puff in the last minute (apiary.luau, common.calmed).
 local function smoked(x: number, y: number, z: number): boolean
-    return #core.find_nodes(x - 1, y - SMOKE, z - 1, x + 1, y - 1, z + 1, "torches:*") > 0
+    return common.calmed(x, y, z) or #core.find_nodes(x - 1, y - SMOKE, z - 1, x + 1, y - 1, z + 1, "torches:*") > 0
 end
 
 local function sting(player: number, x: number, y: number, z: number)
     core.play_sound("bees:sting", x + 0.5, y + 0.5, z + 0.5)
     core.damage(player, 2)
-    core.notice(player, "The bees sting! A torch under them would calm them")
+    core.notice(player, "The bees sting! A smoker, or a torch under them, would calm them")
 end
 
 core.event.on("core:used", function(ev)
     local empty = EMPTY_OF[ev.id]
-    if empty == nil then
+    if empty == nil or common.TOOLS[ev.held] then   -- the smoker and the net are apiary.luau's
         return
     end
     ev.cancel = true
@@ -264,7 +281,10 @@ local function look()
                 px, py, pz = math.floor(px), math.floor(py), math.floor(pz)
                 local f = core.find_nodes(px - SEEN, py - 10, pz - SEEN, px + SEEN, py + 10, pz + SEEN, "bees:*")
                 for i = 1, #f, 3 do
-                    want[`{f[i]},{f[i + 1]},{f[i + 2]}`] = { f[i], f[i + 1], f[i + 2] }
+                    local id = core.get_block(f[i], f[i + 1], f[i + 2])
+                    if EMPTY_OF[id] or common.colony(f[i], f[i + 1], f[i + 2], id) then
+                        want[`{f[i]},{f[i + 1]},{f[i + 2]}`] = { f[i], f[i + 1], f[i + 2] }
+                    end
                 end
             end
         end
@@ -276,7 +296,8 @@ local function look()
     end
     for key, c in want do
         if swarms[key] == nil and has_flowers(key, c[1], c[2], c[3]) then
-            take_off(key, c[1], c[2], c[3], if IS_FULL[core.get_block(c[1], c[2], c[3])] then 4 else 3)
+            local id = core.get_block(c[1], c[2], c[3])
+            take_off(key, c[1], c[2], c[3], if IS_FULL[id] or common.full(id) then 4 else 3)
         end
     end
 end
@@ -307,6 +328,18 @@ core.event.on("core:tick", function(ev)
         end
     end
 end)
+
+-- What apiary.luau works with.
+common.NEST, common.NEST_FULL, common.FULL_AT = NEST, NEST_FULL, FULL_AT
+common.season = function(): string
+    return season
+end
+common.flowers_near = flowers_near
+common.players_near = players_near
+common.pollinate = pollinate
+common.smoked = smoked
+common.sting = sting
+require("./apiary")
 
 -- ---------------------------------------------------------------- wild nests
 

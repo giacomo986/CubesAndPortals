@@ -61,6 +61,7 @@ local FUELS = {
     { "compact:coal", 80 },
     { "inferno:cinder_rod", 12 },   -- only where games/inferno is loaded
     { "wilds:peat", 5 },            -- a swamp's (mods/wilds)
+    { "bees:ember_wax", 20 },       -- pressed from ember honey (mods/bees)
     { "timber:log", 1.5 }, { "timber:mossy_log", 1.5 }, { "trees:trunk", 1.5 },
     { "woods:birch_log", 1.5 }, { "woods:spruce_log", 1.5 }, { "woods:jungle_log", 1.5 },
     { "woods:acacia_log", 1.5 }, { "woods:dark_oak_log", 1.5 },
@@ -93,6 +94,7 @@ local SMELTS = {
     { "ore:raw_gold", "furnace:gold_ingot", 1.0 },
     { "ore:raw_copper", "furnace:copper_ingot", 0.7 },
     { "core:sand", "core:glass", 0.1 },
+    { "bees:honeycomb", "bees:wax", 0.1 },
     -- mods/rocks, mods/plants and mods/colors, skipped when they are not loaded.
     { "rocks:red_sand", "core:glass", 0.1 },
     { "rocks:cobblestone", "core:stone", 0.1 },

@@ -369,7 +369,11 @@ the air lasts fifteen seconds (`mods/breath`).
 **Bees** (`mods/bees`). Wild nests among the meadows' flowers, and hives of planks and honeycomb:
 they fill with honey the faster the more flowers are round them, sleep through the winter, and help
 the crops round them grow. A flask takes a bottle of honey (food), a bare hand two honeycombs (a
-potion, a hive); a torch under them keeps the bees from stinging. By day the bees fly round them.
+potion, a hive); a torch under them, or a smoker, keeps the bees from stinging. By day the bees fly
+round them. Kept bees: a net catches a wild nest's queen, and an apiary takes her, frames to fill
+faster, a wool wrap for the winter and an infuser that makes special honey from what is round it
+(glowcaps, lava, amethyst); a press works it into honey lamps, ember wax for the furnace, and
+amethyst with now and then a diamond.
 
 **Hollows** (`mods/deep`). Under the bedrock of some regions lies a sealed cavern country, reached
 by a sinkhole with rungs down its side: glowing fungi and moss, crystals, lava lakes, and an altar
@@ -397,7 +401,9 @@ swim and steer with A and D (it shoves creatures aside and bounces off other boa
 **Flying** (`mods/glider`, `mods/balloon`). A hang glider of wool and sticks, held in the hand, opens
 when you step off a height and carries you where you look -- look down to dive, up to slow, crouch to
 fold it and drop. A hot-air balloon goes up from open ground: jump to rise, crouch to come down, the
-keys and the wind take it slowly along, up over the clouds; landed, right click to fold it away.
+keys and the wind take it slowly along, up over the clouds; landed, right click to fold it away. The
+glider's pilot hangs prone on its bar; the balloon's stands in the basket and pulls the burner's valve
+as it rises, the flame roaring up into the envelope.
 
 **After the ending** (`mods/rewards`). Whoever has beaten l'Ospite finds the worlds' tools in the
 sandbox, in a smaller way: the rope gun (thirty hooks a day), a portal gun (twelve shots a day, on any

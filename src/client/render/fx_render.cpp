@@ -57,7 +57,8 @@ void main()
 
 // Every kind is a brightness over the quad; the colour is the mod's, the
 // hottest part of it whiter. Output alpha is the brightness: GFX_BLEND_ADD
-// adds colour times it.
+// adds colour times it -- but smoke's is how thick it is, and it is mixed
+// over what is behind (GFX_BLEND_ALPHA): grey smoke hides, light would not.
 const char *const kFxFS = R"(#version 330 core
 in vec2 vUV;
 out vec4 fragColor;
@@ -166,6 +167,12 @@ void main()
         hot = 0.0;
         // Its top towards violet, whatever the colour at its foot.
         uv  = vec2(h);
+    } else if (uKind == 11) {    // smoke: a billowing puff, swelling as it thins
+        float swell = 0.55 + 0.45 * uT;
+        float n     = fbm(uv * 2.2 + vec2(uTime * 0.15, -uTime * 0.35));
+        float body  = smoothstep(swell, swell * 0.25, r + (n - 0.5) * 0.45);
+        b   = body * (0.55 + 0.45 * n) * fade * 0.85;
+        hot = 0.0;
     } else {                     // vortex: arms wound about the middle
         float arms = 0.5 + 0.5 * sin(ang * 3.0 + r * 9.0 - uTime * 6.0);
         float n    = fbm(vec2(ang * 2.0 + uTime, r * 4.0));
@@ -177,6 +184,7 @@ void main()
     b *= uColor.a;
     if (b < 0.003) discard;
     vec3 col = mix(uColor.rgb, vec3(1.0), clamp(hot, 0.0, 1.0) * 0.8);
+    if (uKind == 11) col = uColor.rgb * (0.8 + 0.3 * noise(vUV * 3.0 + uTime * 0.2));   // lit unevenly
     if (uKind == 10) col = mix(uColor.rgb, vec3(0.62, 0.32, 0.88), smoothstep(0.35, 0.9, uv.y));
     fragColor = vec4(col, clamp(b, 0.0, 1.0));
 }
@@ -220,7 +228,7 @@ void main()
 int fx_kind_named(const char *name)
 {
     static const char *const kNames[] = {"glow", "flame", "ring", "frost", "bolt", "slash", "sparks", "vortex", "jet",
-                                         "streak", "aurora"};
+                                         "streak", "aurora", "smoke"};
     for (int k = 0; k < (int)FxKind::Count; ++k)
         if (name && std::strcmp(name, kNames[k]) == 0) return k;
     return -1;
@@ -288,7 +296,7 @@ void FxRenderer::draw(FxKind kind, Vec3 at, Vec3 to, float size, const float rgb
     gfx_state state   = gfx_state_default();
     state.cull        = GFX_CULL_NONE;
     state.depth_write = false;
-    state.blend       = GFX_BLEND_ADD;
+    state.blend       = kind == FxKind::Smoke ? GFX_BLEND_ALPHA : GFX_BLEND_ADD;
     gfx_state_set(&state);
     gfx_draw(m_mesh, 6, 0);
     state = gfx_state_default();

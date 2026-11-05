@@ -889,7 +889,9 @@ stesa a terra), `"frost"` (schegge di ghiaccio a terra), `"bolt"` (un fulmine da
 esce da `x, y, z` verso `x2, y2, z2`, il nitro dei kart), `"streak"` (una stella
 cadente, la coda in `x, y, z` e la testa in `x2, y2, z2`) o `"aurora"` (una cortina di
 luce alta `misura` sulla linea da `x, y, z` a `x2, y2, z2`, con raggi che scorrono,
-viola in cima). `misura` è il raggio in
+viola in cima) -- oppure `"smoke"`, l'unico che non è luce: uno sbuffo che si gonfia e si dirada
+col passare di `t`, mescolato sopra ciò che sta dietro nel suo colore (il fumo grigio scurisce e
+copre; l'affumicatore di `mods/bees`). `misura` è il raggio in
 nodi (per il fulmine la sua larghezza), `t` quanto della sua vita è passato, da 0
 a 1: lo shader cresce, spazza e sfuma con quello, e il mod conta solo il tempo.
 Restituisce false per un tipo che non c'è.

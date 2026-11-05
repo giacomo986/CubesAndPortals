@@ -975,6 +975,62 @@ ITEMS["bees:honeycomb"] = [(slab(_hexagon, 0.026), "wax")] + [
            for k in range(6)], 0.03), "honey")
     for cx, cy in ((0.0, 0.04), (-0.024, 0.054), (0.024, 0.054), (-0.024, 0.026), (0.024, 0.026), (0.0, 0.068),
                    (0.0, 0.012))]
+# Kept bees (mods/bees/apiary.luau): the smoker, a tin with its spout and a
+# bellows of leather between two boards; the net, a hoop of iron on a pole
+# and its bag; the queen, a bee longer than the rest, in gold; wax, a cake of
+# it; a frame of the apiary, sticks round comb; the wrap, a roll of wool; the
+# infuser, a glass globe in gold; ember wax, a glowing cake; and the three
+# special honeys in their flasks, glowing.
+M["net"] = material("Net", (0.92, 0.90, 0.82), 0.0, 0.9)
+M["wool"] = material("Wool", (0.93, 0.92, 0.88), 0.0, 0.95)
+M["bee_black"] = material("BeeBlack", (0.08, 0.06, 0.05))
+M["bee_wing"] = material("BeeWing", (0.86, 0.92, 0.96), 0.0, 0.2)
+M["ember_wax"] = material("EmberWax", (0.95, 0.38, 0.10), glow=True)
+M["glow_honey"] = material("GlowHoney", (0.55, 0.95, 0.55), 0.0, 0.15, glow=True)
+M["ember_honey"] = material("EmberHoney", (0.98, 0.35, 0.08), 0.0, 0.15, glow=True)
+M["crystal_honey"] = material("CrystalHoney", (0.72, 0.48, 0.95), 0.0, 0.1, glow=True)
+ITEMS["bees:smoker"] = [
+    (cyl(0.034, 0.10, segs=12, at=(0, -0.02, 0)), "copper"),
+    (cyl(0.034, 0.035, segs=12, r2=0.012, at=(0, 0.08, 0)), "dark_iron"),
+    (cyl(0.012, 0.02, segs=8, at=(0, 0.113, 0), rot=(0, 0, 0)), "dark_iron"),
+    (box((0.012, 0.09, 0.05), at=(-0.05, 0.03, 0)), "wood"),
+    (box((0.03, 0.08, 0.044), at=(-0.072, 0.03, 0)), "leather"),
+    (box((0.012, 0.09, 0.05), at=(-0.094, 0.03, 0)), "wood"),
+]
+ITEMS["bees:net"] = [
+    (cyl(0.008, 0.24, segs=6, at=(0, -0.12, 0)), "wood"),
+    (ring(0.055, 0.009, at=(0, 0.175, 0.02), rot=(90, 0, 0), minor_segs=6), "dark_iron"),
+    (ball(0.048, segs=10, rings=6, at=(0, 0.17, -0.03), scale=(1, 1, 0.9)), "net"),
+]
+ITEMS["bees:queen"] = [
+    (ball(0.03, segs=10, rings=6, at=(0, 0.0, 0), scale=(0.8, 1.9, 0.8)), "gold"),
+    (box((0.05, 0.008, 0.05), at=(0, -0.01, 0)), "bee_black"),
+    (box((0.05, 0.008, 0.05), at=(0, -0.035, 0)), "bee_black"),
+    (ball(0.022, segs=8, rings=5, at=(0, 0.065, 0)), "bee_black"),
+    (ball(0.03, segs=8, rings=4, at=(-0.03, 0.02, 0.02), scale=(1.4, 0.7, 0.2)), "bee_wing"),
+    (ball(0.03, segs=8, rings=4, at=(0.03, 0.02, 0.02), scale=(1.4, 0.7, 0.2)), "bee_wing"),
+]
+ITEMS["bees:wax"] = [(box((0.10, 0.06, 0.04), bevel=0.008, at=(0, 0.03, 0)), "wax")]
+ITEMS["bees:ember_wax"] = [(box((0.10, 0.06, 0.04), bevel=0.008, at=(0, 0.03, 0)), "ember_wax")]
+ITEMS["bees:frame"] = [
+    (box((0.13, 0.012, 0.014), at=(0, 0.11, 0)), "wood"),
+    (box((0.13, 0.012, 0.014), at=(0, -0.01, 0)), "wood"),
+    (box((0.012, 0.13, 0.014), at=(-0.06, 0.05, 0)), "wood"),
+    (box((0.012, 0.13, 0.014), at=(0.06, 0.05, 0)), "wood"),
+    (box((0.108, 0.108, 0.008), at=(0, 0.05, 0)), "wax"),
+]
+ITEMS["bees:wrap"] = [(cyl(0.045, 0.12, segs=14, at=(0, -0.01, 0)), "wool"),
+                      (cyl(0.018, 0.122, segs=8, at=(0, -0.011, 0)), "dark_wood"),
+                      (cyl(0.047, 0.012, segs=14, at=(0, 0.015, 0)), "red"),
+                      (cyl(0.047, 0.012, segs=14, at=(0, 0.075, 0)), "red")]
+ITEMS["bees:infuser"] = [
+    (ball(0.045, segs=14, rings=10, at=(0, 0.06, 0)), "glass"),
+    (ball(0.022, segs=8, rings=6, at=(0, 0.06, 0)), "honey"),
+    (cyl(0.03, 0.02, segs=12, at=(0, 0.0, 0)), "gold"),
+    (cyl(0.016, 0.02, segs=10, at=(0, 0.1, 0)), "gold"),
+]
+for _k in ("glow", "ember", "crystal"):
+    ITEMS[f"bees:{_k}_honey"] = flask(f"{_k}_honey")
 ITEMS["building:gunpowder"] = [(lump(0.022, s, rough=0.3, at=(x, 0.03 + y, 0), scale=(1, 0.7, 0.8)), "powder")
                                for s, x, y in ((3, -0.025, 0), (5, 0.02, 0.005), (7, 0.0, 0.03))]
 ITEMS["boats:boat"] = miniature("mods/boats/boat.gltf", 0.24)
@@ -1057,6 +1113,17 @@ ICONS = {
     "backrooms:filament": (0, 0, -45),
     "backrooms:smiler_tooth": (0, 0, -30),
     "backrooms:torch": (0, 0, -45),
+    "bees:smoker": (0, 0, 0),
+    "bees:net": (0, 0, -40),
+    "bees:queen": (0, 0, -30),
+    "bees:wax": (-20, 0, 15),
+    "bees:ember_wax": (-20, 0, 15),
+    "bees:frame": (0, 0, 0),
+    "bees:wrap": (55, 0, -30),
+    "bees:infuser": (0, 0, 0),
+    "bees:glow_honey": (0, 0, 0),
+    "bees:ember_honey": (0, 0, 0),
+    "bees:crystal_honey": (0, 0, 0),
 }
 
 
