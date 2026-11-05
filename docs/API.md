@@ -2766,7 +2766,7 @@ Two limits, both stated rather than hidden. At most 512 positions come back, so 
 | `x2` | number | — |  |
 | `y2` | number | — |  |
 | `z2` | number | — |  |
-| `name` | string | — | A block name, like "core:stone". |
+| `name` | string | — | A block name, like "core:stone"; one ending in * is every block whose name starts so, like "cinnabar:dust*". |
 
 ## `core.find_path`
 

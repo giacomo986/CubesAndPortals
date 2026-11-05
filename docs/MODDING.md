@@ -680,6 +680,8 @@ the next tick, so they are not drawn holding what a mod took away.
 that put down its own blocks could just remember where; this is for the ones a *player* put down,
 or the mapgen. Flat triples and not a table per cell, which would be an allocation per cell on the
 one call made over a whole region: `#found // 3` is how many there are.
+A name ending in `*` is every block whose name starts so, in one pass over the box: `"cinnabar:dust*"`
+finds dust in all the shapes it is drawn in.
 
 Two limits, declared and not hidden. At most **512 positions** come back, so a search returning
 exactly 512 probably found more and should be redone on a smaller box. And a box of more than **a

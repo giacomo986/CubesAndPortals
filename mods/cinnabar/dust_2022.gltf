@@ -1,0 +1,120 @@
+{
+ "asset": {
+  "version": "2.0",
+  "generator": "cubes-and-portals tools/make_dust_models.py"
+ },
+ "scene": 0,
+ "scenes": [
+  {
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "name": "dust_2022",
+   "mesh": 0
+  }
+ ],
+ "meshes": [
+  {
+   "name": "dust_2022",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1,
+      "TEXCOORD_0": 2
+     },
+     "indices": 3,
+     "material": 0
+    }
+   ]
+  }
+ ],
+ "materials": [
+  {
+   "name": "dust",
+   "doubleSided": true,
+   "alphaMode": "MASK",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicFactor": 0,
+    "roughnessFactor": 1
+   }
+  }
+ ],
+ "textures": [
+  {
+   "source": 0
+  }
+ ],
+ "images": [
+  {
+   "uri": "dust.png"
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 980,
+   "uri": "data:application/octet-stream;base64,AADgPgAAgDwAAOA+AAAAAAAAgD8AAAAAAADgPgAA4D4AAOA+AACAPAAAED8AAAAAAACAPwAAAAAAAOA+AAAQPwAAED8AAIA8AAAQPwAAAAAAAIA/AAAAAAAAED8AABA/AAAQPwAAgDwAAOA+AAAAAAAAgD8AAAAAAAAQPwAA4D4AABA/AACAPAAA4D4AAAAAAACAPwAAAAAAABA/AADgPgAAED8AAIA8AAAQPwAAAAAAAIA/AAAAAAAAED8AABA/AACAPwAAgDwAABA/AAAAAAAAgD8AAAAAAACAPwAAED8AAIA/AACAPAAA4D4AAAAAAACAPwAAAAAAAIA/AADgPgAAfD8AAAAAAADgPgAAgL8AAAAAAAAAAAAA4D4AAAAAAAB8PwAAgD8AAOA+AACAvwAAAAAAAAAAAADgPgAAgD8AAHw/AACAPwAAED8AAIC/AAAAAAAAAAAAABA/AACAPwAAfD8AAAAAAAAQPwAAgL8AAAAAAAAAAAAAED8AAAAAAADgPgAAgDwAABA/AAAAAAAAgD8AAAAAAADgPgAAED8AAOA+AACAPAAAgD8AAAAAAACAPwAAAAAAAOA+AACAPwAAED8AAIA8AACAPwAAAAAAAIA/AAAAAAAAED8AAIA/AAAQPwAAgDwAABA/AAAAAAAAgD8AAAAAAAAQPwAAED8AAOA+AAAAAAAAfD8AAAAAAAAAAAAAgL8AAOA+AAAAAAAA4D4AAIA/AAB8PwAAAAAAAAAAAACAvwAA4D4AAIA/AAAQPwAAgD8AAHw/AAAAAAAAAAAAAIC/AAAQPwAAgD8AABA/AAAAAAAAfD8AAAAAAAAAAAAAgL8AABA/AAAAAAAA4D4AAIA8AAAAAAAAAAAAAIA/AAAAAAAA4D4AAAAAAADgPgAAgDwAAOA+AAAAAAAAgD8AAAAAAADgPgAA4D4AABA/AACAPAAA4D4AAAAAAACAPwAAAAAAABA/AADgPgAAED8AAIA8AAAAAAAAAAAAAIA/AAAAAAAAED8AAAAAAADgPgAAAAAAAIA8AAAAAAAAAAAAAIA/AADgPgAAAAAAAOA+AACAPwAAgDwAAAAAAAAAAAAAgD8AAOA+AACAPwAAED8AAIA/AACAPAAAAAAAAAAAAACAPwAAED8AAIA/AAAQPwAAAAAAAIA8AAAAAAAAAAAAAIA/AAAQPwAAAAAAAAEAAgAAAAIAAwAEAAUABgAEAAYABwAIAAkACgAIAAoACwAMAA0ADgAMAA4ADwAQABEAEgAQABIAEwAUABUAFgAUABYAFwAYABkAGgAYABoAGwA="
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 896,
+   "byteStride": 32,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 896,
+   "byteLength": 84,
+   "target": 34963
+  }
+ ],
+ "accessors": [
+  {
+   "bufferView": 0,
+   "byteOffset": 0,
+   "componentType": 5126,
+   "count": 28,
+   "type": "VEC3",
+   "min": [
+    0.4375,
+    0.0,
+    0
+   ],
+   "max": [
+    1,
+    1.0,
+    1
+   ]
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 12,
+   "componentType": 5126,
+   "count": 28,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 24,
+   "componentType": 5126,
+   "count": 28,
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5123,
+   "count": 42,
+   "type": "SCALAR"
+  }
+ ]
+}

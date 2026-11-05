@@ -46,16 +46,50 @@ local function node(name: string, r: number, g: number, b: number, solid: boolea
     return core.register_node(name, r, g, b, solid, light, turn, 0, secs or 0.0, "")
 end
 
-local DUST_OFF = node("cinnabar:dust", 120, 20, 16, false, 0, "")
-local DUST_ON  = node("cinnabar:dust_on", 250, 40, 20, false, 0, "")
--- A flat model over the floor (tools/make_block_textures.py), and a box a
--- sixteenth tall to aim at it by.
-for i, id in { DUST_OFF, DUST_ON } do
-    local file = if i == 1 then "dust" else "dust_on"
-    core.node_model(id, core.register_model(`cinnabar:{file}`, `{file}.gltf`))
-    core.node_box(id, 0, 0, 0, 1, 1 / 16, 1)
-    core.node_drop_item(id, "ore:cinnabar")
+-- Dust is drawn joined the ways it carries: a shape is four digits, one for
+-- each side in the order +X, -X, +Z, -Z -- 0 nothing that way, 1 a line along
+-- the floor, 2 that line and on up the face of the block beside it, to dust a
+-- step higher. An arm for each way it is joined, one to four; joined nowhere
+-- it is a cross. Each shape is a block of its own, off and on, the way a fence is one
+-- block for each way it joins (mods/building); the cross is cinnabar:dust and
+-- cinnabar:dust_on, what every world held before, and the rest are
+-- cinnabar:dust_<shape> and cinnabar:dust_on_<shape>, all found at once as
+-- "cinnabar:dust*". The models are tools/make_dust_models.py.
+local function dust_shape(sides: { number }): string
+    local n = 0
+    for _, s in sides do
+        if s > 0 then
+            n += 1
+        end
+    end
+    if n == 0 then
+        return "1111"
+    end
+    return table.concat(sides)
 end
+-- Shape -> its two blocks, and block -> its shape and whether it is on.
+local DUSTS: { [string]: { off: number, on: number } } = {}
+local DUST_IS: { [number]: { shape: string, on: boolean } } = {}
+for a = 0, 2 do for b = 0, 2 do for c = 0, 2 do for d = 0, 2 do
+    local shape = dust_shape({ a, b, c, d })
+    if not DUSTS[shape] then
+        local pair = { off = 0, on = 0 }
+        for _, on in { false, true } do
+            local file = (if on then "dust_on" else "dust") .. (if shape == "1111" then "" else `_{shape}`)
+            local id = if on then node(`cinnabar:{file}`, 250, 40, 20, false, 0, "")
+                       else node(`cinnabar:{file}`, 120, 20, 16, false, 0, "")
+            -- A flat model over the floor, and a box a sixteenth tall to aim at it by.
+            core.node_model(id, core.register_model(`cinnabar:{file}`, `{file}.gltf`))
+            core.node_box(id, 0, 0, 0, 1, 1 / 16, 1)
+            core.node_drop_item(id, "ore:cinnabar")
+            if on then pair.on = id else pair.off = id end
+            DUST_IS[id] = { shape = shape, on = on }
+        end
+        DUSTS[shape] = pair
+    end
+end end end end
+local DUST_OFF = DUSTS["1111"].off
+local DUST_ON  = DUSTS["1111"].on
 
 local LEVER    = node("cinnabar:lever", 120, 110, 100, true, 0, "upright", 0.3)
 local LEVER_ON = node("cinnabar:lever_on", 120, 110, 100, true, 0, "upright", 0.3)
@@ -286,7 +320,7 @@ core.recipe_shaped("cinnabar:hopper", 1,
     "furnace:iron_ingot  chest:box           furnace:iron_ingot",
     "-                   furnace:iron_ingot  -")
 
-local DUST = { [DUST_OFF] = true, [DUST_ON] = true }
+local DUST = DUST_IS   -- truthy for every shape of dust, off or on
 -- The bodies of every piston, drawn in and pushed out.
 local PISTONS: { [number]: boolean } = {}
 for _, kind in PISTON_KINDS do
@@ -304,6 +338,9 @@ local PART = {
     [MORE.SPIKES_ON] = true,
 }
 for id in KIND_OF do
+    PART[id] = true
+end
+for id in DUST do
     PART[id] = true
 end
 -- A wallmounted cell's front: +X, -X, +Y, -Y, +Z, -Z for faces 0..5.
@@ -333,9 +370,71 @@ end
 -- mod's write to it, this one's too, comes back as core:watched; a player's
 -- placing and breaking come as core:placed and core:broken.
 local changed: (number, number, number) -> () = function(_, _, _) end
+
+-- Whether dust beside it, that way along the floor, draws a line into it:
+-- more dust, something that gives power out of every side, a piston's body,
+-- or a repeater or comparator that lies along that line, or an observer's back.
+-- (x, y, z) is that cell and (dx, dz) the way from it to the dust.
+local function dust_joins(id: number, x: number, y: number, z: number, dx: number, dz: number): boolean
+    if DUST[id] or id == LEVER or id == LEVER_ON or id == BUTTON or id == BUTTON_ON or id == TORCH
+        or id == TORCH_OFF or id == BLOCK or id == MORE.PLATE or id == MORE.PLATE_ON or PISTONS[id] then
+        return true
+    end
+    if id == REPEATER or id == REPEATER_ON or id == COMPARATOR or id == COMPARATOR_ON then
+        local fx, fz = front_of(x, y, z)
+        return fx * dx + fz * dz ~= 0
+    end
+    if id == OBSERVER or id == OBSERVER_ON then
+        local ox, oy, oz = dir_of(x, y, z)
+        return oy == 0 and ox == dx and oz == dz
+    end
+    return false
+end
+
+-- Dust at (x, y, z) put into the shape its neighbours call for, kept off or on.
+local function reshape(x: number, y: number, z: number)
+    local is = DUST[core.get_block(x, y, z)]
+    if not is then
+        return
+    end
+    local sides = {}
+    for i, d in SIDES do
+        local sx, sz = x + d[1], z + d[3]
+        local s = 0
+        if DUST[core.get_block(sx, y + 1, sz)] then
+            s = 2
+        elseif dust_joins(core.get_block(sx, y, sz), sx, y, sz, -d[1], -d[3])
+            or DUST[core.get_block(sx, y - 1, sz)] then
+            s = 1
+        end
+        sides[i] = s
+    end
+    local pair = DUSTS[dust_shape(sides)]
+    local want = if is.on then pair.on else pair.off
+    if core.get_block(x, y, z) ~= want then
+        core.set_block(x, y, z, want)
+    end
+end
+
+-- The dust a change at (x, y, z) may join or part: its own, and the dust
+-- beside it on the level and a step up or down.
+local function reshape_around(x: number, y: number, z: number)
+    reshape(x, y, z)
+    for _, d in SIDES do
+        for dy = -1, 1 do
+            reshape(x + d[1], y + dy, z + d[3])
+        end
+    end
+end
+
 local function put(x: number, y: number, z: number, id: number)
-    if core.get_block(x, y, z) ~= id then
+    local was = core.get_block(x, y, z)
+    if was ~= id then
         core.set_block(x, y, z, id)
+        -- Dust only going on or off changes nobody's shape.
+        if not (DUST[was] and DUST[id]) then
+            reshape_around(x, y, z)
+        end
     end
 end
 
@@ -424,7 +523,7 @@ local function solve(cx: number, cy: number, cz: number): { Cell }
         table.insert(piston_names, core.node_name(id))
     end
     local pistons = found(cx, cy, cz, piston_names)
-    local dust = found(cx, cy, cz, { "cinnabar:dust", "cinnabar:dust_on" })
+    local dust = found(cx, cy, cz, { "cinnabar:dust*" })
     local lamps = found(cx, cy, cz, { "cinnabar:lamp", "cinnabar:lamp_on" })
     local observers = found(cx, cy, cz, { "cinnabar:observer_on" })
     local hoppers = found(cx, cy, cz, { "cinnabar:hopper", "cinnabar:hopper_locked",
@@ -554,7 +653,8 @@ local function solve(cx: number, cy: number, cz: number): { Cell }
         end
     end
     for _, c in dust do
-        set(c, if power[k(c.x, c.y, c.z)] then DUST_ON else DUST_OFF)
+        local pair = DUSTS[DUST[core.get_block(c.x, c.y, c.z)].shape]
+        set(c, if power[k(c.x, c.y, c.z)] then pair.on else pair.off)
     end
     for _, c in lamps do
         local lit = (fed[k(c.x, c.y, c.z)] or 0) > 0
@@ -759,6 +859,7 @@ local function move_block(fx: number, fy: number, fz: number, tx: number, ty: nu
     put(tx, ty, tz, id)
     core.set_facing(tx, ty, tz, facing)
     put(fx, fy, fz, 0)
+    reshape_around(tx, ty, tz)   -- again: a repeater joins by the way it lies
     if observer then
         watch_for(tx, ty, tz, true)
     end
@@ -1022,6 +1123,18 @@ core.event.on("core:watched", function(ev)
     changed(ev.x, ev.y, ev.z)
 end)
 
+-- Dust drawn by an older rule takes today's shape when its chunk loads: the
+-- cross every dust once was, and the straight line dust joined one way ran
+-- out into for a while (an LBM names at most 32 blocks).
+local dust_names = {}
+for _, shape in { "1111", "1100", "0011", "2100", "1200", "0021", "0012" } do
+    table.insert(dust_names, core.node_name(DUSTS[shape].off))
+    table.insert(dust_names, core.node_name(DUSTS[shape].on))
+end
+core.register_lbm("cinnabar:dust_shape", dust_names, function(cell)
+    reshape(cell.x, cell.y, cell.z)
+end)
+
 -- A loaded observer asks again: watches are not saved.
 core.register_lbm("cinnabar:observers", { "cinnabar:observer", "cinnabar:observer_on" }, function(cell)
     watch_for(cell.x, cell.y, cell.z, true)
@@ -1043,6 +1156,7 @@ core.event.on("core:placed", function(ev)
         end
         core.container_make(ev.x, ev.y, ev.z, HOPPER_SLOTS)
     end
+    reshape_around(ev.x, ev.y, ev.z)
     changed(ev.x, ev.y, ev.z)
     update(ev.x, ev.y, ev.z)
 end)
@@ -1114,6 +1228,7 @@ core.event.on("core:broken", function(ev)
     core.meta_set(ev.x, ev.y, ev.z, "mode", "")
     core.meta_set(ev.x, ev.y, ev.z, "level", "")
     core.meta_set(ev.x, ev.y, ev.z, "base", "")
+    reshape_around(ev.x, ev.y, ev.z)
     update(ev.x, ev.y, ev.z)
 end)
 

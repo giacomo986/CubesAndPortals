@@ -1,6 +1,7 @@
 #include "core/voxel/find.h"
 
 #include <algorithm>
+#include <vector>
 
 namespace cnp {
 
@@ -9,12 +10,26 @@ int find_nodes(const World &world, const NodeRegistry &registry, int x1, int y1,
 {
     if (!out || max < 3) return 0;
 
-    const BlockId want = registry.find(name ? name : "");
-    if (want == kAir) {
+    // A name ending in '*' is every block whose name starts with what comes
+    // before it: a block drawn in many shapes ("cinnabar:dust_0121", ...) is one
+    // search and one pass over the box, not one per shape.
+    const std::string asked = name ? name : "";
+    std::vector<bool> wanted(registry.size(), false);
+    bool any = false;
+    if (!asked.empty() && asked.back() == '*') {
+        const std::string prefix = asked.substr(0, asked.size() - 1);
+        for (size_t id = 1; id < registry.size(); ++id)
+            if (registry.get((BlockId)id).name.compare(0, prefix.size(), prefix) == 0)
+                wanted[id] = any = true;
+    } else {
+        const BlockId want = registry.find(asked);
+        if (want != kAir) wanted[want] = any = true;
+    }
+    if (!any) {
         // Air included: a mod searching for air over a box is asking for
         // everything that is not there, which is a different call and not this
         // one. Refusing it here is cheaper than the answer.
-        why = std::string("no block is called '") + (name ? name : "") + "'";
+        why = "no block is called '" + asked + "'";
         return 0;
     }
 
@@ -44,7 +59,8 @@ int find_nodes(const World &world, const NodeRegistry &registry, int x1, int y1,
                 // old "mymod:forno^2" finds only that turn. Nothing asked for
                 // it; when something does, it is a facing argument here and not
                 // four names.
-                if (world.get_block(x, y, z) != want) continue;
+                const BlockId id = world.get_block(x, y, z);
+                if (id >= wanted.size() || !wanted[id]) continue;
                 if (written + 3 > max) return written;   // full: the caller is told by the count
                 out[written++] = x;
                 out[written++] = y;

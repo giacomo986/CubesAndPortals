@@ -157,6 +157,13 @@ if serving then
             ON[id] = true
         end
     end
+    -- Lit dust in every shape it is drawn in (mods/cinnabar).
+    for a = 0, 2 do for b = 0, 2 do for c = 0, 2 do for d = 0, 2 do
+        local id = core.node_id(`cinnabar:dust_on_{a}{b}{c}{d}`)
+        if id ~= 0 then
+            ON[id] = true
+        end
+    end end end end
     local function powered(x: number, y: number, z: number): boolean
         for _, d in { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } } do
             if ON[core.get_block(x + d[1], y + d[2], z + d[3])] then

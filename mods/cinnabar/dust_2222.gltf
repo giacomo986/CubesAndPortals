@@ -1,0 +1,120 @@
+{
+ "asset": {
+  "version": "2.0",
+  "generator": "cubes-and-portals tools/make_dust_models.py"
+ },
+ "scene": 0,
+ "scenes": [
+  {
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "name": "dust_2222",
+   "mesh": 0
+  }
+ ],
+ "meshes": [
+  {
+   "name": "dust_2222",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1,
+      "TEXCOORD_0": 2
+     },
+     "indices": 3,
+     "material": 0
+    }
+   ]
+  }
+ ],
+ "materials": [
+  {
+   "name": "dust",
+   "doubleSided": true,
+   "alphaMode": "MASK",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicFactor": 0,
+    "roughnessFactor": 1
+   }
+  }
+ ],
+ "textures": [
+  {
+   "source": 0
+  }
+ ],
+ "images": [
+  {
+   "uri": "dust.png"
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 1260,
+   "uri": "data:application/octet-stream;base64,AADgPgAAgDwAAOA+AAAAAAAAgD8AAAAAAADgPgAA4D4AAOA+AACAPAAAED8AAAAAAACAPwAAAAAAAOA+AAAQPwAAED8AAIA8AAAQPwAAAAAAAIA/AAAAAAAAED8AABA/AAAQPwAAgDwAAOA+AAAAAAAAgD8AAAAAAAAQPwAA4D4AABA/AACAPAAA4D4AAAAAAACAPwAAAAAAABA/AADgPgAAED8AAIA8AAAQPwAAAAAAAIA/AAAAAAAAED8AABA/AACAPwAAgDwAABA/AAAAAAAAgD8AAAAAAACAPwAAED8AAIA/AACAPAAA4D4AAAAAAACAPwAAAAAAAIA/AADgPgAAfD8AAAAAAADgPgAAgL8AAAAAAAAAAAAA4D4AAAAAAAB8PwAAgD8AAOA+AACAvwAAAAAAAAAAAADgPgAAgD8AAHw/AACAPwAAED8AAIC/AAAAAAAAAAAAABA/AACAPwAAfD8AAAAAAAAQPwAAgL8AAAAAAAAAAAAAED8AAAAAAAAAAAAAgDwAAOA+AAAAAAAAgD8AAAAAAAAAAAAA4D4AAAAAAACAPAAAED8AAAAAAACAPwAAAAAAAAAAAAAQPwAA4D4AAIA8AAAQPwAAAAAAAIA/AAAAAAAA4D4AABA/AADgPgAAgDwAAOA+AAAAAAAAgD8AAAAAAADgPgAA4D4AAIA8AAAAAAAA4D4AAIA/AAAAAAAAAAAAAOA+AAAAAAAAgDwAAIA/AADgPgAAgD8AAAAAAAAAAAAA4D4AAIA/AACAPAAAgD8AABA/AACAPwAAAAAAAAAAAAAQPwAAgD8AAIA8AAAAAAAAED8AAIA/AAAAAAAAAAAAABA/AAAAAAAA4D4AAIA8AAAQPwAAAAAAAIA/AAAAAAAA4D4AABA/AADgPgAAgDwAAIA/AAAAAAAAgD8AAAAAAADgPgAAgD8AABA/AACAPAAAgD8AAAAAAACAPwAAAAAAABA/AACAPwAAED8AAIA8AAAQPwAAAAAAAIA/AAAAAAAAED8AABA/AADgPgAAAAAAAHw/AAAAAAAAAAAAAIC/AADgPgAAAAAAAOA+AACAPwAAfD8AAAAAAAAAAAAAgL8AAOA+AACAPwAAED8AAIA/AAB8PwAAAAAAAAAAAACAvwAAED8AAIA/AAAQPwAAAAAAAHw/AAAAAAAAAAAAAIC/AAAQPwAAAAAAAOA+AACAPAAAAAAAAAAAAACAPwAAAAAAAOA+AAAAAAAA4D4AAIA8AADgPgAAAAAAAIA/AAAAAAAA4D4AAOA+AAAQPwAAgDwAAOA+AAAAAAAAgD8AAAAAAAAQPwAA4D4AABA/AACAPAAAAAAAAAAAAACAPwAAAAAAABA/AAAAAAAA4D4AAAAAAACAPAAAAAAAAAAAAACAPwAA4D4AAAAAAADgPgAAgD8AAIA8AAAAAAAAAAAAAIA/AADgPgAAgD8AABA/AACAPwAAgDwAAAAAAAAAAAAAgD8AABA/AACAPwAAED8AAAAAAACAPAAAAAAAAAAAAACAPwAAED8AAAAAAAABAAIAAAACAAMABAAFAAYABAAGAAcACAAJAAoACAAKAAsADAANAA4ADAAOAA8AEAARABIAEAASABMAFAAVABYAFAAWABcAGAAZABoAGAAaABsAHAAdAB4AHAAeAB8AIAAhACIAIAAiACMA"
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 1152,
+   "byteStride": 32,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 1152,
+   "byteLength": 108,
+   "target": 34963
+  }
+ ],
+ "accessors": [
+  {
+   "bufferView": 0,
+   "byteOffset": 0,
+   "componentType": 5126,
+   "count": 36,
+   "type": "VEC3",
+   "min": [
+    0,
+    0.0,
+    0
+   ],
+   "max": [
+    1,
+    1.0,
+    1
+   ]
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 12,
+   "componentType": 5126,
+   "count": 36,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 24,
+   "componentType": 5126,
+   "count": 36,
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5123,
+   "count": 54,
+   "type": "SCALAR"
+  }
+ ]
+}

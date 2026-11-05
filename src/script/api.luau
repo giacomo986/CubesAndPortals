@@ -2901,7 +2901,8 @@ local api: { Fn } = {
             { name = "x2", type = "int" },
             { name = "y2", type = "int" },
             { name = "z2", type = "int" },
-            { name = "name", type = "string", doc = "A block name, like \"core:stone\"." },
+            { name = "name", type = "string", doc = "A block name, like \"core:stone\"; one ending in * "
+                                                .. "is every block whose name starts so, like \"cinnabar:dust*\"." },
         },
         doc = "Every cell in that box holding that block, as a FLAT list of numbers: x, y, z, "
            .. "x, y, z. `#found // 3` is how many there are.\n\n"

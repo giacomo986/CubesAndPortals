@@ -733,6 +733,8 @@ dell'engine di partenza. Un mod che ha messo giù i propri blocchi poteva anche 
 dove; questo serve per quelli che ha messo giù un *giocatore*, o il mapgen. Triple
 piatte e non una tabella per cella, che sarebbe un'allocazione per cella
 sull'unica chiamata che si fa su tutta una regione: `#trovati // 3` è quante sono.
+Un nome che finisce con `*` è ogni blocco il cui nome comincia così, in una sola passata sulla
+scatola: `"cinnabar:dust*"` trova la polvere in tutte le forme in cui è disegnata.
 
 Due limiti, dichiarati e non nascosti. Tornano al massimo **512 posizioni**,
 quindi una ricerca che ne restituisce esattamente 512 probabilmente ne ha trovate
