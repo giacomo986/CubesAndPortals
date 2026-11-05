@@ -1065,7 +1065,8 @@ The sandbox:
    value, so y and z were nil and nothing was drawn (mods/cameras the
    same); and a still camera made before its place was meshed kept a
    picture of sky. Now: the right button held aims (core.zoom to the 60
-   degrees of the picture, a viewfinder of its square), let go shoots; the
+   degrees of the picture, a viewfinder of its square), a left click
+   shoots (as asked; letting go puts it down); the
    taker's machine draws a still camera at once (a still camera is drawn
    the first frame, shown or not), reads it (core.render.camera_read, new:
    64x64 RGB565 base64, 10924 chars) and sends it in 480-char pieces; the

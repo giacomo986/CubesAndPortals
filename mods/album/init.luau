@@ -3,8 +3,8 @@
 --
 -- Hold the right button with the camera in the hand and you look through
 -- it: the view narrows to the picture's (core.zoom) and the viewfinder
--- shows its square; let go and it takes the photograph, a left click puts
--- it down without one. The picture is an INSTANT: the player's own machine
+-- shows its square; a left click takes the photograph -- as many as you
+-- like while you look -- and letting go puts it down. The picture is an INSTANT: the player's own machine
 -- draws it at once from the eye (core.render.camera, still), reads its
 -- pixels (core.render.camera_read, 64 by 64) and sends them to the server,
 -- which keeps them; everybody else's machine asks for them and shows them
@@ -25,7 +25,7 @@
 -- tools/make_held_models.py.
 --
 -- Over the mod's channel, both ways:
---   to the server   "shoot"                  the shutter let go
+--   to the server   "shoot"                  the shutter pressed
 --                   "P id k n data"          piece k of n of photograph id's pixels
 --                   "G id"                   which pixels has it of id?
 --   to a machine    "H frames"               the frames near and their photographs
@@ -356,7 +356,7 @@ if serving then
         end
         local list = album_of(p)
         if #list == 0 then
-            table.insert(page, "No photographs yet: hold the right button with the camera in your hand, aim, let go.")
+            table.insert(page, "No photographs yet: hold the right button with the camera in your hand to aim, left click to take one.")
         end
         for i = #list, 1, -1 do
             local id = list[i]
@@ -492,7 +492,7 @@ if drawing then
     end)
 
     -- Through the viewfinder: the right button held with the camera in the
-    -- hand, the view eased to the picture's; let go, the shot.
+    -- hand, the view eased to the picture's; the left button, the shot.
     local AIMED = FOV / 70
     local aiming = false
     local zoom = 1.0
@@ -515,14 +515,13 @@ if drawing then
         if ev.action == "mouse_right" and holding then
             ev.cancel = true   -- nothing placed, nothing used: it is the camera's
             aiming = true
-        elseif ev.action == "mouse_right_up" and aiming then
-            aiming = false
+        elseif ev.action == "mouse_right_up" then
+            aiming = false     -- the camera down, nothing taken
+        elseif ev.action == "mouse_left" and aiming then
+            ev.cancel = true   -- nothing dug, nothing struck: the shutter
             if holding then
                 take(ev.player)
             end
-        elseif ev.action == "mouse_left" and aiming then
-            ev.cancel = true
-            aiming = false
         end
     end)
 
@@ -598,7 +597,7 @@ if drawing then
         end
         core.hud.rect(0.5, 0.5, 0.004, 0.03, 255, 255, 255, a)
         core.hud.rect(0.5, 0.5, 0.03, 0.004, 255, 255, 255, a)
-        core.hud.text(0.5, 0.075, "Let go: take the photograph   ·   left click: put the camera down", 0.026, 1,
+        core.hud.text(0.5, 0.075, "Left click: take the photograph   ·   let go: put the camera down", 0.026, 1,
                       255, 255, 255, a)
     end)
 

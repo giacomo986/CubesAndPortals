@@ -316,7 +316,7 @@ job, meals and a bed. Every village has:
 
 **Museum, album and paper** (`mods/villagers`, `mods/album`). Every village builds a museum: its curator
 puts the first of each fish, ore, gem and find a player brings on show and pays for it in rubies. A
-camera takes real photographs -- hold the right button to look through its viewfinder, let go to
+camera takes real photographs -- hold the right button to look through its viewfinder, left click to
 shoot -- instants everybody sees as they were taken, kept in an album (`/album`) and hung in frames; a photograph of a peak, the
 Hollows, a relic or the clouds is worth something to a museum. And a village's board keeps its paper:
 who held it through a siege, brought a caravan in, gave the museum something, or was caught stealing.
