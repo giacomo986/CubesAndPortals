@@ -321,7 +321,8 @@ e un letto. Ogni villaggio ha:
 
 **Museo, album e giornale** (`mods/villagers`, `mods/album`). Ogni villaggio costruisce un museo: il suo
 curatore espone il primo di ogni pesce, minerale, gemma e reperto che un giocatore porta e lo paga in
-rubini. Una macchina fotografica scatta foto vere, tenute in un album (`/album`) e appese in cornici; una
+rubini. Una macchina fotografica scatta foto vere -- tieni premuto il tasto destro per guardare nel mirino,
+rilascia per scattare -- istantanee che tutti vedono com'erano al momento dello scatto, tenute in un album (`/album`) e appese in cornici; una
 foto di una vetta, delle Cavità, di una reliquia o delle nuvole vale qualcosa per un museo. E la bacheca
 di un villaggio tiene il suo giornale: chi l'ha difeso da un assedio, ha portato una carovana, ha donato
 qualcosa al museo, o è stato scoperto a rubare.

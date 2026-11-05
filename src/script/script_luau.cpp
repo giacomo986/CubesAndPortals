@@ -836,6 +836,27 @@ int l_render_screen(lua_State *L)
     return 1;
 }
 
+// core.render.camera_read(id) -> string
+int l_render_camera_read(lua_State *L)
+{
+    VmState    *vm  = host_of(L);
+    const int   id  = (int)luaL_checkinteger(L, 1);
+    const char *out = (vm && vm->host.render_camera_read) ? vm->host.render_camera_read(vm->host.ud, id) : "";
+    lua_pushstring(L, out ? out : "");
+    return 1;
+}
+
+// core.render.photo(id, data) -> boolean
+int l_render_photo(lua_State *L)
+{
+    VmState    *vm   = host_of(L);
+    const int   id   = (int)luaL_checkinteger(L, 1);
+    const char *data = luaL_checkstring(L, 2);
+    const int   ok   = (vm && vm->host.render_photo) ? vm->host.render_photo(vm->host.ud, id, data) : 0;
+    lua_pushboolean(L, ok);
+    return 1;
+}
+
 int l_render_model(lua_State *L)
 {
     VmState     *vm    = host_of(L);
@@ -1108,6 +1129,10 @@ void register_api(lua_State *L)
     lua_setfield(L, -2, "camera_drop");
     lua_pushcfunction(L, l_render_screen, "core.render.screen");
     lua_setfield(L, -2, "screen");
+    lua_pushcfunction(L, l_render_camera_read, "core.render.camera_read");
+    lua_setfield(L, -2, "camera_read");
+    lua_pushcfunction(L, l_render_photo, "core.render.photo");
+    lua_setfield(L, -2, "photo");
     lua_setfield(L, -2, "render");
 
     // core.hud: over the screen, once a frame.

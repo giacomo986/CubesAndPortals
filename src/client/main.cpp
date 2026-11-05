@@ -1506,6 +1506,7 @@ struct Scene {
         uint64_t    drawn_at = 0;   // and the frame it was last drawn
         bool        drawn    = false;
         bool        still    = false;   // drawn once and kept: a photograph
+        gfx_texture pic{};              // a photograph's pixels as given (core.render.photo): never drawn
     };
     std::vector<CameraFeed> feeds;
     uint64_t                feed_frame = 0;
@@ -2105,6 +2106,7 @@ int host_render_camera_drop(void *ud, int id)
     for (size_t i = 0; i < s->feeds.size(); ++i) {
         if (s->feeds[i].vm == vm && s->feeds[i].id == id) {
             if (s->feeds[i].rt.id) gfx_rt_destroy(s->feeds[i].rt);
+            if (s->feeds[i].pic.id) gfx_texture_destroy(s->feeds[i].pic);
             s->feeds.erase(s->feeds.begin() + (long)i);
             return 1;
         }
@@ -2129,13 +2131,123 @@ int host_render_screen(void *ud, int id, double x, double y, double z, double ya
     if (f != nullptr) {
         f->shown_at = s->feed_frame;
         // Not the picture being drawn into right now, nor one never drawn.
-        if (f != s->feeding && f->drawn && f->rt.id) tex = gfx_rt_texture(f->rt);
+        if (f->pic.id) tex = f->pic;
+        else if (f != s->feeding && f->drawn && f->rt.id) tex = gfx_rt_texture(f->rt);
     }
     const Vec3 right{(float)std::cos(yaw) * (float)w * 0.5f, 0.0f, (float)std::sin(yaw) * (float)w * 0.5f};
     const Vec3 up{0.0f, (float)h * 0.5f, 0.0f};
     s->screen_render.draw(tex, Vec3{(float)x, (float)y, (float)z}, right, up, (float)std::fmod(plat_time(), 3600.0),
                           plain != 0, s->pass_projection, s->pass_view);
     return 1;
+}
+
+// A photograph's size as it travels (core.render.camera_read, core.render.photo):
+// 64 pixels a side, each red 5 bits, green 6, blue 5, two bytes, the rows top
+// down, in base64 -- 10924 characters, a picture a mod can store and send.
+constexpr int kPhotoSize = 64;
+
+const char kB64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+std::string b64_encode(const std::vector<uint8_t> &in)
+{
+    std::string out;
+    out.reserve((in.size() + 2) / 3 * 4);
+    for (size_t i = 0; i < in.size(); i += 3) {
+        const uint32_t n = (uint32_t)in[i] << 16 | (i + 1 < in.size() ? (uint32_t)in[i + 1] << 8 : 0u) |
+                           (i + 2 < in.size() ? (uint32_t)in[i + 2] : 0u);
+        out += kB64[(n >> 18) & 63];
+        out += kB64[(n >> 12) & 63];
+        out += i + 1 < in.size() ? kB64[(n >> 6) & 63] : '=';
+        out += i + 2 < in.size() ? kB64[n & 63] : '=';
+    }
+    return out;
+}
+
+bool b64_decode(const char *in, std::vector<uint8_t> &out)
+{
+    out.clear();
+    uint32_t acc = 0;
+    int      bits = 0;
+    for (const char *c = in; *c && *c != '='; ++c) {
+        const char *at = std::strchr(kB64, *c);
+        if (at == nullptr || *c == 0) return false;
+        acc = acc << 6 | (uint32_t)(at - kB64);
+        bits += 6;
+        if (bits >= 8) {
+            bits -= 8;
+            out.push_back((uint8_t)(acc >> bits));
+        }
+    }
+    return true;
+}
+
+// The picture camera `id` last drew, as a photograph travels; empty when it
+// has none yet.
+const char *host_render_camera_read(void *ud, int id)
+{
+    static std::string kept;   // until the next call (script.h)
+    kept.clear();
+    Scene *s = static_cast<Scene *>(ud);
+    Scene::CameraFeed *f = find_feed(*s, mod_host_current_vm(), id);
+    if (f == nullptr || !f->drawn || f->rt.id == 0) return "";
+    int w = 0, h = 0;
+    unsigned char *px = gfx_read_target(f->rt, &w, &h);   // RGBA, top row first
+    if (px == nullptr) return "";
+    std::vector<uint8_t> bytes;
+    bytes.reserve((size_t)kPhotoSize * kPhotoSize * 2);
+    for (int y = 0; y < kPhotoSize; ++y)
+        for (int x = 0; x < kPhotoSize; ++x) {
+            // The mean of the cells of the target this pixel covers.
+            const int x0 = x * w / kPhotoSize, x1 = std::max(x0 + 1, (x + 1) * w / kPhotoSize);
+            const int y0 = y * h / kPhotoSize, y1 = std::max(y0 + 1, (y + 1) * h / kPhotoSize);
+            int sum[3] = {0, 0, 0}, n = 0;
+            for (int yy = y0; yy < y1; ++yy)
+                for (int xx = x0; xx < x1; ++xx, ++n)
+                    for (int c = 0; c < 3; ++c) sum[c] += px[((size_t)yy * w + xx) * 4 + c];
+            const int r = sum[0] / n, g = sum[1] / n, b = sum[2] / n;
+            const uint16_t v = (uint16_t)((r >> 3) << 11 | (g >> 2) << 5 | (b >> 3));
+            bytes.push_back((uint8_t)(v >> 8));
+            bytes.push_back((uint8_t)(v & 0xff));
+        }
+    gfx_free_pixels(px);
+    kept = b64_encode(bytes);
+    return kept.c_str();
+}
+
+// A photograph from its pixels (as camera_read gives them): camera `id` shows
+// them on its screens from now on and is never drawn.
+int host_render_photo(void *ud, int id, const char *data)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    std::vector<uint8_t> bytes;
+    if (data == nullptr || !b64_decode(data, bytes) || bytes.size() != (size_t)kPhotoSize * kPhotoSize * 2)
+        return 0;
+    const void        *vm = mod_host_current_vm();
+    Scene::CameraFeed *f  = find_feed(*s, vm, id);
+    if (f == nullptr) {
+        if ((int)s->feeds.size() >= kFeedsMost) return 0;
+        s->feeds.push_back(Scene::CameraFeed{});
+        f     = &s->feeds.back();
+        f->vm = vm;
+        f->id = id;
+    }
+    // Bottom row first, as a render target keeps them (the screen reads it so).
+    std::vector<uint8_t> rgba((size_t)kPhotoSize * kPhotoSize * 4);
+    for (int y = 0; y < kPhotoSize; ++y)
+        for (int x = 0; x < kPhotoSize; ++x) {
+            const size_t   i = ((size_t)y * kPhotoSize + x) * 2;
+            const uint16_t v = (uint16_t)(bytes[i] << 8 | bytes[i + 1]);
+            uint8_t *o = &rgba[((size_t)(kPhotoSize - 1 - y) * kPhotoSize + x) * 4];
+            o[0] = (uint8_t)(((v >> 11) & 31) * 255 / 31);
+            o[1] = (uint8_t)(((v >> 5) & 63) * 255 / 63);
+            o[2] = (uint8_t)((v & 31) * 255 / 31);
+            o[3] = 255;
+        }
+    if (f->pic.id) gfx_texture_destroy(f->pic);
+    f->pic   = gfx_texture_create(rgba.data(), kPhotoSize, kPhotoSize, GFX_PF_RGBA8, GFX_FILTER_LINEAR);
+    f->still = true;
+    f->drawn = true;
+    return f->pic.id != 0 ? 1 : 0;
 }
 
 int host_hud_pass(void *ud, const char *name, int order, int handler_ref, char *err,
@@ -7323,7 +7435,10 @@ void render_feeds(Scene &s)
     if (s.feeds.empty()) return;
     std::vector<Scene::CameraFeed *> due;
     for (Scene::CameraFeed &f : s.feeds)
-        if (s.feed_frame - f.shown_at < kFeedIdle && (!f.drawn || (!f.still && s.feed_frame - f.drawn_at >= (uint64_t)kFeedEvery)))
+        if (f.pic.id == 0 &&
+            ((f.still && !f.drawn) ||   // a photograph is taken at once, shown or not (core.render.camera_read)
+             (s.feed_frame - f.shown_at < kFeedIdle &&
+              (!f.drawn || (!f.still && s.feed_frame - f.drawn_at >= (uint64_t)kFeedEvery)))))
             due.push_back(&f);
     if (due.empty()) return;
     diag::ProfScope _("cameras");
@@ -19889,6 +20004,8 @@ script_host make_client_host(Scene &scene)
     host.render_camera      = host_render_camera;
     host.render_camera_drop = host_render_camera_drop;
     host.render_screen      = host_render_screen;
+    host.render_camera_read = host_render_camera_read;
+    host.render_photo       = host_render_photo;
     host.render_model  = host_render_model;
     host.hud_pass      = host_hud_pass;
     host.hud_text      = host_hud_text;

@@ -261,7 +261,12 @@ if drawing then
 
     core.render.pass("cameras:screens", 50, function()
         local me = core.players()[1]
-        local px, py, pz = if me then core.player_pos(me) else nil
+        if me == nil then
+            return
+        end
+        -- Not `if me then core.player_pos(me) else nil`: an if-expression is
+        -- ONE value, and y and z were nil -- nothing was ever drawn.
+        local px, py, pz = core.player_pos(me)
         if px == nil or py == nil or pz == nil then
             return
         end

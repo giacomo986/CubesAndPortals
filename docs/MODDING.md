@@ -617,6 +617,8 @@ core.render.fx(kind, x, y, z, size?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- a l
 core.render.camera(id, x, y, z, yaw?, pitch?, fov?, still?)   -- a camera's picture, drawn now and then (still: once)
 core.render.camera_drop(id)                      -- and forgotten
 core.render.screen(id, x, y, z, yaw?, w?, h?, plain?)   -- a camera's picture on a rectangle, only inside a pass
+core.render.camera_read(id)                      -- its last picture, 64 x 64 in base64 ("" for none yet)
+core.render.photo(id, data)                      -- a camera made of such a picture, never drawn
 core.overcast(how_much)                          -- grey sky and clouds, 0..1: the weather (mods/weather)
 core.sky_flash(how_much)                         -- a bolt's light on the land and the sky, this frame
 core.sky_eclipse(how_much)                       -- the sun black in a ring, the sky and the land dark, 0..1
@@ -837,6 +839,14 @@ of it has been shown in the last second, two pictures a frame at most and each a
 frame: a screen's picture is a little behind, and sixty-four cameras a world, still ones included, is the most. A mod's ids are
 its own. Client only, like every `core.render`; what a camera sees is not known to the server
 (`mods/cameras` works out its own seeing with rays).
+
+A still camera is drawn the first frame after it is made, shown on a screen or not: the moment it is
+made is the moment of the picture. **A photograph that travels:** `core.render.camera_read(id)` gives
+the picture camera `id` last drew as 64 by 64 pixels (red 5 bits, green 6, blue 5, two bytes each, the
+rows top down) in base64, 10924 characters -- `""` while it has none -- which a mod can send in pieces
+and keep; `core.render.photo(id, data)` makes camera `id` of such a picture, on another machine or
+another day: its screens show those pixels and it is never drawn. `mods/album` sends each photograph
+its taker's machine drew to the server, and everybody else's machine shows it as it was.
 
 The number orders passes **among themselves**, not against the engine's drawing: there is a single
 point in the frame where mods draw, after the opaque world and the bodies and before the openings.

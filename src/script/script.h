@@ -680,6 +680,12 @@ typedef struct script_host {
     int (*render_camera_drop)(void *ud, int id);
     int (*render_screen)(void *ud, int id, double x, double y, double z, double yaw, double w, double h,
                          int plain);
+    // A photograph that travels: the picture camera `id` last drew, 64 by 64
+    // in base64 ("" for none yet; the host keeps the text until its next
+    // call), and a camera made of such a picture, shown on its screens and
+    // never drawn.
+    const char *(*render_camera_read)(void *ud, int id);
+    int (*render_photo)(void *ud, int id, const char *data);
 
     // Drawing over the screen rather than into the world (TODO.md OPEN-49): a
     // counter, a timer, a crosshair. A pass of its own and not a render pass,

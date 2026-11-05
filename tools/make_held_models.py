@@ -1031,6 +1031,20 @@ ITEMS["bees:infuser"] = [
 ]
 for _k in ("glow", "ember", "crystal"):
     ITEMS[f"bees:{_k}_honey"] = flask(f"{_k}_honey")
+# The camera (mods/album): a dark body with a leather grip, its lens out of
+# the front, away from the eye, a viewfinder on top and the red shutter
+# button under the right forefinger.
+M["camera_body"] = material("CameraBody", (0.16, 0.16, 0.18), 0.4, 0.5)
+M["lens_glass"] = material("LensGlass", (0.25, 0.35, 0.55), 0.0, 0.05)
+ITEMS["album:camera"] = [
+    (box((0.13, 0.08, 0.055), bevel=0.006, at=(0, 0.04, 0)), "camera_body"),
+    (box((0.132, 0.05, 0.057), at=(0, 0.035, 0)), "leather"),
+    (cyl(0.028, 0.045, segs=16, at=(0.01, 0.04, -0.025), rot=(-90, 0, 0)), "dark_iron"),
+    (cyl(0.022, 0.004, segs=16, at=(0.01, 0.04, -0.069), rot=(-90, 0, 0)), "lens_glass"),
+    (box((0.035, 0.02, 0.035), at=(-0.035, 0.088, 0.005)), "camera_body"),
+    (box((0.02, 0.012, 0.004), at=(-0.035, 0.088, 0.024)), "lens_glass"),
+    (cyl(0.008, 0.008, segs=10, at=(0.045, 0.08, 0.0)), "red"),
+]
 ITEMS["building:gunpowder"] = [(lump(0.022, s, rough=0.3, at=(x, 0.03 + y, 0), scale=(1, 0.7, 0.8)), "powder")
                                for s, x, y in ((3, -0.025, 0), (5, 0.02, 0.005), (7, 0.0, 0.03))]
 ITEMS["boats:boat"] = miniature("mods/boats/boat.gltf", 0.24)

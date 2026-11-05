@@ -1060,6 +1060,21 @@ The sandbox:
    (a view, the sky, over the clouds) takes one too -- the client asks the
    server, which checks there is no block in reach; before, only a click on
    a block within 6 did, as with food (mods/hunger, same fix).
+   INSTANT 2026-11-05 (asked for): frames were white -- the pass read the
+   player's position as `if me then core.player_pos(me) else nil`, ONE
+   value, so y and z were nil and nothing was drawn (mods/cameras the
+   same); and a still camera made before its place was meshed kept a
+   picture of sky. Now: the right button held aims (core.zoom to the 60
+   degrees of the picture, a viewfinder of its square), let go shoots; the
+   taker's machine draws a still camera at once (a still camera is drawn
+   the first frame, shown or not), reads it (core.render.camera_read, new:
+   64x64 RGB565 base64, 10924 chars) and sends it in 480-char pieces; the
+   server keeps it in 4000-char storage values and hands it to any machine
+   that asks, which shows it (core.render.photo, new). Photographs with no
+   pixels fall back to the place. A camera in the hand
+   (tools/make_held_models.py). Checked in a client driven by xdotool:
+   the viewfinder, the shot, the frame, the pixels stored (pic 1: 3 keys)
+   and shown again by a client started afresh.
 8. A museum and collections (low). A village building with cases for fish,
    ores, relics and cards; the first of each brought is paid for. Uses what
    exists, and gives the sandbox a long goal after the credits.

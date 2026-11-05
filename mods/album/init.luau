@@ -1,37 +1,73 @@
 --!strict
 -- album: a camera that takes photographs, frames to hang them, an album.
 --
--- Right click with the camera in the hand -- at a block or at nothing, a
--- view, the sky -- and it takes a picture of what you see: where you stand
--- and which way you look. It goes in your
--- album (/album), forty at most, the oldest let go. A FRAME put on a wall
--- asks which of your photographs goes in it, and then everybody near sees
--- it there: each player's machine draws it once, from the place it was
--- taken, and keeps it (core.render.camera, still; core.render.screen,
--- plain) -- a photograph shows the place as it is when it is first seen.
+-- Hold the right button with the camera in the hand and you look through
+-- it: the view narrows to the picture's (core.zoom) and the viewfinder
+-- shows its square; let go and it takes the photograph, a left click puts
+-- it down without one. The picture is an INSTANT: the player's own machine
+-- draws it at once from the eye (core.render.camera, still), reads its
+-- pixels (core.render.camera_read, 64 by 64) and sends them to the server,
+-- which keeps them; everybody else's machine asks for them and shows them
+-- as they were (core.render.photo). A photograph the server has no pixels
+-- for (taken before, or lost on the way) is drawn as before, from the place
+-- it was taken.
+--
+-- It goes in your album (/album), forty at most, the oldest let go. A FRAME
+-- put on a wall asks which of your photographs goes in it, and then
+-- everybody near sees it there (core.render.screen, plain).
 --
 -- Taken somewhere rare -- on a peak, in the Hollows, by the relics, over the
 -- clouds -- a photograph is worth something to a village's museum: the album
 -- offers it to the museum of the village you stand in (the event
 -- museum:photo, mods/villagers), which pays for the first of each.
 --
--- Pictures: tools/make_album_assets.py.
+-- Pictures: tools/make_album_assets.py; the camera in the hand
+-- tools/make_held_models.py.
+--
+-- Over the mod's channel, both ways:
+--   to the server   "shoot"                  the shutter let go
+--                   "P id k n data"          piece k of n of photograph id's pixels
+--                   "G id"                   which pixels has it of id?
+--   to a machine    "H frames"               the frames near and their photographs
+--                   "T id"                   your last shot is photograph id: send it
+--                   "Q id k n data"          piece k of n of id's pixels
+--                   "N id"                   no pixels for id: draw it from its place
 
 local side    = core.side()
 local serving = side ~= "client"
 local drawing = side ~= "server"
 
-local REACH = 6   -- how far a right click reaches a block (the engine's)
-local shoot: (number) -> () = function(_) end
+local FOV = 60       -- the photograph's, degrees: the viewfinder narrows the engine's 70 to it
+local PIECE = 480    -- base64 characters a message carries (512 bytes at most)
+local KEEP = 4000    -- and a storage value (4096 at most)
+local CAMERA = "album:camera"
 
--- Whether a block is within a right click's reach where that player looks.
-local function facing_block(p: number): boolean
-    local x, y, z = core.player_pos(p)
-    local dx, dy, dz = core.player_look(p)
-    if x == nil or y == nil or z == nil or dx == nil or dy == nil or dz == nil then
-        return true
+-- The two ends, wherever they are: a process that serves and draws hands the
+-- text straight over.
+local server_heard: (number, string) -> () = function(_, _) end
+local machine_heard: (string) -> () = function(_) end
+local function to_server(p: number, text: string)
+    if serving then
+        server_heard(p, text)
+    else
+        core.net.send(0, text)
     end
-    return core.raycast(x, y + 1.62, z, dx, dy, dz, REACH) ~= nil
+end
+local function to_machine(p: number, text: string)
+    if drawing then
+        machine_heard(text)
+    else
+        core.net.send(p, text)
+    end
+end
+
+-- Pixels in pieces a message carries.
+local function pieces(data: string, size: number): { string }
+    local out = {}
+    for i = 1, #data, size do
+        table.insert(out, string.sub(data, i, i + size - 1))
+    end
+    return out
 end
 
 local FRONT = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } }   -- an upright block's front: +Z, +X, -Z, -X
@@ -42,10 +78,60 @@ local RARE = { peak = "a peak", hollows = "the Hollows", relic = "a relic", clou
 type Hung = { x: number, y: number, z: number, f: number, id: number,
               px: number, py: number, pz: number, yaw: number, pitch: number }
 local hung: { Hung } = {}
-local made: { [number]: boolean } = {}   -- photographs made into a camera here
+local made: { [number]: boolean } = {}    -- photographs made into a camera here (drawn from their place)
+local pics: { [number]: boolean } = {}    -- and those shown from their pixels
+local asked: { [number]: boolean } = {}   -- asked the server for
+local coming: { [number]: { string } } = {}   -- pixels arriving, by piece
+
+-- Shots waiting for the server's number, and shots numbered waiting for
+-- their picture to be drawn: a camera of their own each, from TEMP on.
+local TEMP = 1000000000
+local temp_next = TEMP
+local unnumbered: { number } = {}
+type Shot = { temp: number, id: number, age: number }
+local numbered: { Shot } = {}
 
 local function heard(text: string)
-    if string.sub(text, 1, 2) ~= "H " then
+    local word = string.match(text, "^(%a) ")
+    if word == "T" then
+        local id = tonumber(string.match(text, "^T (%d+)$"))
+        local temp = table.remove(unnumbered, 1)
+        if id and temp then
+            table.insert(numbered, { temp = temp, id = id, age = 0 })
+        end
+        return
+    elseif word == "Q" then
+        local id, k, n, data = string.match(text, "^Q (%d+) (%d+) (%d+) (%S+)$")
+        local i, kk, nn = tonumber(id), tonumber(k), tonumber(n)
+        if i == nil or kk == nil or nn == nil or data == nil or nn > 64 then
+            return
+        end
+        local got = coming[i] or {}
+        coming[i] = got
+        got[kk] = data
+        for j = 1, nn do
+            if got[j] == nil then
+                return
+            end
+        end
+        coming[i] = nil
+        if core.render.photo(i, table.concat(got)) then
+            if made[i] then
+                made[i] = nil
+            end
+            pics[i] = true
+        end
+        return
+    elseif word == "N" then
+        local id = tonumber(string.match(text, "^N (%d+)$"))
+        for _, h in hung do
+            if id and h.id == id and not made[id] and not pics[id] then
+                core.render.camera(h.id, h.px, h.py, h.pz, h.yaw, h.pitch, FOV, true)
+                made[id] = true
+            end
+        end
+        return
+    elseif word ~= "H" then
         return
     end
     local now: { Hung } = {}
@@ -60,25 +146,31 @@ local function heard(text: string)
         end
     end
     local wanted: { [number]: boolean } = {}
+    hung = now
     for _, h in now do
         wanted[h.id] = true
-        if not made[h.id] then
-            core.render.camera(h.id, h.px, h.py, h.pz, h.yaw, h.pitch, 60, true)
-            made[h.id] = true
+        if not made[h.id] and not pics[h.id] and not asked[h.id] then
+            asked[h.id] = true
+            to_server(core.players()[1] or 0, `G {h.id}`)
         end
     end
-    for id in made do
-        if not wanted[id] then
-            core.render.camera_drop(id)
-            made[id] = nil
+    for _, t in { made, pics, asked } do
+        for id in t do
+            if not wanted[id] then
+                if made[id] or pics[id] then
+                    core.render.camera_drop(id)
+                end
+                t[id] = nil
+            end
         end
     end
-    hung = now
 end
+machine_heard = heard
 
 if serving then
     core.net.open()
-    core.register_item("album:camera", 1)
+    core.register_item(CAMERA, 1)
+    core.register_model("album:camera_held", "camera_held.gltf")   -- tools/make_held_models.py
     core.recipe_shaped("album:camera", 1,
         "furnace:iron_ingot furnace:iron_ingot furnace:iron_ingot",
         "furnace:iron_ingot core:glass         ore:lapis",
@@ -130,11 +222,11 @@ if serving then
         return ""
     end
 
-    shoot = function(p: number)
+    local function shoot(p: number): number?
         local x, y, z = core.player_pos(p)
         local lx, ly, lz = core.player_look(p)
         if x == nil or lx == nil then
-            return
+            return nil
         end
         local id = (tonumber(core.storage_get("photo next")) or 0) + 1
         core.storage_set("photo next", tostring(id))
@@ -155,18 +247,85 @@ if serving then
         core.storage_set("album " .. who(p), table.concat(ids, ","))
         core.play_sound("album:shutter", x, ey, z)
         core.notice(p, if tag ~= "" then `Photograph #{id}: {RARE[tag]} -- a museum would want it` else `Photograph #{id} taken`)
+        return id
     end
-    core.event.on("core:used", function(ev)
-        if ev.held ~= "album:camera" then
+
+    -- A photograph's pixels: kept in pieces a storage value holds.
+    local function pixels_of(id: number): string?
+        local n = tonumber(core.storage_get(`pic {id}`))
+        if n == nil then
+            return nil
+        end
+        local out = {}
+        for k = 1, n do
+            table.insert(out, core.storage_get(`pic {id} {k}`))
+        end
+        return table.concat(out)
+    end
+    local function keep_pixels(id: number, data: string)
+        local parts = pieces(data, KEEP)
+        for k, part in parts do
+            core.storage_set(`pic {id} {k}`, part)
+        end
+        core.storage_set(`pic {id}`, tostring(#parts))
+    end
+
+    -- Uploads expected: the photograph's number, from whom, what has come.
+    type Upload = { p: number, got: { [number]: string }, age: number }
+    local uploads: { [number]: Upload } = {}
+
+    server_heard = function(p: number, text: string)
+        if text == "shoot" then
+            if core.held_item(p) ~= CAMERA then
+                return
+            end
+            local id = shoot(p)
+            if id then
+                uploads[id] = { p = p, got = {}, age = 0 }
+                to_machine(p, `T {id}`)
+            end
             return
         end
-        ev.cancel = true
-        shoot(ev.player)
-    end)
-    -- Aimed at no block -- a view, the sky: the player's machine asks (below).
+        local id, k, n, data = string.match(text, "^P (%d+) (%d+) (%d+) (%S+)$")
+        if id then
+            local i, kk, nn = tonumber(id) :: number, tonumber(k) :: number, tonumber(n) :: number
+            local u = uploads[i]
+            if u == nil or u.p ~= p or nn > 32 or kk < 1 or kk > nn or #data > PIECE then
+                return
+            end
+            u.got[kk] = data
+            for j = 1, nn do
+                if u.got[j] == nil then
+                    return
+                end
+            end
+            uploads[i] = nil
+            keep_pixels(i, table.concat(u.got))
+            return
+        end
+        local g = tonumber(string.match(text, "^G (%d+)$"))
+        if g then
+            local data = pixels_of(g)
+            if data == nil then
+                to_machine(p, `N {g}`)
+                return
+            end
+            local parts = pieces(data, PIECE)
+            for kk, part in parts do
+                to_machine(p, `Q {g} {kk} {#parts} {part}`)
+            end
+        end
+    end
     core.event.on("core:net_message", function(ev)
-        if ev.text == "shoot" and core.held_item(ev.player) == "album:camera" and not facing_block(ev.player) then
-            shoot(ev.player)
+        server_heard(ev.player, ev.text)
+    end)
+    -- An upload never finished is forgotten after a minute.
+    core.event.on("core:tick", function(ev)
+        for id, u in uploads do
+            u.age += ev.dt
+            if u.age > 60 then
+                uploads[id] = nil
+            end
         end
     end)
 
@@ -184,13 +343,13 @@ if serving then
         end
         local list = album_of(p)
         if #list == 0 then
-            table.insert(page, "No photographs yet: right click with the camera in your hand.")
+            table.insert(page, "No photographs yet: hold the right button with the camera in your hand, aim, let go.")
         end
         for i = #list, 1, -1 do
             local id = list[i]
             local ph = photo(id)
             if ph then
-                local line = `- **#{id}** at {math.floor(ph.x)} {math.floor(ph.y)} {math.floor(ph.z)}`
+                local line = `- Photograph #{id}, at {math.floor(ph.x)} {math.floor(ph.y)} {math.floor(ph.z)}`
                 if ph.tag ~= "" then
                     line ..= `, {RARE[ph.tag] or ph.tag} [Offer to the museum](act:offer {id})`
                 end
@@ -223,7 +382,7 @@ if serving then
         end
     end)
     core.event.on("core:used", function(ev)
-        if ev.id == FRAME and ev.held ~= "album:camera" then
+        if ev.id == FRAME and ev.held ~= CAMERA then
             framing[ev.player] = { ev.x, ev.y, ev.z }
             show_album(ev.player)
             ev.cancel = true
@@ -318,21 +477,114 @@ if drawing then
     core.event.on("core:net_message", function(ev)
         heard(ev.text)
     end)
-    -- A right click at no block within reach -- a view, the sky, the clouds
-    -- -- takes a picture as well: core:used is only a click on a block.
-    core.event.on("core:input", function(ev)
-        if ev.action ~= "mouse_right" or core.held_item(ev.player) ~= "album:camera" or facing_block(ev.player) then
+
+    -- Through the viewfinder: the right button held with the camera in the
+    -- hand, the view eased to the picture's; let go, the shot.
+    local AIMED = FOV / 70
+    local aiming = false
+    local zoom = 1.0
+
+    local function take(p: number)
+        local x, y, z = core.player_pos(p)
+        local dx, dy, dz = core.player_look(p)
+        if x == nil or y == nil or z == nil or dx == nil or dy == nil or dz == nil then
             return
         end
-        if serving then
-            shoot(ev.player)
-        else
-            core.net.send(0, "shoot")
+        temp_next += 1
+        core.render.camera(temp_next, x, y + 1.62, z, math.atan2(dx, -dz), math.asin(math.clamp(dy, -1, 1)), FOV, true)
+        table.insert(unnumbered, temp_next)
+        to_server(p, "shoot")
+    end
+
+    core.event.on("core:input", function(ev)
+        local holding = core.held_item(ev.player) == CAMERA
+        if ev.action == "mouse_right" and holding then
+            ev.cancel = true   -- nothing placed, nothing used: it is the camera's
+            aiming = true
+        elseif ev.action == "mouse_right_up" and aiming then
+            aiming = false
+            if holding then
+                take(ev.player)
+            end
+        elseif ev.action == "mouse_left" and aiming then
+            ev.cancel = true
+            aiming = false
         end
     end)
+
+    core.event.on("core:tick", function(ev)
+        local me = core.players()[1]
+        if aiming and (me == nil or core.held_item(me) ~= CAMERA) then
+            aiming = false
+        end
+        local want = if aiming then AIMED else 1.0
+        if math.abs(zoom - want) > 0.001 then
+            zoom += (want - zoom) * math.min(1, ev.dt * 12)
+            if math.abs(zoom - want) < 0.002 then
+                zoom = want
+            end
+            core.zoom(zoom)
+        end
+        -- Each shot numbered, once its camera has drawn it: shown here at
+        -- once, and its pixels to the server.
+        for i = #numbered, 1, -1 do
+            local shot = numbered[i]
+            shot.age += ev.dt
+            local data = core.render.camera_read(shot.temp)
+            if data ~= "" or shot.age > 10 then
+                core.render.camera_drop(shot.temp)
+                table.remove(numbered, i)
+                if data ~= "" then
+                    local parts = pieces(data, PIECE)
+                    for k, part in parts do
+                        to_server(me or 0, `P {shot.id} {k} {#parts} {part}`)
+                    end
+                    if core.render.photo(shot.id, data) then
+                        pics[shot.id] = true
+                    end
+                end
+            end
+        end
+    end)
+
+    -- The viewfinder: the square the photograph takes, the rest darkened,
+    -- its corners marked, and what the buttons do.
+    core.hud.pass("album:viewfinder", 60, function()
+        local k = math.clamp((1 - zoom) / (1 - AIMED), 0, 1)
+        if k < 0.02 then
+            return
+        end
+        local aspect = core.hud.aspect()
+        if aspect <= 0 then
+            return
+        end
+        local half = 0.5 / aspect                 -- half the square, in fractions of the width
+        local side = 0.5 - half                   -- each band beside it
+        if side > 0 then
+            core.hud.rect(side / 2, 0.5, side * aspect, 1, 0, 0, 0, math.floor(150 * k))
+            core.hud.rect(1 - side / 2, 0.5, side * aspect, 1, 0, 0, 0, math.floor(150 * k))
+        end
+        local a = math.floor(230 * k)
+        local L, T = 0.07, 0.006                  -- a corner's arm and its thickness, of the height
+        local x0, x1 = 0.5 - half + 0.03 / aspect, 0.5 + half - 0.03 / aspect
+        for _, c in { { x0, 0.03, 1, 1 }, { x1, 0.03, -1, 1 }, { x0, 0.97, 1, -1 }, { x1, 0.97, -1, -1 } } do
+            core.hud.rect(c[1] + c[3] * L / 2 / aspect, c[2], L, T, 255, 255, 255, a)
+            core.hud.rect(c[1], c[2] + c[4] * L / 2, T, L, 255, 255, 255, a)
+        end
+        core.hud.rect(0.5, 0.5, 0.004, 0.03, 255, 255, 255, a)
+        core.hud.rect(0.5, 0.5, 0.03, 0.004, 255, 255, 255, a)
+        core.hud.text(0.5, 0.075, "Let go: take the photograph   ·   left click: put the camera down", 0.026, 1,
+                      255, 255, 255, a)
+    end)
+
     core.render.pass("album:frames", 50, function()
         local me = core.players()[1]
-        local px, py, pz = if me then core.player_pos(me) else nil
+        if me == nil then
+            return
+        end
+        -- Not `if me then core.player_pos(me) else nil`: an if-expression is
+        -- ONE value, and y and z were nil -- nothing was ever drawn.
+        local px, py, pz = core.player_pos(me)
         if px == nil or py == nil or pz == nil then
             return
         end

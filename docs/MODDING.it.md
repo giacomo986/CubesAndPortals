@@ -658,6 +658,8 @@ core.render.fx(tipo, x, y, z, misura?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- u
 core.render.camera(id, x, y, z, yaw?, pitch?, fov?, still?)   -- l'immagine di una telecamera, disegnata ogni tanto (still: una volta)
 core.render.camera_drop(id)                      -- e dimenticata
 core.render.screen(id, x, y, z, yaw?, w?, h?, plain?)   -- l'immagine di una telecamera su un rettangolo, solo dentro un pass
+core.render.camera_read(id)                      -- la sua ultima immagine, 64 x 64 in base64 ("" se non ancora)
+core.render.photo(id, dati)                      -- una telecamera fatta di quell'immagine, mai disegnata
 core.overcast(quanto)                            -- cielo e nuvole grigi, 0..1: il meteo (mods/weather)
 core.sky_flash(quanto)                           -- la luce di un fulmine su terra e cielo, in questo frame
 core.sky_eclipse(quanto)                         -- il sole nero in un anello, cielo e terra scuri, 0..1
@@ -910,6 +912,15 @@ due immagini per fotogramma e ognuna al più ogni quarto fotogramma: l'immagine 
 indietro, e sessantaquattro telecamere per mondo, ferme comprese, sono il massimo. Gli id di un mod sono suoi. Solo sul client,
 come ogni `core.render`; cosa vede una telecamera il server non lo sa (`mods/cameras` calcola da sé cosa
 vede, con dei raggi).
+
+Una telecamera ferma è disegnata nel fotogramma dopo che è stata creata, mostrata o no: il momento in
+cui nasce è il momento della foto. **Una foto che viaggia:** `core.render.camera_read(id)` dà l'ultima
+immagine disegnata dalla telecamera `id` come 64 per 64 pixel (rosso 5 bit, verde 6, blu 5, due byte
+l'uno, le righe dall'alto) in base64, 10924 caratteri -- `""` finché non ne ha -- che un mod può
+mandare a pezzi e conservare; `core.render.photo(id, dati)` fa della telecamera `id` quell'immagine, su
+un'altra macchina o un altro giorno: i suoi schermi mostrano quei pixel e non viene mai disegnata.
+`mods/album` manda al server ogni foto che la macchina di chi l'ha scattata ha disegnato, e la macchina
+di ognun altro la mostra com'era.
 
 Il numero ordina i pass **fra di loro**, non contro il disegno del motore: c'è un
 punto solo nel frame dove i mod disegnano, dopo il mondo opaco e i corpi e prima
