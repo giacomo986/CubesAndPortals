@@ -1678,7 +1678,7 @@ local SIZES = { small = { 5, 5, 14 }, medium = { 7, 7, 20 }, large = { 9, 7, 30 
 -- whose doorway is a pocket door onto a hall of the buyer's own. Sold only
 -- where there are pocket halls to open on.
 STYLES.pocket = STYLES.wood
-local POCKET_PRICE = 30
+AID.pocket_price = 30   -- rubies; a field and not a local: a main chunk has 200
 local function pockets_here(): boolean
     if core.node_id("pocket:door") == 0 then return false end
     for k = 0, 27 do
@@ -2425,7 +2425,7 @@ local function show_mayor(p: number, rk: string)
     core.ui_button(name, "errands", 0.4, 7.5, 12.2, 1.2, "Errands for the village...")
     local y = 8.9
     if pocket then
-        core.ui_button(name, "pocket", 0.4, y, 12.2, 1.2, `A pocket hut, 3 by 3 and a hall inside: {POCKET_PRICE} rubies`)
+        core.ui_button(name, "pocket", 0.4, y, 12.2, 1.2, `A pocket hut, 3 by 3 and a hall inside: {AID.pocket_price} rubies`)
         y += 1.4
     end
     if price then
@@ -2535,7 +2535,7 @@ local function sell(p: number, rk: string, kind: string, size: string?, style: s
     end
     local sz = SIZES[size or "medium"]
     local w, d = if kind == "house" then sz[1] else 7, if kind == "house" then sz[2] else 7
-    local price = if style == "pocket" then POCKET_PRICE elseif kind == "house" then sz[3] else LOT
+    local price = if style == "pocket" then AID.pocket_price elseif kind == "house" then sz[3] else LOT
     local x0, z0, t, floor, g = find_lot(rk, w, d)
     if x0 == nil or z0 == nil or t == nil or floor == nil or g == nil then
         core.notice(p, "There is no room left round this village.")
@@ -5715,15 +5715,17 @@ core.event.on("core:world_ready", function()
     survey()
 end)
 
-local looked_at, step_at, aged_at = 0.0, 0.0, 0.0
+-- When the clock next ages the villages, looks round them and moves everybody
+-- (one table and not three locals: a main chunk has 200).
+local due = { looked = 0.0, step = 0.0, aged = 0.0 }
 core.event.on("core:tick", function(ev)
     clock += ev.dt
-    if clock >= aged_at then
-        aged_at = clock + 30
+    if clock >= due.aged then
+        due.aged = clock + 30
         core.storage_set("age", tostring(math.floor(age())))
     end
-    if clock >= looked_at then
-        looked_at = clock + 4
+    if clock >= due.looked then
+        due.looked = clock + 4
         look_for_homes()
         local gone = false
         for key, v in people do
@@ -5762,10 +5764,10 @@ core.event.on("core:tick", function(ev)
             end
         end
     end
-    if clock < step_at then
+    if clock < due.step then
         return
     end
-    step_at = clock + 0.2
+    due.step = clock + 0.2
     notice_theft()
     hunted_gone()
     for _, v in people do
