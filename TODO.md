@@ -1056,7 +1056,10 @@ The sandbox:
    peak, in the Hollows, by relics or over y 115 it is offered to the museum
    (event museum:photo). Checked headless: two photographs, one hung, an
    offer. Open: no photograph yet seen drawn; it shows the place as it is
-   when first seen, not as it was.
+   when first seen, not as it was. 2026-11-05: a right click at no block
+   (a view, the sky, over the clouds) takes one too -- the client asks the
+   server, which checks there is no block in reach; before, only a click on
+   a block within 6 did, as with food (mods/hunger, same fix).
 8. A museum and collections (low). A village building with cases for fish,
    ores, relics and cards; the first of each brought is paid for. Uses what
    exists, and gives the sandbox a long goal after the credits.

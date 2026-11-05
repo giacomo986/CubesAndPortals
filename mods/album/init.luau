@@ -1,8 +1,9 @@
 --!strict
 -- album: a camera that takes photographs, frames to hang them, an album.
 --
--- Right click any block with the camera in the hand and it takes a picture
--- of what you see: where you stand and which way you look. It goes in your
+-- Right click with the camera in the hand -- at a block or at nothing, a
+-- view, the sky -- and it takes a picture of what you see: where you stand
+-- and which way you look. It goes in your
 -- album (/album), forty at most, the oldest let go. A FRAME put on a wall
 -- asks which of your photographs goes in it, and then everybody near sees
 -- it there: each player's machine draws it once, from the place it was
@@ -19,6 +20,19 @@
 local side    = core.side()
 local serving = side ~= "client"
 local drawing = side ~= "server"
+
+local REACH = 6   -- how far a right click reaches a block (the engine's)
+local shoot: (number) -> () = function(_) end
+
+-- Whether a block is within a right click's reach where that player looks.
+local function facing_block(p: number): boolean
+    local x, y, z = core.player_pos(p)
+    local dx, dy, dz = core.player_look(p)
+    if x == nil or y == nil or z == nil or dx == nil or dy == nil or dz == nil then
+        return true
+    end
+    return core.raycast(x, y + 1.62, z, dx, dy, dz, REACH) ~= nil
+end
 
 local FRONT = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } }   -- an upright block's front: +Z, +X, -Z, -X
 local SHOWN = 48
@@ -116,12 +130,7 @@ if serving then
         return ""
     end
 
-    core.event.on("core:used", function(ev)
-        if ev.held ~= "album:camera" then
-            return
-        end
-        ev.cancel = true
-        local p = ev.player
+    shoot = function(p: number)
         local x, y, z = core.player_pos(p)
         local lx, ly, lz = core.player_look(p)
         if x == nil or lx == nil then
@@ -146,6 +155,19 @@ if serving then
         core.storage_set("album " .. who(p), table.concat(ids, ","))
         core.play_sound("album:shutter", x, ey, z)
         core.notice(p, if tag ~= "" then `Photograph #{id}: {RARE[tag]} -- a museum would want it` else `Photograph #{id} taken`)
+    end
+    core.event.on("core:used", function(ev)
+        if ev.held ~= "album:camera" then
+            return
+        end
+        ev.cancel = true
+        shoot(ev.player)
+    end)
+    -- Aimed at no block -- a view, the sky: the player's machine asks (below).
+    core.event.on("core:net_message", function(ev)
+        if ev.text == "shoot" and core.held_item(ev.player) == "album:camera" and not facing_block(ev.player) then
+            shoot(ev.player)
+        end
     end)
 
     -- The album, and for a frame just put down which photograph goes in it.
@@ -295,6 +317,18 @@ end
 if drawing then
     core.event.on("core:net_message", function(ev)
         heard(ev.text)
+    end)
+    -- A right click at no block within reach -- a view, the sky, the clouds
+    -- -- takes a picture as well: core:used is only a click on a block.
+    core.event.on("core:input", function(ev)
+        if ev.action ~= "mouse_right" or core.held_item(ev.player) ~= "album:camera" or facing_block(ev.player) then
+            return
+        end
+        if serving then
+            shoot(ev.player)
+        else
+            core.net.send(0, "shoot")
+        end
     end)
     core.render.pass("album:frames", 50, function()
         local me = core.players()[1]
