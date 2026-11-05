@@ -162,6 +162,27 @@ EV.lines = function(rk: string): { string }
     return out
 end
 
+-- The village paper: what players did for or against the village, kept
+-- (storage "paper rk") and shown on its board -- the newest eight, each with
+-- the day it happened. Unlike the news, it stays.
+EV.deed = function(rk: string, text: string)
+    local lines = { `{math.floor(age() / DAY) + 1}\t{string.sub(text, 1, 200)}` }
+    for l in string.gmatch(core.storage_get(`paper {rk}`), "[^\n]+") do
+        if #lines < 8 then
+            table.insert(lines, l)
+        end
+    end
+    core.storage_set(`paper {rk}`, table.concat(lines, "\n"))
+end
+
+EV.paper = function(rk: string): { string }
+    local out = {}
+    for d, text in string.gmatch(core.storage_get(`paper {rk}`), "(%d+)\t([^\n]+)") do
+        table.insert(out, `Day {d}: {text}`)
+    end
+    return out
+end
+
 -- ------------------------------------------------------------ the raiders
 
 EV.raider = function(name: string, x: number, y: number, z: number, rk: string, c: Caravan?): number
@@ -309,6 +330,13 @@ EV.end_siege = function(rk: string, s: Siege)
     end
     if s.lost > 0 then
         EV.announce(rk, `The siege is over. {s.lost} of the village fell.`)
+        local fought = {}
+        for name in s.fought do
+            table.insert(fought, name)
+        end
+        table.sort(fought)
+        EV.deed(rk, if #fought > 0 then `{table.concat(fought, ", ")} fought off the siege, but {s.lost} of the village fell.`
+            else `The siege was beaten off, but {s.lost} of the village fell.`)
         return
     end
     local names = {}
@@ -329,6 +357,8 @@ EV.end_siege = function(rk: string, s: Siege)
         end
     end
     table.sort(names)
+    EV.deed(rk, if #names > 0 then `{table.concat(names, ", ")} held the village through the siege, and no one was lost.`
+        else "The watch held the village through the siege, and no one was lost.")
     EV.announce(rk, `The siege is over and no one was lost. The mayor thanks {if #names > 0
         then table.concat(names, ", ") else "the watch"}{if #names > 0 then ": 5 rubies each" else ""}.`)
 end
@@ -430,6 +460,7 @@ EV.begin_feast = function(rk: string)
         end
     end
     EV.feast[rk] = f
+    EV.deed(rk, "The harvest feast was held in the square, with fireworks.")
     EV.announce(rk, "The harvest feast is today, in the square: food at half price, music, "
         .. "and fireworks tonight!")
 end
@@ -829,6 +860,11 @@ EV.arrive = function(i: number, c: Caravan, tx: number, tz: number): boolean
     EV.save_caravans()
     table.sort(things)
     EV.announce(c.to, `A caravan from the village at {fx} {fz} has come in, with {table.concat(things, ", ")}.`)
+    EV.deed(c.to, if c.escort ~= "" then `{c.escort} brought a caravan in from the village at {fx} {fz}.`
+        else `A caravan came in from the village at {fx} {fz}.`)
+    if c.escort ~= "" then
+        EV.deed(c.from, `{c.escort} took the village's caravan safe to the village at {tx} {tz}.`)
+    end
     return true
 end
 
@@ -840,6 +876,8 @@ EV.lost = function(i: number, c: Caravan)
     table.remove(EV.caravans, i)
     EV.save_caravans()
     EV.announce(c.from, `The caravan was lost on the road, at {math.floor(c.x)} {math.floor(c.z)}: its goods lie there.`)
+    EV.deed(c.from, if c.escort ~= "" then `The caravan {c.escort} went with was lost on the road.`
+        else "The village's caravan was lost on the road.")
 end
 
 EV.seen = function(x: number, z: number, r: number): boolean

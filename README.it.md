@@ -319,6 +319,13 @@ battuta secondo il terreno, con cartelli, pietre miliari, lanterne e ponti. Li a
 umani contadini, rospi pescatori e talpe raccoglitrici, ognuno con una casa, un mestiere, i pasti
 e un letto. Ogni villaggio ha:
 
+**Museo, album e giornale** (`mods/villagers`, `mods/album`). Ogni villaggio costruisce un museo: il suo
+curatore espone il primo di ogni pesce, minerale, gemma e reperto che un giocatore porta e lo paga in
+rubini. Una macchina fotografica scatta foto vere, tenute in un album (`/album`) e appese in cornici; una
+foto di una vetta, delle Cavità, di una reliquia o delle nuvole vale qualcosa per un museo. E la bacheca
+di un villaggio tiene il suo giornale: chi l'ha difeso da un assedio, ha portato una carovana, ha donato
+qualcosa al museo, o è stato scoperto a rubare.
+
 - una ronda (guardie, arcieri e un ispettore che guarda nelle borse in cerca di refurtiva: il
   furto viene marcato, e un ladro è perdonato una volta, poi braccato);
 - un sindaco che vende lotti e case, e un costruttore che le alza blocco per blocco con i

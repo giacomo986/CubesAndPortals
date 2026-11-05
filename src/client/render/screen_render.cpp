@@ -38,6 +38,7 @@ out vec4 fragColor;
 
 uniform sampler2D uTex;
 uniform int   uHas;
+uniform int   uPlain;
 uniform float uTime;
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -48,7 +49,8 @@ void main()
     if (uHas != 0) {
         // A render target is upright as GL keeps it: its first row at the bottom.
         col = texture(uTex, vUV).rgb;
-        col *= 0.92 + 0.08 * sin(vUV.y * 128.0 * 3.14159);   // scan lines
+        if (uPlain != 0) col *= 0.85;                           // a print, not a lit screen
+        else col *= 0.92 + 0.08 * sin(vUV.y * 128.0 * 3.14159);   // scan lines
     } else {
         col = vec3(hash(floor(vUV * 64.0) + floor(uTime * 24.0)) * 0.7);
     }
@@ -74,6 +76,7 @@ bool ScreenRenderer::init()
     m_loc_tex    = gfx_uniform_location(m_shader, "uTex");
     m_loc_has    = gfx_uniform_location(m_shader, "uHas");
     m_loc_time   = gfx_uniform_location(m_shader, "uTime");
+    m_loc_plain  = gfx_uniform_location(m_shader, "uPlain");
 
     m_vb = gfx_buffer_create(kQuad, (int)sizeof(kQuad), false, false);
     gfx_vertexlayout layout{};
@@ -91,7 +94,7 @@ void ScreenRenderer::shutdown()
     if (m_shader.id) gfx_shader_destroy(m_shader);
 }
 
-void ScreenRenderer::draw(gfx_texture tex, Vec3 center, Vec3 right, Vec3 up, float time,
+void ScreenRenderer::draw(gfx_texture tex, Vec3 center, Vec3 right, Vec3 up, float time, bool plain,
                           const Mat4 &projection, const Mat4 &view)
 {
     if (m_mesh.id == 0) return;
@@ -106,6 +109,7 @@ void ScreenRenderer::draw(gfx_texture tex, Vec3 center, Vec3 right, Vec3 up, flo
     gfx_uniform_set_v3(m_loc_up, u);
     gfx_uniform_set_f(m_loc_time, time);
     gfx_uniform_set_int(m_loc_has, tex.id != 0 ? 1 : 0);
+    gfx_uniform_set_int(m_loc_plain, plain ? 1 : 0);
     gfx_texture_bind(tex, 0);
     gfx_uniform_set_int(m_loc_tex, 0);
 

@@ -314,6 +314,12 @@ cobblestone or beaten earth by the land, with signposts, milestones, lanterns an
 inhabited by three species: human farmers, frog fishers and mole gatherers, each with a home, a
 job, meals and a bed. Every village has:
 
+**Museum, album and paper** (`mods/villagers`, `mods/album`). Every village builds a museum: its curator
+puts the first of each fish, ore, gem and find a player brings on show and pays for it in rubies. A
+camera takes real photographs, kept in an album (`/album`) and hung in frames; a photograph of a peak, the
+Hollows, a relic or the clouds is worth something to a museum. And a village's board keeps its paper:
+who held it through a siege, brought a caravan in, gave the museum something, or was caught stealing.
+
 - a watch (guards, archers, and an inspector who checks bags for stolen goods: theft is marked,
   and a thief is forgiven once, then hunted);
 - a mayor who sells plots and houses, and a builder who builds them block by block with materials

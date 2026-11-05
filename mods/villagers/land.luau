@@ -409,6 +409,13 @@ local function plan_of(o: Order): { { any } }
             if keep ~= nil then
                 hput(w - 2, F, d - 3, keep)   -- whose it is
             end
+            if o.kind == "keep_museum" then
+                -- The cases the curator shows the collection on (museum.luau):
+                -- along the back wall and down both sides, clear of the door.
+                for _, c in { { 2, d - 2 }, { 3, d - 2 }, { 4, d - 2 }, { w - 2, 2 }, { w - 2, 3 }, { 1, 2 }, { 1, 3 } } do
+                    hput(c[1], F, c[2], "villagers:plinth")
+                end
+            end
         end
         if split ~= nil then
             hput(split - 1, F + 2, 1, "torches:torch")

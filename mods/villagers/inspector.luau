@@ -45,6 +45,7 @@ local function turn_hostile(p: number, rk: string)
     t.strikes, t.hostile, t.last = math.max(t.strikes, 2), true, age()
     save_trust(rk)
     core.notice(p, "Thief! The watch is after you while you are in this village.")
+    common.AID.ev.deed(rk, `{core.player_name(p)} was caught with stolen goods and would not give them back.`)
 end
 
 -- What was stolen, out of the bag and into the chest nearest the inspector.
@@ -79,6 +80,7 @@ core.event.on("core:ui_click", function(ev)
         t.strikes, t.last = math.max(t.strikes, 1), age()
         save_trust(a.rk)
         core.notice(ev.player, "You gave it all back. This village does not trust you any more.")
+        common.AID.ev.deed(a.rk, `{core.player_name(ev.player)} was caught with stolen goods, and gave them back.`)
     else
         turn_hostile(ev.player, a.rk)
     end
@@ -179,7 +181,7 @@ common.watch_life = function(v: V)
         common.crafter_life(v)
         return
     end
-    if v.kind == "mayor" or v.kind == "merchant" then
+    if v.kind == "mayor" or v.kind == "merchant" or v.kind == "curator" then
         -- By the door of the house at the village's middle, to be found.
         while true do
             if sleeps_now(v) and rest(v) then
@@ -242,7 +244,7 @@ local function muster()
             local big = #b.homes >= 8
             core.log(`villagers: {rk}: watch, mayor and builder at {post.hx} {post.hy} {post.hz}`)
             for kind, n in { guard = if big then 3 else 2, archer = if big then 2 else 1, inspector = if big then 2 else 1,
-                             mayor = 1, builder = 1, merchant = 1, crafter = 1 } do
+                             mayor = 1, builder = 1, merchant = 1, crafter = 1, curator = 1 } do
                 for i = 1, n do
                     local key = `{rk} {kind} {i}`
                     watch[key] = { key = key, hx = post.hx, hy = post.hy, hz = post.hz, kind = kind, id = 0,
@@ -258,13 +260,21 @@ local function muster()
                            back_at = 0, inv = {}, fed_at = 0, wake = 0, walking = false,
                            tx = 0, ty = 0, tz = 0, tried = {}, rk = rk }
         end
+        if watch[`{rk} curator 1`] == nil and (watch[`{rk} mayor 1`] or watch[`{rk} inspector 1`]) then
+            -- And one mustered before there were museums, a curator.
+            local m = watch[`{rk} mayor 1`] or watch[`{rk} inspector 1`]
+            local key = `{rk} curator 1`
+            watch[key] = { key = key, hx = m.hx, hy = m.hy, hz = m.hz, kind = "curator", id = 0,
+                           back_at = 0, inv = {}, fed_at = 0, wake = 0, walking = false,
+                           tx = 0, ty = 0, tz = 0, tried = {}, rk = rk }
+        end
     end
 end
 
 -- A bed for each of a village's keepers: the beds of its ground that are
 -- nobody's home and no player's, the hall's first, the nearest its middle
 -- next; a bed broken is given up. Not kept: worked out again as it loads.
-local KEEPERS = { "mayor", "builder", "merchant", "crafter", "inspector", "guard", "archer" }
+local KEEPERS = { "mayor", "builder", "merchant", "crafter", "curator", "inspector", "guard", "archer" }
 local beds_looked: { [string]: number } = {}
 -- Returns the signs a keeper found no bed under: the buildings missing.
 local function bed_keepers(rk: string): { [string]: boolean }

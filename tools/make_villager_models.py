@@ -582,6 +582,27 @@ def merchant():
                                "jewel": (0.2, 0.75, 0.4)}, extra)
 
 
+def curator():
+    """The museum's keeper (mods/villagers, museum.luau): a long dark red coat
+    over a waistcoat, a bow tie, round spectacles and a magnifying glass at
+    the belt."""
+    def extra(p):
+        p.box("spine", "coat", (0, 0.0, 0.7), (0.33, 0.19, 0.2))                      # the coat, long
+        p.box("hips", "coat", (0, 0.0, 0.55), (0.32, 0.18, 0.16))
+        p.box("chest", "vest", (0, 0.092, 0.88), (0.16, 0.01, 0.16))                  # the waistcoat
+        p.box("chest", "tie", (0, 0.1, 0.97), (0.09, 0.012, 0.03))                    # a bow tie
+        p.box("head", "hair", (0, -0.03, 1.17), (0.21, 0.16, 0.13))
+        p.box("head", "rim", (-0.05, 0.11, 1.12), (0.05, 0.01, 0.045))                # spectacles
+        p.box("head", "rim", (0.05, 0.11, 1.12), (0.05, 0.01, 0.045))
+        p.box("hips", "rim", (0.16, 0.1, 0.62), (0.07, 0.015, 0.07))                  # the glass's ring
+        p.box("hips", "lens", (0.16, 0.108, 0.62), (0.05, 0.005, 0.05))
+    return worker("Curator", {"shirt": (0.9, 0.88, 0.82), "coat": (0.42, 0.08, 0.1),
+                              "vest": (0.25, 0.2, 0.12), "tie": (0.12, 0.1, 0.25),
+                              "trousers": (0.15, 0.15, 0.17), "boots": (0.08, 0.06, 0.05),
+                              "hair": (0.6, 0.6, 0.62), "rim": (0.75, 0.6, 0.25),
+                              "lens": (0.7, 0.85, 0.9)}, extra)
+
+
 def crafter():
     def extra(p):
         p.box("spine", "smock", (0, 0.0, 0.72), (0.32, 0.19, 0.2))                    # a leather smock
@@ -736,7 +757,12 @@ if __name__ == "__main__":
                                                   (digger, villagers, "digger", False),
                                                   (merchant, villagers, "merchant", False),
                                                   (crafter, villagers, "crafter", False),
+                                                  (curator, villagers, "curator", False),
                                                   (helper, helpers, "helper", True)]):
+        # ONLY="curator,..." in the environment: just those, so one new
+        # creature does not rewrite every other one.
+        if os.environ.get("ONLY") and name not in os.environ["ONLY"].split(","):
+            continue
         rig, mesh = make()
         mesh = with_tools(rig, mesh, robot_mesh)
         work_clips(rig, robot)
@@ -746,5 +772,6 @@ if __name__ == "__main__":
         rig.location.x = 1.0 + i
     bpy.data.objects.remove(bpy.data.objects["Robot_Rig"])
     bpy.data.objects.remove(robot_mesh)
-    bpy.ops.wm.save_as_mainfile(filepath=BLEND)
+    if not os.environ.get("ONLY"):
+        bpy.ops.wm.save_as_mainfile(filepath=BLEND)
     print("villagers written to", os.path.normpath(villagers), "and", os.path.normpath(helpers))

@@ -614,9 +614,9 @@ core.render.pass(name, order, fn)                -- only on a client
 core.render.box(x, y, z, w, h, d, r, g, b, a)    -- only inside a pass
 core.render.model(id, x, y, z, yaw?, scale?, pitch?, roll?, dissolve?)   -- a model of the world, only inside a pass
 core.render.fx(kind, x, y, z, size?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- a light effect, only inside a pass
-core.render.camera(id, x, y, z, yaw?, pitch?, fov?)   -- a camera's picture, drawn now and then
+core.render.camera(id, x, y, z, yaw?, pitch?, fov?, still?)   -- a camera's picture, drawn now and then (still: once)
 core.render.camera_drop(id)                      -- and forgotten
-core.render.screen(id, x, y, z, yaw?, w?, h?)    -- a camera's picture on a rectangle, only inside a pass
+core.render.screen(id, x, y, z, yaw?, w?, h?, plain?)   -- a camera's picture on a rectangle, only inside a pass
 core.overcast(how_much)                          -- grey sky and clouds, 0..1: the weather (mods/weather)
 core.sky_flash(how_much)                         -- a bolt's light on the land and the sky, this frame
 core.sky_eclipse(how_much)                       -- the sun black in a ring, the sky and the land dark, 0..1
@@ -825,12 +825,14 @@ exist.
 **Cameras and screens.** `core.render.camera(id, x, y, z, yaw, pitch, fov)` -- any time, not only in a
 pass -- puts a camera at `x, y, z` looking along `yaw` (0 towards -z, as a body's) and `pitch` (up
 positive), `fov` degrees wide (70 if not said); called again it moves it, and
-`core.render.camera_drop(id)` forgets it. Inside a pass, `core.render.screen(id, x, y, z, yaw, w, h)`
-shows that camera's picture on an upright rectangle `w` by `h` about `x, y, z`, facing along `yaw`, lit
-by itself as a screen is; a camera with no picture yet shows snow. The engine draws a camera's picture
+`core.render.camera_drop(id)` forgets it; an eighth argument `true` makes it **still**: drawn once and
+kept, a photograph (moved, it is drawn once again). Inside a pass, `core.render.screen(id, x, y, z, yaw,
+w, h, plain)` shows that camera's picture on an upright rectangle `w` by `h` about `x, y, z`, facing
+along `yaw`, lit by itself as a screen is -- or, `plain`, as a print in a frame, no scan lines; a camera
+with no picture yet shows snow. The engine draws a camera's picture
 (128 pixels a side, 96 nodes deep, its world's bodies and the mods' passes in it) only while a screen
 of it has been shown in the last second, two pictures a frame at most and each at most every fourth
-frame: a screen's picture is a little behind, and sixteen cameras a world is the most. A mod's ids are
+frame: a screen's picture is a little behind, and sixty-four cameras a world, still ones included, is the most. A mod's ids are
 its own. Client only, like every `core.render`; what a camera sees is not known to the server
 (`mods/cameras` works out its own seeing with rays).
 
@@ -2063,6 +2065,9 @@ Some that other mods use:
   the weather (the darker of the two holds): `mods/sky`'s eclipse, which lets the night's creatures out.
 * **`farm:season { name, left }`** (mods/farm, told by mods/weather): the season, and the days left of
   it.
+* **`museum:photo { player, tag, id }`** (mods/villagers): a photograph offered from an album (mods/album)
+  of a rare place (`peak`, `hollows`, `relic`, `clouds`); the museum of the village the player stands in
+  takes the first of each.
 
 ### Pages: `core.page_register` and `core.page_show`
 

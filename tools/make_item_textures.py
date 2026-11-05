@@ -437,6 +437,27 @@ SHAPES["passport_passport"] = ([
     "................",
 ], {"r": (110, 20, 25), "R": (150, 30, 35), "g": (225, 180, 70), "p": (235, 228, 210)})
 
+# The camera (mods/album): a black body, a silver top, its lens and flash.
+SHAPES["album_camera"] = ([
+    "................",
+    "................",
+    "................",
+    "...ss....ff.....",
+    "..sssssssssss...",
+    "..bbbbbbbbbbbb..",
+    "..bbbbLLLLbbbb..",
+    "..bbbLlllLLbbb..",
+    "..bbbLlhlLLbbb..",
+    "..bbbLlllLLbbb..",
+    "..bbbbLLLLbbbb..",
+    "..bbbbbbbbbbbb..",
+    "................",
+    "................",
+    "................",
+    "................",
+], {"b": (35, 35, 40), "s": (190, 192, 198), "f": (240, 240, 220), "L": (80, 82, 90),
+    "l": (40, 60, 110), "h": (200, 220, 255)})
+
 # Honey (mods/bees): the flask full of it, and a honeycomb, wax cells round
 # their honey ("w" wax, "W" its light edge, "o" honey, "O" its glint).
 SHAPES["bees_honey_bottle"] = (FLASK, {"k": (150, 105, 60), "K": (190, 140, 85), "g": (215, 235, 240),

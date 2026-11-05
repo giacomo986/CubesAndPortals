@@ -31,13 +31,14 @@ core.mob_pierce("villagers:archer", 0.5)
 core.register_mob("villagers:inspector", core.register_model("villagers:inspector", "inspector.gltf"), 20,
     2.6, "worker", 0, 1.6, 1.0, "", 1, 0, true)
 -- And the village's mayor, who sells its land, its builder, its merchant
--- and its crafter, who makes the tools and torches the others use.
-for _, k in { "mayor", "builder", "merchant", "crafter" } do
+-- and its crafter, who makes the tools and torches the others use; and its
+-- museum's curator (museum.luau).
+for _, k in { "mayor", "builder", "merchant", "crafter", "curator" } do
     core.register_mob(`villagers:{k}`, core.register_model(`villagers:{k}`, `{k}.gltf`), 20, 2.4, "worker", 0,
         1.6, 1.0, "", 1, 0, true)
 end
 local HOLDS = { guard = "tools:sword", archer = "archery:bow", inspector = "", mayor = "", builder = "",
-                merchant = "", crafter = "" }
+                merchant = "", crafter = "", curator = "" }
 
 -- The tool each worker works with, by kind. It wears out and comes from the
 -- village's chests, where the crafter puts new ones; without one, every work
@@ -658,7 +659,7 @@ local function come_out(v: V)
     v.walking = false
     v.hunting, v.prey = nil, nil
     v.co = coroutine.create(function() live(v) end)
-    if v.kind == "mayor" or v.kind == "builder" or v.kind == "merchant" then
+    if v.kind == "mayor" or v.kind == "builder" or v.kind == "merchant" or v.kind == "curator" then
         core.log(`villagers: the {v.kind} of {v.rk} is creature {nid}`)
     end
     if HOLDS[v.kind] ~= nil and HOLDS[v.kind] ~= "" then
@@ -767,13 +768,15 @@ end)
 -- (One table for the keepers' signs and buildings: the file is at Luau's
 -- 200 locals.)
 local KEEPING = {
-    marks = { "villages:bell", "villages:banner", "villages:scales", "villages:plans", "building:anvil" },
+    marks = { "villages:bell", "villages:banner", "villages:scales", "villages:plans", "building:anvil",
+              "villagers:curio" },
     -- The signs of the keepers' small houses (order_post, below).
-    keep = { keep_scales = "villages:scales", keep_plans = "villages:plans", keep_anvil = "building:anvil" },
+    keep = { keep_scales = "villages:scales", keep_plans = "villages:plans", keep_anvil = "building:anvil",
+             keep_museum = "villagers:curio" },
     -- Which sign each keeper's bed should be under.
     role = { mayor = "villages:bell", builder = "villages:plans", merchant = "villages:scales",
              crafter = "building:anvil", inspector = "villages:banner", guard = "villages:banner",
-             archer = "villages:banner" },
+             archer = "villages:banner", curator = "villagers:curio" },
     -- Where a village's keepers' buildings are looked for: its box (its
     -- homes and REACH round them) and this much further -- the hall stands
     -- by the square, which may be past the homes on one side.
@@ -786,6 +789,9 @@ local KEEPING = {
         ["villages:scales"] = { kind = "keep_scales", w = 5, d = 5, what = "the merchant's house" },
         ["villages:plans"] = { kind = "keep_plans", w = 5, d = 5, what = "the builder's house" },
         ["building:anvil"] = { kind = "keep_anvil", w = 5, d = 5, what = "the crafter's house" },
+        -- Seven by seven: wider than eight would be two storeys (order_post),
+        -- and its sign more than 4 from the bed (bed_mark).
+        ["villagers:curio"] = { kind = "keep_museum", w = 7, d = 7, what = "the village's museum" },
     },
 }
 local function bed_mark(x: number, y: number, z: number): string?

@@ -673,10 +673,13 @@ typedef struct script_host {
     // its own; `camera_drop` forgets it. And a screen (core.render.screen),
     // inside a pass: camera `id`'s picture on an upright rectangle about
     // (x, y, z), `w` by `h`, facing along `yaw`.
+    // `still`: drawn once and kept, a photograph. `plain` on a screen: no
+    // scan lines and lit as a picture on a wall is, not by itself.
     int (*render_camera)(void *ud, int id, double x, double y, double z, double yaw, double pitch,
-                         double fov);
+                         double fov, int still);
     int (*render_camera_drop)(void *ud, int id);
-    int (*render_screen)(void *ud, int id, double x, double y, double z, double yaw, double w, double h);
+    int (*render_screen)(void *ud, int id, double x, double y, double z, double yaw, double w, double h,
+                         int plain);
 
     // Drawing over the screen rather than into the world (TODO.md OPEN-49): a
     // counter, a timer, a crosshair. A pass of its own and not a render pass,

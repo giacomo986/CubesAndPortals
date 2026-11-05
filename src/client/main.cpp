@@ -1505,6 +1505,7 @@ struct Scene {
         uint64_t    shown_at = 0;   // the frame a screen last showed it
         uint64_t    drawn_at = 0;   // and the frame it was last drawn
         bool        drawn    = false;
+        bool        still    = false;   // drawn once and kept: a photograph
     };
     std::vector<CameraFeed> feeds;
     uint64_t                feed_frame = 0;
@@ -2054,7 +2055,7 @@ int host_render_fx(void *ud, const char *kind, double x, double y, double z, dou
 constexpr int   kFeedSize  = 128;    // pixels a side
 constexpr int   kFeedEvery = 4;      // frames at least between two pictures of one camera
 constexpr int   kFeedsAFrame = 2;    // pictures drawn in one frame at most
-constexpr int   kFeedsMost = 16;     // cameras a world keeps
+constexpr int   kFeedsMost = 64;     // cameras a world keeps (a still one counts)
 constexpr float kFeedRange = 96.0f;  // nodes a camera sees
 constexpr uint64_t kFeedIdle = 60;   // frames unshown before a camera stops being drawn
 
@@ -2065,7 +2066,8 @@ Scene::CameraFeed *find_feed(Scene &s, const void *vm, int id)
     return nullptr;
 }
 
-int host_render_camera(void *ud, int id, double x, double y, double z, double yaw, double pitch, double fov)
+int host_render_camera(void *ud, int id, double x, double y, double z, double yaw, double pitch, double fov,
+                       int still)
 {
     Scene *s = static_cast<Scene *>(ud);
     for (const double v : {x, y, z, yaw, pitch, fov})
@@ -2082,10 +2084,17 @@ int host_render_camera(void *ud, int id, double x, double y, double z, double ya
         f->vm = vm;
         f->id = id;
     }
-    f->pos   = Vec3{(float)x, (float)y, (float)z};
+    const Vec3  pos{(float)x, (float)y, (float)z};
+    const float p = (float)std::clamp(pitch, -1.5, 1.5), v = (float)std::clamp(fov, 20.0, 120.0);
+    // A still one moved is a new picture.
+    if (f->pos.x != pos.x || f->pos.y != pos.y || f->pos.z != pos.z || f->yaw != (float)yaw || f->pitch != p ||
+        f->fov != v)
+        f->drawn = false;
+    f->pos   = pos;
     f->yaw   = (float)yaw;
-    f->pitch = (float)std::clamp(pitch, -1.5, 1.5);
-    f->fov   = (float)std::clamp(fov, 20.0, 120.0);
+    f->pitch = p;
+    f->fov   = v;
+    f->still = still != 0;
     return 1;
 }
 
@@ -2103,7 +2112,7 @@ int host_render_camera_drop(void *ud, int id)
     return 0;
 }
 
-int host_render_screen(void *ud, int id, double x, double y, double z, double yaw, double w, double h)
+int host_render_screen(void *ud, int id, double x, double y, double z, double yaw, double w, double h, int plain)
 {
     Scene *s = static_cast<Scene *>(ud);
     if (!s->in_pass) {
@@ -2125,7 +2134,7 @@ int host_render_screen(void *ud, int id, double x, double y, double z, double ya
     const Vec3 right{(float)std::cos(yaw) * (float)w * 0.5f, 0.0f, (float)std::sin(yaw) * (float)w * 0.5f};
     const Vec3 up{0.0f, (float)h * 0.5f, 0.0f};
     s->screen_render.draw(tex, Vec3{(float)x, (float)y, (float)z}, right, up, (float)std::fmod(plat_time(), 3600.0),
-                          s->pass_projection, s->pass_view);
+                          plain != 0, s->pass_projection, s->pass_view);
     return 1;
 }
 
@@ -7307,7 +7316,7 @@ void render_feeds(Scene &s)
     if (s.feeds.empty()) return;
     std::vector<Scene::CameraFeed *> due;
     for (Scene::CameraFeed &f : s.feeds)
-        if (s.feed_frame - f.shown_at < kFeedIdle && (!f.drawn || s.feed_frame - f.drawn_at >= (uint64_t)kFeedEvery))
+        if (s.feed_frame - f.shown_at < kFeedIdle && (!f.drawn || (!f.still && s.feed_frame - f.drawn_at >= (uint64_t)kFeedEvery)))
             due.push_back(&f);
     if (due.empty()) return;
     diag::ProfScope _("cameras");

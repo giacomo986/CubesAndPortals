@@ -21,14 +21,16 @@ public:
 
     // The picture `tex` (0: snow) on the rectangle about `center` spanned by
     // `right` and `up` (half its width and height each way).
-    void draw(gfx_texture tex, Vec3 center, Vec3 right, Vec3 up, float time, const Mat4 &projection,
+    // `plain`: a photograph -- no scan lines, a little darker, its edge a frame's.
+    void draw(gfx_texture tex, Vec3 center, Vec3 right, Vec3 up, float time, bool plain, const Mat4 &projection,
               const Mat4 &view);
 
 private:
     gfx_shader m_shader{};
     gfx_buffer m_vb{};
     gfx_mesh   m_mesh{};
-    int m_loc_center = -1, m_loc_right = -1, m_loc_up = -1, m_loc_tex = -1, m_loc_has = -1, m_loc_time = -1;
+    int m_loc_center = -1, m_loc_right = -1, m_loc_up = -1, m_loc_tex = -1, m_loc_has = -1, m_loc_time = -1,
+        m_loc_plain = -1;
 };
 
 } // namespace cnp

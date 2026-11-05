@@ -260,8 +260,17 @@ E.board = function(p: number, rk: string)
     local l = E.load(rk)
     local news = AID.ev.lines(rk)
     local top = #news * 1.1
+    local paper = AID.ev.paper(rk)
+    local low = 1.9 + top + math.max(1, #l) * 1.1   -- under the errands: the village paper
     local name = panel_of(p, "board")
-    core.ui_define(name, 15, 3.4 + top + math.max(1, #l) * 1.1)
+    core.ui_define(name, 15, 3.4 + top + math.max(1, #l) * 1.1 + (if #paper > 0 then 1.1 + #paper * 1.1 else 0))
+    if #paper > 0 then
+        core.ui_label(name, 0.4, low, "The village paper:")
+        for i, line in paper do
+            core.ui_label(name, 0.4, low + i * 1.1, line)
+        end
+        low += 1.1 + #paper * 1.1
+    end
     for i, n in news do
         core.ui_label(name, 0.4, 0.3 + (i - 1) * 1.1, n)
     end
@@ -273,7 +282,7 @@ E.board = function(p: number, rk: string)
     if #l == 0 then
         core.ui_label(name, 0.4, 1.3 + top, "Nothing today.")
     end
-    core.ui_button(name, "close", 0.4, 1.9 + top + math.max(1, #l) * 1.1, 14.2, 1.1, "Close")
+    core.ui_button(name, "close", 0.4, low, 14.2, 1.1, "Close")
     core.ui_show(name, true, p)
 end
 

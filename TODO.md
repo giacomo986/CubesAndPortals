@@ -929,6 +929,15 @@ loading).
 Proposed in a review of the game and agreed as worth doing (Giacomo, 2026-11-04);
 none designed or built yet. Effort is a first guess. Suggested start: 6, 1, 13.
 
+Agreed with Giacomo 2026-11-05: 8 a village building with a curator, the
+first of each thing brought put in a case and paid in rubies, a collection per
+village; 7 a camera that takes a real picture (the cameras' render target),
+hung as a picture, the museum's curator paying for pictures of rare places;
+11 the board tells what players really did (thefts caught, sieges defended,
+caravans from named villages, feasts), naming them; 14 the worlds' tools in a
+limited form (rope gun, portal gun with charges, kart on the villages' roads),
+only for whoever beat l'Ospite.
+
 Portals -- the engine's own trick, used further:
 1. A house bigger inside (low). A door that is a portal onto a pocket room
    built in a hidden area of the world: a 3x3 hut opening on a hall. Only
@@ -1040,9 +1049,24 @@ The sandbox:
 7. A camera and an album (medium). Photos hung as pictures; a curator
    villager holds a show and pays for photos of rare places (relics, the
    Hollows, peaks).
+   BUILT 2026-11-05 (mods/album): a camera item takes a photograph -- where
+   the eye is and its look -- into the player's album (40, /album); a frame
+   asks which to hang; each machine draws it once from that place
+   (core.render.camera still, core.render.screen plain: new). Taken on a
+   peak, in the Hollows, by relics or over y 115 it is offered to the museum
+   (event museum:photo). Checked headless: two photographs, one hung, an
+   offer. Open: no photograph yet seen drawn; it shows the place as it is
+   when first seen, not as it was.
 8. A museum and collections (low). A village building with cases for fish,
    ores, relics and cards; the first of each brought is paid for. Uses what
    exists, and gives the sandbox a long goal after the credits.
+   BUILT 2026-11-05 (mods/villagers, museum.luau): the curio sign, a 7x7
+   keep_museum ordered by order_post, seven plinths, the CURATOR (model in
+   tools/make_villager_models.py, ONLY=curator); 21 things wanted (fish,
+   ores, gems, the deep's and the relics' finds), the first of each paid
+   from the treasury, shown on the plinths (core.show_item). Checked: the
+   village ordered its museum, the curator came out, a carp given paid 1
+   ruby. Open: no cards (none are items); the plinths not yet seen filled.
 9. A hang glider and a hot-air balloon (medium). Boat, cart, pony and kart
    exist; nothing flies cheaply. The glider off mountains and gorges (it
    suits parkour), the balloon for slow trips above the clouds.
@@ -1077,6 +1101,11 @@ The sandbox:
 11. The village paper (low). The board tells gossip of what the player really
    did -- a theft marked, a siege defended, a caravan arrived from a named
    village -- from data the villagers already keep.
+   BUILT 2026-11-05 (events.luau EV.deed / EV.paper, storage "paper rk"):
+   the newest eight deeds with their day, on the board under the errands --
+   sieges held (by name), caravans brought in or lost (the escort), feasts,
+   thefts caught, gifts to the museum. Checked headless: a feast and a gift
+   recorded without error.
 12. Bees and honey (low). Hives by flowers, by season (none in winter); honey
    for alchemy and food; bees pollinate the fields round them.
    BUILT 2026-11-05 (mods/bees): wild nests on one flower in sixty, hives of

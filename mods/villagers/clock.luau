@@ -20,6 +20,7 @@ local save_homes = common.save_homes
 local show_builder = common.show_builder
 local show_mayor = common.show_mayor
 local show_trade = common.show_trade
+local show_curator = common.show_curator
 local step = common.step
 local survey = common.survey
 local TRADES = common.TRADES
@@ -128,7 +129,8 @@ core.event.on("core:used_mob", function(ev)
         end
     end
     for _, v in watch do
-        if v.id == ev.target and (v.kind == "mayor" or v.kind == "builder" or v.kind == "merchant") then
+        if v.id == ev.target and (v.kind == "mayor" or v.kind == "builder" or v.kind == "merchant"
+            or v.kind == "curator") then
             local x, _, z = core.player_pos(ev.player)
             local rk = if x ~= nil and z ~= nil then village_at(x, z) else nil
             if rk ~= nil and trust_of(rk, core.player_name(ev.player)).strikes > 0 then
@@ -137,6 +139,8 @@ core.event.on("core:used_mob", function(ev)
                 show_mayor(ev.player, v.rk :: string)
             elseif v.kind == "merchant" then
                 show_trade(ev.player, v.rk :: string, "merchant")
+            elseif v.kind == "curator" then
+                show_curator(ev.player, v.rk :: string)
             else
                 show_builder(ev.player, v.rk :: string)
             end

@@ -655,9 +655,9 @@ core.render.pass(nome, ordine, fn)               -- solo su un client
 core.render.box(x, y, z, w, h, d, r, g, b, a)    -- solo dentro un pass
 core.render.model(id, x, y, z, yaw?, scala?, pitch?, roll?, dissolve?)   -- un modello del mondo, solo dentro un pass
 core.render.fx(tipo, x, y, z, misura?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- un effetto di luce, solo dentro un pass
-core.render.camera(id, x, y, z, yaw?, pitch?, fov?)   -- l'immagine di una telecamera, disegnata ogni tanto
+core.render.camera(id, x, y, z, yaw?, pitch?, fov?, still?)   -- l'immagine di una telecamera, disegnata ogni tanto (still: una volta)
 core.render.camera_drop(id)                      -- e dimenticata
-core.render.screen(id, x, y, z, yaw?, w?, h?)    -- l'immagine di una telecamera su un rettangolo, solo dentro un pass
+core.render.screen(id, x, y, z, yaw?, w?, h?, plain?)   -- l'immagine di una telecamera su un rettangolo, solo dentro un pass
 core.overcast(quanto)                            -- cielo e nuvole grigi, 0..1: il meteo (mods/weather)
 core.sky_flash(quanto)                           -- la luce di un fulmine su terra e cielo, in questo frame
 core.sky_eclipse(quanto)                         -- il sole nero in un anello, cielo e terra scuri, 0..1
@@ -897,13 +897,15 @@ Restituisce false per un tipo che non c'è.
 **Telecamere e schermi.** `core.render.camera(id, x, y, z, yaw, pitch, fov)` -- in qualsiasi momento,
 non solo in una passata -- mette una telecamera in `x, y, z` che guarda lungo `yaw` (0 verso -z, come un
 corpo) e `pitch` (in su positivo), larga `fov` gradi (70 se non detto); richiamata la sposta, e
-`core.render.camera_drop(id)` la dimentica. Dentro una passata, `core.render.screen(id, x, y, z, yaw, w,
-h)` mostra l'immagine di quella telecamera su un rettangolo verticale `w` per `h` attorno a `x, y, z`,
-rivolto lungo `yaw`, illuminato da sé come uno schermo; una telecamera ancora senza immagine mostra la
-neve. Il motore disegna l'immagine di una telecamera (128 pixel di lato, 96 nodi di profondità, con i
+`core.render.camera_drop(id)` la dimentica; un ottavo argomento `true` la rende **ferma**: disegnata una
+volta e tenuta, una fotografia (spostata, viene ridisegnata una volta). Dentro una passata,
+`core.render.screen(id, x, y, z, yaw, w, h, plain)` mostra l'immagine di quella telecamera su un
+rettangolo verticale `w` per `h` attorno a `x, y, z`, rivolto lungo `yaw`, illuminato da sé come uno
+schermo -- oppure, `plain`, come una stampa in cornice, senza righe; una telecamera ancora senza
+immagine mostra la neve. Il motore disegna l'immagine di una telecamera (128 pixel di lato, 96 nodi di profondità, con i
 corpi del suo mondo e le passate dei mod) solo se uno schermo l'ha mostrata nell'ultimo secondo, al più
 due immagini per fotogramma e ognuna al più ogni quarto fotogramma: l'immagine di uno schermo è un poco
-indietro, e sedici telecamere per mondo sono il massimo. Gli id di un mod sono suoi. Solo sul client,
+indietro, e sessantaquattro telecamere per mondo, ferme comprese, sono il massimo. Gli id di un mod sono suoi. Solo sul client,
 come ogni `core.render`; cosa vede una telecamera il server non lo sa (`mods/cameras` calcola da sé cosa
 vede, con dei raggi).
 
@@ -2326,6 +2328,9 @@ Alcuni che usano altri mod:
   sia il meteo (vale il più scuro dei due): l'eclissi di `mods/sky`, che fa uscire le creature della notte.
 * **`farm:season { name, left }`** (mods/farm, detto da mods/weather): la stagione, e i giorni che ne
   restano.
+* **`museum:photo { player, tag, id }`** (mods/villagers): una foto offerta da un album (mods/album) di un
+  luogo raro (`peak`, `hollows`, `relic`, `clouds`); il museo del villaggio in cui sta il giocatore
+  prende la prima di ognuno.
 
 ### Pagine: `core.page_register` e `core.page_show`
 
