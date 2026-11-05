@@ -26,6 +26,7 @@
 #include "core/physics/rigid.h"
 #include "client/render/body_render.h"
 #include "client/render/fx_render.h"
+#include "client/render/screen_render.h"
 #include "client/render/mod_pass.h"
 #include "client/render/portal_render.h"
 #include "client/render/selection.h"
@@ -1491,6 +1492,25 @@ struct Scene {
     BodyRenderer      body_render;
     FxRenderer        fx_render;   // core.render.fx, made at its first use
     int               fx_ready = 0;   // 0 not tried, 1 made, -1 failed
+
+    // Cameras (core.render.camera), each drawn into a small picture of its own
+    // now and then (render_feeds), for screens (core.render.screen) to show.
+    // A mod's ids are its own: the key is the VM and the number.
+    struct CameraFeed {
+        const void *vm = nullptr;
+        int         id = 0;
+        Vec3        pos{};
+        float       yaw = 0.0f, pitch = 0.0f, fov = 70.0f;
+        gfx_rt      rt{};
+        uint64_t    shown_at = 0;   // the frame a screen last showed it
+        uint64_t    drawn_at = 0;   // and the frame it was last drawn
+        bool        drawn    = false;
+    };
+    std::vector<CameraFeed> feeds;
+    uint64_t                feed_frame = 0;
+    const CameraFeed       *feeding    = nullptr;   // being drawn now: a screen of it shows snow
+    ScreenRenderer          screen_render;
+    int                     screen_ready = 0;
     // Karts' nitro flames this pass, nozzle and tip (flames_of, draw_kart_fx).
     std::vector<std::pair<Vec3, Vec3>> kart_flames;
 
@@ -2026,6 +2046,86 @@ int host_render_fx(void *ud, const char *kind, double x, double y, double z, dou
     s->fx_render.draw((FxKind)k, Vec3{(float)x, (float)y, (float)z}, Vec3{(float)x2, (float)y2, (float)z2},
                       (float)size, rgba, (float)std::clamp(t, 0.0, 1.0), (float)std::fmod(plat_time(), 3600.0),
                       s->pass_projection, s->pass_view);
+    return 1;
+}
+
+// core.render.camera and its screens (render/screen_render.h); drawn by
+// render_feeds before the main pass, as a portal's target is.
+constexpr int   kFeedSize  = 128;    // pixels a side
+constexpr int   kFeedEvery = 4;      // frames at least between two pictures of one camera
+constexpr int   kFeedsAFrame = 2;    // pictures drawn in one frame at most
+constexpr int   kFeedsMost = 16;     // cameras a world keeps
+constexpr float kFeedRange = 96.0f;  // nodes a camera sees
+constexpr uint64_t kFeedIdle = 60;   // frames unshown before a camera stops being drawn
+
+Scene::CameraFeed *find_feed(Scene &s, const void *vm, int id)
+{
+    for (Scene::CameraFeed &f : s.feeds)
+        if (f.vm == vm && f.id == id) return &f;
+    return nullptr;
+}
+
+int host_render_camera(void *ud, int id, double x, double y, double z, double yaw, double pitch, double fov)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    for (const double v : {x, y, z, yaw, pitch, fov})
+        if (!std::isfinite(v)) return 0;
+    const void        *vm = mod_host_current_vm();
+    Scene::CameraFeed *f  = find_feed(*s, vm, id);
+    if (f == nullptr) {
+        if ((int)s->feeds.size() >= kFeedsMost) {
+            std::printf("[mod] render.camera: no more than %d cameras\n", kFeedsMost);
+            return 0;
+        }
+        s->feeds.push_back(Scene::CameraFeed{});
+        f     = &s->feeds.back();
+        f->vm = vm;
+        f->id = id;
+    }
+    f->pos   = Vec3{(float)x, (float)y, (float)z};
+    f->yaw   = (float)yaw;
+    f->pitch = (float)std::clamp(pitch, -1.5, 1.5);
+    f->fov   = (float)std::clamp(fov, 20.0, 120.0);
+    return 1;
+}
+
+int host_render_camera_drop(void *ud, int id)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    const void *vm = mod_host_current_vm();
+    for (size_t i = 0; i < s->feeds.size(); ++i) {
+        if (s->feeds[i].vm == vm && s->feeds[i].id == id) {
+            if (s->feeds[i].rt.id) gfx_rt_destroy(s->feeds[i].rt);
+            s->feeds.erase(s->feeds.begin() + (long)i);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int host_render_screen(void *ud, int id, double x, double y, double z, double yaw, double w, double h)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    if (!s->in_pass) {
+        std::printf("[mod] render.screen: only a render pass may draw\n");
+        return 0;
+    }
+    for (const double v : {x, y, z, yaw, w, h})
+        if (!std::isfinite(v)) return 0;
+    if (!(w > 0.0 && w <= 32.0 && h > 0.0 && h <= 32.0)) return 0;
+    if (s->screen_ready == 0) s->screen_ready = s->screen_render.init() ? 1 : -1;
+    if (s->screen_ready < 0) return 0;
+    Scene::CameraFeed *f = find_feed(*s, mod_host_current_vm(), id);
+    gfx_texture tex{0};
+    if (f != nullptr) {
+        f->shown_at = s->feed_frame;
+        // Not the picture being drawn into right now, nor one never drawn.
+        if (f != s->feeding && f->drawn && f->rt.id) tex = gfx_rt_texture(f->rt);
+    }
+    const Vec3 right{(float)std::cos(yaw) * (float)w * 0.5f, 0.0f, (float)std::sin(yaw) * (float)w * 0.5f};
+    const Vec3 up{0.0f, (float)h * 0.5f, 0.0f};
+    s->screen_render.draw(tex, Vec3{(float)x, (float)y, (float)z}, right, up, (float)std::fmod(plat_time(), 3600.0),
+                          s->pass_projection, s->pass_view);
     return 1;
 }
 
@@ -2714,6 +2814,20 @@ int host_body_mount(void *ud, int player, int on)
 {
     if ((ui::PlayerId)player != ui::kLocalPlayer) return 0;
     static_cast<Scene *>(ud)->act().movement.mount = on != 0;
+    return 1;
+}
+
+int host_body_glide(void *ud, int player, int on)
+{
+    if ((ui::PlayerId)player != ui::kLocalPlayer) return 0;
+    static_cast<Scene *>(ud)->act().movement.glide = on != 0;
+    return 1;
+}
+
+int host_body_balloon(void *ud, int player, int on)
+{
+    if ((ui::PlayerId)player != ui::kLocalPlayer) return 0;
+    static_cast<Scene *>(ud)->act().movement.balloon = on != 0;
     return 1;
 }
 
@@ -7183,6 +7297,54 @@ void draw_hud_passes(Scene &s)
     s.in_hud_pass = false;
 }
 
+// The cameras' pictures (core.render.camera): those a screen showed lately,
+// the longest waiting first, two a frame, each at most every kFeedEvery
+// frames. The world in sight, its bodies and the mods' passes -- a screen in
+// a camera's sight shows that camera's last picture, never the one being made.
+void render_feeds(Scene &s)
+{
+    ++s.feed_frame;
+    if (s.feeds.empty()) return;
+    std::vector<Scene::CameraFeed *> due;
+    for (Scene::CameraFeed &f : s.feeds)
+        if (s.feed_frame - f.shown_at < kFeedIdle && (!f.drawn || s.feed_frame - f.drawn_at >= (uint64_t)kFeedEvery))
+            due.push_back(&f);
+    if (due.empty()) return;
+    diag::ProfScope _("cameras");
+    std::sort(due.begin(), due.end(),
+              [](const Scene::CameraFeed *a, const Scene::CameraFeed *b) { return a->drawn_at < b->drawn_at; });
+    Session       &w  = s.act();
+    WorldRenderer &wr = w.world_render;
+    wr.set_view_range(std::min(w.view_range, kFeedRange));
+    for (size_t i = 0; i < due.size() && (int)i < kFeedsAFrame; ++i) {
+        Scene::CameraFeed &f = *due[i];
+        if (f.rt.id == 0) f.rt = gfx_rt_create(kFeedSize, kFeedSize, true);
+        if (f.rt.id == 0) continue;
+        const float cp = std::cos(f.pitch);
+        const Vec3  fwd{std::sin(f.yaw) * cp, std::sin(f.pitch), -std::cos(f.yaw) * cp};
+        const Vec3  side = normalize(cross(fwd, Vec3{0.0f, 1.0f, 0.0f}));
+        const Vec3  up   = cross(side, fwd);
+        const Mat4  projection = mat4_perspective(f.fov * 3.14159265f / 180.0f, 1.0f, kZNear, kFeedRange * 1.5f);
+        const Mat4  view       = mat4_look_to(f.pos, fwd, up);
+        s.feeding = &f;
+        gfx_rt_begin(f.rt);
+        gfx_clear(w.sky[0], w.sky[1], w.sky[2], w.sky[3], true);
+        gfx_state state = gfx_state_default();
+        gfx_state_set(&state);
+        wr.set_water(true, f.pos, 1);
+        wr.draw(projection, view);
+        draw_bodies(s, w, projection, view);
+        wr.draw_translucent(projection, view);
+        wr.set_water(false);
+        draw_mod_passes(s, s.active, projection, view);
+        gfx_rt_end();
+        s.feeding  = nullptr;
+        f.drawn    = true;
+        f.drawn_at = s.feed_frame;
+    }
+    wr.set_view_range(w.view_range);
+}
+
 // The portal renderer calls this to put the bodies inside a portal's image.
 // Without it a crate halfway through is cut correctly in the world and simply
 // absent from the view through the opening, which is worse than not cutting it
@@ -11104,6 +11266,10 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
                                              forward, up, g_fov_y, aspect, kZNear, kZFar);
         }
     }
+
+    // The cameras' pictures (core.render.camera), into their own targets
+    // before the main pass, as the openings' are.
+    render_feeds(s);
 
     // The sun's shadow map around the eye, after the openings, which drew
     // their own into the same target.
@@ -19035,6 +19201,11 @@ int run_interactive(Scene &s, double seconds)
         } else if (player.flying) {
             // The server's rule: a flight down to the ground is not a fall.
             fall_reset(demo_fall, player.pos.y);
+        } else if ((s.act().movement.glide || s.act().movement.balloon) &&
+                   player.velocity.y > -(kGlideSink + kGlideDiveSink + 1.5f)) {
+            // And under a glider or in a balloon, a descent no faster than a
+            // wing lets one down (the server's, src/core/net/session.cpp).
+            fall_reset(demo_fall, player.pos.y);
         } else if (s.act().registry.is_liquid(s.act().world.get_block(
                        (int)std::floor(player.pos.x), (int)std::floor(player.pos.y),
                        (int)std::floor(player.pos.z)))) {
@@ -19699,6 +19870,9 @@ script_host make_client_host(Scene &scene)
     host.render_pass   = host_render_pass;
     host.render_box    = host_render_box;
     host.render_fx     = host_render_fx;
+    host.render_camera      = host_render_camera;
+    host.render_camera_drop = host_render_camera_drop;
+    host.render_screen      = host_render_screen;
     host.render_model  = host_render_model;
     host.hud_pass      = host_hud_pass;
     host.hud_text      = host_hud_text;
@@ -19726,6 +19900,8 @@ script_host make_client_host(Scene &scene)
     host.body_boat     = host_body_boat;
     host.body_cart     = host_body_cart;
     host.body_mount    = host_body_mount;
+    host.body_glide    = host_body_glide;
+    host.body_balloon  = host_body_balloon;
     host.notice        = host_notice;
     host.chat          = host_chat;
     host.command       = host_command;

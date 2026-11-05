@@ -612,7 +612,12 @@ core.render.pass(name, order, fn)                -- only on a client
 core.render.box(x, y, z, w, h, d, r, g, b, a)    -- only inside a pass
 core.render.model(id, x, y, z, yaw?, scale?, pitch?, roll?, dissolve?)   -- a model of the world, only inside a pass
 core.render.fx(kind, x, y, z, size?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- a light effect, only inside a pass
+core.render.camera(id, x, y, z, yaw?, pitch?, fov?)   -- a camera's picture, drawn now and then
+core.render.camera_drop(id)                      -- and forgotten
+core.render.screen(id, x, y, z, yaw?, w?, h?)    -- a camera's picture on a rectangle, only inside a pass
 core.overcast(how_much)                          -- grey sky and clouds, 0..1: the weather (mods/weather)
+core.sky_flash(how_much)                         -- a bolt's light on the land and the sky, this frame
+core.sky_eclipse(how_much)                       -- the sun black in a ring, the sky and the land dark, 0..1
 core.node_foliage(id, on?)                       -- a block that takes the season's colour
 core.foliage(r, g, b, how_much)                  -- the season's colour on the foliage, 0..1
 
@@ -814,6 +819,18 @@ tall standing on the line from `x, y, z` to `x2, y2, z2`, rays drifting across i
 nodes (for the bolt its width), `t` how much of its life has passed, 0 to 1: the shader grows,
 sweeps and fades with it, and the mod only counts time. Returns false for a kind that does not
 exist.
+
+**Cameras and screens.** `core.render.camera(id, x, y, z, yaw, pitch, fov)` -- any time, not only in a
+pass -- puts a camera at `x, y, z` looking along `yaw` (0 towards -z, as a body's) and `pitch` (up
+positive), `fov` degrees wide (70 if not said); called again it moves it, and
+`core.render.camera_drop(id)` forgets it. Inside a pass, `core.render.screen(id, x, y, z, yaw, w, h)`
+shows that camera's picture on an upright rectangle `w` by `h` about `x, y, z`, facing along `yaw`, lit
+by itself as a screen is; a camera with no picture yet shows snow. The engine draws a camera's picture
+(128 pixels a side, 96 nodes deep, its world's bodies and the mods' passes in it) only while a screen
+of it has been shown in the last second, two pictures a frame at most and each at most every fourth
+frame: a screen's picture is a little behind, and sixteen cameras a world is the most. A mod's ids are
+its own. Client only, like every `core.render`; what a camera sees is not known to the server
+(`mods/cameras` works out its own seeing with rays).
 
 The number orders passes **among themselves**, not against the engine's drawing: there is a single
 point in the frame where mods draw, after the opaque world and the bodies and before the openings.
@@ -1523,6 +1540,28 @@ What is **not** there yet: the server does not check steering and inertia. And a
 not cross a portal to another world, where that world's welcome holds, and are not saved. TODO.md
 OPEN-47.
 
+### Flying: `core.body_glide` and `core.body_balloon`
+
+```luau
+core.body_glide(player, core.held_item(player) == "glider:glider")   -- mods/glider
+core.body_balloon(player, true)                                       -- mods/balloon
+```
+
+Two more ways **one** body moves, at any time like `core.body_movement`, sent to its client and checked
+by the server with them.
+
+* **Under a glider**, a body falling faster than 2 m/s is taken by the wing: carried where it looks at
+  9 m/s sinking 1.6, diving up to 18 m/s and 6.6 down as it looks straight down, slowed towards 4
+  looking up. Crouch folds the wing and it falls; the ground ends the glide.
+* **In a balloon**, jump held lifts the body at 2.5 m/s, crouch lets it down at 3, and nothing held
+  it sinks at 0.25; the keys push it along at 2.5 and the wind carries it 0.8 m/s towards +x. On the
+  ground it walks.
+* **The server allows them**: a glider its fastest dive, a balloon any height. And a descent under
+  either no faster than a wing lets one down is **not a fall** (on the server and in a world played
+  alone); a wing folded high up falls from where it folded.
+* What they look like (`core.player_wear`), when a glider is ready, and getting in and out of a
+  balloon are the mod's.
+
 ### Only one gets in the kart: `core.body_drive` and `core.body_model`
 
 ```luau
@@ -2005,6 +2044,17 @@ with `furnace:xp` to whoever opens it; `mods/enchant` (which depends on `furnace
 core.event.define("furnace:xp", { fields = { player = "number", points = "number" }, cancellable = false })
 core.event.emit("furnace:xp", { player = ev.player, points = 3 })
 ```
+
+Some that other mods use:
+
+* **`cinnabar:source { name }`** (mods/cinnabar): a block of another mod gives power like a lever
+  that is on, once that mod has said its name; dust beside it draws a line into it. **`cinnabar:changed
+  { x, y, z }`**: a mod changed a block there that may be in a circuit -- the circuit round it is worked
+  out again. `mods/cameras` says `cameras:camera_on` and tells each change.
+* **`weather:darken { amount }`** (mods/weather): the server's day darker by this much, 0..1, whatever
+  the weather (the darker of the two holds): `mods/sky`'s eclipse, which lets the night's creatures out.
+* **`farm:season { name, left }`** (mods/farm, told by mods/weather): the season, and the days left of
+  it.
 
 ### Pages: `core.page_register` and `core.page_show`
 

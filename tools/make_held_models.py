@@ -979,6 +979,8 @@ ITEMS["building:gunpowder"] = [(lump(0.022, s, rough=0.3, at=(x, 0.03 + y, 0), s
                                for s, x, y in ((3, -0.025, 0), (5, 0.02, 0.005), (7, 0.0, 0.03))]
 ITEMS["boats:boat"] = miniature("mods/boats/boat.gltf", 0.24)
 ITEMS["carts:cart"] = miniature("mods/carts/cart.gltf", 0.18)
+ITEMS["glider:glider"] = miniature("mods/glider/glider.gltf", 0.26)
+ITEMS["balloon:balloon"] = miniature("mods/balloon/balloon.gltf", 0.22)
 
 # The ones with no icon, and how each is turned for its picture, which is seen
 # the way first person sees it: long things lie corner to corner like the

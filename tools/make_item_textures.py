@@ -377,6 +377,46 @@ for _name, (_l, _d) in LIQUIDS.items():
     SHAPES["alchemy_" + _name] = (FLASK, {"k": (150, 105, 60), "K": (190, 140, 85), "g": (215, 235, 240),
                                           "L": _l, "l": _d, "h": (250, 255, 255)})
 
+# The hang glider (mods/glider): a red and white delta seen from above, its
+# frame under it; the balloon (mods/balloon): the envelope in gores over its
+# basket.
+SHAPES["glider_glider"] = ([
+    "................",
+    ".......rr.......",
+    "......rrrr......",
+    ".....rrwwrr.....",
+    "....rrwwwwrr....",
+    "...rrwwwwwwrr...",
+    "..rrwwwwwwwwrr..",
+    ".rrrwwwwwwwwrrr.",
+    "rrrrrrrttrrrrrrr",
+    ".......tt.......",
+    "......t..t......",
+    ".....t....t.....",
+    "....tttttttt....",
+    "................",
+    "................",
+    "................",
+], {"r": (205, 35, 30), "w": (236, 232, 222), "t": (140, 145, 152)})
+SHAPES["balloon_balloon"] = ([
+    ".....yyrrrr.....",
+    "...yyyrrryyyy...",
+    "..ryyyrrryyyrr..",
+    "..ryyyrrryyyrr..",
+    ".rryyyrrryyyrrr.",
+    ".rryyyrrryyyrrr.",
+    ".rryyyrrryyyrrr.",
+    "..ryyyrrryyyrr..",
+    "...yyyrrryyyr...",
+    ".....yrrry......",
+    ".....l...l......",
+    "......l.l.......",
+    ".....bbbbbb.....",
+    ".....bBbBbB.....",
+    ".....bbbbbb.....",
+    "................",
+], {"y": (240, 195, 40), "r": (205, 40, 30), "l": (205, 190, 155), "b": (160, 115, 60), "B": (120, 82, 40)})
+
 # Honey (mods/bees): the flask full of it, and a honeycomb, wax cells round
 # their honey ("w" wax, "W" its light edge, "o" honey, "O" its glint).
 SHAPES["bees_honey_bottle"] = (FLASK, {"k": (150, 105, 60), "K": (190, 140, 85), "g": (215, 235, 240),

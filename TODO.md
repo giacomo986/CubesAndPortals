@@ -980,6 +980,20 @@ Portals -- the engine's own trick, used further:
    what it sees, from the render-to-texture the portals already draw with:
    watch the base, the kart race from the plaza, a village under a siege.
    Wired to cinnabar it is a visual sensor (something seen -> a signal).
+   BUILT 2026-11-05 (mods/cameras, side both): core.render.camera(id, x, y,
+   z, yaw, pitch, fov) / camera_drop and core.render.screen(id, x, y, z, yaw,
+   w, h) in a pass (render/screen_render.cpp): each camera's picture, 128 px,
+   96 nodes deep, bodies and mod passes in it, drawn before the main pass
+   (render_feeds) only while a screen showed it in the last 60 frames, two a
+   frame, each at most every 4th; 16 a world. A camera faces its placer,
+   right click it then a screen to link them (the screen's meta); the server
+   sends each player the screens near and their cameras. A camera seeing a
+   player or a creature within 16, 35 degrees off its look and nothing solid
+   between (core.raycast) is cameras:camera_on, a cinnabar source through the
+   new events cinnabar:source and cinnabar:changed. Checked with a probe:
+   seen -> on, dust and a lamp lit; a wall between -> off. Open: no picture
+   yet seen drawn; a screen shows only its world's cameras; cameras across a
+   portal or in another world are not drawn.
 3. Moving portals (high). A portal on a cart, a boat or a kart: a train
    entering a tunnel and leaving in another world, a door that follows you in
    the chambers. Today core.set_portal works only while the mods load and
@@ -1022,6 +1036,19 @@ The sandbox:
 9. A hang glider and a hot-air balloon (medium). Boat, cart, pony and kart
    exist; nothing flies cheaply. The glider off mountains and gorges (it
    suits parkour), the balloon for slow trips above the clouds.
+   BUILT 2026-11-05 (mods/glider, mods/balloon): core.body_glide -- falling
+   faster than 2 m/s the body is carried along its look at 9 m/s sinking 1.6,
+   diving to 18 and 6.6 looking straight down, slowed to 4 looking up, crouch
+   folds it; core.body_balloon -- jump lifts at 2.5, crouch down at 3, else a
+   sink of 0.25, the keys 2.5 along and a wind of 0.8 east, any height. Bits 5
+   and 6 of BodyMovement's moves (116 still: an older parser leaves them);
+   the server allows a glider's dive and a balloon's height, and counts a
+   descent no faster than a wing's as no fall (both ends). Held, the glider
+   is ready and its wing worn while off the ground; the balloon boards from
+   open ground and folds back landed. Models tools/make_flight_models.py.
+   Checked: physics_box (speeds, dive, fold, rise, sink, drift, the limits),
+   protocol_test (the bits). Open: not yet flown in a client; no burner
+   flame or sound; no thermals.
 10. Sky events (low). A meteor shower leaving craters with a rare ore, an
    aurora over the tundra in winter, a rare eclipse that lets monsters out by
    day. Hooks on mods/weather and its seasons.

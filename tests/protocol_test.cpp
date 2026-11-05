@@ -247,6 +247,25 @@ int main()
                 ByteReader zr(zbuf);
                 check(!BodyMovement::decode(zr, dout), "and a dig factor of 0 is refused");
             }
+            {
+                // A boat, a cart, a mount, a glider and a balloon: one bit each.
+                for (int which = 0; which < 5; ++which) {
+                    BodyMovement one;
+                    one.rules         = race.movement;
+                    one.rules.boat    = which == 0;
+                    one.rules.cart    = which == 1;
+                    one.rules.mount   = which == 2;
+                    one.rules.glide   = which == 3;
+                    one.rules.balloon = which == 4;
+                    const auto   obuf = one.encode();
+                    BodyMovement oout;
+                    ByteReader   orr(obuf);
+                    check(BodyMovement::decode(orr, oout) && oout.rules.boat == (which == 0) &&
+                              oout.rules.cart == (which == 1) && oout.rules.mount == (which == 2) &&
+                              oout.rules.glide == (which == 3) && oout.rules.balloon == (which == 4),
+                          "a body's boat, cart, mount, glider and balloon bits round trip, one at a time");
+                }
+            }
             for (const Spoilt &c : cases) {
                 BodyMovement bad;
                 bad.rules       = c.rules;

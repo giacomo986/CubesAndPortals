@@ -653,7 +653,12 @@ core.render.pass(nome, ordine, fn)               -- solo su un client
 core.render.box(x, y, z, w, h, d, r, g, b, a)    -- solo dentro un pass
 core.render.model(id, x, y, z, yaw?, scala?, pitch?, roll?, dissolve?)   -- un modello del mondo, solo dentro un pass
 core.render.fx(tipo, x, y, z, misura?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- un effetto di luce, solo dentro un pass
+core.render.camera(id, x, y, z, yaw?, pitch?, fov?)   -- l'immagine di una telecamera, disegnata ogni tanto
+core.render.camera_drop(id)                      -- e dimenticata
+core.render.screen(id, x, y, z, yaw?, w?, h?)    -- l'immagine di una telecamera su un rettangolo, solo dentro un pass
 core.overcast(quanto)                            -- cielo e nuvole grigi, 0..1: il meteo (mods/weather)
+core.sky_flash(quanto)                           -- la luce di un fulmine su terra e cielo, in questo frame
+core.sky_eclipse(quanto)                         -- il sole nero in un anello, cielo e terra scuri, 0..1
 core.node_foliage(id, on?)                       -- un blocco che prende il colore della stagione
 core.foliage(r, g, b, quanto)                    -- il colore della stagione sul fogliame, 0..1
 
@@ -886,6 +891,19 @@ viola in cima). `misura` è il raggio in
 nodi (per il fulmine la sua larghezza), `t` quanto della sua vita è passato, da 0
 a 1: lo shader cresce, spazza e sfuma con quello, e il mod conta solo il tempo.
 Restituisce false per un tipo che non c'è.
+
+**Telecamere e schermi.** `core.render.camera(id, x, y, z, yaw, pitch, fov)` -- in qualsiasi momento,
+non solo in una passata -- mette una telecamera in `x, y, z` che guarda lungo `yaw` (0 verso -z, come un
+corpo) e `pitch` (in su positivo), larga `fov` gradi (70 se non detto); richiamata la sposta, e
+`core.render.camera_drop(id)` la dimentica. Dentro una passata, `core.render.screen(id, x, y, z, yaw, w,
+h)` mostra l'immagine di quella telecamera su un rettangolo verticale `w` per `h` attorno a `x, y, z`,
+rivolto lungo `yaw`, illuminato da sé come uno schermo; una telecamera ancora senza immagine mostra la
+neve. Il motore disegna l'immagine di una telecamera (128 pixel di lato, 96 nodi di profondità, con i
+corpi del suo mondo e le passate dei mod) solo se uno schermo l'ha mostrata nell'ultimo secondo, al più
+due immagini per fotogramma e ognuna al più ogni quarto fotogramma: l'immagine di uno schermo è un poco
+indietro, e sedici telecamere per mondo sono il massimo. Gli id di un mod sono suoi. Solo sul client,
+come ogni `core.render`; cosa vede una telecamera il server non lo sa (`mods/cameras` calcola da sé cosa
+vede, con dei raggi).
 
 Il numero ordina i pass **fra di loro**, non contro il disegno del motore: c'è un
 punto solo nel frame dove i mod disegnano, dopo il mondo opaco e i corpi e prima
@@ -1690,6 +1708,30 @@ Quello che **non** c'è ancora: il server non controlla sterzo e inerzia. E i nu
 di un corpo non attraversano un portale verso un altro mondo, dove vale il welcome
 di quel mondo, e non si salvano. TODO.md OPEN-47.
 
+### In volo: `core.body_glide` e `core.body_balloon`
+
+```luau
+core.body_glide(player, core.held_item(player) == "glider:glider")   -- mods/glider
+core.body_balloon(player, true)                                       -- mods/balloon
+```
+
+Altri due modi in cui si muove **un** corpo, in qualsiasi momento come `core.body_movement`, mandati al
+suo client e controllati dal server con quelli.
+
+* **Sotto un deltaplano**, un corpo che cade più veloce di 2 m/s viene preso dall'ala: portato dove
+  guarda a 9 m/s scendendo di 1,6, in picchiata fino a 18 m/s e 6,6 giù guardando dritto in basso,
+  rallentato verso 4 guardando in alto. Accovacciarsi chiude l'ala e il corpo cade; il suolo finisce
+  il volo.
+* **In mongolfiera**, il salto tenuto la solleva a 2,5 m/s, accovacciarsi la fa scendere a 3, e senza
+  niente premuto scende di 0,25; i tasti la spingono a 2,5 e il vento la porta a 0,8 m/s verso +x. A
+  terra si cammina.
+* **Il server li ammette**: a un deltaplano la picchiata più veloce, a una mongolfiera qualunque
+  altezza. E una discesa con l'uno o con l'altra non più veloce di quanto un'ala lascia scendere **non è
+  una caduta** (sul server e in un mondo giocato da soli); un'ala chiusa in alto cade da dove si è
+  chiusa.
+* Che aspetto hanno (`core.player_wear`), quando un deltaplano è pronto, e salire e scendere dalla
+  mongolfiera sono del mod.
+
 ### Uno solo sale in kart: `core.body_drive` e `core.body_model`
 
 ```luau
@@ -2264,6 +2306,18 @@ fusione nei meta della fornace e la dà con `furnace:xp` a chi la apre;
 core.event.define("furnace:xp", { fields = { player = "number", points = "number" }, cancellable = false })
 core.event.emit("furnace:xp", { player = ev.player, points = 3 })
 ```
+
+Alcuni che usano altri mod:
+
+* **`cinnabar:source { name }`** (mods/cinnabar): un blocco di un altro mod dà energia come una leva
+  accesa, una volta che quel mod ne ha detto il nome; la polvere accanto ci disegna un braccio.
+  **`cinnabar:changed { x, y, z }`**: un mod ha cambiato lì un blocco che può far parte di un circuito --
+  il circuito attorno viene ricalcolato. `mods/cameras` dichiara `cameras:camera_on` e avvisa a ogni
+  cambio.
+* **`weather:darken { amount }`** (mods/weather): il giorno del server più scuro di tanto, 0..1, qualunque
+  sia il meteo (vale il più scuro dei due): l'eclissi di `mods/sky`, che fa uscire le creature della notte.
+* **`farm:season { name, left }`** (mods/farm, detto da mods/weather): la stagione, e i giorni che ne
+  restano.
 
 ### Pagine: `core.page_register` e `core.page_show`
 

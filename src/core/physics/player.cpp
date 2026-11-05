@@ -425,6 +425,49 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         return;
     }
 
+    // Under a glider (MovementRules::glide): falling fast enough, the wing
+    // takes the body and carries it where it looks, sinking slowly; looking
+    // down dives, up stalls; crouch folds it. The numbers are movement.h's,
+    // which the server's validator is under too.
+    if (rules.glide && !player.flying && !player.on_ground && !input.descend &&
+        (player.gliding || player.velocity.y < kGlideStart)) {
+        player.gliding   = true;
+        const float down = std::clamp(-player.pitch / 1.2f, -1.0f, 1.0f);
+        const float pace = kGlideSpeed + (down > 0.0f ? down * kGlideDive : down * (kGlideSpeed - kGlideStall));
+        const float sink = kGlideSink + std::max(0.0f, down) * kGlideDiveSink;
+        const Vec3  h    = approach(Vec3{player.velocity.x, 0.0f, player.velocity.z}, fwd * pace, kGlideGrip, dt);
+        player.velocity.x = h.x;
+        player.velocity.z = h.z;
+        player.velocity.y = std::max(player.velocity.y + rules.gravity * dt, -sink);
+        player.body_pitch = 0.25f * down;
+        const MoveResult r = move_body(world, reg, player.pos, player.velocity * dt,
+                                       player.cb_shift, kStepHeight, box_half(player, rules), box_height(player));
+        player.pos = r.pos;
+        if (r.on_ground || r.hit_ceiling) player.velocity.y = 0.0f;
+        player.on_ground = r.on_ground;
+        if (r.on_ground) player.gliding = false;
+        return;
+    }
+    player.gliding = false;
+
+    // In a balloon's basket (MovementRules::balloon), off the ground or rising
+    // off it: jump lifts, crouch lets down, otherwise a slow sink; the keys
+    // push it along slowly and the wind carries it.
+    if (rules.balloon && !player.flying && (!player.on_ground || input.jump)) {
+        const float want_y = input.jump ? kBalloonRise : input.descend ? -kBalloonFall : -kBalloonSink;
+        player.velocity.y += (want_y - player.velocity.y) * (1.0f - std::exp(-2.0f * kBalloonGrip * dt));
+        const Vec3 h = approach(Vec3{player.velocity.x, 0.0f, player.velocity.z},
+                                wish * kBalloonPush + Vec3{kBalloonDrift, 0.0f, 0.0f}, kBalloonGrip, dt);
+        player.velocity.x = h.x;
+        player.velocity.z = h.z;
+        const MoveResult r = move_body(world, reg, player.pos, player.velocity * dt,
+                                       player.cb_shift, kStepHeight, box_half(player, rules), box_height(player));
+        player.pos = r.pos;
+        if (r.on_ground || r.hit_ceiling) player.velocity.y = 0.0f;
+        player.on_ground = r.on_ground;
+        return;
+    }
+
     // Parkour (MovementRules::parkour): a slide, a run along a wall, a kick off
     // one, a rope. A backflip is the jump's, below.
     bool on_wall = false;   // running along a wall this update: no gravity

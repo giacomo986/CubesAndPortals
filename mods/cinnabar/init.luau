@@ -375,8 +375,23 @@ local changed: (number, number, number) -> () = function(_, _, _) end
 -- more dust, something that gives power out of every side, a piston's body,
 -- or a repeater or comparator that lies along that line, or an observer's back.
 -- (x, y, z) is that cell and (dx, dz) the way from it to the dust.
+-- Blocks of other mods that give power like a lever that is on: told by the
+-- event cinnabar:source (mods/cameras' camera that sees someone). By id, and
+-- by name for the search.
+local OTHER_SOURCES: { [number]: boolean } = {}
+local OTHER_NAMES: { string } = {}
+core.event.define("cinnabar:source", { fields = { name = "string" }, cancellable = false })
+core.event.on("cinnabar:source", function(ev)
+    local id = core.node_id(ev.name)
+    if id ~= 0 and not OTHER_SOURCES[id] then
+        OTHER_SOURCES[id] = true
+        PART[id] = true
+        table.insert(OTHER_NAMES, ev.name)
+    end
+end)
+
 local function dust_joins(id: number, x: number, y: number, z: number, dx: number, dz: number): boolean
-    if DUST[id] or id == LEVER or id == LEVER_ON or id == BUTTON or id == BUTTON_ON or id == TORCH
+    if OTHER_SOURCES[id] or DUST[id] or id == LEVER or id == LEVER_ON or id == BUTTON or id == BUTTON_ON or id == TORCH
         or id == TORCH_OFF or id == BLOCK or id == MORE.PLATE or id == MORE.PLATE_ON or PISTONS[id] then
         return true
     end
@@ -512,8 +527,11 @@ end
 -- are set; the rest is queued. Returns the cells it changed near the edge of
 -- its box, where the circuit may go on.
 local function solve(cx: number, cy: number, cz: number): { Cell }
-    local sources = found(cx, cy, cz, { "cinnabar:lever_on", "cinnabar:button_on", "compact:cinnabar",
-                                        "cinnabar:plate_on" })
+    local source_names = { "cinnabar:lever_on", "cinnabar:button_on", "compact:cinnabar", "cinnabar:plate_on" }
+    for _, n in OTHER_NAMES do
+        table.insert(source_names, n)
+    end
+    local sources = found(cx, cy, cz, source_names)
     local spikes = found(cx, cy, cz, { "cinnabar:spikes", "cinnabar:spikes_on" })
     local torches = found(cx, cy, cz, { "cinnabar:torch", "cinnabar:torch_off" })
     local repeaters = found(cx, cy, cz, { "cinnabar:repeater", "cinnabar:repeater_on" })
@@ -1119,6 +1137,14 @@ core.event.on("core:used", function(ev)
 end)
 
 -- Any block placed or broken may be one power goes through or stands on.
+-- Another mod changed a block that may be part of a circuit (a camera that
+-- began or stopped seeing): the circuit round it again.
+core.event.define("cinnabar:changed", { fields = { x = "number", y = "number", z = "number" }, cancellable = false })
+core.event.on("cinnabar:changed", function(ev)
+    reshape_around(ev.x, ev.y, ev.z)
+    update(ev.x, ev.y, ev.z)
+end)
+
 core.event.on("core:watched", function(ev)
     changed(ev.x, ev.y, ev.z)
 end)

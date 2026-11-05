@@ -529,6 +529,14 @@ MovementLimits limits_for(const MovementRules &rules)
         limits.rise           = -1.0f;
         limits.height         = kSlideHeight;
     }
+    // A glider at its fastest dive; a balloon at any height.
+    if (rules.glide && !rules.drives())
+        limits.max_horizontal = std::max(limits.max_horizontal, kGlideSpeed + kGlideDive);
+    if (rules.balloon && !rules.drives()) {
+        limits.max_horizontal = std::max(limits.max_horizontal, kBalloonPush + kBalloonDrift);
+        limits.max_vertical   = std::max(limits.max_vertical, kBalloonRise);
+        limits.rise           = -1.0f;
+    }
     return limits;
 }
 

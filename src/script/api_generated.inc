@@ -830,6 +830,28 @@ int l_body_mount(lua_State *L)
     return 1;
 }
 
+// core.body_glide(player: number, on: boolean?) -> number
+int l_body_glide(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int player = (int)luaL_checkinteger(L, 1);
+    const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
+    const int result = (vm && vm->host.body_glide) ? vm->host.body_glide(vm->host.ud, player, on) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.body_balloon(player: number, on: boolean?) -> number
+int l_body_balloon(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int player = (int)luaL_checkinteger(L, 1);
+    const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
+    const int result = (vm && vm->host.body_balloon) ? vm->host.body_balloon(vm->host.ud, player, on) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.register_item(name: string, max_stack: number?, places: string?, dig_level: number?, dig_speed: number?, digs: string?, damage: number?, wear: string?, armor: number?, durability: number?, arms: number?) -> number
 int l_register_item(lua_State *L)
 {
@@ -3316,6 +3338,10 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "body_cart");
     lua_pushcfunction(L, l_body_mount, "core.body_mount");
     lua_setfield(L, -2, "body_mount");
+    lua_pushcfunction(L, l_body_glide, "core.body_glide");
+    lua_setfield(L, -2, "body_glide");
+    lua_pushcfunction(L, l_body_balloon, "core.body_balloon");
+    lua_setfield(L, -2, "body_balloon");
     lua_pushcfunction(L, l_register_item, "core.register_item");
     lua_setfield(L, -2, "register_item");
     lua_pushcfunction(L, l_register_model, "core.register_model");

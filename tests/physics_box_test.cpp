@@ -1032,6 +1032,79 @@ int main()
         check(top < 11.1f, "and does not climb the ladder it runs into");
     }
 
+    // Under a glider (core.body_glide): stepped off a height and falling, it
+    // is carried where it looks at its pace and sinks slowly; looking down it
+    // goes faster and sinks faster; crouched, the wing folds and it falls.
+    {
+        World sky;
+        for (int x = -64; x < 64; ++x)
+            for (int z = -8; z < 8; ++z) sky.set_block(x, 0, z, stone);
+        const auto glide = [&](float pitch, bool fold, float secs = 3.0f) {
+            Player p;
+            p.pos      = Vec3{0.5f, 60.0f, 0.5f};
+            p.yaw      = 1.5708f;   // along +x
+            p.pitch    = pitch;
+            p.velocity = Vec3{0.0f, -3.0f, 0.0f};
+            MovementRules rules;
+            rules.glide = true;
+            for (int i = 0; i < (int)(60 * secs); ++i) {
+                PlayerInput in;
+                in.descend = fold;
+                player_update(p, sky, reg, rules, in, 1.0f / 60.0f);
+            }
+            return p;
+        };
+        const Player level = glide(0.0f, false), dive = glide(-1.2f, false), folded = glide(0.0f, true, 0.7f);
+        std::printf("        a glider level: %.2f m/s along, %.2f down; diving %.2f along, %.2f down; folded %.2f down\n",
+                    (double)level.velocity.x, (double)level.velocity.y, (double)dive.velocity.x,
+                    (double)dive.velocity.y, (double)folded.velocity.y);
+        check(level.velocity.x > 6.0f && level.velocity.x <= kGlideSpeed + 0.01f &&
+                  level.velocity.y >= -kGlideSink - 0.01f,
+              "a glider carries a falling body along its look, sinking slowly");
+        check(dive.velocity.x > level.velocity.x && dive.velocity.y < level.velocity.y &&
+                  dive.velocity.x <= kGlideSpeed + kGlideDive + 0.01f,
+              "looking down it dives: faster along and down, within what the server allows");
+        check(folded.velocity.y < -10.0f, "and folded it falls");
+        check(limits_for([] { MovementRules r; r.glide = true; return r; }()).max_horizontal >=
+                  kGlideSpeed + kGlideDive,
+              "the server allows a glider its fastest dive");
+    }
+
+    // In a balloon (core.body_balloon): jump held lifts it, crouch lets it
+    // down, and nothing held it sinks slowly, the wind carrying it along +x;
+    // the server lets it go to any height.
+    {
+        World open;
+        for (int x = -8; x < 8; ++x)
+            for (int z = -8; z < 8; ++z) open.set_block(x, 0, z, stone);
+        Player p;
+        p.pos = Vec3{0.5f, 1.0f, 0.5f};
+        MovementRules rules;
+        rules.balloon = true;
+        const auto hold = [&](bool up, bool down, float secs) {
+            for (int i = 0; i < (int)(60 * secs); ++i) {
+                PlayerInput in;
+                in.jump    = up;
+                in.descend = down;
+                player_update(p, open, reg, rules, in, 1.0f / 60.0f);
+            }
+        };
+        hold(true, false, 6.0f);
+        const float risen = p.pos.y;
+        hold(false, false, 4.0f);
+        const float drifted = p.pos.y;
+        const float vy_idle = p.velocity.y, vx_idle = p.velocity.x;
+        hold(false, true, 3.0f);
+        std::printf("        a balloon up 6 s to y %.2f; idle 4 s to %.2f (%.2f down, %.2f east); down 3 s to %.2f\n",
+                    (double)risen, (double)drifted, (double)vy_idle, (double)vx_idle, (double)p.pos.y);
+        check(risen > 12.0f, "a balloon rises while jump is held");
+        check(vy_idle < 0.0f && vy_idle > -0.5f && drifted < risen + 1.5f && vx_idle > 0.5f,
+              "left alone it sinks slowly and the wind carries it");
+        check(p.pos.y < drifted - 6.0f, "and crouched it comes down");
+        check(limits_for([] { MovementRules r; r.balloon = true; return r; }()).rise < 0.0f,
+              "the server lets a balloon go to any height");
+    }
+
     std::printf(g_failures == 0 ? "the box rules agree\n" : "THE BOX RULES DISAGREE\n");
     return g_failures == 0 ? 0 : 1;
 }

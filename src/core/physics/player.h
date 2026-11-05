@@ -89,6 +89,9 @@ struct Player {
     // Seconds afloat in a boat (MovementRules::boat): the clock its swell
     // rocks and lifts it by.
     float swell = 0.0f;
+    // Carried by a glider's wing (MovementRules::glide) since it took it,
+    // until the ground or a folded wing.
+    bool gliding = false;
 
     // And where the bottom of its model goes: under the chassis along the
     // chassis's own up, where its wheels are at rest. Not `pos`, the feet the

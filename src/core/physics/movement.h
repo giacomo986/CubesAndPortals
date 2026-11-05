@@ -162,6 +162,32 @@ inline constexpr float kBoatHeave = 0.05f;
 inline constexpr float kBoatRock  = 0.06f;
 inline constexpr float kBoatLean  = 0.08f;
 
+// A body under a glider (MovementRules::glide), falling: carried along where
+// it looks at kGlideSpeed, sinking at kGlideSink. Looking down dives -- up to
+// kGlideDive faster and kGlideDiveSink more sink at a look straight down --
+// and looking up stalls it towards kGlideStall; the speed gathers and goes at
+// kGlideGrip. Crouch folds the wing: it falls. The fastest, kGlideSpeed +
+// kGlideDive, is what the validator allows such a body (limits_for).
+inline constexpr float kGlideSpeed    = 9.0f;    // m/s
+inline constexpr float kGlideDive     = 9.0f;
+inline constexpr float kGlideStall    = 4.0f;
+inline constexpr float kGlideSink     = 1.6f;
+inline constexpr float kGlideDiveSink = 5.0f;
+inline constexpr float kGlideGrip     = 1.2f;    // 1/s
+inline constexpr float kGlideStart    = -2.0f;   // m/s down before the wing takes it
+
+// A body in a balloon's basket (MovementRules::balloon), off the ground: jump
+// held lifts it at kBalloonRise, crouch lets it down at kBalloonFall, and
+// otherwise it sinks at kBalloonSink, the burner's heat going; the keys push it
+// along at kBalloonPush and the wind carries it kBalloonDrift towards +x. Any
+// height (limits_for): a balloon is for going over the clouds.
+inline constexpr float kBalloonRise  = 2.5f;     // m/s
+inline constexpr float kBalloonFall  = 3.0f;
+inline constexpr float kBalloonSink  = 0.25f;
+inline constexpr float kBalloonPush  = 2.5f;
+inline constexpr float kBalloonDrift = 0.8f;
+inline constexpr float kBalloonGrip  = 0.8f;     // 1/s
+
 // A cart on a rail (MovementRules::cart): brought up to the rail's speed at
 // kRailAccel and down to it at kRailBrake -- a brake rail stops a cart at 6 m/s
 // within a node, one at the top speed within three -- sped down a slope and slowed up one by kRailSlope per
@@ -266,6 +292,14 @@ struct MovementRules {
     // One body's, as `boat`.
     bool mount = false;
 
+    // Under a glider (core.body_glide): falling, it is carried where it looks
+    // (kGlideSpeed). One body's, as `boat`.
+    bool glide = false;
+
+    // In a balloon's basket (core.body_balloon): it rises and sinks by the keys,
+    // to any height (kBalloonRise). One body's, as `boat`.
+    bool balloon = false;
+
     bool drives() const { return accel > 0.0f; }
 
     // Whether a body here may leave the ground for longer than a jump. Nobody
@@ -290,6 +324,8 @@ inline void keep_body(MovementRules &to, const MovementRules &from)
     to.boat    = from.boat;
     to.cart    = from.cart;
     to.mount   = from.mount;
+    to.glide   = from.glide;
+    to.balloon = from.balloon;
 }
 
 // What a body in a parkour world may do beyond walking (MovementRules::parkour),

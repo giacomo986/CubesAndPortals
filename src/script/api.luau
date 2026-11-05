@@ -1180,6 +1180,34 @@ local api: { Fn } = {
            .. "getting off are the mod's. Returns 1, or 0 for a player who is not in this world.",
     },
     {
+        name = "body_glide",
+        host = "body_glide",
+        ret  = "int",
+        args = {
+            { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
+            { name = "on", type = "bool", default = true, doc = "false and a fall is a fall." },
+        },
+        doc = "Puts a glider over ONE player, or takes it off, at any time like core.body_movement. "
+           .. "Falling faster than 2 m/s, the wing takes the body: it is carried where it looks at 9 "
+           .. "m/s sinking 1.6, diving up to 18 m/s and 6.6 down looking straight down, slowed "
+           .. "towards 4 looking up; crouch folds it and it falls, the ground ends it. What the "
+           .. "glider looks like is the mod's. Returns 1, or 0 for a player who is not in this world.",
+    },
+    {
+        name = "body_balloon",
+        host = "body_balloon",
+        ret  = "int",
+        args = {
+            { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
+            { name = "on", type = "bool", default = true, doc = "false puts them back on their feet." },
+        },
+        doc = "Puts ONE player in a balloon's basket, or out of it, at any time like "
+           .. "core.body_movement. Jump held lifts it at 2.5 m/s, crouch lets it down at 3, and "
+           .. "otherwise it sinks at 0.25; the keys push it along at 2.5 and the wind carries it "
+           .. "0.8 m/s towards +x. Any height. On the ground it walks. What the balloon looks like "
+           .. "and getting out are the mod's. Returns 1, or 0 for a player who is not in this world.",
+    },
+    {
         name = "register_item",
         host = "register_item",
         ret  = "int",

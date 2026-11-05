@@ -788,6 +788,51 @@ int l_render_fx(lua_State *L)
     return 1;
 }
 
+// core.render.camera(id, x, y, z, yaw?, pitch?, fov?)
+int l_render_camera(lua_State *L)
+{
+    VmState     *vm    = host_of(L);
+    const int    id    = (int)luaL_checkinteger(L, 1);
+    const double x     = luaL_checknumber(L, 2);
+    const double y     = luaL_checknumber(L, 3);
+    const double z     = luaL_checknumber(L, 4);
+    const double yaw   = luaL_optnumber(L, 5, 0.0);
+    const double pitch = luaL_optnumber(L, 6, 0.0);
+    const double fov   = luaL_optnumber(L, 7, 70.0);
+    const int ok = (vm && vm->host.render_camera)
+                       ? vm->host.render_camera(vm->host.ud, id, x, y, z, yaw, pitch, fov)
+                       : 0;
+    lua_pushboolean(L, ok);
+    return 1;
+}
+
+// core.render.camera_drop(id)
+int l_render_camera_drop(lua_State *L)
+{
+    VmState  *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const int ok = (vm && vm->host.render_camera_drop) ? vm->host.render_camera_drop(vm->host.ud, id) : 0;
+    lua_pushboolean(L, ok);
+    return 1;
+}
+
+// core.render.screen(id, x, y, z, yaw?, w?, h?)
+int l_render_screen(lua_State *L)
+{
+    VmState     *vm  = host_of(L);
+    const int    id  = (int)luaL_checkinteger(L, 1);
+    const double x   = luaL_checknumber(L, 2);
+    const double y   = luaL_checknumber(L, 3);
+    const double z   = luaL_checknumber(L, 4);
+    const double yaw = luaL_optnumber(L, 5, 0.0);
+    const double w   = luaL_optnumber(L, 6, 1.0);
+    const double h   = luaL_optnumber(L, 7, 1.0);
+    const int ok = (vm && vm->host.render_screen) ? vm->host.render_screen(vm->host.ud, id, x, y, z, yaw, w, h)
+                                                   : 0;
+    lua_pushboolean(L, ok);
+    return 1;
+}
+
 int l_render_model(lua_State *L)
 {
     VmState     *vm    = host_of(L);
@@ -1054,6 +1099,12 @@ void register_api(lua_State *L)
     lua_setfield(L, -2, "model");
     lua_pushcfunction(L, l_render_fx, "core.render.fx");
     lua_setfield(L, -2, "fx");
+    lua_pushcfunction(L, l_render_camera, "core.render.camera");
+    lua_setfield(L, -2, "camera");
+    lua_pushcfunction(L, l_render_camera_drop, "core.render.camera_drop");
+    lua_setfield(L, -2, "camera_drop");
+    lua_pushcfunction(L, l_render_screen, "core.render.screen");
+    lua_setfield(L, -2, "screen");
     lua_setfield(L, -2, "render");
 
     // core.hud: over the screen, once a frame.

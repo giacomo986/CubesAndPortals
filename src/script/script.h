@@ -668,6 +668,15 @@ typedef struct script_host {
     // (0..1), and for a bolt, a jet, a streak or an aurora where it ends.
     int (*render_fx)(void *ud, const char *kind, double x, double y, double z, double size, int r,
                      int g, int b, int a, double t, double x2, double y2, double z2);
+    // A camera (core.render.camera): a view from (x, y, z) turned by `yaw` and
+    // `pitch`, `fov` degrees wide, drawn now and then into a small picture of
+    // its own; `camera_drop` forgets it. And a screen (core.render.screen),
+    // inside a pass: camera `id`'s picture on an upright rectangle about
+    // (x, y, z), `w` by `h`, facing along `yaw`.
+    int (*render_camera)(void *ud, int id, double x, double y, double z, double yaw, double pitch,
+                         double fov);
+    int (*render_camera_drop)(void *ud, int id);
+    int (*render_screen)(void *ud, int id, double x, double y, double z, double yaw, double w, double h);
 
     // Drawing over the screen rather than into the world (TODO.md OPEN-49): a
     // counter, a timer, a crosshair. A pass of its own and not a render pass,
@@ -721,6 +730,9 @@ typedef struct script_host {
     int (*body_cart)(void *ud, int player, int on);
     // And astride a mount (core.body_mount): steered, with weight.
     int (*body_mount)(void *ud, int player, int on);
+    // Under a glider (core.body_glide), in a balloon (core.body_balloon).
+    int (*body_glide)(void *ud, int player, int on);
+    int (*body_balloon)(void *ud, int player, int on);
 
     // How wide a body is in this world, and how long when it drives
     // (core.body_width): the same moment and the same welcome.

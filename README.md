@@ -388,6 +388,11 @@ cinnabar powers it and is a station when not; a powered switch turns a cart righ
 **Boats** (`mods/boats`). Five planks make a boat: right click the water to sit in it, row at twice a
 swim and steer with A and D (it shoves creatures aside and bounces off other boats), right click a shore (or run aground) to step out with it back in the bag.
 
+**Flying** (`mods/glider`, `mods/balloon`). A hang glider of wool and sticks, held in the hand, opens
+when you step off a height and carries you where you look -- look down to dive, up to slow, crouch to
+fold it and drop. A hot-air balloon goes up from open ground: jump to rise, crouch to come down, the
+keys and the wind take it slowly along, up over the clouds; landed, right click to fold it away.
+
 **Weather** (`mods/weather`). Clear skies, then rain or a storm for a few minutes: the sky
 and the clouds go grey, rain falls round you and stops at roofs, the fields under the open sky
 are watered. In the tundra and on the peaks it snows and the snow settles; in the desert
@@ -417,6 +422,10 @@ comparators, lamps, pistons, observers and hoppers, so clocks and logic work. Co
 (`mods/conveyor`) that merge, turn and climb, with sorters and extractors. Helper robots
 (`mods/helpers`) you program with up to six orders: chop trees, plant, dig, mine, sort chests,
 cook, quarry, light up the land, follow you.
+
+**Cameras** (`mods/cameras`). A camera and a screen: right click the camera, then the screen, and the
+screen shows live what the camera sees -- the base, the race, a village. A camera that sees somebody
+powers the cinnabar beside it: a door that opens, a lamp, an alarm.
 
 **Games on the plaza.** Chess (`mods/chess`) with every classic rule, a clock and nine variants
 (960, king of the hill, three-check, racing kings, losers, atomic, crazyhouse, horde). Cards

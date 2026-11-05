@@ -628,6 +628,10 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
                 return refused;
             }
 
+            // Where it was, for how fast it came down (a glider's, below).
+            const bool   was_valid = s.authority().valid;
+            const float  was_y     = s.authority().y;
+            const double was_when  = s.authority().when;
             s.authority().x        = v.x;
             s.authority().y        = v.y;
             s.authority().z        = v.z;
@@ -680,6 +684,12 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
                            body_at_ledge(*m_world, *m_registry, Vec3{v.x, v.y, v.z},
                                          m_limits.half_width)) {
                     // Hanging from a ledge: the fall ended in the hands.
+                    fall_reset(s.fall, v.y);
+                } else if ((s.movement.glide || s.movement.balloon) && was_valid && now > was_when &&
+                           (was_y - v.y) / (float)(now - was_when) < kGlideSink + kGlideDiveSink + 1.5f) {
+                    // Under a glider's wing or in a balloon, coming down no
+                    // faster than a wing lets it: a descent, not a fall. A wing
+                    // folded high up falls from where it folded.
                     fall_reset(s.fall, v.y);
                 } else {
                     const float fell = fall_step(s.fall, v.y);

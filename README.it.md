@@ -397,6 +397,12 @@ quando il cinabro lo accende ed è una stazione quando è spento; uno scambio al
 **Barche** (`mods/boats`). Cinque assi fanno una barca: tasto destro sull'acqua per sedersi,
 remare al doppio del nuoto e sterzare con A e D (scansa le creature e rimbalza sulle altre barche), tasto destro su una riva (o arenarsi) per scendere con la barca nella borsa.
 
+**In volo** (`mods/glider`, `mods/balloon`). Un deltaplano di lana e bastoni, tenuto in mano, si apre
+quando scendi da un'altura e ti porta dove guardi -- guarda in basso per picchiare, in alto per
+rallentare, accovacciati per chiuderlo e cadere. Una mongolfiera parte da un terreno libero: salta per
+salire, accovacciati per scendere, i tasti e il vento la portano piano, fin sopra le nuvole; atterrata,
+tasto destro per ripiegarla.
+
 **Meteo** (`mods/weather`). Cielo sereno, poi pioggia o temporale per qualche minuto: il cielo
 e le nuvole si fanno grigi, la pioggia cade attorno a te e si ferma sui tetti, i campi a cielo
 aperto vengono innaffiati. Nella tundra e sulle vette nevica e la neve si posa; nel deserto
@@ -427,6 +433,11 @@ trasportatori (`mods/conveyor`) che si fondono, curvano e salgono, con seleziona
 estrattori. Robot aiutanti (`mods/helpers`) da programmare con fino a sei ordini: abbattere
 alberi, piantare, scavare, cercare minerali, ordinare le casse, cucinare, cavare, illuminare il
 terreno, seguire chi li ha messi.
+
+**Telecamere** (`mods/cameras`). Una telecamera e uno schermo: tasto destro sulla telecamera, poi
+sullo schermo, e lo schermo mostra dal vivo cosa vede la telecamera -- la base, la gara, un villaggio.
+Una telecamera che vede qualcuno dà energia al cinabro accanto: una porta che si apre, una lampada, un
+allarme.
 
 **Giochi sulla piazza.** Scacchi (`mods/chess`) con tutte le regole classiche, l'orologio e nove
 varianti (960, re della collina, tre scacchi, corsa dei re, vinciperdi, atomica, crazyhouse,

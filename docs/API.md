@@ -8,7 +8,7 @@ Tutto sotto `core`. I tipi sono quelli che il type checker vede in
 **Quello che non e' qui.** Le chiamate che prendono tabelle o funzioni
 sono scritte a mano in `src/script/script_luau.cpp` e documentate in
 [MODDING.md](MODDING.md); il generatore rifiuta di girare se una manca da li'.
-Sono: `core.register_mapgen`, `core.register_abm`, `core.register_lbm`, `core.event.define`, `core.event.on`, `core.event.emit`, `core.ecs.component`, `core.ecs.phase`, `core.ecs.system`, `core.ecs.spawn`, `core.ecs.set`, `core.ecs.get`, `core.ecs.kill`, `core.ecs.visible`, `core.ecs.model`, `core.ecs.health`, `core.ecs.clip`, `core.ecs.box`, `core.ecs.count`, `core.craft.make`, `core.craft.keys`, `core.craft.pose`, `core.craft.push`, `core.craft.mount`, `core.craft.aim`, `core.craft.seat`, `core.net.open`, `core.net.send`, `core.render.pass`, `core.render.box`, `core.render.model`, `core.render.fx`, `core.hud.pass`, `core.hud.text`, `core.hud.rect`, `core.hud.aspect`, `core.hud.image`, `core.hud.item`, `core.hud.mouse`.
+Sono: `core.register_mapgen`, `core.register_abm`, `core.register_lbm`, `core.event.define`, `core.event.on`, `core.event.emit`, `core.ecs.component`, `core.ecs.phase`, `core.ecs.system`, `core.ecs.spawn`, `core.ecs.set`, `core.ecs.get`, `core.ecs.kill`, `core.ecs.visible`, `core.ecs.model`, `core.ecs.health`, `core.ecs.clip`, `core.ecs.box`, `core.ecs.count`, `core.craft.make`, `core.craft.keys`, `core.craft.pose`, `core.craft.push`, `core.craft.mount`, `core.craft.aim`, `core.craft.seat`, `core.net.open`, `core.net.send`, `core.render.pass`, `core.render.box`, `core.render.model`, `core.render.fx`, `core.render.camera`, `core.render.camera_drop`, `core.render.screen`, `core.hud.pass`, `core.hud.text`, `core.hud.rect`, `core.hud.aspect`, `core.hud.image`, `core.hud.item`, `core.hud.mouse`.
 
 ## `core.set_block`
 
@@ -995,6 +995,32 @@ core.body_mount(player: number, on: boolean?) -> number
 ```
 
 Puts ONE player astride a mount, or off it, at any time like core.body_movement: the body is steered, not strafed -- it goes where the rider looks, A and D turn it (the view turns with it), backwards at under half its walk -- and gathers and loses pace slowly, with the weight of an animal under it. How fast it goes and how high it jumps are core.body_movement's; what it looks like (core.player_wear, core.player_clip) and getting off are the mod's. Returns 1, or 0 for a player who is not in this world.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `player` | number | — | The id every event carries in its `player` field. |
+| `on` | boolean | `true` | false puts them back on their feet. |
+
+## `core.body_glide`
+
+```luau
+core.body_glide(player: number, on: boolean?) -> number
+```
+
+Puts a glider over ONE player, or takes it off, at any time like core.body_movement. Falling faster than 2 m/s, the wing takes the body: it is carried where it looks at 9 m/s sinking 1.6, diving up to 18 m/s and 6.6 down looking straight down, slowed towards 4 looking up; crouch folds it and it falls, the ground ends it. What the glider looks like is the mod's. Returns 1, or 0 for a player who is not in this world.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `player` | number | — | The id every event carries in its `player` field. |
+| `on` | boolean | `true` | false and a fall is a fall. |
+
+## `core.body_balloon`
+
+```luau
+core.body_balloon(player: number, on: boolean?) -> number
+```
+
+Puts ONE player in a balloon's basket, or out of it, at any time like core.body_movement. Jump held lifts it at 2.5 m/s, crouch lets it down at 3, and otherwise it sinks at 0.25; the keys push it along at 2.5 and the wind carries it 0.8 m/s towards +x. Any height. On the ground it walks. What the balloon looks like and getting out are the mod's. Returns 1, or 0 for a player who is not in this world.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
