@@ -307,8 +307,10 @@ struct MovementRules {
     bool drives() const { return accel > 0.0f; }
 
     // Whether a body here may leave the ground for longer than a jump. Nobody
-    // flies in a body that drives, and nobody in a world that says fly 0.
-    bool flies() const { return !drives() && fly > 0.0f; }
+    // flies in a body that drives, nor astride a mount or in a balloon's
+    // basket (a flight pack worn up there took off with the rider, its flames
+    // lit, and left the pony under it), and nobody in a world that says fly 0.
+    bool flies() const { return !drives() && !mount && !balloon && fly > 0.0f; }
 };
 
 // What `from` said beyond the five numbers of core.movement: the driving

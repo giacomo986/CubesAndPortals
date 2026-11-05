@@ -7,12 +7,17 @@
 -- keys push it along at a walk and the wind takes it east. Any height: over
 -- the clouds, the world below. Landed, right click a block to climb out and
 -- fold it back into the bag. Everybody sees it (core.player_wear,
--- tools/make_flight_models.py). A descent in it is not a fall.
+-- tools/make_flight_models.py): stood in the basket, hands on the rim (the
+-- robot's clip "balloon_idle", tools/make_flight_clips.py), a pilot flame
+-- low over the burner -- and while it rises the right hand up on the valve
+-- ("balloon_burn") and the burner roaring (balloon_burn.gltf). A descent in it
+-- is not a fall.
 
 local BALLOON = "balloon:balloon"
 core.register_item(BALLOON, 1)
 core.register_model("balloon:balloon_held", "balloon_held.gltf")   -- tools/make_held_models.py
 local ENVELOPE = core.register_model("balloon:envelope", "balloon.gltf")
+local BURNING = core.register_model("balloon:envelope_burning", "balloon_burn.gltf")
 core.recipe_shaped(BALLOON, 1,
     "animals:wool  animals:wool  animals:wool",
     "animals:wool  ore:coal      animals:wool",
@@ -20,7 +25,11 @@ core.recipe_shaped(BALLOON, 1,
 
 local SLOT = 7   -- of core.player_wear's ten: mods/glider has 8, carts and the pony 9, boats 10
 
-local aboard: { [number]: boolean } = {}
+-- Who is aboard, and how they were seen last: where (y), and whether the
+-- burner is on, held on for a while after the rise stops so it does not
+-- flicker on and off.
+type Ride = { y: number, burning: boolean, hold: number }
+local aboard: { [number]: Ride } = {}
 
 local function grounded(p: number): boolean
     local x, y, z = core.player_pos(p)
@@ -35,6 +44,7 @@ local function leave(p: number)
     aboard[p] = nil
     core.body_balloon(p, false)
     core.player_wear(p, SLOT, 0)
+    core.player_clip(p, "")
     if core.give_item(p, BALLOON, 1) < 1 then
         local x, y, z = core.player_pos(p)
         if x and y and z then
@@ -65,9 +75,10 @@ core.event.on("core:used", function(ev)
     if core.take_item(p, BALLOON, 1) < 1 then
         return
     end
-    aboard[p] = true
+    aboard[p] = { y = ev.y + 1, burning = false, hold = 0 }
     core.body_balloon(p, true)
     core.player_wear(p, SLOT, ENVELOPE)
+    core.player_clip(p, "balloon_idle")
     core.player_place(p, ev.x + 0.5, ev.y + 1, ev.z + 0.5)
     core.notice(p, "Jump to rise, crouch to come down; landed, right click a block to get out")
 end)
@@ -79,10 +90,24 @@ core.event.on("core:died", function(ev)
     end
 end)
 
-core.event.on("core:tick", function(_)
+core.event.on("core:tick", function(ev)
     local here: { [number]: boolean } = {}
     for _, p in core.players() do
         here[p] = true
+        local r = aboard[p]
+        local _, y = core.player_pos(p)
+        if r and y and ev.dt > 0 then
+            -- Rising faster than a metre a second: the burner is on.
+            local rising = (y - r.y) / ev.dt > 1.0
+            r.y = y
+            r.hold = if rising then 0.5 else r.hold - ev.dt
+            local burning = r.hold > 0
+            if burning ~= r.burning then
+                r.burning = burning
+                core.player_wear(p, SLOT, if burning then BURNING else ENVELOPE)
+                core.player_clip(p, if burning then "balloon_burn" else "balloon_idle")
+            end
+        end
     end
     for p in aboard do
         if not here[p] then

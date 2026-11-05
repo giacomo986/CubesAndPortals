@@ -38,6 +38,19 @@ local drawing = side ~= "server"
 
 local shown = MAX   -- what the bar on this machine shows
 
+local REACH = 6      -- how far a right click reaches a block (the engine's)
+local eat: (number, string) -> () = function(_, _) end
+
+-- Whether a block is within a right click's reach where that player looks.
+local function facing_block(p: number): boolean
+    local x, y, z = core.player_pos(p)
+    local dx, dy, dz = core.player_look(p)
+    if x == nil or y == nil or z == nil or dx == nil or dy == nil or dz == nil then
+        return true
+    end
+    return core.raycast(x, y + 1.62, z, dx, dy, dz, REACH) ~= nil
+end
+
 if serving then
     core.net.open()
 
@@ -171,22 +184,52 @@ if serving then
 
     -- Before mods/animals and mods/farm, which heal with food when this mod
     -- is not loaded: here food fills the bar instead.
-    core.event.on("core:used", -5, function(ev)
-        local gives = FOOD[ev.held]
+    eat = function(p: number, held: string)
+        local gives = FOOD[held]
         if gives == nil then
             return
         end
-        ev.cancel = true
-        local b = belly(ev.player)
+        local b = belly(p)
         if b.points >= MAX then
-            core.notice(ev.player, "Not hungry")
-        elseif core.take_item(ev.player, ev.held, 1) > 0 then
-            if LEFT[ev.held] then
-                core.give_item(ev.player, LEFT[ev.held], 1)
+            core.notice(p, "Not hungry")
+        elseif core.take_item(p, held, 1) > 0 then
+            if LEFT[held] then
+                core.give_item(p, LEFT[held], 1)
             end
             b.points = math.min(MAX, b.points + gives[1])
             b.saturation = math.min(b.points, b.saturation + gives[2])
-            tell(ev.player, b)
+            tell(p, b)
+        end
+    end
+    core.event.on("core:used", -5, function(ev)
+        if FOOD[ev.held] == nil then
+            return
+        end
+        ev.cancel = true
+        eat(ev.player, ev.held)
+    end)
+
+    -- Right clicked at the air (below): eaten, unless a block is in reach
+    -- after all -- then core:used was the click, and has eaten already.
+    core.event.on("core:net_message", function(ev)
+        if ev.text == "eat" and not facing_block(ev.player) then
+            eat(ev.player, core.held_item(ev.player))
+        end
+    end)
+end
+
+-- A right click with food in the hand at no block -- the sky, the far
+-- distance -- eats it as well: core:used is only a click on a block, so the
+-- player's machine asks the server.
+if drawing then
+    core.event.on("core:input", function(ev)
+        if ev.action ~= "mouse_right" or FOOD[core.held_item(ev.player)] == nil or facing_block(ev.player) then
+            return
+        end
+        if serving then
+            eat(ev.player, core.held_item(ev.player))
+        else
+            core.net.send(0, "eat")
         end
     end)
 end

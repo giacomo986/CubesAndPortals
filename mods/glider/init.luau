@@ -7,7 +7,8 @@
 -- slow it; crouch folds it and you drop. The ground, or the glider put away,
 -- ends it; a glide down to the ground is not a fall (the engine's). Everybody
 -- sees the wing over you while you are off the ground (core.player_wear,
--- tools/make_flight_models.py).
+-- tools/make_flight_models.py), and you hung prone under it, your hands on
+-- its bar (the robot's clip "glide", tools/make_flight_clips.py).
 
 local GLIDER = "glider:glider"
 core.register_item(GLIDER, 1)
@@ -51,6 +52,7 @@ core.event.on("core:tick", function(_)
         local wear = holding and aloft(p)
         if wear ~= (worn[p] == true) then
             core.player_wear(p, SLOT, if wear then WING else 0)
+            core.player_clip(p, if wear then "glide" else "")
             worn[p] = wear or nil
         end
     end
