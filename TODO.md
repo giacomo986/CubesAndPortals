@@ -1005,6 +1005,16 @@ Portals -- the engine's own trick, used further:
 5. A passport of servers (low-medium). With --federation built: a stamp for
    every server reached through a far portal, and a letterbox that sends an
    item or a letter to a friend server. A reason for communities to link up.
+   BUILT 2026-11-05 (mods/passport): core:arrived {player, from} -- a player
+   in on a friend's ticket (set_crossing_seen, admin::friend_by_issuer);
+   core.fed_send(server, text) and core:fed_message {server, mod, text} -- a
+   federation line of kind "mod" under a new share "mods" (default for new
+   friends), heard by the same mod in the first room. Stamps by identity,
+   /passport; a letterbox sends the held stack or a letter to name@server,
+   kept there by name and given when they are in. Checked: two federated
+   servers, a parcel of 3 cobblestone sent from A by the letterbox reached
+   bob's bag on B. Open: core:arrived not yet seen on a real crossing; a
+   line to a friend that is down is lost (no queue).
 
 The sandbox:
 6. Looping sounds and music (medium, high value). A mod cannot play a loop

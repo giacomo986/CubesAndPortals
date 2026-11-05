@@ -439,6 +439,10 @@ sullo schermo, e lo schermo mostra dal vivo cosa vede la telecamera -- la base, 
 Una telecamera che vede qualcuno dà energia al cinabro accanto: una porta che si apre, una lampada, un
 allarme.
 
+**Passaporto** (`mods/passport`). Ogni server amico da cui un portale ti porta timbra il tuo passaporto
+(`/passport`). Una cassetta delle lettere spedisce un pacco -- quello che hai in mano -- o una lettera a
+`nome@server` su un server amico, consegnati la prossima volta che entra.
+
 **Giochi sulla piazza.** Scacchi (`mods/chess`) con tutte le regole classiche, l'orologio e nove
 varianti (960, re della collina, tre scacchi, corsa dei re, vinciperdi, atomica, crazyhouse,
 orda). Carte (`mods/cards`) col mazzo napoletano da quaranta: briscola, cinquiglio, scopa e

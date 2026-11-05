@@ -427,6 +427,10 @@ cook, quarry, light up the land, follow you.
 screen shows live what the camera sees -- the base, the race, a village. A camera that sees somebody
 powers the cinnabar beside it: a door that opens, a lamp, an alarm.
 
+**Passport** (`mods/passport`). Every friend server a portal brings you from stamps your passport
+(`/passport`). A letterbox sends a parcel -- what is in your hand -- or a letter to `name@server` on a
+friend server, given to them the next time they are in.
+
 **Games on the plaza.** Chess (`mods/chess`) with every classic rule, a clock and nine variants
 (960, king of the hill, three-check, racing kings, losers, atomic, crazyhouse, horde). Cards
 (`mods/cards`) with the forty-card Neapolitan deck: briscola, cinquiglio, scopa and tresette, for

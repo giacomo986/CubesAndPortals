@@ -732,6 +732,8 @@ typedef struct script_host {
     int (*body_mount)(void *ud, int player, int on);
     // Under a glider (core.body_glide), in a balloon (core.body_balloon).
     int (*body_glide)(void *ud, int player, int on);
+    // A line to the mod of the same name on a friend server (core.fed_send).
+    int (*fed_send)(void *ud, const char *server, const char *text);
     int (*body_balloon)(void *ud, int player, int on);
 
     // How wide a body is in this world, and how long when it drives

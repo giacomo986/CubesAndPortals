@@ -2878,6 +2878,19 @@ int host_body_balloon(void *ud, int player, int on)
     return s->sessions->set_body_movement((net::PeerId)player, rules, s->now) ? 1 : 0;
 }
 
+// core.fed_send: a line to the mod of the same name on a friend server.
+int host_fed_send(void *ud, const char *server, const char *text)
+{
+    const std::string name = asking_mod();
+    if (name.empty() || !server || !text) return 0;
+    if (std::strlen(text) > admin::kFedModText) {
+        std::printf("[mod] %s: fed_send: %zu bytes, more than the %zu one line carries\n", name.c_str(),
+                    std::strlen(text), admin::kFedModText);
+        return 0;
+    }
+    return admin::fed_mod_send(server, name, text) ? 1 : 0;
+}
+
 int host_net_send(void *ud, int player, const char *text)
 {
     ServerState      *s    = static_cast<ServerState *>(ud);
@@ -4986,6 +4999,19 @@ Router g_router;
 // Which room this thread runs.
 thread_local int g_room = 0;
 
+// What friend servers' mods said to ours (core.fed_send there, admin's
+// federation thread hearing it), for the first room to give its mods
+// (core:fed_message): one room, or a mod loaded in two would hear it twice.
+struct FedModLine {
+    std::string from, mod, text;
+};
+std::mutex             &g_fedmod_m = *new std::mutex;
+std::vector<FedModLine> g_fedmod_in;
+
+// Who came into this room through a portal on a friend server's ticket, and
+// from which friend: core:arrived, next tick.
+thread_local std::vector<std::pair<net::PeerId, std::string>> g_arrived;
+
 ModStore &shared_store(ServerState *s)
 {
     if (!g_router.rooms.empty() && g_router.rooms[0].mod_store != nullptr)
@@ -5225,6 +5251,10 @@ admin::Hooks admin_hooks()
     h.bag_seen = bag_seen_here;
     h.say = [](net::PeerId peer, const std::string &line) {
         g_router.transport.send(peer, net::Channel::Event, net::Chat{line}.encode(), true);
+    };
+    h.mod_message = [](const std::string &from, const std::string &mod, const std::string &text) {
+        std::lock_guard<std::mutex> hold(g_fedmod_m);
+        if (g_fedmod_in.size() < 256) g_fedmod_in.push_back({from, mod, text});
     };
     h.portals = [] {
         std::vector<std::string> out;
@@ -6577,6 +6607,7 @@ int serve_room(int argc, char **argv)
         host.body_cart     = host_body_cart;
         host.body_mount    = host_body_mount;
         host.body_glide   = host_body_glide;
+        host.fed_send     = host_fed_send;
         host.body_balloon = host_body_balloon;
         host.side          = host_side;
         host.player_name   = host_player_name;
@@ -6818,6 +6849,24 @@ int serve_room(int argc, char **argv)
             died.fields = {{"player", SCRIPT_V_NUMBER}, {"x", SCRIPT_V_NUMBER}, {"y", SCRIPT_V_NUMBER},
                            {"z", SCRIPT_V_NUMBER}};
             s.mods.events().define(died, err);
+        }
+        {
+            // A player came in through a portal on a friend server's ticket:
+            // `from` that friend, as /friend named it (mods/passport).
+            EventSchema arrived;
+            arrived.name   = "core:arrived";
+            arrived.owner  = "core";
+            arrived.fields = {{"player", SCRIPT_V_NUMBER}, {"from", SCRIPT_V_STRING}};
+            s.mods.events().define(arrived, err);
+        }
+        {
+            // A friend server's mod of the same name said this (core.fed_send):
+            // only to that mod, and only in the first room.
+            EventSchema fed;
+            fed.name   = "core:fed_message";
+            fed.owner  = "core";
+            fed.fields = {{"server", SCRIPT_V_STRING}, {"mod", SCRIPT_V_STRING}, {"text", SCRIPT_V_STRING}};
+            s.mods.events().define(fed, err);
         }
 
         // A right click on a block within reach, whatever is in the hand.
@@ -7720,6 +7769,8 @@ int serve_room(int argc, char **argv)
         // Who sends players here through a portal (/portals, --report).
         sessions.set_crossing_seen([](const uint8_t *issuer, net::PeerId who) {
             admin::crossed_in(issuer, g_router.transport.address(who));
+            const std::string from = admin::friend_by_issuer(issuer);
+            if (!from.empty()) g_arrived.push_back({who, from});
         });
         g_router.rooms[(size_t)g_room].items    = &s.items;
         g_router.rooms[(size_t)g_room].models   = &s.models;
@@ -8751,6 +8802,34 @@ int serve_room(int argc, char **argv)
             // tick rather than one later.
             sessions.step_health(kTickSeconds);
             sessions.step_time(kTickSeconds);
+
+            // Who came from a friend server, and what friends' mods said.
+            for (const auto &[peer, from] : std::exchange(g_arrived, {})) {
+                script_field f[2] = {
+                    {"player", SCRIPT_V_NUMBER, (double)peer, nullptr, 0},
+                    {"from", SCRIPT_V_STRING, 0.0, from.c_str(), 0},
+                };
+                bool        ignored = false;
+                std::string err;
+                s.mods.events().emit("core:arrived", f, 2, &ignored, err);
+            }
+            if (g_room == 0) {
+                std::vector<FedModLine> heard;
+                {
+                    std::lock_guard<std::mutex> hold(g_fedmod_m);
+                    heard.swap(g_fedmod_in);
+                }
+                for (const FedModLine &l : heard) {
+                    script_field f[3] = {
+                        {"server", SCRIPT_V_STRING, 0.0, l.from.c_str(), 0},
+                        {"mod", SCRIPT_V_STRING, 0.0, l.mod.c_str(), 0},
+                        {"text", SCRIPT_V_STRING, 0.0, l.text.c_str(), 0},
+                    };
+                    bool        ignored = false;
+                    std::string err;
+                    s.mods.events().emit("core:fed_message", f, 3, &ignored, err, &l.mod);
+                }
+            }
 
             for (const net::ServerSessions::Death &d : sessions.deaths_to_serve()) {
                 transport.send(d.peer, net::Channel::Event, d.back.encode(), true);

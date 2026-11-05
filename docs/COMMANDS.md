@@ -126,7 +126,7 @@ everything below it). `/perm` shows and changes which role a permission wants;
 | Command | Permission | What it does |
 |---|---|---|
 | `/portals` | portals (admin) | Where each room's openings lead, and which servers send players in |
-| `/friend add NAME HOST:PORT KEY [shares]` | federation (owner) | A friend server; `shares` is any of `bans,presence,chat,bags,portals`, all by default; a NAME already there is replaced (a friend whose key changed) |
+| `/friend add NAME HOST:PORT KEY [shares]` | federation (owner) | A friend server; `shares` is any of `bans,presence,chat,bags,portals,mods`, all by default; a NAME already there is replaced (a friend whose key changed) |
 | `/friend remove NAME` | federation (owner) | No longer friends; its bans are lifted here |
 | `/friend list` | federation (owner) | The friends, and when each was last heard |
 

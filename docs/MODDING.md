@@ -452,6 +452,8 @@ The core uses the same bus, with the same schemas, with no privileged paths (DES
 | `core:page_action` | `player, page, id, text` | no — only to the mod that showed the page |
 | `core:input` | `action, player` | yes — only on a client |
 | `core:far_moved` | `index, x, y, z, axis, sign, half_w, half_h` | no — only on a server of rooms |
+| `core:arrived` | `player, from` | no — only on a server; a portal brought them in on a ticket of the friend server `from` (as /friend named it) |
+| `core:fed_message` | `server, mod, text` | no — only on a server, only to the mod of that name, in the first room; `core.fed_send` on the friend `server` |
 | `core:died` | `player, x, y, z` | no — only on a server; the body is already back at its bed or the spawn, x y z is where it died |
 | `core:burst` | `x, y, z, nx, ny, nz` | no — only on a server; a creature's fireball burst on the block at x y z, on the face with normal nx ny nz |
 
@@ -2044,6 +2046,12 @@ with `furnace:xp` to whoever opens it; `mods/enchant` (which depends on `furnace
 core.event.define("furnace:xp", { fields = { player = "number", points = "number" }, cancellable = false })
 core.event.emit("furnace:xp", { player = ev.player, points = 3 })
 ```
+
+**Between friend servers.** `core.fed_send(server, text)` sends a line, up to 4000 bytes, to the mod of
+the same name on a friend server (`--federation`, `/friend`, sharing `mods`), which hears it as
+`core:fed_message` in its first room; it is sealed and signed like every line between friends, and not
+kept -- a friend that is down never hears it. `core:arrived` says who a portal brought in from which
+friend. `mods/passport` is both: stamps, and parcels and letters by a letterbox.
 
 Some that other mods use:
 

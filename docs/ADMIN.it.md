@@ -154,7 +154,7 @@ il proprietario di quel nome in questo mondo, o il nome e basta.
 | Comando | Permesso | Cosa fa |
 |---|---|---|
 | `/portals` | portals | Dove portano le aperture di ogni stanza, e quali server mandano giocatori, quanti, da dove |
-| `/friend add NOME HOST:PORTA CHIAVE [cosa]` | federation | Un server amico; `cosa` è uno qualunque di `bans,presence,chat,bags,portals`, tutti se non si dice; un NOME già presente viene sostituito |
+| `/friend add NOME HOST:PORTA CHIAVE [cosa]` | federation | Un server amico; `cosa` è uno qualunque di `bans,presence,chat,bags,portals,mods`, tutti se non si dice; un NOME già presente viene sostituito |
 | `/friend remove NOME` `/friend list` | federation | Smettere di essere amici (i suoi ban qui si tolgono); gli amici, e quando si è sentito ognuno l'ultima volta |
 | `/fed TESTO` | chiunque | Chat con i giocatori di ogni server amico |
 | `/where NOME` | chiunque | Qui (e in quale stanza), o su quale server amico |
@@ -418,6 +418,8 @@ Due server che si aggiungono a vicenda condividono, sulla loro porta `--federati
 - **borse**: una borsa per giocatore su tutti (sotto).
 - **portals**: i portali costruiti nel mondo che ognuno offre all'altro ([sopra](#portali-costruiti-nel-mondo)).
   Un amico aggiunto prima che esistesse questa condivisione (0.11.0-alpha.1 e precedenti) va aggiunto di nuovo (`/friend add` con lo stesso nome) per condividerli.
+- **mods**: quello che un mod dice allo stesso mod sull'altro (`core.fed_send`): i pacchi e le lettere di
+  `mods/passport`. Un amico aggiunto prima che esistesse questa condivisione va aggiunto di nuovo per condividerla.
 
 Per fare amici due server:
 

@@ -417,6 +417,26 @@ SHAPES["balloon_balloon"] = ([
     "................",
 ], {"y": (240, 195, 40), "r": (205, 40, 30), "l": (205, 190, 155), "b": (160, 115, 60), "B": (120, 82, 40)})
 
+# The passport (mods/passport): a dark red booklet, a gold globe on its cover.
+SHAPES["passport_passport"] = ([
+    "................",
+    "...rrrrrrrrr....",
+    "...rRRRRRRRrp...",
+    "...rRRRgRRRrp...",
+    "...rRRgggRRrp...",
+    "...rRgRgRgRrp...",
+    "...rRgggggRrp...",
+    "...rRgRgRgRrp...",
+    "...rRRgggRRrp...",
+    "...rRRRgRRRrp...",
+    "...rRRRRRRRrp...",
+    "...rRggggggrp...",
+    "...rRRRRRRRrp...",
+    "...rrrrrrrrrp...",
+    "....pppppppp....",
+    "................",
+], {"r": (110, 20, 25), "R": (150, 30, 35), "g": (225, 180, 70), "p": (235, 228, 210)})
+
 # Honey (mods/bees): the flask full of it, and a honeycomb, wax cells round
 # their honey ("w" wax, "W" its light edge, "o" honey, "O" its glint).
 SHAPES["bees_honey_bottle"] = (FLASK, {"k": (150, 105, 60), "K": (190, 140, 85), "g": (215, 235, 240),

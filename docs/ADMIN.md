@@ -154,7 +154,7 @@ owner of that name on this world, or the bare name.
 | Command | Permission | What it does |
 |---|---|---|
 | `/portals` | portals | Where each room's openings lead, and which servers send players in, how many, from where |
-| `/friend add NAME HOST:PORT KEY [shares]` | federation | A friend server; `shares` is any of `bans,presence,chat,bags,portals`, all by default; a NAME already there is replaced |
+| `/friend add NAME HOST:PORT KEY [shares]` | federation | A friend server; `shares` is any of `bans,presence,chat,bags,portals,mods`, all by default; a NAME already there is replaced |
 | `/friend remove NAME` `/friend list` | federation | Stop being friends (its bans are lifted here); the friends, and when each was last heard |
 | `/fed TEXT` | anybody | Chat to the players of every friend server |
 | `/where NAME` | anybody | Here (and in which room), or on which friend server |
@@ -410,6 +410,8 @@ Two servers that add each other share, over their `--federation` port:
 - **bags**: one bag for a player on all of them (below).
 - **portals**: the portals built in the world each offers the other ([above](#portals-built-in-the-world)).
   A friend added before this share existed (0.11.0-alpha.1 and earlier) is added again (`/friend add` with the same name) to share them.
+- **mods**: what a mod says to the same mod on the other (`core.fed_send`): `mods/passport`'s parcels
+  and letters. A friend added before this share existed is added again to share it.
 
 Setting up two friends:
 

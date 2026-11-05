@@ -124,6 +124,10 @@ struct Hooks {
     // item by name into an online player's bag ("" when it went in).
     std::function<std::vector<std::string>(const Who &)>                             bag_lines;
     std::function<std::string(net::PeerId, const std::string &item, int count)>     give;
+
+    // A friend's mod said something to the mod of that name here (core.fed_send
+    // there): `from` the friend as /friend named it.
+    std::function<void(const std::string &from, const std::string &mod, const std::string &text)> mod_message;
 };
 
 // The server's own life: /restart and /stop count down, warning every screen,
@@ -154,6 +158,16 @@ void left(const Who &who, const std::string &room, const std::string &reason);
 // A player who came through a portal on a ticket `issuer` signed, from
 // `address`: who sends players here, how many, from where (/portals).
 void crossed_in(const uint8_t *issuer, const std::string &address);
+
+// The friend server (/friend) whose key signed a ticket, by the name /friend
+// gave it; "" when no friend did (this server's own rooms, a stranger).
+std::string friend_by_issuer(const uint8_t *issuer);
+
+// A mod's line to a friend server (core.fed_send): to the friend /friend named
+// so, if it shares "mods", for the mod of the same name there
+// (core:fed_message). False when there is no such friend or it shares no mods.
+bool fed_mod_send(const std::string &friend_name, const std::string &mod, const std::string &text);
+inline constexpr size_t kFedModText = 4000;   // bytes a mod's line carries at most
 // A block a player changed, for /inspect and /rollback.
 void edited(const Who &who, const std::string &room, int x, int y, int z, int old_block, int old_facing,
             int new_block);

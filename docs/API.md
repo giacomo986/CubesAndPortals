@@ -1014,6 +1014,19 @@ Puts a glider over ONE player, or takes it off, at any time like core.body_movem
 | `player` | number | — | The id every event carries in its `player` field. |
 | `on` | boolean | `true` | false and a fall is a fall. |
 
+## `core.fed_send`
+
+```luau
+core.fed_send(server: string, text: string) -> number
+```
+
+Sends a line to the mod of the same name on a friend server (--federation, /friend), which hears it as core:fed_message in its first room. Only to a friend that shares "mods" (new friends do; one added before is added again to). Sealed and signed as every line between friends, but not kept: a friend that is down never hears it. Returns 1 if it went, 0 for no such friend, no mods shared, a line too long, or a player's machine.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `server` | string | — | A friend server, as /friend named it. |
+| `text` | string | — | Up to 4000 bytes. |
+
 ## `core.body_balloon`
 
 ```luau

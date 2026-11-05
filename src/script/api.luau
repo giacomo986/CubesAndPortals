@@ -1194,6 +1194,21 @@ local api: { Fn } = {
            .. "glider looks like is the mod's. Returns 1, or 0 for a player who is not in this world.",
     },
     {
+        name = "fed_send",
+        host = "fed_send",
+        ret  = "int",
+        args = {
+            { name = "server", type = "string", doc = "A friend server, as /friend named it." },
+            { name = "text", type = "string", doc = "Up to 4000 bytes." },
+        },
+        doc = "Sends a line to the mod of the same name on a friend server (--federation, /friend), "
+           .. "which hears it as core:fed_message in its first room. Only to a friend that shares "
+           .. "\"mods\" (new friends do; one added before is added again to). Sealed and signed as "
+           .. "every line between friends, but not kept: a friend that is down never hears it. "
+           .. "Returns 1 if it went, 0 for no such friend, no mods shared, a line too long, or a "
+           .. "player's machine.",
+    },
+    {
         name = "body_balloon",
         host = "body_balloon",
         ret  = "int",

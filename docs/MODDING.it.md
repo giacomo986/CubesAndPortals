@@ -488,6 +488,8 @@ Il core usa lo stesso bus, con gli stessi schemi, senza percorsi privilegiati
 | `core:page_action` | `player, page, id, text` | no — solo al mod che ha mostrato la pagina |
 | `core:input` | `action, player` | sì — solo su un client |
 | `core:far_moved` | `index, x, y, z, axis, sign, half_w, half_h` | no — solo su un server a stanze |
+| `core:arrived` | `player, from` | no — solo su un server; un portale l'ha portato dentro con un biglietto del server amico `from` (col nome dato da /friend) |
+| `core:fed_message` | `server, mod, text` | no — solo su un server, solo al mod con quel nome, nella prima stanza; `core.fed_send` sull'amico `server` |
 | `core:died` | `player, x, y, z` | no — solo su un server; il corpo è già tornato al letto o allo spawn, x y z è dove è morto |
 | `core:burst` | `x, y, z, nx, ny, nz` | no — solo su un server; una palla di fuoco di una creatura è scoppiata sul blocco a x y z, sulla faccia con normale nx ny nz |
 
@@ -2306,6 +2308,12 @@ fusione nei meta della fornace e la dà con `furnace:xp` a chi la apre;
 core.event.define("furnace:xp", { fields = { player = "number", points = "number" }, cancellable = false })
 core.event.emit("furnace:xp", { player = ev.player, points = 3 })
 ```
+
+**Tra server amici.** `core.fed_send(server, testo)` manda una riga, fino a 4000 byte, al mod con lo
+stesso nome su un server amico (`--federation`, `/friend`, che condivide `mods`), che la riceve come
+`core:fed_message` nella sua prima stanza; è sigillata e firmata come ogni riga tra amici, e non viene
+conservata -- un amico spento non la riceve mai. `core:arrived` dice chi un portale ha portato dentro e da
+quale amico. `mods/passport` usa entrambi: i timbri, e pacchi e lettere con una cassetta.
 
 Alcuni che usano altri mod:
 

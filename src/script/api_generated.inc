@@ -841,6 +841,17 @@ int l_body_glide(lua_State *L)
     return 1;
 }
 
+// core.fed_send(server: string, text: string) -> number
+int l_fed_send(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *server = (const char *)luaL_checkstring(L, 1);
+    const char *text = (const char *)luaL_checkstring(L, 2);
+    const int result = (vm && vm->host.fed_send) ? vm->host.fed_send(vm->host.ud, server, text) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.body_balloon(player: number, on: boolean?) -> number
 int l_body_balloon(lua_State *L)
 {
@@ -3340,6 +3351,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "body_mount");
     lua_pushcfunction(L, l_body_glide, "core.body_glide");
     lua_setfield(L, -2, "body_glide");
+    lua_pushcfunction(L, l_fed_send, "core.fed_send");
+    lua_setfield(L, -2, "fed_send");
     lua_pushcfunction(L, l_body_balloon, "core.body_balloon");
     lua_setfield(L, -2, "body_balloon");
     lua_pushcfunction(L, l_register_item, "core.register_item");

@@ -1274,7 +1274,7 @@ const Command kCommands[] = {
     {"metrics", "logs", "-- how the server is doing", cmd_metrics},
     {"backup", "backup", "-- copy every world file now", cmd_backup},
     {"portals", "portals", "-- links out, and who sends players in", cmd_portals},
-    {"friend", "federation", "add NAME HOST:PORT KEY [bans,presence,chat,bags,portals]|remove NAME|list -- friend servers", cmd_friend},
+    {"friend", "federation", "add NAME HOST:PORT KEY [bans,presence,chat,bags,portals,mods]|remove NAME|list -- friend servers", cmd_friend},
     {"fed", nullptr, "TEXT -- to the players of every friend server", cmd_fed},
     {"where", nullptr, "NAME -- here, or on which friend server", cmd_where},
 };
@@ -2318,6 +2318,29 @@ void fed_send_all(const char *share, const std::string &payload)
         if (f.shares_(share)) fed_send(f, payload);
 }
 
+} // namespace
+
+std::string friend_by_issuer(const uint8_t *issuer)
+{
+    const std::string key = "key:" + net::to_hex(issuer, net::kSignPublicBytes);
+    for (const Friend &f : friends())
+        if (f.key == key) return f.name;
+    return "";
+}
+
+bool fed_mod_send(const std::string &friend_name, const std::string &mod, const std::string &text)
+{
+    if (mod.empty() || text.size() > kFedModText || mod.find('\n') != std::string::npos) return false;
+    for (const Friend &f : friends())
+        if (f.name == friend_name && f.shares_("mods")) {
+            fed_send(f, "mod\n" + mod + "\n" + text);
+            return true;
+        }
+    return false;
+}
+
+namespace {
+
 // Connected within three seconds, or not at all: a friend that is down
 // costs the sender thread, never a tick.
 Sock dial(const std::string &host, int port)
@@ -2646,6 +2669,12 @@ void apply(const Friend &f, const std::string &payload, const Hooks &h)
     } else if (kind == "portals_unlink" && f.shares_("portals")) {
         std::string body((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
         farp::unlink_in(f.name, f.key.substr(4), body);
+    } else if (kind == "mod" && f.shares_("mods")) {
+        // A mod's line (core.fed_send): its mod, then its text, whole.
+        std::string mod;
+        std::getline(in, mod);
+        std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        if (!mod.empty() && text.size() <= kFedModText && h.mod_message) h.mod_message(f.name, mod, text);
     } else if (kind == "chat" && f.shares_("chat")) {
         std::string line;
         std::getline(in, line);
@@ -2662,10 +2691,10 @@ void cmd_friend(const Who &c, const Args &a, const Hooks &, std::vector<std::str
         uint8_t key[net::kSignPublicBytes];
         if (a.words.size() < 4 || !net::from_hex(a.words[3], key, sizeof(key)) ||
             a.words[2].find(':') == std::string::npos) {
-            out.push_back("/friend add NAME HOST:PORT KEY [bans,presence,chat,bags,portals]");
+            out.push_back("/friend add NAME HOST:PORT KEY [bans,presence,chat,bags,portals,mods]");
             return;
         }
-        const std::string shares = a.words.size() > 4 ? a.words[4] : "bans,presence,chat,bags,portals";
+        const std::string shares = a.words.size() > 4 ? a.words[4] : "bans,presence,chat,bags,portals,mods";
         // One friend a name: added again under a new key (it changed its
         // signature) it is that friend, and the old key is not.
         for (const Friend &f : friends())
