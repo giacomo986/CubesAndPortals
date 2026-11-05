@@ -25,6 +25,7 @@ from mathutils import Matrix, Vector
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 OUT = os.path.join(ROOT, "mods", "cameras")
 PIVOT = Vector((0.5, 0.5, 0.5))   # the head's pivot in the cell (Blender: x, y, up)
+CELL = Vector((0.0, -1.0, 0.0))   # from y 0..1, as the parts are drawn, to the glTF's z 0..1
 
 
 def material(name, rgb, rough=0.6, metal=0.0, glow=False):
@@ -117,7 +118,9 @@ def main():
     material("Cam_lamp_off", (0.25, 0.05, 0.05))
     material("Cam_lamp_lit", (1.0, 0.12, 0.08), glow=True)
 
-    st = obj("camera_stand", STAND_MATS, stand)
+    # In the unit cube of the glTF: Blender's -Y is its +Z, so a block's
+    # cell is y from -1 to 0 here (the stand was a cell off, in -Z).
+    st = obj("camera_stand", STAND_MATS, stand, at=CELL)
     export([st], os.path.join(OUT, "camera_stand.gltf"))
     for lit in (False, True):
         mats = HEAD_MATS[:4] + ["Cam_lamp_lit" if lit else "Cam_lamp_off"]
@@ -126,8 +129,8 @@ def main():
         if not lit:
             # The whole, as placed: the head in its fork, looking ahead (-Y is
             # the block's front, +Z of the glTF).
-            full_head = obj("camera_full_head", mats, head(False), at=PIVOT)
-            full_stand = obj("camera_full", STAND_MATS, stand)
+            full_head = obj("camera_full_head", mats, head(False), at=PIVOT + CELL)
+            full_stand = obj("camera_full", STAND_MATS, stand, at=CELL)
             bpy.ops.object.select_all(action="DESELECT")
             full_head.select_set(True)
             full_stand.select_set(True)
