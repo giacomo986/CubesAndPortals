@@ -13,7 +13,10 @@
 -- A and D round, up to a right angle either way from where it faces, W and
 -- S up and down. Right click again to step back. Where it is turned is
 -- kept in the camera (its cell's "yaw" and "pitch") and seen by everybody,
--- and it is where the sensor looks.
+-- and it is where the sensor looks -- and where its head turns, for
+-- everybody: the block is the camera's stand (camera_stand.gltf) and each
+-- machine draws the head on it as turned (camera_head.gltf, lit red while it
+-- sees somebody; tools/make_camera_models.py).
 --
 -- A camera is a sensor too: while it sees a player or a creature within 16
 -- in front of it, nothing solid between, it gives power like a lever that is
@@ -73,7 +76,25 @@ local function place_camera(k: string, cx: number, cy: number, cz: number, cf: n
     cam_aim[k] = { off, pitch }
 end
 
+-- The cameras near, as the server last said: where, facing, turned, lit.
+type Head = { x: number, y: number, z: number, f: number, off: number, pitch: number, on: boolean }
+local heads: { Head } = {}
+
 local function heard(text: string)
+    if string.sub(text, 1, 2) == "K " then
+        local now: { Head } = {}
+        for part in string.gmatch(string.sub(text, 3), "[^;]+") do
+            local n = {}
+            for v in string.gmatch(part, "[^,]+") do
+                table.insert(n, tonumber(v) or 0)
+            end
+            if #n >= 7 then
+                table.insert(now, { x = n[1], y = n[2], z = n[3], f = n[4], off = n[5], pitch = n[6], on = n[7] == 1 })
+            end
+        end
+        heads = now
+        return
+    end
     local c = { string.match(text, "^C (%S+) (%S+) (%S+) (%S+) (%S+) (%S+) (%S+) (%S+) (%S+) (%S+)$") }
     if #c == 10 then
         local n = {}
@@ -145,6 +166,16 @@ if serving then
         core.node_box(id, 0.38, 0.4, 0.85, 0.62, 0.6, 1.0)    -- the lens, at the front (+Z)
     end
     core.node_drop(CAMERA_ON, CAMERA)
+    -- Drawn as its stand (the block, which does not turn) and its head, drawn
+    -- by each machine where the camera is turned (below); the boxes stay the
+    -- block's shape. In the hand and the bag: tools/make_held_models.py.
+    local STAND = core.register_model("cameras:camera_stand", "camera_stand.gltf")   -- tools/make_camera_models.py
+    core.node_model(CAMERA, STAND)
+    core.node_model(CAMERA_ON, STAND)
+    core.register_model("cameras:camera_head", "camera_head.gltf")
+    core.register_model("cameras:camera_head_on", "camera_head_on.gltf")
+    core.register_model("cameras:camera_held", "camera_held.gltf")
+    core.register_model("cameras:screen_held", "screen_held.gltf")
     -- The screen: a panel at the back of its cell, its glass towards the front.
     core.node_box(SCREEN, 0.0, 0.0, 0.0, 1.0, 1.0, 0.125)
     core.recipe_shaped("cameras:camera", 1,
@@ -281,6 +312,7 @@ if serving then
     end
 
     local told: { [number]: string } = {}
+    local told_k: { [number]: string } = {}
     local since = 0.0
     core.event.on("core:tick", function(ev)
         since += ev.dt
@@ -322,6 +354,7 @@ if serving then
         end
         -- And to each player, the screens near them and their cameras.
         local now: { [number]: string } = {}
+        local now_k: { [number]: string } = {}
         for _, p in core.players() do
             local px, py, pz = core.player_pos(p)
             if px and py and pz then
@@ -346,9 +379,27 @@ if serving then
                     if drawing then heard(text) else core.net.send(p, text) end
                 end
                 now[p] = text
+                -- And the cameras near, where each is turned and whether it sees
+                -- somebody: their heads are drawn there.
+                local heads = {}
+                for _, c in cams do
+                    if (c.x - px) ^ 2 + (c.y - py) ^ 2 + (c.z - pz) ^ 2 < (SHOWN + 8) ^ 2 then
+                        local off, pitch = aim_of(c)
+                        table.insert(heads, string.format("%d,%d,%d,%d,%.4f,%.4f,%d", c.x, c.y, c.z,
+                            core.get_facing(c.x, c.y, c.z), off, pitch,
+                            if core.get_block(c.x, c.y, c.z) == CAMERA_ON then 1 else 0))
+                    end
+                end
+                table.sort(heads)
+                local ktext = "K " .. table.concat(heads, ";")
+                if told_k[p] ~= ktext then
+                    if drawing then heard(ktext) else core.net.send(p, ktext) end
+                end
+                now_k[p] = ktext
             end
         end
         told = now
+        told_k = now_k
     end)
 end
 
@@ -455,6 +506,24 @@ if drawing then
         local px, py, pz = core.player_pos(me)
         if px == nil or py == nil or pz == nil then
             return
+        end
+        -- Each camera's head where it is turned: the one being turned here
+        -- where it is now, the rest where the server says.
+        local head, head_on = core.model_id("cameras:camera_head"), core.model_id("cameras:camera_head_on")
+        for _, h in heads do
+            if (h.x - px) ^ 2 + (h.y - py) ^ 2 + (h.z - pz) ^ 2 < SHOWN * SHOWN then
+                local off, pitch = h.off, h.pitch
+                local c = control
+                if c and c.cx == h.x and c.cy == h.y and c.cz == h.z then
+                    off, pitch = c.off, c.pitch
+                end
+                local _, _, _, yaw = eye_of(h.x, h.y, h.z, h.f, off)
+                -- The head's lens is its model's +Z, which Ry(a) Rx(b) (render.model's
+                -- turn) sends to (sin a cos b, -sin b, cos a cos b): a look along
+                -- (sin yaw, ., -cos yaw) is a = pi - yaw, and up by pitch is b = -pitch.
+                core.render.model(if h.on then head_on else head, h.x + 0.5, h.y + 0.5, h.z + 0.5,
+                                  math.pi - yaw, 1, -pitch)
+            end
         end
         for _, s in shown do
             if (s.x - px) ^ 2 + (s.y - py) ^ 2 + (s.z - pz) ^ 2 < SHOWN * SHOWN then

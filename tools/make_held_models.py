@@ -1264,6 +1264,15 @@ BLOCK_ICONS["travel:waystone"] = block_icon([((0.1, 0, 0.1, 0.9, 0.2, 0.9), "way
                                              ((0.25, 0.2, 0.25, 0.75, 0.85, 0.75), "waystone"),
                                              ((0.18, 0.85, 0.18, 0.82, 1.0, 0.82), "waystone_base")])
 BLOCK_ICONS["building:lantern"] = from_block("mods/building/lantern.gltf")
+# The camera as placed, stand and head (tools/make_camera_models.py), and the
+# screen: its dark panel, the glass a hair in front of it showing a picture.
+BLOCK_ICONS["cameras:camera"] = from_block("mods/cameras/camera_full.gltf")
+M["screen_case"] = material("ScreenCase", (0.12, 0.12, 0.14), 0.3, 0.5)
+M["screen_glass"] = material("ScreenGlass", (0.35, 0.62, 0.88), 0.0, 0.1, glow=True)
+M["screen_land"] = material("ScreenLand", (0.30, 0.62, 0.30), 0.0, 0.3, glow=True)
+BLOCK_ICONS["cameras:screen"] = block_icon([((0.0, 0.0, 0.0, 1.0, 1.0, 0.125), "screen_case"),
+                                            ((0.07, 0.4, 0.125, 0.93, 0.93, 0.135), "screen_glass"),
+                                            ((0.07, 0.07, 0.125, 0.93, 0.4, 0.135), "screen_land")])
 # tools/make_piston_models.py
 BLOCK_ICONS["cinnabar:piston"] = from_block("mods/cinnabar/piston.gltf")
 BLOCK_ICONS["cinnabar:sticky_piston"] = from_block("mods/cinnabar/sticky_piston.gltf")

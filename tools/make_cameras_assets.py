@@ -61,10 +61,19 @@ def screen(rng, part):
 
 def main():
     rng = random.Random(5150)
+    # The faces by their groups (side, top, bottom) and not the plain name:
+    # that one is the bag's picture, rendered from the model by
+    # tools/make_held_models.py. A face asks for its own file first
+    # (src/core/media/face_tiles.h). The camera is drawn as its models
+    # (tools/make_camera_models.py); these are what a client without them draws.
     for name, on in (("cameras_camera", False), ("cameras_camera_on", True)):
-        save(casing(rng), name)
+        side = casing(rng)
+        for group in ("side", "top", "bottom"):
+            save(side, f"{name}_{group}")
         save(front(rng, on), name + "_front")
-    save(screen(rng, "side"), "cameras_screen")
+    side = screen(rng, "side")
+    for group in ("side", "top", "bottom"):
+        save(side, f"cameras_screen_{group}")
     save(screen(rng, "front"), "cameras_screen_front")
 
 

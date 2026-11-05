@@ -1012,8 +1012,16 @@ Portals -- the engine's own trick, used further:
    kept in the camera's cell (meta yaw, pitch), set by "A x y z off pitch"
    from a player within 10 of a screen showing it, sent with each screen
    (V), drawn here at once and seen by all; the sensor looks along it.
-   Checked in a client driven by xdotool. Open: the camera's block does not
-   turn with it.
+   Checked in a client driven by xdotool. The head turns too (asked for):
+   the block is the stand (core.node_model, camera_stand.gltf; its boxes
+   still the shape), and each machine draws the head where the camera is
+   turned (core.render.model, camera_head(_on).gltf, a = pi - yaw, b =
+   -pitch), from a list of the cameras near ("K x,y,z,f,off,pitch,on") the
+   server sends with the screens. Models tools/make_camera_models.py; the
+   whole camera and the screen held and in the bag (make_held_models.py),
+   the faces moved to _side/_top/_bottom so the plain name is the icon.
+   Checked: a camera put down faces whoever put it, lamp lit as it sees
+   them; turned 1.2 right and 0.4 up its head points there.
 3. Moving portals (high). A portal on a cart, a boat or a kart: a train
    entering a tunnel and leaving in another world, a door that follows you in
    the chambers. Today core.set_portal works only while the mods load and
