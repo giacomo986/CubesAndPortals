@@ -160,7 +160,7 @@ for reach = 2, 5 do
         core.node_box(kind.rod, 0.375, 0.375, -0.25, 0.625, 0.625, 1)
         piston_model(kind.off, `{pre}piston_{reach}`)
         piston_model(kind.on, `piston_{reach}_on`)
-        piston_model(kind.head, `{pre}piston_head`)
+        piston_model(kind.head, `{pre}piston_long_head`)
         piston_model(kind.rod, "piston_rod")
         for _, id in { kind.on, kind.head, kind.rod } do
             core.node_drop(id, kind.off)

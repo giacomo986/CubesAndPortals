@@ -14,8 +14,8 @@
 #                                 and the rod back through the body's quarter
 #   piston_2 .. piston_5          pistons reaching two to five cells, one red
 #   (sticky_, _on)                band round the body for each cell; pushed out
-#                                 they wear the one-cell piston's head and a
-#                                 piston_rod in every cell between
+#                                 they wear piston_long_head (its rod ending
+#                                 at its cell) and a piston_rod in every cell between
 #
 # Sizes are sixteenths of a cell, as the boxes in init.luau. Leaves the work in
 # assets/blender/piston.blend; PREVIEW_DIR gets a picture of each from three
@@ -105,17 +105,22 @@ def body(front, reach=1):
     sixteenth so the iron stands proud of it, iron posts down its four long
     edges, an iron band round the back and round the front, and on the back an
     iron plate with a cinnabar eye -- where the power goes in."""
-    p = [((0.5, 0.5, 0.5), (15.5, 15.5, front), "stone")]
+    # No two faces of the model on one plane, the way they face or not: the
+    # stone stops a sixteenth short of the front band's face, so neither the
+    # band nor the collar over it fight with it.
+    p = [((0.5, 0.5, 0.5), (15.5, 15.5, front - 1), "stone")]
     # Darker stone courses across each side, so it reads as stone set in iron.
     for y in (5, 10):
-        p += [((0.4, y, 1), (15.6, y + 0.4, front - 1), "stone_dark")]
+        p += [((0.4, y, 1), (15.6, y + 0.4, front - 2), "stone_dark")]
     p += ring(0, 0, 16, 16, 0, 1.5, 1.5, "iron")                 # back band
     p += ring(0, 0, 16, 16, front - 2, front, 1.5, "iron")       # front band
     if reach > 1:
         # How far it reaches, told by red bands round the body: one a cell.
         for i in range(reach):
-            z = 2 + (front - 4) * (i + 0.5) / reach
-            p += ring(0, 0, 16, 16, z - 0.35, z + 0.35, 1.0, "cinnabar")
+            z0, z1 = 2 + (front - 4) * (i + 0.5) / reach - 0.35, 2 + (front - 4) * (i + 0.5) / reach + 0.35
+            # Between the corner posts, not over them: flush with their faces.
+            p += [((1.5, 0, z0), (14.5, 1, z1), "cinnabar"), ((1.5, 15, z0), (14.5, 16, z1), "cinnabar"),
+                  ((0, 1.5, z0), (1, 14.5, z1), "cinnabar"), ((15, 1.5, z0), (16, 14.5, z1), "cinnabar")]
     for x, y in ((0, 0), (14.5, 0), (0, 14.5), (14.5, 14.5)):    # corner posts
         p += [((x, y, 1.5), (x + 1.5, y + 1.5, front - 2), "iron_dark")]
     p += [((4, 4, 0.2), (12, 12, 0.5), "iron_dark"),
@@ -135,7 +140,7 @@ def plate(sticky, z0=12):
     if sticky:
         p += [((0.5, 0.5, 15), (15.5, 15.5, 16), "slime"),
               # drips over the top and down the sides
-              ((3, 15.9, 14), (6, 16, 15.5), "slime"), ((10, 15.9, 13.5), (12, 16, 15.5), "slime"),
+              ((3, 16, 14), (6, 16.05, 15.5), "slime"), ((10, 16, 13.5), (12, 16.05, 15.5), "slime"),
               ((-0.05, 9, 14), (0, 12, 15.5), "slime"), ((16, 4, 13.8), (16.05, 7, 15.5), "slime")]
     return p
 
@@ -147,21 +152,35 @@ def piston(sticky, reach=1):
 
 def piston_on(reach=1):
     # The plate gone: the collar's face round a dark hole, the rod's way out.
-    return body(12, reach) + ring(1.5, 1.5, 14.5, 14.5, 11.5, 12, 4.5, "iron_dark") + \
-        [((6, 6, 11.4), (10, 10, 11.5), "hole")]
+    # The hole's floor is wider than the opening, so its sides are hidden in
+    # the collar rather than lying on the collar's own inner faces.
+    p = body(12, reach) + ring(1.5, 1.5, 14.5, 14.5, 11, 12, 4.5, "iron_dark") + \
+        [((5.8, 5.8, 10.5), (10.2, 10.2, 11.4), "hole")]
+    if reach > 1:
+        # The rod out of the hole to the end of the cell: the rods in front
+        # take it on from there, end to end and not overlapping.
+        p += [((6.5, 6.5, 11), (9.5, 9.5, 16), "iron")]
+    return p
 
 
 def head(sticky):
     # The plate on this cell's far quarter and the rod back through the body's,
     # thick enough to see, with a collar where it meets the plate.
-    return plate(sticky, 12) + [((6.5, 6.5, -4), (9.5, 9.5, 12), "iron"),
+    return plate(sticky, 12) + [((6.5, 6.5, -4), (9.5, 9.5, 10.5), "iron"),
+                                ((5.5, 5.5, 10.5), (10.5, 10.5, 12), "iron_dark")]
+
+
+def long_head(sticky):
+    # The head of one reaching further: its rod stops at its own cell's back,
+    # where the last length of rod ends.
+    return plate(sticky, 12) + [((6.5, 6.5, 0), (9.5, 9.5, 10.5), "iron"),
                                 ((5.5, 5.5, 10.5), (10.5, 10.5, 12), "iron_dark")]
 
 
 def rod():
-    # One length of a long reaching piston's rod, a cell long and a quarter more back
-    # into the cell behind, with a red joint ring where the lengths meet.
-    return [((6.5, 6.5, -4), (9.5, 9.5, 16), "iron"),
+    # One length of a long reaching piston's rod, its own cell end to end,
+    # with a red joint ring where the next length takes it on.
+    return [((6.5, 6.5, 0), (9.5, 9.5, 14), "iron"),
             ((6, 6, 14), (10, 10, 16), "cinnabar")]
 
 
@@ -176,6 +195,8 @@ MODELS = {
     # same as the one-cell piston's, and a length of rod for every cell between.
     **{f"{pre}piston_{r}": piston(pre == "sticky_", r) for r in (2, 3, 4, 5) for pre in ("", "sticky_")},
     **{f"piston_{r}_on": piston_on(r) for r in (2, 3, 4, 5)},
+    "piston_long_head": long_head(False),
+    "sticky_piston_long_head": long_head(True),
     "piston_rod": rod(),
 }
 
