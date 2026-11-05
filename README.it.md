@@ -365,8 +365,13 @@ robot può badare agli animali.
 anguille in mare, tonni nell'oceano, un raro pesce rosso ovunque -- e i pescatori-rana li comprano.
 
 **Alchimia** (`mods/alchemy`). Un alambicco distilla una fiasca d'acqua e un ingrediente in una
-pozione: vista notturna, rapidità, pelle di pietra, guarigione, fretta, respirare sott'acqua -- tre minuti
+pozione: vista notturna, rapidità, pelle di pietra, guarigione, fretta, respirare sott'acqua, vigore -- tre minuti
 ciascuna. Sott'acqua l'aria dura quindici secondi (`mods/breath`).
+
+**Api** (`mods/bees`). Nidi selvatici tra i fiori dei prati, e arnie di assi e favi: si riempiono di
+miele tanto più in fretta quanti più fiori hanno attorno, d'inverno dormono, e aiutano a crescere i
+campi vicini. Con una fiasca si prende una bottiglia di miele (cibo), a mani nude due favi (una
+pozione, un'arnia); una torcia sotto tiene le api dal pungere. Di giorno le api ci volano attorno.
 
 **Cavità** (`mods/deep`). Sotto la roccia madre di alcune regioni c'è un paese di caverne sigillato,
 a cui si scende da una voragine con i pioli: funghi e muschio luminosi, cristalli, laghi di lava, e un
@@ -400,6 +405,11 @@ cinque giorni: d'autunno le foglie si fanno arancioni e d'inverno spente (l'abet
 l'estate ha più temporali e la primavera più pioggia, i campi rallentano d'autunno e d'inverno
 crescono solo sotto le lampade, e d'inverno nevica ovunque tranne nel deserto. I mercanti fanno pagare il doppio il cibo d'inverno e la legna
 d'autunno.
+
+**Il cielo** (`mods/sky`). Una notte serena su cinque porta una pioggia di meteore, e ogni tanto una
+meteorite che cade vicino, scava un cratere e lascia una pietra con un diamante e ferro grezzo. D'inverno
+l'aurora si stende sul nord, vista dalla tundra e dalle vette. Un giorno su dodici un'eclissi oscura la
+terra per tre minuti, e le creature della notte escono. `/sky` ne fa partire una.
 
 **Creature.** Zombie e scheletri arcieri escono al buio e bruciano al sole; maiali, mucche, pecore
 e galline pascolano, si riproducono e crescono; un cane e un gatto si addomesticano e seguono chi

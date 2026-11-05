@@ -808,7 +808,9 @@ shaders (`src/client/render/fx_render.cpp`): it adds to what is behind, walls co
 not cover other effects. `kind` is `"glow"`, `"flame"` (a rising flame), `"ring"` (a shock wave
 laid on the ground), `"frost"` (ice shards on the ground), `"bolt"` (lightning from `x, y, z` to
 `x2, y2, z2`), `"slash"` (a sword stroke's arc), `"sparks"` (sparks flying off), `"vortex"` or
-`"jet"` (a flame leaving `x, y, z` towards `x2, y2, z2`, the karts' nitro). `size` is the radius in
+`"jet"` (a flame leaving `x, y, z` towards `x2, y2, z2`, the karts' nitro), `"streak"` (a shooting
+star, its tail at `x, y, z` and its head at `x2, y2, z2`) or `"aurora"` (a curtain of light `size`
+tall standing on the line from `x, y, z` to `x2, y2, z2`, rays drifting across it, violet at its top). `size` is the radius in
 nodes (for the bolt its width), `t` how much of its life has passed, 0 to 1: the shader grows,
 sweeps and fades with it, and the mod only counts time. Returns false for a kind that does not
 exist.

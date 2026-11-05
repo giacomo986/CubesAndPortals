@@ -1025,11 +1025,34 @@ The sandbox:
 10. Sky events (low). A meteor shower leaving craters with a rare ore, an
    aurora over the tundra in winter, a rare eclipse that lets monsters out by
    day. Hooks on mods/weather and its seasons.
+   BUILT 2026-11-05 (mods/sky, side both): showers one night in five,
+   shooting stars drawn by the client (core.render.fx "streak", new), a
+   meteorite every 1-3 min of a shower 30-70 from a player (a crater, one or
+   two sky:meteorite: a diamond and 2-4 raw iron); the aurora one winter night
+   in two, three curtains (fx "aurora", new) seen from tundra and peaks; an
+   eclipse one day in twelve, 0.15 of a day (core.sky_eclipse, new: the sun
+   black in a ring, the sky dusk blue, the land dark; the server's day through
+   weather:darken -> core.overcast). /sky [meteors|aurora|eclipse|impact|
+   clear]. Checked headless: an impact's crater and meteorite, the server's
+   light falling 15 -> 9 as the eclipse comes in. Open: none of it yet seen
+   drawn; meteorites in a cave below are possible (ground found from the
+   player's height down).
 11. The village paper (low). The board tells gossip of what the player really
    did -- a theft marked, a siege defended, a caravan arrived from a named
    village -- from data the villagers already keep.
 12. Bees and honey (low). Hives by flowers, by season (none in winter); honey
    for alchemy and food; bees pollinate the fields round them.
+   BUILT 2026-11-05 (mods/bees): wild nests on one flower in sixty, hives of
+   planks round honeycomb; four honey steps, a chance each 30 s by flowers
+   within 6, none in winter; flask -> honey bottle (mods/hunger 6/1.2, flask
+   back), bare hand -> two honeycombs, stung for 2 without a torch within 3
+   under; a crop within 6 a stage on half the times; honeycomb brews vigour
+   (mods/alchemy). Checked headless: a hive full in about 140 s, wheat grown,
+   about four nests a flowery 128 x 128. Bees seen: by day, out of winter,
+   three (four if full) round a hive with flowers within 20 of a player,
+   entities with tools/make_bee_model.py's bee, at most 40; checked with a
+   probe (out with the player, none round a nest with no flowers, gone when
+   it left). Open: harvest and sting not yet played.
 
 Multiplayer and the plaza:
 13. Voxel prop hunt (medium). Hiders become a block of the world, seekers

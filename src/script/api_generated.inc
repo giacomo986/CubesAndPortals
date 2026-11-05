@@ -1111,6 +1111,15 @@ int l_sky_flash(lua_State *L)
     return 0;
 }
 
+// core.sky_eclipse(amount: number) -> ()
+int l_sky_eclipse(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const float amount = (float)luaL_checknumber(L, 1);
+    if (vm && vm->host.sky_eclipse) vm->host.sky_eclipse(vm->host.ud, amount);
+    return 0;
+}
+
 // core.node_foliage(id: number, on: boolean?) -> number
 int l_node_foliage(lua_State *L)
 {
@@ -3357,6 +3366,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "overcast");
     lua_pushcfunction(L, l_sky_flash, "core.sky_flash");
     lua_setfield(L, -2, "sky_flash");
+    lua_pushcfunction(L, l_sky_eclipse, "core.sky_eclipse");
+    lua_setfield(L, -2, "sky_eclipse");
     lua_pushcfunction(L, l_node_foliage, "core.node_foliage");
     lua_setfield(L, -2, "node_foliage");
     lua_pushcfunction(L, l_foliage, "core.foliage");

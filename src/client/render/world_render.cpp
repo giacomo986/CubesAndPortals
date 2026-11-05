@@ -176,6 +176,7 @@ bool WorldRenderer::init(NodeRegistry &reg, const MediaSource &media)
     m_loc_cloud_funnel   = gfx_uniform_location(m_cloud_shader, "uFunnel");
     m_loc_cloud_range    = gfx_uniform_location(m_cloud_shader, "uRange");
     m_loc_cloud_overcast = gfx_uniform_location(m_cloud_shader, "uOvercast");
+    m_loc_cloud_eclipse  = gfx_uniform_location(m_cloud_shader, "uEclipse");
     m_loc_cloud_part     = gfx_uniform_location(m_cloud_shader, "uPart");
     m_cloud_water_u.locate(m_cloud_shader);
 
@@ -1400,6 +1401,7 @@ void WorldRenderer::draw(const Mat4 &projection, const Mat4 &view, bool cull)
         gfx_uniform_set_v4(m_loc_cloud_funnel, m_cloud_funnel, 4);
         gfx_uniform_set_f(m_loc_cloud_range, std::min(m_view_range, 1e6f));
         gfx_uniform_set_f(m_loc_cloud_overcast, m_cloud_overcast);
+        gfx_uniform_set_f(m_loc_cloud_eclipse, m_cloud_eclipse);
 
         gfx_state sky = gfx_state_default();
         sky.cull      = GFX_CULL_NONE;

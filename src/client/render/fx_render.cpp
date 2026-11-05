@@ -33,7 +33,10 @@ void main()
     if (uKind == 2 || uKind == 3) {
         // On the ground, a little over it so the floor does not cut it.
         p = uCenter + vec3(aCorner.x, 0.02, aCorner.y) * vec3(uSize, 1.0, uSize);
-    } else if (uKind == 4 || uKind == 8) {
+    } else if (uKind == 10) {
+        // A curtain standing on the line from the centre to the end, size tall.
+        p = mix(uCenter, uEnd, aCorner.x * 0.5 + 0.5) + vec3(0.0, (aCorner.y * 0.5 + 0.5) * uSize, 0.0);
+    } else if (uKind == 4 || uKind == 8 || uKind == 9) {
         // A ribbon from the centre to the end, turned to the eye about its length.
         vec3 eye  = (inverse(uView) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
         vec3 mid  = mix(uCenter, uEnd, aCorner.y * 0.5 + 0.5);
@@ -145,6 +148,24 @@ void main()
         float d     = abs(uv.x) / max(width, 1e-3);
         b   = clamp(1.0 - d, 0.0, 1.0) * (1.0 - smoothstep(0.45 + 0.4 * n, 1.0, along)) * 1.6 * fade;
         hot = clamp(1.0 - d * 1.8, 0.0, 1.0) * (1.0 - along * 1.6);
+    } else if (uKind == 9) {     // streak: a thin tail brightening to a head at the end
+        float along = uv.y * 0.5 + 0.5;
+        float d     = abs(uv.x);
+        float tail  = exp(-d * d * (60.0 / max(along, 0.05))) * along * along;
+        float head  = exp(-(pow((1.0 - along) * 9.0, 2.0) + d * d * 18.0));
+        b   = (tail * 0.9 + head * 1.4) * fade;
+        hot = head;
+    } else if (uKind == 10) {    // aurora: rays across a curtain, sharp at its foot, fading up
+        float u  = uv.x * 0.5 + 0.5;
+        float h  = uv.y * 0.5 + 0.5;
+        float n  = fbm(vec2(u * 5.0 + uTime * 0.05, uTime * 0.08));
+        float ry = noise(vec2(u * 60.0 + n * 9.0, uTime * 0.4));
+        float foot = smoothstep(0.0, 0.08 + 0.1 * n, h);
+        float ends = smoothstep(0.0, 0.15, u) * smoothstep(1.0, 0.85, u);
+        b   = foot * pow(1.0 - h, 1.6) * (0.35 + 0.9 * ry * ry) * (0.5 + n) * ends * fade;
+        hot = 0.0;
+        // Its top towards violet, whatever the colour at its foot.
+        uv  = vec2(h);
     } else {                     // vortex: arms wound about the middle
         float arms = 0.5 + 0.5 * sin(ang * 3.0 + r * 9.0 - uTime * 6.0);
         float n    = fbm(vec2(ang * 2.0 + uTime, r * 4.0));
@@ -156,6 +177,7 @@ void main()
     b *= uColor.a;
     if (b < 0.003) discard;
     vec3 col = mix(uColor.rgb, vec3(1.0), clamp(hot, 0.0, 1.0) * 0.8);
+    if (uKind == 10) col = mix(uColor.rgb, vec3(0.62, 0.32, 0.88), smoothstep(0.35, 0.9, uv.y));
     fragColor = vec4(col, clamp(b, 0.0, 1.0));
 }
 )";
@@ -197,7 +219,8 @@ void main()
 
 int fx_kind_named(const char *name)
 {
-    static const char *const kNames[] = {"glow", "flame", "ring", "frost", "bolt", "slash", "sparks", "vortex", "jet"};
+    static const char *const kNames[] = {"glow", "flame", "ring", "frost", "bolt", "slash", "sparks", "vortex", "jet",
+                                         "streak", "aurora"};
     for (int k = 0; k < (int)FxKind::Count; ++k)
         if (name && std::strcmp(name, kNames[k]) == 0) return k;
     return -1;

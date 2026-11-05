@@ -301,6 +301,8 @@ public:
 
     // Weather (core.overcast), 0..1: the clouds thicker and grey.
     void set_overcast(float o) { m_cloud_overcast = o; }
+    // An eclipse (core.sky_eclipse), 0..1: the sun's disc black in a pale ring.
+    void set_eclipse(float e) { m_cloud_eclipse = e; }
     // core.night_sight, 0..1: no block drawn darker than this, nor any model.
     void set_night_sight(float n) { m_night_sight = n; ModelRenderer::night_sight = n; }
 
@@ -535,7 +537,8 @@ private:
     float       m_shadow_texel = 0.0f;
     int         m_loc_shadow_tiles = -1, m_loc_shadow_tex = -1;
     int         m_loc_cloud_sun = -1, m_loc_cloud_sun_on = -1, m_loc_cloud_moon = -1, m_loc_cloud_storm = -1;
-    int         m_loc_cloud_funnel = -1, m_loc_cloud_range = -1, m_loc_cloud_overcast = -1, m_loc_cloud_part = -1;
+    int         m_loc_cloud_funnel = -1, m_loc_cloud_range = -1, m_loc_cloud_overcast = -1, m_loc_cloud_part = -1,
+                m_loc_cloud_eclipse = -1;
     int         m_loc_sun_dir = -1, m_loc_sun_color = -1, m_loc_ambient = -1;
     int         m_loc_shadow_vp = -1, m_loc_shadow = -1, m_loc_shadow_on = -1, m_loc_shadow_texel = -1;
 
@@ -555,6 +558,7 @@ private:
     float      m_cloud_storm[4]  = {0.0f, 0.0f, 0.0f, 0.0f};   // rgb, and 1 when a storm
     float      m_cloud_funnel[16] = {};                         // set_funnels
     float      m_cloud_overcast   = 0.0f;                       // set_overcast
+    float      m_cloud_eclipse    = 0.0f;                       // set_eclipse
     friend struct WaterUniforms;
 
     // The camera the water is for (set_water), and the cells of water around

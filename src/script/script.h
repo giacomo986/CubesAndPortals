@@ -283,6 +283,7 @@ typedef struct script_host {
     void (*storm_funnel)(void *ud, int slot, double x, double y, double z, int on);   // a twister drawn
     void (*overcast)(void *ud, double amount);   // a grey sky over the hours, 0..1
     void (*sky_flash)(void *ud, double amount);  // a bolt lighting the land, this frame, 0..1
+    void (*sky_eclipse)(void *ud, double amount);   // the moon over the sun, 0..1
     void (*night_sight)(void *ud, double amount);   // drawn no darker than this, 0..1
     int (*held_id)(void *ud, int player);   // core.held_id: the hand's stack's number
     int (*held_set_id)(void *ud, int player, int id);
@@ -662,9 +663,9 @@ typedef struct script_host {
     int (*render_model)(void *ud, int model, double x, double y, double z, double yaw,
                         double scale, double pitch, double roll, double dissolve);
     // And an effect of light (core.render.fx): a kind by name ("glow", "flame",
-    // "ring", "frost", "bolt", "slash", "sparks", "vortex", "jet"), where and how big,
-    // its colour, how far through its life it is (0..1), and for a bolt where
-    // it ends.
+    // "ring", "frost", "bolt", "slash", "sparks", "vortex", "jet", "streak",
+    // "aurora"), where and how big, its colour, how far through its life it is
+    // (0..1), and for a bolt, a jet, a streak or an aurora where it ends.
     int (*render_fx)(void *ud, const char *kind, double x, double y, double z, double size, int r,
                      int g, int b, int a, double t, double x2, double y2, double z2);
 

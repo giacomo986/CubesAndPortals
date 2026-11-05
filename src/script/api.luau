@@ -1540,6 +1540,18 @@ local api: { Fn } = {
            .. "For a world's code on a player's machine.",
     },
     {
+        name = "sky_eclipse",
+        host = "sky_eclipse",
+        args = {
+            { name = "amount", type = "float", doc = "0 none .. 1 the sun wholly hidden; clamped" },
+        },
+        doc = "An eclipse over this world, by this much: the sun's disc goes black inside a "
+           .. "pale ring, the sky towards a dusk blue, the sun's light and the sky's on the land "
+           .. "nearly gone. Kept until called again, so a mod fades it in and out. Only what "
+           .. "this machine draws: the server's day, which the creatures read, is core.overcast's. "
+           .. "For a world's code on a player's machine.",
+    },
+    {
         name = "node_foliage",
         host = "node_foliage",
         ret  = "int",

@@ -95,14 +95,27 @@ if serving then
         end
     end
 
+    -- The server's sky (core.overcast): what the weather makes of it, or
+    -- darker if another mod asks (weather:darken -- mods/sky's eclipse).
+    core.event.define("weather:darken", { fields = { amount = "number" }, cancellable = false })
+    local grey, darker = 0.0, 0.0
+    local function overcast()
+        core.overcast(math.max(grey, darker))
+    end
+    core.event.on("weather:darken", function(ev)
+        darker = math.clamp(ev.amount, 0, 1)
+        overcast()
+    end)
+
     local function set_sky(what: string, secs: number)
         if (what == "clear") ~= (sky == "clear") then
             core.event.emit("farm:rain", { on = what ~= "clear" })
         end
         sky, left = what, secs
-        -- The server's sky too (core.overcast): a storm is dark enough for
-        -- the creatures of the dark, and keeps the sun off them.
-        core.overcast(if what == "storm" then 1 elseif what == "clear" then 0 else 0.75)
+        -- A storm is dark enough for the creatures of the dark, and keeps the
+        -- sun off them.
+        grey = if what == "storm" then 1 elseif what == "clear" then 0 else 0.75
+        overcast()
         core.log(`weather: {what} for {math.floor(secs / 60)} min`)
     end
 

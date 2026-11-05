@@ -252,6 +252,8 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     overcast: (amount: number) -> (),
     -- Lights this world as a bolt does, this frame: the land as bright as at noon and the sky towards a pale blue by this much, by night too. Called every frame it lasts. For a world's code on a player's machine.
     sky_flash: (amount: number) -> (),
+    -- An eclipse over this world, by this much: the sun's disc goes black inside a pale ring, the sky towards a dusk blue, the sun's light and the sky's on the land nearly gone. Kept until called again, so a mod fades it in and out. Only what this machine draws: the server's day, which the creatures read, is core.overcast's. For a world's code on a player's machine.
+    sky_eclipse: (amount: number) -> (),
     -- Marks a block as foliage: it takes the colour core.foliage gives -- leaves that turn in autumn. Only drawn; the world around is drawn again with it. Returns 1, or 0 for an id that is not a block. For a world's code on a player's machine.
     node_foliage: (id: number, on: boolean?) -> number,
     -- The season's colour on every block marked by core.node_foliage: its picture's brightness in this colour, mixed in by `amount`. Called as it changes, so a mod fades it. For a world's code on a player's machine.

@@ -29,6 +29,8 @@ enum class FxKind : int {
     Sparks,
     Vortex,
     Jet,      // a flame out of a nozzle at the point, blown towards `to`
+    Streak,   // a shooting star: its tail at the point, its head at `to`
+    Aurora,   // a curtain of light hung up from the line from the point to `to`
     Count,
 };
 

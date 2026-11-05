@@ -495,6 +495,7 @@ uniform vec4  uStorm;      // core.world_storm: its colour, and w 1 when there i
 uniform vec4  uFunnel[4];  // core.storm_funnel: x, ground y, z, and w 1 when there is one
 uniform float uRange;      // how far the world is drawn: a funnel past it would stand over nothing
 uniform float uOvercast;   // core.overcast: 0..1, the layer thicker and grey
+uniform float uEclipse;    // core.sky_eclipse: 0..1, the sun's disc black in a pale ring
 uniform int   uPart;       // 1 the layer, 2 the funnels, 3 both: each pass its own depth
 
 out vec4 fragColor;
@@ -745,7 +746,19 @@ void main()
         float body = smoothstep(edge - 0.00004, edge + 0.00004, c);
         float glow = uMoon > 0.5 ? 0.12 * pow(max(c, 0.0), 2000.0) : 0.5 * pow(max(c, 0.0), 300.0);
         vec3  col  = uMoon > 0.5 ? vec3(0.86, 0.89, 1.0) : vec3(1.0, 0.96, 0.84);
-        disc = vec4(col, clamp(body + glow, 0.0, 1.0));
+        if (uMoon < 0.5 && uEclipse > 0.0) {
+            // The moon over it: the body dark, the glow drawn in to a ring
+            // round its edge, pale and a little wider than the sun.
+            float ring = exp(-pow((c - (edge - 0.0003)) / 0.00022, 2.0)) * 0.9;
+            vec3  dark = vec3(0.02, 0.02, 0.03);
+            float b2   = body * uEclipse;
+            float g2   = mix(glow, ring + 0.25 * glow, uEclipse);
+            float lit  = body * (1.0 - uEclipse);
+            col  = (dark * b2 + col * (lit + g2)) / max(b2 + lit + g2, 1e-4);
+            disc = vec4(col, clamp(b2 + lit + g2, 0.0, 1.0));
+        } else {
+            disc = vec4(col, clamp(body + glow, 0.0, 1.0));
+        }
     }
 
     vec3 d = dir * (kFar / max(length(dir.xz), 0.05 * length(dir)));

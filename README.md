@@ -357,8 +357,13 @@ with a trough of wheat or seeds that holds the animals and breeds them, and orde
 eels in the sea, tuna on the ocean, a rare goldfish anywhere -- and the toad fishers buy them.
 
 **Alchemy** (`mods/alchemy`). A still brews a flask of water and an ingredient into a potion: night
-sight, swiftness, stoneskin, mending, haste, water breathing -- three minutes each. Under water
+sight, swiftness, stoneskin, mending, haste, water breathing, vigour -- three minutes each. Under water
 the air lasts fifteen seconds (`mods/breath`).
+
+**Bees** (`mods/bees`). Wild nests among the meadows' flowers, and hives of planks and honeycomb:
+they fill with honey the faster the more flowers are round them, sleep through the winter, and help
+the crops round them grow. A flask takes a bottle of honey (food), a bare hand two honeycombs (a
+potion, a hive); a torch under them keeps the bees from stinging. By day the bees fly round them.
 
 **Hollows** (`mods/deep`). Under the bedrock of some regions lies a sealed cavern country, reached
 by a sinkhole with rungs down its side: glowing fungi and moss, crystals, lava lakes, and an altar
@@ -391,6 +396,11 @@ the leaves turn orange in autumn and dull in winter (spruce stays green), summer
 spring rains more, the fields slow in autumn and in winter grow only under lamps, and in winter
 it snows everywhere but the desert. Traders charge double for food in winter and for wood in
 autumn.
+
+**The sky** (`mods/sky`). One clear night in five brings a meteor shower, and now and then a meteorite
+that comes down near you, digs a crater and leaves a stone with a diamond and raw iron in it. In
+winter the aurora hangs over the north, seen from the tundra and the peaks. One day in twelve an
+eclipse darkens the land for three minutes, and the night's creatures come out. `/sky` brings one on.
 
 **Creatures.** Zombies and skeleton archers come out in the dark and burn in the sun; pigs, cows,
 sheep and chickens graze, breed and grow; a dog and a cat can be tamed and follow you

@@ -1330,6 +1330,18 @@ Lights this world as a bolt does, this frame: the land as bright as at noon and 
 |---|---|---|---|
 | `amount` | number | — | 0 none .. 1 a bolt's whole flash; clamped |
 
+## `core.sky_eclipse`
+
+```luau
+core.sky_eclipse(amount: number) -> ()
+```
+
+An eclipse over this world, by this much: the sun's disc goes black inside a pale ring, the sky towards a dusk blue, the sun's light and the sky's on the land nearly gone. Kept until called again, so a mod fades it in and out. Only what this machine draws: the server's day, which the creatures read, is core.overcast's. For a world's code on a player's machine.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `amount` | number | — | 0 none .. 1 the sun wholly hidden; clamped |
+
 ## `core.node_foliage`
 
 ```luau

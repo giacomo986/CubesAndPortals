@@ -899,6 +899,7 @@ struct Session {
     float funnel[16]{};   // core.storm_funnel: four of x, y, z, on
     float overcast = 0.0f;   // core.overcast: how grey the sky of the hour is, 0..1
     float flash    = 0.0f;   // core.sky_flash: a bolt's light this frame, 0..1
+    float eclipse  = 0.0f;   // core.sky_eclipse: the moon over the sun, 0..1
     // core.ghost_cell: blocks drawn seen-through where they would go (a
     // blueprint laid out), and their triangles by block, made again when one
     // changes.
@@ -4678,6 +4679,11 @@ void host_sky_flash(void *ud, double amount)
     if (std::isfinite(amount)) static_cast<Scene *>(ud)->act().flash = (float)std::clamp(amount, 0.0, 1.0);
 }
 
+void host_sky_eclipse(void *ud, double amount)
+{
+    if (std::isfinite(amount)) static_cast<Scene *>(ud)->act().eclipse = (float)std::clamp(amount, 0.0, 1.0);
+}
+
 void host_overcast(void *ud, double amount)
 {
     if (!std::isfinite(amount)) return;
@@ -7758,13 +7764,20 @@ void apply_clocks(Scene &s)
             constexpr float kBolt[3] = {0.78f, 0.84f, 1.0f};
             for (int c = 0; c < 3; ++c) w.sky[c] += (kBolt[c] - w.sky[c]) * 0.8f * f;
         }
-        const float day_sun = sunlight_at(w.time_of_day) * (1.0f - 0.45f * o);
-        const float day_all = daylight_at(w.time_of_day) * (1.0f - 0.3f * o);
+        // An eclipse (core.sky_eclipse): the sky towards a dusk blue, the
+        // sun's light nearly gone and the sky's much less.
+        const float e = w.eclipse;
+        if (e > 0.0f) {
+            constexpr float kDusk[3] = {0.10f, 0.12f, 0.24f};
+            for (int c = 0; c < 3; ++c) w.sky[c] += (kDusk[c] - w.sky[c]) * 0.85f * e;
+        }
+        const float day_sun = sunlight_at(w.time_of_day) * (1.0f - 0.45f * o) * (1.0f - 0.9f * e);
+        const float day_all = daylight_at(w.time_of_day) * (1.0f - 0.3f * o) * (1.0f - 0.65f * e);
         w.world_render.set_daylight(day_sun + (1.0f - day_sun) * f, day_all + (1.0f - day_all) * f);
         SkyLight sun = sky_light_at(w.time_of_day);
         for (int c = 0; c < 3; ++c) {
-            sun.direct[c]  *= 1.0f - 0.85f * o;
-            sun.ambient[c] *= 1.0f - 0.25f * o;
+            sun.direct[c]  *= (1.0f - 0.85f * o) * (1.0f - 0.9f * e);
+            sun.ambient[c] *= (1.0f - 0.25f * o) * (1.0f - 0.55f * e);
             // Lit from the whole sky at once: every face as bright as under
             // a white noon sky, the sun's own light no help.
             sun.ambient[c] += (1.1f - sun.ambient[c]) * f;
@@ -7776,6 +7789,7 @@ void apply_clocks(Scene &s)
                                   w.storm ? w.storm_rgb : nullptr);
         w.world_render.set_funnels(w.funnel);
         w.world_render.set_overcast(w.overcast);
+        w.world_render.set_eclipse(w.eclipse);
         w.world_render.set_foliage(w.foliage);
     }
 }
@@ -19605,6 +19619,7 @@ script_host make_client_host(Scene &scene)
     host.storm_funnel    = host_storm_funnel;
     host.overcast        = host_overcast;
     host.sky_flash       = host_sky_flash;
+    host.sky_eclipse     = host_sky_eclipse;
     host.night_sight     = host_night_sight;
     host.ghost_cell      = host_ghost_cell;
     host.ghost_clear     = host_ghost_clear;

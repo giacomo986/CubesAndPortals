@@ -878,8 +878,11 @@ quello che c'è dietro, i muri lo coprono e non copre gli altri effetti. `tipo` 
 `"glow"` (un bagliore), `"flame"` (una fiamma che sale), `"ring"` (un'onda d'urto
 stesa a terra), `"frost"` (schegge di ghiaccio a terra), `"bolt"` (un fulmine da
 `x, y, z` a `x2, y2, z2`), `"slash"` (l'arco di un fendente), `"sparks"`
-(scintille che volano via), `"vortex"` (un vortice) o `"jet"` (una fiamma che
-esce da `x, y, z` verso `x2, y2, z2`, il nitro dei kart). `misura` è il raggio in
+(scintille che volano via), `"vortex"` (un vortice), `"jet"` (una fiamma che
+esce da `x, y, z` verso `x2, y2, z2`, il nitro dei kart), `"streak"` (una stella
+cadente, la coda in `x, y, z` e la testa in `x2, y2, z2`) o `"aurora"` (una cortina di
+luce alta `misura` sulla linea da `x, y, z` a `x2, y2, z2`, con raggi che scorrono,
+viola in cima). `misura` è il raggio in
 nodi (per il fulmine la sua larghezza), `t` quanto della sua vita è passato, da 0
 a 1: lo shader cresce, spazza e sfuma con quello, e il mod conta solo il tempo.
 Restituisce false per un tipo che non c'è.
