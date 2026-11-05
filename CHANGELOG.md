@@ -5,6 +5,41 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
+## 0.14.0-alpha.1 — 2026-11-05
+
+- **Bees**: wild nests among the meadows' flowers and hives of planks fill with honey (a flask takes
+  a bottle, food) and honeycomb, help the fields round them grow, and sting whoever robs them without
+  smoke. Kept bees: a smoker calms them (a puff of smoke everybody sees), a net catches a wild
+  nest's queen, and an apiary takes her with frames to fill faster, a wool wrap for the winter and
+  an infuser that makes glow, ember or crystal honey from what is round it; a press works it into
+  wax, honey lamps, ember wax for the furnace, amethyst and now and then a diamond.
+- **The sky**: meteor showers by night, now and then leaving a meteorite in a crater; the aurora
+  over the cold in winter; a rare eclipse that lets the night's creatures out by day (`/sky`).
+- **Flying**: a hang glider (held, it opens when you step off a height; you hang prone on its bar)
+  and a hot-air balloon (jump to rise with the burner roaring, crouch to come down, up over the
+  clouds). Mounting a pony while flying with the jetpack no longer flies the pony.
+- **Cameras and screens**: a camera put on a floor, a wall or a ceiling shows live on any screen
+  linked to it; right click the screen to take the controls and turn the camera with W A S D, its
+  head turning for everybody. A camera that sees somebody powers the cinnabar beside it.
+- **A camera that takes photographs**: hold the right button to look through the viewfinder, left
+  click to shoot; the photograph is an instant everybody sees as it was taken, kept in an album
+  (`/album`) and hung in frames.
+- **The village's museum**: its curator takes the first of each fish, ore, gem and find, and
+  photographs of rare places, and pays in rubies; the village board keeps a paper of what players
+  did there.
+- **A passport** of friend servers' stamps, and letters and parcels sent between them.
+- **After the ending**: whoever beat l'Ospite finds the worlds' tools in the sandbox -- a rope gun,
+  a portal gun and a kart -- in a smaller way.
+- A house bigger inside (pocket doors onto halls of their own), a prop hunt round the arena's gong,
+  pistons drawn as pistons and reaching two to five cells, cinnabar dust drawn joined the way it
+  carries, rain heard.
+- Food is eaten with a right click at the air too.
+- For mods: `require` (a mod in several files), `core.sound_loop`, `core.body_block`,
+  `core.body_glide`, `core.body_balloon`, `core.body_rope`, `core.render.camera`/`screen`/
+  `camera_read`/`photo`, `core.render.fx` "streak", "aurora" and "smoke", `core.sky_eclipse`,
+  `core.fed_send` with `core:arrived` and `core:fed_message`.
+- **Protocol 116**: it does not play with 0.13 servers or clients.
+
 ## 0.13.0-alpha.1 — 2026-11-04
 
 - Riding a pony is riding now, not walking dressed as one: it goes where you look and A and D turn

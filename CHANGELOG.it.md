@@ -5,6 +5,45 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
+## 0.14.0-alpha.1 — 2026-11-05
+
+- **Api**: nidi selvatici tra i fiori dei prati e arnie di assi si riempiono di miele (una fiasca
+  prende una bottiglia, cibo) e di favi, aiutano a crescere i campi vicini e pungono chi li deruba
+  senza fumo. Api allevate: un affumicatore le calma (uno sbuffo di fumo che tutti vedono), un
+  retino cattura la regina di un nido selvatico, e un'arnia artificiale la accoglie con telaini per
+  riempirsi prima, un'imbottitura di lana per l'inverno e un infusore che fa miele luminoso, ardente
+  o di cristallo da ciò che ha attorno; una pressa lo lavora in cera, lampade di miele, cera ardente
+  per la fornace, ametista e ogni tanto un diamante.
+- **Il cielo**: piogge di meteore di notte, che ogni tanto lasciano un meteorite in un cratere;
+  l'aurora sul freddo d'inverno; una rara eclissi che fa uscire di giorno le creature della notte
+  (`/sky`).
+- **In volo**: un deltaplano (tenuto in mano, si apre quando scendi da un'altura; ci stai appeso
+  prono alla barra) e una mongolfiera (salta per salire col bruciatore che ruggisce, accovacciati
+  per scendere, fin sopra le nuvole). Salire su un pony mentre voli col jetpack non fa più volare
+  il pony.
+- **Telecamere e schermi**: una telecamera appoggiata a terra, a una parete o al soffitto si vede
+  dal vivo su ogni schermo collegato; tasto destro sullo schermo per prendere i comandi e girarla
+  con W A S D, la sua testa che gira per tutti. Una telecamera che vede qualcuno dà energia al
+  cinabro accanto.
+- **Una macchina fotografica**: tieni il tasto destro per guardare nel mirino, clic sinistro per
+  scattare; la foto è un'istantanea che tutti vedono com'era, tenuta in un album (`/album`) e
+  appesa in cornici.
+- **Il museo del villaggio**: il curatore prende il primo di ogni pesce, minerale, gemma e reperto,
+  e le foto di luoghi rari, e le paga in rubini; la bacheca del villaggio tiene un giornale di cosa
+  vi hanno fatto i giocatori.
+- **Un passaporto** coi timbri dei server amici, e lettere e pacchi mandati tra loro.
+- **Dopo il finale**: chi ha battuto l'Ospite trova nel sandbox gli strumenti dei mondi -- una
+  pistola a fune, una pistola dei portali e un kart -- in forma ridotta.
+- Una casa più grande dentro (porte tascabili su sale proprie), una caccia agli oggetti attorno al
+  gong dell'arena, pistoni disegnati da pistoni che spingono da due a cinque celle, la polvere di
+  cinabro disegnata unita dove porta, la pioggia che si sente.
+- Il cibo si mangia anche con un clic destro nel vuoto.
+- Per i mod: `require` (un mod in più file), `core.sound_loop`, `core.body_block`,
+  `core.body_glide`, `core.body_balloon`, `core.body_rope`, `core.render.camera`/`screen`/
+  `camera_read`/`photo`, `core.render.fx` "streak", "aurora" e "smoke", `core.sky_eclipse`,
+  `core.fed_send` con `core:arrived` e `core:fed_message`.
+- **Protocollo 116**: non gioca con server o client 0.13.
+
 ## 0.13.0-alpha.1 — 2026-11-04
 
 - Andare a cavallo è cavalcare, non camminare travestiti da pony: va dove guardi e A e D lo fanno
