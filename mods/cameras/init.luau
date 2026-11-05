@@ -7,6 +7,14 @@
 -- everybody near (core.render.camera, core.render.screen -- drawn by each
 -- player's machine). A screen with no camera, or whose camera went, shows snow.
 --
+-- Right click a screen that shows a camera (with no camera just chosen) and
+-- you take the camera's controls: the view goes to the screen and fills
+-- with it (core.fixed_view), the body stands, and W A S D turn the camera --
+-- A and D round, up to a right angle either way from where it faces, W and
+-- S up and down. Right click again to step back. Where it is turned is
+-- kept in the camera (its cell's "yaw" and "pitch") and seen by everybody,
+-- and it is where the sensor looks.
+--
 -- A camera is a sensor too: while it sees a player or a creature within 16
 -- in front of it, nothing solid between, it gives power like a lever that is
 -- on (mods/cinnabar, told by the events cinnabar:source and cinnabar:changed)
@@ -28,19 +36,54 @@ local function key(x: number, y: number, z: number): string
     return `{x},{y},{z}`
 end
 
--- Where a camera at (x, y, z) facing f looks from, and its turn.
-local function eye_of(x: number, y: number, z: number, f: number): (number, number, number, number)
+local TURN = math.rad(90)                         -- round, either way from its front
+local LOW, HIGH = math.rad(-70), math.rad(45)      -- and down and up
+local SPEED = math.rad(60)                         -- a second, a key held
+
+-- Where a camera at (x, y, z) facing f looks from, and its turn; `off` turns
+-- it round from its front.
+local function eye_of(x: number, y: number, z: number, f: number, off: number?): (number, number, number, number)
     local fr = FRONT[f % 4 + 1]
-    return x + 0.5 + fr[1] * 0.55, y + 0.55, z + 0.5 + fr[2] * 0.55, math.atan2(fr[1], -fr[2])
+    return x + 0.5 + fr[1] * 0.55, y + 0.55, z + 0.5 + fr[2] * 0.55, math.atan2(fr[1], -fr[2]) + (off or 0)
 end
 
 -- What this machine draws: each screen near, with its camera's place.
-type Shown = { x: number, y: number, z: number, f: number, cam: string?, cx: number, cy: number, cz: number, cf: number }
+type Shown = { x: number, y: number, z: number, f: number, cam: string?, cx: number, cy: number, cz: number, cf: number,
+               off: number, pitch: number }
 local shown: { Shown } = {}
+local server_heard: (number, string) -> () = function(_, _) end
+local aim_of: (any) -> (number, number)
 local cam_ids: { [string]: number } = {}
+local cam_aim: { [string]: { number } } = {}   -- each camera's turn as drawn here: off, pitch
 local next_id = 1
 
+-- The camera this machine is turning, from which screen.
+type Control = { cam: string, sx: number, sy: number, sz: number, sf: number,
+                 cx: number, cy: number, cz: number, cf: number, off: number, pitch: number }
+local control: Control? = nil
+local begin_control: (Control) -> () = function(_) end
+
+local function place_camera(k: string, cx: number, cy: number, cz: number, cf: number, off: number, pitch: number)
+    local id = cam_ids[k]
+    if id == nil then
+        return
+    end
+    local ex, ey, ez, yaw = eye_of(cx, cy, cz, cf, off)
+    core.render.camera(id, ex, ey, ez, yaw, pitch, 70)
+    cam_aim[k] = { off, pitch }
+end
+
 local function heard(text: string)
+    local c = { string.match(text, "^C (%S+) (%S+) (%S+) (%S+) (%S+) (%S+) (%S+) (%S+) (%S+) (%S+)$") }
+    if #c == 10 then
+        local n = {}
+        for i = 1, 10 do
+            n[i] = tonumber(c[i]) or 0
+        end
+        begin_control({ sx = n[1], sy = n[2], sz = n[3], sf = n[4], cx = n[5], cy = n[6], cz = n[7], cf = n[8],
+                        off = n[9], pitch = n[10], cam = key(n[5], n[6], n[7]) })
+        return
+    end
     if string.sub(text, 1, 2) ~= "V " then
         return
     end
@@ -52,9 +95,11 @@ local function heard(text: string)
             table.insert(n, tonumber(v) or 0)
         end
         if #n >= 4 then
-            local s: Shown = { x = n[1], y = n[2], z = n[3], f = n[4], cam = nil, cx = 0, cy = 0, cz = 0, cf = 0 }
-            if #n >= 8 then
+            local s: Shown = { x = n[1], y = n[2], z = n[3], f = n[4], cam = nil, cx = 0, cy = 0, cz = 0, cf = 0,
+                               off = 0, pitch = PITCH }
+            if #n >= 10 then
                 s.cam, s.cx, s.cy, s.cz, s.cf = key(n[5], n[6], n[7]), n[5], n[6], n[7], n[8]
+                s.off, s.pitch = n[9], n[10]
                 wanted[s.cam :: string] = true
             end
             table.insert(now, s)
@@ -65,15 +110,22 @@ local function heard(text: string)
         if not wanted[k] then
             core.render.camera_drop(id)
             cam_ids[k] = nil
+            cam_aim[k] = nil
         end
     end
     for _, s in now do
-        if s.cam and cam_ids[s.cam] == nil then
-            local id = next_id
-            next_id += 1
-            cam_ids[s.cam :: string] = id
-            local ex, ey, ez, yaw = eye_of(s.cx, s.cy, s.cz, s.cf)
-            core.render.camera(id, ex, ey, ez, yaw, PITCH, 70)
+        local k = s.cam
+        if k then
+            if cam_ids[k] == nil then
+                cam_ids[k] = next_id
+                next_id += 1
+            end
+            -- Turned by somebody else (not the one turning it here).
+            local aim = cam_aim[k]
+            local mine = control and control.cam == k
+            if not mine and (aim == nil or aim[1] ~= s.off or aim[2] ~= s.pitch) then
+                place_camera(k, s.cx, s.cy, s.cz, s.cf, s.off, s.pitch)
+            end
         end
     end
     shown = now
@@ -107,6 +159,12 @@ if serving then
 
     type Cam = { x: number, y: number, z: number }
     local cams: { [string]: Cam } = {}
+
+    -- Where a camera is turned: round from its front, and up or down.
+    aim_of = function(c: Cam): (number, number)
+        return tonumber(core.meta_get(c.x, c.y, c.z, "yaw")) or 0,
+               tonumber(core.meta_get(c.x, c.y, c.z, "pitch")) or PITCH
+    end
     local screens: { [string]: Cam } = {}
     local chosen: { [number]: string } = {}
 
@@ -147,9 +205,17 @@ if serving then
             ev.cancel = true
         elseif ev.id == SCREEN then
             local c = chosen[ev.player]
+            local shows = cams[core.meta_get(ev.x, ev.y, ev.z, "camera")]
             if c and cams[c] then
                 core.meta_set(ev.x, ev.y, ev.z, "camera", c)
-                core.notice(ev.player, "The screen shows that camera")
+                chosen[ev.player] = nil
+                core.notice(ev.player, "The screen shows that camera: right click it again to turn the camera")
+            elseif shows then
+                -- The controls, to that player's machine.
+                local text = string.format("C %d %d %d %d %d %d %d %d %.4f %.4f", ev.x, ev.y, ev.z,
+                    core.get_facing(ev.x, ev.y, ev.z), shows.x, shows.y, shows.z,
+                    core.get_facing(shows.x, shows.y, shows.z), aim_of(shows))
+                if drawing then heard(text) else core.net.send(ev.player, text) end
             else
                 core.notice(ev.player, "Right click a camera first, then this screen")
             end
@@ -157,16 +223,46 @@ if serving then
         end
     end)
 
+    -- A camera turned from a screen: "A x y z off pitch", from somebody near
+    -- a screen showing it, kept in its cell.
+    server_heard = function(p: number, text: string)
+        local x, y, z, off, pitch = string.match(text, "^A (%-?%d+) (%-?%d+) (%-?%d+) (%S+) (%S+)$")
+        local c = if x then cams[key(tonumber(x) :: number, tonumber(y) :: number, tonumber(z) :: number)] else nil
+        local o, pi = tonumber(off), tonumber(pitch)
+        if c == nil or o == nil or pi == nil or o ~= o or pi ~= pi then
+            return
+        end
+        local px, py, pz = core.player_pos(p)
+        if px == nil or py == nil or pz == nil then
+            return
+        end
+        local k = key(c.x, c.y, c.z)
+        local near = false
+        for _, s in screens do
+            if core.meta_get(s.x, s.y, s.z, "camera") == k and (s.x - px) ^ 2 + (s.y - py) ^ 2 + (s.z - pz) ^ 2 < 10 * 10 then
+                near = true
+            end
+        end
+        if near then
+            core.meta_set(c.x, c.y, c.z, "yaw", string.format("%.4f", math.clamp(o, -TURN, TURN)))
+            core.meta_set(c.x, c.y, c.z, "pitch", string.format("%.4f", math.clamp(pi, LOW, HIGH)))
+        end
+    end
+    core.event.on("core:net_message", function(ev)
+        server_heard(ev.player, ev.text)
+    end)
+
     -- Whether the camera at c sees a body standing at (bx, by, bz).
     local function sees(c: Cam, f: number, bx: number, by: number, bz: number): boolean
-        local ex, ey, ez, yaw = eye_of(c.x, c.y, c.z, f)
+        local off, pitch = aim_of(c)
+        local ex, ey, ez, yaw = eye_of(c.x, c.y, c.z, f, off)
         local dx, dy, dz = bx - ex, by + 1.0 - ey, bz - ez
         local d = math.sqrt(dx * dx + dy * dy + dz * dz)
         if d > SEES or d < 0.3 then
             return false
         end
-        local cp = math.cos(PITCH)
-        local fx, fy, fz = math.sin(yaw) * cp, math.sin(PITCH), -math.cos(yaw) * cp
+        local cp = math.cos(pitch)
+        local fx, fy, fz = math.sin(yaw) * cp, math.sin(pitch), -math.cos(yaw) * cp
         if (dx * fx + dy * fy + dz * fz) / d < CONE then
             return false
         end
@@ -237,7 +333,9 @@ if serving then
                         local part = `{s.x},{s.y},{s.z},{core.get_facing(s.x, s.y, s.z)}`
                         local c = cams[core.meta_get(s.x, s.y, s.z, "camera")]
                         if c then
-                            part ..= `,{c.x},{c.y},{c.z},{core.get_facing(c.x, c.y, c.z)}`
+                            local off, pitch = aim_of(c)
+                            part ..= string.format(",%d,%d,%d,%d,%.4f,%.4f", c.x, c.y, c.z,
+                                                   core.get_facing(c.x, c.y, c.z), off, pitch)
                         end
                         table.insert(parts, part)
                     end
@@ -257,6 +355,94 @@ end
 if drawing then
     core.event.on("core:net_message", function(ev)
         heard(ev.text)
+    end)
+
+    -- At a screen's controls: the view on the screen, W A S D turning its
+    -- camera here at once and told to the server now and then.
+    local held: { [string]: boolean } = {}
+    local told_at, told_aim = 0.0, ""
+    local function tell(c: Control)
+        local text = string.format("A %d %d %d %.4f %.4f", c.cx, c.cy, c.cz, c.off, c.pitch)
+        if text ~= told_aim then
+            told_aim = text
+            if serving then server_heard(core.players()[1] or 0, text) else core.net.send(0, text) end
+        end
+    end
+    local function end_control()
+        local c = control
+        if c then
+            tell(c)
+        end
+        control = nil
+        held = {}
+        core.fixed_view(0, 0, 0, 0, 0, 50, 0, 0.6)
+    end
+    begin_control = function(c: Control)
+        control = c
+        held = {}
+        local fr = FRONT[c.sf % 4 + 1]
+        local back = 0.125 + 0.003 - 0.5
+        -- In front of the glass, looking at it, near enough that it fills the view.
+        core.fixed_view(c.sx + 0.5 + fr[1] * back, c.sy + 0.5, c.sz + 0.5 + fr[2] * back, 0.8,
+                        math.deg(math.atan2(-fr[1], fr[2])), 10, 0, 0.6)
+    end
+
+    core.event.on("core:input", function(ev)
+        local c = control
+        if c == nil then
+            return
+        end
+        local a = ev.action
+        if a == "mouse_right" then
+            ev.cancel = true
+            end_control()
+            return
+        end
+        local k = string.match(a, "^key_([wasd])$")
+        local up = string.match(a, "^key_([wasd])_up$")
+        if k then
+            held[k] = true
+        elseif up then
+            held[up] = nil
+        end
+    end)
+
+    core.event.on("core:tick", function(ev)
+        local c = control
+        if c == nil then
+            return
+        end
+        -- Gone from beside it, or the screen gone: back to the eye.
+        local me = core.players()[1]
+        local px = if me then (core.player_pos(me)) else nil
+        local found = false
+        for _, s in shown do
+            found = found or (s.x == c.sx and s.y == c.sy and s.z == c.sz and s.cam == c.cam)
+        end
+        if not found or px == nil then
+            end_control()
+            return
+        end
+        local turn = (if held.d then 1 else 0) - (if held.a then 1 else 0)
+        local tilt = (if held.w then 1 else 0) - (if held.s then 1 else 0)
+        if turn ~= 0 or tilt ~= 0 then
+            c.off = math.clamp(c.off + turn * SPEED * ev.dt, -TURN, TURN)
+            c.pitch = math.clamp(c.pitch + tilt * SPEED * ev.dt, LOW, HIGH)
+            place_camera(c.cam, c.cx, c.cy, c.cz, c.cf, c.off, c.pitch)
+        end
+        told_at += ev.dt
+        if told_at > 0.2 then
+            told_at = 0
+            tell(c)
+        end
+    end)
+
+    core.hud.pass("cameras:controls", 60, function()
+        if control == nil then
+            return
+        end
+        core.hud.text(0.5, 0.05, "A D: turn   ·   W S: up and down   ·   right click: step back", 0.028, 1,
+                      255, 255, 255, 230)
     end)
 
     core.render.pass("cameras:screens", 50, function()

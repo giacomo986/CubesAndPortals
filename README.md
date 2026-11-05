@@ -441,7 +441,8 @@ comparators, lamps, pistons, observers and hoppers, so clocks and logic work. Co
 cook, quarry, light up the land, follow you.
 
 **Cameras** (`mods/cameras`). A camera and a screen: right click the camera, then the screen, and the
-screen shows live what the camera sees -- the base, the race, a village. A camera that sees somebody
+screen shows live what the camera sees -- the base, the race, a village. Right click the screen again
+to take the camera's controls: the view goes onto the screen and W A S D turn the camera. A camera that sees somebody
 powers the cinnabar beside it: a door that opens, a lamp, an alarm.
 
 **Passport** (`mods/passport`). Every friend server a portal brings you from stamps your passport

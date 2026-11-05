@@ -454,6 +454,8 @@ terreno, seguire chi li ha messi.
 
 **Telecamere** (`mods/cameras`). Una telecamera e uno schermo: tasto destro sulla telecamera, poi
 sullo schermo, e lo schermo mostra dal vivo cosa vede la telecamera -- la base, la gara, un villaggio.
+Tasto destro di nuovo sullo schermo per prendere i comandi: la visuale va sullo schermo e con W A S D
+si gira la telecamera.
 Una telecamera che vede qualcuno dà energia al cinabro accanto: una porta che si apre, una lampada, un
 allarme.
 

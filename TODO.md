@@ -1003,6 +1003,17 @@ Portals -- the engine's own trick, used further:
    seen -> on, dust and a lamp lit; a wall between -> off. Open: no picture
    yet seen drawn; a screen shows only its world's cameras; cameras across a
    portal or in another world are not drawn.
+   SEEN AND TURNED 2026-11-05: drawn in a client (the pass had the album's
+   one-value if-expression bug). Asked for: right click a screen that shows
+   a camera (no camera chosen; linking now clears the choice) and the view
+   goes onto the screen (core.fixed_view, 0.8 off its glass), the body
+   stands, A D turn the camera up to 90 degrees from its front and W S tilt
+   it (-70 to +45), 60 degrees a second; right click steps back. The turn is
+   kept in the camera's cell (meta yaw, pitch), set by "A x y z off pitch"
+   from a player within 10 of a screen showing it, sent with each screen
+   (V), drawn here at once and seen by all; the sensor looks along it.
+   Checked in a client driven by xdotool. Open: the camera's block does not
+   turn with it.
 3. Moving portals (high). A portal on a cart, a boat or a kart: a train
    entering a tunnel and leaving in another world, a door that follows you in
    the chambers. Today core.set_portal works only while the mods load and
