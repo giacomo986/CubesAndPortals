@@ -87,7 +87,7 @@ local coming: { [number]: { string } } = {}   -- pixels arriving, by piece
 -- their picture to be drawn: a camera of their own each, from TEMP on.
 local TEMP = 1000000000
 local temp_next = TEMP
-local unnumbered: { number } = {}
+local unnumbered: { { number } } = {}   -- { temp camera, seconds waited }
 type Shot = { temp: number, id: number, age: number }
 local numbered: { Shot } = {}
 
@@ -95,9 +95,15 @@ local function heard(text: string)
     local word = string.match(text, "^(%a) ")
     if word == "T" then
         local id = tonumber(string.match(text, "^T (%d+)$"))
-        local temp = table.remove(unnumbered, 1)
-        if id and temp then
+        local first = table.remove(unnumbered, 1)
+        if first == nil then
+            return
+        end
+        local temp = first[1]
+        if id and id > 0 then
             table.insert(numbered, { temp = temp, id = id, age = 0 })
+        else
+            core.render.camera_drop(temp)   -- refused: the server said why
         end
         return
     elseif word == "Q" then
@@ -277,9 +283,16 @@ if serving then
     server_heard = function(p: number, text: string)
         if text == "shoot" then
             if core.held_item(p) ~= CAMERA then
+                core.log(`album: a shot from {core.player_name(p)} refused: holding '{core.held_item(p)}'`)
+                core.notice(p, "Hold the camera in your hand to take a photograph")
+                to_machine(p, "T 0")
                 return
             end
             local id = shoot(p)
+            core.log(`album: {core.player_name(p)} took photograph #{id or 0}`)
+            if id == nil then
+                to_machine(p, "T 0")
+            end
             if id then
                 uploads[id] = { p = p, got = {}, age = 0 }
                 to_machine(p, `T {id}`)
@@ -491,8 +504,9 @@ if drawing then
             return
         end
         temp_next += 1
+        print(`album: shot {temp_next - TEMP} sent to the server`)
         core.render.camera(temp_next, x, y + 1.62, z, math.atan2(dx, -dz), math.asin(math.clamp(dy, -1, 1)), FOV, true)
-        table.insert(unnumbered, temp_next)
+        table.insert(unnumbered, { temp_next, 0 })
         to_server(p, "shoot")
     end
 
@@ -524,6 +538,17 @@ if drawing then
                 zoom = want
             end
             core.zoom(zoom)
+        end
+        -- A shot the server never answered: said, so it is not a mystery.
+        local first = unnumbered[1]
+        if first then
+            first[2] += ev.dt
+            if first[2] > 4 then
+                table.remove(unnumbered, 1)
+                core.render.camera_drop(first[1])
+                core.notice(me or 0, "The photograph did not reach the server: try again")
+                print("album: a shot got no answer from the server")
+            end
         end
         -- Each shot numbered, once its camera has drawn it: shown here at
         -- once, and its pixels to the server.
