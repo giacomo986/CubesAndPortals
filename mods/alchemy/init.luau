@@ -16,6 +16,8 @@
 --   pets:fish           water_breathing  no air lost under water (mods/breath)
 --   inferno:wraith_tear fire_resistance  lava and fire do not burn (games/inferno,
 --                                     told by the event alchemy:fireproof)
+--   bees:honeycomb      vigour        walking and digging 1.15 times as fast,
+--                                     health back 1.5 times as fast
 --
 -- Each potion is its own source of core.player_factors, so two drunk add up
 -- and neither undoes a territory's. The effects are in memory: they end with
@@ -39,6 +41,7 @@ local POTIONS: { [string]: Potion } = {
     haste       = { from = "rocks:amethyst_shard", factors = { 1, 1.6, 1, 1 }, said = "Haste" },
     water_breathing = { from = "pets:fish", gills = true, said = "Water breathing" },
     fire_resistance = { from = "inferno:wraith_tear", fireproof = true, said = "Fire resistance" },
+    vigour = { from = "bees:honeycomb", factors = { 1.15, 1.15, 1, 1.5 }, said = "Vigour" },
 }
 
 if serving then

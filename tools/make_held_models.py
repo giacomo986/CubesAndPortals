@@ -870,7 +870,8 @@ for key, rgb, metal, rough, glow in (
     M[key] = material(key.capitalize() + "_new", rgb, metal, rough, glow=glow)
 POTIONS = {"flask_water": (0.25, 0.48, 0.86), "night_sight": (0.31, 0.84, 0.90), "swiftness": (0.94, 0.86, 0.35),
            "stoneskin": (0.67, 0.47, 0.94), "mending": (0.92, 0.31, 0.35), "haste": (0.94, 0.59, 0.24),
-           "water_breathing": (0.24, 0.78, 0.63), "fire_resistance": (0.96, 0.43, 0.16)}
+           "water_breathing": (0.24, 0.78, 0.63), "fire_resistance": (0.96, 0.43, 0.16),
+           "vigour": (0.63, 0.88, 0.27)}
 
 
 def flask(liquid):
@@ -962,6 +963,18 @@ ITEMS["alchemy:flask"] = flask(None)
 for pname, rgb in POTIONS.items():
     M[f"potion_{pname}"] = material(f"Potion_{pname}", rgb, 0.0, 0.2, glow=pname != "flask_water")
     ITEMS[f"alchemy:{pname}"] = flask(f"potion_{pname}")
+# Honey (mods/bees): the flask full of it, and a honeycomb -- a slab of wax,
+# six-sided, with honey standing in cells on both faces.
+M["honey"] = material("Honey", (0.92, 0.59, 0.08), 0.0, 0.15)
+M["wax"] = material("Wax", (0.84, 0.63, 0.20), 0.0, 0.6)
+ITEMS["bees:honey_bottle"] = flask("honey")
+_hexagon = [(0.065 * math.cos(math.radians(30 + 60 * k)), 0.04 + 0.065 * math.sin(math.radians(30 + 60 * k)))
+            for k in range(6)]
+ITEMS["bees:honeycomb"] = [(slab(_hexagon, 0.026), "wax")] + [
+    (slab([(cx + 0.012 * math.cos(math.radians(30 + 60 * k)), cy + 0.012 * math.sin(math.radians(30 + 60 * k)))
+           for k in range(6)], 0.03), "honey")
+    for cx, cy in ((0.0, 0.04), (-0.024, 0.054), (0.024, 0.054), (-0.024, 0.026), (0.024, 0.026), (0.0, 0.068),
+                   (0.0, 0.012))]
 ITEMS["building:gunpowder"] = [(lump(0.022, s, rough=0.3, at=(x, 0.03 + y, 0), scale=(1, 0.7, 0.8)), "powder")
                                for s, x, y in ((3, -0.025, 0), (5, 0.02, 0.005), (7, 0.0, 0.03))]
 ITEMS["boats:boat"] = miniature("mods/boats/boat.gltf", 0.24)

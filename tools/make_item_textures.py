@@ -5,7 +5,7 @@ the iron pick (mods/furnace) and the screwdriver (mods/screwdriver); the arm
 pack (mods/armpack); the boat (mods/boats), the cart (mods/carts), and the
 compass and the map (mods/maps); the shard (mods/relics); the flask and its
 potions (mods/alchemy), one bottle in the colour of what is in it; the
-bucket of milk (mods/animals).
+bucket of milk (mods/animals); honey and honeycomb (mods/bees).
 
 Drawn the way tools_pick.png is: a 16x16 picture doubled to 32 px, flat
 colours lit on the top-left, and a dark outline round every shape. The iron
@@ -288,6 +288,7 @@ LIQUIDS = {
     "haste": ((240, 150, 60), (190, 100, 30)),
     "water_breathing": ((60, 200, 160), (30, 140, 110)),
     "fire_resistance": ((245, 110, 40), (180, 60, 20)),
+    "vigour": ((160, 225, 70), (105, 170, 35)),
 }
 # Cheese and a cake (mods/animals).
 SHAPES["animals_cheese"] = ([
@@ -375,6 +376,29 @@ SHAPES["animals_milk"] = (SHAPES["lakes_bucket_water"][0], dict(SHAPES["lakes_bu
 for _name, (_l, _d) in LIQUIDS.items():
     SHAPES["alchemy_" + _name] = (FLASK, {"k": (150, 105, 60), "K": (190, 140, 85), "g": (215, 235, 240),
                                           "L": _l, "l": _d, "h": (250, 255, 255)})
+
+# Honey (mods/bees): the flask full of it, and a honeycomb, wax cells round
+# their honey ("w" wax, "W" its light edge, "o" honey, "O" its glint).
+SHAPES["bees_honey_bottle"] = (FLASK, {"k": (150, 105, 60), "K": (190, 140, 85), "g": (215, 235, 240),
+                                       "L": (235, 160, 30), "l": (185, 110, 20), "h": (255, 230, 150)})
+SHAPES["bees_honeycomb"] = ([
+    "................",
+    "................",
+    "....WWWWWWW.....",
+    "...WwoowoowW....",
+    "..WwoOowoOowW...",
+    "..WwooowooowW...",
+    "..WwwwwwwwwwwW..",
+    "..WwoowoowoowW..",
+    "..WoOowoOowoOw..",
+    "..WwoowoowoowW..",
+    "..WwwwwwwwwwwW..",
+    "...WwoowoowwW...",
+    "....WwwwwwwW....",
+    ".....WWWWWW.....",
+    "................",
+    "................",
+], {"w": (215, 160, 50), "W": (240, 195, 90), "o": (230, 140, 20), "O": (255, 215, 110)})
 
 
 def draw(rows, colours):

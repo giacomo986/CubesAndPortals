@@ -25,7 +25,10 @@ local FOOD: { [string]: { number } } = {
     ["pets:tuna"] = { 3, 0.6 },
     ["animals:cheese"] = { 4, 3.2 }, ["animals:cake"] = { 10, 8 },
     ["plants:melon_slice"] = { 2, 1.2 }, ["wilds:mushroom_stew"] = { 6, 7.2 },
+    ["bees:honey_bottle"] = { 6, 1.2 },
 }
+-- What is left in the hand once it is eaten: the flask a bottle of honey was in.
+local LEFT: { [string]: string } = { ["bees:honey_bottle"] = "alchemy:flask" }
 local WALK, SPRINT, JUMP, DIG, HIT, HEAL = 0.01, 0.1, 0.05, 0.005, 0.1, 6
 local SPRINT_SPEED = 5.5   -- m/s: over the engine's walk of 4.8
 
@@ -178,6 +181,9 @@ if serving then
         if b.points >= MAX then
             core.notice(ev.player, "Not hungry")
         elseif core.take_item(ev.player, ev.held, 1) > 0 then
+            if LEFT[ev.held] then
+                core.give_item(ev.player, LEFT[ev.held], 1)
+            end
             b.points = math.min(MAX, b.points + gives[1])
             b.saturation = math.min(b.points, b.saturation + gives[2])
             tell(ev.player, b)
