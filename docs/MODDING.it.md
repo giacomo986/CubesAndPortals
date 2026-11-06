@@ -2500,6 +2500,10 @@ I tre mod in `mods/` sono esempi funzionanti:
   il blocco sopra y=30, e alza un evento suo che `beacons` ascolta dalla propria
   VM. Nessuna riga di motore è stata scritta per la regola "qui non si
   costruisce";
+- `garden` — due coppie che scalano (`core.portal_scale`) nello stesso mondo: un'apertura grande
+  come una porta su una alta un ottavo di blocco, così chi entra esce grande un sedicesimo, e una
+  piccola sotto un vetro su una dodici volte più larga, appesa a faccia in giù sopra il giardino:
+  una miniatura in cui guardare;
 - `portal` — una cornice di `portal:frame` attorno a un buco d'aria, in piedi o
   coricata, apre un portale (`core.portal_open`, quante cornici si vuole: il
   server dà le 40 aperture vere a quelle vicine ai giocatori) e la

@@ -2227,6 +2227,9 @@ The mods in `mods/` are working examples:
 - `guard` -- cancels `core:pre_place` inside the portal plaza, replaces the block above y=30, and
   raises an event of its own that `beacons` listens to from its own VM. No engine line was written for
   the rule "you do not build here";
+- `garden` -- two scaling pairs (`core.portal_scale`) in one world: a door-sized opening onto one an
+  eighth of a block high, so whoever walks in comes out a sixteenth as big, and a small opening under
+  glass onto one twelve times as wide hanging face down over the garden, a miniature to look into;
 - `portal` -- a frame of `portal:frame` round a hole of air, upright or lying, opens a portal
   (`core.portal_open`, as many frames as you like: the server gives the 32 real openings to those near
   players) and links it to the last one left alone (`core.portal_link`); right click on the frame opens

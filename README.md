@@ -254,6 +254,11 @@ tunnel and the credits. After that the sandbox stays free, and two more worlds o
 winning anything: the ways out, the arches, the laboratory's gate, the front and the assault.
 `false` is the game as it ships.
 
+On the plaza, near 31 20 43, a little door in a hedge and a glass case in the ground
+(`mods/garden`): through the glass a fenced garden east of the plaza is seen from above in
+miniature; through the door you come out in it a sixteenth of your size, the grass blocks as big
+as rooms and the hedge a cliff. Back in by the same tiny opening, out of the door as big as before.
+
 ### Difficulty, rules and goals
 
 "Monsters" on the new-world page, or in a saved world's Edit page, picks how hard the sandbox is:

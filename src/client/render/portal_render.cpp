@@ -93,7 +93,10 @@ float entrance_depth(const PortalSurface &s, float side_sign)
         if (std::fabs(n[i]) > std::fabs(n[k])) k = i;
     const float a    = c[k] / kNodeSize;
     const float face = (n[k] * side_sign > 0.0f) ? std::ceil(a) - a : a - std::floor(a);
-    const float tunnel = portal_tuning().tunnel_depth();
+    // A scaling opening smaller than a door has a tunnel that small too, as its
+    // crossing has (slack_of in portal_traverse): half a node in front of one an
+    // eighth high was a tube the shrunk eye stood inside after coming out.
+    const float tunnel = portal_tuning().tunnel_depth() * (s.scales ? std::min(1.0f, s.half_h) : 1.0f);
     // On a node boundary there is no node to stand in: the tuning as it was.
     return face > 1e-3f ? std::min(tunnel, face * kNodeSize) : tunnel;
 }

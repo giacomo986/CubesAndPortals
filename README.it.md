@@ -256,6 +256,12 @@ due mondi:
 niente: le uscite, gli archi, il cancello del laboratorio, il fronte e l'assalto. `false` è il
 gioco come viene distribuito.
 
+Sulla piazza, verso 31 20 43, una porticina in una siepe e una teca di vetro nel terreno
+(`mods/garden`): dal vetro si vede dall'alto, in miniatura, un giardino recintato a est della
+piazza; dalla porticina ci si esce dentro grandi un sedicesimo, i blocchi d'erba grandi come stanze
+e la siepe una scogliera. Si torna dalla stessa apertura minuscola, e si esce dalla porticina grandi
+come prima.
+
 ### Difficoltà, regole e obiettivi
 
 "Mostri" nella pagina del mondo nuovo, o nella pagina Modifica di un mondo salvato, sceglie quanto è

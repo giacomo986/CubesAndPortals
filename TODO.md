@@ -1102,7 +1102,20 @@ Portals -- the engine's own trick, used further:
    0 corrections. Found and fixed on the way: out on a tiny opening's plane
    the body was swallowed back for ever; its front-entry depth and its
    sampling were a node's. Open: creatures and cubes keep their size through
-   it; parkour's wall tests at scale 1; the garden world itself (S3).
+   it; parkour's wall tests at scale 1.
+   S3 BUILT 2026-11-06 (mods/garden, plaza only: a scaling pair does not carry
+   the size into another room): a fenced garden at x 104..127, z 30..53; by the
+   spawn a little door D (31.5, z 39.5) onto G an eighth high on the garden
+   floor (115.5, z 43.5, between two mushrooms), and a glass case (x 30..33,
+   z 42..45) with T just under the glass onto S, 24 wide, 14 over the garden
+   facing down: the garden seen from above twelve times smaller. In through D,
+   out of G at 1/16; back into G, out of D at 1; 0 corrections. Found on the
+   way: a scaling opening's tunnel (the hole's sides drawn in front of the
+   plane) was half a node deep whatever its size, and the shrunk eye coming out
+   of G stood inside it seeing sky; now scaled as its slack is. Open: walking
+   at 1/16 is slow (the garden is minutes wide); the test client got none of
+   the server's 784 models ("0 from it", seen once before in an older log), so
+   the plants and mushrooms were not seen drawn.
 5. A passport of servers (low-medium). With --federation built: a stamp for
    every server reached through a far portal, and a letterbox that sends an
    item or a letter to a friend server. A reason for communities to link up.
