@@ -1058,9 +1058,12 @@ Portals -- the engine's own trick, used further:
    vertical, X head over heels, Z rolling), /lab spiny, spinz, /lab at <deg>
    stops them at an angle: walked into at 10, 40 and 70 degrees each one
    crosses, 0 corrections, the look out turned by the angle (Y: yaw, X: pitch,
-   Z: the horizon). Open: a turning opening is not carried between messages
-   (it turns in 20 steps a second) and its spin does not push a body; a black
-   square was seen once through X near edge-on, not explained.
+   Z: the horizon). A turning one is turned on between messages too: the
+   server sends its spin (Portal::spin, from the last two moves), the client
+   turns it by that (carry_moving_portals). Open: its spin does not push a
+   body; through X near edge-on, facing up, the lowest strip is black -- the
+   virtual camera is then 5 under the platform, 0.6 from X2's plane, and the
+   floor cell across that plane is not clipped: its unlit underside shows.
 4. Portals that scale (high). A diorama on a table that is a portal: through
    it you are tiny in a garden world, grass blades as tall as trees. The
    portal transform is a rotation only; it needs a uniform scale (camera,

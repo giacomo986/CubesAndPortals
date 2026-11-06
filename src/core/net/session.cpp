@@ -1758,10 +1758,14 @@ bool ServerSessions::move_portal(int index, const Portal &to, double now)
     }
     // Its speed from the last two moves: a mod moving it every tick gets the
     // speed it moves at; one that moved it once long ago, none.
-    Vec3 vel{};
-    if (dt > 1e-3 && dt < 0.5) vel = step * (float)(1.0 / dt);
+    Vec3 vel{}, spin{};
+    if (dt > 1e-3 && dt < 0.5) {
+        vel = step * (float)(1.0 / dt);
+        if (p.free && to.free) spin = portal_turn_between(p.fn, p.fu, to.fn, to.fu) * (float)(1.0 / dt);
+    }
     p          = to;
     p.vel      = vel;
+    p.spin     = spin;
     m_moved_at[index] = now;
     ++m_portals_version;   // and the approaches kept: it is the same opening
     return true;
@@ -1772,9 +1776,11 @@ void ServerSessions::settle_portals(double now)
     // An opening its mod stopped moving stands still: told once, when the
     // moves have stopped coming for longer than a tick or two.
     for (int i = 0; i < kMaxOpenings; ++i) {
-        if (!m_portal_set[i] || length_sq(m_portal[i].vel) == 0.0f) continue;
+        if (!m_portal_set[i] || (length_sq(m_portal[i].vel) == 0.0f && length_sq(m_portal[i].spin) == 0.0f))
+            continue;
         if (now - m_moved_at[i] < 0.2) continue;
-        m_portal[i].vel = Vec3{};
+        m_portal[i].vel  = Vec3{};
+        m_portal[i].spin = Vec3{};
         ++m_portals_version;
     }
 }
@@ -1993,6 +1999,7 @@ Portals ServerSessions::portals_message() const
         d.free        = p.free ? 1 : 0;
         d.nx = p.fn.x, d.ny = p.fn.y, d.nz = p.fn.z;
         d.ux = p.fu.x, d.uy = p.fu.y, d.uz = p.fu.z;
+        d.wx = p.spin.x, d.wy = p.spin.y, d.wz = p.spin.z;
 
         msg.present |= 1ull << i;
     }

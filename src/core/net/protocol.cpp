@@ -975,6 +975,7 @@ std::vector<uint8_t> Portals::encode() const
         if (d.free) {
             w.f32(d.nx); w.f32(d.ny); w.f32(d.nz);
             w.f32(d.ux); w.f32(d.uy); w.f32(d.uz);
+            w.f32(d.wx); w.f32(d.wy); w.f32(d.wz);
         }
         w.u8((uint8_t)link[i]);
     }
@@ -1031,6 +1032,9 @@ bool Portals::decode(ByteReader &r, Portals &out)
         if (d.free) {
             d.nx = r.f32(), d.ny = r.f32(), d.nz = r.f32();
             d.ux = r.f32(), d.uy = r.f32(), d.uz = r.f32();
+            d.wx = r.f32(), d.wy = r.f32(), d.wz = r.f32();
+            for (const float v : {d.wx, d.wy, d.wz})
+                if (!(v == v) || v > 100.0f || v < -100.0f) return false;
             // Unit and at right angles, or the map it makes is not a rotation.
             const float nn = d.nx * d.nx + d.ny * d.ny + d.nz * d.nz;
             const float uu = d.ux * d.ux + d.uy * d.uy + d.uz * d.uz;

@@ -97,6 +97,10 @@ struct Portal {
     bool free = false;
     Vec3 fn{0.0f, 0.0f, 1.0f};
     Vec3 fu{0.0f, 1.0f, 0.0f};
+    // And how fast it turns, one turned freely: about this axis, its length
+    // in radians a second. Only drawn with (the client turns it on between two
+    // messages); a body is not pushed by it.
+    Vec3 spin;
 
     Vec3 normal() const;
     Vec3 right() const;
@@ -114,6 +118,13 @@ struct Portal {
 // down). Sets `axis` and `normal_sign` to the plane and side nearest. False,
 // and nothing changed, for an `n` of no length.
 bool portal_turn_free(Portal &p, Vec3 n, Vec3 u);
+
+// The turn that takes the free frame (n0, u0) to (n1, u1), as a rotation
+// vector (axis times angle, radians), good for the small turn of one tick.
+Vec3 portal_turn_between(Vec3 n0, Vec3 u0, Vec3 n1, Vec3 u1);
+
+// `v` turned by the rotation vector `w` (Rodrigues).
+Vec3 portal_turn_by(Vec3 v, Vec3 w);
 
 // --------------------------------------------------------------- the transform
 //

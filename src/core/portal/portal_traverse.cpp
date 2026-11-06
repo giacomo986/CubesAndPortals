@@ -113,6 +113,23 @@ bool portal_turn_free(Portal &p, Vec3 n, Vec3 u)
     return true;
 }
 
+Vec3 portal_turn_between(Vec3 n0, Vec3 u0, Vec3 n1, Vec3 u1)
+{
+    // A small turn d moves every unit axis a by d x a, and over an
+    // orthonormal frame the sum of a x (d x a) is 2 d.
+    const Vec3 r0 = cross(n0, u0), r1 = cross(n1, u1);
+    return (cross(n0, n1) + cross(u0, u1) + cross(r0, r1)) * 0.5f;
+}
+
+Vec3 portal_turn_by(Vec3 v, Vec3 w)
+{
+    const float a = length(w);
+    if (a < 1e-7f) return v;
+    const Vec3  k = w * (1.0f / a);
+    const float c = std::cos(a), s = std::sin(a);
+    return v * c + cross(k, v) * s + k * (dot(k, v) * (1.0f - c));
+}
+
 Vec3 Portal::normal() const
 {
     Vec3 n, r, u;

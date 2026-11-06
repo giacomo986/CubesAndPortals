@@ -384,7 +384,7 @@ inline constexpr uint16_t kProtocol    = 117; // 117 openings that move (core.po
 // which a 115 client refuses.
 // 117 gives every opening in Portals its velocity (core.portal_move), three
 // floats after its colour, which a 116 client reads as the next opening; and
-// a byte for an opening turned freely, followed by its front and up.
+// a byte for an opening turned freely, followed by its front, up and spin.
 inline constexpr uint16_t kMinProtocol = 117;
 
 // What a player picked to look like (protocol 93): the three colours of their
@@ -1399,6 +1399,7 @@ struct PortalDesc {
     // axis and normal_sign are then the plane and side nearest.
     uint8_t free = 0;
     float   nx = 0.0f, ny = 0.0f, nz = 1.0f, ux = 0.0f, uy = 1.0f, uz = 0.0f;
+    float   wx = 0.0f, wy = 0.0f, wz = 0.0f;   // how fast it turns, rad/s about this axis
 };
 
 // Where the openings are, as the server holds them. Sent to everybody whenever

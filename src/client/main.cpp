@@ -14004,6 +14004,7 @@ Portal portal_from_desc(const net::PortalDesc &d)
     p.free        = d.free != 0;
     p.fn          = Vec3{d.nx, d.ny, d.nz};
     p.fu          = Vec3{d.ux, d.uy, d.uz};
+    p.spin        = Vec3{d.wx, d.wy, d.wz};
     return p;
 }
 
@@ -14027,6 +14028,7 @@ net::PortalDesc desc_from_portal(const Portal &p)
     d.free        = p.free ? 1 : 0;
     d.nx = p.fn.x, d.ny = p.fn.y, d.nz = p.fn.z;
     d.ux = p.fu.x, d.uy = p.fu.y, d.uz = p.fu.z;
+    d.wx = p.spin.x, d.wy = p.spin.y, d.wz = p.spin.z;
     return d;
 }
 
@@ -14163,13 +14165,23 @@ void carry_moving_portals(Scene &s, const net::Portals &ps, float t, Vec3 (&draw
         const Vec3 to = base + Vec3{d.vx, d.vy, d.vz} * t;
         const Vec3 was = drawn[i];
         drawn[i] = to;
-        if (length_sq(to - was) == 0.0f) continue;
+        // Turned on too, one turned freely that turns: from where the message
+        // had it, by its spin for the same time.
+        const Vec3 w{d.wx * t, d.wy * t, d.wz * t};
+        const bool turns = d.free && length_sq(w) > 0.0f;
+        if (length_sq(to - was) == 0.0f && !turns) continue;
+        const Vec3 fn = portal_turn_by(Vec3{d.nx, d.ny, d.nz}, w);
+        const Vec3 fu = portal_turn_by(Vec3{d.ux, d.uy, d.uz}, w);
         const auto at = [&](Vec3 c) { return length_sq(c - was) < 1e-6f; };
         const auto move = [&](Portal &p) {
-            if ((uint8_t)p.axis == d.axis && at(p.center)) p.center = to;
+            if ((uint8_t)p.axis != d.axis || !at(p.center)) return;
+            p.center = to;
+            if (turns && p.free) p.fn = fn, p.fu = fu;
         };
         const auto move_s = [&](PortalSurface &f) {
-            if (at(f.center)) f.center = to;
+            if (!at(f.center)) return;
+            f.center = to;
+            if (turns) f.normal = fn, f.up = fu;
         };
         Session &a = s.act();
         move(a.portal_a);
