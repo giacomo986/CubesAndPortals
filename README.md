@@ -660,7 +660,7 @@ server running across restarts and crashes, with a log a day.
 | `tools/track.sh` (`--fresh`) | A server with the sandbox and every world as rooms, as the title menu starts it (worlds and logs in `worlds/track/`); `--fresh` also makes you its owner, so the creative catalogue (C) is open |
 | `tools/arpg.sh`, `tools/fps.sh`, `tools/chambers.sh` (`--fresh`) | The sandbox and one world, for working on that world |
 | `tools/portallab.sh` | A scene for checking portals by eye (games/portallab): glass seen through openings, a ceiling one to jump into, two floors to bounce between, openings that slide, chase and turn on every axis; `/lab wall`, `glass`, `head`, `bounce`, `view`, `slide`, `chase`, `spin`, `spiny`, `spinz`, `still`, `at <degrees>` |
-| `tools/vehiclelab.sh` | Vehicles through portals (games/vehiclelab, over the sandbox's mods): a cart line into one opening and out of another a quarter turn round, a boat channel the same; `NAME=boat` starts at the channel, `/vlab rail`, `boat`; a timed client wants `--keep-portals` |
+| `tools/vehiclelab.sh` | Vehicles through portals (games/vehiclelab, over the sandbox's mods): a cart line into one opening and out of another a quarter turn round, a boat channel the same; a portal carried by a train round a bend; `NAME=boat` or `train` starts there, `/vlab rail`, `boat`, `train`, `watch`; a timed client wants `--keep-portals` |
 | `build/tools/cnp_modpack pack mods/ore` | A mod in a `.cnpmod` file, which loads from `mods/` like a directory |
 | `tools/dist/package-*.sh` | The packages for Linux, Windows and macOS ([`docs/BUILDING.md`](docs/BUILDING.md)) |
 | `build/tools/cnp_netshape` | A UDP relay with delay and loss, to try slow links |

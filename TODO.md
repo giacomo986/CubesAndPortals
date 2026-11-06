@@ -1074,6 +1074,14 @@ Portals -- the engine's own trick, used further:
    local pair. A timed client used to shoot its own pair at its feet in any
    world with two openings, which moved A away from the cart: --keep-portals
    stops it.
+   STEP 3 (a portal carried by a vehicle), 2026-11-06: no engine change --
+   a mod moves and turns the opening with what carries it, every tick
+   (core.portal_move with a front). /vlab train: an opening running at 4 m/s
+   along a line with a quarter-turn bend, its front where it goes; a body
+   stood on the line after the bend was run into and came out of E moving
+   away (NAME=train, logs). Not seen by eye yet: the train taking the bend
+   (a green membrane passed once, likely its opening animation), and none
+   follows a ridden cart or boat yet -- the same code with core.player_pos.
 4. Portals that scale (high). A diorama on a table that is a portal: through
    it you are tiny in a garden world, grass blades as tall as trees. The
    portal transform is a rotation only; it needs a uniform scale (camera,

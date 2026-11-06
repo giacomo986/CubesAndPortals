@@ -9,6 +9,12 @@
 --   BOAT  a channel of water running north into an opening over it (C), and
 --         out of one facing south (D) over a channel running south. A boat
 --         rowed in must come out afloat, still in the boat.
+--   TRAIN a portal carried by a train: an opening (T) running at 4 m/s along
+--         a rail line that bends a quarter turn, its front where it goes,
+--         turning with the bend (core.portal_move with a front, every tick).
+--         Stood on the line after the bend, a body is run into and taken
+--         through, out of one standing still (E), moving away from it at the
+--         train's speed. Then T starts again from the line's start.
 --
 -- Everybody arrives at the rail line's start with a cart and a boat in the
 -- bag; /vlab rail and /vlab boat go to each.
@@ -48,15 +54,46 @@ core.event.on("core:world_ready", function()
     fill(X + 14, X + 16, Y, Y, Z + 9, Z + 35, WATER)
     fill(X + 28, X + 32, Y - 1, Y - 1, Z + 25, Z + 40, FLOOR)
     fill(X + 29, X + 31, Y, Y, Z + 26, Z + 39, WATER)
+    -- TRAIN: north of the rest, z - 20..-1: east along z - 15 from x + 5,
+    -- a bend round (x + 23, z - 13), south along x + 25 to z - 3.
+    fill(X, X + 40, Y, Y, Z - 20, Z - 1, FLOOR)
+    fill(X, X + 40, Y + 1, Y + 8, Z - 20, Z - 1, 0)
+    rails(X + 5, X + 23, Z - 15, Z - 15, 3)
+    rails(X + 24, X + 24, Z - 15, Z - 14, 3)
+    rails(X + 25, X + 25, Z - 14, Z - 3, 2)
 end)
 
 local opened = false
+local train = -1   -- T's id
+local run = 0.0    -- how far along the line T is, in nodes
+
+-- Where along the line T is `d` nodes from its start, and which way it goes.
+local L1, R, L2 = 18.0, 2.0, 10.0
+local function along(d: number): (number, number, number, number)
+    local x0, z0 = X + 5.5, Z - 14.5
+    if d <= L1 then
+        return x0 + d, z0, 1, 0
+    end
+    d -= L1
+    local arc = R * math.pi / 2
+    if d <= arc then
+        local a = d / R   -- 0..pi/2 round the bend's centre
+        return x0 + L1 + R * math.sin(a), z0 + R - R * math.cos(a), math.cos(a), math.sin(a)
+    end
+    d -= arc
+    return x0 + L1 + R, z0 + R + d, 0, 1
+end
+local LINE = L1 + R * math.pi / 2 + L2
 local function open_all(): boolean
     local a = core.portal_open(X + 5.5, Y + 2.0, Z + 9.5, 0, 1, 0, 0.5, 1.0)
     local b = core.portal_open(X + 25.5, Y + 2.0, Z + 20.5, 1, 1, 0, 0.5, 1.0)
     local c = core.portal_open(X + 15.5, Y + 1.5, Z + 9.5, 0, 1, 0, 1.5, 1.0)
     local d = core.portal_open(X + 30.5, Y + 1.5, Z + 25.5, 0, 1, 0, 1.5, 1.0)
-    if a < 0 or b < 0 or c < 0 or d < 0 then return false end
+    local t = core.portal_open(X + 5.5, Y + 2.0, Z - 14.5, 1, 1, 0, 0.5, 1.0)
+    local e = core.portal_open(X + 10.5, Y + 2.0, Z - 6.5, 1, 1, 0, 0.5, 1.0)
+    if a < 0 or b < 0 or c < 0 or d < 0 or t < 0 or e < 0 then return false end
+    core.portal_link(t, e)
+    train = t
     core.portal_link(a, b)
     core.portal_link(c, d)
     core.log(`vehiclelab: openings A {a} B {b} C {c} D {d}`)
@@ -66,6 +103,8 @@ end
 local STATIONS = {
     rail = { X + 5.5, Y + 1.5, Z + 36.5, 0, -0.1, -1 },
     boat = { X + 15.5, Y + 1.5, Z + 37.5, 0, -0.3, -1 },
+    train = { X + 25.5, Y + 1.5, Z - 4.5, 0, -0.1, -1 },
+    watch = { X + 33.5, Y + 1.5, Z - 6.5, -1, -0.15, -0.5 },
 }
 local start = "rail"
 local function put(p: number, which: string?)
@@ -74,7 +113,7 @@ local function put(p: number, which: string?)
     core.player_spawn(p, s[1], s[2], s[3])
 end
 
-core.command("vlab", "rail|boat -- go to a station of the vehicle lab")
+core.command("vlab", "rail|boat|train|watch -- go to a station of the vehicle lab")
 core.event.on("core:command", function(ev)
     if ev.name == "vlab" then put(ev.player, if STATIONS[ev.args] then ev.args else "rail") end
 end)
@@ -89,6 +128,12 @@ local seen: { [number]: number } = {}
 local was: { [number]: { number } } = {}
 core.event.on("core:tick", function(ev)
     if not opened then opened = open_all() end
+    if train >= 0 then
+        run += 4 * (ev.dt or 0.05)
+        if run > LINE then run = 0 end
+        local x, z, hx, hz = along(run)
+        core.portal_move(train, x, Y + 2.0, z, -1, 0, -1, hx, 0, hz, 0, 1, 0)
+    end
     for _, p in core.players() do
         local t = (seen[p] or 0) + (ev.dt or 0.05)
         if seen[p] == nil then
