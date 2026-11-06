@@ -1733,6 +1733,47 @@ int ServerSessions::open_portal(const Portal &p)
     return index;
 }
 
+bool ServerSessions::move_portal(int index, const Portal &to, double now)
+{
+    if (index < 0 || index >= kMaxOpenings || !m_portal_set[index]) return false;
+    Portal       &p    = m_portal[index];
+    const Vec3    step = to.center - p.center;
+    const double  dt   = now - m_moved_at[index];
+    // Turned, resized, or put somewhere rather than moved there: a different
+    // opening, and every approach to the old one is forgotten (openings_changed).
+    const bool same_shape = p.axis == to.axis && p.normal_sign == to.normal_sign &&
+                            p.rot == to.rot && p.half_w == to.half_w && p.half_h == to.half_h;
+    if (!same_shape || length_sq(step) > 16.0f) {
+        const Vec3 keep = p.vel;
+        p              = to;
+        p.vel          = same_shape ? keep : Vec3{};
+        m_moved_at[index] = now;
+        openings_changed();
+        return true;
+    }
+    // Its speed from the last two moves: a mod moving it every tick gets the
+    // speed it moves at; one that moved it once long ago, none.
+    Vec3 vel{};
+    if (dt > 1e-3 && dt < 0.5) vel = step * (float)(1.0 / dt);
+    p          = to;
+    p.vel      = vel;
+    m_moved_at[index] = now;
+    ++m_portals_version;   // and the approaches kept: it is the same opening
+    return true;
+}
+
+void ServerSessions::settle_portals(double now)
+{
+    // An opening its mod stopped moving stands still: told once, when the
+    // moves have stopped coming for longer than a tick or two.
+    for (int i = 0; i < kMaxOpenings; ++i) {
+        if (!m_portal_set[i] || length_sq(m_portal[i].vel) == 0.0f) continue;
+        if (now - m_moved_at[i] < 0.2) continue;
+        m_portal[i].vel = Vec3{};
+        ++m_portals_version;
+    }
+}
+
 int ServerSessions::close_portal(Vec3 center)
 {
     for (int i = 0; i < kMaxOpenings; ++i) {
@@ -1941,6 +1982,9 @@ Portals ServerSessions::portals_message() const
         d.half_h      = p.half_h;
         d.kind        = (uint8_t)p.kind;
         d.colour      = p.colour;
+        d.vx          = p.vel.x;
+        d.vy          = p.vel.y;
+        d.vz          = p.vel.z;
 
         msg.present |= 1ull << i;
     }
@@ -1997,7 +2041,7 @@ SessionAction ServerSessions::redirect_if_triggered(Session &s, const Move &move
     for (int i = 0; i < kMaxMouths; ++i) {
         const PortalAway &away = m_away[i];
         if (!m_portal_set[i] || !away.leads_away() || (s.sealed >> i & 1u)) continue;
-        if (!trigger_along(m_portal[i], s.portal_state[i], from_feet, feet, vel, eye_of(s)))
+        if (!trigger_along(m_portal[i], s.portal_state[i], from_feet, feet, vel, eye_of(s), (float)dt))
             continue;
 
         const std::string where = away.host.empty()
@@ -2070,7 +2114,7 @@ SessionAction ServerSessions::cross_if_triggered(Session &s, const Move &move,
         const int j = m_link[i];
         if (!local_pair(i, j)) continue;
         const Crossing c{&m_portal[i], &m_portal[j], &s.portal_state[i], &s.portal_state[j]};
-        if (!trigger_along(*c.from, *c.state, from_feet, feet, vel, eye_of(s)) &&
+        if (!trigger_along(*c.from, *c.state, from_feet, feet, vel, eye_of(s), (float)dt) &&
             !portal_swallows(*c.from, feet, eye_of(s), vel))
             continue;
 
@@ -2103,8 +2147,12 @@ SessionAction ServerSessions::cross_if_triggered(Session &s, const Move &move,
         aim_windows(s, t.feet);
 
         // The speed is the last step's average: the speed at its middle.
-        const Vec3 out_vel = exit_velocity(*c.from, *c.to, vel, vel + t.velocity_delta,
-                                           (from_feet + feet) * 0.5f, t.feet.y, s.movement.gravity);
+        // Kept as the openings see it: relative to the source going in, to
+        // the destination coming out (Portal::vel; both zero standing still).
+        const Vec3 out_vel = exit_velocity(*c.from, *c.to, vel - c.from->vel,
+                                           vel + t.velocity_delta - c.to->vel,
+                                           (from_feet + feet) * 0.5f, t.feet.y, s.movement.gravity) +
+                             c.to->vel;
 
         Teleport tp;
         tp.seq    = move.seq;
@@ -2187,7 +2235,7 @@ int ServerSessions::cross_mobs(double now)
                        depth <= b.half + 0.6f && dot(vel, n) < -0.5f;
                 if (into) now_at = now_at - n * (depth + 0.1f);
             }
-            if (!into && !trigger_along(m_portal[i], mc.state[i], from, now_at, vel, eye)) continue;
+            if (!into && !trigger_along(m_portal[i], mc.state[i], from, now_at, vel, eye, (float)dt)) continue;
             ecs::Look *look = e.try_get_mut<ecs::Look>();
             const float yaw = look ? look->yaw : 0.0f;
             const Vec3  facing{std::sin(yaw), 0.0f, -std::cos(yaw)};

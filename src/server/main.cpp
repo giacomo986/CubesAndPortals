@@ -1460,6 +1460,24 @@ int host_portal_open(void *ud, float x, float y, float z, int axis, int sign, in
     return id;
 }
 
+int host_portal_move(void *ud, int id, float x, float y, float z, int axis, int sign, int rot)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    auto        &v = s->vportals;
+    if (!s->sessions || id < 0 || id >= (int)v.size() || !v[id].alive) return 0;
+    if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) || axis < -1 || axis > 2 ||
+        sign < -1 || sign > 1 || rot < -1 || rot > 3)
+        return 0;
+    Portal p = v[id].p;
+    p.center = Vec3{x, y, z};
+    if (axis >= 0) p.axis = (PortalAxis)axis;
+    if (sign != 0) p.normal_sign = sign;
+    if (rot >= 0) p.rot = rot;
+    v[id].p = p;
+    if (v[id].slot >= 0) s->sessions->move_portal(v[id].slot, p, s->now);
+    return 1;
+}
+
 int host_portal_close(void *ud, float x, float y, float z)
 {
     ServerState *s = static_cast<ServerState *>(ud);
@@ -6654,6 +6672,7 @@ int serve_room(int argc, char **argv)
         host.room          = host_room;
         host.portal_open   = host_portal_open;
         host.portal_close  = host_portal_close;
+        host.portal_move   = host_portal_move;
         host.portal_seal   = host_portal_seal;
         host.portal_link   = host_portal_link;
         host.far_portal_set   = host_far_portal_set;
@@ -9447,6 +9466,7 @@ int serve_room(int argc, char **argv)
                 s.mod_seals.clear();
                 sync_far_portals(s);
                 schedule_portals(s, seconds_since(t_start));
+                sessions.settle_portals(s.now);
 
 
                 for (const auto &m : s.mod_sounds)

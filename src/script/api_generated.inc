@@ -140,6 +140,22 @@ int l_portal_link(lua_State *L)
     return 1;
 }
 
+// core.portal_move(id: number, x: number, y: number, z: number, axis: number?, sign: number?, rot: number?) -> number
+int l_portal_move(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const float x = (float)luaL_checknumber(L, 2);
+    const float y = (float)luaL_checknumber(L, 3);
+    const float z = (float)luaL_checknumber(L, 4);
+    const int axis = (int)luaL_optinteger(L, 5, -1);
+    const int sign = (int)luaL_optinteger(L, 6, 0);
+    const int rot = (int)luaL_optinteger(L, 7, -1);
+    const int result = (vm && vm->host.portal_move) ? vm->host.portal_move(vm->host.ud, id, x, y, z, axis, sign, rot) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.portal_close(x: number, y: number, z: number) -> number
 int l_portal_close(lua_State *L)
 {
@@ -3246,6 +3262,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "portal_open");
     lua_pushcfunction(L, l_portal_link, "core.portal_link");
     lua_setfield(L, -2, "portal_link");
+    lua_pushcfunction(L, l_portal_move, "core.portal_move");
+    lua_setfield(L, -2, "portal_move");
     lua_pushcfunction(L, l_portal_close, "core.portal_close");
     lua_setfield(L, -2, "portal_close");
     lua_pushcfunction(L, l_portal_seal, "core.portal_seal");

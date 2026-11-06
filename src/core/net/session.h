@@ -1194,6 +1194,15 @@ public:
     void set_portals(const Portal &a, const Portal &b);
     bool has_portals() const;
 
+    // An opening moved while the world runs (core.portal_move): the same
+    // opening, somewhere else, with the speed of the last two moves
+    // (Portal::vel) -- so the approaches to it are kept, where a reshaped one
+    // forgets them. A turn, a new size or a jump of more than four nodes is a
+    // different opening and forgets them. False for no such opening.
+    bool move_portal(int index, const Portal &to, double now);
+    // Openings whose moves stopped coming stand still again. Every tick.
+    void settle_portals(double now);
+
     // An opening a mod opens or closes while the world runs (core.portal_open,
     // core.portal_close): a frame of blocks somebody built. The opening already
     // standing at that centre in that plane keeps its index and takes the new
@@ -1577,6 +1586,7 @@ private:
     bool     m_portal_set[kMaxOpenings] = {};
     int      m_link[kMaxOpenings];   // symmetric; i ^ 1 until link_portals says otherwise
     uint32_t m_portals_version = 0;
+    double   m_moved_at[kMaxOpenings] = {};   // when each was last moved (move_portal)
 
     // Where each opening leads, in the wire's own shape: the same four facts
     // go out in the Portals message and nothing here needs more than they say.

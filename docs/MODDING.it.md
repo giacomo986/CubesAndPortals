@@ -590,6 +590,7 @@ core.set_portal(indice, x, y, z)    -- sul server: le aperture del mondo, solo m
 core.portal_open(x, y, z, asse, verso, giro, mezza_l, mezza_a, colore?) -> id|-1  -- sul server, quando ascolta: -1 prima, riprovare; quanti se ne vuole: le 40 aperture vanno ai più vicini ai giocatori
                                     -- colore: com'è chiusa finché non porta da nessuna parte: 0 verde (fissa, default), 1 blu, 2 arancione (portal gun)
 core.portal_close(x, y, z) -> 0..15|-1                             -- per centro, non per indice
+core.portal_move(id, x, y, z, asse?, verso?, giro?) -> 1|0         -- a ogni tick: si muove (disegnata fluida, attraversata relativa a lei); nuovo piano/giro o salto > 4 la mette lì
 core.portal_link(a, b) -> 1|0       -- a e b portano l'una all'altra; b = -1 scollega a
 core.log(messaggio)
 core.play_sound("mod:cosa", x, y, z) -> 1|0  -- a tutti nel mondo; file mods/<mod>/<cosa>.ogg sul client

@@ -16,6 +16,15 @@
 --          falls through, flies up out of the other and falls back in, for
 --          ever. Where it looks must stay where it looked, the horizon
 --          turning back level.
+--   SLIDE  an opening standing free (S) that slides along x, six nodes
+--          either way at up to 1.5 m/s (core.portal_move), onto one that stands
+--          still (T). It must be drawn going smoothly; walked into, or
+--          waited for, it takes you through, out of T at T's speed: none.
+--   CHASE  an opening (U) going back and forth along its own front, four
+--          nodes either way at up to 1.5 m/s, onto one standing still (V):
+--          stood in its way, a body is run into and taken through -- the
+--          door that follows you -- and comes out of V moving away from it
+--          at the speed U ran into it.
 --
 -- Everybody arrives before W, looking into it. /lab wall, glass and head put
 -- you at a station again; /lab view stands where B looks out from, to see
@@ -40,7 +49,7 @@ local function fill(x0: number, x1: number, y0: number, y1: number, z0: number, 
 end
 
 local function build()
-    fill(58, 82, Y, Y, 58, 80, FLOOR)
+    fill(58, 82, Y, Y, 58, 92, FLOOR)
     -- GLASS: the glass wall at x 70, red behind it at x 74; a wall at x 62
     -- facing it with B low at z 68 and F high at z 66; W in a wall at z 56
     -- facing +z; A in the floor at x 66, z 62..63.
@@ -69,6 +78,9 @@ core.event.on("core:world_ready", build)
 -- The openings: a server's exist a few ticks after the first, so asked
 -- again until they open.
 local opened = false
+local slide = -1      -- S's id, once open
+local slide_t = 0.0   -- how long it has been sliding
+local chase = -1      -- U's id
 local function open_all(): boolean
     local w = core.portal_open(66.5, Y + 2.0, 56.5, 0, 1, 0, 0.5, 1.0)
     local b = core.portal_open(62.5, Y + 2.0, 68.5, 1, 1, 0, 0.5, 1.0)
@@ -78,9 +90,18 @@ local function open_all(): boolean
     local d = core.portal_open(66.5, Y + 2.0, 78.5, 0, -1, 0, 0.5, 1.0)
     local pp = core.portal_open(60.5, Y + 0.5, 73.0, 2, 1, 0, 0.5, 1.0)
     local q = core.portal_open(65.0, Y + 0.5, 72.5, 2, 1, 1, 0.5, 1.0)
-    if w < 0 or b < 0 or a < 0 or f < 0 or c < 0 or d < 0 or pp < 0 or q < 0 then
+    local sl = core.portal_open(70.5, Y + 2.0, 86.5, 0, 1, 0, 0.5, 1.0)
+    local t = core.portal_open(70.5, Y + 2.0, 82.5, 0, -1, 0, 0.5, 1.0)
+    local u = core.portal_open(77.5, Y + 2.0, 86.0, 0, 1, 0, 0.5, 1.0)
+    local vv = core.portal_open(80.5, Y + 2.0, 84.5, 1, -1, 0, 0.5, 1.0)
+    if w < 0 or b < 0 or a < 0 or f < 0 or c < 0 or d < 0 or pp < 0 or q < 0 or sl < 0 or t < 0
+        or u < 0 or vv < 0 then
         return false
     end
+    core.portal_link(sl, t)
+    core.portal_link(u, vv)
+    slide = sl
+    chase = u
     core.portal_link(w, b)
     core.portal_link(a, f)
     core.portal_link(c, d)
@@ -95,6 +116,8 @@ local STATIONS = {
     head = { 77.5, Y + 1, 65.8, 0, 0.2, -1, "HEAD: step under the opening in the roof and jump" },
     bounce = { 60.5, Y + 7, 73.0, 0, -0.6, -0.8, "BOUNCE: falling into P, out of Q and back -- the look must stay yours" },
     view = { 63.6, Y + 1, 68.5, 1, -0.05, 0, "VIEW: what B sees, without a portal -- the glass wall ahead" },
+    slide = { 70.5, Y + 1, 89.5, 0, -0.05, -1, "SLIDE: S slides along before you -- walk into it, or wait for it" },
+    chase = { 77.5, Y + 1, 89.5, 0, -0.05, -1, "CHASE: stand still -- U comes for you" },
 }
 local function put(p: number, which: string)
     local s = STATIONS[which]
@@ -103,7 +126,7 @@ local function put(p: number, which: string)
     core.notice(p, s[7])
 end
 
-core.command("lab", "wall|glass|head|bounce|view -- go to a station of the portal lab")
+core.command("lab", "wall|glass|head|bounce|view|slide|chase -- go to a station of the portal lab")
 core.event.on("core:command", function(ev)
     if ev.name == "lab" then
         put(ev.player, if STATIONS[ev.args] then ev.args else "wall")
@@ -116,6 +139,11 @@ local seen: { [number]: number } = {}
 core.event.on("core:tick", function(ev)
     if not opened then
         opened = open_all()
+    end
+    if slide >= 0 then
+        slide_t += ev.dt or 0.05
+        core.portal_move(slide, 70.5 + 6 * math.sin(slide_t * 0.25), Y + 2.0, 86.5)
+        core.portal_move(chase, 77.5, Y + 2.0, 86.0 + 4 * math.sin(slide_t * 0.375))
     end
     for _, p in core.players() do
         local t = (seen[p] or 0) + (ev.dt or 0.05)

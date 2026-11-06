@@ -1033,6 +1033,22 @@ Portals -- the engine's own trick, used further:
    entering a tunnel and leaving in another world, a door that follows you in
    the chambers. Today core.set_portal works only while the mods load and
    every opening is fixed in the world.
+   Agreed 2026-11-06: all three cases (a door that follows you, a portal on
+   a vehicle, a vehicle through a fixed portal), turning by quarter turns
+   only. STEP 1 BUILT 2026-11-06: core.portal_move(id, x, y, z[, axis, sign,
+   rot]) moves an open portal; called every tick it is the same opening going
+   at the speed of the last two moves (Portal::vel, protocol 117 sends it), so
+   the approaches are kept, and every crossing rule reads a body's speed
+   relative to it (trigger_along walks the step against where it is now; the
+   exit speed is relative to both ends). The client carries a moving opening
+   on between messages (carry_moving_portals), so it slides smoothly.
+   Checked in tools/portallab.sh: /lab slide (S slides along x, drawn smooth)
+   and /lab chase (U runs along its front into a body standing still: taken
+   through, out of V moving away, 0 corrections). Not checked: walking into S
+   while it slides past. Open: steps 2 and 3 (a vehicle through a portal, a
+   portal carried by a vehicle); a moving mouth onto another world is not
+   carried between messages; one moving opening is a Portals message per
+   tick to everybody (ponytail: an unreliable motion message if it weighs).
 4. Portals that scale (high). A diorama on a table that is a portal: through
    it you are tiny in a garden world, grass blades as tall as trees. The
    portal transform is a rotation only; it needs a uniform scale (camera,

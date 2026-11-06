@@ -81,6 +81,14 @@ struct Portal {
     // 2 orange, a portal gun's two ends.
     uint8_t colour = 0;
 
+    // How fast the opening itself is going, in m/s (core.portal_move): a door
+    // sliding along, a portal carried by a cart. Every rule below that reads a
+    // body's velocity reads it relative to this one, and a crossing hands the
+    // body over as the far end is moving -- what goes in at rest with a moving
+    // opening is a body the opening ran into. Zero for every opening that
+    // stands still, which is every opening this engine had before.
+    Vec3 vel;
+
     Vec3 normal() const;
     Vec3 right() const;
     Vec3 up() const;
@@ -170,8 +178,10 @@ bool portal_step_trigger(const Portal &p, PortalTriggerState &state, Vec3 feet, 
 
 // The same, sampled along a step from `from` to `to` (feet), every 0.15 node
 // and at most 64 times: what a body moved past in one step still triggers.
+// `dt` is how long the step took: an opening that moved meanwhile (Portal::vel)
+// is walked against where it is now, the step's start carried along with it.
 bool trigger_along(const Portal &p, PortalTriggerState &state, Vec3 from, Vec3 to, Vec3 vel,
-                   float eye_height);
+                   float eye_height, float dt = 0.0f);
 
 // A body caught inside the opening's own block: its eye between a tenth and
 // nine tenths of the block's depth and within the opening's sides, and not on

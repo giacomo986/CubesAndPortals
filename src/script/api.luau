@@ -200,6 +200,28 @@ local api: { Fn } = {
            .. "index out of range or no server.",
     },
     {
+        name = "portal_move",
+        host = "portal_move",
+        ret  = "int",
+        args = {
+            { name = "id", type = "int", doc = "A portal, as portal_open returned it." },
+            { name = "x", type = "float", doc = "Its new centre." },
+            { name = "y", type = "float" },
+            { name = "z", type = "float" },
+            { name = "axis", type = "int", default = -1, doc = "A new plane, or -1 to keep it." },
+            { name = "sign", type = "int", default = 0, doc = "A new front, 1 or -1, or 0 to keep it." },
+            { name = "rot", type = "int", default = -1, doc = "New quarter turns, or -1 to keep them." },
+        },
+        doc = "Moves an open portal while the world runs, on a server: a door sliding along a "
+           .. "rail, a portal carried by a cart. Called every tick it MOVES -- the same opening, "
+           .. "going at the speed of the last two moves, drawn going smoothly on every client, "
+           .. "and a body crossing it is handed over relative to it: what goes in at rest comes "
+           .. "out at the far end's speed. A move stopped for a fifth of a second stands it still. "
+           .. "A new plane, front or turn, or a jump of more than four nodes, puts it there instead, "
+           .. "as a portal opened anew. It turns in quarter turns only. Close it later by its new "
+           .. "centre. Returns 1, or 0 for no such portal or no server.",
+    },
+    {
         name = "portal_close",
         host = "portal_close",
         ret  = "int",

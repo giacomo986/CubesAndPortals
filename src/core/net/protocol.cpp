@@ -970,6 +970,7 @@ std::vector<uint8_t> Portals::encode() const
         w.f32(d.half_w); w.f32(d.half_h);
         w.u8(d.kind);
         w.u8(d.colour);
+        w.f32(d.vx); w.f32(d.vy); w.f32(d.vz);
         w.u8((uint8_t)link[i]);
     }
 
@@ -1017,7 +1018,14 @@ bool Portals::decode(ByteReader &r, Portals &out)
         d.half_h      = r.f32();
         d.kind        = r.u8();
         d.colour      = r.u8();
+        d.vx          = r.f32();
+        d.vy          = r.f32();
+        d.vz          = r.f32();
         out.link[i]   = (int8_t)r.u8();
+        // A speed past anything a mod moves an opening at is a lie, and a
+        // NaN would be carried into every crossing near it.
+        for (const float v : {d.vx, d.vy, d.vz})
+            if (!(v == v) || v > 200.0f || v < -200.0f) return false;
 
         // An index this table does not have is a write past its end in every
         // array a client keeps per opening. -1 is "leads nowhere".

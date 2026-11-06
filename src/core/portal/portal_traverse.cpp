@@ -151,6 +151,7 @@ float portal_depth(const Portal &p, Vec3 pos)
 
 bool portal_swallows(const Portal &p, Vec3 feet, float eye_height, Vec3 vel)
 {
+    vel = vel - p.vel;
     Vec3 n, r, u;
     triad(p, n, r, u);
     if (dot(vel, n) > 0.1f) return false;
@@ -209,6 +210,7 @@ static Vec3 crossing_point(const Portal &p, Vec3 feet, Vec3 eye)
 bool portal_step_trigger(const Portal &p, PortalTriggerState &state, Vec3 feet, Vec3 eye,
                          Vec3 vel)
 {
+    vel = vel - p.vel;
     const bool inside = in_portal_bounds(p, feet) || in_portal_bounds(p, eye);
 
     if (!inside) {
@@ -299,8 +301,11 @@ bool portal_step_trigger(const Portal &p, PortalTriggerState &state, Vec3 feet, 
 // and the count is capped so a claim that jumps a long way costs a bounded
 // amount of work rather than one sample per centimetre.
 bool trigger_along(const Portal &p, PortalTriggerState &state, Vec3 from, Vec3 to, Vec3 vel,
-                   float eye_height)
+                   float eye_height, float dt)
 {
+    // Where the step began, as the opening sees it now: it has moved on by
+    // vel * dt since, so a body at rest is walked into by it.
+    if (dt > 0.0f && dt < 1.0f) from = from + p.vel * dt;
     const Vec3  step = to - from;
     const float d    = length(step);
     int         n    = d > 0.0f ? (int)(d / 0.15f) + 1 : 1;
@@ -359,6 +364,7 @@ WallShift portal_wall_shift(const Portal &p, Vec3 feet, float half_width, float 
 float portal_floor_shift(const Portal &p, Vec3 feet, Vec3 velocity, float dt, float half_width)
 {
     if (!p.horizontal()) return 0.0f;
+    velocity = velocity - p.vel;
 
     // The whole box over the opening, not only the feet. The shift lowers the
     // body into whatever holds it up, and only the opening's own cells are
@@ -410,6 +416,7 @@ float portal_floor_shift(const Portal &p, Vec3 feet, Vec3 velocity, float dt, fl
 
 Vec3 portal_funnel(const Portal &p, Vec3 feet, Vec3 velocity, float gravity, float dt)
 {
+    velocity = velocity - p.vel;
     if (!p.horizontal() || p.normal().y <= 0.0f || velocity.y >= 0.0f) return Vec3{};
 
     // How long until the feet reach the top of the node the opening is in:
@@ -496,7 +503,9 @@ Traversal portal_traverse(const Portal &src, const Portal &dst, Vec3 feet, Vec3 
     }
 
     // -------------------------------------------------------------- velocity
-    out.velocity_delta = apply_map(src, dst, vel) - vel;
+    // Relative to the openings: what the source swallowed at its own speed
+    // comes out at the destination's. Both at rest, the map alone.
+    out.velocity_delta = apply_map(src, dst, vel - src.vel) + dst.vel - vel;
 
     // --------------------------------------------------------------- position
     //

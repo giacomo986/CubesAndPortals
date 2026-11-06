@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 116; // 116 the sounds going round (core.sound_loop)
+inline constexpr uint16_t kProtocol    = 117; // 117 openings that move (core.portal_move)
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -382,7 +382,9 @@ inline constexpr uint16_t kProtocol    = 116; // 116 the sounds going round (cor
 // (mods/pocket). And bit 4 of a Player's second flags byte: drawn as a block
 // (core.body_block, the arena's prop hunt), its id after the dressed pieces,
 // which a 115 client refuses.
-inline constexpr uint16_t kMinProtocol = 116;
+// 117 gives every opening in Portals its velocity (core.portal_move), three
+// floats after its colour, which a 116 client reads as the next opening.
+inline constexpr uint16_t kMinProtocol = 117;
 
 // What a player picked to look like (protocol 93): the three colours of their
 // model's tint_1..3 materials -- primary, secondary, accent -- five bits each,
@@ -1391,6 +1393,7 @@ struct PortalDesc {
     float   half_w = 0.5f, half_h = 1.0f;
     uint8_t kind = 0;                          // PortalKind
     uint8_t colour = 0;                        // closed: 0 green (fixed), 1 blue, 2 orange
+    float   vx = 0.0f, vy = 0.0f, vz = 0.0f;   // how fast it moves, m/s (protocol 117)
 };
 
 // Where the openings are, as the server holds them. Sent to everybody whenever

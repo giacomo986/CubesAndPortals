@@ -14000,6 +14000,7 @@ Portal portal_from_desc(const net::PortalDesc &d)
     p.half_h      = d.half_h;
     p.kind        = (PortalKind)d.kind;
     p.colour      = d.colour;
+    p.vel         = Vec3{d.vx, d.vy, d.vz};
     return p;
 }
 
@@ -14017,6 +14018,9 @@ net::PortalDesc desc_from_portal(const Portal &p)
     d.half_h      = p.half_h;
     d.kind        = (uint8_t)p.kind;
     d.colour      = p.colour;
+    d.vx          = p.vel.x;
+    d.vy          = p.vel.y;
+    d.vz          = p.vel.z;
     return d;
 }
 
@@ -14056,8 +14060,11 @@ void apply_server_portals(Scene &s, const net::Portals &ps)
     s.act().more_links.clear();
     s.act().linked_openings.clear();
     s.act().linked_to.clear();
+    // A quarter node: an opening that moves (core.portal_move) is a little
+    // further on at every message, and is the same opening; two openings in
+    // one plane are never that close.
     const auto same = [](const Portal &a, const Portal &b) {
-        return a.axis == b.axis && length_sq(a.center - b.center) < 1e-4f;
+        return a.axis == b.axis && length_sq(a.center - b.center) < 0.0625f;
     };
     const auto now = std::chrono::steady_clock::now();
     for (int i = 0; i < net::kMaxOpenings; ++i) {
@@ -14131,6 +14138,46 @@ void apply_server_portals(Scene &s, const net::Portals &ps)
     if (all.size() > 2) s.act().more_links.assign(all.begin() + 2, all.end());
     s.act().link_count = all.size() >= 2 ? 2 : 1;
     s.act().portals    = !all.empty() && s.act().link_ab.rt.id != 0;
+}
+
+// Openings that move (core.portal_move), carried on between two Portals
+// messages: each one `t` seconds on from where the last message had it, at
+// the speed it said, in every copy the client holds of it -- the links'
+// surfaces, the bodies' openings, the closed ones, the mouths. Matched by
+// where each copy was drawn last (`drawn`, per opening), so nothing here
+// rebuilds a link or relinks a mouth. Capped at a quarter second: a message
+// that is late does not send an opening off on its own.
+void carry_moving_portals(Scene &s, const net::Portals &ps, float t, Vec3 (&drawn)[net::kMaxOpenings])
+{
+    t = std::min(std::max(t, 0.0f), 0.25f);
+    for (int i = 0; i < net::kMaxOpenings; ++i) {
+        if (!ps.has(i)) continue;
+        const net::PortalDesc &d = ps.opening[i];
+        const Vec3 base{d.cx, d.cy, d.cz};
+        const Vec3 to = base + Vec3{d.vx, d.vy, d.vz} * t;
+        const Vec3 was = drawn[i];
+        drawn[i] = to;
+        if (length_sq(to - was) == 0.0f) continue;
+        const auto at = [&](Vec3 c) { return length_sq(c - was) < 1e-6f; };
+        const auto move = [&](Portal &p) {
+            if ((uint8_t)p.axis == d.axis && at(p.center)) p.center = to;
+        };
+        const auto move_s = [&](PortalSurface &f) {
+            if (at(f.center)) f.center = to;
+        };
+        Session &a = s.act();
+        move(a.portal_a);
+        move(a.portal_b);
+        for (Portal &p : a.linked_openings) move(p);
+        for (Portal &p : a.linked_to) move(p);
+        for (Portal &p : a.closed_openings) move(p);
+        for (Session::Opening &o : a.opening) move(o.p);
+        for (Session::MoreMouth &mm : a.more_mouths) move(mm.portal);
+        move_s(a.link_ab.src), move_s(a.link_ab.dst);
+        move_s(a.link_ba.src), move_s(a.link_ba.dst);
+        for (PortalLink &l : a.more_links) move_s(l.src), move_s(l.dst);
+        for (PortalLink &l : a.local_links) move_s(l.src), move_s(l.dst);
+    }
 }
 
 // The far side of a mouth: the opening in the OTHER world, as that world's own
@@ -14622,6 +14669,10 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
     // joins a world which already has a pair is at version 0 and everybody
     // else is at 7, and the same comparison covers both.
     uint32_t drawn_portals = 0;
+    // When those were applied, and where each opening was drawn since: the
+    // moving ones are carried on every frame (carry_moving_portals).
+    double portals_applied_at = 0.0;
+    Vec3   portals_drawn_at[net::kMaxOpenings]{};
 
     // The worlds behind the mouths, when this server's openings lead to other
     // ones -- one for each opening that does, so a sandbox can show an arena
@@ -17275,12 +17326,22 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         if (conn->portals_version() != drawn_portals) {
             drawn_portals = conn->portals_version();
             apply_server_portals(s, conn->portals());
+            portals_applied_at = now;
+            for (int i = 0; i < net::kMaxOpenings; ++i) {
+                const net::PortalDesc &d = conn->portals().opening[i];
+                portals_drawn_at[i]      = Vec3{d.cx, d.cy, d.cz};
+            }
 
             const net::Portals &ps = conn->portals();
-            std::printf("the server's openings, version %u:%s%s\n", ps.version,
+            // Said when they stand still: one moving is a new version a tick.
+            bool moving = false;
+            for (int i = 0; i < net::kMaxOpenings; ++i)
+                moving = moving || (ps.has(i) && (ps.opening[i].vx != 0.0f || ps.opening[i].vy != 0.0f ||
+                                                  ps.opening[i].vz != 0.0f));
+            if (!moving) std::printf("the server's openings, version %u:%s%s\n", ps.version,
                         ps.has(0) ? "" : " (first not placed)",
                         ps.has(1) ? "" : " (second not placed)");
-            for (int i = 0; i < 2; ++i) {
+            for (int i = 0; i < 2 && !moving; ++i) {
                 if (!ps.has(i)) continue;
                 std::printf("        %d at %.2f %.2f %.2f, axis %u, facing %+d\n", i + 1,
                             (double)ps.opening[i].cx, (double)ps.opening[i].cy,
@@ -17288,6 +17349,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                             (int)ps.opening[i].normal_sign);
             }
         }
+        carry_moving_portals(s, conn->portals(), (float)(now - portals_applied_at), portals_drawn_at);
 
         // The worlds on the other side of the mouths.
         //
