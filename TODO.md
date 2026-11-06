@@ -1112,10 +1112,14 @@ Portals -- the engine's own trick, used further:
    out of G at 1/16; back into G, out of D at 1; 0 corrections. Found on the
    way: a scaling opening's tunnel (the hole's sides drawn in front of the
    plane) was half a node deep whatever its size, and the shrunk eye coming out
-   of G stood inside it seeing sky; now scaled as its slack is. Open: walking
-   at 1/16 is slow (the garden is minutes wide); the test client got none of
-   the server's 784 models ("0 from it", seen once before in an older log), so
-   the plants and mushrooms were not seen drawn.
+   of G stood inside it seeing sky; now scaled as its slack is. Then: whoever
+   comes in through D walks and runs four times as fast as a sixteenth would
+   (core.body_movement, measured 0.09 to about 0.6 m/s), and as before once out
+   of D; the crossing is seen as a jump between two ticks (no event says it).
+   The plants and mushrooms are drawn: the client reads a world's models a few
+   a frame, and at Xephyr's 5 fps 784 of them took over three minutes ("0 from
+   it" is the first pass, before the offer). Open: a big body flying over the
+   hedge is not boosted, and a tiny one made so by a mod is not either.
 5. A passport of servers (low-medium). With --federation built: a stamp for
    every server reached through a far portal, and a letterbox that sends an
    item or a letter to a friend server. A reason for communities to link up.

@@ -261,6 +261,8 @@ Sulla piazza, verso 31 20 43, una porticina in una siepe e una teca di vetro nel
 piazza; dalla porticina ci si esce dentro grandi un sedicesimo, i blocchi d'erba grandi come stanze
 e la siepe una scogliera. Si torna dalla stessa apertura minuscola, e si esce dalla porticina grandi
 come prima.
+Da piccoli si cammina quattro volte più veloci di quanto direbbe la taglia, o il giardino
+vorrebbe minuti per attraversarlo.
 
 ### Difficoltà, regole e obiettivi
 

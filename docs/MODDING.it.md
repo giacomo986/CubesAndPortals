@@ -2504,6 +2504,8 @@ I tre mod in `mods/` sono esempi funzionanti:
   come una porta su una alta un ottavo di blocco, così chi entra esce grande un sedicesimo, e una
   piccola sotto un vetro su una dodici volte più larga, appesa a faccia in giù sopra il giardino:
   una miniatura in cui guardare;
+  chi entra piccolo cammina quattro volte più veloce di quanto farebbe un sedicesimo
+  (`core.body_movement`);
 - `portal` — una cornice di `portal:frame` attorno a un buco d'aria, in piedi o
   coricata, apre un portale (`core.portal_open`, quante cornici si vuole: il
   server dà le 40 aperture vere a quelle vicine ai giocatori) e la
