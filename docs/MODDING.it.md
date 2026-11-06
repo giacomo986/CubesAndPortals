@@ -1352,6 +1352,7 @@ progetto:
 | ghoul, imp, pinky, gazer (`games/yafps`) | ognuno a modo suo | `tools/make_fps_models.py` |
 | umano, rospo, talpa (`mods/villagers`), robot aiutante (`mods/helpers`) | su un fianco | `tools/make_villager_models.py` |
 | bacteria, smiler (`games/backrooms`) | il bacteria barcolla e cade rigido in avanti; lo smiler chiude il ghigno e scende a terra girandosi | `tools/make_backrooms_creatures.py` |
+| formica, coccinella, farfalla (`mods/garden`) | su un fianco; la farfalla prima chiude le ali | `tools/make_garden_insects.py` |
 
 In Blender la più semplice è `tip_over(rig, [mesh])` di `tools/make_pet_models.py`:
 la creatura va su un fianco, sollevata di mezza larghezza perché non entri nel
@@ -1424,7 +1425,8 @@ ne usa un punto.
 
 Il corpo di ogni creatura (con cui cammina, passa nei varchi e viene colpita)
 è preso dal suo modello: alto quanto il modello, largo quanto è da fianco a
-fianco, mai più di 1.8 × 0.6. Due creature non stanno una dentro l'altra: si
+fianco, mai più di 1.8 × 0.6 e mai meno di 0.01 × 0.01 (una formica di `mods/garden` è alta
+2 cm). Due creature non stanno una dentro l'altra: si
 spingono via finché fra i loro centri c'è la somma delle loro mezze larghezze
 di modello (queste non limitate a 0.3: una mucca ne tiene 0.375).
 
@@ -2505,7 +2507,9 @@ I tre mod in `mods/` sono esempi funzionanti:
   piccola sotto un vetro su una dodici volte più larga, appesa a faccia in giù sopra il giardino:
   una miniatura in cui guardare;
   chi entra piccolo cammina quattro volte più veloce di quanto farebbe un sedicesimo
-  (`core.body_movement`);
+  (`core.body_movement`); e insetti a grandezza vera, worker che guida lei: formiche tra un nido e
+  i fiori, coccinelle a zonzo, farfalle che volano di fiore in fiore (`core.mob_place` a ogni
+  tick, `hover`);
 - `portal` — una cornice di `portal:frame` attorno a un buco d'aria, in piedi o
   coricata, apre un portale (`core.portal_open`, quante cornici si vuole: il
   server dà le 40 aperture vere a quelle vicine ai giocatori) e la

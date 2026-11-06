@@ -263,6 +263,8 @@ e la siepe una scogliera. Si torna dalla stessa apertura minuscola, e si esce da
 come prima.
 Da piccoli si cammina quattro volte più veloci di quanto direbbe la taglia, o il giardino
 vorrebbe minuti per attraversarlo.
+Le formiche fanno la spola tra il nido e i fiori, le coccinelle girano, le farfalle si posano sui
+fiori: a grandezza vera, lì una formica è grande come un cane.
 
 ### Difficoltà, regole e obiettivi
 

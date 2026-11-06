@@ -259,6 +259,8 @@ On the plaza, near 31 20 43, a little door in a hedge and a glass case in the gr
 miniature; through the door you come out in it a sixteenth of your size, the grass blocks as big
 as rooms and the hedge a cliff. Back in by the same tiny opening, out of the door as big as before.
 Small, you walk four times as fast as your size would, or the garden would take minutes to cross.
+Ants file between their nest and the flowers, ladybirds wander, butterflies settle on the flowers:
+at their true size, an ant is a dog to you there.
 
 ### Difficulty, rules and goals
 

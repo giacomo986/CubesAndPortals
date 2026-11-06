@@ -371,10 +371,11 @@ AABB body_box(Vec3 feet_pos, float half_width, float bottom_shift, float height)
     // Clamped here rather than trusted from the caller: a shift at or past the
     // player's height inverts the box, and an inverted box collides with
     // nothing at all -- the player would fall out of the world through a solid
-    // floor. The cap leaves a tenth of a node of box.
-    const float lift = (bottom_shift < 0.0f)           ? 0.0f
-                       : (bottom_shift > height - 0.1f) ? height - 0.1f
-                                                        : bottom_shift;
+    // floor. The cap leaves a tenth of a node of box, or half of a body smaller
+    // than that: under a fifth of a node (an insect, mods/garden) the tenth
+    // made the cap negative and the box hung 8 cm under the feet.
+    const float cap  = height - std::min(0.1f, 0.5f * height);
+    const float lift = (bottom_shift < 0.0f) ? 0.0f : (bottom_shift > cap) ? cap : bottom_shift;
     return AABB{
         Vec3{feet_pos.x - half_width, feet_pos.y + lift, feet_pos.z - half_width},
         Vec3{feet_pos.x + half_width, feet_pos.y + height, feet_pos.z + half_width}};

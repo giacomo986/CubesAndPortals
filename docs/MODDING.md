@@ -1232,6 +1232,7 @@ about a second. The server checks it when the creature is registered and writes
 | ghoul, imp, pinky, gazer (`games/yafps`) | each its own way | `tools/make_fps_models.py` |
 | human, toad, mole (`mods/villagers`), helper robot (`mods/helpers`) | onto one side | `tools/make_villager_models.py` |
 | bacteria, smiler (`games/backrooms`) | the bacteria staggers and falls stiff forward; the smiler shuts its grin and sinks to the ground turning | `tools/make_backrooms_creatures.py` |
+| ant, ladybird, butterfly (`mods/garden`) | onto one side; the butterfly shuts its wings first | `tools/make_garden_insects.py` |
 
 In Blender the simplest is `tip_over(rig, [mesh])` from `tools/make_pet_models.py`: the creature
 goes onto one side, lifted half its width so it does not sink into the floor, with any rig; `drop=`
@@ -1298,7 +1299,8 @@ core.mob_breed("mymod:cow", "core:grass", COW_BABY, 1200, HEARTS)
 Shears wear out if they have `durability` (register_item): a shearing uses one point.
 
 Every creature's body (what it walks with, passes through gaps with and is hit on) is taken from its
-model: as tall as the model, as wide as it is side to side, never more than 1.8 × 0.6. Two creatures
+model: as tall as the model, as wide as it is side to side, never more than 1.8 × 0.6 and never less
+than 0.01 × 0.01 (an ant of `mods/garden` is 2 cm high). Two creatures
 do not stand inside each other: they push apart until the distance between their centres is the sum
 of their model half widths (these not limited to 0.3: a cow keeps 0.375).
 
@@ -2230,7 +2232,9 @@ The mods in `mods/` are working examples:
 - `garden` -- two scaling pairs (`core.portal_scale`) in one world: a door-sized opening onto one an
   eighth of a block high, so whoever walks in comes out a sixteenth as big, and a small opening under
   glass onto one twelve times as wide hanging face down over the garden, a miniature to look into;
-  whoever comes in small walks four times as fast as a sixteenth would (`core.body_movement`);
+  whoever comes in small walks four times as fast as a sixteenth would (`core.body_movement`); and
+  insects at their true size, workers it drives: ants between a nest and the flowers, ladybirds
+  wandering, butterflies flying flower to flower (`core.mob_place` every tick, `hover`);
 - `portal` -- a frame of `portal:frame` round a hole of air, upright or lying, opens a portal
   (`core.portal_open`, as many frames as you like: the server gives the 32 real openings to those near
   players) and links it to the last one left alone (`core.portal_link`); right click on the frame opens

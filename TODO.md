@@ -1120,6 +1120,18 @@ Portals -- the engine's own trick, used further:
    a frame, and at Xephyr's 5 fps 784 of them took over three minutes ("0 from
    it" is the first pass, before the offer). Open: a big body flying over the
    hedge is not boosted, and a tiny one made so by a mod is not either.
+   Insects (2026-11-07, tools/make_garden_insects.py, made in Blender through
+   its MCP bridge): ant 5 cm, ladybird 3, butterfly 9 across, workers the mod
+   drives (8 ants nest to flower and back, 3 ladybirds, 4 butterflies flying
+   in arcs and settling on flowers), each with its death clip; one killed is
+   back after 30 s. Engine on the way: a creature's body now down to 1 cm
+   (size_mob_kind, the client's aim box too); body_box's "a tenth of a node of
+   box" cap went negative under 0.2 high and hung the box 8 cm under the
+   feet (an ant stood that far over the grass; a body at 1/32 too); and
+   glide restarted every stretch from where it was drawn last frame, so with a
+   message every frame (under ~20 fps) every other body stood still where it
+   was first seen. Open: ants walk in a tight file, overlapping (creatures
+   push apart only by their half widths); insects have no sounds.
 5. A passport of servers (low-medium). With --federation built: a stamp for
    every server reached through a far portal, and a letterbox that sends an
    item or a letter to a friend server. A reason for communities to link up.

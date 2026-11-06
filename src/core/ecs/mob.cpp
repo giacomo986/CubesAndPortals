@@ -1033,12 +1033,15 @@ bool size_mob_kind(MobKind &k, const std::string &model_file)
     std::string  why;
     if (model_file.empty() || !load_gltf(model_file, m, why)) return true;
     if (m.max.y <= m.min.y) return m.clip("death") >= 0;
-    k.height = std::clamp(m.max.y, 0.3f, kMobHeight);
-    k.half   = std::clamp(std::max(std::fabs(m.min.x), std::fabs(m.max.x)), 0.1f, kMobHalfWidth);
-    k.spread = std::clamp(std::max(std::fabs(m.min.x), std::fabs(m.max.x)), 0.1f, 1.0f);
-    k.hit_height = std::clamp(m.max.y, 0.3f, 8.0f);
+    // Down to an insect's (mods/garden: an ant 2 cm high), as small as the
+    // model is; the floor is only there so a body is never nothing.
+    constexpr float kMinTall = 0.01f, kMinHalf = 0.005f;
+    k.height = std::clamp(m.max.y, kMinTall, kMobHeight);
+    k.half   = std::clamp(std::max(std::fabs(m.min.x), std::fabs(m.max.x)), kMinHalf, kMobHalfWidth);
+    k.spread = std::clamp(std::max(std::fabs(m.min.x), std::fabs(m.max.x)), kMinHalf, 1.0f);
+    k.hit_height = std::clamp(m.max.y, kMinTall, 8.0f);
     k.hit_half   = std::clamp(std::max({std::fabs(m.min.x), std::fabs(m.max.x), std::fabs(m.min.z), std::fabs(m.max.z)}),
-                              0.1f, 3.0f);
+                              kMinHalf, 3.0f);
     return m.clip("death") >= 0;
 }
 

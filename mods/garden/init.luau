@@ -23,6 +23,7 @@ local GRASS, DIRT, STONE = id("core:grass"), id("core:dirt"), id("core:stone")
 local GLASS, WATER = id("core:glass"), id("lakes:water")
 local HEDGE, TRUNK = id("trees:leaves"), id("trees:trunk")
 local PLANKS = id("woods:dark_oak_planks")
+local COARSE = id("rocks:coarse_dirt")
 local TALL, FERN = id("plants:tall_grass"), id("plants:fern")
 local RED_CAP, BROWN_CAP = id("plants:red_mushroom"), id("plants:brown_mushroom")
 local FLOWERS = { id("plants:dandelion"), id("plants:poppy"), id("plants:cornflower"), id("plants:oxeye_daisy"),
@@ -52,6 +53,11 @@ local function pick(x: number, z: number): number
     return bit32.bxor(x * 73856093 % 4294967296, z * 19349663 % 4294967296) % 100
 end
 
+-- The flowers' cells, for the insects (filled by build).
+local BLOOMS: { { number } } = {}
+-- The ants' nest: a patch of bare earth, its middle where they go home to.
+local NEST_X, NEST_Z = 108, 35
+
 local function build()
     -- The garden: dirt under grass, a hedge three high round it, air above.
     fill(GX0 - 1, GX1 + 1, GY - 3, GY - 1, GZ0 - 1, GZ1 + 1, DIRT)
@@ -66,6 +72,7 @@ local function build()
     fill(GX1 - 6, GX1 - 2, GY, GY, GZ1 - 6, GZ1 - 2, WATER)
     fill(GX0 + 3, GX0 + 9, GY + 1, GY + 1, GZ1 - 4, GZ1 - 4, TRUNK)
     fill(GX0 + 14, GX0 + 15, GY + 1, GY + 1, GZ0 + 4, GZ0 + 5, STONE)
+    fill(NEST_X - 1, NEST_X + 1, GY, GY, NEST_Z - 1, NEST_Z + 1, COARSE)
     -- Grass, ferns and flowers, thinner round G (x 115, z 41..45) so it is
     -- seen from its front.
     for x = GX0, GX1 do
@@ -76,11 +83,15 @@ local function build()
             local trunk = z == GZ1 - 4 and x >= GX0 + 3 and x <= GX0 + 9
             local stone = x >= GX0 + 14 and x <= GX0 + 15 and z >= GZ0 + 4 and z <= GZ0 + 5
             local near_g = math.abs(x - 115) <= 1 and z >= 41 and z <= 45
-            if pond or trunk or stone or near_g then continue end
+            local nest = math.abs(x - NEST_X) <= 1 and math.abs(z - NEST_Z) <= 1
+            if pond or trunk or stone or near_g or nest then continue end
             local h = pick(x, z)
             if h < 30 then core.set_block(x, GY + 1, z, TALL)
             elseif h < 36 then core.set_block(x, GY + 1, z, FERN)
-            elseif h < 46 then core.set_block(x, GY + 1, z, FLOWERS[h % #FLOWERS + 1]) end
+            elseif h < 46 then
+                core.set_block(x, GY + 1, z, FLOWERS[h % #FLOWERS + 1])
+                table.insert(BLOOMS, { x, z })
+            end
         end
     end
     -- G's landmarks: a red mushroom and a brown one either side of it.
@@ -159,5 +170,157 @@ core.event.on("core:tick", function(_)
     -- Gone players' ids are not reused for them: forgotten.
     for p in last do
         if not here[p] then last[p] = nil; small[p] = nil end
+    end
+end)
+
+-- ================================================================ insects
+--
+-- At their true size (tools/make_garden_insects.py): an ant 5 cm long, a
+-- ladybird 3, a butterfly 9 across -- seen from a sixteenth of a body, a dog,
+-- a tortoise and a kite. Workers (register_mob "worker"): they come out of
+-- nothing on their own and never vanish; this mod spawns and drives them.
+--   ants        from the nest to a flower and back, a short stop at each end;
+--   ladybirds   a few cells this way or that, then a rest;
+--   butterflies from flower to flower in a swaying arc (core.mob_place every
+--               tick, hover: no gravity), settling on each for a while.
+-- One killed comes back after RESPAWN seconds.
+local ANT = core.register_model("garden:ant", "ant.gltf")
+local LADY = core.register_model("garden:ladybird", "ladybird.gltf")
+local FLY = core.register_model("garden:butterfly", "butterfly.gltf")
+--                 name               model hp  speed  fight     dmg reach every drop n shot doors hover fireball
+core.register_mob("garden:ant", ANT, 2, 0.12, "worker", 0, 0, 1, "", 1, 0, false, 0, false, "")
+core.register_mob("garden:ladybird", LADY, 2, 0.05, "worker", 0, 0, 1, "", 1, 0, false, 0, false, "")
+core.register_mob("garden:butterfly", FLY, 1, 0.5, "worker", 0, 0, 1, "", 1, 0, false, 0.5, false, "")
+
+local COUNT = { ["garden:ant"] = 8, ["garden:ladybird"] = 3, ["garden:butterfly"] = 4 }
+local RESPAWN = 30
+local FLOWER_TOP = 0.75   -- a flower's model is 0.8 high: where a butterfly sits
+
+type Bug = { kind: string, id: number, wait: number, home: boolean,
+             -- a butterfly's flight: from, to, how far along, how long
+             fx: number, fy: number, fz: number, tx: number, ty: number, tz: number,
+             t: number, len: number, flying: boolean }
+local bugs: { Bug } = {}
+local seed = 12345
+local function rand(): number   -- small and fixed, so a run is a run
+    seed = (seed * 1103515245 + 12345) % 2147483648
+    return seed / 2147483648
+end
+local function bloom(): { number }
+    return BLOOMS[math.floor(rand() * #BLOOMS) + 1]
+end
+local function inside(x: number, z: number): boolean
+    return x >= GX0 and x <= GX1 and z >= GZ0 and z <= GZ1
+end
+
+local function spawn(b: Bug): boolean
+    local x, y, z
+    if b.kind == "garden:ant" then
+        x, y, z = NEST_X + 0.5, GY + 1, NEST_Z + 0.5
+    elseif b.kind == "garden:butterfly" then
+        local f = bloom()
+        x, y, z = f[1] + 0.5, GY + 1 + FLOWER_TOP, f[2] + 0.5
+    else
+        x, y, z = GX0 + 2 + rand() * (GX1 - GX0 - 4), GY + 1, GZ0 + 2 + rand() * (GZ1 - GZ0 - 4)
+    end
+    local id = core.spawn_mob(b.kind, x, y, z)
+    if id == nil or id <= 0 then return false end
+    b.id, b.wait, b.home, b.flying = id, 1 + rand() * 3, true, false
+    b.fx, b.fy, b.fz = x, y, z
+    return true
+end
+
+local function someone_near(): boolean
+    for _, p in core.players() do
+        local x, _, z = core.player_pos(p)
+        if x and math.abs(x - 116) < 96 and math.abs(z - 42) < 96 then return true end
+    end
+    return false
+end
+
+local function walker(b: Bug, dt: number)
+    if core.mob_going(b.id) == 1 then return end
+    b.wait -= dt
+    if b.wait > 0 then return end
+    b.wait = 1 + rand() * 3
+    if b.kind == "garden:ant" then
+        if #BLOOMS == 0 then return end
+        if b.home then
+            local f = bloom()
+            core.mob_goto(b.id, f[1], GY + 1, f[2])
+        else
+            core.mob_goto(b.id, NEST_X, GY + 1, NEST_Z)
+        end
+        b.home = not b.home
+    else
+        local x, _, z = core.mob_pos(b.id)
+        if x == nil then return end
+        local nx = math.floor(x + (rand() - 0.5) * 6)
+        local nz = math.floor(z + (rand() - 0.5) * 6)
+        if inside(nx, nz) then core.mob_goto(b.id, nx, GY + 1, nz) end
+        b.wait = 2 + rand() * 6
+    end
+end
+
+local function flyer(b: Bug, dt: number)
+    if not b.flying then
+        b.wait -= dt
+        if b.wait > 0 or #BLOOMS == 0 then return end
+        local x, y, z = core.mob_pos(b.id)
+        if x == nil then return end
+        local f = bloom()
+        b.fx, b.fy, b.fz = x, y, z
+        b.tx, b.ty, b.tz = f[1] + 0.5, GY + 1 + FLOWER_TOP, f[2] + 0.5
+        local d = math.sqrt((b.tx - x) ^ 2 + (b.tz - z) ^ 2)
+        b.t, b.len, b.flying = 0, math.max(1.5, d / 0.6), true
+        core.mob_act(b.id, "fly", "")
+        return
+    end
+    b.t = math.min(b.len, b.t + dt)
+    local u = b.t / b.len
+    local s = u * u * (3 - 2 * u)
+    -- Up and over in an arc, swaying side to side and bobbing as it flaps.
+    local dx, dz = b.tx - b.fx, b.tz - b.fz
+    local d = math.max(0.01, math.sqrt(dx * dx + dz * dz))
+    local sway = math.sin(u * math.pi * 3) * 0.25 * math.sin(u * math.pi)
+    local x = b.fx + dx * s - dz / d * sway
+    local z = b.fz + dz * s + dx / d * sway
+    local y = b.fy + (b.ty - b.fy) * s + math.sin(u * math.pi) * (0.6 + d * 0.08)
+              + math.sin(b.t * 9) * 0.03
+    core.mob_place(b.id, x, y, z)
+    core.mob_face(b.id, x + dx, z + dz)
+    if u >= 1 then
+        b.flying = false
+        b.wait = 3 + rand() * 6
+        core.mob_act(b.id, "", "")
+    end
+end
+
+local started = false
+core.event.on("core:tick", function(ev)
+    if not started then
+        if #BLOOMS == 0 or not someone_near() then return end
+        started = true
+        for kind, n in COUNT do
+            for i = 1, n do
+                -- The ants out of the nest one by one, a column along the trail.
+                local first = if kind == "garden:ant" then (i - 1) * 3 else 0
+                table.insert(bugs, { kind = kind, id = 0, wait = first, home = true, fx = 0, fy = 0, fz = 0,
+                                     tx = 0, ty = 0, tz = 0, t = 0, len = 1, flying = false })
+            end
+        end
+    end
+    for _, b in bugs do
+        if b.id > 0 and core.mob_pos(b.id) == nil then
+            b.id, b.wait = 0, RESPAWN   -- killed: back after a while
+        end
+        if b.id == 0 then
+            b.wait -= ev.dt
+            if b.wait <= 0 and not spawn(b) then b.wait = 1 end
+        elseif b.kind == "garden:butterfly" then
+            flyer(b, ev.dt)
+        else
+            walker(b, ev.dt)
+        end
     end
 end)

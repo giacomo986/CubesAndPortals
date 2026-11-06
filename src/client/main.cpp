@@ -8825,9 +8825,13 @@ void glide(Session::BodyMotion &m, net::RemotePlayer &p, double now)
             quat_slerp(m.turn_from, m.turn_to, was, shown_turn);
             for (int k = 0; k < 4; ++k) m.turn_from[k] = shown_turn[k], m.turn_to[k] = turn_now[k];
         }
-        m.glide_from = m.shown;
+        // From where the last stretch has got to NOW, not from where it was
+        // drawn last frame: with a message every frame (fewer frames a second
+        // than messages) the second is the start of the last stretch, t is 0
+        // again, and the body never left the first place it was seen.
+        m.glide_from = m.glide_from + (m.glide_to - m.glide_from) * was;
         m.glide_to   = sent;
-        m.yaw_from   = m.shown_yaw;
+        m.yaw_from   = m.yaw_from + std::remainder(m.yaw_to - m.yaw_from, 6.2831853f) * was;
         m.yaw_to     = p.yaw;
         m.glide_at   = now;
         m.glide_seen = p.last_seen;
@@ -16135,10 +16139,11 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             if (p.kind == net::EntityKind::Mob && !p.chassis && p.model != 0)
                 if (const ModelStore::Entry *me = s.act().models.entry(p.model);
                     me && me->model.max.y > me->model.min.y) {
-                    const float h  = std::clamp(me->model.max.y, 0.3f, 8.0f);
+                    // The server's floor (size_mob_kind): an insect is aimed at as small as it is.
+                    const float h  = std::clamp(me->model.max.y, 0.01f, 8.0f);
                     const float hw = std::clamp(std::max({std::fabs(me->model.min.x), std::fabs(me->model.max.x),
                                                           std::fabs(me->model.min.z), std::fabs(me->model.max.z)}),
-                                                0.1f, 3.0f);
+                                                0.005f, 3.0f);
                     body.center = Vec3{p.x, p.y + h * 0.5f, p.z};
                     body.half   = Vec3{hw, h * 0.5f, hw};
                 }
