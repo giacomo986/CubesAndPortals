@@ -25,6 +25,11 @@
 --          stood in its way, a body is run into and taken through -- the
 --          door that follows you -- and comes out of V moving away from it
 --          at the speed U ran into it.
+--   SPIN   three openings standing free, each turning on its own (core.portal_move
+--          with a front): Y about the vertical, X head over heels, Z rolling
+--          about its own front; each onto one standing still beyond (Y2, X2,
+--          Z2, facing the glass). Walked into at any angle, the picture must
+--          be what comes out.
 --
 -- Everybody arrives before W, looking into it. /lab wall, glass and head put
 -- you at a station again; /lab view stands where B looks out from, to see
@@ -49,7 +54,7 @@ local function fill(x0: number, x1: number, y0: number, y1: number, z0: number, 
 end
 
 local function build()
-    fill(58, 82, Y, Y, 58, 92, FLOOR)
+    fill(58, 82, Y, Y, 58, 106, FLOOR)
     -- GLASS: the glass wall at x 70, red behind it at x 74; a wall at x 62
     -- facing it with B low at z 68 and F high at z 66; W in a wall at z 56
     -- facing +z; A in the floor at x 66, z 62..63.
@@ -81,6 +86,8 @@ local opened = false
 local slide = -1      -- S's id, once open
 local slide_t = 0.0   -- how long it has been sliding
 local chase = -1      -- U's id
+local spin: { number } = {}   -- Y's, X's and Z's ids
+local still = false   -- /lab still: the moving ones stop
 local function open_all(): boolean
     local w = core.portal_open(66.5, Y + 2.0, 56.5, 0, 1, 0, 0.5, 1.0)
     local b = core.portal_open(62.5, Y + 2.0, 68.5, 1, 1, 0, 0.5, 1.0)
@@ -102,6 +109,13 @@ local function open_all(): boolean
     core.portal_link(u, vv)
     slide = sl
     chase = u
+    for k, x in { 62.5, 70.5, 78.5 } do
+        local sp = core.portal_open(x, Y + 2.0, 98.5, 0, 1, 0, 0.5, 1.0)
+        local fx = core.portal_open(x, Y + 2.0, 94.5, 0, -1, 0, 0.5, 1.0)
+        if sp < 0 or fx < 0 then return false end
+        core.portal_link(sp, fx)
+        spin[k] = sp
+    end
     core.portal_link(w, b)
     core.portal_link(a, f)
     core.portal_link(c, d)
@@ -118,6 +132,9 @@ local STATIONS = {
     view = { 63.6, Y + 1, 68.5, 1, -0.05, 0, "VIEW: what B sees, without a portal -- the glass wall ahead" },
     slide = { 70.5, Y + 1, 89.5, 0, -0.05, -1, "SLIDE: S slides along before you -- walk into it, or wait for it" },
     chase = { 77.5, Y + 1, 89.5, 0, -0.05, -1, "CHASE: stand still -- U comes for you" },
+    spin = { 70.5, Y + 1, 103.5, 0, -0.05, -1, "SPIN: Y turns about the vertical, X head over heels, Z rolls -- walk into each" },
+    spiny = { 62.5, Y + 1, 103.5, 0, -0.05, -1, "SPIN: Y, turning about the vertical" },
+    spinz = { 78.5, Y + 1, 103.5, 0, -0.05, -1, "SPIN: Z, rolling about its own front" },
 }
 local function put(p: number, which: string)
     local s = STATIONS[which]
@@ -126,9 +143,18 @@ local function put(p: number, which: string)
     core.notice(p, s[7])
 end
 
-core.command("lab", "wall|glass|head|bounce|view|slide|chase -- go to a station of the portal lab")
+core.command("lab", "wall|glass|head|bounce|view|slide|chase|spin|spiny|spinz|still|at <degrees> -- go to a station of the portal lab")
 core.event.on("core:command", function(ev)
-    if ev.name == "lab" then
+    local deg = if ev.name == "lab" then tonumber(string.match(ev.args, "^at (%-?%d+)$")) else nil
+    if deg then
+        -- /lab at <degrees>: every turning one stopped at that angle.
+        still = true
+        slide_t = math.rad(deg) / 0.5
+        core.notice(ev.player, `STILL at {deg} degrees`)
+    elseif ev.name == "lab" and ev.args == "still" then
+        still = not still
+        core.notice(ev.player, if still then "STILL: the moving openings stop where they are" else "STILL: they move again")
+    elseif ev.name == "lab" then
         put(ev.player, if STATIONS[ev.args] then ev.args else "wall")
     end
 end)
@@ -141,9 +167,16 @@ core.event.on("core:tick", function(ev)
         opened = open_all()
     end
     if slide >= 0 then
-        slide_t += ev.dt or 0.05
+        if not still then slide_t += ev.dt or 0.05 end
         core.portal_move(slide, 70.5 + 6 * math.sin(slide_t * 0.25), Y + 2.0, 86.5)
         core.portal_move(chase, 77.5, Y + 2.0, 86.0 + 4 * math.sin(slide_t * 0.375))
+        local a = slide_t * 0.5
+        local c, sn = math.cos(a), math.sin(a)
+        if spin[3] then
+            core.portal_move(spin[1], 62.5, Y + 2.0, 98.5, -1, 0, -1, sn, 0, c, 0, 1, 0)
+            core.portal_move(spin[2], 70.5, Y + 2.0, 98.5, -1, 0, -1, 0, sn, c, 0, c, -sn)
+            core.portal_move(spin[3], 78.5, Y + 2.0, 98.5, -1, 0, -1, 0, 0, 1, sn, c, 0)
+        end
     end
     for _, p in core.players() do
         local t = (seen[p] or 0) + (ev.dt or 0.05)

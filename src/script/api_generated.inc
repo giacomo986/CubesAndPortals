@@ -140,7 +140,7 @@ int l_portal_link(lua_State *L)
     return 1;
 }
 
-// core.portal_move(id: number, x: number, y: number, z: number, axis: number?, sign: number?, rot: number?) -> number
+// core.portal_move(id: number, x: number, y: number, z: number, axis: number?, sign: number?, rot: number?, nx: number?, ny: number?, nz: number?, ux: number?, uy: number?, uz: number?) -> number
 int l_portal_move(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -151,7 +151,13 @@ int l_portal_move(lua_State *L)
     const int axis = (int)luaL_optinteger(L, 5, -1);
     const int sign = (int)luaL_optinteger(L, 6, 0);
     const int rot = (int)luaL_optinteger(L, 7, -1);
-    const int result = (vm && vm->host.portal_move) ? vm->host.portal_move(vm->host.ud, id, x, y, z, axis, sign, rot) : (int)0;
+    const float nx = (float)luaL_optnumber(L, 8, 0);
+    const float ny = (float)luaL_optnumber(L, 9, 0);
+    const float nz = (float)luaL_optnumber(L, 10, 0);
+    const float ux = (float)luaL_optnumber(L, 11, 0);
+    const float uy = (float)luaL_optnumber(L, 12, 0);
+    const float uz = (float)luaL_optnumber(L, 13, 0);
+    const int result = (vm && vm->host.portal_move) ? vm->host.portal_move(vm->host.ud, id, x, y, z, axis, sign, rot, nx, ny, nz, ux, uy, uz) : (int)0;
     lua_pushinteger(L, result);
     return 1;
 }

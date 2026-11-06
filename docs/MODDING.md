@@ -545,6 +545,7 @@ core.portal_open(x, y, z, axis, sign, turn, half_w, half_h, colour?) -> id|-1  -
                                     -- colour: how it looks shut while it leads nowhere: 0 green (fixed, default), 1 blue, 2 orange (portal gun)
 core.portal_close(x, y, z) -> 0..15|-1                             -- by centre, not by index
 core.portal_move(id, x, y, z, axis?, sign?, turn?) -> 1|0          -- every tick: it moves (drawn smooth, crossed relative to it); a new plane/turn or a jump > 4 puts it there
+core.portal_move(id, x, y, z, -1, 0, -1, nx, ny, nz, ux?, uy?, uz?)   -- turned freely: front n, up u, any way; may turn every tick
 core.portal_link(a, b) -> 1|0       -- a and b lead to each other; b = -1 unlinks a
 core.log(message)
 core.play_sound("mod:thing", x, y, z) -> 1|0  -- to everybody in the world; file mods/<mod>/<thing>.ogg on the client

@@ -105,7 +105,8 @@ typedef struct script_host {
     int (*portal_open)(void *ud, float x, float y, float z, int axis, int sign, int rot,
                        float half_w, float half_h, int colour);
     int (*portal_close)(void *ud, float x, float y, float z);
-    int (*portal_move)(void *ud, int id, float x, float y, float z, int axis, int sign, int rot);
+    int (*portal_move)(void *ud, int id, float x, float y, float z, int axis, int sign, int rot,
+                       float nx, float ny, float nz, float ux, float uy, float uz);
     int (*portal_link)(void *ud, int a, int b);
     int (*portal_seal)(void *ud, int player, int index, bool sealed);
     // Portals to other servers (core.far_portal_*, src/server/far_portals.h).

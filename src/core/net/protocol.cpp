@@ -971,6 +971,11 @@ std::vector<uint8_t> Portals::encode() const
         w.u8(d.kind);
         w.u8(d.colour);
         w.f32(d.vx); w.f32(d.vy); w.f32(d.vz);
+        w.u8(d.free);
+        if (d.free) {
+            w.f32(d.nx); w.f32(d.ny); w.f32(d.nz);
+            w.f32(d.ux); w.f32(d.uy); w.f32(d.uz);
+        }
         w.u8((uint8_t)link[i]);
     }
 
@@ -1021,6 +1026,18 @@ bool Portals::decode(ByteReader &r, Portals &out)
         d.vx          = r.f32();
         d.vy          = r.f32();
         d.vz          = r.f32();
+        d.free        = r.u8();
+        if (d.free > 1) return false;
+        if (d.free) {
+            d.nx = r.f32(), d.ny = r.f32(), d.nz = r.f32();
+            d.ux = r.f32(), d.uy = r.f32(), d.uz = r.f32();
+            // Unit and at right angles, or the map it makes is not a rotation.
+            const float nn = d.nx * d.nx + d.ny * d.ny + d.nz * d.nz;
+            const float uu = d.ux * d.ux + d.uy * d.uy + d.uz * d.uz;
+            const float nu = d.nx * d.ux + d.ny * d.uy + d.nz * d.uz;
+            if (!(nn > 0.98f && nn < 1.02f && uu > 0.98f && uu < 1.02f && nu > -0.02f && nu < 0.02f))
+                return false;
+        }
         out.link[i]   = (int8_t)r.u8();
         // A speed past anything a mod moves an opening at is a lie, and a
         // NaN would be carried into every crossing near it.

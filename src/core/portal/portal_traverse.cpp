@@ -24,6 +24,13 @@ void apply_rot(Vec3 &r, Vec3 &u, int rot)
 // makes the transform of portal_traverse.h a rotation rather than a mirror.
 void base_triad(const Portal &p, Vec3 &n, Vec3 &r, Vec3 &u)
 {
+    if (p.free) {
+        // Left-handed like the six below: r x u = -n.
+        n = p.fn;
+        u = p.fu;
+        r = cross(n, u);
+        return;
+    }
     const float s = (float)((p.normal_sign >= 0) ? 1 : -1);
 
     switch (p.axis) {
@@ -81,6 +88,30 @@ float sign_of(float v) { return v < 0.0f ? -1.0f : 1.0f; }
 float clampf(float v, float lo, float hi) { return v < lo ? lo : (v > hi ? hi : v); }
 
 } // namespace
+
+bool portal_turn_free(Portal &p, Vec3 n, Vec3 u)
+{
+    if (!(length_sq(n) > 1e-8f)) return false;
+    n = normalize(n);
+    u = u - n * dot(u, n);
+    if (!(length_sq(u) > 1e-6f)) {
+        u = std::fabs(n.y) < 0.9f ? Vec3{0.0f, 1.0f, 0.0f} : Vec3{0.0f, 0.0f, 1.0f};
+        u = u - n * dot(u, n);
+    }
+    u = normalize(u);
+    const float ax = std::fabs(n.x), ay = std::fabs(n.y), az = std::fabs(n.z);
+    if (ay >= ax && ay >= az)
+        p.axis = PortalAxis::XZ, p.normal_sign = n.y < 0.0f ? -1 : 1;
+    else if (ax >= az)
+        p.axis = PortalAxis::YZ, p.normal_sign = n.x < 0.0f ? -1 : 1;
+    else
+        p.axis = PortalAxis::XY, p.normal_sign = n.z < 0.0f ? -1 : 1;
+    p.rot  = 0;
+    p.free = true;
+    p.fn   = n;
+    p.fu   = u;
+    return true;
+}
 
 Vec3 Portal::normal() const
 {
@@ -331,7 +362,7 @@ WallShift portal_wall_shift(const Portal &p, Vec3 feet, float half_width, float 
                             float margin)
 {
     WallShift w;
-    if (p.horizontal()) return w;
+    if (p.horizontal() || p.free) return w;
     const Vec3  n   = p.normal();
     const Vec3  r   = p.right();
     const Vec3  rel = feet - p.center;
@@ -363,7 +394,8 @@ WallShift portal_wall_shift(const Portal &p, Vec3 feet, float half_width, float 
 
 float portal_floor_shift(const Portal &p, Vec3 feet, Vec3 velocity, float dt, float half_width)
 {
-    if (!p.horizontal()) return 0.0f;
+    // One turned freely stands in the air: no block holds it up to sink into.
+    if (!p.horizontal() || p.free) return 0.0f;
     velocity = velocity - p.vel;
 
     // The whole box over the opening, not only the feet. The shift lowers the
@@ -417,7 +449,7 @@ float portal_floor_shift(const Portal &p, Vec3 feet, Vec3 velocity, float dt, fl
 Vec3 portal_funnel(const Portal &p, Vec3 feet, Vec3 velocity, float gravity, float dt)
 {
     velocity = velocity - p.vel;
-    if (!p.horizontal() || p.normal().y <= 0.0f || velocity.y >= 0.0f) return Vec3{};
+    if (!p.horizontal() || p.free || p.normal().y <= 0.0f || velocity.y >= 0.0f) return Vec3{};
 
     // How long until the feet reach the top of the node the opening is in:
     // drop + vy t + g t^2 / 2 = 0, the root in the future.

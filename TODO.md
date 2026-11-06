@@ -1049,6 +1049,18 @@ Portals -- the engine's own trick, used further:
    portal carried by a vehicle); a moving mouth onto another world is not
    carried between messages; one moving opening is a Portals message per
    tick to everybody (ponytail: an unreliable motion message if it weighs).
+   FREE TURNS, tried 2026-11-06 at Giacomo's request (beyond the quarter
+   turns agreed): core.portal_move(id, x, y, z, -1, 0, -1, nx, ny, nz, ux,
+   uy, uz) turns an opening any way at all (Portal::free, fn/fu; axis is the
+   nearest plane and picks a floor's or a wall's rules), and it may turn on
+   every tick and stay the same opening. One turned freely stands in the air:
+   no floor shift, wall fit, funnel or exempted cells. /lab spin (Y about the
+   vertical, X head over heels, Z rolling), /lab spiny, spinz, /lab at <deg>
+   stops them at an angle: walked into at 10, 40 and 70 degrees each one
+   crosses, 0 corrections, the look out turned by the angle (Y: yaw, X: pitch,
+   Z: the horizon). Open: a turning opening is not carried between messages
+   (it turns in 20 steps a second) and its spin does not push a body; a black
+   square was seen once through X near edge-on, not explained.
 4. Portals that scale (high). A diorama on a table that is a portal: through
    it you are tiny in a garden world, grass blades as tall as trees. The
    portal transform is a rotation only; it needs a uniform scale (camera,

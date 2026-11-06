@@ -1741,8 +1741,13 @@ bool ServerSessions::move_portal(int index, const Portal &to, double now)
     const double  dt   = now - m_moved_at[index];
     // Turned, resized, or put somewhere rather than moved there: a different
     // opening, and every approach to the old one is forgotten (openings_changed).
-    const bool same_shape = p.axis == to.axis && p.normal_sign == to.normal_sign &&
-                            p.rot == to.rot && p.half_w == to.half_w && p.half_h == to.half_h;
+    // One turned freely may turn as it moves and stay the same opening: a
+    // door swinging, a portal on a cart taking a bend.
+    const bool same_turn  = p.free && to.free
+                                ? true
+                                : !p.free && !to.free && p.axis == to.axis &&
+                                      p.normal_sign == to.normal_sign && p.rot == to.rot;
+    const bool same_shape = same_turn && p.half_w == to.half_w && p.half_h == to.half_h;
     if (!same_shape || length_sq(step) > 16.0f) {
         const Vec3 keep = p.vel;
         p              = to;
@@ -1877,7 +1882,7 @@ size_t ServerSessions::floor_exemptions(SolidExemption *out) const
     size_t n = 0;
 
     for (int i = 0; i < kMaxOpenings && n < kMaxSolidExemptions; ++i) {
-        if (!m_portal_set[i]) continue;
+        if (!m_portal_set[i] || m_portal[i].free) continue;   // in the air, in no block
         const Portal &p = m_portal[i];
         if (!p.horizontal()) {
             // A wall opening set inside the wall: the wall round it, one cell
@@ -1985,6 +1990,9 @@ Portals ServerSessions::portals_message() const
         d.vx          = p.vel.x;
         d.vy          = p.vel.y;
         d.vz          = p.vel.z;
+        d.free        = p.free ? 1 : 0;
+        d.nx = p.fn.x, d.ny = p.fn.y, d.nz = p.fn.z;
+        d.ux = p.fu.x, d.uy = p.fu.y, d.uz = p.fu.z;
 
         msg.present |= 1ull << i;
     }

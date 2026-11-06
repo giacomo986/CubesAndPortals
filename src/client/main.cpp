@@ -14001,6 +14001,9 @@ Portal portal_from_desc(const net::PortalDesc &d)
     p.kind        = (PortalKind)d.kind;
     p.colour      = d.colour;
     p.vel         = Vec3{d.vx, d.vy, d.vz};
+    p.free        = d.free != 0;
+    p.fn          = Vec3{d.nx, d.ny, d.nz};
+    p.fu          = Vec3{d.ux, d.uy, d.uz};
     return p;
 }
 
@@ -14021,6 +14024,9 @@ net::PortalDesc desc_from_portal(const Portal &p)
     d.vx          = p.vel.x;
     d.vy          = p.vel.y;
     d.vz          = p.vel.z;
+    d.free        = p.free ? 1 : 0;
+    d.nx = p.fn.x, d.ny = p.fn.y, d.nz = p.fn.z;
+    d.ux = p.fu.x, d.uy = p.fu.y, d.uz = p.fu.z;
     return d;
 }
 
@@ -14064,7 +14070,7 @@ void apply_server_portals(Scene &s, const net::Portals &ps)
     // further on at every message, and is the same opening; two openings in
     // one plane are never that close.
     const auto same = [](const Portal &a, const Portal &b) {
-        return a.axis == b.axis && length_sq(a.center - b.center) < 0.0625f;
+        return (a.axis == b.axis || (a.free && b.free)) && length_sq(a.center - b.center) < 0.0625f;
     };
     const auto now = std::chrono::steady_clock::now();
     for (int i = 0; i < net::kMaxOpenings; ++i) {

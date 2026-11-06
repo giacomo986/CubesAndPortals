@@ -211,6 +211,12 @@ local api: { Fn } = {
             { name = "axis", type = "int", default = -1, doc = "A new plane, or -1 to keep it." },
             { name = "sign", type = "int", default = 0, doc = "A new front, 1 or -1, or 0 to keep it." },
             { name = "rot", type = "int", default = -1, doc = "New quarter turns, or -1 to keep them." },
+            { name = "nx", type = "float", default = 0, doc = "A front turned freely, any way at all: with ny, nz. All three 0 keeps the plane's." },
+            { name = "ny", type = "float", default = 0 },
+            { name = "nz", type = "float", default = 0 },
+            { name = "ux", type = "float", default = 0, doc = "Its up, with uy, uz: made at right angles to the front. All 0: world up, or north for a front up or down." },
+            { name = "uy", type = "float", default = 0 },
+            { name = "uz", type = "float", default = 0 },
         },
         doc = "Moves an open portal while the world runs, on a server: a door sliding along a "
            .. "rail, a portal carried by a cart. Called every tick it MOVES -- the same opening, "
@@ -218,7 +224,9 @@ local api: { Fn } = {
            .. "and a body crossing it is handed over relative to it: what goes in at rest comes "
            .. "out at the far end's speed. A move stopped for a fifth of a second stands it still. "
            .. "A new plane, front or turn, or a jump of more than four nodes, puts it there instead, "
-           .. "as a portal opened anew. It turns in quarter turns only. Close it later by its new "
+           .. "as a portal opened anew. Given a front (nx, ny, nz) it is turned freely, any way at all, "
+           .. "and may turn on every tick and stay the same opening; it is crossed by a floor's "
+           .. "rules when it faces nearer up or down than sideways. Close it later by its new "
            .. "centre. Returns 1, or 0 for no such portal or no server.",
     },
     {

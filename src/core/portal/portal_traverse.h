@@ -89,6 +89,15 @@ struct Portal {
     // stands still, which is every opening this engine had before.
     Vec3 vel;
 
+    // Turned freely (core.portal_move with a normal): `fn` is its front and
+    // `fu` its up, any unit pair at right angles, and `rot` is not read.
+    // `axis` is still set -- the plane nearest to it -- and decides which
+    // rules it is crossed by: a floor's when it faces nearer up or down than
+    // sideways, a wall's otherwise. Off for every opening built in a plane.
+    bool free = false;
+    Vec3 fn{0.0f, 0.0f, 1.0f};
+    Vec3 fu{0.0f, 1.0f, 0.0f};
+
     Vec3 normal() const;
     Vec3 right() const;
     Vec3 up() const;
@@ -99,6 +108,12 @@ struct Portal {
 
     bool horizontal() const { return axis == PortalAxis::XZ; }
 };
+
+// Turns an opening freely: front `n`, up `u` (made unit and at right angles to
+// n; a `u` along n is replaced by world up, or north for one facing up or
+// down). Sets `axis` and `normal_sign` to the plane and side nearest. False,
+// and nothing changed, for an `n` of no length.
+bool portal_turn_free(Portal &p, Vec3 n, Vec3 u);
 
 // --------------------------------------------------------------- the transform
 //

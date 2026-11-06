@@ -1460,7 +1460,8 @@ int host_portal_open(void *ud, float x, float y, float z, int axis, int sign, in
     return id;
 }
 
-int host_portal_move(void *ud, int id, float x, float y, float z, int axis, int sign, int rot)
+int host_portal_move(void *ud, int id, float x, float y, float z, int axis, int sign, int rot,
+                     float nx, float ny, float nz, float ux, float uy, float uz)
 {
     ServerState *s = static_cast<ServerState *>(ud);
     auto        &v = s->vportals;
@@ -1473,6 +1474,9 @@ int host_portal_move(void *ud, int id, float x, float y, float z, int axis, int 
     if (axis >= 0) p.axis = (PortalAxis)axis;
     if (sign != 0) p.normal_sign = sign;
     if (rot >= 0) p.rot = rot;
+    if (axis >= 0 || sign != 0 || rot >= 0) p.free = false;   // back in a plane
+    const Vec3 n{nx, ny, nz}, u{ux, uy, uz};
+    if (std::isfinite(nx + ny + nz + ux + uy + uz) && length_sq(n) > 1e-8f) portal_turn_free(p, n, u);
     v[id].p = p;
     if (v[id].slot >= 0) s->sessions->move_portal(v[id].slot, p, s->now);
     return 1;

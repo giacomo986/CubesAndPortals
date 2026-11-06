@@ -383,7 +383,8 @@ inline constexpr uint16_t kProtocol    = 117; // 117 openings that move (core.po
 // (core.body_block, the arena's prop hunt), its id after the dressed pieces,
 // which a 115 client refuses.
 // 117 gives every opening in Portals its velocity (core.portal_move), three
-// floats after its colour, which a 116 client reads as the next opening.
+// floats after its colour, which a 116 client reads as the next opening; and
+// a byte for an opening turned freely, followed by its front and up.
 inline constexpr uint16_t kMinProtocol = 117;
 
 // What a player picked to look like (protocol 93): the three colours of their
@@ -1394,6 +1395,10 @@ struct PortalDesc {
     uint8_t kind = 0;                          // PortalKind
     uint8_t colour = 0;                        // closed: 0 green (fixed), 1 blue, 2 orange
     float   vx = 0.0f, vy = 0.0f, vz = 0.0f;   // how fast it moves, m/s (protocol 117)
+    // Turned freely (117): its front and its up, unit and at right angles;
+    // axis and normal_sign are then the plane and side nearest.
+    uint8_t free = 0;
+    float   nx = 0.0f, ny = 0.0f, nz = 1.0f, ux = 0.0f, uy = 1.0f, uz = 0.0f;
 };
 
 // Where the openings are, as the server holds them. Sent to everybody whenever
