@@ -12686,6 +12686,10 @@ std::vector<Vec3> g_walk_path;
 // it once, as a player gets into a parked kart. Then wait a moment for what the
 // click changes -- a body that drives from now on -- before the first point.
 bool g_use_at = false;
+// --keep-portals: a timed run leaves the world's openings where they are, and
+// does not shoot its own pair at its feet (a scene built round its openings,
+// games/vehiclelab).
+bool g_keep_portals = false;
 int  g_use_x = 0, g_use_y = 0, g_use_z = 0;
 
 // --fly-down N: in a timed single-process run, fly N nodes up and come back
@@ -16933,7 +16937,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         // Not on a world whose pair leads away: there the scripted walk below
         // is what the gate measures, and moving the mouth out from under it
         // would measure nothing.
-        if (seconds > 0.0 && !conn->portals().leads_away() && !placement_sent &&
+        if (seconds > 0.0 && !g_keep_portals && !conn->portals().leads_away() && !placement_sent &&
             conn->has_portals() && mouth_ready &&
             s.act().world.chunk_count() > 0 && now - started > 1.0) {
             const int px = (int)std::floor(player.pos.x);
@@ -20442,6 +20446,10 @@ int client_main(int argc, char **argv)
             g_walk_mouths.clear();
             for (const char *p = argv[++i]; *p != '\0'; ++p)
                 if (*p >= '0' && *p < '0' + net::kMaxMouths) g_walk_mouths.push_back(*p - '0');
+        }
+        if (std::strcmp(argv[i], "--keep-portals") == 0) {
+            g_keep_portals = true;
+            continue;
         }
         if (std::strcmp(argv[i], "--use-at") == 0 && i + 1 < argc)
             g_use_at = std::sscanf(argv[++i], "%d,%d,%d", &g_use_x, &g_use_y, &g_use_z) == 3;

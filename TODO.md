@@ -1064,6 +1064,16 @@ Portals -- the engine's own trick, used further:
    body; through X near edge-on, facing up, the lowest strip is black -- the
    virtual camera is then 5 under the platform, 0.6 from X2's plane, and the
    floor cell across that plane is not clipped: its unlit underside shows.
+   STEP 2 (a vehicle through a fixed portal), checked 2026-11-06 in
+   tools/vehiclelab.sh: a cart rode a rail line north into A at 6 m/s and
+   came out of B a quarter turn round, still in the cart, on B's rails east
+   at the same speed; a boat rowed north into C came out of D afloat, still
+   in the boat. Nothing needed changing: every vehicle is a body mode of the
+   player and crosses as a player does; the kart already crossed the
+   Inferno's mouths. Not checked: a pony through a pair, a kart through a
+   local pair. A timed client used to shoot its own pair at its feet in any
+   world with two openings, which moved A away from the cart: --keep-portals
+   stops it.
 4. Portals that scale (high). A diorama on a table that is a portal: through
    it you are tiny in a garden world, grass blades as tall as trees. The
    portal transform is a rotation only; it needs a uniform scale (camera,
