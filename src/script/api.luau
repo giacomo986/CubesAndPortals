@@ -230,6 +230,22 @@ local api: { Fn } = {
            .. "centre. Returns 1, or 0 for no such portal or no server.",
     },
     {
+        name = "portal_scale",
+        host = "portal_scale",
+        ret  = "int",
+        args = {
+            { name = "id", type = "int", doc = "A portal, as portal_open returned it." },
+            { name = "on", type = "bool", default = true, doc = "false: a hole of its own size again." },
+        },
+        doc = "Makes an open portal one that SCALES, on a server. Linked to another that scales and "
+           .. "is of another size, what crosses comes out as big against the far end as it was "
+           .. "against this one -- walked into a door-sized opening on a table, out of one an inch "
+           .. "high as a body an inch high (core.body_scale), and back -- and what is seen through "
+           .. "it is seen at that scale. Proportions are the far end's half height over this one's; "
+           .. "give both the same shape. One that scales stands in the air, as one turned freely. "
+           .. "Returns 1, or 0 for no such portal or no server.",
+    },
+    {
         name = "portal_close",
         host = "portal_close",
         ret  = "int",
@@ -1106,6 +1122,21 @@ local api: { Fn } = {
            .. "world's code on a player's machine; or \"both\", a process that is its own server. "
            .. "A mod whose mod.conf says `side = both` runs in two places and asks this to know "
            .. "which half it is (TODO.md OPEN-49).",
+    },
+    {
+        name = "body_scale",
+        host = "body_scale",
+        ret  = "int",
+        args = {
+            { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
+            { name = "scale", type = "float", default = 1.0, doc = "How big against a body at 1: 1/32 to 4." },
+        },
+        doc = "Makes ONE player's body small or big, at any time: its box, steps, eye, speeds, "
+           .. "jump, gravity and fall all scale together, as do the camera's near plane and its "
+           .. "reach, and everybody sees it drawn that big -- so a body at 1/16 goes through a "
+           .. "world of blocks as a body at 1 would through one sixteen times bigger. Speeds a mod "
+           .. "gives it later (core.body_movement) are a body at 1's and shrink with it. Returns 1, "
+           .. "or 0 when refused (a size out of range, no such player), the reason in the log.",
     },
     {
         name = "body_movement",

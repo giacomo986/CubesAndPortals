@@ -22,6 +22,9 @@ namespace cnp {
 struct Body {
     Vec3  center;
     Vec3  half{0.3f, 0.9f, 0.3f};
+    // How big its model is drawn against its own size (core.body_scale): the
+    // box above is already this big; the model is scaled about its feet.
+    float scale = 1.0f;
     float colour[4]{0.95f, 0.75f, 0.15f, 1.0f};
 
     // Which way it is facing, and what it looks like. Both are ignored by this

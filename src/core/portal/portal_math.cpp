@@ -76,9 +76,14 @@ Plane plane_transform(const Mat4 &m, Plane p)
 Mat4 portal_transform(const PortalSurface &src, const PortalSurface &dst)
 {
     // 180 degrees about the local up axis: right and normal flip, up stays.
+    // And by the far end's size over this one's, when both scale
+    // (Portal::scales): a camera before a door-sized opening onto an inch-high
+    // one is put an inch-high camera's distance from it.
+    const float k = src.scales && dst.scales && src.half_h > 0.0f ? dst.half_h / src.half_h : 1.0f;
     Mat4 flip;
-    flip.at(0, 0) = -1.0f;
-    flip.at(2, 2) = -1.0f;
+    flip.at(0, 0) = -k;
+    flip.at(1, 1) = k;
+    flip.at(2, 2) = -k;
 
     return mat4_multiply(portal_basis(dst, false),
                          mat4_multiply(flip, mat4_invert(portal_basis(src, true))));

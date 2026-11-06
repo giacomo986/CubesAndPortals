@@ -102,6 +102,16 @@ struct Portal {
     // messages); a body is not pushed by it.
     Vec3 spin;
 
+    // A pair of two sizes that SCALES (core.portal_scale, both ends): what
+    // goes through comes out as big against the far end as it was against
+    // this one -- a body walking into a door-sized opening on a table comes
+    // out of a hole an inch high as a body an inch high (MovementRules::scale)
+    // -- and what is seen through it is seen so. k is the far end's half_h
+    // over this one's. Off, two sizes are two holes and the body keeps its own.
+    // An opening that scales stands in the air, as one turned freely: no block
+    // rules; and its slack and depths shrink with it when it is small.
+    bool scales = false;
+
     Vec3 normal() const;
     Vec3 right() const;
     Vec3 up() const;
@@ -118,6 +128,9 @@ struct Portal {
 // down). Sets `axis` and `normal_sign` to the plane and side nearest. False,
 // and nothing changed, for an `n` of no length.
 bool portal_turn_free(Portal &p, Vec3 n, Vec3 u);
+
+// How much bigger what crosses from src comes out of dst: 1 unless both scale.
+float portal_pair_scale(const Portal &src, const Portal &dst);
 
 // The turn that takes the free frame (n0, u0) to (n1, u1), as a rotation
 // vector (axis times angle, radians), good for the small turn of one tick.

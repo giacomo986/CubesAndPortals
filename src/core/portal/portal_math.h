@@ -32,6 +32,7 @@ struct PortalSurface {
     Vec3  up;                    // unit; lies in the plane of the opening
     float half_w = 0.5f;
     float half_h = 1.0f;
+    bool  scales = false;   // Portal::scales: a pair of two such is seen through at its scale
 
     Vec3 right() const { return normalize(cross(up, normal)); }
     Vec3 face()  const { return center + normal * (0.5f * kNodeSize); }

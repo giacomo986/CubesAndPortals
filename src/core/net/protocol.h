@@ -384,7 +384,8 @@ inline constexpr uint16_t kProtocol    = 117; // 117 openings that move (core.po
 // which a 115 client refuses.
 // 117 gives every opening in Portals its velocity (core.portal_move), three
 // floats after its colour, which a 116 client reads as the next opening; and
-// a byte for an opening turned freely, followed by its front, up and spin.
+// a byte for an opening turned freely, followed by its front, up and spin;
+// and BodyMovement a body's scale after its eye (core.body_scale).
 inline constexpr uint16_t kMinProtocol = 117;
 
 // What a player picked to look like (protocol 93): the three colours of their
@@ -1397,7 +1398,8 @@ struct PortalDesc {
     float   vx = 0.0f, vy = 0.0f, vz = 0.0f;   // how fast it moves, m/s (protocol 117)
     // Turned freely (117): its front and its up, unit and at right angles;
     // axis and normal_sign are then the plane and side nearest.
-    uint8_t free = 0;
+    uint8_t free   = 0;
+    uint8_t scales = 0;   // Portal::scales (117): a pair of two such scales what crosses
     float   nx = 0.0f, ny = 0.0f, nz = 1.0f, ux = 0.0f, uy = 1.0f, uz = 0.0f;
     float   wx = 0.0f, wy = 0.0f, wz = 0.0f;   // how fast it turns, rad/s about this axis
 };
@@ -1824,6 +1826,9 @@ struct EntityState {
     // bit 16 of their second flags byte, core.body_block): a whole cube of its
     // tiles with its bottom at their feet, as a block falling is. 0 for none.
     uint16_t as_block = 0;
+    // And how big a Player is drawn (protocol 117, bit 32 of that byte,
+    // core.body_scale): 1 when not sent.
+    float scale = 1.0f;
 
     // A Thing a mod rolled (protocol 98, core.craft): `chassis` and `body_roll`
     // alone, right side down; its pitch is `pitch`.

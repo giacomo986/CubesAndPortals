@@ -368,6 +368,12 @@ struct Disguised {
     uint16_t block = 0;
 };
 
+// How big a person is (core.body_scale), when not 1: drawn that big by
+// everybody else. Its movement's MovementRules::scale is the same number.
+struct Scaled {
+    float scale = 1.0f;
+};
+
 // What a mod dresses a person in (core.player_wear), slot by slot: a model on
 // their rig and its tint, 0 for an empty slot. Drawn by everybody else.
 inline constexpr int kDressSlots = 10;

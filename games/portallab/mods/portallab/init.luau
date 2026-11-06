@@ -30,6 +30,11 @@
 --          about its own front; each onto one standing still beyond (Y2, X2,
 --          Z2, facing the glass). Walked into at any angle, the picture must
 --          be what comes out.
+--   TINY   a door-sized opening (D1) onto one an eighth of a node high (G1)
+--          on the floor among a few blocks, both scaling (core.portal_scale):
+--          walked into D1, a body comes out of G1 a sixteenth of its size,
+--          the blocks round it as tall as towers; walked back into G1, out
+--          of D1 as it was.
 --
 -- Everybody arrives before W, looking into it. /lab wall, glass and head put
 -- you at a station again; /lab view stands where B looks out from, to see
@@ -54,7 +59,7 @@ local function fill(x0: number, x1: number, y0: number, y1: number, z0: number, 
 end
 
 local function build()
-    fill(58, 82, Y, Y, 58, 106, FLOOR)
+    fill(58, 82, Y, Y, 58, 122, FLOOR)
     -- GLASS: the glass wall at x 70, red behind it at x 74; a wall at x 62
     -- facing it with B low at z 68 and F high at z 66; W in a wall at z 56
     -- facing +z; A in the floor at x 66, z 62..63.
@@ -109,6 +114,16 @@ local function open_all(): boolean
     core.portal_link(u, vv)
     slide = sl
     chase = u
+    -- TINY: the garden round G1 at (74.5, z 114.5).
+    fill(72, 72, Y + 1, Y + 1, 116, 116, RED)
+    fill(77, 77, Y + 1, Y + 2, 113, 113, WALL)
+    fill(75, 75, Y + 1, Y + 1, 118, 118, GLASS)
+    local d1 = core.portal_open(64.5, Y + 2.0, 110.5, 0, 1, 0, 0.5, 1.0)
+    local g1 = core.portal_open(74.5, Y + 1.0 + 1 / 16, 114.5, 0, 1, 0, 0.5 / 16, 1 / 16)
+    if d1 < 0 or g1 < 0 then return false end
+    core.portal_link(d1, g1)
+    core.portal_scale(d1, true)
+    core.portal_scale(g1, true)
     for k, x in { 62.5, 70.5, 78.5 } do
         local sp = core.portal_open(x, Y + 2.0, 98.5, 0, 1, 0, 0.5, 1.0)
         local fx = core.portal_open(x, Y + 2.0, 94.5, 0, -1, 0, 0.5, 1.0)
@@ -135,6 +150,8 @@ local STATIONS = {
     spin = { 70.5, Y + 1, 103.5, 0, -0.05, -1, "SPIN: Y turns about the vertical, X head over heels, Z rolls -- walk into each" },
     spiny = { 62.5, Y + 1, 103.5, 0, -0.05, -1, "SPIN: Y, turning about the vertical" },
     spinz = { 78.5, Y + 1, 103.5, 0, -0.05, -1, "SPIN: Z, rolling about its own front" },
+    tiny = { 64.5, Y + 1, 113.5, 0, -0.05, -1, "TINY: walk into D1 -- out of G1 a sixteenth of your size" },
+    g1 = { 74.5, Y + 1, 114.8, 0, -0.05, -1, "TINY: before G1, as small as you are -- walk into it" },
 }
 local function put(p: number, which: string)
     local s = STATIONS[which]
@@ -143,8 +160,14 @@ local function put(p: number, which: string)
     core.notice(p, s[7])
 end
 
-core.command("lab", "wall|glass|head|bounce|view|slide|chase|spin|spiny|spinz|still|at <degrees> -- go to a station of the portal lab")
+core.command("lab", "wall|glass|head|bounce|view|slide|chase|spin|spiny|spinz|tiny|g1|still|at <degrees>|scale <s> -- go to a station of the portal lab")
 core.event.on("core:command", function(ev)
+    local k = if ev.name == "lab" then tonumber(string.match(ev.args, "^scale ([%d%.]+)$")) else nil
+    if k then
+        -- /lab scale <s>: this body that big (core.body_scale).
+        core.notice(ev.player, if core.body_scale(ev.player, k) == 1 then `SCALE {k}` else "SCALE: refused")
+        return
+    end
     local deg = if ev.name == "lab" then tonumber(string.match(ev.args, "^at (%-?%d+)$")) else nil
     if deg then
         -- /lab at <degrees>: every turning one stopped at that angle.

@@ -61,7 +61,11 @@ inline constexpr float kMaxDeclaredRise = 64.0f;
 // How wide a world may declare its bodies (core.body_width), in nodes. Under a
 // fifth of a node a body slips between shapes a mod draws a sixteenth thick;
 // over four it no longer fits the portal an arrival is pushed clear of.
-inline constexpr float kMinBodyWidth = 0.2f;
+inline constexpr float kMinBodyWidth = 0.2f;   // at scale 1 (MovementRules::scale): times the scale
+
+// How small and how big a body may be made (core.body_scale).
+inline constexpr float kMinBodyScale = 1.0f / 32.0f;
+inline constexpr float kMaxBodyScale = 4.0f;
 inline constexpr float kMaxBodyWidth = 4.0f;
 
 // How fast a body's horizontal velocity closes on what the keys ask for, in
@@ -267,6 +271,17 @@ struct MovementRules {
     // measured from, on both ends. The body's box stays kPlayerHeight tall.
     float eye = kPlayerEyeHeight;
 
+    // How big the body is against the engine's (core.body_scale): its box is
+    // kPlayerHeight times this tall and its steps kStepHeight times this, its
+    // fall ends at kTerminalFallSpeed times this, the camera's near plane and
+    // a hand's reach shrink with it, and others see it drawn this big. The
+    // width, eye, speeds, jump and gravity above are given already scaled
+    // (core.body_scale scales them), so a body at 1/16 in a world of blocks
+    // moves through it as a body at 1 would through one sixteen times bigger.
+    // A portal pair of two sizes (Portal::half_h) changes it on the way
+    // through. 1 for every body before.
+    float scale = 1.0f;
+
     // Parkour (core.parkour): a body on foot here runs along walls, kicks off
     // them, slides under a block and flips backwards, and may hang on a rope
     // (core.rope) -- core/physics/player.cpp. The server then allows what
@@ -333,6 +348,28 @@ inline void keep_body(MovementRules &to, const MovementRules &from)
     to.glide   = from.glide;
     to.balloon = from.balloon;
     to.rope    = from.rope;
+    // A body made small or big (MovementRules::scale) keeps its size, and the
+    // speeds it is given are a body at 1's: they shrink with it.
+    to.scale = from.scale;
+    if (from.scale != 1.0f) {
+        to.walk *= from.scale, to.sprint *= from.scale, to.fly *= from.scale;
+        to.jump *= from.scale, to.gravity *= from.scale;
+        if (to.rise > 0.0f) to.rise *= from.scale;
+    }
+}
+
+// The same body made `scale` big (core.body_scale): what is a length or a
+// speed in it turned by the ratio to the size it has now.
+inline MovementRules scaled_body(MovementRules r, float scale)
+{
+    const float k = scale / r.scale;
+    r.width *= k, r.eye *= k;
+    if (r.length > 0.0f) r.length *= k;
+    r.walk *= k, r.sprint *= k, r.fly *= k, r.jump *= k, r.gravity *= k;
+    if (r.rise > 0.0f) r.rise *= k;
+    r.accel *= k, r.brake *= k;
+    r.scale = scale;
+    return r;
 }
 
 // What a body in a parkour world may do beyond walking (MovementRules::parkour),

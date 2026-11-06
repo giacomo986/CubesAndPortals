@@ -192,6 +192,19 @@ Moves an open portal while the world runs, on a server: a door sliding along a r
 | `uy` | number | `0` |  |
 | `uz` | number | `0` |  |
 
+## `core.portal_scale`
+
+```luau
+core.portal_scale(id: number, on: boolean?) -> number
+```
+
+Makes an open portal one that SCALES, on a server. Linked to another that scales and is of another size, what crosses comes out as big against the far end as it was against this one -- walked into a door-sized opening on a table, out of one an inch high as a body an inch high (core.body_scale), and back -- and what is seen through it is seen at that scale. Proportions are the far end's half height over this one's; give both the same shape. One that scales stands in the air, as one turned freely. Returns 1, or 0 for no such portal or no server.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `id` | number | — | A portal, as portal_open returned it. |
+| `on` | boolean | `true` | false: a hole of its own size again. |
+
 ## `core.portal_close`
 
 ```luau
@@ -941,6 +954,19 @@ core.side() -> string
 ```
 
 Which side of a world this code is running on: "server"; "client", which is a world's code on a player's machine; or "both", a process that is its own server. A mod whose mod.conf says `side = both` runs in two places and asks this to know which half it is (TODO.md OPEN-49).
+
+## `core.body_scale`
+
+```luau
+core.body_scale(player: number, scale: number?) -> number
+```
+
+Makes ONE player's body small or big, at any time: its box, steps, eye, speeds, jump, gravity and fall all scale together, as do the camera's near plane and its reach, and everybody sees it drawn that big -- so a body at 1/16 goes through a world of blocks as a body at 1 would through one sixteen times bigger. Speeds a mod gives it later (core.body_movement) are a body at 1's and shrink with it. Returns 1, or 0 when refused (a size out of range, no such player), the reason in the log.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `player` | number | — | The id every event carries in its `player` field. |
+| `scale` | number | `1` | How big against a body at 1: 1/32 to 4. |
 
 ## `core.body_movement`
 

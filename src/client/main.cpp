@@ -128,6 +128,9 @@ constexpr int   kWindowHeight = 1080;
 constexpr float kFovY         = 1.2217f;   // 70 degrees
 float           g_fov_y       = kFovY;     // narrowed by core.zoom: a bow drawn
 constexpr float kZNear        = 0.05f;
+// The near plane used this frame: kZNear, less for a small body (core.body_scale),
+// whose eye is a tenth of a node over the floor at 1/16.
+float g_z_near = kZNear;
 constexpr float kZFar         = 500.0f;
 
 // Assigned by the registry at startup rather than fixed here. That the engine
@@ -559,6 +562,7 @@ PortalSurface surface_from_portal(const Portal &p)
     surf.up     = p.up();
     surf.half_w = p.half_w;
     surf.half_h = p.half_h;
+    surf.scales = p.scales;
     return surf;
 }
 
@@ -7158,9 +7162,10 @@ Mat4 body_place(const Body &b)
                           mat4_translate(Vec3{0.0f, -b.pivot, 0.0f})));
     }
     return mat4_multiply(
-        mat4_multiply(mat4_translate(Vec3{b.center.x, b.center.y - b.half.y, b.center.z}),
-                      mat4_rotate_y(-b.yaw)),
-        mat4_multiply(mat4_rotate_x(b.pitch), mat4_rotate_z(-b.roll)));
+        mat4_multiply(mat4_multiply(mat4_translate(Vec3{b.center.x, b.center.y - b.half.y, b.center.z}),
+                                    mat4_rotate_y(-b.yaw)),
+                      mat4_multiply(mat4_rotate_x(b.pitch), mat4_rotate_z(-b.roll))),
+        mat4_scale(Vec3{b.scale, b.scale, b.scale}));
 }
 
 // A body lying on its back (core.player_lie, protocol 75): the middle of it
@@ -9356,12 +9361,14 @@ void add_own_body(Scene &s, const Player &player, uint16_t model)
 {
     model = species_model(s.act().models, model, net::g_client_livery);   // as a rider too
     Body b;
-    b.center = Vec3{player.pos.x, player.pos.y + s.step.lag + kPlayerHeight * 0.5f, player.pos.z};
+    const float tall = kPlayerHeight * s.act().movement.scale;   // core.body_scale
+    b.scale  = s.act().movement.scale;
+    b.center = Vec3{player.pos.x, player.pos.y + s.step.lag + tall * 0.5f, player.pos.z};
     // A kart sits on its chassis, not on the wheel that touches highest.
     if (player.vehicle)
-        b.center = player.body_base + Vec3{0.0f, kPlayerHeight * 0.5f, 0.0f};
+        b.center = player.body_base + Vec3{0.0f, tall * 0.5f, 0.0f};
     const float half = s.act().movement.width * 0.5f;
-    b.half   = Vec3{half, kPlayerHeight * 0.5f, half};
+    b.half   = Vec3{half, tall * 0.5f, half};
     // Facing the wall while hanging from it or pulling up, whichever way the
     // camera looks.
     b.yaw    = (player.hanging || player.mantle > 0.0f)
@@ -11312,7 +11319,7 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
     s.ear.right   = normalize(cross(forward, up));
 
     const float aspect     = (float)render_width() / (float)render_height();
-    const Mat4  projection = mat4_perspective(g_fov_y, aspect, kZNear, kZFar);
+    const Mat4  projection = mat4_perspective(g_fov_y, aspect, g_z_near, kZFar);
     const Mat4  view       = mat4_look_to(eye, forward, up);
 
     gfx_begin_frame();
@@ -11344,7 +11351,7 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
             shown.world_render.set_view_range(shown.view_range);
             s.portal_render.set_sky(shown.sky);
             s.portal_render.render_recursive(shown.world_render, links, count, eye, forward, up,
-                                             g_fov_y, aspect, kZNear, kZFar);
+                                             g_fov_y, aspect, g_z_near, kZFar);
             s.last_oblique = s.portal_render.oblique_applied(0);
             s.last_clip    = s.portal_render.clip_applied(0);
             s.last_oblique_b = s.portal_render.oblique_applied(1);
@@ -11361,7 +11368,7 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
                 shown.world_render.set_view_range(shown.view_range);
                 s.portal_render.set_sky(shown.sky);
                 s.portal_render.render_recursive(shown.world_render, &mouth_link(s.act(), k), 1,
-                                                 eye, forward, up, g_fov_y, aspect, kZNear, kZFar);
+                                                 eye, forward, up, g_fov_y, aspect, g_z_near, kZFar);
                 if (k < 2) {
                     (k == 0 ? s.last_oblique : s.last_oblique_b) = s.portal_render.oblique_applied(0);
                     (k == 0 ? s.last_clip : s.last_clip_b)       = s.portal_render.clip_applied(0);
@@ -11394,7 +11401,7 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
             s.act().world_render.set_view_range(s.act().view_range);
             s.portal_render.set_sky(s.act().sky);
             s.portal_render.render_recursive(s.act().world_render, s.local_shown, count, eye,
-                                             forward, up, g_fov_y, aspect, kZNear, kZFar);
+                                             forward, up, g_fov_y, aspect, g_z_near, kZFar);
         }
     }
 
@@ -12095,7 +12102,8 @@ void update_floor_shift(Scene &s, Player &player, float dt)
         // Into a wall portal set in the wall: the box made to fit its hole.
         // A mouth onto another world too (games/chambers's way home).
         const auto fit = [&](const Portal &p) {
-            const WallShift w = portal_wall_shift(p, player.pos, half, kPlayerHeight, player.eye_height);
+            const WallShift w = portal_wall_shift(p, player.pos, half, kPlayerHeight * s.act().movement.scale,
+                                                  player.eye_height);
             if (w.on) {
                 most           = std::max(most, w.bottom);
                 player.cb_top  = std::max(player.cb_top, w.top);
@@ -12119,7 +12127,7 @@ void update_floor_shift(Scene &s, Player &player, float dt)
         // 2026-10-05). Kept fitted until the body is clear.
         const auto box = [&](float h, float top) {
             return body_box(player.pos, h > 0.0f ? std::min(h, half) : half, most,
-                            std::max(0.3f, kPlayerHeight - top));
+                            std::max(0.3f * s.act().movement.scale, kPlayerHeight * s.act().movement.scale - top));
         };
         if ((player.cb_half != was_half || player.cb_top != was_top) &&
             box_hits_world(s.act().world, s.act().registry, box(player.cb_half, player.cb_top)) &&
@@ -12244,7 +12252,7 @@ int run_bench(Scene &s)
             s.portal_render.render_target(s.act().world_render, s.act().link_ab, eye1, fwd1, up,
                                           g_fov_y,
                                           (float)gfx_screen_width() / (float)gfx_screen_height(),
-                                          kZNear, kZFar, /*to_screen=*/true);
+                                          g_z_near, kZFar, /*to_screen=*/true);
             gfx_end_frame();
         }
         shot_write("09_render_target_contents.png");
@@ -12775,7 +12783,7 @@ double compare_through_opening(Scene &s, const PortalLink &link, Vec3 eye, Vec3 
     const Vec3  up     = Vec3{0.0f, 1.0f, 0.0f};
     const float aspect = (float)gfx_screen_width() / (float)gfx_screen_height();
 
-    const Mat4 projection = mat4_perspective(g_fov_y, aspect, kZNear, kZFar);
+    const Mat4 projection = mat4_perspective(g_fov_y, aspect, g_z_near, kZFar);
     const Mat4 view       = mat4_look_to(eye, fwd, up);
 
     // The opening is a hole through a wall a block thick, so what can actually
@@ -14006,6 +14014,7 @@ Portal portal_from_desc(const net::PortalDesc &d)
     p.colour      = d.colour;
     p.vel         = Vec3{d.vx, d.vy, d.vz};
     p.free        = d.free != 0;
+    p.scales      = d.scales != 0;
     p.fn          = Vec3{d.nx, d.ny, d.nz};
     p.fu          = Vec3{d.ux, d.uy, d.uz};
     p.spin        = Vec3{d.wx, d.wy, d.wz};
@@ -14030,6 +14039,7 @@ net::PortalDesc desc_from_portal(const Portal &p)
     d.vy          = p.vel.y;
     d.vz          = p.vel.z;
     d.free        = p.free ? 1 : 0;
+    d.scales      = p.scales ? 1 : 0;
     d.nx = p.fn.x, d.ny = p.fn.y, d.nz = p.fn.z;
     d.ux = p.fu.x, d.uy = p.fu.y, d.uz = p.fu.z;
     d.wx = p.spin.x, d.wy = p.spin.y, d.wz = p.spin.z;
@@ -16073,9 +16083,13 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 body.colour[1] = 0.60f;
                 body.colour[2] = 0.95f;
             } else {
-                body.center    = Vec3{p.x, p.y + kPlayerHeight * 0.5f, p.z};
-                const float half = s.act().movement.width * 0.5f;
-                body.half        = Vec3{half, kPlayerHeight * 0.5f, half};
+                // As big as they are (117): a body at 1/16 is drawn and aimed
+                // at that small.
+                const float k    = p.kind == net::EntityKind::Player ? p.scale : 1.0f;
+                body.scale       = k;
+                body.center      = Vec3{p.x, p.y + kPlayerHeight * k * 0.5f, p.z};
+                const float half = 0.5f * (k == 1.0f ? s.act().movement.width : 2.0f * kPlayerHalfWidth * k);
+                body.half        = Vec3{half, kPlayerHeight * k * 0.5f, half};
                 body.colour[0] = 0.95f;
                 body.colour[1] = 0.75f;
                 body.colour[2] = 0.15f;
@@ -16310,7 +16324,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         // Aim, at blocks and at bodies both. Whichever is nearer is what the
         // click is about: a player swinging at a mob standing against a wall is
         // aiming at both, and the one in front is the one they mean.
-        constexpr float kReach = 6.0f;
+        const float kReach = 6.0f * s.act().movement.scale;   // a small hand reaches less
         s.target = raycast(s.act().world, s.act().registry, player.eye(), player.forward(), kReach);
         // Looking at a point (core.fixed_view) the eye aims at nothing: the
         // clicks are the world code's, and no block is outlined under them.
@@ -17372,6 +17386,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             }
         }
         carry_moving_portals(s, conn->portals(), (float)(now - portals_applied_at), portals_drawn_at);
+        g_z_near = kZNear * std::min(1.0f, s.act().movement.scale);
 
         // The worlds on the other side of the mouths.
         //

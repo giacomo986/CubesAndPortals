@@ -1888,7 +1888,7 @@ size_t ServerSessions::floor_exemptions(SolidExemption *out) const
     size_t n = 0;
 
     for (int i = 0; i < kMaxOpenings && n < kMaxSolidExemptions; ++i) {
-        if (!m_portal_set[i] || m_portal[i].free) continue;   // in the air, in no block
+        if (!m_portal_set[i] || m_portal[i].free || m_portal[i].scales) continue;   // in the air, in no block
         const Portal &p = m_portal[i];
         if (!p.horizontal()) {
             // A wall opening set inside the wall: the wall round it, one cell
@@ -1997,6 +1997,7 @@ Portals ServerSessions::portals_message() const
         d.vy          = p.vel.y;
         d.vz          = p.vel.z;
         d.free        = p.free ? 1 : 0;
+        d.scales      = p.scales ? 1 : 0;
         d.nx = p.fn.x, d.ny = p.fn.y, d.nz = p.fn.z;
         d.ux = p.fu.x, d.uy = p.fu.y, d.uz = p.fu.z;
         d.wx = p.spin.x, d.wy = p.spin.y, d.wz = p.spin.z;
@@ -2164,10 +2165,20 @@ SessionAction ServerSessions::cross_if_triggered(Session &s, const Move &move,
         // The speed is the last step's average: the speed at its middle.
         // Kept as the openings see it: relative to the source going in, to
         // the destination coming out (Portal::vel; both zero standing still).
-        const Vec3 out_vel = exit_velocity(*c.from, *c.to, vel - c.from->vel,
-                                           vel + t.velocity_delta - c.to->vel,
-                                           (from_feet + feet) * 0.5f, t.feet.y, s.movement.gravity) +
-                             c.to->vel;
+        const float k = portal_pair_scale(*c.from, *c.to);
+        const Vec3 out_vel = k != 1.0f ? vel + t.velocity_delta   // scaled: the map's, nothing kept
+                             : exit_velocity(*c.from, *c.to, vel - c.from->vel,
+                                             vel + t.velocity_delta - c.to->vel,
+                                             (from_feet + feet) * 0.5f, t.feet.y, s.movement.gravity) +
+                                   c.to->vel;
+        // And the body as big against the far end as it was against this one
+        // (Portal::scales), told as core.body_scale tells it.
+        if (k != 1.0f) {
+            const float to_scale = std::clamp(s.movement.scale * k, kMinBodyScale, kMaxBodyScale);
+            set_body_movement(s.id, scaled_body(s.movement, to_scale), now);
+            if (to_scale == 1.0f) s.avatar.remove<ecs::Scaled>();
+            else                  s.avatar.set<ecs::Scaled>({to_scale});
+        }
 
         Teleport tp;
         tp.seq    = move.seq;
@@ -4760,6 +4771,7 @@ std::vector<EntityState> ServerSessions::entities_for(PeerId peer, float radius)
             if (const ecs::Posed *pose = e.try_get<ecs::Posed>()) s.clip = pose->clip;   // core.player_clip (92)
             if (const ecs::Livery *l = e.try_get<ecs::Livery>()) s.livery = l->bits;     // 93
             if (const ecs::Disguised *g = e.try_get<ecs::Disguised>()) s.as_block = g->block;   // 116
+            if (const ecs::Scaled *z = e.try_get<ecs::Scaled>()) s.scale = z->scale;         // 117
             if (const ecs::Dressed *d = e.try_get<ecs::Dressed>())                     // 102
                 for (int k = 0; k < ecs::kDressSlots; ++k) {
                     s.dress[k]      = d->model[k];

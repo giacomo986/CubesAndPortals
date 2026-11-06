@@ -105,6 +105,8 @@ typedef struct script_host {
     int (*portal_open)(void *ud, float x, float y, float z, int axis, int sign, int rot,
                        float half_w, float half_h, int colour);
     int (*portal_close)(void *ud, float x, float y, float z);
+    int (*body_scale)(void *ud, int player, double scale);
+    int (*portal_scale)(void *ud, int id, bool on);
     int (*portal_move)(void *ud, int id, float x, float y, float z, int axis, int sign, int rot,
                        float nx, float ny, float nz, float ux, float uy, float uz);
     int (*portal_link)(void *ud, int a, int b);

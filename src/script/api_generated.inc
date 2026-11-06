@@ -162,6 +162,17 @@ int l_portal_move(lua_State *L)
     return 1;
 }
 
+// core.portal_scale(id: number, on: boolean?) -> number
+int l_portal_scale(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
+    const int result = (vm && vm->host.portal_scale) ? vm->host.portal_scale(vm->host.ud, id, on) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.portal_close(x: number, y: number, z: number) -> number
 int l_portal_close(lua_State *L)
 {
@@ -784,6 +795,17 @@ int l_side(lua_State *L)
     VmState *vm = host_of(L);
     const char *result = (vm && vm->host.side) ? vm->host.side(vm->host.ud) : nullptr;
     lua_pushstring(L, result ? result : "");
+    return 1;
+}
+
+// core.body_scale(player: number, scale: number?) -> number
+int l_body_scale(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int player = (int)luaL_checkinteger(L, 1);
+    const float scale = (float)luaL_optnumber(L, 2, 1);
+    const int result = (vm && vm->host.body_scale) ? vm->host.body_scale(vm->host.ud, player, scale) : (int)0;
+    lua_pushinteger(L, result);
     return 1;
 }
 
@@ -3270,6 +3292,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "portal_link");
     lua_pushcfunction(L, l_portal_move, "core.portal_move");
     lua_setfield(L, -2, "portal_move");
+    lua_pushcfunction(L, l_portal_scale, "core.portal_scale");
+    lua_setfield(L, -2, "portal_scale");
     lua_pushcfunction(L, l_portal_close, "core.portal_close");
     lua_setfield(L, -2, "portal_close");
     lua_pushcfunction(L, l_portal_seal, "core.portal_seal");
@@ -3374,6 +3398,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "ledges");
     lua_pushcfunction(L, l_side, "core.side");
     lua_setfield(L, -2, "side");
+    lua_pushcfunction(L, l_body_scale, "core.body_scale");
+    lua_setfield(L, -2, "body_scale");
     lua_pushcfunction(L, l_body_movement, "core.body_movement");
     lua_setfield(L, -2, "body_movement");
     lua_pushcfunction(L, l_body_drive, "core.body_drive");

@@ -1482,6 +1482,16 @@ int host_portal_move(void *ud, int id, float x, float y, float z, int axis, int 
     return 1;
 }
 
+int host_portal_scale(void *ud, int id, bool on)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    auto        &v = s->vportals;
+    if (!s->sessions || id < 0 || id >= (int)v.size() || !v[id].alive) return 0;
+    v[id].p.scales = on;
+    if (v[id].slot >= 0) s->sessions->open_portal(v[id].p);   // reshaped where it stands
+    return 1;
+}
+
 int host_portal_close(void *ud, float x, float y, float z)
 {
     ServerState *s = static_cast<ServerState *>(ud);
@@ -2767,6 +2777,33 @@ int host_body_movement(void *ud, int player, double walk, double sprint, double 
                 "gravity %.2f, rise %.2f\n",
                 who, player, (double)rules.walk, (double)rules.sprint, (double)rules.fly,
                 (double)rules.jump, (double)rules.gravity, (double)limits_for(rules).rise);
+    return 1;
+}
+
+// core.body_scale: one body made small or big, all of it together.
+int host_body_scale(void *ud, int player, double scale)
+{
+    ServerState      *s    = static_cast<ServerState *>(ud);
+    const std::string name = asking_mod();
+    const char       *who  = name.empty() ? "?" : name.c_str();
+    const net::Session *body =
+        (player > 0 && s->sessions != nullptr) ? s->sessions->find((net::PeerId)player) : nullptr;
+    if (body == nullptr || !std::isfinite(scale) || scale < kMinBodyScale || scale > kMaxBodyScale) {
+        std::printf("[mod] %s: body_scale: refused -- no such player, or %.3f is not %.3f to %.0f\n", who,
+                    scale, (double)kMinBodyScale, (double)kMaxBodyScale);
+        return 0;
+    }
+    const MovementRules rules = scaled_body(body->movement, (float)scale);
+    const std::string   why   = movement_rules_problem(rules);
+    if (!why.empty() || !s->sessions->set_body_movement((net::PeerId)player, rules, s->now)) {
+        std::printf("[mod] %s: body_scale: refused -- %s\n", who, why.empty() ? "no body" : why.c_str());
+        return 0;
+    }
+    if (net::Session *m = s->sessions->find_mutable((net::PeerId)player)) {
+        if (scale == 1.0) m->avatar.remove<ecs::Scaled>();
+        else              m->avatar.set<ecs::Scaled>({(float)scale});
+    }
+    std::printf("[mod] %s: body_scale: player %d at %.3f\n", who, player, scale);
     return 1;
 }
 
@@ -6677,6 +6714,8 @@ int serve_room(int argc, char **argv)
         host.portal_open   = host_portal_open;
         host.portal_close  = host_portal_close;
         host.portal_move   = host_portal_move;
+        host.body_scale    = host_body_scale;
+        host.portal_scale  = host_portal_scale;
         host.portal_seal   = host_portal_seal;
         host.portal_link   = host_portal_link;
         host.far_portal_set   = host_far_portal_set;

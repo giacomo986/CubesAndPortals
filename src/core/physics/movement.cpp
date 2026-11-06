@@ -419,9 +419,10 @@ std::string movement_rules_problem(const MovementRules &rules)
     }
 
     if (!std::isfinite(rules.width)) return "width is not a number";
-    if (rules.width < kMinBodyWidth || rules.width > kMaxBodyWidth) {
+    const float sc = std::isfinite(rules.scale) && rules.scale > 0.0f ? std::min(rules.scale, 1.0f) : 1.0f;
+    if (rules.width < kMinBodyWidth * sc || rules.width > kMaxBodyWidth) {
         std::snprintf(buf, sizeof buf, "width is %.2f nodes, and a world may declare %.1f to %.1f",
-                      (double)rules.width, (double)kMinBodyWidth, (double)kMaxBodyWidth);
+                      (double)rules.width, (double)(kMinBodyWidth * sc), (double)kMaxBodyWidth);
         return buf;
     }
 
@@ -446,10 +447,15 @@ std::string movement_rules_problem(const MovementRules &rules)
 
     // Inside the body: a camera over its head would look down on the box it
     // collides with, and one at its feet would see under every step.
+    if (!std::isfinite(rules.scale) || rules.scale < kMinBodyScale || rules.scale > kMaxBodyScale) {
+        std::snprintf(buf, sizeof buf, "scale is %.3f, and a body may be %.3f to %.0f",
+                      (double)rules.scale, (double)kMinBodyScale, (double)kMaxBodyScale);
+        return buf;
+    }
     if (!std::isfinite(rules.eye)) return "eye is not a number";
-    if (rules.eye < 0.2f || rules.eye > kPlayerHeight) {
-        std::snprintf(buf, sizeof buf, "eye is %.2f nodes, and a world may declare 0.2 to %.1f",
-                      (double)rules.eye, (double)kPlayerHeight);
+    if (rules.eye < 0.2f * rules.scale || rules.eye > kPlayerHeight * rules.scale) {
+        std::snprintf(buf, sizeof buf, "eye is %.2f nodes, and a world may declare %.2f to %.2f",
+                      (double)rules.eye, (double)(0.2f * rules.scale), (double)(kPlayerHeight * rules.scale));
         return buf;
     }
 
@@ -505,7 +511,8 @@ MovementLimits limits_for(const MovementRules &rules)
     // And what "inside a solid block" is measured with: the same box on foot,
     // a point for a body that drives. See MovementLimits::solid_half.
     limits.solid_half = rules.drives() ? kBoxSkin : limits.half_width;
-    limits.step       = rules.mount && !rules.drives() ? kMountStep : kStepHeight;
+    limits.step       = (rules.mount && !rules.drives() ? kMountStep : kStepHeight) * rules.scale;
+    limits.height     = kPlayerHeight * rules.scale;
     limits.arrival_half =
         rules.drives() ? 0.5f * std::max(rules.width, rules.length) : rules.width * 0.5f;
 
@@ -527,7 +534,7 @@ MovementLimits limits_for(const MovementRules &rules)
     if (rules.parkour && !rules.drives()) {
         limits.max_horizontal = std::max(limits.max_horizontal, kRopeTop);
         limits.rise           = -1.0f;
-        limits.height         = kSlideHeight;
+        limits.height         = kSlideHeight * rules.scale;
     }
     // A rope swings faster than a sprint, and up to anywhere it hooks.
     if (rules.rope && !rules.drives()) {

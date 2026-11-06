@@ -73,10 +73,10 @@ float box_half(const Player &p, const MovementRules &rules)
     const float half = rules.width * 0.5f;
     return p.cb_half > 0.0f ? std::min(p.cb_half, half) : half;
 }
-float box_height(const Player &p)
+float box_height(const Player &p, const MovementRules &rules)
 {
-    const float h = std::max(0.3f, kPlayerHeight - p.cb_top);
-    return p.low ? std::min(h, kSlideHeight) : h;
+    const float h = std::max(0.3f * rules.scale, kPlayerHeight * rules.scale - p.cb_top);
+    return p.low ? std::min(h, kSlideHeight * rules.scale) : h;
 }
 
 // Whether a wall is against the body on the side (dx, dz), within `gap`: the
@@ -85,7 +85,8 @@ bool touches(const World &world, const NodeRegistry &reg, const Player &p, float
              int dz, float gap = 0.12f)
 {
     const Vec3 at = p.pos + Vec3{(float)dx * gap, 0.1f, (float)dz * gap};
-    return box_hits_world(world, reg, body_box(at, half, p.cb_shift, box_height(p) - 0.2f));
+    // ponytail: parkour's wall tests at scale 1; scale them when a small body runs walls.
+    return box_hits_world(world, reg, body_box(at, half, p.cb_shift, box_height(p, MovementRules{}) - 0.2f));
 }
 
 
@@ -208,7 +209,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         player.velocity    = Vec3{flat.x, up, flat.z};
 
         const MoveResult r = move_body(world, reg, player.pos, player.velocity * dt,
-                                       player.cb_shift, kStepHeight, box_half(player, rules), box_height(player));
+                                       player.cb_shift, kStepHeight * rules.scale, box_half(player, rules), box_height(player, rules));
         // What a wall or the ground stopped is not kept pushing into it.
         const Vec3 moved = r.pos - player.pos;
         if (std::fabs(moved.x) + 1e-4f < std::fabs(player.velocity.x * dt)) player.velocity.x = moved.x / dt;
@@ -384,7 +385,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
             player.body_pitch = kBoatRock * 0.6f * std::sin(sw * 1.7f + 1.0f);
             player.velocity.y = std::clamp(((float)(y + 1) - kBoatDraft + lift - player.pos.y) * 6.0f, -3.0f, 3.0f);
             const MoveResult r = move_body(world, reg, player.pos, player.velocity * dt,
-                                           player.cb_shift, kStepHeight, box_half(player, rules), box_height(player));
+                                           player.cb_shift, kStepHeight * rules.scale, box_half(player, rules), box_height(player, rules));
             player.pos       = r.pos;
             player.on_ground = r.on_ground;
             return;
@@ -401,7 +402,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         if (input.jump) player.velocity.y = kSwimRise;
 
         const MoveResult r = move_body(world, reg, player.pos, player.velocity * dt,
-                                       player.cb_shift, kStepHeight, box_half(player, rules), box_height(player));
+                                       player.cb_shift, kStepHeight * rules.scale, box_half(player, rules), box_height(player, rules));
         player.pos = r.pos;
         if (r.on_ground || r.hit_ceiling) player.velocity.y = 0.0f;
         player.on_ground = r.on_ground;
@@ -429,7 +430,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         player.velocity.y = input.jump ? kClimbUp : player.crouching ? 0.0f : pushing ? kClimbUp : -kClimbSlide;
 
         const MoveResult r = move_body(world, reg, player.pos, player.velocity * dt,
-                                       player.cb_shift, kStepHeight, box_half(player, rules), box_height(player));
+                                       player.cb_shift, kStepHeight * rules.scale, box_half(player, rules), box_height(player, rules));
         player.pos = r.pos;
         if (r.on_ground || r.hit_ceiling) player.velocity.y = 0.0f;
         player.on_ground = r.on_ground;
@@ -452,7 +453,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         player.velocity.y = std::max(player.velocity.y + rules.gravity * dt, -sink);
         player.body_pitch = 0.25f * down;
         const MoveResult r = move_body(world, reg, player.pos, player.velocity * dt,
-                                       player.cb_shift, kStepHeight, box_half(player, rules), box_height(player));
+                                       player.cb_shift, kStepHeight * rules.scale, box_half(player, rules), box_height(player, rules));
         player.pos = r.pos;
         if (r.on_ground || r.hit_ceiling) player.velocity.y = 0.0f;
         player.on_ground = r.on_ground;
@@ -472,7 +473,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         player.velocity.x = h.x;
         player.velocity.z = h.z;
         const MoveResult r = move_body(world, reg, player.pos, player.velocity * dt,
-                                       player.cb_shift, kStepHeight, box_half(player, rules), box_height(player));
+                                       player.cb_shift, kStepHeight * rules.scale, box_half(player, rules), box_height(player, rules));
         player.pos = r.pos;
         if (r.on_ground || r.hit_ceiling) player.velocity.y = 0.0f;
         player.on_ground = r.on_ground;
@@ -528,7 +529,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
             player.low   = true;
         }
         const bool room = !box_hits_world(world, reg, body_box(player.pos, half, player.cb_shift,
-                                                               std::max(0.3f, kPlayerHeight - player.cb_top)));
+                                                               std::max(0.3f * rules.scale, kPlayerHeight * rules.scale - player.cb_top)));
         if (player.slide > 0.0f) {
             player.slide -= dt;
             if (jump_pressed && room) player.slide = 0.0f;   // up out of it, into the jump
@@ -683,7 +684,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
     // -25 m/s^2 tops out at 56.6 m/s. A world with twice the gravity does not,
     // and neither does a fall through a floor portal into a ceiling portal
     // above it, which lasts as long as the player lets it.
-    if (player.velocity.y < -kTerminalFallSpeed) player.velocity.y = -kTerminalFallSpeed;
+    if (player.velocity.y < -kTerminalFallSpeed * rules.scale) player.velocity.y = -kTerminalFallSpeed * rules.scale;
 
     if (input.jump && player.on_ground && !player.low && !kicked) {
         if (pk && jump_pressed && input.move_forward < -0.5f) {
@@ -714,8 +715,8 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
     if (player.crouching && player.on_ground && !input.jump && !player.roped) {
         const float hw      = box_half(player, rules);
         const auto  footing = [&](Vec3 at) {
-            return box_hits_world(world, reg, body_box(Vec3{at.x, at.y - kStepHeight, at.z}, hw, 0.0f,
-                                                       kStepHeight - 0.01f));
+            return box_hits_world(world, reg, body_box(Vec3{at.x, at.y - kStepHeight * rules.scale, at.z}, hw,
+                                                       0.0f, kStepHeight * rules.scale - 0.01f));
         };
         if (footing(player.pos)) {
             if (step.x != 0.0f && !footing(player.pos + Vec3{step.x, 0.0f, 0.0f})) {
@@ -731,7 +732,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
 
     const Vec3       before = player.pos;
     const MoveResult r = move_body(world, reg, player.pos, step, player.cb_shift,
-                                   mounted ? kMountStep : kStepHeight, box_half(player, rules), box_height(player));
+                                   mounted ? kMountStep : kStepHeight * rules.scale, box_half(player, rules), box_height(player, rules));
     player.pos = r.pos;
 
     // Zeroing vertical speed on contact is what stops gravity accumulating into
@@ -767,7 +768,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
             const Vec3 n  = out * (1.0f / dist);
             const Vec3 to = player.rope_at + n * player.rope_len - Vec3{0.0f, kRopeHands, 0.0f};
             const MoveResult c = move_body(world, reg, player.pos, to - player.pos, player.cb_shift, 0.0f,
-                                           box_half(player, rules), box_height(player));
+                                           box_half(player, rules), box_height(player, rules));
             player.pos       = c.pos;
             player.on_ground = player.on_ground || c.on_ground;
             const float vr   = dot(player.velocity, n);

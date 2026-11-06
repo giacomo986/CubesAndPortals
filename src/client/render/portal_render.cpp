@@ -212,7 +212,12 @@ void PortalRenderer::render_target(WorldRenderer &world_render, const PortalLink
     // mat4_look_to on why a subtraction here loses the cross-world case.
     const Mat4 view = mat4_look_to(vcam.pos, vcam.forward, vcam.up);
 
-    Mat4 projection = mat4_perspective(fov_y, aspect, z_near, z_far);
+    // A pair that scales down puts the camera that much nearer what it sees:
+    // the near plane comes with it (Portal::scales).
+    const float k_near = link.src.scales && link.dst.scales && link.src.half_h > 0.0f
+                             ? std::min(1.0f, link.dst.half_h / link.src.half_h)
+                             : 1.0f;
+    Mat4 projection = mat4_perspective(fov_y, aspect, z_near * k_near, z_far);
     Mat4 oblique;
     // This path renders one link and nothing else, so its diagnostics are
     // slot zero's.
@@ -487,7 +492,12 @@ void PortalRenderer::render_into(WorldRenderer &world_render, const PortalLink *
     // mat4_look_to on why a subtraction here loses the cross-world case.
     const Mat4 view = mat4_look_to(vcam.pos, vcam.forward, vcam.up);
 
-    Mat4 projection = mat4_perspective(fov_y, aspect, z_near, z_far);
+    // A pair that scales down puts the camera that much nearer what it sees:
+    // the near plane comes with it (Portal::scales).
+    const float k_near = link.src.scales && link.dst.scales && link.src.half_h > 0.0f
+                             ? std::min(1.0f, link.dst.half_h / link.src.half_h)
+                             : 1.0f;
+    Mat4 projection = mat4_perspective(fov_y, aspect, z_near * k_near, z_far);
     Mat4 oblique;
     const bool applied_oblique =
         m_use_oblique && portal_oblique_near(projection, view, link.dst, vcam.pos, &oblique);

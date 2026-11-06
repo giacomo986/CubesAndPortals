@@ -546,6 +546,8 @@ core.portal_open(x, y, z, axis, sign, turn, half_w, half_h, colour?) -> id|-1  -
 core.portal_close(x, y, z) -> 0..15|-1                             -- by centre, not by index
 core.portal_move(id, x, y, z, axis?, sign?, turn?) -> 1|0          -- every tick: it moves (drawn smooth, crossed relative to it); a new plane/turn or a jump > 4 puts it there
 core.portal_move(id, x, y, z, -1, 0, -1, nx, ny, nz, ux?, uy?, uz?)   -- turned freely: front n, up u, any way; may turn every tick
+core.portal_scale(id, on?) -> 1|0   -- both ends of a pair of two sizes: what crosses comes out scaled by far/near height
+core.body_scale(player, s?) -> 1|0  -- a body 1/32..4 as big: box, steps, eye, speeds, gravity, reach, drawn so
 core.portal_link(a, b) -> 1|0       -- a and b lead to each other; b = -1 unlinks a
 core.log(message)
 core.play_sound("mod:thing", x, y, z) -> 1|0  -- to everybody in the world; file mods/<mod>/<thing>.ogg on the client

@@ -1089,6 +1089,20 @@ Portals -- the engine's own trick, used further:
    it you are tiny in a garden world, grass blades as tall as trees. The
    portal transform is a rotation only; it needs a uniform scale (camera,
    body, speed, reach). A world of its own could grow from it.
+   Agreed 2026-11-06: the body really shrinks. BUILT 2026-11-06:
+   core.body_scale(player, s) (MovementRules::scale, 1/32..4): box, steps,
+   eye, speeds, jump, gravity, fall, near plane and reach together, others
+   see it drawn that big (ecs::Scaled, protocol 117); later body_movement
+   speeds shrink with it. core.portal_scale(id) on both ends of a pair of two
+   sizes: what crosses comes out k = far half_h / near half_h as big, seen
+   through at that scale (portal_transform, the near plane), its exit depth,
+   slack and trigger shrunk with a small opening. /lab scale <s>, /lab tiny
+   (D1 door-sized onto G1 an eighth high among a few blocks), /lab g1: into
+   D1, out of G1 at 1/16, the blocks towers; back into G1, out of D1 at 1;
+   0 corrections. Found and fixed on the way: out on a tiny opening's plane
+   the body was swallowed back for ever; its front-entry depth and its
+   sampling were a node's. Open: creatures and cubes keep their size through
+   it; parkour's wall tests at scale 1; the garden world itself (S3).
 5. A passport of servers (low-medium). With --federation built: a stamp for
    every server reached through a far portal, and a letterbox that sends an
    item or a letter to a friend server. A reason for communities to link up.

@@ -113,6 +113,15 @@ bool portal_turn_free(Portal &p, Vec3 n, Vec3 u)
     return true;
 }
 
+float portal_pair_scale(const Portal &src, const Portal &dst)
+{
+    return src.scales && dst.scales && src.half_h > 0.0f ? dst.half_h / src.half_h : 1.0f;
+}
+
+// What the node-sized slack round an opening shrinks to for one that scales
+// and is smaller than a body (Portal::scales); 1 for every other.
+static float slack_of(const Portal &p) { return p.scales ? std::min(1.0f, p.half_h) : 1.0f; }
+
 Vec3 portal_turn_between(Vec3 n0, Vec3 u0, Vec3 n1, Vec3 u1)
 {
     // A small turn d moves every unit axis a by d x a, and over an
@@ -171,7 +180,7 @@ Vec3 portal_transform_pos(const Portal &src, const Portal &dst, Vec3 pos)
     Vec3 n_d, r_d, u_d;
     triad(dst, n_d, r_d, u_d);
 
-    Vec3 off = apply_map(src, dst, pos - src.center);
+    Vec3 off = apply_map(src, dst, pos - src.center) * portal_pair_scale(src, dst);
 
     // The depth clamp. A point that maps exactly onto the destination plane is
     // simultaneously inside and outside the destination portal, and the trigger
@@ -205,7 +214,7 @@ bool portal_swallows(const Portal &p, Vec3 feet, float eye_height, Vec3 vel)
     if (dot(vel, n) > 0.1f) return false;
     // The eye alone, as the trigger: a crossing taken at the feet throws the
     // view, the eye still a body's height from where the opening showed it.
-    const float in  = 0.4f * kNodeSize;   // a tenth in from each face of the block
+    const float in  = 0.4f * kNodeSize * slack_of(p);   // a tenth in from each face of the block
     const Vec3  rel = feet + Vec3{0.0f, eye_height, 0.0f} - p.center;
     return std::fabs(dot(rel, n)) <= in && std::fabs(dot(rel, r)) <= p.half_w &&
            std::fabs(dot(rel, u)) <= p.half_h;
@@ -221,10 +230,11 @@ bool in_portal_bounds(const Portal &p, Vec3 pos)
     const float lu  = std::fabs(dot(rel, u));
     const float ln  = std::fabs(dot(rel, n));
 
+    const float k = slack_of(p);
     if (p.kind == PortalKind::Frame) {
         // Loose: the wall around the opening blocks a sideways approach anyway,
         // and the slack helps a player who clips a corner.
-        return lr <= p.half_w + 0.3f && lu <= p.half_h + 0.3f && ln <= 1.0f;
+        return lr <= p.half_w + 0.3f * k && lu <= p.half_h + 0.3f * k && ln <= 1.0f * k;
     }
 
     // Tight: nothing else stops a player who merely walks past a free-standing
@@ -236,12 +246,12 @@ bool in_portal_bounds(const Portal &p, Vec3 pos)
     // mid-fall, which cleared the camera hint and made the portal visibly
     // vanish under them.
     const float depth_tol = p.horizontal() ? 2.0f : 1.0f;
-    return lr <= p.half_w + 0.1f && lu <= p.half_h + 0.6f && ln <= depth_tol;
+    return lr <= p.half_w + 0.1f * k && lu <= p.half_h + 0.6f * k && ln <= depth_tol * k;
 }
 
 bool past_trigger(const Portal &p, Vec3 eye)
 {
-    return portal_depth(p, eye) < portal_tuning().trigger_depth();
+    return portal_depth(p, eye) < portal_tuning().trigger_depth() * slack_of(p);
 }
 
 // The point of the body that crosses: the first to reach the plane. Through a
@@ -284,7 +294,7 @@ bool portal_step_trigger(const Portal &p, PortalTriggerState &state, Vec3 feet, 
         state.in_bounds = true;
 
         // Front entry in the ordinary sense: still on the front side.
-        state.entered_from_front = depth >= portal_tuning().trigger_depth();
+        state.entered_from_front = depth >= portal_tuning().trigger_depth() * slack_of(p);
 
         // Border entry. A fast faller is already past the plane on the very
         // first sample where they are in bounds -- the frame in which they were
@@ -299,7 +309,7 @@ bool portal_step_trigger(const Portal &p, PortalTriggerState &state, Vec3 feet, 
             const Vec3  rel = feet - p.center;
             const float lr  = std::fabs(dot(rel, r));
             const float lu  = std::fabs(dot(rel, u));
-            if (lr <= p.half_w - 0.15f && lu <= p.half_h - 0.15f)
+            if (lr <= p.half_w - 0.15f * slack_of(p) && lu <= p.half_h - 0.15f * slack_of(p))
                 state.entered_from_front = true;
         }
     }
@@ -356,7 +366,7 @@ bool trigger_along(const Portal &p, PortalTriggerState &state, Vec3 from, Vec3 t
     if (dt > 0.0f && dt < 1.0f) from = from + p.vel * dt;
     const Vec3  step = to - from;
     const float d    = length(step);
-    int         n    = d > 0.0f ? (int)(d / 0.15f) + 1 : 1;
+    int         n    = d > 0.0f ? (int)(d / (0.15f * slack_of(p))) + 1 : 1;
     if (n > 64) n = 64;
 
     for (int i = 1; i <= n; ++i) {
@@ -379,7 +389,7 @@ WallShift portal_wall_shift(const Portal &p, Vec3 feet, float half_width, float 
                             float margin)
 {
     WallShift w;
-    if (p.horizontal() || p.free) return w;
+    if (p.horizontal() || p.free || p.scales) return w;
     const Vec3  n   = p.normal();
     const Vec3  r   = p.right();
     const Vec3  rel = feet - p.center;
@@ -412,7 +422,7 @@ WallShift portal_wall_shift(const Portal &p, Vec3 feet, float half_width, float 
 float portal_floor_shift(const Portal &p, Vec3 feet, Vec3 velocity, float dt, float half_width)
 {
     // One turned freely stands in the air: no block holds it up to sink into.
-    if (!p.horizontal() || p.free) return 0.0f;
+    if (!p.horizontal() || p.free || p.scales) return 0.0f;
     velocity = velocity - p.vel;
 
     // The whole box over the opening, not only the feet. The shift lowers the
@@ -466,7 +476,7 @@ float portal_floor_shift(const Portal &p, Vec3 feet, Vec3 velocity, float dt, fl
 Vec3 portal_funnel(const Portal &p, Vec3 feet, Vec3 velocity, float gravity, float dt)
 {
     velocity = velocity - p.vel;
-    if (!p.horizontal() || p.free || p.normal().y <= 0.0f || velocity.y >= 0.0f) return Vec3{};
+    if (!p.horizontal() || p.free || p.scales || p.normal().y <= 0.0f || velocity.y >= 0.0f) return Vec3{};
 
     // How long until the feet reach the top of the node the opening is in:
     // drop + vy t + g t^2 / 2 = 0, the root in the future.
@@ -554,7 +564,7 @@ Traversal portal_traverse(const Portal &src, const Portal &dst, Vec3 feet, Vec3 
     // -------------------------------------------------------------- velocity
     // Relative to the openings: what the source swallowed at its own speed
     // comes out at the destination's. Both at rest, the map alone.
-    out.velocity_delta = apply_map(src, dst, vel - src.vel) + dst.vel - vel;
+    out.velocity_delta = apply_map(src, dst, vel - src.vel) * portal_pair_scale(src, dst) + dst.vel - vel;
 
     // --------------------------------------------------------------- position
     //
@@ -588,7 +598,18 @@ Traversal portal_traverse(const Portal &src, const Portal &dst, Vec3 feet, Vec3 
     // it landing exactly ON the plane, which is the case that ping-pongs.
     const Vec3 eye = feet + Vec3{0.0f, eye_height, 0.0f};
 
-    Vec3 off = apply_map(src, dst, eye - src.center);
+    // A pair that scales (Portal::scales): the map's place, as big against
+    // the far end as against this one, and the body that big too.
+    const float k = portal_pair_scale(src, dst);
+    Vec3 off = apply_map(src, dst, eye - src.center) * k;
+    if (k != 1.0f) {
+        // Out where config/portal.cfg puts any body, at the far end's size:
+        // landed on the plane of an inch-high opening the body was inside it,
+        // swallowed (portal_swallows) and sent straight back, for ever.
+        off = off + n_d * (portal_tuning().exit_depth() * slack_of(dst) - dot(off, n_d));
+        out.feet = dst.center + off - Vec3{0.0f, eye_height * k, 0.0f};
+        return out;
+    }
 
     // The normal component is NOT the map's. config/portal.cfg names where the
     // player lands inside the destination block, and that is a position rather

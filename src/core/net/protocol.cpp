@@ -971,7 +971,7 @@ std::vector<uint8_t> Portals::encode() const
         w.u8(d.kind);
         w.u8(d.colour);
         w.f32(d.vx); w.f32(d.vy); w.f32(d.vz);
-        w.u8(d.free);
+        w.u8((d.free ? 1 : 0) | (d.scales ? 2 : 0));
         if (d.free) {
             w.f32(d.nx); w.f32(d.ny); w.f32(d.nz);
             w.f32(d.ux); w.f32(d.uy); w.f32(d.uz);
@@ -1027,8 +1027,10 @@ bool Portals::decode(ByteReader &r, Portals &out)
         d.vx          = r.f32();
         d.vy          = r.f32();
         d.vz          = r.f32();
-        d.free        = r.u8();
-        if (d.free > 1) return false;
+        const uint8_t how = r.u8();
+        if (how > 3) return false;
+        d.free   = how & 1;
+        d.scales = (how >> 1) & 1;
         if (d.free) {
             d.nx = r.f32(), d.ny = r.f32(), d.nz = r.f32();
             d.ux = r.f32(), d.uy = r.f32(), d.uz = r.f32();
@@ -1546,7 +1548,7 @@ std::vector<uint8_t> Entities::encode() const
             for (const uint16_t m : e.dress) pieces += m != 0;
             w.u8((e.flying ? 1 : 0) | (pieces > 0 ? 2 : 0) |   // 97, 102
                  (e.chassis && e.boosting ? 4 : 0) | (e.chassis && e.sliding ? 8 : 0) |   // 103
-                 (e.as_block != 0 ? 16 : 0));   // 116
+                 (e.as_block != 0 ? 16 : 0) | (e.scale != 1.0f ? 32 : 0));   // 116, 117
             if (pieces > 0) {
                 w.u8((uint8_t)pieces);
                 for (int k = 0; k < 10; ++k)
@@ -1557,6 +1559,7 @@ std::vector<uint8_t> Entities::encode() const
                     }
             }
             if (e.as_block != 0) w.u16(e.as_block);
+            if (e.scale != 1.0f) w.f32(e.scale);
         }
         if (dressed)
             for (const uint16_t id : e.worn) w.u16(id);
@@ -1652,6 +1655,10 @@ bool Entities::decode(ByteReader &r, Entities &out)
             if (more & 16) {   // drawn as a block (116): never air
                 e.as_block = r.u16();
                 if (!r.ok() || e.as_block == 0) return false;
+            }
+            if (more & 32) {   // a size of its own (117)
+                e.scale = r.f32();
+                if (!r.ok() || !(e.scale >= kMinBodyScale && e.scale <= kMaxBodyScale)) return false;
             }
         }
         if ((flags & 128) && e.kind != EntityKind::Player) return false;  // only a person holds (76)
@@ -2022,6 +2029,7 @@ std::vector<uint8_t> BodyMovement::encode() const
     w.f32(rules.length);
     w.f32(rules.rise);
     w.f32(rules.eye);
+    w.f32(rules.scale);   // protocol 117
     // Bit 2 a boat, which a 109 client ignores: it swims there instead.
     // Bit 3 a cart (110). Bit 4 astride a mount (115). Bit 5 under a glider,
     // bit 6 in a balloon, bit 7 a rope without parkour (116 too: an older
@@ -2052,6 +2060,7 @@ bool BodyMovement::decode(ByteReader &r, BodyMovement &out)
     out.rules.length  = r.f32();
     out.rules.rise    = r.f32();
     out.rules.eye     = r.f32();
+    out.rules.scale   = r.f32();
     const uint8_t moves = r.u8();
     out.rules.parkour = (moves & 1) != 0;
     out.rules.ledges  = (moves & 2) == 0;

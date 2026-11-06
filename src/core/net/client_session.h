@@ -101,6 +101,7 @@ struct RemotePlayer {
     uint16_t worn_tint[5] = {0, 0, 0, 0, 0};
     uint16_t dress[10] = {}, dress_tint[10] = {};   // a mod's models on them (102)
     uint16_t as_block = 0;   // the block they are drawn as (116, core.body_block), 0 for none
+    float    scale    = 1.0f; // how big they are drawn (117, core.body_scale)
     bool burning   = false;   // a creature in the sun
     bool falling   = false;   // a Drop that is a block falling: `item` is the block (73)
     bool shown     = false;   // a Drop on show (core.show_item): hangs, bigger (112)
