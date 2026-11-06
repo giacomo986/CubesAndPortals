@@ -1082,6 +1082,9 @@ Portals -- the engine's own trick, used further:
    away (NAME=train, logs). Not seen by eye yet: the train taking the bend
    (a green membrane passed once, likely its opening animation), and none
    follows a ridden cart or boat yet -- the same code with core.player_pos.
+   DONE the same day: /vlab carry (or NAME=carry) -- K goes 2.5 ahead of the
+   player the way they go; a cart ridden with it went through A and B and to
+   the line's end, never taken by K (its back is all the rider meets).
 4. Portals that scale (high). A diorama on a table that is a portal: through
    it you are tiny in a garden world, grass blades as tall as trees. The
    portal transform is a rotation only; it needs a uniform scale (camera,

@@ -15,6 +15,11 @@
 --         Stood on the line after the bend, a body is run into and taken
 --         through, out of one standing still (E), moving away from it at the
 --         train's speed. Then T starts again from the line's start.
+--   CARRY /vlab carry: an opening (K) goes with you 2.5 ahead, its front the
+--         way you go -- on a cart, in a boat, on foot -- onto one standing
+--         still (KE) by the platform's west edge. You see its back and never
+--         go in; whoever stands ahead of you is taken. /vlab carry again
+--         leaves it where it is.
 --
 -- Everybody arrives at the rail line's start with a cart and a boat in the
 -- bag; /vlab rail and /vlab boat go to each.
@@ -65,6 +70,9 @@ end)
 
 local opened = false
 local train = -1   -- T's id
+local carried = -1 -- K's id
+local carrier: number? = nil   -- who K goes with (/vlab carry)
+local heading = { 0.0, -1.0 }  -- which way they last went, flat
 local run = 0.0    -- how far along the line T is, in nodes
 
 -- Where along the line T is `d` nodes from its start, and which way it goes.
@@ -94,6 +102,11 @@ local function open_all(): boolean
     if a < 0 or b < 0 or c < 0 or d < 0 or t < 0 or e < 0 then return false end
     core.portal_link(t, e)
     train = t
+    local k = core.portal_open(X + 1.5, Y + 2.0, Z + 2.5, 1, -1, 0, 0.5, 1.0)
+    local ke = core.portal_open(X + 1.5, Y + 2.0, Z + 6.5, 1, 1, 0, 0.5, 1.0)
+    if k < 0 or ke < 0 then return false end
+    core.portal_link(k, ke)
+    carried = k
     core.portal_link(a, b)
     core.portal_link(c, d)
     core.log(`vehiclelab: openings A {a} B {b} C {c} D {d}`)
@@ -113,14 +126,20 @@ local function put(p: number, which: string?)
     core.player_spawn(p, s[1], s[2], s[3])
 end
 
-core.command("vlab", "rail|boat|train|watch -- go to a station of the vehicle lab")
+core.command("vlab", "rail|boat|train|watch|carry -- go to a station of the vehicle lab")
 core.event.on("core:command", function(ev)
-    if ev.name == "vlab" then put(ev.player, if STATIONS[ev.args] then ev.args else "rail") end
+    if ev.name == "vlab" and ev.args == "carry" then
+        carrier = if carrier == ev.player then nil else ev.player
+        core.notice(ev.player, if carrier then "CARRY: K goes with you" else "CARRY: K stays where it is")
+    elseif ev.name == "vlab" then
+        put(ev.player, if STATIONS[ev.args] then ev.args else "rail")
+    end
 end)
 -- A timed run types no commands: a player named after a station starts
 -- there (NAME=boat tools/vehiclelab.sh).
 local function first(p: number): string
     local n = core.player_name(p)
+    if n == "carry" then carrier = p end   -- the rail line, with K
     return if STATIONS[n] then n else "rail"
 end
 
@@ -133,6 +152,18 @@ core.event.on("core:tick", function(ev)
         if run > LINE then run = 0 end
         local x, z, hx, hz = along(run)
         core.portal_move(train, x, Y + 2.0, z, -1, 0, -1, hx, 0, hz, 0, 1, 0)
+    end
+    if carrier and carried >= 0 then
+        local x, y, z = core.player_pos(carrier)
+        local w = was[carrier]
+        if x and w then
+            local dx, dz = x - w[1], z - w[3]
+            local d = math.sqrt(dx * dx + dz * dz)
+            -- The way they go, once they go: standing, it stays as it was.
+            if d > 0.02 then heading = { dx / d, dz / d } end
+            core.portal_move(carried, x + heading[1] * 2.5, y + 1.0, z + heading[2] * 2.5,
+                             -1, 0, -1, heading[1], 0, heading[2], 0, 1, 0)
+        end
     end
     for _, p in core.players() do
         local t = (seen[p] or 0) + (ev.dt or 0.05)
