@@ -629,8 +629,11 @@ the villagers and start with questions (memory: villagers-need-design-first).
    kept in storage, so a far stone can be reached. Checked on a server with a
    client: the portal shows the far stone's beach; walked into with W, the
    player came out 300 east beside it; with the time cut to 5 s both ends shut
-   on time. Open: a body thrown in by core.player_launch went through the
-   plane without crossing (walking crosses); at more than 32 wanted at once,
+   on time. A body thrown in by core.player_launch went through the plane
+   without crossing: not seen again 2026-11-07 -- in the portal lab, launched
+   at 14 m/s (5 up) from 61.5 into W, it crossed at 57.8 and came out of B,
+   "crossed (1 so far)"; thrown low (2 up) it slides, stops on the ground's
+   grip and drops in the gap under W, never reaching the plane. At more than 32 wanted at once,
    the farthest pair may have one end live and the other not.
 7. Map and compass -- built 2026-10-28 in `mods/maps` (side both). A compass
    (four iron round a cinnabar) held shows a dial at the top: N turning with
