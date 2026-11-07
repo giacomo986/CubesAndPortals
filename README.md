@@ -245,7 +245,8 @@ climb, valves under the lava, a torch in the dark, frost, and finally a kart esc
 tunnel and the credits. After that the sandbox stays free, and two more worlds open:
 
 - **The front** (`games/front`): a battlefield in the style of the big team shooters, two bases
-  and three points to take, red against blue, with bots and vehicles.
+  and three points to take, red against blue, with bots and vehicles; each base has an airstrip
+  its planes take off from.
 - **The assault** (`games/assault`): the final co-op assault on Basoalth's dimension: four
   fortresses, a shop, allies and builders, a boss who grows into a giant, and an escape by jeep
   through a lava tunnel.

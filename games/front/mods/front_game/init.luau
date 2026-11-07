@@ -1137,10 +1137,12 @@ if serving then
     -- red's, and blue's the same mirrored across the middle.
     M.PARK = {
         { "jeep", 112.5, 32.5, 1 }, { "jeep", 116.5, 20.5, 1 }, { "tank", 142.5, 22.5, 1 },
-        { "heli", 98.5, 24.5, 1 }, { "plane", 128.5, 44.5, 1 },
+        -- The planes at the west end of their side's airstrip (front_core's
+        -- STRIP: x 156..240, z 19..30), each in a lane, nose east along it.
+        { "heli", 98.5, 24.5, 1 }, { "plane", 160.5, 27.5, 1, math.pi / 2 },
         { "mortar", 112.5, 13.5, 1 }, { "mortar", 144.5, 13.5, 1 }, { "howitzer", 151.5, 30.5, 1 },
         { "nest", 122.5, 60.5, 0 }, { "nest", 134.5, 60.5, 0 }, { "nest", 80.5, 122.5, 0 },
-        { "bomber", 128.5, 36.5, 1 }, { "aa", 118.5, 34.5, 1 }, { "aa", 138.5, 34.5, 1 },
+        { "bomber", 162.5, 22.5, 1, math.pi / 2 }, { "aa", 118.5, 34.5, 1 }, { "aa", 138.5, 34.5, 1 },
     }
 
     -- Where a machine is: its pose when it moves, else where it was put.
@@ -1196,8 +1198,10 @@ if serving then
         if M.spawned then return end
         M.spawned = true
         for _, p in M.PARK do
-            table.insert(M.respawn, { kind = p[1], home = { p[2], p[3], math.pi, p[4] }, at = 0 })
-            table.insert(M.respawn, { kind = p[1], home = { p[2], SIZE - p[3], 0, if p[4] == 0 then 0 else 2 }, at = 0 })
+            -- Facing the other side (red +z, blue -z), or along its airstrip
+            -- (p[5], the same way for both).
+            table.insert(M.respawn, { kind = p[1], home = { p[2], p[3], p[5] or math.pi, p[4] }, at = 0 })
+            table.insert(M.respawn, { kind = p[1], home = { p[2], SIZE - p[3], p[5] or 0, if p[4] == 0 then 0 else 2 }, at = 0 })
         end
     end
 

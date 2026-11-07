@@ -30,6 +30,10 @@ local GALLERY  = core.register_node("front_core:gallery", 120, 122, 126)
 local PANE     = core.register_node("front_core:pane", 190, 215, 230)
 local FRAME_R  = core.register_node("front_core:frame_red", 170, 30, 28)
 local FRAME_B  = core.register_node("front_core:frame_blue", 30, 56, 170)
+-- The airstrips' (below): tarmac, its painted lines, the lights at its ends.
+local TARMAC   = core.register_node("front_core:tarmac", 52, 54, 58)
+local STRIPE   = core.register_node("front_core:stripe", 232, 230, 220)
+local RUNWAY_LIGHT = core.register_node("front_core:runway_light", 255, 200, 90, true, 12)
 core.node_glass(PANE, 60)
 
 -- What a player is here: the sandbox's robot (mods/robot, linked).
@@ -59,6 +63,13 @@ local MID    = 128
 local RED_BASE  = { MID, 24 }
 local BLUE_BASE = { MID, SIZE - 24 }
 local POINTS    = { { 48, MID }, { MID, MID }, { 208, MID } }
+-- Each side's airstrip, east of its yard along +x, clear of the roads, the
+-- walls across the field and the machines parked in the yard: a plane wants
+-- speed on the ground before it lifts, and the bomber a good deal of it.
+-- x 156..240, twelve wide; blue's mirrored across the middle on z, as the
+-- bases are. Kept in step with front_game (M.PARK's planes at its west end).
+local STRIP = { x0 = 156, x1 = 240, z0 = 19, z1 = 30 }
+local STRIPS = { STRIP, { x0 = STRIP.x0, x1 = STRIP.x1, z0 = SIZE - STRIP.z1, z1 = SIZE - STRIP.z0 } }
 
 -- The gallery: a room on the west ridge, halfway between the bases and 16
 -- over the field, glazed along the field's side to watch the fight from.
@@ -84,6 +95,9 @@ local function flat_weight(x: number, z: number): number
     local near = 1e9
     for _, p in { RED_BASE, BLUE_BASE, POINTS[1], POINTS[2], POINTS[3] } do
         near = math.min(near, math.max(math.abs(x - p[1]), math.abs(z - p[2])) - 22)
+    end
+    for _, s in STRIPS do                                    -- the airstrips
+        near = math.min(near, math.max(s.x0 - x, x - s.x1, s.z0 - z, z - s.z1) - 6)
     end
     near = math.min(near, math.abs(x - MID) - 4)           -- the road north and south
     near = math.min(near, math.abs(z - MID) - 4)           -- and east and west
@@ -175,6 +189,24 @@ core.register_mapgen("front_core:field", function(ctx)
         end
         box(cx, cx, GROUND, GROUND + 6, cz, cz, WALL)
         box(cx + 1, cx + 3, GROUND + 5, GROUND + 6, cz, cz, colour)
+    end
+
+    -- ------------------------------------------------------------ airstrips
+    -- Tarmac on the flat, its edges and a dashed centre line painted, the air
+    -- over it cleared, and a row of lights across each end.
+    for _, s in STRIPS do
+        box(s.x0, s.x1, GROUND - 1, GROUND - 1, s.z0, s.z1, TARMAC)
+        box(s.x0, s.x1, GROUND, GROUND + 12, s.z0, s.z1, 0)
+        box(s.x0, s.x1, GROUND - 1, GROUND - 1, s.z0, s.z0, STRIPE)
+        box(s.x0, s.x1, GROUND - 1, GROUND - 1, s.z1, s.z1, STRIPE)
+        local mz = (s.z0 + s.z1) // 2
+        for x = s.x0 + 4, s.x1 - 4, 6 do
+            box(x, x + 2, GROUND - 1, GROUND - 1, mz, mz + 1, STRIPE)
+        end
+        for z = s.z0, s.z1, 3 do
+            box(s.x0, s.x0, GROUND - 1, GROUND - 1, z, z, RUNWAY_LIGHT)
+            box(s.x1, s.x1, GROUND - 1, GROUND - 1, z, z, RUNWAY_LIGHT)
+        end
     end
 
     -- ------------------------------------------------------------ point A: the farm

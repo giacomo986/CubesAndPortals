@@ -2093,7 +2093,14 @@ only what flies; bots take them when an enemy flies near). In 3-minute bot
 matches: kills by mortar, howitzer, rocket, missile, cannon, MG; bombers
 take off from z 36 and circle at 50-60; AA bots shot down planes, a heli
 and both bombers. Open: a craft of mass 2500 barely moves on the ground
-(800 is fine), not looked into -- the bomber is 800.
+(800 is fine), not looked into -- the bomber is 800. Airstrips since
+2026-11-07 (Giacomo: the big plane works but wants a little runway): east
+of each yard along +x, x 156..240 and 12 wide (z 19..30, blue's mirrored),
+tarmac with painted edges, a dashed centre line and lights across both
+ends, the hills flattened round it; the plane and the bomber park at its
+west end in two lanes, nose east (M.PARK's fifth field, a yaw). Seen: a
+bot's bomber off at x ~200 after some 40 of its 84 nodes, up to 80; the
+strip, both planes and its lights in a screenshot.
 The jeep has a steering wheel under drive_idle's hands, turned by the
 client as the jeep turns (a steering_wheel bone along its column), front
 wheels that steer (steer_*), and its driver plays drive_left/right with

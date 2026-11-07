@@ -247,7 +247,8 @@ la fuga in kart in un tunnel e i titoli di coda. Dopo, il sandbox resta libero e
 due mondi:
 
 - **Il fronte** (`games/front`): un campo di battaglia nello stile dei grandi sparatutto a
-  squadre, due basi e tre punti da prendere, rossi contro blu, con bot e mezzi.
+  squadre, due basi e tre punti da prendere, rossi contro blu, con bot e mezzi; ogni base ha una
+  pista da cui decollano i suoi aerei.
 - **L'assalto** (`games/assault`): l'assalto finale alla dimensione di Basoalth, da giocare
   insieme: quattro fortezze, un negozio, alleati e costruttori, un boss che diventa un gigante e
   la fuga in jeep in un tunnel di lava.
