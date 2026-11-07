@@ -2402,8 +2402,12 @@ if serving then
             if o == nil then
                 return
             end
-            s.pending = nil
             local id, mob = SV.mob_on_ray(o :: {number}, d :: {number}, { px, py, pz }, true)
+            -- The left button held on the creature a skill is walking up to
+            -- asks again every 0.15 s: that keeps the skill, another place drops it.
+            if id == nil or id ~= s.target then
+                s.pending = nil
+            end
             if id and SV.npc[id] then
                 SV.go(p, s, { kind = "npc", id = id }, mob[1], mob[2], mob[3])
                 return
@@ -3007,6 +3011,8 @@ if drawing then
     C.skill = 1
     C.held = false
     C.again = 0
+    C.rheld = false
+    C.ragain = 0
     C.dest = nil
     C.chase = nil
     C.chase_left = 0
@@ -3939,7 +3945,12 @@ if drawing then
             local ray = ray_text()
             if ray ~= nil and not C.picking then
                 ask(`cast {C.skill} {ray}`)
+                -- Held, cast again as a held left button walks again: a bash
+                -- wanted a click each time.
+                C.rheld, C.ragain = true, 0.4
             end
+        elseif a == "mouse_right_up" then
+            C.rheld = false
         elseif a == "key_ctrl" then
             C.ctrl = true
         elseif a == "key_ctrl_up" then
@@ -3985,6 +3996,16 @@ if drawing then
                     core.iso_view(0, 135, 55, 40, if first then 0 else 0.8)
                 else
                     core.iso_view(30, 135, 55, 40, if first then 0 else 0.8)
+                end
+            end
+        end
+        if C.rheld then
+            C.ragain -= dt
+            if C.ragain <= 0 then
+                C.ragain = 0.4
+                local ray = ray_text()
+                if ray ~= nil and not C.picking and not over_ui() then
+                    ask(`cast {C.skill} {ray}`)
                 end
             end
         end

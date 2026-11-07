@@ -247,7 +247,9 @@ Open:
   (a fireball and the skeletons' arrows within one look at the life globe).
   Open: holding the left button strikes again every 0.15 s and drops a
   skill waiting for the creature to come within reach, and the right button
-  does not repeat when held: a bash wants a click each time. The "audio: no file for
+  does not repeat when held: a bash wants a click each time. (Both done
+  2026-11-07: a "move" on the creature a skill walks up to keeps the skill;
+  the right button held casts again every 0.4 s. Not played by hand yet.) The "audio: no file for
   sound" lines of those runs were the pilot's: a --play-seconds client opens
   no audio device; the files arrive whole; a world from before keeps its old waste around x 64 and starts
   the new ground at x 1000 (the arrival is moved there).
