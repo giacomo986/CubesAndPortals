@@ -8302,9 +8302,9 @@ Vec3 camera_look(const Scene &s, const Player &player)
 // picture. The ray starts at the head, which the body's collision already keeps
 // out of every block.
 //
-// NOT a portal-aware camera, said where it is decided: a camera behind a player
-// who has just walked out of an opening can sit on the far side of it, and what
-// it draws there is the world the player left, not the one behind them.
+// Not carried through an opening: a camera behind a player who has just
+// walked out of one is pulled in short of its plane (portal_pull), rather
+// than sitting on the far side drawing the world the player left.
 // The eye the camera is placed from: the body's, and driving, raised or
 // lowered to where the chassis is rather than the feet (Scene::drive_eye_y).
 Vec3 eye_of(const Scene &s, const Player &player)
@@ -8359,6 +8359,27 @@ KartView kart_view(const Scene &s, const Player &player)
     return k;
 }
 
+// How far a camera put along `dir` from `head` may go before it goes through
+// an opening: a body just out of one had the camera behind it on the far side,
+// drawing the world it had left. Pulled in to a little short of the plane
+// instead, as a block pulls it in.
+// ponytail: pulled in, not carried through; a camera seen through the opening
+// would want the far end's map.
+float portal_pull(const Session &w, Vec3 head, Vec3 dir, float go)
+{
+    for (const Portal &p : w.linked_openings) {
+        const Vec3  n  = p.normal();
+        const float dn = dot(dir, n);
+        if (std::fabs(dn) < 1e-4f) continue;
+        const float t = dot(p.center - head, n) / dn;
+        if (t <= 0.0f || t >= go) continue;
+        const Vec3 at = head + dir * t - p.center;
+        if (std::fabs(dot(at, p.right())) < p.half_w + 0.3f && std::fabs(dot(at, p.up())) < p.half_h + 0.3f)
+            go = std::max(0.0f, t - 0.3f);
+    }
+    return go;
+}
+
 Vec3 camera_eye(const Scene &s, const Player &player)
 {
     const Vec3  head = eye_of(s, player);
@@ -8377,7 +8398,7 @@ Vec3 camera_eye(const Scene &s, const Player &player)
     const Vec3 dir = to * (1.0f / len);
 
     const RaycastHit hit = raycast(s.act().world, s.act().registry, head, dir, len);
-    const float      go  = hit.hit ? std::max(0.0f, hit.distance - 0.3f) : len;
+    const float      go  = portal_pull(s.act(), head, dir, hit.hit ? std::max(0.0f, hit.distance - 0.3f) : len);
     const Vec3       world_eye = head + dir * go;
 
     const KartView k = kart_view(s, player);
@@ -8386,7 +8407,9 @@ Vec3 camera_eye(const Scene &s, const Player &player)
     const Vec3       kto  = k.up * (0.3f * kd) - k.fwd * kd;
     const float      klen = length(kto);
     const RaycastHit khit = raycast(s.act().world, s.act().registry, k.head, kto * (1.0f / klen), klen);
-    const Vec3       kart_eye = k.head + kto * ((khit.hit ? std::max(0.0f, khit.distance - 0.3f) : klen) / klen);
+    const Vec3       kdir = kto * (1.0f / klen);
+    const Vec3       kart_eye =
+        k.head + kdir * portal_pull(s.act(), k.head, kdir, khit.hit ? std::max(0.0f, khit.distance - 0.3f) : klen);
     return world_eye + (kart_eye - world_eye) * k.w;
 }
 

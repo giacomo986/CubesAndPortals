@@ -1633,8 +1633,12 @@ Seen in Xephyr; not played with the gun by hand.
   changes (third person kept walking into the Inferno). Scripted lap fine;
   Giacomo saw the first fixed, the other two not tried by hand yet.
 - A parked kart is one node solid (its nose and tail are drawn through).
-- The chase camera (V) is not portal-aware.
-- A crouch does not stop a body at an edge, and the box stays 1.8 tall.
+- The chase camera (V) is not portal-aware: since 2026-11-07 it is at least
+  pulled in short of an opening's plane (portal_pull), so a body just out of
+  one is not seen from the world it left; carried through, it is not. Not
+  looked at by hand yet.
+- A crouch stops a body at an edge (player.cpp, since 2026-11-01); the box
+  stays 1.8 tall.
 
 **Parkour.** Nobody else sees a rope, a backflip or a kick; the validator
 allows any height and the 0.8 box to anybody in a parkour world.
