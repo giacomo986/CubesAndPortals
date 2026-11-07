@@ -183,7 +183,15 @@ Open:
   the shin), the rest arms hung 20 degrees out and 8 ahead so the hands
   clear the tassets, and the first-person arms put on the robot's own fp
   bones (forearm by its wrist end, 0.6 as thick) so the hand holds what the
-  robot's holds where it holds it. Seen in Xephyr in first and third person; idle, walk, mine,
+  robot's holds where it holds it. Then a third concept (image-to-image, 6,
+  and smart topology again, 15): a bearded man's face under an open dragon
+  helmet (Skin, only under the brim) and steel bracers with crisp gold edges
+  and five-fingered gauntlets. Each leg's axis is measured off two bands of
+  its greave and the leg turned straight onto its bones, so its plates turn
+  about the bone; a piece that runs across a joint (Meshy made bracer and
+  gauntlet one) bends there instead of following one bone; the
+  first-person arm is carried whole to the robot's wrist with closed dark
+  sleeves down the bones and a plug in the cuff (the shells are open). Seen in Xephyr in first and third person; idle, walk, mine,
   sword_slash, crouch_walk rendered in Blender. Registered in mods/robot and
   the nine games that list species. Open: no styles; extras and arpg gear
   are the robot's, not refitted; the cape is bound to the hips and spine,

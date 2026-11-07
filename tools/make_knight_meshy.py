@@ -48,12 +48,14 @@ S = 1.15   # the knight's file is 1.36 tall: 1.56 with its horns, the robot's he
 # Its joints, read off front and side renders of that file (x either side,
 # depth 0): shoulder, elbow, wrist and fingertips of the A-pose arm, the hip
 # joint, knee and ankle, the neck and the top of the horns.
-K_SHOULDER, K_ELBOW, K_WRIST, K_TIP = (0.175, 0.895), (0.33, 0.79), (0.425, 0.68), (0.52, 0.55)
-K_HIP, K_KNEE, K_ANKLE = (0.087, 0.61), 0.365, 0.07   # the hip under the tassets, below the belt
+K_SHOULDER, K_ELBOW, K_WRIST, K_TIP = (0.183, 0.896), (0.27, 0.81), (0.426, 0.678), (0.557, 0.522)
+K_HIP, K_KNEE, K_ANKLE = (0.087, 0.61), 0.36, 0.07   # the hip under the tassets, below the belt
 K_NECK, K_TOP = 1.06, 1.36
+SLEEVE = (0.05, 0.042, 0.05)   # radius of the first-person sleeves: upper arm, forearm, cuff
 FP_SLIM = 0.6   # first-person arms this much thinner about their bones
 ARM_OUT, ARM_FORWARD = 20, 8   # degrees the rest arm hangs out and ahead
 TRIS = 8000   # what the pieces are decimated to
+ACROSS = 0.2   # a piece with this share on a second bone spans a joint and bends
 RIGID_MAX = 400   # a piece of up to this many vertices follows one bone whole
 ONE_COLOUR = 0.7   # a piece this much one colour is all of it
 # The flat colours a face takes, sRGB, the texture's own (k-means of it), a
@@ -61,10 +63,11 @@ ONE_COLOUR = 0.7   # a piece this much one colour is all of it
 # reads near black in the game's light): the red plates and the gold trim
 # are the player's primary and secondary.
 COLOURS = [
-    ("tint_1", (0.52, 0.09, 0.10)), ("tint_1", (0.37, 0.05, 0.07)), ("tint_1", (0.42, 0.19, 0.16)),
-    ("tint_2", (0.67, 0.62, 0.42)), ("tint_2", (0.54, 0.45, 0.32)),
-    ("Steel", (0.33, 0.33, 0.33)), ("Steel", (0.27, 0.28, 0.29)),
-    ("Dark", (0.17, 0.17, 0.17)), ("Dark", (0.10, 0.10, 0.11)),
+    ("tint_1", (0.52, 0.09, 0.10)), ("tint_1", (0.32, 0.05, 0.07)), ("tint_1", (0.40, 0.20, 0.16)),
+    ("tint_2", (0.67, 0.60, 0.40)), ("tint_2", (0.65, 0.59, 0.39)), ("tint_2", (0.55, 0.48, 0.33)),
+    ("Steel", (0.42, 0.42, 0.44)), ("Steel", (0.43, 0.38, 0.32)), ("Steel", (0.29, 0.30, 0.29)),
+    ("Dark", (0.16, 0.15, 0.14)), ("Dark", (0.22, 0.22, 0.20)), ("Dark", (0.14, 0.12, 0.11)),
+    ("Skin", (0.83, 0.66, 0.59)),   # only on the face (colours)
 ]
 CAPE_Y = -0.09   # behind this (scaled, facing +Y) a point under the hips is cape, not leg
 
@@ -121,8 +124,7 @@ def place_rig(rig):
             h, t = old[n]
             scale = (r[i + 1] - r[i]).length / (robot[i + 1] - robot[i]).length
             new[n] = (r[i], r[i] + (t - h) * scale)
-        hip = k(K_HIP[0], K_HIP[1], sx)
-        joints = [hip, Vector((hip.x, 0, K_KNEE * S)), Vector((hip.x, 0, K_ANKLE * S))]
+        joints = LEGS[side][1]
         for i, n in enumerate(BONES["leg_" + side]):
             h, t = old[n]
             if i < 2:
@@ -155,6 +157,34 @@ def move(rig, new):
             b.roll = roll
     bpy.ops.object.mode_set(mode="OBJECT")
     return {n: (new[n], new[n][0] - old[n][0]) for n in new}
+
+
+LEGS = {}   # side: (joints as made, joints straight below the hip), measure_legs
+
+
+def measure_legs(ob):
+    """Each leg's own axis, from the mesh: the middle of what is round the shin
+    in two bands (the cape behind left out), drawn up to the hip's height. The
+    bones go straight down from that hip, and the leg is turned onto them, so
+    its plates sit round the bone they turn about."""
+    for side, sx in (("L", -1), ("R", 1)):
+        def middle(z, half):
+            ps = [v.co for v in ob.data.vertices
+                  if v.co.x * sx > 0.02 and v.co.y > CAPE_Y * S and abs(v.co.z - z) < half]
+            return sum(ps, Vector()) / len(ps)
+        # two bands of the greave: the knee's cop and the foot stick out ahead
+        knee, ankle = middle((K_KNEE - 0.08) * S, 0.025), middle((K_ANKLE + 0.07) * S, 0.025)
+        knee.y = ankle.y = (knee.y + ankle.y) / 2   # upright seen from the side
+        d = knee - ankle
+
+        def at(z):
+            return ankle + d * ((z - ankle.z) / d.z)
+        made = [at(K_HIP[1] * S), at(K_KNEE * S), at(K_ANKLE * S)]
+        rest = [made[0].copy()]
+        for i in range(2):
+            rest.append(rest[-1] - Vector((0, 0, (made[i + 1] - made[i]).length)))
+        LEGS[side] = (made, rest)
+        print(f"leg {side}: hip {tuple(round(c, 3) for c in made[0])}, ankle {tuple(round(c, 3) for c in made[2])}")
 
 
 def segment(p, a, b):
@@ -258,7 +288,12 @@ def colours(me, cols, piece):
     that is mostly one colour all of it."""
     names = [k for k, _ in COLOURS]
     ref = np.array([c for _, c in COLOURS])
-    label = list(np.argmin(((cols[:, None, :] - ref[None]) ** 2).sum(-1), axis=1))
+    dist = ((cols[:, None, :] - ref[None]) ** 2).sum(-1)
+    skin = [i for i, (n, _) in enumerate(COLOURS) if n == "Skin"]
+    for f in me.polygons:   # skin is the face under the helmet's brim, nowhere else
+        if not (f.center.z > (K_NECK - 0.05) * S and f.center.y > 0.0):
+            dist[f.index, skin] = np.inf
+    label = list(np.argmin(dist, axis=1))
     vface = [[] for _ in me.vertices]
     for f in me.polygons:
         for v in f.vertices:
@@ -304,11 +339,11 @@ def colours(me, cols, piece):
         f.material_index = order.index(names[lab])
 
 
-def body(rig):
-    """The knight, its arms turned down, bound to the moved rig: a small piece
-    follows one bone whole, as the robot's parts do; a big one (the torso, the
-    cape) bends, its vertices each the nearest bone of their part, blurred."""
-    ob, cols = load()
+def body(rig, ob, cols):
+    """The knight, its arms turned down and legs straightened, bound to the
+    moved rig: a small piece follows one bone whole, as the robot's parts do; a
+    big one (the torso, the cape) bends, its vertices each the nearest bone of
+    their part, blurred."""
     me = ob.data
     piece, count = pieces(me)
     colours(me, cols, piece)
@@ -323,6 +358,12 @@ def body(rig):
             seg[n] = (a[i], a[i + 1])
             moves[n] = (a[i], r[i], (a[i + 1] - a[i]).rotation_difference(r[i + 1] - r[i]))
             straight[n] = (a[i], r0[i], (a[i + 1] - a[i]).rotation_difference(r0[i + 1] - r0[i]))
+        made, rest = LEGS[side]
+        for i, n in enumerate(BONES["leg_" + side]):   # the foot follows the shin's ankle
+            j = min(i, 1)
+            turn = (made[j + 1] - made[j]).rotation_difference(rest[j + 1] - rest[j])
+            seg[n] = (made[i], made[i + 1]) if i < 2 else (made[2], made[2] + Vector((0, 0.15, -0.05)))
+            moves[n] = straight[n] = (made[i], rest[i], turn)
     where = [part(v.co) for v in me.vertices]
     nearest = [min(BONES[w], key=lambda b: segment(v.co, *seg[b])) for v, w in zip(me.vertices, where)]
     members = [[] for _ in range(count)]
@@ -334,7 +375,16 @@ def body(rig):
         for i in vs:
             tally[nearest[i]] = tally.get(nearest[i], 0) + 1
         best = max(tally, key=tally.get)
-        if len(vs) <= RIGID_MAX or tally[best] >= 0.85 * len(vs):
+        # a piece that runs across a joint (Meshy made bracer and gauntlet one)
+        # bends there instead
+        bones = {nearest[i] for i in vs}
+        across = len(bones) > 1 and sorted(tally.values())[-2] >= ACROSS * len(vs)
+        if not across and (len(vs) <= RIGID_MAX or tally[best] >= 0.85 * len(vs)):
+            # the bone nearest the piece's middle, among its part's: a bracer
+            # reaching the wrist is the forearm's, though its cuff is near the hand
+            mid = sum((me.vertices[i].co for i in vs), Vector()) / len(vs)
+            region = max({where[i] for i in vs}, key=lambda r: sum(where[i] == r for i in vs))
+            best = min(BONES[region], key=lambda b: segment(mid, *seg[b]))
             rigid.add(p)
             for i in vs:
                 nearest[i] = best
@@ -392,10 +442,10 @@ def arm_part(ob, weights, hanging):
 
 def arms(rig, data, robot):
     """The arms seen in first person, on robot_arms.gltf's rig as it is: the
-    knight's arm hanging straight, each piece carried onto the robot's bone
-    -- a forearm by its wrist end, so it meets the hand, the gap at the elbow
-    out of view -- and slimmed (FP_SLIM), so the hands are where the robot's
-    are and hold what it holds there without the bracers filling the view."""
+    knight's arm hanging straight, carried whole so its wrist is the robot's
+    (the shoulder falls behind the eye, out of view) and slimmed (FP_SLIM), so
+    the hands are where the robot's are and hold what it holds there without
+    the bracers filling the view."""
     mw = rig.matrix_world
     fp = {b.name: mw @ b.head_local for b in rig.data.bones}
     co = []
@@ -412,6 +462,33 @@ def arms(rig, data, robot):
             local.y *= FP_SLIM
             p += (fp[at] + local) * x
         co.append(p)
+    # Meshy's bracers are open shells: seen from the elbow, as the eye sees
+    # them, a ring with nothing in it. A closed dark sleeve down each of the
+    # robot's arm bones fills them, as the robot's own arm is one tube.
+    faces, mats, weights = list(data["faces"]), list(data["mat"]), list(data["w"])
+    for side in "LR":
+        hand = fp[f"hand_{side}"]
+        for bone, a, b, radius in ((f"upper_arm_{side}", fp[f"upper_arm_{side}"], fp[f"forearm_{side}"], SLEEVE[0]),
+                                   (f"forearm_{side}", fp[f"forearm_{side}"], hand, SLEEVE[1]),
+                                   # and a plug in the gauntlet's open cuff
+                                   (f"hand_{side}", hand + Vector((0, 0, 0.01)), hand - Vector((0, 0, 0.07)), SLEEVE[2])):
+            axis = (b - a).normalized()
+            u = axis.orthogonal().normalized()
+            v = axis.cross(u)
+            start = len(co)
+            for end in (a, b):
+                for i in range(8):
+                    t = 2 * math.pi * i / 8
+                    co.append(end + (u * math.cos(t) + v * math.sin(t)) * radius)
+                    weights.append({bone: 1.0})
+            for i in range(8):
+                j = (i + 1) % 8
+                faces.append([start + i, start + j, start + 8 + j, start + 8 + i])
+                mats.append("Dark")
+            faces.append([start + i for i in range(8)][::-1])
+            faces.append([start + 8 + i for i in range(8)])
+            mats += ["Dark", "Dark"]
+    data = dict(data, faces=faces, mat=mats, w=weights)
     me = bpy.data.meshes.new(NAME + "_arms")
     me.from_pydata(co, [], data["faces"])
     order = list(dict.fromkeys(data["mat"]))
@@ -536,23 +613,26 @@ def main():
     robot_path = os.path.join(OUT, "robot.gltf")
     rig, mesh = fresh(robot_path)
     keep_tools(mesh)
+    ob, cols = load()
+    measure_legs(ob)
     placed = place_rig(rig)
     tools_moved(mesh, placed["hand_R"][1])
     mesh.name = NAME + "_tools"
-    ob, weights, hanging = body(rig)
+    ob, weights, hanging = body(rig, ob, cols)
     data = arm_part(ob, weights, hanging)
     path = os.path.join(OUT, NAME + ".gltf")
     export(rig, [ob, mesh], path, False)
     finish(path, robot_path, K_HIP[1] * S / 0.73)
 
     # Where each arm bone's pieces hang from on the straight knight, and the
-    # robot's bone that point goes to: the shoulder for an upper arm, the
-    # wrist for a forearm and a hand.
+    # robot's bone that point goes to: the wrist, for all of them.
     knight = {}
     for side, sx in (("L", -1), ("R", 1)):
         _, r0 = arm_pose(sx, 0)
         up, fore, hand = BONES["arm_" + side]
-        knight[up], knight[fore], knight[hand] = (r0[0], up), (r0[2], hand), (r0[2], hand)
+        # one move for the whole arm: pieces of a bracer taken by different
+        # bones would otherwise come apart
+        knight[up] = knight[fore] = knight[hand] = (r0[2], hand)
 
     arms_path = os.path.join(OUT, "robot_arms.gltf")
     rig, mesh = fresh(arms_path)
