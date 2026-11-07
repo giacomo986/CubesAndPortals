@@ -1285,6 +1285,8 @@ if serving then
         local lx, _, lz = core.player_look(p)
         s.spin, s.boost, s.yaw = SPIN, 0, math.atan2(lx or 0, lz or 1)
         tell(p, `fx spin {SPIN}`)
+        local x, y, z = core.player_pos(p)
+        if x then core.play_sound("track_core:spin", x, y + 1, z) end
         core.log(`track_game: {s.name} hit by {why}`)
     end
 
@@ -1345,9 +1347,11 @@ if serving then
         if item == "boost" or item == "boost3" then
             s.boost = BOOST
             tell(p, `fx boost {BOOST}`)
+            core.play_sound("track_core:boost", x, y + 1, z)
         elseif item == "star" then
             s.star = STAR
             tell(p, `fx star {STAR}`)
+            core.play_sound("track_core:star", x, y + 1, z)
         elseif item == "bolt" or item == "ink" then
             for q, o in players do
                 if q ~= p and o.driving then
@@ -1359,11 +1363,15 @@ if serving then
                         end
                     else
                         tell(q, `fx ink {INK}`)
+                        local qx, qy, qz = core.player_pos(q)
+                        if qx then core.play_sound("track_core:ink", qx, qy + 1, qz) end
                     end
                 end
             end
             tell(0, `fx {item}go {s.name}`)
+            if item == "bolt" then core.play_sound("track_core:bolt", x, y + 2, z) end
         elseif item == "banana" then
+            core.play_sound("track_core:throw", x, y + 1, z)
             local bx, bz = x - lx * 2.2, z - lz * 2.2
             local id = spawn_thing("banana", bx, ground(bx, y + 0.5, bz) or y, bz, p)
             if id then
@@ -1376,6 +1384,7 @@ if serving then
             -- A shell, ahead or (S held) behind. A red one picks the nearest
             -- kart ahead of the one that throws it, and steers for it.
             local d = if back then -1 else 1
+            core.play_sound("track_core:throw", x, y + 1, z)
             local sx, sz = x + lx * 2.0 * d, z + lz * 2.0 * d
             local id = spawn_thing(item, sx, ground(sx, y + 0.5, sz) or y, sz, p)
             if id then
@@ -1469,6 +1478,8 @@ if serving then
                         -- Ready once the roulette has turned on the player's screen.
                         table.insert(s.items, { what = what, uses = USES[what] or 1, ready = clock + 1 })
                         tell_items(p, s)
+                        core.play_sound("track_core:box", x, y + 1, z)   -- tools/make_powerup_sounds.py
+                        core.play_sound("track_core:rattle", x, y + 1, z)
                     end
                 end
             end

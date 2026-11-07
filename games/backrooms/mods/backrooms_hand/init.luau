@@ -47,6 +47,7 @@ if side ~= "client" then
             n += core.slow_mobs(x + lx * d, y + EYE + ly * d - 0.8, z + lz * d, 1.2 + d * 0.15, 0.05, STUN)
         end
         core.net.send(0, string.format("torch %.2f %.2f %.2f %.3f %.3f %.3f", x, y + EYE, z, lx, ly, lz))
+        core.play_sound("backrooms_hand:beam", x, y + EYE, z)   -- tools/make_powerup_sounds.py
         if n > 0 then
             core.notice(p, "La luce le stordisce.")
         end

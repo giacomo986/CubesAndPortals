@@ -303,7 +303,8 @@ Open:
   stuns Bacteria and Smilers 4 s (core.slow_mobs 0.05), 6 s to recharge,
   the beam drawn on every client. Checked by hand in Xephyr: two Smilers
   at the player, both stunned (0.1 m/s for 4 s, no blow), then on again;
-  the notice and the torch in hand on screen. Open: no sound for it.
+  the notice and the torch in hand on screen. Its beam hums since 2026-11-07
+  (backrooms_hand:beam, tools/make_powerup_sounds.py; not heard here).
   Facing (same day, from LAN play: "the other player did not always turn the
   right way"): the server kept a player's Look as the look vector's x and y,
   and clients drew x as the yaw in radians -- right only facing near -z. Now
@@ -1604,7 +1605,9 @@ Seen in Xephyr; not played with the gun by hand.
   banana and own bounced shell spin the kart, 0 corrections; with a second
   client sitting in a kart the lightning spins it and the ink covers its
   screen. Never driven by hand (the left click). Open: the same odds for
-  everybody (no race order to weight by); no sounds; the Inferno room has
+  everybody (no race order to weight by); sounds since 2026-11-07
+  (tools/make_powerup_sounds.py: a box taken and its roulette, boost, star,
+  a throw, a kart spun, lightning, ink -- not heard here); the Inferno room has
   no boxes (no models there) and an item held is lost crossing into it;
   shells follow the ground three nodes down at most and do not climb loops;
   a box row whose cells are not road (over a loop's top) is skipped.
