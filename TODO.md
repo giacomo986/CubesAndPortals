@@ -1579,8 +1579,11 @@ Seen in Xephyr; not played with the gun by hand.
   mods no key): the panel has a "pick from afar" button. A piece now takes
   the place of ground and blocks in its cells and empties 3 cells over its
   road; only another piece stops it (headless: turn2 into stone 1, over it
-  0). Open: trying pieces from afar digs the ground for each, and undo does
-  not put it back.
+  0). Trying pieces from afar dug the ground for each, and undo did not put
+  it back: since 2026-11-07 a piece keeps what it writes over (its squares,
+  2 under its road to 21 over) and taking it back -- next, prev, undo, B --
+  puts that back where it is empty (checked headless: a straight laid over
+  a 4-high stone square and taken back, 64 of 64 cells stone again).
   2026-10-17: a left click kept whatever was on trial, so pieces went down
   nobody wanted. Now a grid of all 61 pieces replaces the hotbar while
   picking (new core.hud.item, core.hud.mouse): a click puts that piece on

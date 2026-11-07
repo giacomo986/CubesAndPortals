@@ -1153,15 +1153,51 @@ core.event.on("core:placed", function(ev)
 end)
 
 -- Put down at the open end, and the end moved on.
+-- What a piece will write over -- the ground and blocks in its squares, from
+-- a little under its road to over a tall loop's top -- kept with it, so a
+-- piece taken back (tried from afar and passed over, undone) puts them back.
+local function ground_of(st: Turtle, rows: { number }, y: number): { number }
+    local kept = {}
+    for _, q in squares(st, rows) do
+        for x = q[1] * 8, q[1] * 8 + 7 do
+            for z = q[2] * 8, q[2] * 8 + 7 do
+                for yy = y - 2, y + 21 do
+                    local b = core.get_block(x, yy, z)
+                    if b ~= 0 then
+                        table.insert(kept, x)
+                        table.insert(kept, yy)
+                        table.insert(kept, z)
+                        table.insert(kept, b)
+                    end
+                end
+            end
+        end
+    end
+    return kept
+end
+
 local function extend(p: number, e: Edit, name: string, back: boolean): boolean
-    local put, after = step(e.at, name, back)
+    local put, after, rows = step(e.at, name, back)
+    local kept = ground_of(e.at, rows, put[2])
     if core.place_piece(put[1] * 8, put[2], put[3] * 8, PIECE[name], put[4] % 4) ~= 1 then
         return false
     end
-    table.insert(e.put, { put[1] * 8, put[2], put[3] * 8, e.at, e.out })
+    table.insert(e.put, { put[1] * 8, put[2], put[3] * 8, e.at, e.out, kept })
     local _, out = ends(name, back)
     e.at, e.out = after, out
     return true
+end
+
+-- And the ground it had taken the place of, where it is empty now.
+local function give_back(kept: { number }?)
+    if kept == nil then
+        return
+    end
+    for i = 1, #kept, 4 do
+        if core.get_block(kept[i], kept[i + 1], kept[i + 2]) == 0 then
+            core.set_block(kept[i], kept[i + 1], kept[i + 2], kept[i + 3])
+        end
+    end
 end
 
 -- The last piece put down with the editor taken back, and the end with it.
@@ -1182,6 +1218,7 @@ local function take_back(e: Edit): boolean
                     local ex, ey, ez = core.piece_entry(x + dx, y + dy, z + dz)
                     if ex == x and ey == y and ez == z then
                         core.take_piece(x + dx, y + dy, z + dz)
+                        give_back(last[6])
                         e.at, e.out = last[4], last[5]
                         return true
                     end
@@ -1190,9 +1227,11 @@ local function take_back(e: Edit): boolean
         end
         print(`track_core: no piece entered at {x} {y} {z} to take back`)
     end
+    give_back(last[6])
     e.at, e.out = last[4], last[5]
     return true
 end
+
 
 -- ------------------------------------------------- closing the circuit
 --
