@@ -1730,6 +1730,15 @@ on foot and get into a parked kart: `games/track`.
   forearm like the block. It holds on the arms, on your own body and on other players.
   `tools/make_held_models.py` makes the 41 of the project's mods and the icons of those that had
   none.
+* **Models from Meshy.** A textured glTF is drawn with its texture (base colour only, no lights
+  baked in). `tools/meshy_prop.py` turns a Meshy `.glb` into one: sized in metres, origin at the base
+  or the centre, decimated (3000 triangles by default), the texture shrunk to 128 px and reduced to 24
+  colours so it sits beside the 32 px blocks, and a sheet of four views beside the robot rendered to
+  `~/.cache/cnp_look/<name>_sheet.png`. The way that works: a concept image first (Meshy
+  text-to-image, one object, plain background, three-quarter view, the game's chunky low-poly style),
+  approved; then image-to-3D from it; then the sheet, approved; only then the files go in a mod. It is
+  for rigid things -- props, decor, statues, held items. Bending a generated character onto the
+  robot's rig was tried on the mole man and reverted.
 * **Worn armour.** An item with `wear` (`core.register_item`) goes in one of the bag's four worn
   slots (head, chest, legs, feet; shift-click with the bag open puts it on and takes it off). If the
   world has a model with the item's name (`core.register_model("armor:iron_helmet", ...)`), the body

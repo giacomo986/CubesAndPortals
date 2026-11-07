@@ -1937,6 +1937,18 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   braccia, sul proprio corpo e sugli altri giocatori.
   `tools/make_held_models.py` fa i 41 dei mod del progetto e le icone di
   quelli che non ne avevano.
+* **Modelli da Meshy.** Un glTF con texture è disegnato con la sua texture
+  (solo colore base, nessuna luce cotta dentro). `tools/meshy_prop.py` ne fa
+  uno da un `.glb` di Meshy: misurato in metri, origine alla base o al centro,
+  decimato (3000 triangoli di default), la texture ridotta a 128 px e a 24
+  colori perché stia accanto ai blocchi da 32 px, e un foglio di quattro viste
+  accanto al robot in `~/.cache/cnp_look/<nome>_sheet.png`. Il metodo che
+  funziona: prima un'immagine di concetto (text-to-image di Meshy, un solo
+  oggetto, sfondo neutro, vista di tre quarti, lo stile low-poly massiccio del
+  gioco), approvata; poi image-to-3D da quella; poi il foglio, approvato; solo
+  allora i file vanno in un mod. È per cose rigide: oggetti, arredi, statue,
+  oggetti in mano. Piegare un personaggio generato sul rig del robot è stato
+  provato con l'uomo talpa e annullato.
 * **Armature indossate.** Un oggetto con `wear` (`core.register_item`) va in
   uno dei quattro slot indossati della borsa (testa, petto, gambe, piedi; lo
   shift-click a borsa aperta lo mette e lo toglie). Se il mondo ha un modello
