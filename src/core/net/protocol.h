@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 118; // 118 creatures sized by a scaling portal
+inline constexpr uint16_t kProtocol    = 119; // 119 a fourth species, the knight
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -389,7 +389,9 @@ inline constexpr uint16_t kProtocol    = 118; // 118 creatures sized by a scalin
 // 118 gives a creature a size of its own, made by a scaling pair it crossed
 // (Portal::scales): bit 32 of a Mob's flags byte, its scale a float after the
 // Player block, which a 117 client refuses.
-inline constexpr uint16_t kMinProtocol = 118;
+// 119 widens the livery by one bit, the species' third (kLiverySpeciesHigh):
+// a 118 server refuses it as past kLiveryMax.
+inline constexpr uint16_t kMinProtocol = 119;
 
 // What a player picked to look like (protocol 93): the three colours of their
 // model's tint_1..3 materials -- primary, secondary, accent -- five bits each,
@@ -399,13 +401,15 @@ inline constexpr uint16_t kMinProtocol = 118;
 // extras (kLiveryHeads, kLiveryNecks); the server only passes the number on.
 // Then (94) two bits for who they are -- 0 the world's player model, else a
 // species, the model "<player model>_<species>" (kLiverySpecies) -- and two
-// for that species' style, 0 for none (kLiveryStyles).
+// for that species' style, 0 for none (kLiveryStyles). Then (119) one more
+// bit of the species, above the style: its value 4 and up.
 inline constexpr uint32_t kLiveryColours = 0x7FFFu;
 inline constexpr int      kLiveryHeadShift = 15;
 inline constexpr int      kLiveryNeckShift = 18;
 inline constexpr int      kLiverySpeciesShift = 21;
 inline constexpr int      kLiveryStyleShift   = 23;
-inline constexpr uint32_t kLiveryMax = 1u << 25;   // anything at or above it is refused
+inline constexpr int      kLiverySpeciesHigh  = 25;
+inline constexpr uint32_t kLiveryMax = 1u << 26;   // anything at or above it is refused
 
 // 57 lets a world's sky be one colour with no sun (core.world_sky): a flag and
 // three bytes after the room in the Welcome, which a 56 client refuses.

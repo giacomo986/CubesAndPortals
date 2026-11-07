@@ -633,4 +633,5 @@ def main():
             export(rig, [ob], os.path.join(OUT, f"{name}_{extra}.gltf"), False)
 
 
-main()
+if __name__ == "__main__":
+    main()

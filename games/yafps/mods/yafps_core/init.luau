@@ -34,6 +34,8 @@ for _, extra in {"cap", "tophat", "headphones", "scarf", "bowtie", "medal",
                   "human", "human_arms", "human_short", "human_long", "human_beard",
                   "mole", "mole_arms", "mole_lamp", "mole_goggles", "mole_glasses",
                   "frog", "frog_arms", "frog_spots", "frog_crown", "frog_lily",
+                  -- the knight from Meshy (tools/make_knight_meshy.py): painted, no styles
+                  "knight", "knight_arms",
                   -- the extras refitted to each species, worn instead of the robot's
                   "human_cap", "human_tophat", "human_headphones", "human_scarf", "human_bowtie", "human_medal",
                   "mole_cap", "mole_tophat", "mole_headphones", "mole_scarf", "mole_bowtie", "mole_medal",

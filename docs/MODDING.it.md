@@ -1908,8 +1908,9 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   del giocatore e disegnati come un pezzo indossato; un mondo che non li
   registra semplicemente non li mostra. `tools/make_robot_extras.py` li fa.
   La specie (protocollo 94, due bit sopra gli accessori: umano, uomo talpa,
-  uomo rana) sostituisce il modello del giocatore con quello col suo nome più
-  `_human`, `_mole`, `_frog` (`robot:robot_mole`, con le sue `_arms`), sullo
+  uomo rana; protocollo 119, un terzo bit sopra lo stile: il cavaliere del
+  drago) sostituisce il modello del giocatore con quello col suo nome più
+  `_human`, `_mole`, `_frog`, `_knight` (`robot:robot_mole`, con le sue `_arms`), sullo
   stesso scheletro e con le stesse clip; lo stile scelto è un pezzo indossato
   di nome `<specie>_<stile>` (`robot:robot_mole_lamp`). Gli accessori sono
   quelli rifatti per la specie (`robot:robot_mole_cap`) se il mondo li
@@ -1948,8 +1949,15 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   oggetto, sfondo neutro, vista di tre quarti, lo stile low-poly massiccio del
   gioco), approvata; poi image-to-3D da quella; poi il foglio, approvato; solo
   allora i file vanno in un mod. È per cose rigide: oggetti, arredi, statue,
-  oggetti in mano. Piegare un personaggio generato sul rig del robot è stato
-  provato con l'uomo talpa e annullato.
+  oggetti in mano. Un personaggio va al contrario: piegare un corpo generato
+  sulle proporzioni del robot è stato provato con l'uomo talpa e annullato;
+  `tools/make_knight_meshy.py` sposta invece le ossa del robot (nomi e
+  direzioni tenuti) sulle articolazioni del cavaliere del drago, abbassa le
+  braccia dalla posa ad A e scrive le clip del robot nel suo file, ogni
+  traslazione spostata come si è spostato il suo osso, un canale costante
+  tenuto come una sola chiave perché il file resti sotto 1 MB. Il cavaliere
+  tiene la sua texture dipinta: i colori del giocatore non lo tingono, e non
+  ha stili.
 * **Armature indossate.** Un oggetto con `wear` (`core.register_item`) va in
   uno dei quattro slot indossati della borsa (testa, petto, gambe, piedi; lo
   shift-click a borsa aperta lo mette e lo toglie). Se il mondo ha un modello

@@ -6713,14 +6713,30 @@ constexpr int     kLiveryHeadCount = 3, kLiveryNeckCount = 3;
 // "<player model>_<species>", on the player model's rig and with its clips,
 // and each one's styles, "<that>_<style>" worn on it (tools/make_species.py).
 // The wire's order, as the extras'.
-const char *const kLiverySpecies[] = {"human", "mole", "frog"};
-const char *const kLiveryStyles[3][3] = {
-    {"short", "long", "beard"}, {"lamp", "goggles", "glasses"}, {"spots", "crown", "lily"}};
-constexpr int kLiverySpeciesCount = 3, kLiveryStyleCount = 3;
+// The knight (tools/make_knight_meshy.py) is painted, not dyed, and has no styles.
+const char *const kLiverySpecies[] = {"human", "mole", "frog", "knight"};
+const char *const kLiveryStyles[4][3] = {
+    {"short", "long", "beard"}, {"lamp", "goggles", "glasses"}, {"spots", "crown", "lily"}, {}};
+constexpr int kLiverySpeciesCount = 4;
+constexpr int kLiveryStylesOf[4] = {3, 3, 3, 0};
 // The styles that are hats: an extra on the head is worn instead of them.
-constexpr bool kLiveryStyleHat[3][3] = {{false, false, false}, {true, false, false}, {false, true, true}};
+constexpr bool kLiveryStyleHat[4][3] = {
+    {false, false, false}, {true, false, false}, {false, true, true}, {false, false, false}};
 
-int livery_species(uint32_t livery) { return (int)(livery >> net::kLiverySpeciesShift) & 3; }
+// Two bits and, since protocol 119, a third above the style; one this build
+// does not know (a newer client's) is the robot.
+int livery_species(uint32_t livery)
+{
+    const int s = (int)((livery >> net::kLiverySpeciesShift) & 3) |
+                  (int)(((livery >> net::kLiverySpeciesHigh) & 1) << 2);
+    return s <= kLiverySpeciesCount ? s : 0;
+}
+uint32_t with_species(uint32_t livery, int species)
+{
+    livery &= ~((3u << net::kLiverySpeciesShift) | (1u << net::kLiverySpeciesHigh));
+    return livery | ((uint32_t)(species & 3) << net::kLiverySpeciesShift) |
+           ((uint32_t)(species >> 2 & 1) << net::kLiverySpeciesHigh);
+}
 int livery_style(uint32_t livery) { return (int)(livery >> net::kLiveryStyleShift) & 3; }
 
 // The model a body wearing `model` is drawn as in this livery: the world's
@@ -6760,7 +6776,8 @@ void draw_extras(ModelStore &models, const ModelStore::Entry &e, const std::vect
         const std::string tail = std::string("_") + kLiverySpecies[species - 1];
         if (base.size() > tail.size() && base.compare(base.size() - tail.size(), tail.size(), tail) == 0) {
             base.resize(base.size() - tail.size());
-            if (style >= 1 && !headless && !(hat && kLiveryStyleHat[species - 1][style - 1]))
+            if (style >= 1 && style <= kLiveryStylesOf[species - 1] && !headless &&
+                !(hat && kLiveryStyleHat[species - 1][style - 1]))
                 draw_worn(models, e.model, posed, e.name + "_" + kLiveryStyles[species - 1][style - 1],
                           projection, view, place, tint);
         }
@@ -9655,10 +9672,11 @@ ModelStore &title_robot()
         if (!store.put(id++, "robot:robot", g_robot_dir + "/robot.gltf", why))
             std::fprintf(stderr, "robot preview: %s\n", why.c_str());
         std::vector<std::string> names;
-        for (const char *const *list : {kLiveryHeads, kLiveryNecks, kLiverySpecies})
+        for (const char *const *list : {kLiveryHeads, kLiveryNecks})
             for (int k = 0; k < 3; ++k) names.push_back(list[k]);
+        for (int k = 0; k < kLiverySpeciesCount; ++k) names.push_back(kLiverySpecies[k]);
         for (int k = 0; k < kLiverySpeciesCount; ++k) {
-            for (int j = 0; j < kLiveryStyleCount; ++j)
+            for (int j = 0; j < kLiveryStylesOf[k]; ++j)
                 names.push_back(std::string(kLiverySpecies[k]) + "_" + kLiveryStyles[k][j]);
             for (const char *const *list : {kLiveryHeads, kLiveryNecks})
                 for (int j = 0; j < 3; ++j) names.push_back(std::string(kLiverySpecies[k]) + "_" + list[j]);
@@ -9810,8 +9828,8 @@ ui::Panel look_panel()
     const int species = livery_species(livery);
     const std::string who = species >= 1 ? kLiverySpecies[species - 1] : "robot";
     panel_button(p, "species", "Species: " + who, 0.5f, 4.0f, 5.9f);
-    if (species >= 1)
-        panel_button(p, "style", said("Style", kLiveryStyles[species - 1], kLiveryStyleCount, livery_style(livery)),
+    if (species >= 1 && kLiveryStylesOf[species - 1] > 0)
+        panel_button(p, "style", said("Style", kLiveryStyles[species - 1], kLiveryStylesOf[species - 1], livery_style(livery)),
                      6.8f, 4.0f, 5.9f);
     panel_button(p, "head", said("Head", kLiveryHeads, kLiveryHeadCount, head), 0.5f, 5.3f, 5.9f);
     panel_button(p, "neck", said("Neck", kLiveryNecks, kLiveryNeckCount, neck), 6.8f, 5.3f, 5.9f);
@@ -9827,19 +9845,20 @@ bool look_click(const std::string &id)
     if (std::sscanf(id.c_str(), "c%d_%d", &k, &d) == 2 && k >= 0 && k < 3 && d >= 0 && d <= 16) {
         livery = (livery & ~net::kLiveryColours) |
                  (tag_with_colour(livery_tag(livery), k, d) >> kTagIdBits);
-    } else if (id == "head" || id == "neck" || id == "species" || id == "style") {
-        const int shift = id == "head"    ? net::kLiveryHeadShift
-                        : id == "neck"    ? net::kLiveryNeckShift
-                        : id == "species" ? net::kLiverySpeciesShift
-                                          : net::kLiveryStyleShift;
-        const int count = id == "head"    ? kLiveryHeadCount
-                        : id == "neck"    ? kLiveryNeckCount
-                        : id == "species" ? kLiverySpeciesCount
-                                          : kLiveryStyleCount;
+    } else if (id == "species") {   // another one's styles go with it
+        livery = with_species(livery, (livery_species(livery) + 1) % (kLiverySpeciesCount + 1)) &
+                 ~(3u << net::kLiveryStyleShift);
+    } else if (id == "head" || id == "neck" || id == "style") {
+        const int shift = id == "head" ? net::kLiveryHeadShift
+                        : id == "neck" ? net::kLiveryNeckShift
+                                       : net::kLiveryStyleShift;
+        const int species = livery_species(livery);
+        const int count = id == "head" ? kLiveryHeadCount
+                        : id == "neck" ? kLiveryNeckCount
+                                       : (species >= 1 ? kLiveryStylesOf[species - 1] : 0);
         const uint32_t mask = id == "head" || id == "neck" ? 7u : 3u;
         const int at = (((int)(livery >> shift) & (int)mask) + 1) % (count + 1);
         livery = (livery & ~(mask << shift)) | ((uint32_t)at << shift);
-        if (id == "species") livery &= ~(3u << net::kLiveryStyleShift);   // another one's styles
     } else {
         return false;
     }

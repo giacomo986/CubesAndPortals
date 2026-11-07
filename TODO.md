@@ -167,6 +167,23 @@ Open:
   has it (any mod's core.player_wear). Seen on a frog: helm, plate, greaves.
   Open: weapons stay the robot's (same hands); a weapon held at rest points
   ahead, as the robot's tools do; nothing shows a ring.
+  Dragon knight from Meshy (2026-11-07): a fourth species (protocol 119, a
+  third species bit above the style), concept by image-to-image from a
+  render of the robot (6 credits), image-to-3D (30). tools/meshy_prop.py
+  welds, decimates to 6000 triangles and bakes a 512 px, 32-colour texture
+  onto a fresh unwrap (the Meshy atlas is too fragmented to shrink);
+  tools/make_knight_meshy.py moves the robot's bones onto the knight's
+  joints instead of stretching the knight, turns its A-pose arms down and
+  writes the robot's 74 clips into the file, translations moved with their
+  bones, constant channels as one key. robot_knight.bin 1013836 bytes (of
+  the 1044480 allowed), arms 203 KB, texture 217 KB shared. Seen in
+  Xephyr: first person, third person walking; idle, walk, mine,
+  sword_slash, crouch_walk rendered in Blender. Registered in mods/robot
+  and the nine games that list species. Open: not dyed by the player's
+  colours, no styles; extras and arpg gear are the robot's, not refitted;
+  the body file is 30 KB from the limit, so a new clip on robot.gltf needs
+  the knight's texture or triangles cut first; the claws' fan is squeezed
+  by hand (HAND_SQUEEZE) and its joints are read off renders by eye (K_*).
   Arpg ways in and out (2026-11-01): the arch from the sandbox stands in a
   hall (cobble, a roof, two fires, a door into the town) where the camera
   is the eye's; out of its door the camera rises to the view from above

@@ -1708,8 +1708,9 @@ on foot and get into a parked kart: `games/track`.
   named after the player plus `_cap`, `_tophat`, `_headphones`, `_scarf`, `_bowtie`, `_medal`
   (`robot:robot_cap`), made on the player's skeleton and drawn as a worn piece; a world that does not
   register them simply does not show them. `tools/make_robot_extras.py` makes them. The species
-  (protocol 94, two bits above the accessories: human, mole man, frog man) replaces the player's model
-  with the one named after it plus `_human`, `_mole`, `_frog` (`robot:robot_mole`, with its `_arms`),
+  (protocol 94, two bits above the accessories: human, mole man, frog man; protocol 119, a third
+  bit above the style: the dragon knight) replaces the player's model with the one named after it
+  plus `_human`, `_mole`, `_frog`, `_knight` (`robot:robot_mole`, with its `_arms`),
   on the same skeleton and with the same clips; the chosen style is a worn piece named
   `<species>_<style>` (`robot:robot_mole_lamp`). Accessories are the ones remade for the species
   (`robot:robot_mole_cap`) if the world registers them, otherwise the player's; a head accessory
@@ -1737,8 +1738,13 @@ on foot and get into a parked kart: `games/track`.
   `~/.cache/cnp_look/<name>_sheet.png`. The way that works: a concept image first (Meshy
   text-to-image, one object, plain background, three-quarter view, the game's chunky low-poly style),
   approved; then image-to-3D from it; then the sheet, approved; only then the files go in a mod. It is
-  for rigid things -- props, decor, statues, held items. Bending a generated character onto the
-  robot's rig was tried on the mole man and reverted.
+  for rigid things -- props, decor, statues, held items. A character is the other way round:
+  bending a generated body onto the robot's proportions was tried on the mole man and reverted;
+  `tools/make_knight_meshy.py` instead moves the robot's bones (names and directions kept) to the
+  dragon knight's joints, turns its A-pose arms down, and writes the robot's clips into its file with
+  each translation moved as its bone moved, a constant channel kept as one key so the file stays
+  under 1 MB. The knight keeps its painted texture: the player's colours do not dye it, and it has
+  no styles.
 * **Worn armour.** An item with `wear` (`core.register_item`) goes in one of the bag's four worn
   slots (head, chest, legs, feet; shift-click with the bag open puts it on and takes it off). If the
   world has a model with the item's name (`core.register_model("armor:iron_helmet", ...)`), the body
