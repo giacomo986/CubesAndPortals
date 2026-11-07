@@ -261,7 +261,8 @@ as rooms and the hedge a cliff. Back in by the same tiny opening, in its wooden 
 mushrooms, out of the door as big as before.
 Small, you walk four times as fast as your size would, or the garden would take minutes to cross.
 Ants file between their nest and the flowers, ladybirds wander, butterflies settle on the flowers:
-at their true size, an ant is a dog to you there.
+at their true size, an ant is a dog to you there. A creature that walks through the little door
+changes size as you do (a sixteenth going in, up to four times bigger coming out).
 
 ### Difficulty, rules and goals
 
@@ -373,7 +374,8 @@ with a trough of wheat or seeds that holds the animals and breeds them, and orde
 eels in the sea, tuna on the ocean, a rare goldfish anywhere -- and the toad fishers buy them.
 
 **Alchemy** (`mods/alchemy`). A still brews a flask of water and an ingredient into a potion: night
-sight, swiftness, stoneskin, mending, haste, water breathing, vigour -- three minutes each. Under water
+sight, swiftness, stoneskin, mending, haste, water breathing, vigour -- three minutes each, kept if you
+leave or the server restarts. Under water
 the air lasts fifteen seconds (`mods/breath`).
 
 **Bees** (`mods/bees`). Wild nests among the meadows' flowers, and hives of planks and honeycomb:

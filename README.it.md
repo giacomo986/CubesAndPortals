@@ -264,7 +264,8 @@ funghi, e si esce dalla porticina grandi come prima.
 Da piccoli si cammina quattro volte più veloci di quanto direbbe la taglia, o il giardino
 vorrebbe minuti per attraversarlo.
 Le formiche fanno la spola tra il nido e i fiori, le coccinelle girano, le farfalle si posano sui
-fiori: a grandezza vera, lì una formica è grande come un cane.
+fiori: a grandezza vera, lì una formica è grande come un cane. Una creatura che passa dalla
+porticina cambia taglia come te (un sedicesimo entrando, fino a quattro volte uscendo).
 
 ### Difficoltà, regole e obiettivi
 
@@ -384,7 +385,7 @@ anguille in mare, tonni nell'oceano, un raro pesce rosso ovunque -- e i pescator
 
 **Alchimia** (`mods/alchemy`). Un alambicco distilla una fiasca d'acqua e un ingrediente in una
 pozione: vista notturna, rapidità, pelle di pietra, guarigione, fretta, respirare sott'acqua, vigore -- tre minuti
-ciascuna. Sott'acqua l'aria dura quindici secondi (`mods/breath`).
+ciascuna, che restano se esci o se il server riparte. Sott'acqua l'aria dura quindici secondi (`mods/breath`).
 
 **Api** (`mods/bees`). Nidi selvatici tra i fiori dei prati, e arnie di assi e favi: si riempiono di
 miele tanto più in fretta quanti più fiori hanno attorno, d'inverno dormono, e aiutano a crescere i
