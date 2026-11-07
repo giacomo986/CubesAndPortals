@@ -2203,8 +2203,11 @@ not in memory waits.
   (fire, smoke, the pieces thrown off the table; blast.ogg from ElevenLabs,
   blast/smoke.gltf from tools/make_chess_models.py). Not yet played through
   by hand; the sound not heard (Xephyr has no audio checked).
-- Cards: the illustrated deck has 30 of 45 pictures to draw
-  (`tools/elevenlabs_deck.json`).
+- Cards: the illustrated deck is COMPLETE, 45 of 45 (2026-11-07,
+  `tools/elevenlabs_deck.json`). The 7 of clubs came out twice with 5 and
+  then 6 clubs; its picture is composed from one club of the second take,
+  scaled 0.75, set 3-1-3 on the cream (the manifest's note says so). A
+  card is drawn again only if one is turned down.
 - Cards held in hand (2026-10-12): seated, the body goes to its seat and plays
   the robot's `cards` clip for everybody (core.player_clip, protocol 92); the
   view is the eye with the cursor free (core.fixed_view under 0.1 draws the
