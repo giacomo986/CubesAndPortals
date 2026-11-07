@@ -208,6 +208,13 @@ When a change touches one of them, check it the way the line says.
   its new size inside the far hole: a sixteenth a hair off centre came out of the garden's door
   half in the hedge, stuck; and the client's `ahead_of_crossing` leaves such pairs to the
   server. Check: `/lab tiny`, the garden's ants on the grass, out of G off centre and back.
+- **No oblique near plane nearer than the near plane.** `portal_oblique_near` gives up when the
+  virtual camera is closer to the destination's clip plane than its own near plane: an oblique
+  plane that close squeezes the depth range and the far side comes out striped, leaves and sky in
+  rows. All that lies between is cut by the near plane already. A pair that scales down puts the
+  camera that near for a sixteenth of a node of the walk at its big end, and frames fell in it
+  (the garden's door, "the image flashes", 2026-11-07). Check: the garden's door with the eye
+  40.016..40.04 (its front face is 40), no stripes; `portal_continuity` 0 pixels.
 - **A dedicated scene before a guess.** `tools/portallab.sh` builds portal cases where every
   number can be read (sunlit, no other mods). When a defect shows in a game but not there, the
   difference between the two is the cause: list it before changing anything.

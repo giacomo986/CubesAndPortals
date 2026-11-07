@@ -1200,6 +1200,14 @@ Portals -- the engine's own trick, used further:
    across walking). And the third-person camera pulled in onto the head in
    grass: it stopped at anything with boxes to aim at; now only at what stops a
    body (raycast's solid_only), and as far back as the body is big.
+   And "the image flashes going from the big door into the small one": frames
+   with the eye 0.016..0.04 in front of D's face had G's side striped (leaves
+   and sky in rows) -- the oblique near plane applied with the virtual camera
+   nearer G's clip plane than its near plane (0.003 at 1/16), depth squeezed
+   to nothing. portal_oblique_near now gives that case up. Found with frames
+   captured around the crossing, then the eye put at fixed depths: striped at
+   40.018-40.04 before, none after; the crossing itself (Teleport and the new
+   size in the same frame) was already continuous. portal_continuity 0 px.
 5. A passport of servers (low-medium). With --federation built: a stamp for
    every server reached through a far portal, and a letterbox that sends an
    item or a letter to a friend server. A reason for communities to link up.

@@ -210,6 +210,14 @@ di tornare. Quando una modifica tocca una di queste, va verificata come dice la 
   buco lontano: un sedicesimo appena fuori centro usciva dalla porticina del giardino mezzo nella
   siepe, incastrato; e `ahead_of_crossing` del client lascia queste coppie al server. Verifica:
   `/lab tiny`, le formiche del giardino sull'erba, fuori da G fuori centro e ritorno.
+- **Niente piano vicino obliquo più vicino del piano vicino.** `portal_oblique_near` rinuncia
+  quando la telecamera virtuale è più vicina al piano di taglio della destinazione del suo stesso
+  piano vicino: un piano obliquo così vicino schiaccia la profondità e l'altro lato esce a righe,
+  foglie e cielo alternati. Ciò che sta in mezzo lo taglia già il piano vicino. Una coppia che
+  scala porta la telecamera così vicina per un sedicesimo di nodo del cammino dal lato grande, e
+  ci cadevano dei fotogrammi (la porticina del giardino, "l'immagine flasha", 2026-11-07).
+  Verifica: la porticina con l'occhio fra 40.016 e 40.04 (la sua faccia è a 40), nessuna riga;
+  `portal_continuity` 0 pixel.
 - **Una scena dedicata prima di un'ipotesi.** `tools/portallab.sh` costruisce casi di portale in
   cui ogni numero si può leggere (al sole, senza altre mod). Quando un difetto compare in un gioco
   ma non lì, la differenza tra i due è la causa: elencarla prima di cambiare qualcosa.

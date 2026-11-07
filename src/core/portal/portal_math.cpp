@@ -107,6 +107,15 @@ bool portal_oblique_near(const Mat4 &proj, const Mat4 &view, const PortalSurface
     // destination. See the header for why the black-portal case lives here.
     const float side = dot(vcam_pos - portal_clip_point(dst), dst.normal);
     if (side >= -0.001f * kNodeSize) return false;
+    // Guard 1b: nor when it is nearer the plane than its own near plane. All
+    // that lies between is cut by that already, and an oblique plane closer
+    // than the near one squeezes the depth range to nothing: the far side came
+    // out striped, leaves and sky in rows. A pair that scales down (the
+    // garden's door, 1/16) has the camera that near for a sixteenth of a node
+    // of the walk at the big end, and frames fell in it (reported from play,
+    // 2026-11-07, "the image flashes"); a pair of one size, for a thousandth.
+    const float near_plane = proj.at(2, 3) / (proj.at(2, 2) - 1.0f);
+    if (std::isfinite(near_plane) && near_plane > 0.0f && -side < near_plane) return false;
 
     const Vec3  clip_origin = portal_clip_point(dst) + dst.normal * kNearPlaneInset;
     const Plane world_plane = plane_from_point_normal(clip_origin, dst.normal);
