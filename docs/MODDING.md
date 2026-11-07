@@ -2234,7 +2234,8 @@ The mods in `mods/` are working examples:
   glass onto one twelve times as wide hanging face down over the garden, a miniature to look into;
   whoever comes in small walks four times as fast as a sixteenth would (`core.body_movement`); and
   insects at their true size, workers it drives: ants between a nest and the flowers, ladybirds
-  wandering, butterflies flying flower to flower (`core.mob_place` every tick, `hover`);
+  wandering, butterflies flying flower to flower (`core.mob_place` every tick, `hover`), each with its
+  `_say`, `_hurt` and `_death` sounds (`tools/make_garden_sounds.py`);
 - `portal` -- a frame of `portal:frame` round a hole of air, upright or lying, opens a portal
   (`core.portal_open`, as many frames as you like: the server gives the 32 real openings to those near
   players) and links it to the last one left alone (`core.portal_link`); right click on the frame opens

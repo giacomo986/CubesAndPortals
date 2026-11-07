@@ -195,6 +195,17 @@ di tornare. Quando una modifica tocca una di queste, va verificata come dice la 
   l'inclinazione, e il rollio torna in piano (`settle_roll`, morbido, 0.25-0.6 s). A piedi lo
   sguardo non viene mai girato dopo un passaggio; solo l'orizzonte. Verifica: `/lab bounce`, la
   direzione resta quella di prima a ogni passaggio.
+- **Un corpo remoto scivola da dove era arrivato.** `glide` (`main.cpp` del client) fa partire
+  ogni nuovo tratto dal punto raggiunto dal precedente, mai da dove il corpo era disegnato al frame
+  prima con l'orologio azzerato: con un messaggio a ogni frame (sotto i ~20 fps) quella ripartenza
+  lasciava ogni altro corpo fermo dove era apparso (2026-11-07). Verifica: gli insetti del
+  giardino si muovono in Xephyr.
+- **I corpi piccoli tengono la scatola sotto i piedi.** `body_box` alza la scatola al massimo di
+  `altezza - min(0.1, altezza/2)`; il vecchio "altezza - 0.1" sotto i 0.2 di altezza diventava
+  negativo e appendeva la scatola 8 cm sotto i piedi. Una creatura non è mai meno di 0.01 × 0.01
+  (`size_mob_kind`, e la scatola di mira del client). Il tunnel di un'apertura che scala è profondo
+  quanto permette la sua mezza altezza (`entrance_depth`), o un occhio rimpicciolito sta dentro il
+  tubo e vede il cielo. Verifica: `/lab tiny`, le formiche del giardino sull'erba.
 - **Una scena dedicata prima di un'ipotesi.** `tools/portallab.sh` costruisce casi di portale in
   cui ogni numero si può leggere (al sole, senza altre mod). Quando un difetto compare in un gioco
   ma non lì, la differenza tra i due è la causa: elencarla prima di cambiare qualcosa.

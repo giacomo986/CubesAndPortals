@@ -1130,8 +1130,11 @@ Portals -- the engine's own trick, used further:
    feet (an ant stood that far over the grass; a body at 1/32 too); and
    glide restarted every stretch from where it was drawn last frame, so with a
    message every frame (under ~20 fps) every other body stood still where it
-   was first seen. Open: ants walk in a tight file, overlapping (creatures
-   push apart only by their half widths); insects have no sounds.
+   was first seen. Sounds (tools/make_garden_sounds.py, pure Python): a
+   chitter, a whirr, soft wing beats, each with hurt and death. Ants go home
+   to any cell of the nest's 3 x 3, so the roads part at that end. Open: on
+   the way they still walk a tight file, overlapping (core.mob_goto goes by
+   cell centres; creatures push apart only by their half widths).
 5. A passport of servers (low-medium). With --federation built: a stamp for
    every server reached through a far portal, and a letterbox that sends an
    item or a letter to a friend server. A reason for communities to link up.

@@ -2509,7 +2509,7 @@ I tre mod in `mods/` sono esempi funzionanti:
   chi entra piccolo cammina quattro volte più veloce di quanto farebbe un sedicesimo
   (`core.body_movement`); e insetti a grandezza vera, worker che guida lei: formiche tra un nido e
   i fiori, coccinelle a zonzo, farfalle che volano di fiore in fiore (`core.mob_place` a ogni
-  tick, `hover`);
+  tick, `hover`), ognuno con i suoni `_say`, `_hurt` e `_death` (`tools/make_garden_sounds.py`);
 - `portal` — una cornice di `portal:frame` attorno a un buco d'aria, in piedi o
   coricata, apre un portale (`core.portal_open`, quante cornici si vuole: il
   server dà le 40 aperture vere a quelle vicine ai giocatori) e la

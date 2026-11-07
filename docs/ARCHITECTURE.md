@@ -195,6 +195,16 @@ When a change touches one of them, check it the way the line says.
   follows the map, and the roll settles back level (`settle_roll`, eased, 0.25-0.6 s). The look
   is never turned on foot after a crossing; only the horizon is. Check: `/lab bounce`, the yaw
   stays what it was on every crossing.
+- **A remote body glides from where it had got to.** `glide` (client `main.cpp`) starts each new
+  stretch from the point the old one had reached, never from where the body was drawn last frame
+  with the clock reset: with a message every frame (under ~20 fps) that restart left every other
+  body standing where it was first seen (2026-11-07). Check: the garden's insects move in Xephyr.
+- **Small bodies keep their box under the feet.** `body_box` lifts the box by at most
+  `height - min(0.1, height/2)`; the old "height - 0.1" went negative under 0.2 high and hung the
+  box 8 cm below the feet. A creature is never under 0.01 × 0.01 (`size_mob_kind`, the client's aim
+  box too). A scaling opening's tunnel is as deep as its half height allows (`entrance_depth`),
+  or a shrunk eye stands inside the tube and sees sky. Check: `/lab tiny`, the garden's ants on
+  the grass.
 - **A dedicated scene before a guess.** `tools/portallab.sh` builds portal cases where every
   number can be read (sunlit, no other mods). When a defect shows in a game but not there, the
   difference between the two is the cause: list it before changing anything.

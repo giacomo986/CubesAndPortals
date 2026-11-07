@@ -249,7 +249,8 @@ local function walker(b: Bug, dt: number)
             local f = bloom()
             core.mob_goto(b.id, f[1], GY + 1, f[2])
         else
-            core.mob_goto(b.id, NEST_X, GY + 1, NEST_Z)
+            -- each to a cell of the nest's 3 x 3, so the roads home part
+            core.mob_goto(b.id, NEST_X + math.floor(rand() * 3) - 1, GY + 1, NEST_Z + math.floor(rand() * 3) - 1)
         end
         b.home = not b.home
     else
