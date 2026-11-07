@@ -653,7 +653,8 @@ struct SpawnResult {
 SpawnResult spawn_and_despawn(flecs::world &w, const World &world, const NodeRegistry &reg,
                               const std::vector<MobKind> &kinds,
                               const std::vector<Target> &targets, float daylight, int cap,
-                              uint32_t seed, double now);
+                              uint32_t seed, double now,
+                              const std::function<bool(int x, int z)> &column_lit = nullptr);
 
 // Bodies with nothing left: what they were carrying is spawned where they fell
 // and the entity goes. Returns how many died.

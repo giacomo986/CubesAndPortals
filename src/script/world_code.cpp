@@ -99,7 +99,10 @@ script_host world_code_host(script_host full)
     h.item_alias       = nullptr;
     h.player_regen     = nullptr;
     h.player_max_health = nullptr;
-    h.time_of_day      = nullptr;
+    // The clock is read (the server's, as ClientSession mirrors it): a world's
+    // sky drawn on a player's machine follows it -- mods/sky's eclipse was
+    // never drawn while the server's had the creatures of the night out by
+    // day (reported from play, 2026-11-07). Setting it stays the server's.
     h.set_time         = nullptr;
     h.player_spawn     = nullptr;
     h.node_climbable   = nullptr;

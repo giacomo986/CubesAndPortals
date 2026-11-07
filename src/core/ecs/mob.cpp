@@ -1834,7 +1834,8 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
 SpawnResult spawn_and_despawn(flecs::world &w, const World &world, const NodeRegistry &reg,
                               const std::vector<MobKind> &kinds,
                               const std::vector<Target> &targets, float daylight, int cap,
-                              uint32_t seed, double now)
+                              uint32_t seed, double now,
+                              const std::function<bool(int x, int z)> &column_lit)
 {
     SpawnResult out;
 
@@ -1877,6 +1878,10 @@ SpawnResult spawn_and_despawn(flecs::world &w, const World &world, const NodeReg
             const float    r     = 18.0f + 22.0f * unit(h + 1);
             const int      x     = (int)std::floor(t.x + std::cos(angle) * r);
             const int      z     = (int)std::floor(t.z + std::sin(angle) * r);
+            // A column not lit yet reads as dark everywhere: by day, at a join,
+            // the dark's creatures came out on the open ground round the body
+            // (reported from play, 2026-11-07).
+            if (column_lit && !column_lit(x, z)) continue;
 
             // Down a column from above the player to below: the first floor
             // with two open cells over it.

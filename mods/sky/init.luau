@@ -181,11 +181,19 @@ if serving then
         end
     end)
 
-    local last_t = core.time_of_day()
+    -- Read at the first tick, not here: while the mods load a saved world's
+    -- clock is not set yet (0), and the first tick then "crossed" dawn and
+    -- rolled the day's eclipse at every start -- one start in twelve, the
+    -- creatures of the night out in the open as soon as somebody joined
+    -- (reported from play, 2026-11-07).
+    local last_t = -1.0
     local told: { [number]: string } = {}
     local since, next_impact = 0.0, 60.0
     core.event.on("core:tick", function(ev)
         local t = core.time_of_day()
+        if last_t < 0 then
+            last_t = t
+        end
         -- Dusk: what the night brings. Dawn: the night's things end, and
         -- what the day brings.
         if last_t < 0.8 and t >= 0.8 then

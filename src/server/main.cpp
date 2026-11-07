@@ -8869,7 +8869,8 @@ int serve_room(int argc, char **argv)
                 if (natural_mobs && !s.peaceful && tick % 40 == 0) {
                     const cnp::ecs::SpawnResult sr = cnp::ecs::spawn_and_despawn(
                         sessions.ecs(), s.world, s.registry, s.mob_kinds, targets,
-                        world_daylight(s, sessions.time_of_day()), cap_by_difficulty(s.difficulty), (uint32_t)tick, mob_now);
+                        world_daylight(s, sessions.time_of_day()), cap_by_difficulty(s.difficulty), (uint32_t)tick, mob_now,
+                        [&s](int x, int z) { return s.keeper.lit_chunk(World::chunk_of(x, 0, z)); });
                     if ((sr.came || sr.went) && !quiet)
                         std::printf("        creatures: %d came out of the dark, %d went\n",
                                     sr.came, sr.went);

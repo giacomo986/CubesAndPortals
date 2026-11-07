@@ -1307,9 +1307,17 @@ The sandbox:
    black in a ring, the sky dusk blue, the land dark; the server's day through
    weather:darken -> core.overcast). /sky [meteors|aurora|eclipse|impact|
    clear]. Checked headless: an impact's crater and meteorite, the server's
-   light falling 15 -> 9 as the eclipse comes in. Open: none of it yet seen
-   drawn; meteorites in a cave below are possible (ground found from the
-   player's height down).
+   light falling 15 -> 9 as the eclipse comes in. From play 2026-11-07
+   ("skeletons and zombies at once, by day"): two faults. The day's eclipse
+   was rolled at every server start (last_t read while the mods load, the
+   saved clock not set yet, so the first tick "crossed" dawn); and a
+   player's machine never drew one -- world code's host had no
+   core.time_of_day (0 there), so the sky stayed blue while the server's
+   dark had the creatures out. Now last_t is taken at the first tick and
+   world code reads the clock (setting it stays the server's). Seen: an
+   eclipse forced at 0.43, the client's dim 1.00, the sky dusk blue and the
+   land dark in Xephyr. Open: meteorites in a cave below are possible
+   (ground found from the player's height down).
 11. The village paper (low). The board tells gossip of what the player really
    did -- a theft marked, a siege defended, a caravan arrived from a named
    village -- from data the villagers already keep.
