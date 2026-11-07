@@ -1743,7 +1743,9 @@ on foot and get into a parked kart: `games/track`.
   `tools/make_knight_meshy.py` instead moves the robot's bones (names and directions kept) to the
   dragon knight's joints, turns its A-pose arms down, and writes the robot's clips into its file with
   each translation moved as its bone moved, a constant channel kept as one key so the file stays
-  under 1 MB. The knight keeps its painted texture: the player's colours do not dye it, and it has
+  under 1 MB. The knight is generated in Meshy's smart topology, a hundred separate pieces, and is
+  built like the robot: each piece follows one bone whole and takes a flat colour read off the
+  texture, red tint_1 and gold tint_2 for the player to dye; the texture itself is not kept. It has
   no styles.
 * **Worn armour.** An item with `wear` (`core.register_item`) goes in one of the bag's four worn
   slots (head, chest, legs, feet; shift-click with the bag open puts it on and takes it off). If the

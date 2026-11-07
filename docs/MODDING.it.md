@@ -1956,8 +1956,10 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   braccia dalla posa ad A e scrive le clip del robot nel suo file, ogni
   traslazione spostata come si è spostato il suo osso, un canale costante
   tenuto come una sola chiave perché il file resti sotto 1 MB. Il cavaliere
-  tiene la sua texture dipinta: i colori del giocatore non lo tingono, e non
-  ha stili.
+  è generato nella smart topology di Meshy, un centinaio di pezzi separati, ed
+  è fatto come il robot: ogni pezzo segue un solo osso intero e prende un
+  colore piatto letto dalla texture, rosso tint_1 e oro tint_2 che il
+  giocatore tinge; la texture non viene tenuta. Non ha stili.
 * **Armature indossate.** Un oggetto con `wear` (`core.register_item`) va in
   uno dei quattro slot indossati della borsa (testa, petto, gambe, piedi; lo
   shift-click a borsa aperta lo mette e lo toglie). Se il mondo ha un modello

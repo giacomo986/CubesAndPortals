@@ -6713,7 +6713,7 @@ constexpr int     kLiveryHeadCount = 3, kLiveryNeckCount = 3;
 // "<player model>_<species>", on the player model's rig and with its clips,
 // and each one's styles, "<that>_<style>" worn on it (tools/make_species.py).
 // The wire's order, as the extras'.
-// The knight (tools/make_knight_meshy.py) is painted, not dyed, and has no styles.
+// The knight (tools/make_knight_meshy.py) has no styles.
 const char *const kLiverySpecies[] = {"human", "mole", "frog", "knight"};
 const char *const kLiveryStyles[4][3] = {
     {"short", "long", "beard"}, {"lamp", "goggles", "glasses"}, {"spots", "crown", "lily"}, {}};

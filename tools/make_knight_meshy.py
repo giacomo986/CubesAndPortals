@@ -1,6 +1,7 @@
 # The dragon knight, a player body from Meshy (assets/meshy/knight: concept.png,
-# and knight.gltf as tools/meshy_prop.py left it), on a skeleton of its own
-# proportions with the robot's clips:
+# and knight_parts.glb, image-to-3D in smart topology: a hundred separate
+# pieces at 12k triangles), on a skeleton of its own proportions with the
+# robot's clips:
 #
 #   flatpak run org.blender.Blender --background --python "$PWD/tools/make_knight_meshy.py"
 #
@@ -13,23 +14,26 @@
 # written into the file here (graft), a constant channel as one key, which
 # keeps it under the 1 MB a media file may weigh.
 #
-# The knight stands in an A-pose and the robot's arms hang straight down, so
-# the arms are first turned down about their joints: each vertex takes the
-# nearest bone of its own part (an arm's never the cape's), blurred at the
-# joints, and is moved by those bones from the A-pose to the rest pose. The
-# texture stays as Meshy painted it: no tint, the player's colours do not dye
-# this one.
+# Each piece follows one bone whole, as the robot's parts do, unless it is big
+# and spans several (the torso, the cape): then its vertices take the nearest
+# bone of their part (an arm's never the cape's), blurred. The knight stands in
+# an A-pose and the robot's arms hang straight down, so the arms are first
+# turned down about their joints by those bones. The texture is read only to
+# colour each face flat (COLOURS): the red plates tint_1 and the gold trim
+# tint_2, which the player dyes; steel and black stay.
 #
-# Writes mods/robot/robot_knight.gltf + .bin + .png, and robot_knight_arms
-# (the arms seen in first person, on robot_arms.gltf's rig and clips, their
-# shoulders where the robot's are in view) sharing that texture.
+# Writes mods/robot/robot_knight.gltf + .bin, and robot_knight_arms (the arms
+# seen in first person, on robot_arms.gltf's rig and clips, their shoulders
+# where the robot's are in view).
 import json
+import math
 import os
 import struct
 import sys
 
 import bmesh
 import bpy
+import numpy as np
 from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -37,17 +41,29 @@ from make_species import blurred, export, fresh, keep_tools  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 OUT = os.path.join(ROOT, "mods", "robot")
-SRC = os.path.join(ROOT, "assets", "meshy", "knight", "knight.gltf")
+SRC = os.path.join(ROOT, "assets", "meshy", "knight", "knight_parts.glb")
 NAME = "robot_knight"
 
 S = 1.15   # the knight's file is 1.36 tall: 1.56 with its horns, the robot's head
 # Its joints, read off front and side renders of that file (x either side,
 # depth 0): shoulder, elbow, wrist and fingertips of the A-pose arm, the hip
 # joint, knee and ankle, the neck and the top of the horns.
-K_SHOULDER, K_ELBOW, K_WRIST, K_TIP = (0.20, 0.95), (0.33, 0.77), (0.47, 0.67), (0.60, 0.53)
-K_HIP, K_KNEE, K_ANKLE = (0.085, 0.40), 0.24, 0.07
-K_NECK, K_TOP = 1.02, 1.36
-HAND_SQUEEZE = 0.6   # how much of the claws' sideways fan is closed
+K_SHOULDER, K_ELBOW, K_WRIST, K_TIP = (0.175, 0.895), (0.33, 0.79), (0.425, 0.68), (0.52, 0.55)
+K_HIP, K_KNEE, K_ANKLE = (0.087, 0.48), 0.365, 0.07
+K_NECK, K_TOP = 1.06, 1.36
+TRIS = 8000   # what the pieces are decimated to
+RIGID_MAX = 400   # a piece of up to this many vertices follows one bone whole
+ONE_COLOUR = 0.7   # a piece this much one colour is all of it
+# The flat colours a face takes, sRGB, the texture's own (k-means of it), a
+# name's first one its colour (the red a little brighter than painted, which
+# reads near black in the game's light): the red plates and the gold trim
+# are the player's primary and secondary.
+COLOURS = [
+    ("tint_1", (0.52, 0.09, 0.10)), ("tint_1", (0.37, 0.05, 0.07)), ("tint_1", (0.42, 0.19, 0.16)),
+    ("tint_2", (0.67, 0.62, 0.42)), ("tint_2", (0.54, 0.45, 0.32)),
+    ("Steel", (0.33, 0.33, 0.33)), ("Steel", (0.27, 0.28, 0.29)),
+    ("Dark", (0.17, 0.17, 0.17)), ("Dark", (0.10, 0.10, 0.11)),
+]
 CAPE_Y = -0.09   # behind this (scaled, facing +Y) a point under the hips is cape, not leg
 
 BONES = {
@@ -140,27 +156,78 @@ def segment(p, a, b):
 
 
 def load():
-    """The knight in the rig's world, faced to +Y."""
+    """The knight in the rig's world, faced to +Y, each face's colour read off
+    the texture (corners and middle), the texture then dropped."""
     bpy.ops.import_scene.gltf(filepath=SRC)
     ob = next(o for o in bpy.context.selected_objects if o.type == "MESH")
+    me = ob.data
+    img = next(n.image for n in me.materials[0].node_tree.nodes if n.type == "TEX_IMAGE")
+    w, h = img.size
+    px = np.array(img.pixels[:], dtype=np.float32).reshape(h, w, 4)[:, :, :3]   # sRGB as stored
+    uv = me.uv_layers.active.data
+    cols = []
+    for f in me.polygons:
+        pts = [uv[i].uv for i in f.loop_indices]
+        pts.append(sum(pts, Vector((0, 0))) / len(pts))
+        cols.append(np.mean([px[min(h - 1, int(p.y * h)), min(w - 1, int(p.x * w))] for p in pts], axis=0))
     mw = ob.matrix_world.copy()
-    for v in ob.data.vertices:
-        p = mw @ v.co
+    co = [mw @ v.co for v in me.vertices]
+    lo = Vector([min(c[i] for c in co) for i in range(3)])
+    hi = Vector([max(c[i] for c in co) for i in range(3)])
+    scale = K_TOP / (hi.z - lo.z)   # its own size, to the height K_* were read at
+    mid = (lo + hi) / 2
+    for v, c in zip(me.vertices, co):
+        p = Vector(((c.x - mid.x) * scale, (c.y - mid.y) * scale, (c.z - lo.z) * scale))
         v.co = Vector((-p.x * S, -p.y * S, p.z * S))
     ob.matrix_world.identity()
-    # The file is flat-shaded, every corner its own vertex: welded and smooth,
-    # or with its weights it is over a megabyte (UVs live on the corners).
-    bm = bmesh.new()
-    bm.from_mesh(ob.data)
+    me.materials.clear()
+    while me.uv_layers:
+        me.uv_layers.remove(me.uv_layers[0])
+    bm = bmesh.new()   # split at the texture's seams: made whole, its pieces stay apart
+    bm.from_mesh(me)
     bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
-    bm.to_mesh(ob.data)
+    bm.to_mesh(me)
     bm.free()
-    for f in ob.data.polygons:
-        f.use_smooth = True
-    img = next(n.image for n in ob.data.materials[0].node_tree.nodes if n.type == "TEX_IMAGE")
-    img.name = NAME
-    ob.data.materials[0].name = NAME
-    return ob
+    assert len(me.polygons) == len(cols)
+    # Fewer triangles, or with the clips the file is over a megabyte: each
+    # face's colour goes to the vertices it keeps, read back after.
+    layer = me.color_attributes.new("c", "FLOAT_COLOR", "CORNER")
+    for f, c in zip(me.polygons, cols):
+        for li in f.loop_indices:
+            layer.data[li].color = (*c, 1.0)
+    have = len(me.polygons)
+    if have > TRIS:
+        mod = ob.modifiers.new("dec", "DECIMATE")
+        mod.ratio = TRIS / have
+        bpy.context.view_layer.objects.active = ob
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+    layer = me.color_attributes["c"]
+    cols = [np.mean([layer.data[li].color[:3] for li in f.loop_indices], axis=0) for f in me.polygons]
+    me.color_attributes.remove(layer)
+    return ob, np.array(cols)
+
+
+def pieces(me):
+    """Which piece each vertex is: Meshy's parts are not joined to each other."""
+    near = [[] for _ in me.vertices]
+    for e in me.edges:
+        a, b = e.vertices
+        near[a].append(b)
+        near[b].append(a)
+    piece = [-1] * len(me.vertices)
+    n = 0
+    for start in range(len(me.vertices)):
+        if piece[start] >= 0:
+            continue
+        stack = [start]
+        piece[start] = n
+        while stack:
+            for j in near[stack.pop()]:
+                if piece[j] < 0:
+                    piece[j] = n
+                    stack.append(j)
+        n += 1
+    return piece, n
 
 
 def part(p):
@@ -177,10 +244,66 @@ def part(p):
     return "torso"
 
 
+def colours(me, cols, piece):
+    """A flat material for each face: the nearest of COLOURS, then within each
+    piece the commonest among its neighbours where it is a speck, and a piece
+    that is mostly one colour all of it."""
+    names = [k for k, _ in COLOURS]
+    ref = np.array([c for _, c in COLOURS])
+    label = list(np.argmin(((cols[:, None, :] - ref[None]) ** 2).sum(-1), axis=1))
+    vface = [[] for _ in me.vertices]
+    for f in me.polygons:
+        for v in f.vertices:
+            vface[v].append(f.index)
+    for _ in range(2):
+        new = []
+        for f in me.polygons:
+            count = {}
+            for v in f.vertices:
+                for g in vface[v]:
+                    count[label[g]] = count.get(label[g], 0) + 1
+            best = max(count, key=count.get)
+            new.append(best if count[best] > 2 * count.get(label[f.index], 0) else label[f.index])
+        label = new
+    of = {}
+    for f in me.polygons:
+        of.setdefault(piece[f.vertices[0]], []).append(f.index)
+    for faces in of.values():
+        count = {}
+        for i in faces:
+            count[label[i]] = count.get(label[i], 0) + 1
+        best = max(count, key=count.get)
+        if count[best] >= ONE_COLOUR * len(faces):
+            for i in faces:
+                label[i] = best
+    used = sorted(set(label))
+    for i in used:
+        name = COLOURS[i][0]
+        rgb = next(c for n, c in COLOURS if n == name)   # a name's first colour is its colour
+        # the robot's file came with a tint_1 and a tint_2 of its own: ours replace them
+        m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+        m.use_nodes = True
+        bsdf = next(n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
+        lin = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
+        bsdf.inputs["Base Color"].default_value = (*lin, 1.0)
+        bsdf.inputs["Metallic"].default_value = 0.0
+        bsdf.inputs["Roughness"].default_value = 0.6
+        m.diffuse_color = (*lin, 1.0)
+    order = list(dict.fromkeys(names[i] for i in used))
+    for n in order:
+        me.materials.append(bpy.data.materials[n])
+    for f, lab in zip(me.polygons, label):
+        f.material_index = order.index(names[lab])
+
+
 def body(rig):
-    """The knight, its arms turned down, bound to the moved rig."""
-    ob = load()
+    """The knight, its arms turned down, bound to the moved rig: a small piece
+    follows one bone whole, as the robot's parts do; a big one (the torso, the
+    cape) bends, its vertices each the nearest bone of their part, blurred."""
+    ob, cols = load()
     me = ob.data
+    piece, count = pieces(me)
+    colours(me, cols, piece)
     mw = rig.matrix_world
     seg = {b.name: (mw @ b.head_local, mw @ b.tail_local) for b in rig.data.bones}
     # The arms' bones where the A-pose has them, and each one's move to rest.
@@ -192,8 +315,23 @@ def body(rig):
             turn = (a[i + 1] - a[i]).rotation_difference(r[i + 1] - r[i])
             moves[n] = (a[i], r[i], turn)
     where = [part(v.co) for v in me.vertices]
-    weights = [{min(BONES[w], key=lambda b: segment(v.co, *seg[b])): 1.0} for v, w in zip(me.vertices, where)]
-    weights = blurred(me, weights, passes=4)
+    nearest = [min(BONES[w], key=lambda b: segment(v.co, *seg[b])) for v, w in zip(me.vertices, where)]
+    members = [[] for _ in range(count)]
+    for i, p in enumerate(piece):
+        members[p].append(i)
+    rigid = set()
+    for p, vs in enumerate(members):
+        tally = {}
+        for i in vs:
+            tally[nearest[i]] = tally.get(nearest[i], 0) + 1
+        best = max(tally, key=tally.get)
+        if len(vs) <= RIGID_MAX or tally[best] >= 0.85 * len(vs):
+            rigid.add(p)
+            for i in vs:
+                nearest[i] = best
+    weights = [{b: 1.0} for b in nearest]
+    blur = blurred(me, weights, passes=4)   # edges stay inside a piece
+    weights = [w if piece[i] in rigid else blur[i] for i, w in enumerate(weights)]
     for v, w in zip(me.vertices, weights):
         p = Vector()
         for bone, x in w.items():
@@ -202,13 +340,9 @@ def body(rig):
                 p += (r + turn @ (v.co - a)) * x
             else:
                 p += v.co * x
-        # The concept's open hands fan their claws out sideways: hanging,
-        # they read as wings at the hips, so the fan is closed about the hand.
-        hand = sum(x for bone, x in w.items() if bone.startswith("hand_"))
-        if hand:
-            r = moves["hand_L" if p.x < 0 else "hand_R"][1]
-            p.x = r.x + (p.x - r.x) * (1.0 - HAND_SQUEEZE * hand)
         v.co = p
+    for f in me.polygons:
+        f.use_smooth = True
     for b in rig.data.bones:
         ob.vertex_groups.new(name=b.name)
     for i, w in enumerate(weights):
@@ -218,22 +352,29 @@ def body(rig):
     ob.parent = rig
     ob.matrix_parent_inverse = rig.matrix_world.inverted()
     ob.modifiers.new("rig", "ARMATURE").object = rig
-    return ob, where, weights
+    bpy.context.view_layer.objects.active = ob
+    try:   # sharp where a piece folds, smooth across its curves
+        bpy.ops.object.shade_smooth_by_angle(angle=math.radians(40))
+    except Exception as e:
+        print("smooth by angle:", e)
+    return ob, weights
 
 
-def arm_part(ob, where, weights):
+def arm_part(ob, weights):
     """The arms of the knight at rest, as plain data: they outlive the scene."""
     me = ob.data
-    keep = {v.index for v in me.vertices if where[v.index].startswith("arm")}
+    arm = {"upper_arm_L", "forearm_L", "hand_L", "upper_arm_R", "forearm_R", "hand_R"}
+    keep = {v.index for v in me.vertices if max(weights[v.index], key=weights[v.index].get) in arm}
     faces = [f for f in me.polygons if all(v in keep for v in f.vertices)]
     used = sorted({v for f in faces for v in f.vertices})
     index = {v: i for i, v in enumerate(used)}
-    uv = me.uv_layers.active.data
     return {
         "co": [me.vertices[v].co.copy() for v in used],
         "w": [weights[v] for v in used],
         "faces": [[index[v] for v in f.vertices] for f in faces],
-        "uv": [[tuple(uv[i].uv) for i in f.loop_indices] for f in faces],
+        "mat": [me.materials[f.material_index].name for f in faces],
+        "colours": {m.name: tuple(next(n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
+                                  .inputs["Base Color"].default_value) for m in me.materials},
     }
 
 
@@ -242,18 +383,18 @@ def arms(rig, data, shift):
     moved by `shift` so its shoulders are where the robot's are in view."""
     me = bpy.data.meshes.new(NAME + "_arms")
     me.from_pydata([c + shift for c in data["co"]], [], data["faces"])
-    layer = me.uv_layers.new(name="UVMap")
-    for f, uvs in zip(me.polygons, data["uv"]):
-        for li, uv in zip(f.loop_indices, uvs):
-            layer.data[li].uv = uv
+    order = list(dict.fromkeys(data["mat"]))
+    for n in order:
+        m = bpy.data.materials.get(n) or bpy.data.materials.new(n)
+        m.use_nodes = True
+        bsdf = next(x for x in m.node_tree.nodes if x.type == "BSDF_PRINCIPLED")
+        bsdf.inputs["Base Color"].default_value = data["colours"][n]
+        bsdf.inputs["Metallic"].default_value = 0.0
+        bsdf.inputs["Roughness"].default_value = 0.6
+        me.materials.append(m)
+    for f, n in zip(me.polygons, data["mat"]):
+        f.material_index = order.index(n)
         f.use_smooth = True
-    mat = bpy.data.materials.new(NAME)
-    mat.use_nodes = True
-    bsdf = next(n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
-    tex = mat.node_tree.nodes.new("ShaderNodeTexImage")
-    tex.image = bpy.data.images.load(os.path.join(OUT, NAME + ".png"))
-    mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
-    me.materials.append(mat)
     ob = bpy.data.objects.new(NAME + "_arms", me)
     bpy.context.scene.collection.objects.link(ob)
     bones = {b.name for b in rig.data.bones}
@@ -267,6 +408,11 @@ def arms(rig, data, shift):
     ob.parent = rig
     ob.matrix_parent_inverse = rig.matrix_world.inverted()
     ob.modifiers.new("rig", "ARMATURE").object = rig
+    bpy.context.view_layer.objects.active = ob
+    try:
+        bpy.ops.object.shade_smooth_by_angle(angle=math.radians(40))
+    except Exception as e:
+        print("smooth by angle:", e)
     return ob
 
 
@@ -313,8 +459,6 @@ def graft(path, robot_path, hips_scale):
         written[data] = len(doc["accessors"]) - 1
         return written[data]
 
-    for im in doc.get("images", []):   # named after the file it came from
-        im["uri"] = NAME + ".png"
     doc["animations"] = []
     for anim in robot["animations"]:
         out = {"name": anim["name"], "channels": [], "samplers": []}
@@ -364,13 +508,10 @@ def main():
     placed = place_rig(rig)
     tools_moved(mesh, placed["hand_R"][1])
     mesh.name = NAME + "_tools"
-    ob, where, weights = body(rig)
-    data = arm_part(ob, where, weights)
+    ob, weights = body(rig)
+    data = arm_part(ob, weights)
     path = os.path.join(OUT, NAME + ".gltf")
     export(rig, [ob, mesh], path, False)
-    for f in os.listdir(OUT):   # the exporter names the texture after the file it came from
-        if f == "knight.png":
-            os.replace(os.path.join(OUT, f), path[:-5] + ".png")
     finish(path, robot_path, K_HIP[1] * S / 0.73)
 
     arms_path = os.path.join(OUT, "robot_arms.gltf")
@@ -383,11 +524,7 @@ def main():
     tools_moved(mesh, moved["hand_R"][1])
     path = os.path.join(OUT, NAME + "_arms.gltf")
     export(rig, [arms(rig, data, shift), mesh], path, False)
-    for f in os.listdir(OUT):
-        if f in ("knight.png", "robot_knight_1.png"):
-            os.remove(os.path.join(OUT, f))
     finish(path, arms_path, 1.0)
-    print(f"{NAME}.png: {os.path.getsize(os.path.join(OUT, NAME + '.png'))} bytes")
 
 
 if __name__ == "__main__":
