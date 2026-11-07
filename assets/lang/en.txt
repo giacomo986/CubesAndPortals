@@ -122,3 +122,8 @@ Il circuito di questo portale: tre giri di fila sotto %.1f s. Il kart e' qui acc
 Tre giri sotto il tempo. Dietro la piazzola qualcosa si e' aperto. = Three laps under the time. Something has opened behind the pad.
 La ricompensa e' nella cassa accanto al portale = The reward is in the chest by the portal
 La tua borsa e' rimasta in una tomba a {} {} {}: la strada e' sulla mappa. = Your bag stayed in a grave at {} {} {}: the way is on the map.
+
+# --- Found by tools/lang_check.py (2026-11-07) ---
+Il circuito di questo portale: tre giri di fila sotto {} s. Il kart e' qui accanto. = This portal's circuit: three laps in a row under {} s. The kart is right here.
+Il tempo: {} s. Giri di fila sotto: {} di 3. = The time: {} s. Laps in a row under it: {} of 3.
+La ricompensa e' nella cassa accanto al portale{} = The reward is in the chest by the portal{}

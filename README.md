@@ -583,7 +583,9 @@ screen, language and the update check.
 
 **Translations** are `assets/lang/<code>.txt`, one line `text as written = translation` with `{}`
 for the parts that vary. They apply to everything the client draws: menus, mods' panels and
-notices, chat and HUD text. A missing line leaves the text as it is.
+notices, chat and HUD text, and item names. A missing line leaves the text as it is.
+`python3 tools/lang_check.py` lists what the mods and worlds show that `it.txt` (for English text)
+or `en.txt` (for Italian text) has no line for; run it after changing a mod's text.
 
 ### Client (`cnp_client`)
 

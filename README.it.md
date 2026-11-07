@@ -600,7 +600,9 @@ mouse, volume, luce, ombre, schermo intero, lingua e controllo degli aggiornamen
 
 **Le traduzioni** sono `assets/lang/<codice>.txt`, una riga `testo come scritto = traduzione` con
 `{}` per le parti variabili. Valgono per tutto ciò che il client disegna: menù, pannelli e avvisi
-dei mod, chat e testi dell'HUD. Una riga assente lascia il testo com'è.
+dei mod, chat e testi dell'HUD, e i nomi degli oggetti. Una riga assente lascia il testo com'è.
+`python3 tools/lang_check.py` elenca ciò che mod e mondi mostrano e che `it.txt` (per i testi in
+inglese) o `en.txt` (per quelli in italiano) non hanno; va lanciato dopo aver cambiato i testi di un mod.
 
 ### Client (`cnp_client`)
 
