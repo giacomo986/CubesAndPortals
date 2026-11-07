@@ -49,8 +49,10 @@ S = 1.15   # the knight's file is 1.36 tall: 1.56 with its horns, the robot's he
 # depth 0): shoulder, elbow, wrist and fingertips of the A-pose arm, the hip
 # joint, knee and ankle, the neck and the top of the horns.
 K_SHOULDER, K_ELBOW, K_WRIST, K_TIP = (0.175, 0.895), (0.33, 0.79), (0.425, 0.68), (0.52, 0.55)
-K_HIP, K_KNEE, K_ANKLE = (0.087, 0.48), 0.365, 0.07
+K_HIP, K_KNEE, K_ANKLE = (0.087, 0.61), 0.365, 0.07   # the hip under the tassets, below the belt
 K_NECK, K_TOP = 1.06, 1.36
+FP_SLIM = 0.6   # first-person arms this much thinner about their bones
+ARM_OUT, ARM_FORWARD = 20, 8   # degrees the rest arm hangs out and ahead
 TRIS = 8000   # what the pieces are decimated to
 RIGID_MAX = 400   # a piece of up to this many vertices follows one bone whole
 ONE_COLOUR = 0.7   # a piece this much one colour is all of it
@@ -78,12 +80,18 @@ def k(x, z, side=1):
     return Vector((side * x * S, 0.0, z * S))
 
 
-def arm_pose(sx):
-    """The A-pose arm's joints and the rest arm's, shoulder to fingertip."""
+def arm_pose(sx, out=None):
+    """The A-pose arm's joints and the rest arm's, shoulder to fingertip: the
+    rest arm hangs OUT degrees off straight down (and FORWARD ahead), so the
+    hands clear the tassets; bones still point straight down, which leaves
+    every clip's arm that much out."""
+    out = ARM_OUT if out is None else out
     a = [k(*j, sx) for j in (K_SHOULDER, K_ELBOW, K_WRIST, K_TIP)]
+    down = Vector((sx * math.sin(math.radians(out)), math.sin(math.radians(ARM_FORWARD if out else 0)),
+                   -math.cos(math.radians(out)))).normalized()
     r = [a[0].copy()]
     for i in range(3):
-        r.append(r[-1] - Vector((0, 0, (a[i + 1] - a[i]).length)))
+        r.append(r[-1] + down * (a[i + 1] - a[i]).length)
     return a, r
 
 
@@ -307,13 +315,14 @@ def body(rig):
     mw = rig.matrix_world
     seg = {b.name: (mw @ b.head_local, mw @ b.tail_local) for b in rig.data.bones}
     # The arms' bones where the A-pose has them, and each one's move to rest.
-    moves = {}
+    moves, straight = {}, {}   # to the rest arm, and to one hanging straight down
     for side, sx in (("L", -1), ("R", 1)):
         a, r = arm_pose(sx)
+        _, r0 = arm_pose(sx, 0)
         for i, n in enumerate(BONES["arm_" + side]):
             seg[n] = (a[i], a[i + 1])
-            turn = (a[i + 1] - a[i]).rotation_difference(r[i + 1] - r[i])
-            moves[n] = (a[i], r[i], turn)
+            moves[n] = (a[i], r[i], (a[i + 1] - a[i]).rotation_difference(r[i + 1] - r[i]))
+            straight[n] = (a[i], r0[i], (a[i + 1] - a[i]).rotation_difference(r0[i + 1] - r0[i]))
     where = [part(v.co) for v in me.vertices]
     nearest = [min(BONES[w], key=lambda b: segment(v.co, *seg[b])) for v, w in zip(me.vertices, where)]
     members = [[] for _ in range(count)]
@@ -332,15 +341,18 @@ def body(rig):
     weights = [{b: 1.0} for b in nearest]
     blur = blurred(me, weights, passes=4)   # edges stay inside a piece
     weights = [w if piece[i] in rigid else blur[i] for i, w in enumerate(weights)]
-    for v, w in zip(me.vertices, weights):
+    def moved(co, w, moves):
         p = Vector()
         for bone, x in w.items():
             if bone in moves:
                 a, r, turn = moves[bone]
-                p += (r + turn @ (v.co - a)) * x
+                p += (r + turn @ (co - a)) * x
             else:
-                p += v.co * x
-        v.co = p
+                p += co * x
+        return p
+    hanging = [moved(v.co, w, straight) for v, w in zip(me.vertices, weights)]
+    for v, w in zip(me.vertices, weights):
+        v.co = moved(v.co, w, moves)
     for f in me.polygons:
         f.use_smooth = True
     for b in rig.data.bones:
@@ -357,10 +369,10 @@ def body(rig):
         bpy.ops.object.shade_smooth_by_angle(angle=math.radians(40))
     except Exception as e:
         print("smooth by angle:", e)
-    return ob, weights
+    return ob, weights, hanging
 
 
-def arm_part(ob, weights):
+def arm_part(ob, weights, hanging):
     """The arms of the knight at rest, as plain data: they outlive the scene."""
     me = ob.data
     arm = {"upper_arm_L", "forearm_L", "hand_L", "upper_arm_R", "forearm_R", "hand_R"}
@@ -369,7 +381,7 @@ def arm_part(ob, weights):
     used = sorted({v for f in faces for v in f.vertices})
     index = {v: i for i, v in enumerate(used)}
     return {
-        "co": [me.vertices[v].co.copy() for v in used],
+        "co": [hanging[v] for v in used],
         "w": [weights[v] for v in used],
         "faces": [[index[v] for v in f.vertices] for f in faces],
         "mat": [me.materials[f.material_index].name for f in faces],
@@ -378,11 +390,30 @@ def arm_part(ob, weights):
     }
 
 
-def arms(rig, data, shift):
-    """The arms seen in first person, on robot_arms.gltf's rig: the knight's,
-    moved by `shift` so its shoulders are where the robot's are in view."""
+def arms(rig, data, robot):
+    """The arms seen in first person, on robot_arms.gltf's rig as it is: the
+    knight's arm hanging straight, each piece carried onto the robot's bone
+    -- a forearm by its wrist end, so it meets the hand, the gap at the elbow
+    out of view -- and slimmed (FP_SLIM), so the hands are where the robot's
+    are and hold what it holds there without the bracers filling the view."""
+    mw = rig.matrix_world
+    fp = {b.name: mw @ b.head_local for b in rig.data.bones}
+    co = []
+    for c, w in zip(data["co"], data["w"]):
+        p = Vector()
+        for bone, x in w.items():
+            if bone not in fp or bone not in robot:
+                side = "L" if c.x < 0 else "R"   # a shoulder's chest share
+                p += (c + fp["upper_arm_" + side] - robot["upper_arm_" + side][0]) * x
+                continue
+            anchor, at = robot[bone]
+            local = c - anchor
+            local.x *= FP_SLIM
+            local.y *= FP_SLIM
+            p += (fp[at] + local) * x
+        co.append(p)
     me = bpy.data.meshes.new(NAME + "_arms")
-    me.from_pydata([c + shift for c in data["co"]], [], data["faces"])
+    me.from_pydata(co, [], data["faces"])
     order = list(dict.fromkeys(data["mat"]))
     for n in order:
         m = bpy.data.materials.get(n) or bpy.data.materials.new(n)
@@ -508,22 +539,26 @@ def main():
     placed = place_rig(rig)
     tools_moved(mesh, placed["hand_R"][1])
     mesh.name = NAME + "_tools"
-    ob, weights = body(rig)
-    data = arm_part(ob, weights)
+    ob, weights, hanging = body(rig)
+    data = arm_part(ob, weights, hanging)
     path = os.path.join(OUT, NAME + ".gltf")
     export(rig, [ob, mesh], path, False)
     finish(path, robot_path, K_HIP[1] * S / 0.73)
 
+    # Where each arm bone's pieces hang from on the straight knight, and the
+    # robot's bone that point goes to: the shoulder for an upper arm, the
+    # wrist for a forearm and a hand.
+    knight = {}
+    for side, sx in (("L", -1), ("R", 1)):
+        _, r0 = arm_pose(sx, 0)
+        up, fore, hand = BONES["arm_" + side]
+        knight[up], knight[fore], knight[hand] = (r0[0], up), (r0[2], hand), (r0[2], hand)
+
     arms_path = os.path.join(OUT, "robot_arms.gltf")
     rig, mesh = fresh(arms_path)
     keep_tools(mesh)
-    robot_shoulder = rig.matrix_world @ rig.data.bones["upper_arm_R"].head_local
-    shift = Vector((0, robot_shoulder.y, robot_shoulder.z)) - Vector((0, 0, placed["upper_arm_R"][0][0].z))
-    moved = move(rig, {n: (placed[n][0][0] + shift, placed[n][0][1] + shift)
-                       for n in BONES["arm_L"] + BONES["arm_R"]})
-    tools_moved(mesh, moved["hand_R"][1])
     path = os.path.join(OUT, NAME + "_arms.gltf")
-    export(rig, [arms(rig, data, shift), mesh], path, False)
+    export(rig, [arms(rig, data, knight), mesh], path, False)
     finish(path, arms_path, 1.0)
 
 

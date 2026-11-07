@@ -179,7 +179,11 @@ Open:
   gold tint_2, steel, black; no texture kept) and writes the robot's 74
   clips into the file, translations moved with their bones, constant
   channels as one key. robot_knight.bin 965892 bytes (of 1044480), arms 157
-  KB. Seen in Xephyr in first and third person; idle, walk, mine,
+  KB. Then (same day) the hip raised under the tassets (the thigh was half
+  the shin), the rest arms hung 20 degrees out and 8 ahead so the hands
+  clear the tassets, and the first-person arms put on the robot's own fp
+  bones (forearm by its wrist end, 0.6 as thick) so the hand holds what the
+  robot's holds where it holds it. Seen in Xephyr in first and third person; idle, walk, mine,
   sword_slash, crouch_walk rendered in Blender. Registered in mods/robot and
   the nine games that list species. Open: no styles; extras and arpg gear
   are the robot's, not refitted; the cape is bound to the hips and spine,
