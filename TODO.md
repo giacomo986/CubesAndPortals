@@ -1144,6 +1144,11 @@ Portals -- the engine's own trick, used further:
    scaling crossing; G stands in a planks doorframe (garden:frame, node
    boxes 1/32 thick). Checked in Xephyr: tiny 0.011 off centre into G, out of
    D at 31.32 40.10 and walked on free to z 46; the frame seen, no tube.
+   Also from play: small, a body could not get near the insects. The shove
+   out of a creature was a player's width either way (0.6): now the body at
+   its scale (Target::scale on the server, movement.scale on the client) and
+   the creature's model box (creature_box, its floor 0.2 now 0.005, the
+   aim's too). Checked: a sixteenth walked up to a still ant, gap 0.040.
 5. A passport of servers (low-medium). With --federation built: a stamp for
    every server reached through a far portal, and a letterbox that sends an
    item or a letter to a friend server. A reason for communities to link up.

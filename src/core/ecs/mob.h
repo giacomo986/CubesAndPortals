@@ -592,6 +592,7 @@ struct Target {
     uint32_t    peer   = 0;
     float       x = 0.0f, y = 0.0f, z = 0.0f;   // feet
     std::string name;                          // whose pets follow them
+    float       scale = 1.0f;                  // core.body_scale: their box is this much of a player's
 };
 
 // The box a creature occupies, origin at its feet like a player's.

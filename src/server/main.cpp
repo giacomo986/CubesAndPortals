@@ -8794,7 +8794,7 @@ int serve_room(int argc, char **argv)
                         continue;
                     const MovementState &at = who->authority();
                     if (!at.valid) continue;
-                    targets.push_back({who->avatar.id(), (uint32_t)peer, at.x, at.y, at.z, who->name});
+                    targets.push_back({who->avatar.id(), (uint32_t)peer, at.x, at.y, at.z, who->name, who->movement.scale});
                 }
                 // The creatures' sounds go out as a mod's would (core.play_sound):
                 // "mobs:zombie" hurt is "mobs:zombie_hurt", for each client to find.

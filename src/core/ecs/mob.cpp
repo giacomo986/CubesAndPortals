@@ -1682,8 +1682,10 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
         // into is shoved along (the player is shoved back on their own
         // machine, which moves them).
         for (const Target &t : targets) {
-            if (p.y >= t.y + kPlayerHeight || t.y >= p.y + b.height) continue;
-            const float dx = p.x - t.x, dz = p.z - t.z, reach = b.spread + kPlayerHalfWidth;
+            // At the player's size (core.body_scale): a sixteenth was kept
+            // a whole player's width from an ant it could not get near.
+            if (p.y >= t.y + kPlayerHeight * t.scale || t.y >= p.y + b.height) continue;
+            const float dx = p.x - t.x, dz = p.z - t.z, reach = b.spread + kPlayerHalfWidth * t.scale;
             const float d2 = dx * dx + dz * dz;
             if (d2 >= reach * reach) continue;
             const float d  = std::sqrt(d2);
@@ -2093,9 +2095,9 @@ void step_tumbling(flecs::world &w, const World &world, const NodeRegistry &reg,
         for (const Target &tg : targets) {
             if (tg.peer == 0) continue;
             const float lo = st.centre.y - ext.y, hi = st.centre.y + ext.y;
-            if (tg.y >= hi - 0.05f || tg.y + kPlayerHeight <= lo) continue;   // stood on, or passed under
-            const float dx = tg.x - st.centre.x, dz = tg.z - st.centre.z;
-            if (std::fabs(dx) >= ext.x + kPlayerHalfWidth || std::fabs(dz) >= ext.z + kPlayerHalfWidth) continue;
+            if (tg.y >= hi - 0.05f || tg.y + kPlayerHeight * tg.scale <= lo) continue;   // stood on, or passed under
+            const float dx = tg.x - st.centre.x, dz = tg.z - st.centre.z, pw = kPlayerHalfWidth * tg.scale;
+            if (std::fabs(dx) >= ext.x + pw || std::fabs(dz) >= ext.z + pw) continue;
             const float d  = std::hypot(dx, dz);
             const float ux = d > 1e-3f ? dx / d : 1.0f, uz = d > 1e-3f ? dz / d : 0.0f;
             const float closing = st.velocity.x * ux + st.velocity.z * uz;

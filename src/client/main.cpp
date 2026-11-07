@@ -7515,7 +7515,8 @@ AABB creature_box(const ModelStore &models, uint16_t model, Vec3 feet)
     const ModelStore::Entry *e = model != 0 ? models.entry(model) : nullptr;
     if (e == nullptr || e->model.max.y <= e->model.min.y) return ecs::mob_box(feet.x, feet.y, feet.z);
     const Vec3 &lo = e->model.min, &hi = e->model.max;
-    const float r = std::max({std::fabs(lo.x), std::fabs(hi.x), std::fabs(lo.z), std::fabs(hi.z), 0.2f});
+    // The server's floor (size_mob_kind): an insect is as small as it is.
+    const float r = std::max({std::fabs(lo.x), std::fabs(hi.x), std::fabs(lo.z), std::fabs(hi.z), 0.005f});
     return AABB{Vec3{feet.x - r, feet.y, feet.z - r}, Vec3{feet.x + r, feet.y + hi.y, feet.z + r}};
 }
 
@@ -15737,10 +15738,15 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             // (step_mobs): a push, never through a wall. Not in a kart.
             if (!player.vehicle) {
                 float push_x = 0.0f, push_z = 0.0f;
+                // Both at their own size: the body's (core.body_scale) and the
+                // creature's model box (creature_box), or a sixteenth stood a
+                // player's width off an ant (reported from play, 2026-11-07).
+                const float tall = kPlayerHeight * s.act().movement.scale, half = s.act().movement.width * 0.5f;
                 for (const net::RemotePlayer &c : conn->players()) {
                     if (c.kind != net::EntityKind::Mob || c.chassis || c.held) continue;
-                    if (player.pos.y >= c.y + ecs::kMobHeight || c.y >= player.pos.y + kPlayerHeight) continue;
-                    const float dx = player.pos.x - c.x, dz = player.pos.z - c.z, reach = 2.0f * kPlayerHalfWidth;
+                    const AABB cb = creature_box(s.act().models, c.model, Vec3{c.x, c.y, c.z});
+                    if (player.pos.y >= cb.max.y || c.y >= player.pos.y + tall) continue;
+                    const float dx = player.pos.x - c.x, dz = player.pos.z - c.z, reach = half + (cb.max.x - c.x);
                     const float d2 = dx * dx + dz * dz;
                     if (d2 >= reach * reach) continue;
                     const float d = std::sqrt(d2);
