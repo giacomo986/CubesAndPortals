@@ -25,13 +25,15 @@ local HEDGE, TRUNK = id("trees:leaves"), id("trees:trunk")
 local PLANKS = id("woods:dark_oak_planks")
 local COARSE = id("rocks:coarse_dirt")
 -- G's frame: a doorframe of planks round the inch-high opening, in its cell
--- (115, GY + 1, 43); jambs and lintel a thirty-second of a node thick, as deep
--- as G's doorway (a sixteenth). Seen huge from inside, a door of a house.
+-- (115, GY + 1, 43); jambs and lintel a thirty-second of a node thick.
+-- Seen huge from inside, a door of a house.
 local FRAME = core.register_node("garden:frame", 74, 52, 32, true, 0, "", 0, 1.5, "wood")
-local T = 1 / 32
-core.node_box(FRAME, 0.5 - 1 / 32 - T, 0, 0.5 - 1 / 32, 0.5 - 1 / 32, 1 / 8 + T, 0.5 + 1 / 32)
-core.node_box(FRAME, 0.5 + 1 / 32, 0, 0.5 - 1 / 32, 0.5 + 1 / 32 + T, 1 / 8 + T, 0.5 + 1 / 32)
-core.node_box(FRAME, 0.5 - 1 / 32, 1 / 8, 0.5 - 1 / 32, 0.5 + 1 / 32, 1 / 8 + T, 0.5 + 1 / 32)
+-- Half as deep as G's doorway: a face on its clip plane (a sixteenth's 1/32
+-- off the middle) was drawn as a black line across the door's picture.
+local T, D = 1 / 32, 1 / 64
+core.node_box(FRAME, 0.5 - 1 / 32 - T, 0, 0.5 - D, 0.5 - 1 / 32, 1 / 8 + T, 0.5 + D)
+core.node_box(FRAME, 0.5 + 1 / 32, 0, 0.5 - D, 0.5 + 1 / 32 + T, 1 / 8 + T, 0.5 + D)
+core.node_box(FRAME, 0.5 - 1 / 32, 1 / 8, 0.5 - D, 0.5 + 1 / 32, 1 / 8 + T, 0.5 + D)
 local TALL, FERN = id("plants:tall_grass"), id("plants:fern")
 local RED_CAP, BROWN_CAP = id("plants:red_mushroom"), id("plants:brown_mushroom")
 local FLOWERS = { id("plants:dandelion"), id("plants:poppy"), id("plants:cornflower"), id("plants:oxeye_daisy"),
@@ -210,7 +212,9 @@ local FLOWER_TOP = 0.75   -- a flower's model is 0.8 high: where a butterfly sit
 type Bug = { kind: string, id: number, wait: number, home: boolean,
              -- a butterfly's flight: from, to, how far along, how long
              fx: number, fy: number, fz: number, tx: number, ty: number, tz: number,
-             t: number, len: number, flying: boolean }
+             t: number, len: number, flying: boolean,
+             -- an ant's lane: how far to one side of the straight road it keeps
+             lane: number }
 local bugs: { Bug } = {}
 local seed = 12345
 local function rand(): number   -- small and fixed, so a run is a run
@@ -249,22 +253,64 @@ local function someone_near(): boolean
     return false
 end
 
+-- An ant walks a straight road, a lane of its own to one side of it (mob_goto
+-- goes by cell centres: the whole column on one line, overlapping), and only
+-- to a flower it can reach so: no trunk, stone, hedge or pond on the way.
+local ANT_SPEED = 0.15
+local BLOCKS_ANT = { [TRUNK] = true, [STONE] = true, [HEDGE] = true }
+local function clear_road(x0: number, z0: number, x1: number, z1: number): boolean
+    local d = math.sqrt((x1 - x0) ^ 2 + (z1 - z0) ^ 2)
+    for k = 0, math.ceil(d / 0.25) do
+        local u = if d > 0 then math.min(1, k * 0.25 / d) else 1
+        local x, z = math.floor(x0 + (x1 - x0) * u), math.floor(z0 + (z1 - z0) * u)
+        if BLOCKS_ANT[core.get_block(x, GY + 1, z)] or core.get_block(x, GY, z) == WATER then return false end
+    end
+    return true
+end
+local function ant(b: Bug, dt: number)
+    if not b.flying then
+        b.wait -= dt
+        if b.wait > 0 or #BLOOMS == 0 then return end
+        local x, _, z = core.mob_pos(b.id)
+        if x == nil then return end
+        local tx, tz
+        if b.home then
+            local f = bloom()
+            tx, tz = f[1] + 0.5, f[2] + 0.5
+        else
+            tx, tz = NEST_X + 0.5 + (rand() - 0.5) * 1.5, NEST_Z + 0.5 + (rand() - 0.5) * 1.5
+        end
+        if not clear_road(x, z, tx, tz) then b.wait = 0.5; return end   -- another flower, soon
+        b.fx, b.fz, b.tx, b.tz = x, z, tx, tz
+        b.t, b.len, b.flying = 0, math.max(0.5, math.sqrt((tx - x) ^ 2 + (tz - z) ^ 2) / ANT_SPEED), true
+        b.home = not b.home
+        core.mob_act(b.id, "walk", "")
+        return
+    end
+    b.t = math.min(b.len, b.t + dt)
+    local u = b.t / b.len
+    local dx, dz = b.tx - b.fx, b.tz - b.fz
+    local d = math.max(0.01, math.sqrt(dx * dx + dz * dz))
+    -- Into its lane and out of it at the ends, wandering a little as ants do.
+    local side = (b.lane + math.sin(b.t * 2.3 + b.lane * 40) * 0.012) * math.sin(u * math.pi)
+    local x = b.fx + dx * u - dz / d * side
+    local z = b.fz + dz * u + dx / d * side
+    core.mob_place(b.id, x, GY + 1, z)
+    core.mob_face(b.id, x + dx, z + dz)
+    if u >= 1 then
+        b.flying = false
+        b.wait = 1 + rand() * 3
+        core.mob_act(b.id, "", "")
+    end
+end
+
 local function walker(b: Bug, dt: number)
+    if b.kind == "garden:ant" then return ant(b, dt) end
     if core.mob_going(b.id) == 1 then return end
     b.wait -= dt
     if b.wait > 0 then return end
     b.wait = 1 + rand() * 3
-    if b.kind == "garden:ant" then
-        if #BLOOMS == 0 then return end
-        if b.home then
-            local f = bloom()
-            core.mob_goto(b.id, f[1], GY + 1, f[2])
-        else
-            -- each to a cell of the nest's 3 x 3, so the roads home part
-            core.mob_goto(b.id, NEST_X + math.floor(rand() * 3) - 1, GY + 1, NEST_Z + math.floor(rand() * 3) - 1)
-        end
-        b.home = not b.home
-    else
+    do
         local x, _, z = core.mob_pos(b.id)
         if x == nil then return end
         local nx = math.floor(x + (rand() - 0.5) * 6)
@@ -318,7 +364,8 @@ core.event.on("core:tick", function(ev)
                 -- The ants out of the nest one by one, a column along the trail.
                 local first = if kind == "garden:ant" then (i - 1) * 3 else 0
                 table.insert(bugs, { kind = kind, id = 0, wait = first, home = true, fx = 0, fy = 0, fz = 0,
-                                     tx = 0, ty = 0, tz = 0, t = 0, len = 1, flying = false })
+                                     tx = 0, ty = 0, tz = 0, t = 0, len = 1, flying = false,
+                                     lane = ((i - 1) % 5 - 2) * 0.035 })
             end
         end
     end

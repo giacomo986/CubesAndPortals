@@ -1355,7 +1355,9 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
         const Vec3 eye{p.x, p.y + 1.55f, p.z};
         float      want_x = 0.0f, want_z = 0.0f;   // where it walks this tick, unit or zero
         const float pace  = now < b.slow_until ? b.slow : 1.0f;   // core.slow_mobs
-        float      speed  = k.speed * pace;
+        // Made small or big by a scaling portal (scale_through): its pace too.
+        const float size  = e.has<Scaled>() ? e.get<Scaled>().scale : 1.0f;
+        float      speed  = k.speed * pace * size;
         Step       way;                            // what its way says, when it has one
 
         // Struck or shorn: a wild pet runs (a tame one knows who it is with).
@@ -1375,11 +1377,12 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
         }
         if (b.grown_at > 0.0 && now >= b.grown_at) {
             b.grown_at = 0.0;
-            b.height   = k.height;
-            b.half     = k.half;
-            b.spread   = k.spread;
-            b.hit_height = k.hit_height;
-            b.hit_half   = k.hit_half;
+            const float zs = e.has<Scaled>() ? e.get<Scaled>().scale : 1.0f;   // grown up at its size
+            b.height   = k.height * zs;
+            b.half     = k.half * zs;
+            b.spread   = k.spread * zs;
+            b.hit_height = k.hit_height * zs;
+            b.hit_half   = k.hit_half * zs;
             e.set<Wears>({k.model});
             e.set<Drops>({k.drop, k.drop_count, k.lay, k.extra, k.extra_max});
         }
@@ -1698,7 +1701,7 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
         const Vec3 delta{(want_x * speed + b.kx + push_x + belt.dx * belt.speed) * dt, b.vy * dt,
                          (want_z * speed + b.kz + push_z + belt.dz * belt.speed) * dt};
         const MoveResult r = move_body(world, reg, Vec3{p.x, p.y, p.z}, delta, 0.0f,
-                                       kStepHeight, b.half, b.height);
+                                       kStepHeight * size, b.half, b.height);
 
         // Blocked sideways on the ground: jump the node in the way.
         const float moved = std::fabs(r.pos.x - p.x) + std::fabs(r.pos.z - p.z);
@@ -2028,6 +2031,39 @@ void tumble_through(flecs::entity e, const Portal &src, const Portal &dst)
     const float hand = dot(cross(t->axis[0], t->axis[1]), t->axis[2]) < 0.0f ? -1.0f : 1.0f;
     t->spin    = portal_transform_dir(src, dst, st.spin) * hand;
     t->through = true;
+}
+
+float scale_through(flecs::entity e, float k, const World &world, const NodeRegistry &reg)
+{
+    Brain *b = e.try_get_mut<Brain>();
+    const float was = e.has<Scaled>() ? e.get<Scaled>().scale : 1.0f;
+    if (b == nullptr || !(k > 0.0f) || k == 1.0f) return was;
+    const float to  = std::clamp(was * k, kMinBodyScale, kMaxBodyScale);
+    k = to / was;
+    if (std::fabs(k - 1.0f) < 1e-6f) return was;
+    b->half *= k, b->height *= k, b->spread *= k, b->hit_height *= k, b->hit_half *= k;
+    // A tumbling box: a new one of the new size where the old was, turning
+    // and moving as it did, and as heavy as so much more or less of it.
+    Tumbling  *t = e.try_get_mut<Tumbling>();
+    RigidState st;
+    RigidSpec  spec;
+    if (t == nullptr || !tumble_box(e, st, spec)) return to;
+    spec.half = spec.half * k;
+    spec.mass = std::max(0.01f, spec.mass * k * k * k);
+    st.centre = Vec3{st.centre.x, st.centre.y + spec.half.y - spec.half.y / k, st.centre.z};
+    const std::shared_ptr<RigidSpace> space = t->body->space;
+    const RigidId rid = rigid_add(*space, spec, st, world, reg);
+    if (rid == 0) return to;
+    t->body        = std::make_shared<TumbleBody>();
+    t->body->space = space;
+    t->body->id    = rid;
+    return to;
+}
+
+void set_scaled(flecs::entity e, float scale)
+{
+    if (std::fabs(scale - 1.0f) < 1e-4f) e.remove<Scaled>();
+    else                                 e.set<Scaled>({scale});
 }
 
 bool on_tumbling(flecs::world &w, Vec3 feet, float half_width)

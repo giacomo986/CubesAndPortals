@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 117; // 117 openings that move (core.portal_move)
+inline constexpr uint16_t kProtocol    = 118; // 118 creatures sized by a scaling portal
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -386,7 +386,10 @@ inline constexpr uint16_t kProtocol    = 117; // 117 openings that move (core.po
 // floats after its colour, which a 116 client reads as the next opening; and
 // a byte for an opening turned freely, followed by its front, up and spin;
 // and BodyMovement a body's scale after its eye (core.body_scale).
-inline constexpr uint16_t kMinProtocol = 117;
+// 118 gives a creature a size of its own, made by a scaling pair it crossed
+// (Portal::scales): bit 32 of a Mob's flags byte, its scale a float after the
+// Player block, which a 117 client refuses.
+inline constexpr uint16_t kMinProtocol = 118;
 
 // What a player picked to look like (protocol 93): the three colours of their
 // model's tint_1..3 materials -- primary, secondary, accent -- five bits each,
@@ -1827,7 +1830,8 @@ struct EntityState {
     // tiles with its bottom at their feet, as a block falling is. 0 for none.
     uint16_t as_block = 0;
     // And how big a Player is drawn (protocol 117, bit 32 of that byte,
-    // core.body_scale): 1 when not sent.
+    // core.body_scale), or a Mob (118, bit 32 of its flags byte, a scaling
+    // portal crossed): 1 when not sent.
     float scale = 1.0f;
 
     // A Thing a mod rolled (protocol 98, core.craft): `chassis` and `body_roll`

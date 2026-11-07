@@ -2210,6 +2210,7 @@ int ServerSessions::cross_mobs(double now)
 {
     int crossed = 0;
     std::vector<uint64_t> alive;
+    std::vector<std::pair<flecs::entity, float>> resized;   // sized by a scaling pair, set after the walk
     m_ecs.each([&](flecs::entity e, ecs::Position &p, ecs::Brain &b) {
         alive.push_back(e.id());
         MobCrossing &mc  = m_mob_crossing[e.id()];
@@ -2268,6 +2269,10 @@ int ServerSessions::cross_mobs(double now)
             const Traversal t = portal_traverse(m_portal[i], m_portal[j], now_at, facing, vel, m_world,
                                                 m_registry, eye, b.half);
             if (t.blocked) break;
+            // Through a pair that scales: as big against the far end as it
+            // was against this one (Portal::scales), before it is fitted out.
+            if (const float k = portal_pair_scale(m_portal[i], m_portal[j]); k != 1.0f)
+                resized.push_back({e, ecs::scale_through(e, k, *m_world, *m_registry)});
             // Out of the far opening where a body of its size fits: in front
             // of a wall's at its foot, on a floor's, under a ceiling's. The
             // traversal's feet are a player's, eye and all, and a cube put
@@ -2275,13 +2280,15 @@ int ServerSessions::cross_mobs(double now)
             const Portal &d  = m_portal[j];
             const Vec3    dn = d.normal();
             Vec3          feet{d.center.x, d.center.y, d.center.z};
+            // A small scaling opening's node is as much smaller (slack).
+            const float sl = d.scales ? std::min(1.0f, d.half_h) : 1.0f;
             if (!d.horizontal())
-                feet = Vec3{d.center.x + dn.x * (b.half + 0.1f), d.center.y - d.half_h + 0.01f,
-                            d.center.z + dn.z * (b.half + 0.1f)};
+                feet = Vec3{d.center.x + dn.x * (b.half + 0.1f * sl), d.center.y - d.half_h + 0.01f * sl,
+                            d.center.z + dn.z * (b.half + 0.1f * sl)};
             else if (dn.y > 0.0f)
-                feet.y = d.center.y + 0.51f;
+                feet.y = d.center.y + 0.51f * sl;
             else
-                feet.y = d.center.y - 0.5f - b.height - 0.01f;
+                feet.y = d.center.y - 0.5f * sl - b.height - 0.01f * sl;
             p.x = feet.x, p.y = feet.y, p.z = feet.z;
             // Its speed turned with it: a creature's own (its knock and its
             // fall) carries it on out of the far side.
@@ -2303,6 +2310,11 @@ int ServerSessions::cross_mobs(double now)
             break;
         }
     });
+    for (const auto &[e, scale] : resized) {
+        ecs::set_scaled(e, scale);
+        std::printf("creatures: %llu through a scaling pair, now %.3f as big\n", (unsigned long long)e.id(),
+                    (double)scale);
+    }
     // Forgotten when gone.
     if (m_mob_crossing.size() > alive.size()) {
         std::sort(alive.begin(), alive.end());
@@ -4738,6 +4750,7 @@ std::vector<EntityState> ServerSessions::entities_for(PeerId peer, float radius)
             s.working = e.has<ecs::Working>();   // swinging or drawing (protocol 52)
             s.burning = e.has<ecs::Burning>();   // in the sun (55)
             s.held    = held;
+            if (const ecs::Scaled *z = e.try_get<ecs::Scaled>()) s.scale = z->scale;   // a scaling portal's (118)
             if (const ecs::Act *act = e.try_get<ecs::Act>()) {   // a worker's (81)
                 s.item = act->held;
                 s.clip = act->clip;
@@ -4772,6 +4785,7 @@ std::vector<EntityState> ServerSessions::entities_for(PeerId peer, float radius)
             if (const ecs::Livery *l = e.try_get<ecs::Livery>()) s.livery = l->bits;     // 93
             if (const ecs::Disguised *g = e.try_get<ecs::Disguised>()) s.as_block = g->block;   // 116
             if (const ecs::Scaled *z = e.try_get<ecs::Scaled>()) s.scale = z->scale;         // 117
+            // (a creature's below, 118)
             if (const ecs::Dressed *d = e.try_get<ecs::Dressed>())                     // 102
                 for (int k = 0; k < ecs::kDressSlots; ++k) {
                     s.dress[k]      = d->model[k];

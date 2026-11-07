@@ -1149,6 +1149,17 @@ Portals -- the engine's own trick, used further:
    its scale (Target::scale on the server, movement.scale on the client) and
    the creature's model box (creature_box, its floor 0.2 now 0.005, the
    aim's too). Checked: a sixteenth walked up to a still ant, gap 0.040.
+   Ants now walk straight roads in lanes of their own (0.035 apart, a
+   little wander), mod-driven like the butterflies, only to a flower with
+   no trunk, stone, hedge or pond on the way.
+   Creatures and tumbling boxes scale through a scaling pair too
+   (ecs::scale_through: box, pace, steps, a tumbling box's shape and mass
+   k^3; Scaled set after the walk -- set inside the query aborted flecs;
+   protocol 118 sends a creature's scale). Kept within 1/32..4: an ant out
+   of D is 4x, 20 cm, not 16x. Checked in Xephyr: an ant walked into G came
+   out of D at 31.50 39.77, drawn 4x. G's frame now half as deep: a face on
+   the doorway's clip plane. Open: a natural creature wandering into D far
+   from players despawns (the pig test); the scale limit 4 is the player's.
 5. A passport of servers (low-medium). With --federation built: a stamp for
    every server reached through a far portal, and a letterbox that sends an
    item or a letter to a friend server. A reason for communities to link up.

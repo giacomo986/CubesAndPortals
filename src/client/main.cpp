@@ -7159,7 +7159,8 @@ Mat4 body_place(const Body &b)
         return mat4_multiply(
             mat4_multiply(mat4_translate(mid), mat4_rotate_y(-b.yaw)),
             mat4_multiply(mat4_multiply(mat4_rotate_x(b.pitch), mat4_rotate_z(-b.roll)),
-                          mat4_translate(Vec3{0.0f, -b.pivot, 0.0f})));
+                          mat4_multiply(mat4_translate(Vec3{0.0f, -b.pivot, 0.0f}),
+                                        mat4_scale(Vec3{b.scale, b.scale, b.scale}))));   // 118
     }
     return mat4_multiply(
         mat4_multiply(mat4_multiply(mat4_translate(Vec3{b.center.x, b.center.y - b.half.y, b.center.z}),
@@ -7510,14 +7511,18 @@ void draw_bodies_cb(void *ud, const Mat4 &projection, const Mat4 &view)
 // dog is not a player's height. Square, as wide as its widest way round, so
 // its turning does not matter. The box it is struck in on the server is the
 // taller one, which a click inside this one is always inside of too.
-AABB creature_box(const ModelStore &models, uint16_t model, Vec3 feet)
+// `scale` is the size a scaling portal gave it (protocol 118).
+AABB creature_box(const ModelStore &models, uint16_t model, Vec3 feet, float scale = 1.0f)
 {
     const ModelStore::Entry *e = model != 0 ? models.entry(model) : nullptr;
-    if (e == nullptr || e->model.max.y <= e->model.min.y) return ecs::mob_box(feet.x, feet.y, feet.z);
+    if (e == nullptr || e->model.max.y <= e->model.min.y) {
+        const AABB b = ecs::mob_box(feet.x, feet.y, feet.z);
+        return AABB{feet + (b.min - feet) * scale, feet + (b.max - feet) * scale};
+    }
     const Vec3 &lo = e->model.min, &hi = e->model.max;
     // The server's floor (size_mob_kind): an insect is as small as it is.
-    const float r = std::max({std::fabs(lo.x), std::fabs(hi.x), std::fabs(lo.z), std::fabs(hi.z), 0.005f});
-    return AABB{Vec3{feet.x - r, feet.y, feet.z - r}, Vec3{feet.x + r, feet.y + hi.y, feet.z + r}};
+    const float r = std::max({std::fabs(lo.x), std::fabs(hi.x), std::fabs(lo.z), std::fabs(hi.z), 0.005f}) * scale;
+    return AABB{Vec3{feet.x - r, feet.y, feet.z - r}, Vec3{feet.x + r, feet.y + hi.y * scale, feet.z + r}};
 }
 
 uint64_t aimed_body(const net::ClientSession &conn, const ModelStore &models, Vec3 eye, Vec3 fwd,
@@ -7530,7 +7535,7 @@ uint64_t aimed_body(const net::ClientSession &conn, const ModelStore &models, Ve
         if (p.kind == net::EntityKind::Drop || p.held) continue;   // nor what is in your hands
 
         const AABB box = (p.kind == net::EntityKind::Mob)
-                             ? creature_box(models, p.model, Vec3{p.x, p.y, p.z})
+                             ? creature_box(models, p.model, Vec3{p.x, p.y, p.z}, p.scale)
                              : body_box(Vec3{p.x, p.y, p.z}, conn.welcome().movement.width * 0.5f);
 
         float t = 0.0f;
@@ -15744,7 +15749,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 const float tall = kPlayerHeight * s.act().movement.scale, half = s.act().movement.width * 0.5f;
                 for (const net::RemotePlayer &c : conn->players()) {
                     if (c.kind != net::EntityKind::Mob || c.chassis || c.held) continue;
-                    const AABB cb = creature_box(s.act().models, c.model, Vec3{c.x, c.y, c.z});
+                    const AABB cb = creature_box(s.act().models, c.model, Vec3{c.x, c.y, c.z}, c.scale);
                     if (player.pos.y >= cb.max.y || c.y >= player.pos.y + tall) continue;
                     const float dx = player.pos.x - c.x, dz = player.pos.z - c.z, reach = half + (cb.max.x - c.x);
                     const float d2 = dx * dx + dz * dz;
@@ -16079,9 +16084,10 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 // person is a creature a player swings at by mistake -- and a
                 // person drawn as a creature is worse. The box is the one the
                 // aim uses, so what is drawn is the volume the rule is about.
-                body.center = Vec3{p.x, p.y + ecs::kMobHeight * 0.5f, p.z};
-                body.half =
-                    Vec3{ecs::kMobHalfWidth, ecs::kMobHeight * 0.5f, ecs::kMobHalfWidth};
+                // As big as a scaling portal made it (118).
+                body.scale  = p.scale;
+                body.center = Vec3{p.x, p.y + ecs::kMobHeight * p.scale * 0.5f, p.z};
+                body.half   = Vec3{ecs::kMobHalfWidth, ecs::kMobHeight * 0.5f, ecs::kMobHalfWidth} * p.scale;
                 body.colour[0] = 0.30f;
                 body.colour[1] = 0.70f;
                 body.colour[2] = 0.35f;
@@ -16149,10 +16155,11 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 if (const ModelStore::Entry *me = s.act().models.entry(p.model);
                     me && me->model.max.y > me->model.min.y) {
                     // The server's floor (size_mob_kind): an insect is aimed at as small as it is.
-                    const float h  = std::clamp(me->model.max.y, 0.01f, 8.0f);
+                    // As big as a scaling portal made it (118).
+                    const float h  = std::clamp(me->model.max.y, 0.01f, 8.0f) * p.scale;
                     const float hw = std::clamp(std::max({std::fabs(me->model.min.x), std::fabs(me->model.max.x),
                                                           std::fabs(me->model.min.z), std::fabs(me->model.max.z)}),
-                                                0.005f, 3.0f);
+                                                0.005f, 3.0f) * p.scale;
                     body.center = Vec3{p.x, p.y + h * 0.5f, p.z};
                     body.half   = Vec3{hw, h * 0.5f, hw};
                 }
@@ -16162,7 +16169,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 body.pitch   = p.pitch;
                 body.roll    = p.body_roll;
                 const ModelStore::Entry *me = p.model != 0 ? s.act().models.entry(p.model) : nullptr;
-                body.pivot = me ? 0.5f * (me->model.min.y + me->model.max.y) : body.half.y;
+                body.pivot = me ? 0.5f * (me->model.min.y + me->model.max.y) * p.scale : body.half.y;
             }
             // Somebody in a kart: tipped as its chassis sits and stood on
             // the bottom of it, not on the wheel that touches highest.

@@ -1540,7 +1540,8 @@ std::vector<uint8_t> Entities::encode() const
         const bool livery  = e.kind == EntityKind::Player && e.livery != 0;      // 93
         w.u8((e.working || (e.kind == EntityKind::Drop && e.shown) ? 1 : 0) | (e.crouching || clip ? 2 : 0) | (e.burning || posed ? 4 : 0) |
              (dressed ? 8 : 0) | (chassis ? 16 : 0) |
-             ((e.kind == EntityKind::Drop && e.falling) || livery ? 32 : 0) |
+             ((e.kind == EntityKind::Drop && e.falling) || livery ||
+              (e.kind == EntityKind::Mob && e.scale != 1.0f) ? 32 : 0) |
              ((e.kind == EntityKind::Player && e.lying) || (e.kind == EntityKind::Mob && e.held) ? 64 : 0) |
              (tinted ? 128 : 0));
         if (e.kind == EntityKind::Player) {
@@ -1561,6 +1562,7 @@ std::vector<uint8_t> Entities::encode() const
             if (e.as_block != 0) w.u16(e.as_block);
             if (e.scale != 1.0f) w.f32(e.scale);
         }
+        if (e.kind == EntityKind::Mob && e.scale != 1.0f) w.f32(e.scale);   // 118
         if (dressed)
             for (const uint16_t id : e.worn) w.u16(id);
         if (dressed)
@@ -1661,13 +1663,18 @@ bool Entities::decode(ByteReader &r, Entities &out)
                 if (!r.ok() || !(e.scale >= kMinBodyScale && e.scale <= kMaxBodyScale)) return false;
             }
         }
+        if (e.kind == EntityKind::Mob && (flags & 32)) {   // a creature's size (118)
+            e.scale = r.f32();
+            if (!r.ok() || !(e.scale >= kMinBodyScale && e.scale <= kMaxBodyScale)) return false;
+        }
         if ((flags & 128) && e.kind != EntityKind::Player) return false;  // only a person holds (76)
         // Only a person lies (75), and only a creature is held (91).
         if ((flags & 64) && e.kind != EntityKind::Player && e.kind != EntityKind::Mob) return false;
         e.lying = (flags & 64) != 0 && e.kind == EntityKind::Player;
         e.held  = (flags & 64) != 0 && e.kind == EntityKind::Mob;
         // Only a drop falls (73), and on a person flag 32 is their livery (93).
-        if ((flags & 32) && e.kind != EntityKind::Drop && e.kind != EntityKind::Player) return false;
+        if ((flags & 32) && e.kind != EntityKind::Drop && e.kind != EntityKind::Player && e.kind != EntityKind::Mob)
+            return false;
         const bool livery = (flags & 32) != 0 && e.kind == EntityKind::Player;
         e.falling = (flags & 32) != 0 && e.kind == EntityKind::Drop;
         if ((flags & 8) && e.kind != EntityKind::Player) return false;   // only a person wears (58)

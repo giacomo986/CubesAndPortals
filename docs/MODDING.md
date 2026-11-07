@@ -547,6 +547,7 @@ core.portal_close(x, y, z) -> 0..15|-1                             -- by centre,
 core.portal_move(id, x, y, z, axis?, sign?, turn?) -> 1|0          -- every tick: it moves (drawn smooth, crossed relative to it); a new plane/turn or a jump > 4 puts it there
 core.portal_move(id, x, y, z, -1, 0, -1, nx, ny, nz, ux?, uy?, uz?)   -- turned freely: front n, up u, any way; may turn every tick
 core.portal_scale(id, on?) -> 1|0   -- both ends of a pair of two sizes: what crosses comes out scaled by far/near height
+                                     --   (players, creatures and tumbling boxes, kept within 1/32..4 of their kind)
 core.body_scale(player, s?) -> 1|0  -- a body 1/32..4 as big: box, steps, eye, speeds, gravity, reach, drawn so
 core.portal_link(a, b) -> 1|0       -- a and b lead to each other; b = -1 unlinks a
 core.log(message)
@@ -2234,7 +2235,8 @@ The mods in `mods/` are working examples:
   glass onto one twelve times as wide hanging face down over the garden, a miniature to look into;
   the small one in a doorframe of `core.node_box` pieces a thirty-second of a node thick;
   whoever comes in small walks four times as fast as a sixteenth would (`core.body_movement`); and
-  insects at their true size, workers it drives: ants between a nest and the flowers, ladybirds
+  insects at their true size, workers it drives: ants between a nest and the flowers (each in a lane
+  of its own along a straight road, `core.mob_place` every tick), ladybirds
   wandering, butterflies flying flower to flower (`core.mob_place` every tick, `hover`), each with its
   `_say`, `_hurt` and `_death` sounds (`tools/make_garden_sounds.py`);
 - `portal` -- a frame of `portal:frame` round a hole of air, upright or lying, opens a portal

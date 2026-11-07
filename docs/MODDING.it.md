@@ -593,6 +593,7 @@ core.portal_close(x, y, z) -> 0..15|-1                             -- per centro
 core.portal_move(id, x, y, z, asse?, verso?, giro?) -> 1|0         -- a ogni tick: si muove (disegnata fluida, attraversata relativa a lei); nuovo piano/giro o salto > 4 la mette lì
 core.portal_move(id, x, y, z, -1, 0, -1, nx, ny, nz, ux?, uy?, uz?)   -- girata liberamente: fronte n, alto u, in ogni verso; può girare a ogni tick
 core.portal_scale(id, on?) -> 1|0   -- le due estremità di una coppia di taglie diverse: chi passa esce scalato di alta/bassa
+                                     --   (giocatori, creature e scatole che rotolano, sempre tra 1/32 e 4 della loro specie)
 core.body_scale(player, s?) -> 1|0  -- un corpo grande 1/32..4: riquadro, gradini, occhio, velocità, gravità, portata, disegnato così
 core.portal_link(a, b) -> 1|0       -- a e b portano l'una all'altra; b = -1 scollega a
 core.log(messaggio)
@@ -2509,7 +2510,7 @@ I tre mod in `mods/` sono esempi funzionanti:
   trentaduesimo di nodo;
   chi entra piccolo cammina quattro volte più veloce di quanto farebbe un sedicesimo
   (`core.body_movement`); e insetti a grandezza vera, worker che guida lei: formiche tra un nido e
-  i fiori, coccinelle a zonzo, farfalle che volano di fiore in fiore (`core.mob_place` a ogni
+  i fiori (ognuna nella sua corsia lungo una strada dritta, `core.mob_place` a ogni tick), coccinelle a zonzo, farfalle che volano di fiore in fiore (`core.mob_place` a ogni
   tick, `hover`), ognuno con i suoni `_say`, `_hurt` e `_death` (`tools/make_garden_sounds.py`);
 - `portal` — una cornice di `portal:frame` attorno a un buco d'aria, in piedi o
   coricata, apre un portale (`core.portal_open`, quante cornici si vuole: il

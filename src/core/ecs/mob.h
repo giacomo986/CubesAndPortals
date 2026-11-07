@@ -316,6 +316,12 @@ void step_tumbling(flecs::world &w, const World &world, const NodeRegistry &reg,
 // A tumbling body crossing from `src` to `dst`: its turn and its spin mapped
 // as a direction is, for the move cross_mobs makes of it.
 void tumble_through(flecs::entity e, const Portal &src, const Portal &dst);
+// Through a scaling pair (Portal::scales): its body k times as big -- box,
+// pace, steps, a tumbling box's shape and mass. Gives the size it is now,
+// for set_scaled once the creatures are no longer being walked (a component
+// added in the middle of a query moves the entity's table under it).
+float scale_through(flecs::entity e, float k, const World &world, const NodeRegistry &reg);
+void  set_scaled(flecs::entity e, float scale);   // drawn and paced that big (Scaled)
 // Where it is as a box, for the wire and for whoever stands on it: its middle,
 // its turn and its size. False for one that does not tumble.
 bool tumble_box(flecs::entity e, RigidState &state, RigidSpec &spec);
