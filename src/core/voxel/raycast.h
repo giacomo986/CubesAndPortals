@@ -24,8 +24,9 @@ struct RaycastHit {
 //
 // `liquids` stops the ray at water as well as at solids: what a bucket is
 // pointed at. Off for everything else, since a dig or a build aimed at a lake
-// is aimed at its bed.
+// is aimed at its bed. `solid_only` passes through what has boxes but stops
+// no body (grass, flowers, crops, a scaffold): what a camera is pulled in by.
 RaycastHit raycast(const World &world, const NodeRegistry &reg, Vec3 origin, Vec3 direction,
-                   float max_distance, bool liquids = false);
+                   float max_distance, bool liquids = false, bool solid_only = false);
 
 } // namespace cnp

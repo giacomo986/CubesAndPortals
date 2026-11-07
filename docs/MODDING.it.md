@@ -2513,8 +2513,8 @@ I tre mod in `mods/` sono esempi funzionanti:
   piccola sotto un vetro su una dodici volte più larga, appesa a faccia in giù sopra il giardino:
   una miniatura in cui guardare; quella piccola in uno stipite di pezzi `core.node_box` spessi un
   trentaduesimo di nodo;
-  chi ci sta piccolo, comunque lo sia diventato (`core.body_size` sotto la metà), cammina quattro
-  volte più veloce di quanto direbbe la taglia (`core.body_movement`); e insetti a grandezza vera, worker che guida lei: formiche tra un nido e
+  chi ci sta piccolo cammina veloce quanto dice la taglia (nessun aumento: la stessa sensazione che
+  da grandi); e insetti a grandezza vera, worker che guida lei: formiche tra un nido e
   i fiori (ognuna nella sua corsia lungo una strada dritta, `core.mob_place` a ogni tick), coccinelle a zonzo, farfalle che volano di fiore in fiore (`core.mob_place` a ogni
   tick, `hover`), ognuno con i suoni `_say`, `_hurt` e `_death` (`tools/make_garden_sounds.py`);
 - `portal` — una cornice di `portal:frame` attorno a un buco d'aria, in piedi o

@@ -8406,7 +8406,10 @@ Vec3 camera_eye(const Scene &s, const Player &player)
         const Vec3 above = iso_center(w, head) - iso_look(w) * w.iso_distance;
         return head + (above - head) * iso_mix(w);
     }
-    const float d    = s.act().view_distance;
+    // As far behind as the body is big (core.body_scale): a sixteenth had the
+    // camera a whole body's four nodes back, in grass as tall as trees.
+    const float ks   = s.act().movement.scale;
+    const float d    = s.act().view_distance * ks;
     if (d <= 0.0f) return s.driving_view ? s.rider_eye : s.seat_view ? s.seat_eye : head;
 
     const Vec3  f    = camera_look(s, player);
@@ -8416,8 +8419,10 @@ Vec3 camera_eye(const Scene &s, const Player &player)
     if (len < 1e-3f) return head;
     const Vec3 dir = to * (1.0f / len);
 
-    const RaycastHit hit = raycast(s.act().world, s.act().registry, head, dir, len);
-    const float      go  = portal_pull(s.act(), head, dir, hit.hit ? std::max(0.0f, hit.distance - 0.3f) : len);
+    // Only what stops a body pulls it in: grass and flowers (boxes to aim at)
+    // put it on the head (reported from play, 2026-11-07).
+    const RaycastHit hit = raycast(s.act().world, s.act().registry, head, dir, len, false, true);
+    const float      go  = portal_pull(s.act(), head, dir, hit.hit ? std::max(0.0f, hit.distance - 0.3f * ks) : len);
     const Vec3       world_eye = head + dir * go;
 
     const KartView k = kart_view(s, player);
@@ -8425,7 +8430,7 @@ Vec3 camera_eye(const Scene &s, const Player &player)
     const float      kd   = d * (1.0f - 0.5f * k.w);
     const Vec3       kto  = k.up * (0.3f * kd) - k.fwd * kd;
     const float      klen = length(kto);
-    const RaycastHit khit = raycast(s.act().world, s.act().registry, k.head, kto * (1.0f / klen), klen);
+    const RaycastHit khit = raycast(s.act().world, s.act().registry, k.head, kto * (1.0f / klen), klen, false, true);
     const Vec3       kdir = kto * (1.0f / klen);
     const Vec3       kart_eye =
         k.head + kdir * portal_pull(s.act(), k.head, kdir, khit.hit ? std::max(0.0f, khit.distance - 0.3f) : klen);

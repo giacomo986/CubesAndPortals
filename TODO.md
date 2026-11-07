@@ -1194,7 +1194,12 @@ Portals -- the engine's own trick, used further:
    from players despawns (the pig test); the scale limit 4 is the player's.
    The boost is now for whoever is in the garden small, however (core.body_size,
    new: a body's scale now; under a half inside the hedge's box): checked, a
-   body made 1/16 by a mod inside it walks 1.20 (4 x 0.30).
+   body made 1/16 by a mod inside it walks 1.20 (4 x 0.30). Then, from play
+   (2026-11-07): small felt much faster than big -- the boost is gone, by
+   Giacomo's choice the same feel as at full size (0.30, the garden about 80 s
+   across walking). And the third-person camera pulled in onto the head in
+   grass: it stopped at anything with boxes to aim at; now only at what stops a
+   body (raycast's solid_only), and as far back as the body is big.
 5. A passport of servers (low-medium). With --federation built: a stamp for
    every server reached through a far portal, and a letterbox that sends an
    item or a letter to a friend server. A reason for communities to link up.

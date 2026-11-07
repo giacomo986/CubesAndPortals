@@ -2239,8 +2239,7 @@ The mods in `mods/` are working examples:
   eighth of a block high, so whoever walks in comes out a sixteenth as big, and a small opening under
   glass onto one twelve times as wide hanging face down over the garden, a miniature to look into;
   the small one in a doorframe of `core.node_box` pieces a thirty-second of a node thick;
-  whoever is in it small, however they got so (`core.body_size` under a half), walks four times as
-  fast as their size would (`core.body_movement`); and
+  a body small in it walks as its size makes it (no boost: the same feel as at full size); and
   insects at their true size, workers it drives: ants between a nest and the flowers (each in a lane
   of its own along a straight road, `core.mob_place` every tick), ladybirds
   wandering, butterflies flying flower to flower (`core.mob_place` every tick, `hover`), each with its

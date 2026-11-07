@@ -151,36 +151,8 @@ core.event.on("core:tick", function(_)
     if not opened then opened = open_all() end
 end)
 
--- A sixteenth of a body walks a sixteenth as fast: the garden was minutes
--- wide. Whoever is in it small (core.body_size under a half: through the
--- little door, flown in over the hedge, made small by any mod) walks and runs
--- four times as fast as that (core.body_movement, whose speeds shrink with the
--- body), and as before once out of it or grown.
-local BOOST = 4
-local WALK, SPRINT, FLY, JUMP, GRAVITY = 4.8, 8.0, 14.0, 8.0, -25.0   -- the engine's (movement.h)
-local boosted: { [number]: boolean } = {}
-core.event.on("core:tick", function(_)
-    local here: { [number]: boolean } = {}
-    for _, p in core.players() do
-        here[p] = true
-        local x, y, z = core.player_pos(p)
-        if x == nil then continue end
-        local size = core.body_size(p)
-        local want = size > 0 and size < 0.5 and x >= GX0 - 1 and x <= GX1 + 2 and z >= GZ0 - 1
-                     and z <= GZ1 + 2 and y >= GY and y <= GY + 17
-        if want and not boosted[p] then
-            boosted[p] = true
-            core.body_movement(p, WALK * BOOST, SPRINT * BOOST, FLY, JUMP, GRAVITY)
-        elseif not want and boosted[p] then
-            boosted[p] = nil
-            core.body_movement(p, WALK, SPRINT, FLY, JUMP, GRAVITY)
-        end
-    end
-    -- Gone players' ids are not reused for them: forgotten.
-    for p in boosted do
-        if not here[p] then boosted[p] = nil end
-    end
-end)
+-- Small, a body walks as a body at 1 does for its size, a sixteenth as fast:
+-- Giacomo chose the same feel as at full size (2026-11-07) over a boost.
 
 -- ================================================================ insects
 --

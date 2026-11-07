@@ -262,8 +262,7 @@ Sulla piazza, verso 31 20 43, una porticina in una siepe e una teca di vetro nel
 piazza; dalla porticina ci si esce dentro grandi un sedicesimo, i blocchi d'erba grandi come stanze
 e la siepe una scogliera. Si torna dalla stessa apertura minuscola, nel suo stipite di legno tra due
 funghi, e si esce dalla porticina grandi come prima.
-Da piccoli si cammina quattro volte più veloci di quanto direbbe la taglia, o il giardino
-vorrebbe minuti per attraversarlo.
+Da piccoli si cammina veloci quanto dice la taglia: il giardino si attraversa in un minuto o poco più.
 Le formiche fanno la spola tra il nido e i fiori, le coccinelle girano, le farfalle si posano sui
 fiori: a grandezza vera, lì una formica è grande come un cane. Una creatura che passa dalla
 porticina cambia taglia come te (un sedicesimo entrando, fino a quattro volte uscendo).

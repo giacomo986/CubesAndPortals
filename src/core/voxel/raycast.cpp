@@ -22,10 +22,11 @@ namespace {
 // the same boxes, or a player is selecting a block they can walk through.
 bool ray_meets_cell(const World &world, const NodeRegistry &reg, int bx, int by, int bz,
                     Vec3 origin, Vec3 dir, float max_distance, bool liquids, float &t,
-                    int normal[3])
+                    int normal[3], bool solid_only = false)
 {
     const BlockId id = world.get_block(bx, by, bz);
     if (liquids && reg.is_liquid(id)) return true;   // the whole cell, like a cube
+    if (solid_only && !reg.is_solid(id)) return false;
 
     // A block that is not solid but has boxes -- a crop -- is walked through
     // and still aimed at by them: what would a hoe or a hand be dug with else.
@@ -61,7 +62,7 @@ bool ray_meets_cell(const World &world, const NodeRegistry &reg, int bx, int by,
 } // namespace
 
 RaycastHit raycast(const World &world, const NodeRegistry &reg, Vec3 origin, Vec3 direction,
-                   float max_distance, bool liquids)
+                   float max_distance, bool liquids, bool solid_only)
 {
     RaycastHit result;
 
@@ -107,7 +108,7 @@ RaycastHit raycast(const World &world, const NodeRegistry &reg, Vec3 origin, Vec
         float t = 0.0f;
         int   n[3] = {0, 0, 0};
         if (ray_meets_cell(world, reg, voxel[0], voxel[1], voxel[2], origin, dir, max_distance, liquids, t,
-                           n)) {
+                           n, solid_only)) {
             result.hit = true;
             result.x = voxel[0]; result.y = voxel[1]; result.z = voxel[2];
             result.distance = t;
@@ -132,7 +133,7 @@ RaycastHit raycast(const World &world, const NodeRegistry &reg, Vec3 origin, Vec
         float box_t = travelled;
         int   box_n[3] = {0, 0, 0};
         if (!ray_meets_cell(world, reg, voxel[0], voxel[1], voxel[2], origin, dir, max_distance,
-                            liquids, box_t, box_n))
+                            liquids, box_t, box_n, solid_only))
             continue;
 
         result.hit      = true;
