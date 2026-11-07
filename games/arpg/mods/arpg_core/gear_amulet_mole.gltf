@@ -541,7 +541,7 @@
 	"materials":[
 		{
 			"doubleSided":true,
-			"name":"bronze",
+			"name":"bronze.002",
 			"pbrMetallicRoughness":{
 				"baseColorFactor":[
 					0.699999988079071,
@@ -554,7 +554,7 @@
 		},
 		{
 			"doubleSided":true,
-			"name":"tint_1.020",
+			"name":"tint_1.082",
 			"pbrMetallicRoughness":{
 				"baseColorFactor":[
 					0.8500000238418579,
@@ -578,7 +578,7 @@
 					"emissiveStrength":2
 				}
 			},
-			"name":"glow_blue",
+			"name":"glow_blue.005",
 			"pbrMetallicRoughness":{
 				"baseColorFactor":[
 					0.3499999940395355,
@@ -666,14 +666,14 @@
 			"componentType":5126,
 			"count":480,
 			"max":[
-				0.15037819743156433,
-				1.277718186378479,
-				-0.22396542131900787
+				0.11128640174865723,
+				1.3323653936386108,
+				-0.17553624510765076
 			],
 			"min":[
-				-0.1565551906824112,
-				1.1680819988250732,
-				-0.3028985559940338
+				-0.11143888533115387,
+				1.1928632259368896,
+				-0.2372492402791977
 			],
 			"type":"VEC3"
 		},
@@ -706,14 +706,14 @@
 			"componentType":5126,
 			"count":96,
 			"max":[
-				0.04851049184799194,
-				1.1699981689453125,
-				-0.2815401256084442
+				0.037536635994911194,
+				1.1947145462036133,
+				-0.22070059180259705
 			],
 			"min":[
-				-0.05480507016181946,
-				1.1090174913406372,
-				-0.31904008984565735
+				-0.037540897727012634,
+				1.116523027420044,
+				-0.2501392364501953
 			],
 			"type":"VEC3"
 		},
@@ -744,41 +744,41 @@
 		{
 			"bufferView":10,
 			"componentType":5126,
-			"count":280,
+			"count":240,
 			"max":[
-				0.023487107828259468,
-				1.1547529697418213,
-				-0.29831141233444214
+				0.02039875090122223,
+				1.1751667261123657,
+				-0.23247605562210083
 			],
 			"min":[
-				-0.029781697317957878,
-				1.1242626905441284,
-				-0.3548201322555542
+				-0.02040301263332367,
+				1.1360708475112915,
+				-0.2795778810977936
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":11,
 			"componentType":5126,
-			"count":280,
+			"count":240,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":12,
 			"componentType":5121,
-			"count":280,
+			"count":240,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":13,
 			"componentType":5126,
-			"count":280,
+			"count":240,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":14,
 			"componentType":5123,
-			"count":300,
+			"count":240,
 			"type":"SCALAR"
 		},
 		{
@@ -851,43 +851,43 @@
 		},
 		{
 			"buffer":0,
-			"byteLength":3360,
+			"byteLength":2880,
 			"byteOffset":26952,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":3360,
-			"byteOffset":30312,
+			"byteLength":2880,
+			"byteOffset":29832,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1120,
+			"byteLength":960,
+			"byteOffset":32712,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":3840,
 			"byteOffset":33672,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":4480,
-			"byteOffset":34792,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":600,
-			"byteOffset":39272,
+			"byteLength":480,
+			"byteOffset":37512,
 			"target":34963
 		},
 		{
 			"buffer":0,
 			"byteLength":1536,
-			"byteOffset":39872
+			"byteOffset":37992
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":41408,
+			"byteLength":39528,
 			"uri":"gear_amulet_mole.bin"
 		}
 	]

@@ -27,7 +27,6 @@
 # stay as they are.
 import math
 import os
-import sys
 
 import bmesh
 import bpy
@@ -524,13 +523,10 @@ def main():
         if o.type == "MESH":
             o.hide_set(True)
 
-    # `-- mole`: only that species' worn pieces, after its body changed.
-    only = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else None
-    species = only or SPECIES
     robot = bone_boxes(os.path.join(ROOT, "mods", "robot", "robot.gltf"))
-    fits = {sp: fit_of(robot, bone_boxes(os.path.join(ROOT, "mods", "robot", f"robot_{sp}.gltf"))) for sp in species}
-    jobs = [] if only else [(key, maker, trim, None, "") for key, (maker, trim) in GEAR.items()]
-    jobs += [(key, maker, trim, fits[sp], "_" + sp) for sp in species for key, (maker, trim) in GEAR.items()
+    fits = {sp: fit_of(robot, bone_boxes(os.path.join(ROOT, "mods", "robot", f"robot_{sp}.gltf"))) for sp in SPECIES}
+    jobs = [(key, maker, trim, None, "") for key, (maker, trim) in GEAR.items()]
+    jobs += [(key, maker, trim, fits[sp], "_" + sp) for sp in SPECIES for key, (maker, trim) in GEAR.items()
              if key in WORN]
     for key, maker, trim, fit, suffix in jobs:
         ob = build(rig, key, maker, trim, fit, suffix)
@@ -546,8 +542,7 @@ def main():
         ob.hide_set(True)
         print(f"GEAR {key}{suffix}: {len(ob.data.polygons)} faces")
 
-    if not only:   # the whole work, not a part of it
-        bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "arpg_gear.blend"))
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "arpg_gear.blend"))
 
 
 main()

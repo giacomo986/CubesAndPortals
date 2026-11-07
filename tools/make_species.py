@@ -149,9 +149,51 @@ HUMAN_STYLES = {
 
 # ------------------------------------------------------------- the mole-man
 MOLE_TINTS = {"tint_1": (0.25, 0.38, 0.62), "tint_2": (0.80, 0.68, 0.45), "tint_3": (0.78, 0.18, 0.12)}
-# Its body is Meshy's, put on the rig by tools/make_mole_meshy.py; its head
-# (measured there) is 0.186 wide and its face 0.226 forward at the eyes
-# (x 0.075, z 1.5), 0.25 at the snout's side (x 0.05): the styles sit on that.
+MOLE = mirrored([
+    # Velvet fur, a long snout with a pink star of a nose, eyes like pinpricks.
+    P("ball", "head", "Fur", (0, 0.01, 1.48), (0.19, 0.19, 0.165)),
+    P("cone", "head", "Fur", (0, 0.215, 1.44), (1, 1, 1), (-90, 0, 0), r1=0.105, r2=0.045, d=0.17),
+    P("ball", "head", "Pink", (0, 0.305, 1.44), (0.05, 0.03, 0.045)),
+    P("box", "head", "Claw", (-0.012, 0.25, 1.397), (0.018, 0.01, 0.028)),
+    P("box", "head", "Claw", (0.012, 0.25, 1.397), (0.018, 0.01, 0.028)),
+    P("ball", "head", "Eye_Dark", (-0.085, 0.165, 1.515), (0.016, 0.012, 0.016)),
+    P("ball", "head", "Eye_Dark", (0.085, 0.165, 1.515), (0.016, 0.012, 0.016)),
+    P("ball", "head", "Fur", (-0.15, -0.03, 1.57), (0.035, 0.02, 0.03)),
+    P("ball", "head", "Fur", (0.15, -0.03, 1.57), (0.035, 0.02, 0.03)),
+] + [P("ball", "head", "Pink", (0.05 * dx, 0.31, 1.44 + 0.045 * dz), (0.018, 0.018, 0.018))
+     for dx, dz in ((1, 0), (-1, 0), (0.5, 0.87), (-0.5, 0.87), (0.5, -0.87), (-0.5, -0.87))] + [
+    P("cyl", "neck", "Fur", (0, 0, 1.32), (0.085, 0.085, 0.1)),
+    # A round body in dungarees (primary) over a shirt (secondary), buttons
+    # and a patch (accent).
+    P("ball", "chest", "tint_2", (0, 0, 1.12), (0.245, 0.195, 0.24)),
+    # The bib and the straps painted on (paint=True: no shape, a colour).
+    P("box", "chest", "tint_1", (0, 0.15, 1.04), (0.26, 0.2, 0.3), paint=True),
+    P("box", "chest", "tint_1", (-0.085, 0.0, 1.3), (0.055, 0.6, 0.24), paint=True),
+    P("box", "chest", "tint_1", (0.085, 0.0, 1.3), (0.055, 0.6, 0.24), paint=True),
+    P("ball", "chest", "tint_3", (-0.085, 0.186, 1.16), (0.018, 0.012, 0.018)),
+    P("ball", "chest", "tint_3", (0.085, 0.186, 1.16), (0.018, 0.012, 0.018)),
+    P("ball", "spine", "tint_1", (0, 0, 0.95), (0.25, 0.2, 0.16)),
+    P("box", "hips", "tint_1", (0, 0, 0.78), (0.40, 0.25, 0.17)),
+    P("box", "hips", "tint_3", (0.1, 0.126, 0.79), (0.08, 0.01, 0.07)),
+] + limbs(
+    [("ball", "upper_arm_L", "tint_2", (-0.25, 0, 1.235), (0.088, 0.088, 0.085)),
+     ("cyl", "upper_arm_L", "tint_2", (-0.265, 0, 1.12), (0.072, 0.072, 0.22))],
+    [("cyl", "forearm_L", "Fur", (-0.265, 0, 0.83), (0.062, 0.062, 0.30))],
+    # Big digging hands: a pink paw and five pale claws.
+    [("ball", "hand_L", "Pink", (-0.265, 0.02, 0.61), (0.065, 0.10, 0.085))] +
+    [("cone", "hand_L", "Claw", (-0.265, 0.02 + 0.035 * (i - 2), 0.50), (1, 1, 1), (180, 0, 0))
+     for i in range(5)],
+    [("cyl", "thigh_L", "tint_1", (-0.11, 0, 0.58), (0.092, 0.092, 0.32))],
+    [("cyl", "shin_L", "tint_1", (-0.11, 0, 0.31), (0.082, 0.082, 0.28)),
+     ("cyl", "shin_L", "tint_3", (-0.11, 0, 0.18), (0.088, 0.088, 0.05)),
+     ("cyl", "shin_L", "Fur", (-0.113, 0, 0.12), (0.058, 0.058, 0.08))],
+    [("ball", "foot_L", "Pink", (-0.115, 0.07, 0.05), (0.085, 0.15, 0.05))] +
+    [("cone", "foot_L", "Claw", (-0.115 + 0.04 * (i - 1), 0.235, 0.03), (1, 1, 1), (-90, 0, 0))
+     for i in range(3)]))
+for p in MOLE:   # the claws' own size, which P has no room for
+    if p["m"] == "Claw" and p["k"] == "cone":
+        p.update(r1=0.017, r2=0.003, d=0.075)
+
 MOLE_STYLES = {
     # A miner's helmet with its lamp lit.
     "lamp": [
@@ -162,19 +204,19 @@ MOLE_STYLES = {
     ],
     # Digging goggles, pushed up nowhere: on the eyes, on a strap.
     "goggles": [
-        P("torus", "head", "Sole", (0, 0.025, 1.515), (0.198, 0.215, 0.198), R=1.0, t=0.08),
-        P("cyl", "head", "Metal", (-0.075, 0.235, 1.515), (0.04, 0.04, 0.03), (-90, 0, 0)),
-        P("cyl", "head", "Metal", (0.075, 0.235, 1.515), (0.04, 0.04, 0.03), (-90, 0, 0)),
-        P("cyl", "head", "Glass", (-0.075, 0.25, 1.515), (0.032, 0.032, 0.006), (-90, 0, 0)),
-        P("cyl", "head", "Glass", (0.075, 0.25, 1.515), (0.032, 0.032, 0.006), (-90, 0, 0)),
+        P("torus", "head", "Sole", (0, 0.01, 1.515), (0.192, 0.192, 0.192), R=1.0, t=0.08),
+        P("cyl", "head", "Metal", (-0.075, 0.175, 1.515), (0.04, 0.04, 0.03), (-90, 0, 0)),
+        P("cyl", "head", "Metal", (0.075, 0.175, 1.515), (0.04, 0.04, 0.03), (-90, 0, 0)),
+        P("cyl", "head", "Glass", (-0.075, 0.19, 1.515), (0.032, 0.032, 0.006), (-90, 0, 0)),
+        P("cyl", "head", "Glass", (0.075, 0.19, 1.515), (0.032, 0.032, 0.006), (-90, 0, 0)),
     ],
     # Little round spectacles on the snout.
     "glasses": [
-        P("torus", "head", "Gold", (-0.055, 0.262, 1.51), (0.035, 0.035, 0.035), (-90, 0, 0), R=1.0, t=0.15),
-        P("torus", "head", "Gold", (0.055, 0.262, 1.51), (0.035, 0.035, 0.035), (-90, 0, 0), R=1.0, t=0.15),
-        P("cyl", "head", "Glass", (-0.055, 0.262, 1.51), (0.032, 0.032, 0.003), (-90, 0, 0)),
-        P("cyl", "head", "Glass", (0.055, 0.262, 1.51), (0.032, 0.032, 0.003), (-90, 0, 0)),
-        P("box", "head", "Gold", (0, 0.262, 1.515), (0.04, 0.006, 0.006)),
+        P("torus", "head", "Gold", (-0.05, 0.215, 1.5), (0.035, 0.035, 0.035), (-90, 0, 0), R=1.0, t=0.15),
+        P("torus", "head", "Gold", (0.05, 0.215, 1.5), (0.035, 0.035, 0.035), (-90, 0, 0), R=1.0, t=0.15),
+        P("cyl", "head", "Glass", (-0.05, 0.215, 1.5), (0.032, 0.032, 0.003), (-90, 0, 0)),
+        P("cyl", "head", "Glass", (0.05, 0.215, 1.5), (0.032, 0.032, 0.003), (-90, 0, 0)),
+        P("box", "head", "Gold", (0, 0.215, 1.505), (0.03, 0.006, 0.006)),
     ],
 }
 
@@ -261,10 +303,9 @@ FITS = {
         "cap": dict(s=(0.95, 1.0, 1.0), d=(0, 0, 0.01)),
         "tophat": dict(s=(0.95, 1.0, 1.0), d=(0, -0.01, 0.0)),
         "headphones": dict(s=(0.9, 1.0, 0.95), d=(0, -0.01, 0.0)),
-        # Its collar is thick: the scarf's loop widened round it.
-        "scarf": dict(front=0.03, dz=0.0, ring=1.45),
-        "bowtie": dict(front=-0.02, dz=0.0),
-        "medal": dict(front=0.035, dz=0.0, ring=1.45),
+        "scarf": dict(front=-0.01, dz=0.0),
+        "bowtie": dict(front=-0.045, dz=0.0),
+        "medal": dict(front=-0.005, dz=0.0),
     },
     "frog": {
         # Worn backwards, its peak clear of the eyes; the rest behind them.
@@ -285,20 +326,13 @@ def refit(extra, fit):
         scale = Vector(fit["s"])
         d = Vector(fit["d"])
         return lambda co, c: HEAD + (turn @ (co - HEAD)) * scale + d
-    front, dz, ring = fit["front"], fit["dz"], fit.get("ring", 1.0)
-    neck = Vector((0.0, 0.015, 0.0))
-
-    def move(co, c):
-        if c[1] > 0.1:
-            return co + Vector((0, front, dz))
-        flat = Vector((co.x, co.y, 0)) - neck
-        return Vector((neck.x + flat.x * ring, neck.y + flat.y * ring, co.z + dz))
-    return move
+    front, dz = fit["front"], fit["dz"]
+    return lambda co, c: co + Vector((0, front if c[1] > 0.1 else 0.0, dz))
 
 
 SPECIES = {
     "human": (HUMAN_TINTS, HUMAN, HUMAN_STYLES),
-    "mole": (MOLE_TINTS, None, MOLE_STYLES),   # the body: tools/make_mole_meshy.py
+    "mole": (MOLE_TINTS, MOLE, MOLE_STYLES),
     "frog": (FROG_TINTS, FROG, FROG_STYLES),
 }
 
@@ -555,28 +589,23 @@ def export(rig, objects, path, animations):
 
 
 def main():
-    # `-- mole frog`: only those.
-    only = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else list(SPECIES)
     for species, (tints, parts, styles) in SPECIES.items():
-        if species not in only:
-            continue
         name = f"robot_{species}"
-        if parts is not None:   # a body of primitives (the mole's is Meshy's)
-            # The body, with the robot's tools and every clip.
-            rig, mesh = fresh(os.path.join(OUT, "robot.gltf"))
-            materials(tints)
-            keep_tools(mesh)
-            body = sculpt(rig, name, parts)
-            mesh.name = name + "_tools"
-            export(rig, body + [mesh], os.path.join(OUT, name + ".gltf"), True)
-            bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", f"{name}.blend"))
+        # The body, with the robot's tools and every clip.
+        rig, mesh = fresh(os.path.join(OUT, "robot.gltf"))
+        materials(tints)
+        keep_tools(mesh)
+        body = sculpt(rig, name, parts)
+        mesh.name = name + "_tools"
+        export(rig, body + [mesh], os.path.join(OUT, name + ".gltf"), True)
+        bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", f"{name}.blend"))
 
-            # The arms seen in first person, on robot_arms.gltf's rig and clips.
-            rig, mesh = fresh(os.path.join(OUT, "robot_arms.gltf"))
-            materials(tints)
-            keep_tools(mesh)
-            arms = sculpt(rig, name + "_arms", [p for p in parts if p["bone"] in ARM_BONES], offset=TO_ARMS)
-            export(rig, arms + [mesh], os.path.join(OUT, name + "_arms.gltf"), True)
+        # The arms seen in first person, on robot_arms.gltf's rig and clips.
+        rig, mesh = fresh(os.path.join(OUT, "robot_arms.gltf"))
+        materials(tints)
+        keep_tools(mesh)
+        arms = sculpt(rig, name + "_arms", [p for p in parts if p["bone"] in ARM_BONES], offset=TO_ARMS)
+        export(rig, arms + [mesh], os.path.join(OUT, name + "_arms.gltf"), True)
 
         # Each style, worn on the body's rig like an extra.
         for style, sparts in styles.items():
@@ -604,5 +633,4 @@ def main():
             export(rig, [ob], os.path.join(OUT, f"{name}_{extra}.gltf"), False)
 
 
-if __name__ == "__main__":   # tools/make_mole_meshy.py borrows the helpers
-    main()
+main()

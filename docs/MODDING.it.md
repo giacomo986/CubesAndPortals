@@ -1919,13 +1919,7 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   `tools/make_species.py` li fa tutti: ogni pezzo del corpo (testa, busto,
   braccio, gamba) è un'unica superficie, primitive fuse con un remesh a voxel,
   levigate e sfoltite, con pesi sfumati alle giunture; occhi e piccoli dettagli
-  restano netti. Fanno eccezione corpo e braccia dell'uomo talpa: un modello
-  Meshy (`assets/meshy/mole/`) che `tools/make_mole_meshy.py` mette sullo
-  stesso scheletro, le braccia abbassate dalla posa ad A e le gambe allungate,
-  la texture letta in materiali piatti perché `tint_1..3` lo tingano ancora, e
-  le clip del file rimesse com'erano (`tools/gltf_add_clips.py`); stili e
-  accessori vengono ancora da `make_species.py -- mole`.
-  Un osso `sway_*` oscilla solo in avanti, via dal petto.
+  restano netti. Un osso `sway_*` oscilla solo in avanti, via dal petto.
   In un pezzo indossato, un osso che il giocatore non ha segue il suo
   genitore, e se si chiama `sway_*` dondola anche attorno a dove è legato.
 * **Attrezzi in mano.** Un osso `tool_<nome>` si vede solo quando in mano c'è

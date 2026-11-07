@@ -167,21 +167,6 @@ Open:
   has it (any mod's core.player_wear). Seen on a frog: helm, plate, greaves.
   Open: weapons stay the robot's (same hands); a weapon held at rest points
   ahead, as the robot's tools do; nothing shows a ring.
-  Mole man from Meshy (2026-11-07): body and first-person arms are a Meshy
-  7.1 model (image to 3D from a generated concept, assets/meshy/mole/; 56
-  credits with a discarded text-to-3D try) put on the robot's rig by
-  tools/make_mole_meshy.py: torso and head kept as made (scale 0.625 puts its
-  shoulders on the rig's), arms turned down from the A-pose and 1.7x longer,
-  drawn 0.06 out from the bone clear of the belly, trouser legs stretched to
-  the rig's hips (the concept's are short). Texture read into flat materials
-  (k-means colours, per region), tint_1..3 still dye it. Clips put back from
-  the old file (gltf_add_clips): 71 clips, 3573 channels, bin 933 KB, 7464
-  vertices with the tools; Blender's own export of the clips was 1.3 MB.
-  Styles, accessories (make_species.py -- mole) and arpg gear
-  (make_arpg_gear.py -- mole) refitted to the new head and body. Seen in
-  Xephyr: first-person paws, third person from behind. Open: no eyes (the
-  texture's read as fur); colour edges follow triangles, jagged; the paw is
-  drawn 0.06 out from where a tool is held.
   Arpg ways in and out (2026-11-01): the arch from the sandbox stands in a
   hall (cobble, a roof, two fires, a door into the town) where the camera
   is the eye's; out of its door the camera rises to the view from above
