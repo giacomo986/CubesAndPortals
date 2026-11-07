@@ -648,9 +648,10 @@ the villagers and start with questions (memory: villagers-need-design-first).
    (a message carries 512 bytes, a stored value 4096). Coloured on the server:
    a connected client has no generator (its core.terrain_height is 0). Seen
    on a server with a client: a route walked shows peaks, tundra, plains and
-   water, and the same map after a restart. Open: the land as generated, not
-   as built (no trees, houses or roads); the compass alone and the bed's home
-   not looked at in a screenshot.
+   water, and the same map after a restart. Since: a pixel whose column is
+   in memory is painted as built (its top block's colour, maps' built()),
+   and relics and villages are pins on it. Open: the compass alone and the
+   bed's home not looked at in a screenshot.
 8. Rare structures -- built 2026-10-28 in `mods/relics`: one square of 384
    in two may hold one, chosen by the ground at a point of it (seed 1: 17
    temples, 36 wrecks, 19 ruins in 441 squares). A desert temple (stepped
@@ -667,7 +668,7 @@ the villagers and start with questions (memory: villagers-need-design-first).
    chest where it says), the ruin at 1238 -3186 (3 urns, seal broken); seen
    in Xephyr inside the temple hall, the wreck from above, the ruin's
    pillars and pedestals. Open: the nearest relic is some 3 km from the
-   spawn on seed 1; the map does not show relics.
+   spawn on seed 1 (the map pins the ones found).
 9. The Hollows -- built 2026-10-28 in `mods/deep`, UNDER the bedrock: the
    engine now lets a world hold blocks down to y -64 (kWorldBottom; a
    column's light box goes down there only where it has chunks below 0, so a
@@ -721,7 +722,10 @@ the villagers and start with questions (memory: villagers-need-design-first).
     and the body gets their product (mods/territory passes "territory"), so a
     potion on owned ground does not undo the ground. Checked with a client at
     midnight: brewed by right click, drunk, the night lit up, both timers on
-    the HUD. Open: effects are in memory (gone on a restart or a leave); a
+    the HUD. Effects were in memory (gone on a restart or a leave): since
+    2026-11-07 kept by the player's name in alchemy's storage, taken up
+    again on coming back (checked: swiftness drunk, the server stopped and
+    started on its world file, the player back with 163 s left); a
     still brewing when the server stops finishes when next right clicked; the
     0.55 floor was not looked at again after lowering it from 0.8.
 11. Fishing widened -- built 2026-10-28 in `mods/pets`: what bites is by

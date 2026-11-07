@@ -20,8 +20,9 @@
 --                                     health back 1.5 times as fast
 --
 -- Each potion is its own source of core.player_factors, so two drunk add up
--- and neither undoes a territory's. The effects are in memory: they end with
--- the server, or with the player leaving.
+-- and neither undoes a territory's. What is left of them is kept by the
+-- player's name (storage "fx:<name>"): a leave or a restart takes them up again
+-- where they were.
 
 local side    = core.side()
 local serving = side ~= "client"
@@ -109,6 +110,7 @@ if serving then
 
     type Effect = { [string]: number }   -- potion -> seconds left
     local effects: { [number]: Effect } = {}
+    local known: { [number]: string } = {}   -- who is here, by name: their effects kept under it
 
     local function show(p: number)
         local list = {}
@@ -236,6 +238,34 @@ if serving then
         local here: { [number]: boolean } = {}
         for _, p in core.players() do
             here[p] = true
+            -- Back (or the server started again): what was left of their
+            -- potions, kept by name in storage, drunk on from where it was.
+            if not known[p] then
+                known[p] = core.player_name(p)
+                local kept = core.storage_get("fx:" .. known[p])
+                if kept ~= "" and effects[p] == nil then
+                    local e: Effect = {}
+                    for name, left in string.gmatch(kept, "([%w_]+)=([%d%.]+)") do
+                        if POTIONS[name] then
+                            e[name] = tonumber(left) :: number
+                            apply(p, name, true)
+                            if POTIONS[name].gills then
+                                core.event.emit("breath:water", { player = p, seconds = e[name] })
+                            end
+                            if POTIONS[name].fireproof then
+                                core.event.emit("alchemy:fireproof", { player = p, seconds = e[name] })
+                            end
+                        end
+                    end
+                    if next(e) ~= nil then
+                        effects[p] = e
+                        core.log(`alchemy: {known[p]} back with {kept}`)
+                    end
+                end
+            end
+        end
+        for p in known do
+            if not here[p] then known[p] = nil end
         end
         for p, e in effects do
             if not here[p] then
@@ -253,6 +283,9 @@ if serving then
                 if next(e) == nil then
                     effects[p] = nil
                 end
+                local list = {}
+                for name, left in e do table.insert(list, `{name}={math.ceil(left)}`) end
+                core.storage_set("fx:" .. (known[p] or core.player_name(p)), table.concat(list, " "))
             end
         end
     end)
