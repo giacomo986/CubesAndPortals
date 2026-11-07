@@ -9018,7 +9018,11 @@ void animate_body(Session &w, uint64_t key, Body &b, Vec3 feet, uint16_t rider,
             step.x -= belt.dx * belt.speed * (float)dt;
             step.z -= belt.dz * belt.speed * (float)dt;
         }
-        const float ahead  = step.x * std::sin(b.yaw) - step.z * std::cos(b.yaw);   // along Player::forward
+        // Measured in its own sizes (core.body_scale): a sixteenth walking at
+        // 0.30 is walking, not standing -- every clip threshold below, the
+        // worn gait, the wheels' turn and the stride are at full size.
+        step = step * (1.0f / std::max(b.scale, 0.01f));
+        const float ahead = step.x * std::sin(b.yaw) - step.z * std::cos(b.yaw);   // along Player::forward
         const float turned = std::remainder(b.yaw - m.yaw, 6.2831853f);
         float       target = 0.0f;
         if (std::fabs(ahead) > 0.5f * (float)dt)   // moving, and not by a hair

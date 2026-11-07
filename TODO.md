@@ -1200,6 +1200,10 @@ Portals -- the engine's own trick, used further:
    across walking). And the third-person camera pulled in onto the head in
    grass: it stopped at anything with boxes to aim at; now only at what stops a
    body (raycast's solid_only), and as far back as the body is big.
+   And small bodies stood idle while walking: the clip thresholds (idle under
+   0.4, walk, run, ladder, ledge, worn gait) read world speed, and a sixteenth
+   walks at 0.30. animate_body now measures motion in the body's own sizes.
+   Checked in Xephyr: the robot at 1/16 swings its legs walking.
    And "the image flashes going from the big door into the small one": frames
    with the eye 0.016..0.04 in front of D's face had G's side striped (leaves
    and sky in rows) -- the oblique near plane applied with the virtual camera
