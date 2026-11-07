@@ -199,7 +199,13 @@ Open:
   pauldrons' spikes kept out of the first-person arms; the gauntlets closed
   into fists (two folds of 80 degrees, KNUCKLES). The kart's first-person
   view is not checked: tools/track.sh's scripted driver keeps the pitch
-  level and nothing of the body is in frame, the robot's included. Seen in Xephyr in first and third person; idle, walk, mine,
+  level and nothing of the body is in frame, the robot's included. Then
+  the robot's skeleton kept as it is and the knight brought onto it:
+  upper body grown by G (1.29) about the hips so the shoulders are at
+  1.234, the helmet 0.85 about the neck, the legs put on the robot's hip,
+  knee and ankle (stretched along, 1.1 thick); the gauntlet shortened to
+  0.6 before the fingers fold, as the back plate hung on below the bracer.
+  The knight is broader than the robot. Seen in Xephyr in first and third person; idle, walk, mine,
   sword_slash, crouch_walk rendered in Blender. Registered in mods/robot and
   the nine games that list species. Open: no styles; extras and arpg gear
   are the robot's, not refitted; the cape is bound to the hips and spine,

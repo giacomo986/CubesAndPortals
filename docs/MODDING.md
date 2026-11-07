@@ -1740,10 +1740,12 @@ on foot and get into a parked kart: `games/track`.
   approved; then image-to-3D from it; then the sheet, approved; only then the files go in a mod. It is
   for rigid things -- props, decor, statues, held items. A character is the other way round:
   bending a generated body onto the robot's proportions was tried on the mole man and reverted;
-  `tools/make_knight_meshy.py` instead moves the robot's bones (names and directions kept) to the
-  dragon knight's joints, turns its A-pose arms down, and writes the robot's clips into its file with
-  each translation moved as its bone moved, a constant channel kept as one key so the file stays
-  under 1 MB. The knight is generated in Meshy's smart topology, a hundred separate pieces, and is
+  `tools/make_knight_meshy.py` instead keeps the robot's skeleton as it is and brings the dragon
+  knight's pieces onto it: the upper body grown about the hips until its shoulders are the robot's,
+  the helmet a little smaller, the arms turned down from the A-pose onto the robot's arm lengths
+  and the legs onto its legs, with dark sleeves where the plates no longer meet; so every clip puts
+  hands and feet where it puts the robot's (a kart's wheel, a tool). The robot's clips are written
+  into the file, a constant channel kept as one key so it stays under 1 MB. The knight is generated in Meshy's smart topology, a hundred separate pieces, and is
   built like the robot: each piece follows one bone whole and takes a flat colour read off the
   texture, red tint_1 and gold tint_2 for the player to dye; the texture itself is not kept. It has
   no styles.

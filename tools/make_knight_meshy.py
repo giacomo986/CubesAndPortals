@@ -48,13 +48,23 @@ S = 1.15   # the knight's file is 1.36 tall: 1.56 with its horns, the robot's he
 # Its joints, read off front and side renders of that file (x either side,
 # depth 0): shoulder, elbow, wrist and fingertips of the A-pose arm, the hip
 # joint, knee and ankle, the neck and the top of the horns.
-K_SHOULDER, K_ELBOW, K_WRIST, K_TIP = (0.183, 0.896), (0.27, 0.81), (0.426, 0.678), (0.557, 0.522)
-K_HIP, K_KNEE, K_ANKLE = (0.087, 0.61), 0.36, 0.07   # the hip under the tassets, below the belt
+# (the shoulder's joint under the pauldron, a little over where the arm shows below it)
+K_SHOULDER, K_ELBOW, K_WRIST, K_TIP = (0.183, 0.948), (0.27, 0.81), (0.426, 0.678), (0.557, 0.522)
+K_HIP, K_KNEE, K_ANKLE = (0.087, 0.59), 0.36, 0.07   # the hip under the tassets, below the belt
 K_NECK, K_TOP = 1.06, 1.36
 SLEEVE = (0.05, 0.042, 0.05)   # radius of the first-person sleeves: upper arm, forearm, cuff
 FP_SLIM = 0.6   # first-person arms this much thinner about their bones
-FIST, KNUCKLES = 80, (0.075, 0.115)   # degrees a finger folds at each joint, and where they are down the hand
+FIST_SQUASH = 0.6   # the gauntlet's length kept down the hand
+FIST, KNUCKLES = 50, (0.05, 0.08)   # degrees a finger folds at each joint, and where they are down the hand
 ROBOT_ARM = (1.234 - 0.942, 0.942 - 0.663)   # the robot's upper arm and forearm, head to head
+ROBOT_SHOULDER, ROBOT_HIP = (0.265, 1.234), 0.73   # where its shoulder (x, z) and hips are
+ROBOT_LEG = (0.119, 0.73, 0.398, 0.093)   # its leg: x, then hip, knee and ankle heights
+# The knight onto the robot's joints: everything above the hips grows by G
+# about them, so the shoulders come to the robot's; the helmet then shrinks
+# by HEAD about the neck, or the knight would stand a head over the robot;
+# the legs are put on the robot's, stretched along them, LEG_GIRTH thicker.
+G = (ROBOT_SHOULDER[1] - ROBOT_HIP) / ((K_SHOULDER[1] - K_HIP[1]) * S)
+HEAD, LEG_GIRTH = 0.85, 1.1
 ARM_OUT, ARM_FORWARD = 20, 8   # degrees the rest arm hangs out and ahead
 TRIS = 8000   # what the pieces are decimated to
 ACROSS = 0.2   # a piece with this share on a second bone spans a joint and bends
@@ -97,72 +107,17 @@ def arm_pose(sx, out=None):
     # the robot's upper arm and forearm, the knight's own hand: its plates sit on
     # arms as long as the ones every clip was made for (a hand on a kart's wheel,
     # a tool where the robot holds it), the gaps a dark sleeve (sleeves)
-    lengths = (ROBOT_ARM[0], ROBOT_ARM[1], (a[3] - a[2]).length)
-    r = [a[0].copy()]
+    lengths = (ROBOT_ARM[0], ROBOT_ARM[1], (a[3] - a[2]).length * G)
+    r = [Vector((sx * ROBOT_SHOULDER[0], 0.0, ROBOT_SHOULDER[1]))]   # the robot's shoulder
     for i in range(3):
         r.append(r[-1] + down * lengths[i])
     return a, r
 
 
-def lerp_z(z):
-    """A torso height of the robot's, where the knight has it."""
-    pts = [(0.73, K_HIP[1] * S), (1.234, K_SHOULDER[1] * S), (1.287, K_NECK * S), (1.565, K_TOP * S * 0.97)]
-    for (r0, k0), (r1, k1) in zip(pts, pts[1:]):
-        if z <= r1 or (r1, k1) == pts[-1]:
-            return k0 + (z - r0) * (k1 - k0) / (r1 - r0)
 
 
-def place_rig(rig):
-    """The robot's bones moved onto the knight, each keeping its direction."""
-    mw = rig.matrix_world
-    bpy.context.view_layer.objects.active = rig
-    bpy.ops.object.mode_set(mode="EDIT")
-    old = {b.name: (mw @ b.head, mw @ b.tail) for b in rig.data.edit_bones}
-    new = {}
-    for n in BONES["torso"]:
-        h, t = old[n]
-        new[n] = (Vector((0, 0, lerp_z(h.z))), Vector((0, 0, lerp_z(t.z))))
-    for side, sx in (("L", -1), ("R", 1)):
-        _, r = arm_pose(sx)
-        robot = [old["upper_arm_" + side][0], old["forearm_" + side][0], old["hand_" + side][0],
-                 old["hand_" + side][0] - Vector((0, 0, 0.21))]
-        for i, n in enumerate(BONES["arm_" + side]):
-            h, t = old[n]
-            scale = (r[i + 1] - r[i]).length / (robot[i + 1] - robot[i]).length
-            new[n] = (r[i], r[i] + (t - h) * scale)
-        joints = LEGS[side][1]
-        for i, n in enumerate(BONES["leg_" + side]):
-            h, t = old[n]
-            if i < 2:
-                scale = (joints[i] - joints[i + 1]).length / (h - old[BONES["leg_" + side][i + 1]][0]).length
-            else:
-                scale = 1.0
-            new[n] = (joints[i], joints[i] + (t - h) * scale)
-    bpy.ops.object.mode_set(mode="OBJECT")
-    return move(rig, new)
 
 
-def move(rig, new):
-    """Bones put where `new` says (world head, tail), the ones it does not name
-    (tools, jet flame, antenna) carried by their parent; what each moved."""
-    mw = rig.matrix_world
-    inv = mw.inverted()
-    bpy.context.view_layer.objects.active = rig
-    bpy.ops.object.mode_set(mode="EDIT")
-    eb = rig.data.edit_bones
-    old = {b.name: (mw @ b.head, mw @ b.tail) for b in eb}
-    new = {n: v for n, v in new.items() if n in old}
-    for b in eb:   # parents come before children in the list
-        if b.name not in new and b.parent is not None and b.parent.name in new:
-            d = new[b.parent.name][0] - old[b.parent.name][0]
-            new[b.name] = (old[b.name][0] + d, old[b.name][1] + d)
-    for b in eb:
-        if b.name in new:
-            roll = b.roll
-            b.head, b.tail = inv @ new[b.name][0], inv @ new[b.name][1]
-            b.roll = roll
-    bpy.ops.object.mode_set(mode="OBJECT")
-    return {n: (new[n], new[n][0] - old[n][0]) for n in new}
 
 
 LEGS = {}   # side: (joints as made, joints straight below the hip), measure_legs
@@ -355,21 +310,52 @@ def body(rig, ob, cols):
     colours(me, cols, piece)
     mw = rig.matrix_world
     seg = {b.name: (mw @ b.head_local, mw @ b.tail_local) for b in rig.data.bones}
-    # The arms' bones where the A-pose has them, and each one's move to rest.
-    moves, straight = {}, {}   # to the rest arm, and to one hanging straight down
+    # Each bone's move from the knight as made to the robot's skeleton, as a
+    # function of a point: the upper body grown about the hips, the helmet
+    # shrunk about the neck, arms turned down onto the robot's arm bones and
+    # legs onto its leg bones. `straight` is the same with the arms hanging
+    # straight down (the first-person arms).
+    hip_k, hip_r = Vector((0, 0, K_HIP[1] * S)), Vector((0, 0, ROBOT_HIP))
+    neck_k = Vector((0, 0, K_NECK * S))
+
+    def upper(p):
+        return hip_r + (p - hip_k) * G
+
+    def head(p):
+        return upper(neck_k) + (p - neck_k) * (G * HEAD)
+    moves = {n: upper for n in BONES["torso"]}
+    moves["head"] = head
+    for n in BONES["torso"]:   # their segments where the knight is, for the nearest bone
+        h, t = seg[n]
+        seg[n] = (hip_k + (h - hip_r) / G, hip_k + (t - hip_r) / G)
+    straight = dict(moves)
+
+    def onto(a, r, turn, along=None, stretch=1.0, girth=1.0):
+        def f(p):
+            d = p - a
+            if along is not None:
+                t = d.dot(along)
+                d = along * (t * stretch) + (d - along * t) * girth
+            return r + turn @ d
+        return f
     for side, sx in (("L", -1), ("R", 1)):
         a, r = arm_pose(sx)
         _, r0 = arm_pose(sx, 0)
         for i, n in enumerate(BONES["arm_" + side]):
             seg[n] = (a[i], a[i + 1])
-            moves[n] = (a[i], r[i], (a[i + 1] - a[i]).rotation_difference(r[i + 1] - r[i]))
-            straight[n] = (a[i], r0[i], (a[i + 1] - a[i]).rotation_difference(r0[i + 1] - r0[i]))
-        made, rest = LEGS[side]
+            along = (a[i + 1] - a[i]).normalized()   # grown by G as the upper body is
+            moves[n] = onto(a[i], r[i], along.rotation_difference(r[i + 1] - r[i]), along, G, G)
+            straight[n] = onto(a[i], r0[i], along.rotation_difference(r0[i + 1] - r0[i]), along, G, G)
+        made, _ = LEGS[side]
+        x, hz, kz, az = ROBOT_LEG
+        robot = [Vector((sx * x, 0, hz)), Vector((sx * x, 0, kz)), Vector((sx * x, 0, az))]
         for i, n in enumerate(BONES["leg_" + side]):   # the foot follows the shin's ankle
             j = min(i, 1)
-            turn = (made[j + 1] - made[j]).rotation_difference(rest[j + 1] - rest[j])
+            along = (made[j + 1] - made[j]).normalized()
+            turn = along.rotation_difference(Vector((0, 0, -1)))
+            stretch = (robot[j + 1] - robot[j]).length / (made[j + 1] - made[j]).length if i < 2 else LEG_GIRTH
             seg[n] = (made[i], made[i + 1]) if i < 2 else (made[2], made[2] + Vector((0, 0.15, -0.05)))
-            moves[n] = straight[n] = (made[i], rest[i], turn)
+            moves[n] = straight[n] = onto(made[i], robot[i], turn, along, stretch, LEG_GIRTH)
     where = [part(v.co) for v in me.vertices]
     nearest = [min(BONES[w], key=lambda b: segment(v.co, *seg[b])) for v, w in zip(me.vertices, where)]
     members = [[] for _ in range(count)]
@@ -412,11 +398,7 @@ def body(rig, ob, cols):
     def moved(co, w, moves):
         p = Vector()
         for bone, x in w.items():
-            if bone in moves:
-                a, r, turn = moves[bone]
-                p += (r + turn @ (co - a)) * x
-            else:
-                p += co * x
+            p += (moves[bone](co) if bone in moves else upper(co)) * x
         return p
     hanging = [fist(moved(v.co, w, straight), w, 0) for v, w in zip(me.vertices, weights)]
     for v, w in zip(me.vertices, weights):
@@ -485,9 +467,10 @@ def tube(co, faces, a, b, radius):
 
 
 def fist(p, w, out=None):
-    """The gauntlet closed: past the knuckles the fingers fold toward the
-    palm (the body's side), at the knuckles and again halfway down, FIST
-    degrees each, as much as the vertex is the hand's."""
+    """The gauntlet closed: shortened down the hand (FIST_SQUASH), then past
+    the knuckles the fingers fold toward the palm (the body's side), at the
+    knuckles and again halfway down, FIST degrees each, as much as the vertex
+    is the hand's."""
     hand = w.get("hand_L", 0.0) + w.get("hand_R", 0.0)
     if not hand:
         return p
@@ -497,8 +480,12 @@ def fist(p, w, out=None):
     inward = Vector((-sx, 0, 0))
     inward = (inward - along * inward.dot(along)).normalized()
     axis = along.cross(inward).normalized()
-    q = p.copy()
-    for at in KNUCKLES:   # each fold about its joint, the next joint folded with it
+    # the whole gauntlet shortened down the hand first: folded alone, the
+    # fingers curl under the back plate, which hangs on below the bracer
+    t = (p - wrist).dot(along)
+    q = p - along * (t * (1 - FIST_SQUASH)) if t > 0 else p.copy()
+    p = q.copy()
+    for at in (k * G for k in KNUCKLES):   # each fold about its joint, the next joint folded with it
         pivot = wrist + along * at
         if (q - pivot).dot(along) > 0:
             turn = Quaternion(axis, math.radians(FIST))
@@ -672,9 +659,6 @@ def graft(path, robot_path, hips_scale):
         json.dump(doc, f, separators=(",", ":"))
 
 
-def tools_moved(mesh, by):
-    for v in mesh.data.vertices:   # the tools, with the hand that holds them
-        v.co += mesh.matrix_world.inverted().to_3x3() @ by
 
 
 def finish(path, robot_path, hips_scale):
@@ -691,14 +675,13 @@ def main():
     keep_tools(mesh)
     ob, cols = load()
     measure_legs(ob)
-    placed = place_rig(rig)
-    tools_moved(mesh, placed["hand_R"][1])
+    # the rig stays the robot's: the knight is brought onto it (body)
     mesh.name = NAME + "_tools"
     ob, weights, hanging = body(rig, ob, cols)
     data = arm_part(ob, weights, hanging)
     path = os.path.join(OUT, NAME + ".gltf")
     export(rig, [ob, sleeves(rig), mesh], path, False)
-    finish(path, robot_path, K_HIP[1] * S / 0.73)
+    finish(path, robot_path, 1.0)
 
     # Where each arm bone's pieces hang from on the straight knight, and the
     # robot's bone that point goes to: the wrist, for all of them.

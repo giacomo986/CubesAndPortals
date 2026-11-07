@@ -1951,11 +1951,14 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   allora i file vanno in un mod. È per cose rigide: oggetti, arredi, statue,
   oggetti in mano. Un personaggio va al contrario: piegare un corpo generato
   sulle proporzioni del robot è stato provato con l'uomo talpa e annullato;
-  `tools/make_knight_meshy.py` sposta invece le ossa del robot (nomi e
-  direzioni tenuti) sulle articolazioni del cavaliere del drago, abbassa le
-  braccia dalla posa ad A e scrive le clip del robot nel suo file, ogni
-  traslazione spostata come si è spostato il suo osso, un canale costante
-  tenuto come una sola chiave perché il file resti sotto 1 MB. Il cavaliere
+  `tools/make_knight_meshy.py` tiene invece lo scheletro del robot com'è e ci
+  porta sopra i pezzi del cavaliere del drago: la parte alta ingrandita
+  attorno all'anca finché le spalle sono quelle del robot, l'elmo un po' più
+  piccolo, le braccia abbassate dalla posa ad A sulle lunghezze del robot e
+  le gambe sulle sue gambe, con maniche scure dove le piastre non si toccano
+  più; così ogni clip mette mani e piedi dove mette quelli del robot (il
+  volante del kart, un attrezzo). Le clip del robot sono scritte nel file, un
+  canale costante tenuto come una sola chiave perché resti sotto 1 MB. Il cavaliere
   è generato nella smart topology di Meshy, un centinaio di pezzi separati, ed
   è fatto come il robot: ogni pezzo segue un solo osso intero e prende un
   colore piatto letto dalla texture, rosso tint_1 e oro tint_2 che il
