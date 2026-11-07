@@ -627,35 +627,35 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":899,
+			"count":897,
 			"max":[
-				0.08994018286466599,
-				1.5399295091629028,
-				-0.2099839150905609
+				0.09495753049850464,
+				1.549978494644165,
+				-0.2569839060306549
 			],
 			"min":[
-				-0.08994018286466599,
-				1.4600163698196411,
-				-0.22000984847545624
+				-0.09495753794908524,
+				1.4700709581375122,
+				-0.2670177221298218
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":899,
+			"count":897,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5121,
-			"count":899,
+			"count":897,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":899,
+			"count":897,
 			"type":"VEC4"
 		},
 		{
@@ -669,14 +669,14 @@
 			"componentType":5126,
 			"count":256,
 			"max":[
-				0.0820000097155571,
-				1.532000184059143,
-				-0.2135000377893448
+				0.08700000494718552,
+				1.5420001745224,
+				-0.2605000138282776
 			],
 			"min":[
-				-0.0820000097155571,
-				1.4680001735687256,
-				-0.21650002896785736
+				-0.08700000494718552,
+				1.4780001640319824,
+				-0.26350003480911255
 			],
 			"type":"VEC3"
 		},
@@ -714,73 +714,73 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":10788,
+			"byteLength":10764,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":10788,
-			"byteOffset":10788,
+			"byteLength":10764,
+			"byteOffset":10764,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":3596,
-			"byteOffset":21576,
+			"byteLength":3588,
+			"byteOffset":21528,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":14384,
-			"byteOffset":25172,
+			"byteLength":14352,
+			"byteOffset":25116,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":9084,
-			"byteOffset":39556,
+			"byteOffset":39468,
 			"target":34963
 		},
 		{
 			"buffer":0,
 			"byteLength":3072,
-			"byteOffset":48640,
+			"byteOffset":48552,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":3072,
-			"byteOffset":51712,
+			"byteOffset":51624,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":1024,
-			"byteOffset":54784,
+			"byteOffset":54696,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":4096,
-			"byteOffset":55808,
+			"byteOffset":55720,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":3024,
-			"byteOffset":59904,
+			"byteOffset":59816,
 			"target":34963
 		},
 		{
 			"buffer":0,
 			"byteLength":1536,
-			"byteOffset":62928
+			"byteOffset":62840
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":64464,
+			"byteLength":64376,
 			"uri":"robot_mole_glasses.bin"
 		}
 	]

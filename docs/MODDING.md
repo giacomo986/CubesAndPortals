@@ -1716,8 +1716,12 @@ on foot and get into a parked kart: `games/track`.
   replaces the styles that are hats (lamp, crown, lily pad). A world that does not register the
   species shows the robot. `tools/make_species.py` makes them all: every body part (head, torso, arm,
   leg) is a single surface, primitives fused with a voxel remesh, smoothed and decimated, with weights
-  blended at the joints; eyes and small details stay sharp. A `sway_*` bone swings only forwards, away
-  from the chest. In a worn piece, a bone the player lacks follows its parent, and if named `sway_*`
+  blended at the joints; eyes and small details stay sharp. The mole man's body and arms are the
+  exception: a Meshy model (`assets/meshy/mole/`) that `tools/make_mole_meshy.py` puts on the same
+  skeleton, its arms turned down from the A-pose and its legs lengthened, the texture read into flat
+  materials so `tint_1..3` still dye it, and the file's own clips put back unchanged
+  (`tools/gltf_add_clips.py`); its styles and accessories still come from `make_species.py -- mole`.
+  A `sway_*` bone swings only forwards, away from the chest. In a worn piece, a bone the player lacks follows its parent, and if named `sway_*`
   dangles too round where it is attached.
 * **Tools in hand.** A `tool_<name>` bone shows only when the item in hand is named `<mod>:<name>`
   (`tool_pick` for `tools:pick`), and the other `tool_*` vanish: on the arms and on your own body in
