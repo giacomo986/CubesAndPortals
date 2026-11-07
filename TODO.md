@@ -1812,7 +1812,10 @@ the list straight away; a server's row asks name and password for that server
 (identity_for), a refused join asks again. Seen in Xephyr: menus in both,
 accents drawn, a join with --require-identity. Open: strings a mod builds from
 tables (lore pages, the diary, item names) and the engine's technical refusals
-are not in the files yet.
+are not in the files yet. Since 2026-11-07 tools/lang_check.py finds what
+mods show (notices, chat, hud text, panel labels and buttons, page titles,
+item names, with {} for what varies) and what it.txt / en.txt lack: 381 + 3
+lines added, 0 missing. Not seen: text built from tables or functions.
 
 **The assault: the bots shoot the traps in time (2026-10-26).** Asked: the
 bots in the escape shoot the traps at the right moment. Their sight stopped
