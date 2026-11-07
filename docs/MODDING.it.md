@@ -2335,6 +2335,10 @@ core.event.define("furnace:xp", { fields = { player = "number", points = "number
 core.event.emit("furnace:xp", { player = ev.player, points = 3 })
 ```
 
+`mods/building` ascolta `building:rail_laid {x, y, z}`: un binario posato da una mod con
+`core.set_block` (che non fa scattare `core:placed`) prende la forma che gli darebbe una mano --
+salita, curva -- con i binari intorno, appena la sua cella si può leggere (anche a `core:world_ready`).
+
 **Tra server amici.** `core.fed_send(server, testo)` manda una riga, fino a 4000 byte, al mod con lo
 stesso nome su un server amico (`--federation`, `/friend`, che condivide `mods`), che la riceve come
 `core:fed_message` nella sua prima stanza; è sigillata e firmata come ogni riga tra amici, e non viene

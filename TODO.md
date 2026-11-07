@@ -476,7 +476,9 @@ the villagers and start with questions (memory: villagers-need-design-first).
    in a test); a storm strikes every 6-18 s near a player, 8 points within 3
    nodes. /weather for admins. Seen in Xephyr (rain, storm, snow). Open: the
    bolt not caught in a screenshot; rain heard since 2026-11-04 (a loop round
-   each player in it, core.sound_loop; see idea 6 below); core.light is not dimmed, so creatures do not come out in a storm;
+   each player in it, core.sound_loop; see idea 6 below); core.light and the
+   spawns are dimmed by the overcast (world_daylight, 0.6 of the sky at full
+   cloud; checked 2026-11-07), and a bolt lights the land (core.sky_flash);
    thunder is synthesised (tools/make_weather_sounds.py), the sfx model is
    gated.
 2. Seasons -- built 2026-10-28 in `mods/weather` (`core.node_foliage`,
@@ -591,8 +593,11 @@ the villagers and start with questions (memory: villagers-need-design-first).
    ahead along its run is a block higher (none level there), a down slope
    where the one behind is; a slope broken gives a plain rail (rail_up/down
    drop building:rail). Checked headless: a line flat, up a step, level, down
-   a step, then a step broken and the slope below it flat again. Open: a rail laid by a mod
-   (set_block) keeps its shape until a hand lays or breaks one beside it. Found on the way: the recipe
+   a step, then a step broken and the slope below it flat again. A rail laid by a mod
+   (set_block) kept its shape until a hand laid or broke one beside it:
+   since 2026-11-07 it says so with building:rail_laid {x, y, z}, shaped once
+   its cell reads (checked headless: a line up a step gets its rail_up only
+   with the event). The slopes' two recipes are gone (they named no item). Found on the way: the recipe
    clash message now names both results, which showed rocks:stone_bricks never
    craftable (craft:brick's shape) -- now four smooth stone.
 6. Travel -- built 2026-10-28 as waystones (`mods/travel`), not engine

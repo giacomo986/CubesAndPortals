@@ -2072,6 +2072,10 @@ core.event.define("furnace:xp", { fields = { player = "number", points = "number
 core.event.emit("furnace:xp", { player = ev.player, points = 3 })
 ```
 
+`mods/building` listens to `building:rail_laid {x, y, z}`: a rail a mod laid with `core.set_block`
+(which fires no `core:placed`) is shaped as a hand's would be -- slope, corner -- with the rails round
+it, as soon as its cell can be read (at `core:world_ready` too).
+
 **Between friend servers.** `core.fed_send(server, text)` sends a line, up to 4000 bytes, to the mod of
 the same name on a friend server (`--federation`, `/friend`, sharing `mods`), which hears it as
 `core:fed_message` in its first room; it is sealed and signed like every line between friends, and not

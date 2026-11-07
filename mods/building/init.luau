@@ -827,8 +827,8 @@ if serving then
         "furnace:gold_ingot timber:stick furnace:gold_ingot",
         "furnace:gold_ingot ore:cinnabar furnace:gold_ingot")
     core.recipe_shaped("building:switch", 1, "cinnabar:lever", "building:rail")
-    core.recipe_shaped("building:rail_up", 1, "building:rail", "rocks:cobblestone")
-    core.recipe_shaped("building:rail_down", 1, "rocks:cobblestone", "building:rail")
+    -- No recipe for the slopes: a rail lays itself as one (below), and they
+    -- are no item to hold (the recipes named one nobody had registered).
     -- What a plain rail looks like is worked out from the rails round it, as
     -- the engine rides it: a slope where the rail ahead along its run is a
     -- block higher (up) or the one behind is (down) and none is on its own
@@ -911,6 +911,29 @@ if serving then
     core.event.on("core:broken", function(ev)
         if ANY[ev.id] then
             reshape(ev.x, ev.y, ev.z)
+        end
+    end)
+    -- A rail a mod laid (core.set_block fires no core:placed): shaped as a
+    -- hand's would be when the mod says so, the cells round it too.
+    --   core.event.emit("building:rail_laid", { x = x, y = y, z = z })
+    core.event.define("building:rail_laid", { fields = { x = "number", y = "number", z = "number" },
+                                              cancellable = false })
+    -- Kept until its cell can be read (a world's cells read as air while it
+    -- is being made, at core:world_ready), a few seconds at most.
+    local laid: { { number } } = {}
+    core.event.on("building:rail_laid", function(ev)
+        table.insert(laid, { ev.x, ev.y, ev.z, 0 })
+    end)
+    core.event.on("core:tick", function(_)
+        for i = #laid, 1, -1 do
+            local r = laid[i]
+            r[4] += 1
+            if ANY[core.get_block(r[1], r[2], r[3])] then
+                reshape(r[1], r[2], r[3])
+                table.remove(laid, i)
+            elseif r[4] > 200 then
+                table.remove(laid, i)
+            end
         end
     end)
 end
