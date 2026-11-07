@@ -28,6 +28,17 @@ core.register_node("track_core:light", 250, 240, 210, true, 14)
 local KART = core.register_node("track_core:kart", 40, 45, 55, true, 0, "upright", 2)
 core.node_model(KART, core.register_model("track_core:kart", "track_core_kart.gltf"))
 core.node_box(KART, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+-- And the power-ups' (track_game): the box, what is dropped and thrown, linked
+-- from track_core, under its names; their sounds beside them (inferno_track:box...).
+for _, m in { "item_box", "banana", "shell_green", "shell_red" } do
+    core.register_model("track_core:" .. m, m .. ".gltf")
+end
+-- And their icons, as track_core has them: items nobody is given, so the
+-- pictures reach a player's machine for the HUD (games/inferno/textures links).
+for _, i in { "item_boost", "item_banana", "item_shell", "item_homing", "item_star", "item_bolt",
+              "item_ink", "ink_blot" } do
+    core.register_item("track_core:" .. i, 1)
+end
 
 local SCORIA = core.node_id("inferno:scoria")
 local BRICKS     = core.node_id("inferno:bricks")

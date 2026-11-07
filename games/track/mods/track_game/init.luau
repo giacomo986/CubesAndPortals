@@ -113,7 +113,12 @@ end
 -- Which room this is: the track's, or the Inferno's, where this mod runs too
 -- for the Inferno track's side of a lap. A gate is timed, and painted, in its
 -- own room only.
-local INFERNO = core.node_id("inferno:scoria") ~= 0
+-- By track_core's road, which only the track's room has: "inferno:scoria"
+-- read 0 here when this mod loaded before the Inferno's (from 2026-10-31 the
+-- Inferno's copy then stopped on track_core:laid and never ran).
+local INFERNO = core.node_id("track_core:road") == 0
+-- The power-ups' sounds: track_core's, or inferno_track's copies in the Inferno's room.
+local SND = if INFERNO then "inferno_track:" else "track_core:"
 local function here(g): boolean
     return (g.inferno == true) == INFERNO
 end
@@ -329,7 +334,10 @@ if serving then
     local LOOP_ROAD = {}
     for _, name in { "track_core:road", "track_core:start", "track_core:mark",
                      "track_core:inferno_road" } do
-        LOOP_ROAD[core.node_id(name)] = true
+        -- Not one a room lacks: its id is 0, air, and in the Inferno's room
+        -- every column of air then "fitted" -- a kart off its road was put
+        -- back where it was, over and over.
+        if core.node_id(name) ~= 0 then LOOP_ROAD[core.node_id(name)] = true end
     end
     local FILL = core.node_id("track_core:piece_fill")
     -- The loop's road at GROUND, or flat piece road whose cells are at `gy`.
@@ -1070,12 +1078,12 @@ if serving then
     -- of track_core. The server decides everything; the player's machine is
     -- told what they hold and what happened to them, and draws it.
     --
-    -- Not in the Inferno's room: its world has none of the models, and its
-    -- side of the Inferno track gets no boxes.
+    -- In the Inferno's room too: inferno_track registers the same models
+    -- (linked from track_core) and its side of the Inferno track has its rows.
     local BOX_MODEL = core.model_id("track_core:item_box")
     local MODELS = { banana = core.model_id("track_core:banana"), shell = core.model_id("track_core:shell_green"),
                      homing = core.model_id("track_core:shell_red") }
-    local ITEMS_HERE = BOX_MODEL ~= 0 and not INFERNO
+    local ITEMS_HERE = BOX_MODEL ~= 0
     local BOX, THING = "track_game:box", "track_game:thing"
     core.ecs.component(BOX, { "row" })
     core.ecs.component(THING, { "t" })
@@ -1286,7 +1294,7 @@ if serving then
         s.spin, s.boost, s.yaw = SPIN, 0, math.atan2(lx or 0, lz or 1)
         tell(p, `fx spin {SPIN}`)
         local x, y, z = core.player_pos(p)
-        if x then core.play_sound("track_core:spin", x, y + 1, z) end
+        if x then core.play_sound(SND .. "spin", x, y + 1, z) end
         core.log(`track_game: {s.name} hit by {why}`)
     end
 
@@ -1347,11 +1355,11 @@ if serving then
         if item == "boost" or item == "boost3" then
             s.boost = BOOST
             tell(p, `fx boost {BOOST}`)
-            core.play_sound("track_core:boost", x, y + 1, z)
+            core.play_sound(SND .. "boost", x, y + 1, z)
         elseif item == "star" then
             s.star = STAR
             tell(p, `fx star {STAR}`)
-            core.play_sound("track_core:star", x, y + 1, z)
+            core.play_sound(SND .. "star", x, y + 1, z)
         elseif item == "bolt" or item == "ink" then
             for q, o in players do
                 if q ~= p and o.driving then
@@ -1364,14 +1372,14 @@ if serving then
                     else
                         tell(q, `fx ink {INK}`)
                         local qx, qy, qz = core.player_pos(q)
-                        if qx then core.play_sound("track_core:ink", qx, qy + 1, qz) end
+                        if qx then core.play_sound(SND .. "ink", qx, qy + 1, qz) end
                     end
                 end
             end
             tell(0, `fx {item}go {s.name}`)
-            if item == "bolt" then core.play_sound("track_core:bolt", x, y + 2, z) end
+            if item == "bolt" then core.play_sound(SND .. "bolt", x, y + 2, z) end
         elseif item == "banana" then
-            core.play_sound("track_core:throw", x, y + 1, z)
+            core.play_sound(SND .. "throw", x, y + 1, z)
             local bx, bz = x - lx * 2.2, z - lz * 2.2
             local id = spawn_thing("banana", bx, ground(bx, y + 0.5, bz) or y, bz, p)
             if id then
@@ -1384,7 +1392,7 @@ if serving then
             -- A shell, ahead or (S held) behind. A red one picks the nearest
             -- kart ahead of the one that throws it, and steers for it.
             local d = if back then -1 else 1
-            core.play_sound("track_core:throw", x, y + 1, z)
+            core.play_sound(SND .. "throw", x, y + 1, z)
             local sx, sz = x + lx * 2.0 * d, z + lz * 2.0 * d
             local id = spawn_thing(item, sx, ground(sx, y + 0.5, sz) or y, sz, p)
             if id then
@@ -1478,8 +1486,8 @@ if serving then
                         -- Ready once the roulette has turned on the player's screen.
                         table.insert(s.items, { what = what, uses = USES[what] or 1, ready = clock + 1 })
                         tell_items(p, s)
-                        core.play_sound("track_core:box", x, y + 1, z)   -- tools/make_powerup_sounds.py
-                        core.play_sound("track_core:rattle", x, y + 1, z)
+                        core.play_sound(SND .. "box", x, y + 1, z)   -- tools/make_powerup_sounds.py
+                        core.play_sound(SND .. "rattle", x, y + 1, z)
                     end
                 end
             end
@@ -1655,6 +1663,12 @@ if serving then
                 if c[1] == "kart" then
                     local s = players[p]
                     s.driving, s.skip = true, 3
+                    for what, uses in string.gmatch(c[6] or "", "(%w+):(%d+)") do
+                        if #s.items < HOLD then
+                            table.insert(s.items, { what = what, uses = tonumber(uses) :: number, ready = clock })
+                        end
+                    end
+                    if #s.items > 0 then tell_items(p, s) end
                     tell(p, "kart 1")
                     dress_kart(p, s)
                     if TRACKS[ti] ~= nil then
@@ -1814,8 +1828,12 @@ if serving then
             -- What goes with a kart driven into the other room: its lap.
             local d = players[p]
             if d ~= nil and d.driving then
-                core.player_carry(p, string.format("kart %d %d %d %.3f", d.track or 0, d.next,
-                                                   if d.lapping then 1 else 0, clock - d.started))
+                -- and what it holds (what:uses,...), or an item was lost crossing
+                local held = {}
+                for _, it in d.items do table.insert(held, `{it.what}:{it.uses}`) end
+                core.player_carry(p, string.format("kart %d %d %d %.3f %s", d.track or 0, d.next,
+                                                   if d.lapping then 1 else 0, clock - d.started,
+                                                   if #held > 0 then table.concat(held, ",") else "-"))
             elseif d ~= nil and core.player_carried(p) ~= "" and string.sub(core.player_carried(p), 1, 5) == "kart " then
                 -- On foot the line goes along too now: not a lap any more.
                 core.player_carry(p, "")

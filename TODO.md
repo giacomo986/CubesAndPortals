@@ -1609,8 +1609,16 @@ Seen in Xephyr; not played with the gun by hand.
   screen. Never driven by hand (the left click). Open: the same odds for
   everybody (no race order to weight by); sounds since 2026-11-07
   (tools/make_powerup_sounds.py: a box taken and its roulette, boost, star,
-  a throw, a kart spun, lightning, ink -- not heard here); the Inferno room has
-  no boxes (no models there) and an item held is lost crossing into it;
+  a throw, a kart spun, lightning, ink -- not heard here). The Inferno room
+  has boxes too since 2026-11-07 (inferno_track registers the same models,
+  icons and sounds, linked from track_core) and what a kart holds goes with
+  it into the other room (the carried line's sixth field). Found on the way:
+  from 2026-10-31 the Inferno's track_game had not loaded at all (INFERNO was
+  read off inferno:scoria before the inferno mod loaded; now off
+  track_core:road), and once it ran, an id 0 in LOOP_ROAD made every column
+  of air "fit", so a kart off the road was put back where it was, for ever.
+  Scripted Inferno lap after: two laps, 33.6 and 32.7 s, the kart into the
+  Inferno and back each time, the rows laid in both rooms;
   shells follow the ground three nodes down at most and do not climb loops;
   a box row whose cells are not road (over a loop's top) is skipped.
 - Green on crossing into the Inferno and back (2026-10-11): the world arrived
