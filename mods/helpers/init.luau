@@ -211,6 +211,7 @@ type R = {
     co: thread?, wake: number, walking: boolean,
     tried: { [string]: number }, said_full: boolean,
     ring: number?, said_dark: boolean?, kept: number?,
+    scaffold: { { number } }?,   -- the scaffold it put up for a blueprint, to take down
 }
 
 local robots: { [number]: R } = {}
@@ -1144,6 +1145,90 @@ core.event.on("blueprints:cells", function(ev)
     end
     LAYOUT.last = { owner = ev.owner, cells = cells }
 end)
+-- A blueprint's cells over a hand's reach from the ground: a tower of
+-- building:scaffold beside the cell, outside the layout, put up a piece at a
+-- time (from the ground, then climbing it, as a ladder), the robot at its top
+-- with the cell at its chest. Taken down from the top when the blueprint is
+-- built, and the pieces put back with what it carries (unload, into the chests).
+local SCAFF = "building:scaffold"
+local REACH = 3   -- cells over the layout's bottom a hand reaches from the ground
+local function fetch(r: R, list: { { number } }, name: string): boolean
+    if (r.inv[name] or 0) > 0 then
+        return true
+    end
+    local iid = core.item_id(name)
+    for _, ch in list do
+        if iid ~= 0 and core.container_count(ch[1], ch[2], ch[3], iid) > 0 and reach(r, ch[1], ch[2], ch[3]) then
+            act(r, "gather", "", 1.0, ch[1], ch[3])
+            add(r, name, core.container_take(ch[1], ch[2], ch[3], iid, 16))
+            break
+        end
+    end
+    return (r.inv[name] or 0) > 0
+end
+-- "piece" when it put one up (its turn), "top" when it stands at the top,
+-- "none" when it lacks the pieces, nil when no tower can go there.
+local function tower(r: R, list: { { number } }, x: number, y: number, z: number, base: number,
+                     inside: { [string]: boolean }): string?
+    local sid = core.node_id(SCAFF)
+    if sid == 0 then
+        return nil
+    end
+    local col: { number }? = nil
+    for _, d in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } } do
+        local cx, cz = x + d[1], z + d[2]
+        if not inside[`{cx},{cz}`] and (standable(cx, base, cz) or core.get_block(cx, base, cz) == sid) then
+            col = { cx, cz }
+            break
+        end
+    end
+    if col == nil then
+        return nil
+    end
+    local cx, cz = col[1], col[2]
+    for h = base, y - 1 do
+        local b = core.get_block(cx, h, cz)
+        if b ~= sid then
+            if b ~= AIR then
+                return nil
+            end
+            if not fetch(r, list, SCAFF) then
+                return "none"
+            end
+            -- The first few from the ground, the rest from the tower's top.
+            if not walk(r, cx, math.max(base, h - 1), cz) then
+                return nil
+            end
+            act(r, "gather", SCAFF, 0.4, cx, cz)
+            if core.get_block(cx, h, cz) == AIR then
+                core.set_block(cx, h, cz, sid)
+                take(r, SCAFF, 1)
+                r.scaffold = r.scaffold or {}
+                table.insert(r.scaffold :: { { number } }, { cx, h, cz })
+            end
+            return "piece"
+        end
+    end
+    walk(r, cx, y - 1, cz)
+    return "top"
+end
+-- The last piece put up taken down, from the one under it (or the ground).
+local function take_down(r: R): boolean
+    local list = r.scaffold
+    if list == nil or #list == 0 then
+        r.scaffold = nil
+        return false
+    end
+    local c = table.remove(list) :: { number }
+    if core.get_block(c[1], c[2], c[3]) == core.node_id(SCAFF) then
+        walk(r, c[1], c[2] - 1, c[3])
+        act(r, "dig", "", 0.4, c[1], c[3])
+        core.set_block(c[1], c[2], c[3], AIR)
+        add(r, SCAFF, 1)
+    end
+    return true
+end
+
 WORK.build = function(r: R): boolean
     LAYOUT.last = nil
     core.event.emit("blueprints:layout", { owner = r.owner })
@@ -1155,8 +1240,7 @@ WORK.build = function(r: R): boolean
     local list = chests(r)
     -- Every cell is reached from the ground OUTSIDE the layout -- inside, it
     -- walls itself in -- at most three off its column, by the layout's bottom.
-    -- ponytail: a hand reaches some four up from there; a taller blueprint's
-    -- top waits for scaffolding nobody builds.
+    -- A hand reaches REACH up from there; over it, a tower of scaffold (tower).
     local base = if #g.cells > 0 then g.cells[1][2] else 0
     local inside: { [string]: boolean } = {}
     for _, c in g.cells do
@@ -1214,6 +1298,23 @@ WORK.build = function(r: R): boolean
                 end
                 if (r.inv[name] or 0) == 0 then
                     missing[name] = (missing[name] or 0) + 1
+                elseif y > base + REACH then
+                    local t = tower(r, list, x, y, z, base, inside)
+                    if t == "piece" then
+                        return true
+                    elseif t == "top" then
+                        act(r, "gather", name, 0.4, x, z)
+                        if core.get_block(x, y, z) == AIR then
+                            core.set_block(x, y, z, want)
+                            core.set_facing(x, y, z, f)
+                            take(r, name, 1)
+                        end
+                        return true
+                    elseif t == "none" then
+                        missing[SCAFF] = (missing[SCAFF] or 0) + 1
+                    else
+                        r.tried[`{x},{base},{z}`] = clock + 90
+                    end
                 elseif stand(x, z) then
                     act(r, "gather", name, 0.4, x, z)
                     if core.get_block(x, y, z) == AIR then
@@ -1225,6 +1326,10 @@ WORK.build = function(r: R): boolean
                 end
             end
         end
+    end
+    -- All of it laid: the scaffold down again, a piece a turn.
+    if next(missing) == nil and take_down(r) then
+        return true
     end
     if next(missing) ~= nil and (LAYOUT.said[r.n] or 0) <= clock then
         LAYOUT.said[r.n] = clock + 60

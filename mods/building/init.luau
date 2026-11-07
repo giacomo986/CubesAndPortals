@@ -57,6 +57,21 @@ if serving then
         end
     end
 
+    -- ------------------------------------------------------------ scaffold
+    -- Poles and planks (tools/make_scaffold_model.py, in Blender): nothing
+    -- stops a body in it and it is climbed as a ladder is, jump up and crouch
+    -- to hold, so a stack of them is a tower to go up beside a wall; creatures
+    -- climb it too, and a robot building a blueprint puts it up where its
+    -- hand does not reach, and takes it down after (mods/helpers).
+    local SCAFFOLD = node("building:scaffold", { 170, 120, 70 }, false, "", 0.4, "wood")
+    core.node_climbable(SCAFFOLD)
+    core.node_model(SCAFFOLD, core.register_model("building:scaffold", "scaffold.gltf"))
+    core.register_model("building:scaffold_held", "scaffold_held.gltf")
+    core.recipe_shaped("building:scaffold", 6,
+        "timber:planks timber:planks timber:planks",
+        "timber:stick  -             timber:stick",
+        "timber:stick  -             timber:stick")
+
     -- ------------------------------------------------------------ bookshelf, hay, TNT
 
     local SHELF = node("building:bookshelf", { 160, 130, 80 }, true, "", 1.5, "wood")

@@ -825,9 +825,18 @@ the villagers and start with questions (memory: villagers-need-design-first).
     in the blocks' colours, finished by hand ("built"); the builder built a
     3 x 3 x 3 planks-and-glass hut at 411 22 -360 (4 glass taken from the
     player, 6 logs asked, 25/25); a robot built 23 of 25 from a chest that
-    held only 2 of the 4 glass. Open: a robot reaches some four up from the
-    layout's bottom (no scaffolding); the ghost is sent whole again on each
-    change (a big blueprint is many messages).
+    held only 2 of the 4 glass. A robot reached some four up from the
+    layout's bottom: since 2026-11-07 (Giacomo: Blender model, the robot puts
+    it up and takes it down) building:scaffold (tools/make_scaffold_model.py:
+    four poles, braces, a deck; climbed as a ladder, nothing stops a body;
+    6 from 3 planks and 4 sticks), and over REACH (3) the robot puts a tower
+    of it beside the cell outside the layout, a piece a turn, climbing it,
+    places from its top, and when the blueprint is laid takes it down from the
+    top into its bag (then into the chests as the rest). Checked headless and
+    in Xephyr: a 7-high pillar of planks laid, a tower of 4 up beside it, all
+    6 pieces back in the bag. Open: the ghost is sent whole again on each
+    change (a big blueprint is many messages); a tower left up if the server
+    stops mid-build.
 15. Decorative blocks -- built 2026-10-28 in `mods/building` (fences, gates,
     panes and bars were there): stained glass in the sixteen colours (eight
     glass round a dye) and its panes, joined as panes are (the see-through

@@ -363,7 +363,9 @@ veri modelli; un carrello da miniera in cui si sale e si viaggia seduti.
 
 **Progetti** (`mods/blueprints`): si copia una costruzione tra due angoli (fino a 32x24x32) su un
 progetto, lo si porta con sé, lo si traccia come un fantasma trasparente e lo si costruisce a mano --
-o lo fa il costruttore del villaggio, o un robot.
+o lo fa il costruttore del villaggio, o un robot. Il robot monta una torre di impalcature per ciò
+che la sua mano non raggiunge e poi la smonta; l'impalcatura (sei da tre assi e quattro bastoni) si
+sale come una scala, chiunque può farlo.
 
 **Commissioni**: ogni villaggio ne espone fino a tre su una bacheca accanto al pozzo -- portare ciò che
 manca, procurare un materiale, fabbricare utensili, cacciare di notte, portare un pacco a un altro

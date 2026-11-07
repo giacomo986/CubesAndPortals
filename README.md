@@ -355,7 +355,9 @@ proper models; a mine cart you climb into and ride seated.
 
 **Blueprints** (`mods/blueprints`): copy a build between two corners (up to 32x24x32) onto a blueprint,
 carry it, lay it out as a see-through ghost and build it by hand -- or have the village's builder or
-a robot build it.
+a robot build it. A robot puts up a tower of scaffolding for what its hand does not reach and takes
+it down after; scaffolding (six from three planks and four sticks) is climbed like a ladder, by
+anybody.
 
 **Errands**: each village posts up to three on a notice board by its well -- bring what it lacks,
 procure a material, craft tools, hunt at night, carry a parcel to another village, explore a far place --
