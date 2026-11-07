@@ -1940,8 +1940,9 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
 * **Modelli da Meshy.** Un glTF con texture è disegnato con la sua texture
   (solo colore base, nessuna luce cotta dentro). `tools/meshy_prop.py` ne fa
   uno da un `.glb` di Meshy: misurato in metri, origine alla base o al centro,
-  decimato (3000 triangoli di default), la texture ridotta a 128 px e a 24
-  colori perché stia accanto ai blocchi da 32 px, e un foglio di quattro viste
+  saldato e decimato (3000 triangoli di default), il colore cotto su un
+  nuovo unwrap a 128 px (l'atlante di Meshy è troppo frammentato per
+  rimpicciolirlo) e ridotto a 24 colori perché stia accanto ai blocchi da 32 px, e un foglio di quattro viste
   accanto al robot in `~/.cache/cnp_look/<nome>_sheet.png`. Il metodo che
   funziona: prima un'immagine di concetto (text-to-image di Meshy, un solo
   oggetto, sfondo neutro, vista di tre quarti, lo stile low-poly massiccio del

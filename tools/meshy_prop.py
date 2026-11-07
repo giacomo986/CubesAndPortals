@@ -9,8 +9,8 @@
 #   * joins every mesh, drops the scene's transforms, sizes the model so it is
 #     --height metres tall (the robot is 1.357) and puts its origin at the
 #     middle of its base (base) or of its box (centre);
-#   * decimates to about --tris triangles, keeping the UVs;
-#   * shrinks the texture to --tex pixels and reduces it to --colours colours
+#   * decimates a copy to about --tris triangles and unwraps it afresh;
+#   * bakes the colour onto it at --tex pixels and reduces it to --colours colours
 #     (k-means), so a Meshy painting reads like the game's flat 32 px blocks
 #     instead of a photograph, and the edges between colours follow the
 #     texture, not the triangles;
@@ -88,6 +88,13 @@ def place(ob, height, origin):
 
 
 def decimate(ob, tris):
+    # Meshy's glb is split along every UV seam: welded first, or each piece is
+    # decimated alone and the unwrap after makes every triangle an island
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
+    bm.to_mesh(ob.data)
+    bm.free()
     have = sum(len(p.vertices) - 2 for p in ob.data.polygons)
     if have > tris:
         m = ob.modifiers.new("dec", "DECIMATE")
@@ -114,33 +121,63 @@ def kmeans(px, k, rounds=12):
     return c, lab
 
 
-def texture(ob, name, size, colours, out_dir):
-    mat = ob.data.materials[0]
-    node = next(n for n in mat.node_tree.nodes if n.type == "TEX_IMAGE")
-    img = node.image
-    img.scale(size, size)
-    px = np.array(img.pixels[:]).reshape(-1, 4)
-    c, lab = kmeans(px[:, :3].copy(), colours)
-    px[:, :3] = c[lab]
-    px[:, 3] = 1.0
-    small = bpy.data.images.new(name, size, size, alpha=False)
-    small.pixels = px.ravel().tolist()
-    small.filepath_raw = os.path.join(out_dir, name + ".png")
-    small.file_format = "PNG"
-    small.save()
-    # one plain material, the texture and nothing else: the game reads base colour only
-    for m in list(ob.data.materials):
-        ob.data.materials.pop()
+def material(ob, name, img):
+    """One plain material, the texture and nothing else: the game reads base colour only."""
+    ob.data.materials.clear()
     new = bpy.data.materials.new(name)
     new.use_nodes = True
     bsdf = next(n for n in new.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
     bsdf.inputs["Metallic"].default_value = 0.0
     bsdf.inputs["Roughness"].default_value = 1.0
     tex = new.node_tree.nodes.new("ShaderNodeTexImage")
-    tex.image = small
+    tex.image = img
     tex.interpolation = "Closest"
     new.node_tree.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    new.node_tree.nodes.active = tex
     ob.data.materials.append(new)
+
+
+def bake(high, low, name, size):
+    """Meshy's atlas is hundreds of tiny islands with no gap between them: shrunk,
+    neighbours bleed into each other and the armour comes out speckled. So the
+    low mesh gets a fresh unwrap of few, large islands and the colour is baked
+    onto it from the untouched high mesh."""
+    while low.data.uv_layers:
+        low.data.uv_layers.remove(low.data.uv_layers[0])
+    low.data.uv_layers.new(name="UVMap")
+    bpy.ops.object.select_all(action="DESELECT")
+    low.select_set(True)
+    bpy.context.view_layer.objects.active = low
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.005)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    img = bpy.data.images.new(name, size, size, alpha=False)
+    material(low, name, img)
+    scene = bpy.context.scene
+    scene.render.engine = "CYCLES"
+    scene.cycles.samples = 1
+    scene.render.bake.use_selected_to_active = True
+    scene.render.bake.cage_extrusion = 0.06
+    scene.render.bake.max_ray_distance = 0.12
+    scene.render.bake.margin = 4
+    high.select_set(True)
+    low.select_set(True)
+    bpy.context.view_layer.objects.active = low
+    bpy.ops.object.bake(type="DIFFUSE", pass_filter={"COLOR"})
+    bpy.data.objects.remove(high)
+    return img
+
+
+def texture(img, colours, path):
+    px = np.array(img.pixels[:]).reshape(-1, 4)
+    c, lab = kmeans(px[:, :3].copy(), colours)
+    px[:, :3] = c[lab]
+    px[:, 3] = 1.0
+    img.pixels = px.ravel().tolist()
+    img.filepath_raw = path
+    img.file_format = "PNG"
+    img.save()
 
 
 def export(ob, out_dir, name):
@@ -194,6 +231,8 @@ def sheet(ob, name):
         for o in robot:
             o.hide_render = k != 0   # the robot for scale in front only
         cx = w / 2 if k == 0 else 0
+        # the robot's view takes both; the others fill the frame with the model alone
+        cam.data.ortho_scale = (max(top, 2 * w + 0.6) if k == 0 else max(ob.dimensions) ) * 1.1
         cam.location = (cx + d * math.sin(a), -d * math.cos(a), top / 2 + (1.5 if yaw == 35 else 0))
         path = os.path.join(LOOK, f"{name}_v{k}.png")
         scene.render.filepath = path
@@ -220,10 +259,14 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(LOOK, exist_ok=True)
     clear()
-    ob = load(src)
-    place(ob, opt["--height"], opt["--origin"])
+    high = load(src)
+    place(high, opt["--height"], opt["--origin"])
+    ob = high.copy()
+    ob.data = high.data.copy()
+    bpy.context.scene.collection.objects.link(ob)
     decimate(ob, opt["--tris"])
-    texture(ob, name, opt["--tex"], opt["--colours"], out_dir)
+    img = bake(high, ob, name, opt["--tex"])
+    texture(img, opt["--colours"], os.path.join(out_dir, name + ".png"))
     export(ob, out_dir, name)
     sheet(ob, name)
 

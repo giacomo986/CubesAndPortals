@@ -1732,8 +1732,8 @@ on foot and get into a parked kart: `games/track`.
   none.
 * **Models from Meshy.** A textured glTF is drawn with its texture (base colour only, no lights
   baked in). `tools/meshy_prop.py` turns a Meshy `.glb` into one: sized in metres, origin at the base
-  or the centre, decimated (3000 triangles by default), the texture shrunk to 128 px and reduced to 24
-  colours so it sits beside the 32 px blocks, and a sheet of four views beside the robot rendered to
+  or the centre, welded and decimated (3000 triangles by default), its colour baked onto a fresh unwrap at 128
+  px (Meshy's own atlas is too fragmented to shrink) and reduced to 24 colours so it sits beside the 32 px blocks, and a sheet of four views beside the robot rendered to
   `~/.cache/cnp_look/<name>_sheet.png`. The way that works: a concept image first (Meshy
   text-to-image, one object, plain background, three-quarter view, the game's chunky low-poly style),
   approved; then image-to-3D from it; then the sheet, approved; only then the files go in a mod. It is
