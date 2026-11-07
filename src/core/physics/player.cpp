@@ -81,12 +81,14 @@ float box_height(const Player &p, const MovementRules &rules)
 
 // Whether a wall is against the body on the side (dx, dz), within `gap`: the
 // box a little off the floor and under the ceiling, so neither is the wall.
-bool touches(const World &world, const NodeRegistry &reg, const Player &p, float half, int dx,
-             int dz, float gap = 0.12f)
+// All of it at the body's size (core.body_scale): a sixteenth reached for a
+// wall a whole body's gap away and tested a body's height of it.
+bool touches(const World &world, const NodeRegistry &reg, const Player &p, const MovementRules &rules,
+             float half, int dx, int dz, float gap = 0.12f)
 {
-    const Vec3 at = p.pos + Vec3{(float)dx * gap, 0.1f, (float)dz * gap};
-    // ponytail: parkour's wall tests at scale 1; scale them when a small body runs walls.
-    return box_hits_world(world, reg, body_box(at, half, p.cb_shift, box_height(p, MovementRules{}) - 0.2f));
+    const float k  = rules.scale;
+    const Vec3  at = p.pos + Vec3{(float)dx * gap * k, 0.1f * k, (float)dz * gap * k};
+    return box_hits_world(world, reg, body_box(at, half, p.cb_shift, box_height(p, rules) - 0.2f * k));
 }
 
 
@@ -500,7 +502,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         if (jump_pressed && player.wall_side != 0 && !player.on_ground) {
             const int ax = player.wall_dx != 0 ? 0 : (player.velocity.x < 0.0f ? -1 : 1);
             const int az = player.wall_dx != 0 ? (player.velocity.z < 0.0f ? -1 : 1) : 0;
-            if (touches(world, reg, player, half, ax, az, kCornerAhead)) {
+            if (touches(world, reg, player, rules, half, ax, az, kCornerAhead)) {
                 player.corner_buf = kCornerTime;
                 held              = true;
             }
@@ -539,7 +541,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         if (player.low && player.slide <= 0.0f && room) player.low = false;
 
         if (!player.on_ground && !player.roped && !kicked && (jump_pressed || player.corner_buf > 0.0f) && player.corner > 0.0f &&
-            touches(world, reg, player, half, player.corner_dx, player.corner_dz, kKickReach)) {
+            touches(world, reg, player, rules, half, player.corner_dx, player.corner_dz, kKickReach)) {
             // Round an inside corner: the run that met the wall across its
             // way goes on along that wall, level, away from the first one --
             // the way that is open -- at the speed it had.
@@ -572,7 +574,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
                 for (int i = player.wall_side != 0 ? 0 : 1; i < 5 && !kicked; ++i) {
                     const int dx = sides[i][0], dz = sides[i][1];
                     // Within kKickReach: in a gap two wide, one wall always is.
-                    if (!touches(world, reg, player, half, dx, dz, kKickReach)) continue;
+                    if (!touches(world, reg, player, rules, half, dx, dz, kKickReach)) continue;
                     const bool same = player.used_dx == dx && player.used_dz == dz;
                     if (same && i != 0) continue;
                     if (dx != 0) player.velocity.x = (float)-dx * kKickOut;
@@ -589,7 +591,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
                 // Along it while forward is held, the wall is there and the
                 // run is under kWallRunMost.
                 if (input.move_forward < 0.3f || player.wall_run >= kWallRunMost ||
-                    !touches(world, reg, player, half, player.wall_dx, player.wall_dz))
+                    !touches(world, reg, player, rules, half, player.wall_dx, player.wall_dz))
                     player.wall_side = 0;
                 else
                     on_wall = true;
@@ -600,7 +602,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
                 const bool along_x = std::fabs(player.velocity.x) >= std::fabs(player.velocity.z);
                 for (int sgn : {1, -1}) {
                     const int dx = along_x ? 0 : sgn, dz = along_x ? sgn : 0;
-                    if (!touches(world, reg, player, half, dx, dz)) continue;
+                    if (!touches(world, reg, player, rules, half, dx, dz)) continue;
                     if (player.used_dx == dx && player.used_dz == dz) continue;
                     // The body's right: (cos yaw, sin yaw).
                     player.wall_side = (float)dx * std::cos(player.yaw) + (float)dz * std::sin(player.yaw) > 0.0f ? 1 : -1;
@@ -749,7 +751,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
             // Stopped: by a wall across the way, an inside corner a jump turns.
             const int ax = player.wall_dx != 0 ? 0 : (player.velocity.x < 0.0f ? -1 : 1);
             const int az = player.wall_dx != 0 ? (player.velocity.z < 0.0f ? -1 : 1) : 0;
-            if (touches(world, reg, player, half, ax, az, kKickReach)) {
+            if (touches(world, reg, player, rules, half, ax, az, kKickReach)) {
                 player.corner    = kCornerTime;
                 player.corner_dx = ax;
                 player.corner_dz = az;

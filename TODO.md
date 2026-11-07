@@ -1101,8 +1101,10 @@ Portals -- the engine's own trick, used further:
    D1, out of G1 at 1/16, the blocks towers; back into G1, out of D1 at 1;
    0 corrections. Found and fixed on the way: out on a tiny opening's plane
    the body was swallowed back for ever; its front-entry depth and its
-   sampling were a node's. Open: creatures and cubes keep their size through
-   it; parkour's wall tests at scale 1.
+   sampling were a node's. (Creatures and cubes through it, and parkour's
+   wall tests at the body's size: both done 2026-11-07 -- touches() now
+   reaches, lifts and measures by rules.scale; not run at 1/16 by hand,
+   identical at 1.)
    S3 BUILT 2026-11-06 (mods/garden, plaza only: a scaling pair does not carry
    the size into another room): a fenced garden at x 104..127, z 30..53; by the
    spawn a little door D (31.5, z 39.5) onto G an eighth high on the garden
