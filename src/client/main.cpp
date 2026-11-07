@@ -1706,6 +1706,12 @@ struct Scene {
     float drive_eye_y   = 0.0f;
     bool  drive_eye_set = false;
     float cam_prev_yaw = 0.0f;
+    // How far the camera is in a kart's own frame up a loop (kart_view's
+    // weight), eased in and out over time: read straight off the kart's tilt it
+    // went from all to nothing in the few frames of a loop's way out, and the
+    // view jumped from over the road to behind the kart (reported from play,
+    // 2026-11-07: "the kart rolls under the loop" was the camera).
+    float kart_w = 0.0f;
 
     std::string net_status;
 };
@@ -8270,6 +8276,20 @@ void camera_follow(Scene &s, const Player &player, float dt)
     float turned   = std::remainder(player.yaw - s.cam_prev_yaw, 6.2831853f);
     s.cam_prev_yaw = player.yaw;
 
+    // Into the kart's frame quickly (a loop's road comes up fast), out of it
+    // slowly: 0.08 s and 0.6 s to close most of the way.
+    {
+        float want = 0.0f;
+        if (player.vehicle && s.act().view_distance > 0.0f && !iso_engaged(s.act())) {
+            const float up_y = std::cos(player.body_pitch) * std::cos(player.body_roll);
+            want = std::clamp((0.8f - up_y) / 0.5f, 0.0f, 1.0f);
+            want = want * want * (3.0f - 2.0f * want);
+        }
+        const float tc = want > s.kart_w ? 0.08f : 0.6f;
+        s.kart_w += (want - s.kart_w) * (1.0f - std::exp(-dt / tc));
+        if (!player.vehicle) s.kart_w = 0.0f;
+    }
+
     if (s.act().view_distance <= 0.0f || !s.act().movement.drives()) {
         s.cam_yaw_lag = 0.0f;
         return;
@@ -8353,8 +8373,7 @@ KartView kart_view(const Scene &s, const Player &player)
     const Mat4 turn = kart_turn(player);
     k.up  = mat4_transform_dir(turn, Vec3{0.0f, 1.0f, 0.0f});
     k.fwd = mat4_transform_dir(turn, Vec3{0.0f, 0.0f, -1.0f});
-    k.w   = std::clamp((0.8f - k.up.y) / 0.5f, 0.0f, 1.0f);
-    k.w   = k.w * k.w * (3.0f - 2.0f * k.w);
+    k.w   = s.kart_w < 1e-3f ? 0.0f : s.kart_w;   // eased in camera_follow
     k.head = player.body_base + k.up * (player.eye().y - player.pos.y);
     return k;
 }

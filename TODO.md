@@ -1502,8 +1502,10 @@ Seen in Xephyr; not played with the gun by hand.
   chassis's up only, blocks against UP, the nearer; (3) the chase camera's
   yaw lag filled to 0.5 rad over a loop's top (the heading sweeps half a
   circle there) and swung back on the way out -- no lag counted past 37
-  degrees. Open: a kart that comes down off the exit lane of the tall left
-  loop rolls under it and hits the hill at x -81, where the loop ends.
+  degrees. "A kart that comes down off the exit lane of the tall left loop
+  rolls under it" was the camera (Giacomo, 2026-11-07): kart_view's weight
+  went from all to nothing in the few frames of the way out. Now eased
+  (Scene::kart_w: in 0.08 s, out 0.6 s). Not driven by hand yet.
 - Power-ups (2026-10-13): a row of item boxes (2-5 across) ten nodes past
   every line of every track, the player's own included; a box gives one of
   eight at random (boost, triple boost, banana, shell, homing shell, ink,
