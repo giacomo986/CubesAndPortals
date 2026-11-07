@@ -191,7 +191,15 @@ Open:
   about the bone; a piece that runs across a joint (Meshy made bracer and
   gauntlet one) bends there instead of following one bone; the
   first-person arm is carried whole to the robot's wrist with closed dark
-  sleeves down the bones and a plug in the cuff (the shells are open). Seen in Xephyr in first and third person; idle, walk, mine,
+  sleeves down the bones and a plug in the cuff (the shells are open).
+  Then the arms on the robot's own upper arm and forearm lengths (plates
+  rigid on them, a dark sleeve between), so a hand is where every clip puts
+  the robot's -- the kart's wheel, a tool; the helmet all on the head bone,
+  which a body drawn headless (driving, from its own eye) hides; the
+  pauldrons' spikes kept out of the first-person arms; the gauntlets closed
+  into fists (two folds of 80 degrees, KNUCKLES). The kart's first-person
+  view is not checked: tools/track.sh's scripted driver keeps the pitch
+  level and nothing of the body is in frame, the robot's included. Seen in Xephyr in first and third person; idle, walk, mine,
   sword_slash, crouch_walk rendered in Blender. Registered in mods/robot and
   the nine games that list species. Open: no styles; extras and arpg gear
   are the robot's, not refitted; the cape is bound to the hips and spine,

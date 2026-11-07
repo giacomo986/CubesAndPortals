@@ -34,7 +34,7 @@ import sys
 import bmesh
 import bpy
 import numpy as np
-from mathutils import Vector
+from mathutils import Quaternion, Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from make_species import blurred, export, fresh, keep_tools  # noqa: E402
@@ -53,6 +53,8 @@ K_HIP, K_KNEE, K_ANKLE = (0.087, 0.61), 0.36, 0.07   # the hip under the tassets
 K_NECK, K_TOP = 1.06, 1.36
 SLEEVE = (0.05, 0.042, 0.05)   # radius of the first-person sleeves: upper arm, forearm, cuff
 FP_SLIM = 0.6   # first-person arms this much thinner about their bones
+FIST, KNUCKLES = 80, (0.075, 0.115)   # degrees a finger folds at each joint, and where they are down the hand
+ROBOT_ARM = (1.234 - 0.942, 0.942 - 0.663)   # the robot's upper arm and forearm, head to head
 ARM_OUT, ARM_FORWARD = 20, 8   # degrees the rest arm hangs out and ahead
 TRIS = 8000   # what the pieces are decimated to
 ACROSS = 0.2   # a piece with this share on a second bone spans a joint and bends
@@ -92,9 +94,13 @@ def arm_pose(sx, out=None):
     a = [k(*j, sx) for j in (K_SHOULDER, K_ELBOW, K_WRIST, K_TIP)]
     down = Vector((sx * math.sin(math.radians(out)), math.sin(math.radians(ARM_FORWARD if out else 0)),
                    -math.cos(math.radians(out)))).normalized()
+    # the robot's upper arm and forearm, the knight's own hand: its plates sit on
+    # arms as long as the ones every clip was made for (a hand on a kart's wheel,
+    # a tool where the robot holds it), the gaps a dark sleeve (sleeves)
+    lengths = (ROBOT_ARM[0], ROBOT_ARM[1], (a[3] - a[2]).length)
     r = [a[0].copy()]
     for i in range(3):
-        r.append(r[-1] + down * (a[i + 1] - a[i]).length)
+        r.append(r[-1] + down * lengths[i])
     return a, r
 
 
@@ -388,9 +394,21 @@ def body(rig, ob, cols):
             rigid.add(p)
             for i in vs:
                 nearest[i] = best
+    # The helmet is the head's whole: a body drawn headless (driving, seen
+    # from its own eye) hides the head bone and what hangs on it, nothing else.
+    neck = K_NECK * S
+    for p, vs in enumerate(members):
+        mid = sum((me.vertices[i].co for i in vs), Vector()) / len(vs)
+        if mid.z > neck and abs(mid.x) < 0.17 * S:
+            rigid.add(p)
+            for i in vs:
+                nearest[i] = "head"
     weights = [{b: 1.0} for b in nearest]
     blur = blurred(me, weights, passes=4)   # edges stay inside a piece
     weights = [w if piece[i] in rigid else blur[i] for i, w in enumerate(weights)]
+    for i, v in enumerate(me.vertices):   # and a big piece's top above the collar
+        if piece[i] not in rigid and where[i] == "torso" and v.co.z > neck + 0.04:
+            weights[i] = {"head": 1.0}
     def moved(co, w, moves):
         p = Vector()
         for bone, x in w.items():
@@ -400,9 +418,9 @@ def body(rig, ob, cols):
             else:
                 p += co * x
         return p
-    hanging = [moved(v.co, w, straight) for v, w in zip(me.vertices, weights)]
+    hanging = [fist(moved(v.co, w, straight), w, 0) for v, w in zip(me.vertices, weights)]
     for v, w in zip(me.vertices, weights):
-        v.co = moved(v.co, w, moves)
+        v.co = fist(moved(v.co, w, moves), w)
     for f in me.polygons:
         f.use_smooth = True
     for b in rig.data.bones:
@@ -422,12 +440,82 @@ def body(rig, ob, cols):
     return ob, weights, hanging
 
 
+def sleeves(rig):
+    """The dark sleeve down each rest arm's upper arm and forearm: what shows
+    between the plates now that they sit on the robot's arm lengths."""
+    co, faces, groups = [], [], []
+    for side, sx in (("L", -1), ("R", 1)):
+        _, r = arm_pose(sx)
+        for bone, a, b, radius in ((f"upper_arm_{side}", r[0], r[1], SLEEVE[0] * 1.05),
+                                   (f"forearm_{side}", r[1], r[2], SLEEVE[1] * 1.05)):
+            tube(co, faces, a, b, radius)
+            groups += [bone] * 16
+    me = bpy.data.meshes.new(NAME + "_sleeves")
+    me.from_pydata(co, [], faces)
+    me.materials.append(bpy.data.materials["Dark"])
+    for f in me.polygons:
+        f.use_smooth = True
+    ob = bpy.data.objects.new(NAME + "_sleeves", me)
+    bpy.context.scene.collection.objects.link(ob)
+    for b in rig.data.bones:
+        ob.vertex_groups.new(name=b.name)
+    for i, g in enumerate(groups):
+        ob.vertex_groups[g].add([i], 1.0, "REPLACE")
+    ob.parent = rig
+    ob.matrix_parent_inverse = rig.matrix_world.inverted()
+    ob.modifiers.new("rig", "ARMATURE").object = rig
+    return ob
+
+
+def tube(co, faces, a, b, radius):
+    """A closed eight-sided tube from a to b, into co and faces."""
+    axis = (b - a).normalized()
+    u = axis.orthogonal().normalized()
+    v = axis.cross(u)
+    start = len(co)
+    for end in (a, b):
+        for i in range(8):
+            t = 2 * math.pi * i / 8
+            co.append(end + (u * math.cos(t) + v * math.sin(t)) * radius)
+    for i in range(8):
+        j = (i + 1) % 8
+        faces.append([start + i, start + j, start + 8 + j, start + 8 + i])
+    faces.append([start + i for i in range(8)][::-1])
+    faces.append([start + 8 + i for i in range(8)])
+
+
+def fist(p, w, out=None):
+    """The gauntlet closed: past the knuckles the fingers fold toward the
+    palm (the body's side), at the knuckles and again halfway down, FIST
+    degrees each, as much as the vertex is the hand's."""
+    hand = w.get("hand_L", 0.0) + w.get("hand_R", 0.0)
+    if not hand:
+        return p
+    sx = -1 if w.get("hand_L", 0.0) else 1
+    _, r = arm_pose(sx, out)
+    wrist, along = r[2], (r[3] - r[2]).normalized()
+    inward = Vector((-sx, 0, 0))
+    inward = (inward - along * inward.dot(along)).normalized()
+    axis = along.cross(inward).normalized()
+    q = p.copy()
+    for at in KNUCKLES:   # each fold about its joint, the next joint folded with it
+        pivot = wrist + along * at
+        if (q - pivot).dot(along) > 0:
+            turn = Quaternion(axis, math.radians(FIST))
+            q = pivot + turn @ (q - pivot)
+            along, inward = turn @ along, turn @ inward
+            wrist = pivot - along * at
+    return p.lerp(q, min(1.0, hand))
+
+
 def arm_part(ob, weights, hanging):
     """The arms of the knight at rest, as plain data: they outlive the scene."""
     me = ob.data
     arm = {"upper_arm_L", "forearm_L", "hand_L", "upper_arm_R", "forearm_R", "hand_R"}
     keep = {v.index for v in me.vertices if max(weights[v.index], key=weights[v.index].get) in arm}
-    faces = [f for f in me.polygons if all(v in keep for v in f.vertices)]
+    # nothing above the shoulder: a pauldron's spikes would stand by the eye
+    top = arm_pose(1, 0)[1][0].z - 0.03
+    faces = [f for f in me.polygons if all(v in keep and hanging[v].z < top for v in f.vertices)]
     used = sorted({v for f in faces for v in f.vertices})
     index = {v: i for i, v in enumerate(used)}
     return {
@@ -472,22 +560,10 @@ def arms(rig, data, robot):
                                    (f"forearm_{side}", fp[f"forearm_{side}"], hand, SLEEVE[1]),
                                    # and a plug in the gauntlet's open cuff
                                    (f"hand_{side}", hand + Vector((0, 0, 0.01)), hand - Vector((0, 0, 0.07)), SLEEVE[2])):
-            axis = (b - a).normalized()
-            u = axis.orthogonal().normalized()
-            v = axis.cross(u)
-            start = len(co)
-            for end in (a, b):
-                for i in range(8):
-                    t = 2 * math.pi * i / 8
-                    co.append(end + (u * math.cos(t) + v * math.sin(t)) * radius)
-                    weights.append({bone: 1.0})
-            for i in range(8):
-                j = (i + 1) % 8
-                faces.append([start + i, start + j, start + 8 + j, start + 8 + i])
-                mats.append("Dark")
-            faces.append([start + i for i in range(8)][::-1])
-            faces.append([start + 8 + i for i in range(8)])
-            mats += ["Dark", "Dark"]
+            n = len(faces)
+            tube(co, faces, a, b, radius)
+            weights += [{bone: 1.0}] * 16
+            mats += ["Dark"] * (len(faces) - n)
     data = dict(data, faces=faces, mat=mats, w=weights)
     me = bpy.data.meshes.new(NAME + "_arms")
     me.from_pydata(co, [], data["faces"])
@@ -621,7 +697,7 @@ def main():
     ob, weights, hanging = body(rig, ob, cols)
     data = arm_part(ob, weights, hanging)
     path = os.path.join(OUT, NAME + ".gltf")
-    export(rig, [ob, mesh], path, False)
+    export(rig, [ob, sleeves(rig), mesh], path, False)
     finish(path, robot_path, K_HIP[1] * S / 0.73)
 
     # Where each arm bone's pieces hang from on the straight knight, and the
