@@ -2780,6 +2780,14 @@ int host_body_movement(void *ud, int player, double walk, double sprint, double 
     return 1;
 }
 
+// core.body_size: how big a body is now (core.body_scale, a scaling portal).
+float host_body_size(void *ud, int player)
+{
+    ServerState        *s    = static_cast<ServerState *>(ud);
+    const net::Session *body = (player > 0 && s->sessions != nullptr) ? s->sessions->find((net::PeerId)player) : nullptr;
+    return body != nullptr ? body->movement.scale : 0.0f;
+}
+
 // core.body_scale: one body made small or big, all of it together.
 int host_body_scale(void *ud, int player, double scale)
 {
@@ -6715,6 +6723,7 @@ int serve_room(int argc, char **argv)
         host.portal_close  = host_portal_close;
         host.portal_move   = host_portal_move;
         host.body_scale    = host_body_scale;
+        host.body_size     = host_body_size;
         host.portal_scale  = host_portal_scale;
         host.portal_seal   = host_portal_seal;
         host.portal_link   = host_portal_link;

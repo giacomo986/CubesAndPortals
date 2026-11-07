@@ -1139,6 +1139,16 @@ local api: { Fn } = {
            .. "or 0 when refused (a size out of range, no such player), the reason in the log.",
     },
     {
+        name = "body_size",
+        host = "body_size",
+        ret  = "float",
+        args = {
+            { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
+        },
+        doc = "How big ONE player's body is now against a body at 1, as core.body_scale or a "
+           .. "scaling portal (core.portal_scale) made it; 0 for nobody.",
+    },
+    {
         name = "body_movement",
         host = "body_movement",
         ret  = "int",

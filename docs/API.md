@@ -968,6 +968,18 @@ Makes ONE player's body small or big, at any time: its box, steps, eye, speeds, 
 | `player` | number | — | The id every event carries in its `player` field. |
 | `scale` | number | `1` | How big against a body at 1: 1/32 to 4. |
 
+## `core.body_size`
+
+```luau
+core.body_size(player: number) -> number
+```
+
+How big ONE player's body is now against a body at 1, as core.body_scale or a scaling portal (core.portal_scale) made it; 0 for nobody.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `player` | number | — | The id every event carries in its `player` field. |
+
 ## `core.body_movement`
 
 ```luau

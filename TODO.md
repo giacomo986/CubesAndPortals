@@ -1118,8 +1118,8 @@ Portals -- the engine's own trick, used further:
    of D; the crossing is seen as a jump between two ticks (no event says it).
    The plants and mushrooms are drawn: the client reads a world's models a few
    a frame, and at Xephyr's 5 fps 784 of them took over three minutes ("0 from
-   it" is the first pass, before the offer). Open: a big body flying over the
-   hedge is not boosted, and a tiny one made so by a mod is not either.
+   it" is the first pass, before the offer). (The boost for a body flown in
+   or made small by a mod: done 2026-11-07, below.)
    Insects (2026-11-07, tools/make_garden_insects.py, made in Blender through
    its MCP bridge): ant 5 cm, ladybird 3, butterfly 9 across, workers the mod
    drives (8 ants nest to flower and back, 3 ladybirds, 4 butterflies flying
@@ -1160,6 +1160,9 @@ Portals -- the engine's own trick, used further:
    out of D at 31.50 39.77, drawn 4x. G's frame now half as deep: a face on
    the doorway's clip plane. Open: a natural creature wandering into D far
    from players despawns (the pig test); the scale limit 4 is the player's.
+   The boost is now for whoever is in the garden small, however (core.body_size,
+   new: a body's scale now; under a half inside the hedge's box): checked, a
+   body made 1/16 by a mod inside it walks 1.20 (4 x 0.30).
 5. A passport of servers (low-medium). With --federation built: a stamp for
    every server reached through a far portal, and a letterbox that sends an
    item or a letter to a friend server. A reason for communities to link up.

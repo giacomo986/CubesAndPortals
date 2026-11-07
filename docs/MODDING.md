@@ -549,6 +549,7 @@ core.portal_move(id, x, y, z, -1, 0, -1, nx, ny, nz, ux?, uy?, uz?)   -- turned 
 core.portal_scale(id, on?) -> 1|0   -- both ends of a pair of two sizes: what crosses comes out scaled by far/near height
                                      --   (players, creatures and tumbling boxes, kept within 1/32..4 of their kind)
 core.body_scale(player, s?) -> 1|0  -- a body 1/32..4 as big: box, steps, eye, speeds, gravity, reach, drawn so
+core.body_size(player) -> s         -- how big it is now (body_scale, a scaling portal); 0 for nobody
 core.portal_link(a, b) -> 1|0       -- a and b lead to each other; b = -1 unlinks a
 core.log(message)
 core.play_sound("mod:thing", x, y, z) -> 1|0  -- to everybody in the world; file mods/<mod>/<thing>.ogg on the client
@@ -2234,7 +2235,8 @@ The mods in `mods/` are working examples:
   eighth of a block high, so whoever walks in comes out a sixteenth as big, and a small opening under
   glass onto one twelve times as wide hanging face down over the garden, a miniature to look into;
   the small one in a doorframe of `core.node_box` pieces a thirty-second of a node thick;
-  whoever comes in small walks four times as fast as a sixteenth would (`core.body_movement`); and
+  whoever is in it small, however they got so (`core.body_size` under a half), walks four times as
+  fast as their size would (`core.body_movement`); and
   insects at their true size, workers it drives: ants between a nest and the flowers (each in a lane
   of its own along a straight road, `core.mob_place` every tick), ladybirds
   wandering, butterflies flying flower to flower (`core.mob_place` every tick, `hover`), each with its

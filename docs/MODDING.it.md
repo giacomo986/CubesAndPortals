@@ -595,6 +595,7 @@ core.portal_move(id, x, y, z, -1, 0, -1, nx, ny, nz, ux?, uy?, uz?)   -- girata 
 core.portal_scale(id, on?) -> 1|0   -- le due estremità di una coppia di taglie diverse: chi passa esce scalato di alta/bassa
                                      --   (giocatori, creature e scatole che rotolano, sempre tra 1/32 e 4 della loro specie)
 core.body_scale(player, s?) -> 1|0  -- un corpo grande 1/32..4: riquadro, gradini, occhio, velocità, gravità, portata, disegnato così
+core.body_size(player) -> s         -- quanto è grande ora (body_scale, un portale che scala); 0 per nessuno
 core.portal_link(a, b) -> 1|0       -- a e b portano l'una all'altra; b = -1 scollega a
 core.log(messaggio)
 core.play_sound("mod:cosa", x, y, z) -> 1|0  -- a tutti nel mondo; file mods/<mod>/<cosa>.ogg sul client
@@ -2508,8 +2509,8 @@ I tre mod in `mods/` sono esempi funzionanti:
   piccola sotto un vetro su una dodici volte più larga, appesa a faccia in giù sopra il giardino:
   una miniatura in cui guardare; quella piccola in uno stipite di pezzi `core.node_box` spessi un
   trentaduesimo di nodo;
-  chi entra piccolo cammina quattro volte più veloce di quanto farebbe un sedicesimo
-  (`core.body_movement`); e insetti a grandezza vera, worker che guida lei: formiche tra un nido e
+  chi ci sta piccolo, comunque lo sia diventato (`core.body_size` sotto la metà), cammina quattro
+  volte più veloce di quanto direbbe la taglia (`core.body_movement`); e insetti a grandezza vera, worker che guida lei: formiche tra un nido e
   i fiori (ognuna nella sua corsia lungo una strada dritta, `core.mob_place` a ogni tick), coccinelle a zonzo, farfalle che volano di fiore in fiore (`core.mob_place` a ogni
   tick, `hover`), ognuno con i suoni `_say`, `_hurt` e `_death` (`tools/make_garden_sounds.py`);
 - `portal` — una cornice di `portal:frame` attorno a un buco d'aria, in piedi o

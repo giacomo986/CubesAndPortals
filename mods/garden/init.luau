@@ -152,37 +152,33 @@ core.event.on("core:tick", function(_)
 end)
 
 -- A sixteenth of a body walks a sixteenth as fast: the garden was minutes
--- wide. Whoever comes in through D walks and runs four times as fast as that
--- (core.body_movement, whose speeds shrink with the body), and as before once
--- out of D. A crossing is seen as a jump from one end to the other between two
--- ticks: no event says it, and no call reads a body's size.
+-- wide. Whoever is in it small (core.body_size under a half: through the
+-- little door, flown in over the hedge, made small by any mod) walks and runs
+-- four times as fast as that (core.body_movement, whose speeds shrink with the
+-- body), and as before once out of it or grown.
 local BOOST = 4
 local WALK, SPRINT, FLY, JUMP, GRAVITY = 4.8, 8.0, 14.0, 8.0, -25.0   -- the engine's (movement.h)
-local last: { [number]: { number } } = {}
-local small: { [number]: boolean } = {}
-local function near(x: number, y: number, z: number, px: number, py: number, pz: number, r: number): boolean
-    return math.abs(x - px) < r and math.abs(y - py) < 2 and math.abs(z - pz) < r
-end
+local boosted: { [number]: boolean } = {}
 core.event.on("core:tick", function(_)
     local here: { [number]: boolean } = {}
     for _, p in core.players() do
         here[p] = true
         local x, y, z = core.player_pos(p)
         if x == nil then continue end
-        local was = last[p]
-        last[p] = { x, y, z }
-        if was == nil or math.abs(x - was[1]) + math.abs(z - was[3]) < 20 then continue end
-        if near(x, y, z, 115.5, GY + 1, 43.6, 1) and near(was[1], was[2], was[3], DX + 0.5, Y + 1, DZ + 0.5, 2) then
-            small[p] = true
+        local size = core.body_size(p)
+        local want = size > 0 and size < 0.5 and x >= GX0 - 1 and x <= GX1 + 2 and z >= GZ0 - 1
+                     and z <= GZ1 + 2 and y >= GY and y <= GY + 17
+        if want and not boosted[p] then
+            boosted[p] = true
             core.body_movement(p, WALK * BOOST, SPRINT * BOOST, FLY, JUMP, GRAVITY)
-        elseif small[p] and near(x, y, z, DX + 0.5, Y + 1, DZ + 0.6, 1) then
-            small[p] = nil
+        elseif not want and boosted[p] then
+            boosted[p] = nil
             core.body_movement(p, WALK, SPRINT, FLY, JUMP, GRAVITY)
         end
     end
     -- Gone players' ids are not reused for them: forgotten.
-    for p in last do
-        if not here[p] then last[p] = nil; small[p] = nil end
+    for p in boosted do
+        if not here[p] then boosted[p] = nil end
     end
 end)
 

@@ -809,6 +809,16 @@ int l_body_scale(lua_State *L)
     return 1;
 }
 
+// core.body_size(player: number) -> number
+int l_body_size(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int player = (int)luaL_checkinteger(L, 1);
+    const float result = (vm && vm->host.body_size) ? vm->host.body_size(vm->host.ud, player) : (float)0;
+    lua_pushnumber(L, result);
+    return 1;
+}
+
 // core.body_movement(player: number, walk: number?, sprint: number?, fly: number?, jump: number?, gravity: number?, rise: number?) -> number
 int l_body_movement(lua_State *L)
 {
@@ -3400,6 +3410,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "side");
     lua_pushcfunction(L, l_body_scale, "core.body_scale");
     lua_setfield(L, -2, "body_scale");
+    lua_pushcfunction(L, l_body_size, "core.body_size");
+    lua_setfield(L, -2, "body_size");
     lua_pushcfunction(L, l_body_movement, "core.body_movement");
     lua_setfield(L, -2, "body_movement");
     lua_pushcfunction(L, l_body_drive, "core.body_drive");

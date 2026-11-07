@@ -186,6 +186,8 @@ An arrival out of a portal is pushed clear of the wall beside it by the width. C
     side: () -> string,
     -- Makes ONE player's body small or big, at any time: its box, steps, eye, speeds, jump, gravity and fall all scale together, as do the camera's near plane and its reach, and everybody sees it drawn that big -- so a body at 1/16 goes through a world of blocks as a body at 1 would through one sixteen times bigger. Speeds a mod gives it later (core.body_movement) are a body at 1's and shrink with it. Returns 1, or 0 when refused (a size out of range, no such player), the reason in the log.
     body_scale: (player: number, scale: number?) -> number,
+    -- How big ONE player's body is now against a body at 1, as core.body_scale or a scaling portal (core.portal_scale) made it; 0 for nobody.
+    body_size: (player: number) -> number,
     -- Gives ONE player's body numbers of its own -- a runner, a power-up, a slowed prisoner -- and returns 1, or 0 when refused with the reason in the log. Unlike core.movement this may be called at any time: it is one body, and that player is sent the numbers in a message of their own.
 
 The server checks that body against the new numbers at once, and for a second against whichever of the old and the new are faster, because the player's client goes on moving by the old ones until the message arrives: slowing somebody down does not correct the steps they had already taken.
