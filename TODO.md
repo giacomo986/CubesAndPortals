@@ -205,7 +205,10 @@ Open:
   1.234, the helmet 0.85 about the neck, the legs put on the robot's hip,
   knee and ankle (stretched along, 1.1 thick); the gauntlet shortened to
   0.6 before the fingers fold, as the back plate hung on below the bracer.
-  The knight is broader than the robot. Seen in Xephyr in first and third person; idle, walk, mine,
+  The knight is broader than the robot. The sleeves then fitted inside the
+  plates (line on the middle of the bone's own points, radius under most of
+  them; material "Sleeve"), and the first-person cuff plug dropped: it stuck
+  out under the bracer. Seen in Xephyr in first and third person; idle, walk, mine,
   sword_slash, crouch_walk rendered in Blender. Registered in mods/robot and
   the nine games that list species. Open: no styles; extras and arpg gear
   are the robot's, not refitted; the cape is bound to the hips and spine,

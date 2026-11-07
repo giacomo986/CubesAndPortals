@@ -52,7 +52,7 @@ S = 1.15   # the knight's file is 1.36 tall: 1.56 with its horns, the robot's he
 K_SHOULDER, K_ELBOW, K_WRIST, K_TIP = (0.183, 0.948), (0.27, 0.81), (0.426, 0.678), (0.557, 0.522)
 K_HIP, K_KNEE, K_ANKLE = (0.087, 0.59), 0.36, 0.07   # the hip under the tassets, below the belt
 K_NECK, K_TOP = 1.06, 1.36
-SLEEVE = (0.05, 0.042, 0.05)   # radius of the first-person sleeves: upper arm, forearm, cuff
+SLEEVE = (0.05, 0.042)   # the most a sleeve's radius is: upper arm, forearm
 FP_SLIM = 0.6   # first-person arms this much thinner about their bones
 FIST_SQUASH = 0.6   # the gauntlet's length kept down the hand
 FIST, KNUCKLES = 50, (0.05, 0.08)   # degrees a finger folds at each joint, and where they are down the hand
@@ -422,19 +422,37 @@ def body(rig, ob, cols):
     return ob, weights, hanging
 
 
-def sleeves(rig):
+def inside(points, a, b, radius):
+    """A sleeve's line and radius kept inside the plates it runs through: the
+    line moved onto the middle of the bone's own points (a bracer is not
+    centred on its bone) and the radius no more than most of them are off it,
+    so the sleeve does not show through the shell where it is open."""
+    if len(points) < 10:
+        return a, b, radius
+    d = (b - a).normalized()
+    c = sum(points, Vector()) / len(points)
+    off = (c - a) - d * (c - a).dot(d)
+    a, b = a + off, b + off
+    radial = sorted(((p - a) - d * (p - a).dot(d)).length for p in points)
+    return a, b, max(0.02, min(radius, radial[len(radial) // 5] * 0.85))
+
+
+def sleeves(rig, ob, weights):
     """The dark sleeve down each rest arm's upper arm and forearm: what shows
     between the plates now that they sit on the robot's arm lengths."""
     co, faces, groups = [], [], []
+    own = {}
+    for v, w in zip(ob.data.vertices, weights):
+        own.setdefault(max(w, key=w.get), []).append(v.co.copy())
     for side, sx in (("L", -1), ("R", 1)):
         _, r = arm_pose(sx)
         for bone, a, b, radius in ((f"upper_arm_{side}", r[0], r[1], SLEEVE[0] * 1.05),
                                    (f"forearm_{side}", r[1], r[2], SLEEVE[1] * 1.05)):
-            tube(co, faces, a, b, radius)
+            tube(co, faces, *inside(own.get(bone, []), a, b, radius))
             groups += [bone] * 16
     me = bpy.data.meshes.new(NAME + "_sleeves")
     me.from_pydata(co, [], faces)
-    me.materials.append(bpy.data.materials["Dark"])
+    me.materials.append(sleeve_material())
     for f in me.polygons:
         f.use_smooth = True
     ob = bpy.data.objects.new(NAME + "_sleeves", me)
@@ -447,6 +465,15 @@ def sleeves(rig):
     ob.matrix_parent_inverse = rig.matrix_world.inverted()
     ob.modifiers.new("rig", "ARMATURE").object = rig
     return ob
+
+
+def sleeve_material():
+    """The sleeves' own material, Dark's colour: kept apart so it can be told."""
+    m = bpy.data.materials.get("Sleeve")
+    if m is None:
+        m = bpy.data.materials["Dark"].copy()
+        m.name = "Sleeve"
+    return m
 
 
 def tube(co, faces, a, b, radius):
@@ -541,16 +568,18 @@ def arms(rig, data, robot):
     # them, a ring with nothing in it. A closed dark sleeve down each of the
     # robot's arm bones fills them, as the robot's own arm is one tube.
     faces, mats, weights = list(data["faces"]), list(data["mat"]), list(data["w"])
+    own = {}
+    for c, w in zip(co, data["w"]):
+        own.setdefault(max(w, key=w.get), []).append(c)
     for side in "LR":
         hand = fp[f"hand_{side}"]
         for bone, a, b, radius in ((f"upper_arm_{side}", fp[f"upper_arm_{side}"], fp[f"forearm_{side}"], SLEEVE[0]),
-                                   (f"forearm_{side}", fp[f"forearm_{side}"], hand, SLEEVE[1]),
-                                   # and a plug in the gauntlet's open cuff
-                                   (f"hand_{side}", hand + Vector((0, 0, 0.01)), hand - Vector((0, 0, 0.07)), SLEEVE[2])):
+                                   (f"forearm_{side}", fp[f"forearm_{side}"], hand, SLEEVE[1])):
             n = len(faces)
+            a, b, radius = inside(own.get(bone, []), a, b, radius)
             tube(co, faces, a, b, radius)
             weights += [{bone: 1.0}] * 16
-            mats += ["Dark"] * (len(faces) - n)
+            mats += ["Sleeve"] * (len(faces) - n)
     data = dict(data, faces=faces, mat=mats, w=weights)
     me = bpy.data.meshes.new(NAME + "_arms")
     me.from_pydata(co, [], data["faces"])
@@ -559,7 +588,7 @@ def arms(rig, data, robot):
         m = bpy.data.materials.get(n) or bpy.data.materials.new(n)
         m.use_nodes = True
         bsdf = next(x for x in m.node_tree.nodes if x.type == "BSDF_PRINCIPLED")
-        bsdf.inputs["Base Color"].default_value = data["colours"][n]
+        bsdf.inputs["Base Color"].default_value = data["colours"].get(n, data["colours"].get("Dark", (0.02, 0.02, 0.02, 1.0)))
         bsdf.inputs["Metallic"].default_value = 0.0
         bsdf.inputs["Roughness"].default_value = 0.6
         me.materials.append(m)
@@ -680,7 +709,7 @@ def main():
     ob, weights, hanging = body(rig, ob, cols)
     data = arm_part(ob, weights, hanging)
     path = os.path.join(OUT, NAME + ".gltf")
-    export(rig, [ob, sleeves(rig), mesh], path, False)
+    export(rig, [ob, sleeves(rig, ob, weights), mesh], path, False)
     finish(path, robot_path, 1.0)
 
     # Where each arm bone's pieces hang from on the straight knight, and the
