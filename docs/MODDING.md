@@ -2232,6 +2232,7 @@ The mods in `mods/` are working examples:
 - `garden` -- two scaling pairs (`core.portal_scale`) in one world: a door-sized opening onto one an
   eighth of a block high, so whoever walks in comes out a sixteenth as big, and a small opening under
   glass onto one twelve times as wide hanging face down over the garden, a miniature to look into;
+  the small one in a doorframe of `core.node_box` pieces a thirty-second of a node thick;
   whoever comes in small walks four times as fast as a sixteenth would (`core.body_movement`); and
   insects at their true size, workers it drives: ants between a nest and the flowers, ladybirds
   wandering, butterflies flying flower to flower (`core.mob_place` every tick, `hover`), each with its

@@ -120,7 +120,7 @@ float portal_pair_scale(const Portal &src, const Portal &dst)
 
 // What the node-sized slack round an opening shrinks to for one that scales
 // and is smaller than a body (Portal::scales); 1 for every other.
-static float slack_of(const Portal &p) { return p.scales ? std::min(1.0f, p.half_h) : 1.0f; }
+static float slack_of(const Portal &p) { return portal_depth_scale(p.scales, p.half_h); }
 
 Vec3 portal_turn_between(Vec3 n0, Vec3 u0, Vec3 n1, Vec3 u1)
 {
@@ -193,7 +193,7 @@ Vec3 portal_transform_pos(const Portal &src, const Portal &dst, Vec3 pos)
 
 Vec3 Portal::plane_point() const
 {
-    return center + normal() * portal_tuning().plane_depth();
+    return center + normal() * (portal_tuning().plane_depth() * portal_depth_scale(scales, half_h));
 }
 
 
@@ -607,7 +607,23 @@ Traversal portal_traverse(const Portal &src, const Portal &dst, Vec3 feet, Vec3 
         // landed on the plane of an inch-high opening the body was inside it,
         // swallowed (portal_swallows) and sent straight back, for ever.
         off = off + n_d * (portal_tuning().exit_depth() * slack_of(dst) - dot(off, n_d));
-        out.feet = dst.center + off - Vec3{0.0f, eye_height * k, 0.0f};
+        // The whole body inside the far hole, at its new size: a sixteenth a
+        // hair off the middle of an inch-wide opening is a man half in the
+        // hedge beside a door (stuck there, reported from play, 2026-11-07).
+        const float hw = half_width * k, eh = eye_height * k;
+        const float lr = dot(off, r_d), wr = std::max(0.0f, dst.half_w - hw);
+        off = off + r_d * (clampf(lr, -wr, wr) - lr);
+        const float lu = dot(off, u_d);
+        if (dst.horizontal()) {
+            const float wu = std::max(0.0f, dst.half_h - hw);
+            off = off + u_d * (clampf(lu, -wu, wu) - lu);
+        } else {
+            // Feet no lower than the hole's bottom, head no higher than its top.
+            const float lo = std::min(-dst.half_h + eh * std::max(0.0f, u_d.y), dst.half_h);
+            const float hi = std::max(lo, dst.half_h - std::max(0.0f, 0.12f * eh));
+            off = off + u_d * (clampf(lu, lo, hi) - lu);
+        }
+        out.feet = dst.center + off - Vec3{0.0f, eh, 0.0f};
         return out;
     }
 

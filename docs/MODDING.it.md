@@ -2505,7 +2505,8 @@ I tre mod in `mods/` sono esempi funzionanti:
 - `garden` — due coppie che scalano (`core.portal_scale`) nello stesso mondo: un'apertura grande
   come una porta su una alta un ottavo di blocco, così chi entra esce grande un sedicesimo, e una
   piccola sotto un vetro su una dodici volte più larga, appesa a faccia in giù sopra il giardino:
-  una miniatura in cui guardare;
+  una miniatura in cui guardare; quella piccola in uno stipite di pezzi `core.node_box` spessi un
+  trentaduesimo di nodo;
   chi entra piccolo cammina quattro volte più veloce di quanto farebbe un sedicesimo
   (`core.body_movement`); e insetti a grandezza vera, worker che guida lei: formiche tra un nido e
   i fiori, coccinelle a zonzo, farfalle che volano di fiore in fiore (`core.mob_place` a ogni

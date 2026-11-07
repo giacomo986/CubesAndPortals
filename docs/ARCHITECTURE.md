@@ -202,9 +202,12 @@ When a change touches one of them, check it the way the line says.
 - **Small bodies keep their box under the feet.** `body_box` lifts the box by at most
   `height - min(0.1, height/2)`; the old "height - 0.1" went negative under 0.2 high and hung the
   box 8 cm below the feet. A creature is never under 0.01 × 0.01 (`size_mob_kind`, the client's aim
-  box too). A scaling opening's tunnel is as deep as its half height allows (`entrance_depth`),
-  or a shrunk eye stands inside the tube and sees sky. Check: `/lab tiny`, the garden's ants on
-  the grass.
+  box too). A scaling opening smaller than a door has every depth that much smaller
+  (`portal_depth_scale`: doorway, image plane, viewpoint, clip, trigger, exit), or a shrunk eye
+  stands inside a tube eight times as deep as the hole and sees sky. Its exit fits the body at
+  its new size inside the far hole: a sixteenth a hair off centre came out of the garden's door
+  half in the hedge, stuck; and the client's `ahead_of_crossing` leaves such pairs to the
+  server. Check: `/lab tiny`, the garden's ants on the grass, out of G off centre and back.
 - **A dedicated scene before a guess.** `tools/portallab.sh` builds portal cases where every
   number can be read (sunlit, no other mods). When a defect shows in a game but not there, the
   difference between the two is the cause: list it before changing anything.

@@ -13198,6 +13198,9 @@ void ahead_of_crossing(Scene &s, Player &player, Vec3 eye_before, Vec3 look_befo
     }
     if (best < 0) return;
     const Portal &src = w.linked_openings[(size_t)best], &dst = w.linked_to[(size_t)best];
+    // A pair that scales changes the body's size: the server's exit (which
+    // fits the new body in the far hole) is the only one.
+    if (src.scales && dst.scales) return;
     const Vec3 eye  = portal_transform_pos(src, dst, eye_before) + dst.normal() * portal_tuning().view_depth();
     const Vec3 feet = eye - Vec3{0.0f, player.eye_height, 0.0f};
     if (length(feet - player.pos) > 0.75f) return;

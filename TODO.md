@@ -1135,6 +1135,15 @@ Portals -- the engine's own trick, used further:
    to any cell of the nest's 3 x 3, so the roads part at that end. Open: on
    the way they still walk a tight file, overlapping (core.mob_goto goes by
    cell centres; creatures push apart only by their half widths).
+   From play 2026-11-07: G's doorway was still half a node deep behind an
+   eighth-high hole, and out of it back to size 1 the body stuck in the hedge
+   beside the door. Every depth of a scaling opening under a door now scales
+   (portal_depth_scale: plane, view, clip as trigger and exit already did);
+   the scaled exit keeps the grown body inside the far hole (feet on its
+   bottom, sides clear); the client no longer re-places a body after a
+   scaling crossing; G stands in a planks doorframe (garden:frame, node
+   boxes 1/32 thick). Checked in Xephyr: tiny 0.011 off centre into G, out of
+   D at 31.32 40.10 and walked on free to z 46; the frame seen, no tube.
 5. A passport of servers (low-medium). With --federation built: a stamp for
    every server reached through a far portal, and a letterbox that sends an
    item or a letter to a friend server. A reason for communities to link up.

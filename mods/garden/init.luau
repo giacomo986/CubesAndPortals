@@ -24,6 +24,14 @@ local GLASS, WATER = id("core:glass"), id("lakes:water")
 local HEDGE, TRUNK = id("trees:leaves"), id("trees:trunk")
 local PLANKS = id("woods:dark_oak_planks")
 local COARSE = id("rocks:coarse_dirt")
+-- G's frame: a doorframe of planks round the inch-high opening, in its cell
+-- (115, GY + 1, 43); jambs and lintel a thirty-second of a node thick, as deep
+-- as G's doorway (a sixteenth). Seen huge from inside, a door of a house.
+local FRAME = core.register_node("garden:frame", 74, 52, 32, true, 0, "", 0, 1.5, "wood")
+local T = 1 / 32
+core.node_box(FRAME, 0.5 - 1 / 32 - T, 0, 0.5 - 1 / 32, 0.5 - 1 / 32, 1 / 8 + T, 0.5 + 1 / 32)
+core.node_box(FRAME, 0.5 + 1 / 32, 0, 0.5 - 1 / 32, 0.5 + 1 / 32 + T, 1 / 8 + T, 0.5 + 1 / 32)
+core.node_box(FRAME, 0.5 - 1 / 32, 1 / 8, 0.5 - 1 / 32, 0.5 + 1 / 32, 1 / 8 + T, 0.5 + 1 / 32)
 local TALL, FERN = id("plants:tall_grass"), id("plants:fern")
 local RED_CAP, BROWN_CAP = id("plants:red_mushroom"), id("plants:brown_mushroom")
 local FLOWERS = { id("plants:dandelion"), id("plants:poppy"), id("plants:cornflower"), id("plants:oxeye_daisy"),
@@ -97,6 +105,7 @@ local function build()
     -- G's landmarks: a red mushroom and a brown one either side of it.
     core.set_block(114, GY + 1, 43, RED_CAP)
     core.set_block(116, GY + 1, 43, BROWN_CAP)
+    core.set_block(115, GY + 1, 43, FRAME)
 
     -- The case: a glass floor framed in planks, flush with the ground; T
     -- just under the glass's top face (deeper, the frame's sides hide it
@@ -113,6 +122,8 @@ core.event.on("core:world_ready", build)
 core.event.on("core:broken", function(ev)
     if ev.y == Y and ev.x >= TX0 + 1 and ev.x <= TX0 + 2 and ev.z >= TZ0 + 1 and ev.z <= TZ0 + 2 then
         core.set_block(ev.x, ev.y, ev.z, GLASS)
+    elseif ev.x == 115 and ev.y == GY + 1 and ev.z == 43 then
+        core.set_block(ev.x, ev.y, ev.z, FRAME)   -- and G's frame
     end
 end)
 

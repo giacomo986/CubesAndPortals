@@ -2,6 +2,7 @@
 
 #include "core/portal/portal_math.h"
 
+#include <algorithm>
 #include <string>
 
 // The shape of a portal, as six numbers a person can change without a
@@ -221,14 +222,23 @@ bool portal_tuning_load_default(std::string &err);
 // A pleasant consequence: the two offsets cancel in the map, so the virtual
 // camera lands exactly where it did when the image sat at the node centre, and
 // every hand-derived reference viewpoint in the gates keeps its old value.
+//
+// An opening that scales and is smaller than a door (Portal::scales) has every
+// depth that much smaller: its doorway, its viewpoint and its clip, as its
+// crossing has (slack_of in portal_traverse.cpp). Half a node of doorway behind
+// one an eighth high was a tube eight times as deep as the opening, and the
+// view half a node out of a sixteenth's eye a jump on every crossing.
+inline float portal_depth_scale(bool scales, float half_h) { return scales ? std::min(1.0f, half_h) : 1.0f; }
+inline float portal_depth_scale(const PortalSurface &s) { return portal_depth_scale(s.scales, s.half_h); }
+
 inline Vec3 portal_plane_in(const PortalSurface &s)
 {
-    return s.center + s.normal * portal_tuning().plane_depth();
+    return s.center + s.normal * (portal_tuning().plane_depth() * portal_depth_scale(s));
 }
 
 inline Vec3 portal_plane_out(const PortalSurface &s)
 {
-    return s.center - s.normal * portal_tuning().plane_depth();
+    return s.center - s.normal * (portal_tuning().plane_depth() * portal_depth_scale(s));
 }
 
 // Where the destination is LOOKED FROM, and where a body's copy is cut against:
@@ -245,7 +255,7 @@ inline Vec3 portal_plane_out(const PortalSurface &s)
 // it a block, and the half that is kept is the wrong half.
 inline Vec3 portal_view_origin(const PortalSurface &s)
 {
-    return portal_plane_out(s) + s.normal * portal_tuning().view_depth();
+    return portal_plane_out(s) + s.normal * (portal_tuning().view_depth() * portal_depth_scale(s));
 }
 
 // Where the image puts the eye, as a depth at the DESTINATION, for an eye
@@ -288,7 +298,7 @@ inline float portal_shown_depth(float in_depth)
 // destination's own block, which is where it has always been.
 inline Vec3 portal_clip_point(const PortalSurface &s)
 {
-    return portal_view_origin(s) - s.normal * portal_tuning().clip_depth();
+    return portal_view_origin(s) - s.normal * (portal_tuning().clip_depth() * portal_depth_scale(s));
 }
 
 } // namespace cnp
