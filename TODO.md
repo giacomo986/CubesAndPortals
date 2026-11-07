@@ -142,7 +142,11 @@ Open:
   creature's drops and no experience, broken until the world is empty. A
   warrior broke an area's three in 21 s for 28 gold and a potion. Open:
   sfx-gen (Stable Audio) is refused by Hugging Face, the sounds are made
-  by hand and not heard here; none in the crypt.
+  by hand and not heard here. The crypt's since 2026-11-07
+  (tools/make_crypt_sounds.py): the Custode's say, hurt, death and shoot, a
+  floor waking (rumble and bell), a seal breaking (crack and chime), and a
+  woken floor's dripping air (core.sound_loop, stopped when the crypt
+  sleeps). Not heard here either (Xephyr has no audio).
   Arpg gear (2026-10-20): what a character has equipped is seen on them.
   tools/make_arpg_gear.py builds one model for every base but the ring (42,
   games/arpg/mods/arpg_core/gear_*.gltf) on the robot's rig: weapons bound
@@ -265,8 +269,10 @@ Open:
   of what was killed, and no packs come round a player under the ground.
   Checked with a scratch mod (blasts for the fighting): both seals broken,
   the Custode risen, killed, the key given; floor 1 and the middle of floor
-  3 seen from the camera. Open: within about 8 of a floor's south and west
-  walls a body is hidden behind them from the camera.
+  3 seen from the camera. Within about 8 of a floor's south and west walls a
+  body was hidden behind them from the camera: since 2026-11-07 arpg_game
+  draws a pale shape of it there when a ray from the eye to it meets a block
+  (core.raycast, client side). Not seen in a crypt by hand yet.
   Backrooms (2026-10-09): games/backrooms/mods/backrooms_exit -- a lit exit
   room in Level 1 at x 96..104, z -72..-64, a doorway in each wall, the key
   on a stand; a radio (tools/make_radio_sound.py) crackles from the exit's

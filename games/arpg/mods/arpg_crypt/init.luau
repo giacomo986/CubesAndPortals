@@ -152,6 +152,7 @@ local throne = { 0, 0, 0 }   -- where the Custode rises, and is kept near
 local below: { [number]: boolean } = {}   -- who came down to the Custode
 local anybody_was = false
 
+local airs: { [number]: number } = {}   -- each woken floor's dripping air (core.sound_loop)
 local function rise(k: number)
     local f = FLOORS[k]
     woke[k] = true
@@ -176,6 +177,10 @@ local function rise(k: number)
     else
         core.notice(0, `Il piano {k} della cripta si sveglia.`)
     end
+    -- A rumble and a bell (tools/make_crypt_sounds.py), and the floor's air.
+    local cx, cz = (f.x0 + f.x1) / 2, (f.z0 + f.z1) / 2
+    core.play_sound("arpg_crypt:wake", cx, f.fy + 2, cz)
+    if airs[k] == nil then airs[k] = core.sound_loop("arpg_crypt:drip", cx, f.fy + 2, cz, 16, 0.6) end
 end
 
 local function standing(ids: { number }): number
@@ -193,7 +198,8 @@ core.event.on("core:tick", function(ev)
         if anybody_was then
             -- Nobody left: the crypt sleeps, the seals close.
             for _, f in FLOORS do set_seal(f, true) end
-            woke, risen, cleared, below = {}, {}, {}, {}
+            for _, id in airs do core.sound_loop_stop(id) end
+            woke, risen, cleared, below, airs = {}, {}, {}, {}, {}
             custode, anybody_was = 0, false
         end
         return
@@ -216,6 +222,7 @@ core.event.on("core:tick", function(ev)
             cleared[k] = true
             set_seal(f, false)
             core.notice(0, `Il sigillo verso il piano {k + 1} si spezza.`)
+            core.play_sound("arpg_crypt:seal", f.sx or (f.x0 + f.x1) / 2, f.fy + 1, (f.z0 + f.z1) / 2)
         end
     end
     -- The Custode: skeletons at its side every few seconds, up to four.

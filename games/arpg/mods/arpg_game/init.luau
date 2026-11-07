@@ -3744,6 +3744,20 @@ if drawing then
                     end
                 end
             end
+            -- Down in the crypt a floor's south and west walls (eight high)
+            -- hide a strip along them from the camera: a body there is shown
+            -- through the wall, a pale shape where it stands.
+            if py < GROUND - 1 and eye then
+                local vx, vy, vz = px - eye[1], py + 1 - eye[2], pz - eye[3]
+                local d = math.sqrt(vx * vx + vy * vy + vz * vz)
+                local _, _, _, hit = core.raycast(eye[1], eye[2], eye[3], vx / d, vy / d, vz / d, d)
+                local sx, sy = project(px, py + 0.9, pz)
+                if hit and hit < d - 0.8 and sx then
+                    local h = 0.9 / (d * math.tan(FOV / 2))   -- the body's 1.8 in the screen's height
+                    core.hud.rect(sx, sy + h * 0.1, h * 0.3, h * 0.75, 140, 200, 255, 90)
+                    core.hud.rect(sx, sy - h * 0.4, h * 0.2, h * 0.2, 140, 200, 255, 110)
+                end
+            end
             for _, n in C.npcs do
                 local sx, sy = project(n.x, n.y + 2.3, n.z)
                 if sx and (n.x - px) ^ 2 + (n.z - pz) ^ 2 < 900 then
