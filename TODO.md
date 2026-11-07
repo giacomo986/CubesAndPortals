@@ -2169,14 +2169,14 @@ refuse a dig it could predict. One material per block and per tool (CLOSED-31).
   goes in a table, or the mod does not load.
 - Villages planned before the plan keys were kept get today's plan.
 
-**Creatures.** Every body is clamped to 0.3 half-width and 1.8 tall to the
-hit test (a wraith); creatures do not hang; one chasing burns rather than
-hides; players and creatures do not push each other; a creature in a column
-not in memory waits.
+**Creatures.** (Rechecked 2026-11-07: a blow finds a creature in its model's
+box, up to 8 x 3, down to 0.01; players and creatures shove each other, at
+their sizes.) Creatures do not hang (from ledges, as a body does); one
+chasing burns rather than hides; a creature in a column not in memory waits.
 
 **Smaller gaps.**
-- Furnace: an old furnace keeps what is in a wrong row; no heat gauge; two
-  crafting recipes share a shape (warning at startup, not looked into).
+- Furnace: an old furnace keeps what is in a wrong row; no heat gauge. (No
+  recipe clash at startup any more, 2026-11-07.)
 - Conveyor: ribs are made for 1 m/s; a belt a mod writes reshapes late.
 - Sounds: attack and shoot of the creatures not heard; the poolrooms are
   quiet; the yafps base has no sounds.
