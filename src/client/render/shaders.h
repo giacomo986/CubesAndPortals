@@ -311,6 +311,30 @@ vec3 water_fade(vec3 rgb, vec4 clip)
 }
 )"
 
+#define CNP_SUN_GLSL R"(
+// How much of the sun reaches this point, 0..1. Pushed out along the normal by
+// a texel and a half before looking it up, so a face does not shadow itself;
+// four filtered taps for a soft edge; and fading to lit towards the map's
+// rim, so the edge of the shadowed world is not a line on the ground.
+float sun_shadow(vec3 p, vec3 n)
+{
+    if (uShadowOn < 0.5) return 1.0;
+    vec4 c = uShadowVP * vec4(p + n * (1.5 * uShadowTexel), 1.0);
+    vec3 s = c.xyz / c.w * 0.5 + 0.5;
+    if (s.z > 1.0) return 1.0;
+    vec2 rim = abs(s.xy - 0.5) * 2.0;
+    float fade = smoothstep(0.85, 1.0, max(rim.x, rim.y));
+    if (fade >= 1.0) return 1.0;
+    float t = 1.0 / float(textureSize(uShadow, 0).x);
+    float lit = 0.0;
+    lit += texture(uShadow, vec3(s.xy + vec2(-0.5, -0.5) * t, s.z));
+    lit += texture(uShadow, vec3(s.xy + vec2( 0.5, -0.5) * t, s.z));
+    lit += texture(uShadow, vec3(s.xy + vec2(-0.5,  0.5) * t, s.z));
+    lit += texture(uShadow, vec3(s.xy + vec2( 0.5,  0.5) * t, s.z));
+    return mix(lit * 0.25, 1.0, fade);
+}
+)"
+
 inline constexpr const char *kWorldFS = R"(#version 330 core
 in vec2  vUV;
 in float vClassic;
@@ -356,28 +380,7 @@ const float kLightFloor = 0.02;
 // Fire is not white.
 const vec3 kLampTint = vec3(1.0, 0.9, 0.76);
 
-// How much of the sun reaches this point, 0..1. Pushed out along the normal by
-// a texel and a half before looking it up, so a face does not shadow itself;
-// four filtered taps for a soft edge; and fading to lit towards the map's
-// rim, so the edge of the shadowed world is not a line on the ground.
-float sun_shadow(vec3 p, vec3 n)
-{
-    if (uShadowOn < 0.5) return 1.0;
-    vec4 c = uShadowVP * vec4(p + n * (1.5 * uShadowTexel), 1.0);
-    vec3 s = c.xyz / c.w * 0.5 + 0.5;
-    if (s.z > 1.0) return 1.0;
-    vec2 rim = abs(s.xy - 0.5) * 2.0;
-    float fade = smoothstep(0.85, 1.0, max(rim.x, rim.y));
-    if (fade >= 1.0) return 1.0;
-    float t = 1.0 / float(textureSize(uShadow, 0).x);
-    float lit = 0.0;
-    lit += texture(uShadow, vec3(s.xy + vec2(-0.5, -0.5) * t, s.z));
-    lit += texture(uShadow, vec3(s.xy + vec2( 0.5, -0.5) * t, s.z));
-    lit += texture(uShadow, vec3(s.xy + vec2(-0.5,  0.5) * t, s.z));
-    lit += texture(uShadow, vec3(s.xy + vec2( 0.5,  0.5) * t, s.z));
-    return mix(lit * 0.25, 1.0, fade);
-}
-
+)" CNP_SUN_GLSL R"(
 void main()
 {
     // Greedy meshing hands over UVs that run 0..w and 0..h, so the tile has to
@@ -452,9 +455,13 @@ void main()
     // shader leaves unwritten is undefined -- Mesa dropped the whole triangle,
     // and with it the clouds seen through a portal.
     for (int k = 0; k < 5; ++k) gl_ClipDistance[k] = 1.0;
-    mat4 back = inverse(uProjection * uView);
-    vNearH = back * vec4(aPos.xy, -1.0, 1.0);
-    vFarH  = back * vec4(aPos.xy,  1.0, 1.0);
+    // One inverse at a time, applied in turn: the projection's alone is the same
+    // every frame. inverse(P * V) rounds differently as the eye moves, and with
+    // a small body's near plane the far end's w is two numbers of 300 that
+    // nearly cancel: the clouds shook by most of a node (at 1/16).
+    mat4 back_p = inverse(uProjection), back_v = inverse(uView);
+    vNearH = back_v * (back_p * vec4(aPos.xy, -1.0, 1.0));
+    vFarH  = back_v * (back_p * vec4(aPos.xy,  1.0, 1.0));
     gl_Position = vec4(aPos.xy, 1.0, 1.0);   // on the far plane: LEQUAL passes the cleared
 }
 )";
@@ -1100,9 +1107,12 @@ void main()
 }
 )";
 
-// One directional light and no shadow. A character has to read as a solid with
-// a front and a side before it is worth lighting properly, and the sun this
-// world has is a scalar the sky multiplies by rather than a direction.
+// The world's sun on a model's lit side, shadowed by the same map as the blocks
+// (ModelRenderer::sun). Off the world -- in the hand, on a panel -- one fixed
+// light, so a thing reads as a solid with a front and a side. Everything the sun
+// needs is here and not in the vertex shader, whose uniforms the bones have
+// used up: the point comes back from the clip position, the normal turned by
+// the place the bones know nothing of.
 inline constexpr const char *kModelFS = R"(#version 330 core
 in vec2 vUV;
 in vec3 vNormal;
@@ -1117,9 +1127,17 @@ uniform float uAlpha;  // 1 but for something fading out: a creature that died
 // 0, or how much of the model is gone (core.render.model's dissolve): eaten in
 // patches of a noise fixed on the model, every edge burning electric blue.
 uniform float uDissolve;
+uniform float           uSunOn;
+uniform vec3            uSunDir;
+uniform mat4            uPlace;         // the model matrix, for the normal
+uniform mat4            uInvViewProj;
+uniform mat4            uShadowVP;
+uniform sampler2DShadow uShadow;
+uniform float           uShadowOn;
+uniform float           uShadowTexel;
 
 out vec4 fragColour;
-)" CNP_WATER_GLSL R"(
+)" CNP_WATER_GLSL CNP_SUN_GLSL R"(
 float dissolve_hash(vec3 p)
 {
     return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453);
@@ -1150,7 +1168,18 @@ void main()
         burn = 1.0 - smoothstep(0.0, 0.09, n - uDissolve * 1.08);
     }
     vec3 n = normalize(vNormal);
-    float lit = 0.45 + 0.55 * max(dot(n, normalize(vec3(0.4, 0.9, 0.25))), 0.0);
+    float ndl;
+    if (uSunOn > 0.5) {
+        n = normalize(mat3(uPlace) * n);
+        ndl = max(dot(n, uSunDir), 0.0);
+        if (ndl > 0.0) {
+            vec4 w = uInvViewProj * vClip;
+            ndl *= sun_shadow(w.xyz / w.w, n);
+        }
+    } else {
+        ndl = max(dot(n, normalize(vec3(0.4, 0.9, 0.25))), 0.0);
+    }
+    float lit = 0.45 + 0.55 * ndl;
     lit = mix(lit * uLight, 1.0, uGlow);
     // The texture's alpha cuts (a leaf, a rail); the material's sees through
     // (a vehicle's window, drawn after the rest of the model).
@@ -1162,6 +1191,13 @@ void main()
     rgb = mix(rgb, vec3(0.6, 0.85, 1.0) * 2.2, burn);
     fragColour = vec4(water_fade(rgb, vClip), uAlpha * uColour.a);
 }
+)";
+
+// A model in the sun's shadow map: kModelVS for the place, this for the holes.
+inline constexpr const char *kModelDepthFS = R"(#version 330 core
+in vec2 vUV;
+uniform sampler2D uTexture;
+void main() { if (texture(uTexture, vUV).a < 0.5) discard; }
 )";
 
 } // namespace cnp::shaders

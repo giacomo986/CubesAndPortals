@@ -47,12 +47,20 @@ PARTS = {
     "pods": dict(turn=90, box=((0.30, -0.32, 0.04), (0.52, 0.38, 0.26)), fit="stretch", bone="pods",
                  tris=1400, mirror=True, mats=dict(blue="tint_1", orange="tint_2", grey="Kart_Chrome",
                                                     dark="Kart_Soot", black="Kart_Soot")),
-    "pipes": dict(turn=180, box=((0.04, -0.80, 0.24), (0.52, -0.34, 0.74)), fit="uniform", bone="pipes",
+    # On the kart's middle, between the seat's back and the wing: "stretch", because
+    # at its own proportions it is too deep for what is free there.
+    "pipes": dict(turn=180, box=((-0.245, -0.695, 0.24), (0.245, -0.485, 0.62)), fit="stretch", bone="pipes",
                   tris=1800, mats=dict(blue="tint_1", orange="tint_2", grey="Kart_Chrome", dark="Kart_Soot",
                                        black="Kart_Soot")),
-    "wing": dict(turn=0, box=((-0.56, -1.0, 0.22), (0.56, -0.72, 0.80)), fit="uniform", bone="body",
+    # Its foot on the rear bumper's top (the bumper's middle is 0.75 back, its top 0.204 up).
+    "wing": dict(turn=0, box=((-0.56, -0.887, 0.196), (0.56, -0.607, 0.776)), fit="uniform", bone="body",
                  tris=1800, mats=dict(blue="tint_1", orange="tint_2", grey="tint_3", dark="Kart_Soot",
                                       black="Kart_Soot")),
+    # Not of the set: the garage's shark nose, from its own concept. Stretched to a nose's width and height.
+    "nose_shark": dict(turn=180, box=((-0.26, 0.27, 0.02), (0.26, 1.0, 0.46)), fit="stretch", bone="nose",
+                       tris=2400, src="nose_shark.glb", name="kart_nose_shark",
+                       mats=dict(blue="tint_1", orange="tint_2", grey="Kart_White", dark="Kart_Soot",
+                                 black="Kart_Soot")),
     # One wheel, its hub out to +X; placed on each wheel_* bone below.
     "wheel": dict(turn=90, box=None, fit="stretch", bone=None, tris=1100,
                   mats=dict(blue="tint_3", orange="tint_2", grey="Kart_Chrome", dark="Kart_Tire",
@@ -222,7 +230,9 @@ def assemble(rig, name, pieces, mats_of):
 
 def make(rig, slot):
     spec = PARTS[slot]
-    high = load(os.path.join(SRC, f"{slot}_dragon.glb"))
+    # Only the pipes burn: a flame_* joint in any other part is a flame the client lights there.
+    mk.edit_bones(rig, [], drop=[b.name for b in rig.data.bones if b.name.startswith("flame_")])
+    high = load(os.path.join(SRC, spec.get("src", f"{slot}_dragon.glb")))
     cls = face_classes(high)
     turned(high, spec["turn"])
     if spec["box"]:
@@ -250,7 +260,7 @@ def make(rig, slot):
         if spec.get("mirror"):
             pieces.append((me, Matrix.Diagonal((-1, 1, 1, 1)), True, spec["bone"]))
     bpy.data.objects.remove(low)
-    ob = assemble(rig, f"kart_{slot}_dragon", pieces, mats)
+    ob = assemble(rig, spec.get("name", f"kart_{slot}_dragon"), pieces, mats)
     if slot == "pipes":
         horns(rig, ob)
     return ob
@@ -271,7 +281,10 @@ def horns(rig, ob):
     print("pipes flames:", [tuple(round(c, 3) for c in f[2]) for f in flames])
 
 
-def sheet(rig, kart, obs):
+def sheet(rig, kart, obs, name="dragon_sheet"):
+    for o in bpy.data.objects:
+        if o.type == "MESH":
+            o.hide_render = True
     for o in [kart] + obs:
         o.hide_set(False)
         o.hide_render = False
@@ -302,9 +315,9 @@ def sheet(rig, kart, obs):
         r, c = 1 - k // 2, k % 2
         big[r * 512:(r + 1) * 512, c * 512:(c + 1) * 512] = np.array(im.pixels[:]).reshape(512, 512, 4)
         os.remove(p)
-    out = bpy.data.images.new("dragon_sheet", 1024, 1024)
+    out = bpy.data.images.new(name, 1024, 1024)
     out.pixels = big.ravel().tolist()
-    out.filepath_raw = os.path.join(LOOK, "dragon_sheet.png")
+    out.filepath_raw = os.path.join(LOOK, f"{name}.png")
     out.file_format = "PNG"
     out.save()
     print("sheet:", out.filepath_raw)
@@ -348,12 +361,15 @@ def main():
     obs = []
     for slot in PARTS:
         ob = make(rig, slot)
-        mk.export(rig, ob, f"kart_{slot}_dragon")
-        print(f"kart_{slot}_dragon: {len(ob.data.polygons)} triangles")
+        name = PARTS[slot].get("name", f"kart_{slot}_dragon")
+        mk.export(rig, ob, name)
+        print(f"{name}: {len(ob.data.polygons)} triangles")
         ob.hide_set(True)
         obs.append(ob)
     strip_kart(kart)
-    sheet(rig, kart, obs)
+    dragon = [o for o in obs if o.name != "kart_nose_shark"]
+    sheet(rig, kart, dragon)
+    sheet(rig, kart, [o for o in obs if o.name != "kart_nose_dragon"], "shark_sheet")
 
 
 main()

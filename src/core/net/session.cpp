@@ -2139,6 +2139,15 @@ SessionAction ServerSessions::cross_if_triggered(Session &s, const Move &move,
         if (t.blocked) {
             // Refused rather than swallowed, and said once: a destination that
             // is walled in is a thing somebody built, not a fault.
+        // A pair that would make the body bigger or smaller than a body may
+        // be is no way through for it: the place is the pair's and the size
+        // would be the limit's, a body four times as big put where one twelve
+        // times as big stands, its feet thirteen nodes in the ground (a jump
+        // on the garden's glass case, reported from play, 2026-11-08).
+        if (const float grown = s.movement.scale * portal_pair_scale(*c.from, *c.to);
+            grown < kMinBodyScale * 0.999f || grown > kMaxBodyScale * 1.001f)
+            continue;
+
             a.log = "'" + s.name + "' crossed into a blocked destination, refused";
             return a;
         }

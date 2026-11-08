@@ -4,7 +4,8 @@
 # (e il laboratorio, che si apre solo con le sette chiavi, mods/keys)
 # a tema sulla piazza (mods/gates), e in ognuno un portale per tornare.
 #
-#   tools/track.sh                # un server con undici stanze e un client nel sandbox
+#   tools/track.sh                # un server con undici stanze e un client nel sandbox,
+#                                 # tutti i mondi sbloccati (ALL_OPEN, solo qui)
 #   tools/track.sh --fresh        # butta via i mondi salvati; l'assalto con 100000 crediti;
 #                                 # tu proprietario (--owner): il catalogo creativo (C)
 #   tools/track.sh --survival     # niente piazza, spawn sulla terra, portali sparsi (worlds/track-survival/)
@@ -41,7 +42,7 @@ while [ $# -gt 0 ]; do
         --fresh) FRESH=1 ;;
         --survival) SURVIVAL=(--survival); HERE="${CNP_TRACK_DIR:-$ROOT/worlds/track-survival}" ;;
         --)      shift; CLIENT_ARGS=("$@"); break ;;
-        -h|--help) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "track.sh: non conosco '$1' (--fresh, --survival, -- ARGOMENTI DEL CLIENT)"; exit 2 ;;
     esac
     shift
@@ -81,6 +82,19 @@ if [ "$FRESH" = 1 ]; then
     echo "== assalto con 100000 crediti di prova"
 fi
 
+# Tutti i mondi aperti: i mod in collegamenti simbolici, e una copia di keys con
+# ALL_OPEN acceso. Il mods/keys del repo resta a false, com'è nel gioco che esce.
+SANDBOX_MODS="$HERE/sandbox_mods"
+rm -rf "$SANDBOX_MODS"
+mkdir -p "$SANDBOX_MODS"
+for m in "$ROOT"/mods/*/; do ln -s "${m%/}" "$SANDBOX_MODS/"; done
+rm "$SANDBOX_MODS/keys"
+cp -r "$ROOT/mods/keys" "$SANDBOX_MODS/keys"
+sed -i 's/^local ALL_OPEN = false/local ALL_OPEN = true/' "$SANDBOX_MODS/keys/init.luau"
+grep -q '^local ALL_OPEN = true' "$SANDBOX_MODS/keys/init.luau" \
+    || { echo "track.sh: ALL_OPEN non trovato in mods/keys/init.luau"; exit 1; }
+echo "== tutti i mondi sbloccati"
+
 if ss -uln 2>/dev/null | grep -q ":$PORT "; then
     echo "track.sh: la porta UDP $PORT è già in uso; PORT=25311 tools/track.sh"
     exit 1
@@ -108,7 +122,7 @@ for f in server.log client.log; do [ -f "$HERE/$f" ] && mv -f "$HERE/$f" "$HERE/
 echo "== avvio il server (sandbox, pista, inferno, arena, arpg, camere di prova, backrooms, parkour, laboratorio, fronte, assalto e le sale tascabili) sulla porta $PORT"
 # --ticks 0: senza, un server in ascolto si ferma dopo 50 s.
 "$SRV" --listen "$PORT" --ticks 0 --seed "$SEED" --portals ${OWNER[@]+"${OWNER[@]}"} \
-    --room sandbox ${SURVIVAL[@]+"${SURVIVAL[@]}"} --mods "$ROOT/mods" --world-file "$HERE/sandbox.world" \
+    --room sandbox ${SURVIVAL[@]+"${SURVIVAL[@]}"} --mods "$SANDBOX_MODS" --world-file "$HERE/sandbox.world" \
         --portal-to @pista/0 --portal-to @inferno/0 --portal-to @arena/0 --portal-to @arpg/0 \
         --portal-to @chambers/0 --portal-to @backrooms/0 --portal-to @parkour/0 \
         --portal-to @laboratorio/0 \
@@ -140,7 +154,7 @@ echo "== avvio il server (sandbox, pista, inferno, arena, arpg, camere di prova,
         --world-file "$HERE/front.world" --portal-to @sandbox/15 \
     --room assalto --mods "$ASSAULT_MODS" \
         --portal-to @sandbox/16 --portal-to @sandbox/16 \
-    --room pockets --mods "$ROOT/mods" --world-file "$HERE/pockets.world" \
+    --room pockets --mods "$SANDBOX_MODS" --world-file "$HERE/pockets.world" \
         --portal-to @sandbox/24 --portal-to @sandbox/25 --portal-to @sandbox/26 --portal-to @sandbox/27 \
     > "$HERE/server.log" 2>&1 &
 SERVER=$!

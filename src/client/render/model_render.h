@@ -28,11 +28,34 @@
 
 namespace cnp {
 
+// The sun of the world being drawn, set by WorldRenderer::draw for the models
+// of that pass, off outside it (a panel, an icon).
+struct ModelSun {
+    bool        on = false;
+    bool        shadows = false;
+    float       dir[3] = {0.0f, 1.0f, 0.0f};
+    Mat4        shadow_vp;
+    gfx_texture map{0};
+    float       texel = 0.0f;
+};
+
 class ModelRenderer {
 public:
     // core.night_sight, 0..1: no model drawn darker. One for every renderer,
     // as the eye is one.
     static inline float night_sight = 0.0f;
+
+    static inline ModelSun sun;
+
+    // What the eye's pass draws, kept for the next frame's shadow map: a
+    // frame late, which a moving shadow does not show. Only within
+    // kCasterReach of the eye and kMaxCasters of them.
+    // ponytail: first come; nearest first if a crowd loses its shadows.
+    static inline bool recording = false;
+    static inline Vec3 caster_eye;
+    static void begin_casters(Vec3 eye);
+    // Into the bound shadow target: `vp` is the sun's camera.
+    static void draw_casters(const Mat4 &vp);
 
     bool init();
     void shutdown();
@@ -62,6 +85,17 @@ public:
     int joint_count() const { return m_joint_count; }
 
 private:
+    void set_bones(int location, const std::vector<float> &bones) const;
+
+    struct Caster {
+        const ModelRenderer *who = nullptr;
+        Mat4                 place;
+        std::vector<float>   bones;
+        gfx_texture          texture{0};
+    };
+    static inline std::vector<Caster> casters;
+    static inline size_t              caster_count = 0;
+
     struct Part {
         uint32_t    first_index = 0;
         uint32_t    index_count = 0;
@@ -90,6 +124,8 @@ private:
     int m_loc_light = -1;
     int m_loc_alpha = -1;
     int m_loc_dissolve = -1;
+    int m_loc_sun_on = -1, m_loc_sun_dir = -1, m_loc_place = -1, m_loc_inv_vp = -1;
+    int m_loc_shadow_vp = -1, m_loc_shadow = -1, m_loc_shadow_on = -1, m_loc_shadow_texel = -1;
     WaterUniforms m_water;
 };
 

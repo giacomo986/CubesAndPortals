@@ -546,7 +546,7 @@ core.portal_open(x, y, z, axis, sign, turn, half_w, half_h, colour?) -> id|-1  -
 core.portal_close(x, y, z) -> 0..15|-1                             -- by centre, not by index
 core.portal_move(id, x, y, z, axis?, sign?, turn?) -> 1|0          -- every tick: it moves (drawn smooth, crossed relative to it); a new plane/turn or a jump > 4 puts it there
 core.portal_move(id, x, y, z, -1, 0, -1, nx, ny, nz, ux?, uy?, uz?)   -- turned freely: front n, up u, any way; may turn every tick
-core.portal_scale(id, on?) -> 1|0   -- both ends of a pair of two sizes: what crosses comes out scaled by far/near height
+core.portal_scale(id, on?) -> 1|0   -- both ends of a pair of two sizes: what crosses comes out scaled by far/near height (a player it would take past 1/32..4 does not cross)
                                      --   (players, creatures and tumbling boxes, kept within 1/32..4 of their kind)
 core.body_scale(player, s?) -> 1|0  -- a body 1/32..4 as big: box, steps, eye, speeds, gravity, reach, drawn so
 core.body_size(player) -> s         -- how big it is now (body_scale, a scaling portal); 0 for nobody

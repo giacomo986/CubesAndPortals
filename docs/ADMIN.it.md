@@ -478,7 +478,8 @@ all'avvio.
 
 ## Limiti
 
-- `/mute` riconosce le parole di un giocatore silenziato da tre di fila: un mod che le riformula, o
+- `/mute` riconosce le parole di un giocatore silenziato da tre di fila, qualunque siano maiuscole,
+  punteggiatura o virgolette intorno: un mod che le riformula, o
   una riga sotto le sei lettere, passa; un altro giocatore che ripete la sua frase entro l'ora è
   trattenuto anche lui. Un mod che riporta parole chiede `core.is_muted` da sé, come fanno `/msg` e
   `/me`.

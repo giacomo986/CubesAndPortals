@@ -11495,7 +11495,7 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
     // their own into the same target.
     {
         diag::ProfScope _("shadows");
-        s.act().world_render.draw_shadows(eye, forward);
+        s.act().world_render.draw_shadows(eye, forward, true);
     }
 
     // Pass 2: the main view. Into the capture target when a gate is watching,
@@ -11531,6 +11531,7 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
         // line starts and runs, not by where the eye is (CNP_WATER_GLSL in
         // render/shaders.h).
         s.act().world_render.set_water(true, eye);
+        ModelRenderer::begin_casters(eye);
         s.act().world_render.draw(projection, view);
     }
 
@@ -11542,6 +11543,7 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
     }
     // Glass and water over them: a body behind a crystal is seen through it.
     s.act().world_render.draw_translucent(projection, view);
+    ModelRenderer::recording = false;
 
     if (s.model_ready) {
         diag::ProfScope _("model");
@@ -11778,6 +11780,7 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
         !s.driving_view && !s.seat_view)
         draw_arms(s, projection);
     s.act().world_render.set_water(false);
+    ModelRenderer::sun.on = false;   // what comes next is panels and icons
 
     // Back to the window before anything the platform draws: its text goes
     // through its own pipeline and has no business inside a capture.

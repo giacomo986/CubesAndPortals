@@ -11,9 +11,11 @@
 #include <algorithm>
 
 #include "client/render/shaders.h"
+#include "client/render/model_render.h"
 
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <array>
 #include <map>
 
@@ -429,7 +431,7 @@ void WorldRenderer::set_shadow_size(int texels)
         std::fprintf(stderr, "world renderer: no %d px shadow map, drawing without\n", texels);
 }
 
-void WorldRenderer::draw_shadows(Vec3 eye, Vec3 forward)
+void WorldRenderer::draw_shadows(Vec3 eye, Vec3 forward, bool casters)
 {
     m_shadow_drawn = false;
     if (m_classic || !m_shadow_rt.id || !m_has_sky_light || !m_shadow_shader.id) return;
@@ -489,8 +491,8 @@ void WorldRenderer::draw_shadows(Vec3 eye, Vec3 forward)
         if (cm.opaque.vertex_count > 0 && cm.opaque.mesh.id) gfx_draw(cm.opaque.mesh, cm.opaque.vertex_count, 0);
         if (cm.alpha.vertex_count > 0 && cm.alpha.mesh.id) gfx_draw(cm.alpha.mesh, cm.alpha.vertex_count, 0);
     }
-    // ponytail: boxes, models and bodies cast no shadow yet; they would go
-    // through this pass with the model shader's own depth-only twin.
+    // ponytail: the box bodies cast none, and the openings' maps have no models.
+    if (casters) ModelRenderer::draw_casters(m_shadow_vp);
 
     gfx_rt_end();
     const gfx_state back = gfx_state_default();
@@ -1317,6 +1319,12 @@ void WorldRenderer::bind_world(const Mat4 &projection, const Mat4 &view)
     const bool shadows = m_shadow_drawn && m_has_sky_light;
     gfx_texture_bind(gfx_rt_depth(shadows ? m_shadow_rt : m_shadow_none), 2);
     gfx_uniform_set_int(m_loc_shadow, 2);
+    ModelRenderer::sun.on      = !m_classic && m_has_sky_light;
+    ModelRenderer::sun.shadows = shadows;
+    std::memcpy(ModelRenderer::sun.dir, sl.dir, sizeof ModelRenderer::sun.dir);
+    ModelRenderer::sun.shadow_vp = m_shadow_vp;
+    ModelRenderer::sun.map       = gfx_rt_depth(shadows ? m_shadow_rt : m_shadow_none);
+    ModelRenderer::sun.texel     = m_shadow_texel;
     gfx_uniform_set_f(m_loc_shadow_on, shadows ? 1.0f : 0.0f);
     gfx_uniform_set_f(m_loc_shadow_texel, m_shadow_texel);
     gfx_uniform_set_mat4(m_loc_shadow_vp, m_shadow_vp.m);

@@ -24,8 +24,7 @@ CLOSED-n ids that comments in `src/` still cite:
    - Worlds: signposts at crossings; lava depth beyond the water box;
      creatures hanging from ledges; OPEN-35, OPEN-38, OPEN-43.
    - Front: PvP, flying the plane by hand.
-   - Graphics: lighting on a real GPU (meshing cost, shadows on bodies,
-     coloured light); VRAM of the mouths; windows that show no bodies and
+   - Graphics: lighting on a real GPU (meshing cost, coloured light); VRAM of the mouths; windows that show no bodies and
      never close.
    - Server: what /mute should cover; the friend copy; the seal checked on
      the client's side.
@@ -1266,8 +1265,13 @@ Portals -- the engine's own trick, used further:
    lands where the image had the eye (/lab tiny, in Xephyr: 0.01 ahead of the
    server going small, 0.04 going big; eye height 41.10 and 42.62, as mapped);
    the body's numbers now go before the Teleport.
-   Open: not played at the garden's door or on a real GPU; the jump in eye
-   height Giacomo saw never showed in the numbers.
+   On an RX 5700, /lab tiny, scripted: 0.01 going small, 0.13 going big.
+   A jump on the garden's case crossed it and buried the body (feet 15.96 in
+   ground at 20): a pair past 1/32..4 no longer takes a player (2026-11-08).
+   Clouds shaking at 1/16 (from play, 2026-11-08): 0.82 node frame to frame
+   at the cloud base, 0.0000 now, by a float check of the formula.
+   Open: not played at the garden's door; the jump in eye height Giacomo saw
+   never showed in the numbers.
    the doorway's clip plane. Open: a natural creature wandering into D far
    from players despawns (the pig test); the scale limit 4 is the player's.
    The boost is now for whoever is in the garden small, however (core.body_size,
@@ -1487,6 +1491,8 @@ Multiplayer and the plaza:
    who beat l'Ospite comes into the sandbox; the first time they get the
    rope gun (core.body_rope, new: the rope without parkour, bit 7 of the
    moves; 30 hooks a day), the portal gun (any wall two tall, core.portal_open
+   2026-11-08, Giacomo: the kart runs anywhere, still only after l'Ospite (road
+   rule and its stop removed; loads, not driven).
    and portal_link, 12 shots a day, the pair closed when they leave) and the
    kart (core.body_drive on a road block -- cobblestone, smooth stone, coarse
    dirt, gravel, sandstone -- off it a second and it stops). Models and icons
@@ -1554,6 +1560,16 @@ Seen in Xephyr; not played with the gun by hand.
   chassis says each step whether the nitro burns and how fast it slides
   sideways (DriveLook, kSlideSeen 2 m/s); the server sends both bits of its
   own copy, so everybody sees them. Flames out of the flame_* joints (a jet
+  2026-11-08, from play: the pipes centred on the kart (between seat and wing,
+  squeezed in depth), the wing's foot on the rear bumper (it stood behind it);
+  only the pipes keep flame_* joints (the other four would have burned too).
+  Seen on the Blender sheet, not in a game.
+  kart_nose_shark rebuilt with Meshy (36 credits, same script, src/nose_shark.glb).
+  Inferno crossing: the garage is kept for every room (shared storage; what the
+  track's room kept moves over when read there) and the Inferno has the parts'
+  models. A kart along the wall was refused at the far frame ("the way out ...
+  is blocked", 10 times in the log) and drove on behind it: the arrival now
+  slides inside the hole. Numbers: refused before, 13.15 of 14 wide after.
   and puffs facing the eye: a ribbon seen end on from the chase camera was
   invisible), marks a ring of 4096 strips fading in 30 s, per world. /garage:
   3 dye colours and 14 parts (tools/make_kart_parts.py), worn as
@@ -2282,11 +2298,15 @@ Shadows; the old light kept as Options → Lighting: classic (`--classic-light`,
 the packed light byte still rides in the vertex). Software GL (Xephyr), `--quick --soak 30`, main vs branch: frame p50
 89-93 → 143-144 ms, render 56 → 97 ms, sync (meshing) 6.5-6.9 → 11.9-12.5 ms;
 mesh memory 31 → 36 MB. Open:
-- Not measured on a real GPU yet; the render cost is three shadow passes a
-  frame here (eye + two openings).
+- RX 5700, 1920x1008, animals world (2026-11-08): frame p50 11.0 ms, p99 16.7
+  (world 2.9, the openings 7.5); three shadow passes a frame (eye + two
+  openings).
 - Meshing about twice as slow (four cells a corner, light slope per cell).
-- Bodies, models and boxes neither cast nor receive the sun's shadow; the model
-  shader still lights from a fixed direction.
+- Models are lit by the world's sun and take and cast its shadow (2026-11-08:
+  seen on cows and a pig in Xephyr and on an RX 5700). The shadow pass stayed
+  under 0.5 ms with four animals; a crowd not measured. Still none: box
+  bodies; models in the openings' views cast none; at most 256 casters within
+  48 nodes.
 - One map, no cascades: shadow edges near the eye are 5.5 cm texels, soft.
 - No coloured light: every lamp is the same warm white.
 - `relight_around` may give false sunlight in caves taller than 16 (light.cpp
@@ -2592,7 +2612,8 @@ tick later held in chat, notice and on the board for eve and carl; carl's
 own letters, one sharing two of bob's words, pass. ctest 13/13.
 
 Open:
-- /mute knows words, not meaning: a mod that rewords them gets through.
+- /mute knows words, not meaning: punctuation, quotes and case no longer hide
+  them (2026-11-08), a mod that rewords them still gets through.
 - A friend unreachable while the player plays on keeps its own copy too.
 - The client's far-key check is behind the ticket check, which refuses
   first; a server lying about tickets is the only case it catches.

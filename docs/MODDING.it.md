@@ -592,7 +592,7 @@ core.portal_open(x, y, z, asse, verso, giro, mezza_l, mezza_a, colore?) -> id|-1
 core.portal_close(x, y, z) -> 0..15|-1                             -- per centro, non per indice
 core.portal_move(id, x, y, z, asse?, verso?, giro?) -> 1|0         -- a ogni tick: si muove (disegnata fluida, attraversata relativa a lei); nuovo piano/giro o salto > 4 la mette lì
 core.portal_move(id, x, y, z, -1, 0, -1, nx, ny, nz, ux?, uy?, uz?)   -- girata liberamente: fronte n, alto u, in ogni verso; può girare a ogni tick
-core.portal_scale(id, on?) -> 1|0   -- le due estremità di una coppia di taglie diverse: chi passa esce scalato di alta/bassa
+core.portal_scale(id, on?) -> 1|0   -- le due estremità di una coppia di taglie diverse: chi passa esce scalato di alta/bassa (un giocatore che porterebbe oltre 1/32..4 non passa)
                                      --   (giocatori, creature e scatole che rotolano, sempre tra 1/32 e 4 della loro specie)
 core.body_scale(player, s?) -> 1|0  -- un corpo grande 1/32..4: riquadro, gradini, occhio, velocità, gravità, portata, disegnato così
 core.body_size(player) -> s         -- quanto è grande ora (body_scale, un portale che scala); 0 per nessuno

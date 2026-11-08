@@ -220,6 +220,12 @@ When a change touches one of them, check it the way the line says.
   number can be read (sunlit, no other mods). When a defect shows in a game but not there, the
   difference between the two is the cause: list it before changing anything.
 
+- **A scaling pair takes only a body it can size.** One that would put a player's scale outside
+  1/32..4 (`kMinBodyScale`, `kMaxBodyScale`) does not cross it: the place would be the pair's and
+  the size the limit's. Check: a jump on the garden's glass case stays on the glass.
+- **The sky's rays undo the projection and the view separately.** `kWaterSkyVS` applies
+  `inverse(uView)` to `inverse(uProjection) * point`. `inverse(P * V)` shook the clouds by 0.82
+  node at 1/16 as the eye moved; this leaves 0.0000 in the same float check.
 ## Where a feature goes
 
 | What | Where |

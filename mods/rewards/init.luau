@@ -12,10 +12,9 @@
 --   the orange, two cells tall with room before them; through one, out of
 --   the other (core.portal_open, core.portal_link). Twelve shots a day; the
 --   pair closes when you leave.
---   the KART: right click a road with it -- a village's street or a path
---   between villages -- and you drive it (core.body_drive); right click
---   anything, or leave the road for a second, and you are back on foot with
---   it in the bag.
+--   the KART: right click any block with it and you drive it, anywhere
+--   (core.body_drive); right click anything and you are back on foot with it
+--   in the bag.
 --
 -- The days are the world's (a dawn fills them again). Whoever has not beaten
 -- l'Ospite and finds these finds them dead in the hand.
@@ -173,14 +172,7 @@ if serving then
     end
 
     -- ----------------------------------------------------------------- kart
-    local driving: { [number]: number } = {}   -- player -> seconds off the road
-    local function road(id: number): boolean
-        local n = core.node_name(id)
-        for _, w in { "cobblestone", "smooth_stone", "coarse_dirt", "gravel", "sandstone" } do
-            if string.find(n, w, 1, true) then return true end
-        end
-        return false
-    end
+    local driving: { [number]: boolean } = {}
     local function on_foot(p: number)
         if driving[p] == nil then return end
         driving[p] = nil
@@ -205,16 +197,14 @@ if serving then
             ev.cancel = true
             if not ended[p] then
                 core.notice(p, "The kart will not start for you")
-            elseif not road(ev.id) then
-                core.notice(p, "The kart is for the roads: a village's streets, the paths between them")
             elseif core.take_item(p, KART, 1) == 1 then
-                driving[p] = 0
+                driving[p] = true
                 core.body_drive(p, 12, 30, 2.6, 0.6, 1.7, 2.4)
                 core.body_movement(p, 6, 14, 0, 8, -25, 10)
                 core.body_model(p, KART_MODEL)
                 core.player_place(p, ev.x + 0.5, ev.y + 1, ev.z + 0.5)
                 tell(p, "kart 1")
-                core.notice(p, "On the road: right click anything to get out")
+                core.notice(p, "Right click anything to get out of the kart")
             end
         elseif ev.held == ROPE or ev.held == PORTAL then
             ev.cancel = true   -- a click on a block is the gun's (below), not a placement
@@ -256,18 +246,6 @@ if serving then
             if want ~= (roped[p] == true) then
                 core.body_rope(p, want)
                 roped[p] = want or nil
-            end
-            -- The kart off the road for a second: out.
-            if driving[p] then
-                local x, y, z = core.player_pos(p)
-                if x and y and z then
-                    local under = core.get_block(math.floor(x), math.floor(y - 0.2), math.floor(z))
-                    driving[p] = if road(under) or under == 0 then 0 else driving[p] + ev.dt
-                    if driving[p] > 1.0 then
-                        core.notice(p, "Off the road: the kart stops")
-                        on_foot(p)
-                    end
-                end
             end
         end
         for p in ended do

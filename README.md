@@ -422,7 +422,7 @@ as it rises, the flame roaring up into the envelope.
 
 **After the ending** (`mods/rewards`). Whoever has beaten l'Ospite finds the worlds' tools in the
 sandbox, in a smaller way: the rope gun (thirty hooks a day), a portal gun (twelve shots a day, on any
-wall) and the kart, on the villages' streets and the paths between them. `/rewards` gives them again.
+wall) and the kart, to drive anywhere. `/rewards` gives them again.
 
 **Weather** (`mods/weather`). Clear skies, then rain or a storm for a few minutes: the sky
 and the clouds go grey, rain falls round you and stops at roofs, the fields under the open sky
@@ -673,7 +673,7 @@ server running across restarts and crashes, with a log a day.
 | | |
 |---|---|
 | `tools/play.sh` (`local`, `--fresh`) | Builds in Release, starts server and client with every mod and a world saved in `worlds/play/` |
-| `tools/track.sh` (`--fresh`) | A server with the sandbox and every world as rooms, as the title menu starts it (worlds and logs in `worlds/track/`); `--fresh` also makes you its owner, so the creative catalogue (C) is open |
+| `tools/track.sh` (`--fresh`) | A server with the sandbox and every world as rooms, as the title menu starts it but with every world unlocked (a copy of `mods/keys` with `ALL_OPEN`; worlds and logs in `worlds/track/`); `--fresh` also makes you its owner, so the creative catalogue (C) is open |
 | `tools/arpg.sh`, `tools/fps.sh`, `tools/chambers.sh` (`--fresh`) | The sandbox and one world, for working on that world |
 | `tools/portallab.sh` | A scene for checking portals by eye (games/portallab): glass seen through openings, a ceiling one to jump into, two floors to bounce between, openings that slide, chase and turn on every axis; `/lab wall`, `glass`, `head`, `bounce`, `view`, `slide`, `chase`, `spin`, `spiny`, `spinz`, `still`, `at <degrees>`; a door-sized opening onto one an eighth high that shrinks you to 1/16, `/lab tiny`, `g1`, `scale <s>` |
 | `tools/vehiclelab.sh` | Vehicles through portals (games/vehiclelab, over the sandbox's mods): a cart line into one opening and out of another a quarter turn round, a boat channel the same; a portal carried by a train round a bend; `NAME=boat` or `train` starts there, `/vlab rail`, `boat`, `train`, `watch`; a timed client wants `--keep-portals` |

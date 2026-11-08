@@ -8,7 +8,7 @@
 		{
 			"name":"Scene",
 			"nodes":[
-				14
+				13
 			]
 		}
 	],
@@ -33,28 +33,6 @@
 			]
 		},
 		{
-			"name":"flame_1",
-			"rotation":[
-				-7.335761775806304e-09,
-				-0.997804582118988,
-				-0.0662272647023201,
-				7.533216006549992e-08
-			],
-			"scale":[
-				1.0000001192092896,
-				1.0000004768371582,
-				1.0000001192092896
-			],
-			"translation":[
-				-0.03999999538064003,
-				0.20000006258487701,
-				0.040000010281801224
-			]
-		},
-		{
-			"children":[
-				1
-			],
 			"name":"pipes",
 			"rotation":[
 				3.0908619663705394e-08,
@@ -113,7 +91,7 @@
 		},
 		{
 			"children":[
-				4
+				3
 			],
 			"name":"steer_FL",
 			"rotation":[
@@ -154,7 +132,7 @@
 		},
 		{
 			"children":[
-				6
+				5
 			],
 			"name":"steer_FR",
 			"rotation":[
@@ -234,13 +212,13 @@
 		{
 			"children":[
 				0,
+				1,
 				2,
-				3,
-				5,
+				4,
+				6,
 				7,
 				8,
-				9,
-				10
+				9
 			],
 			"name":"body",
 			"rotation":[
@@ -262,7 +240,7 @@
 		},
 		{
 			"children":[
-				11
+				10
 			],
 			"name":"root",
 			"rotation":[
@@ -284,8 +262,8 @@
 		},
 		{
 			"children":[
-				13,
-				12
+				12,
+				11
 			],
 			"name":"Kart_Rig",
 			"scale":[
@@ -403,19 +381,18 @@
 		{
 			"inverseBindMatrices":20,
 			"joints":[
-				12,
 				11,
+				10,
 				0,
-				2,
 				1,
-				3,
-				5,
+				2,
 				4,
-				7,
+				3,
 				6,
+				5,
+				7,
 				8,
-				9,
-				10
+				9
 			],
 			"name":"Kart_Rig"
 		}
@@ -584,7 +561,7 @@
 		{
 			"bufferView":20,
 			"componentType":5126,
-			"count":13,
+			"count":12,
 			"type":"MAT4"
 		}
 	],
@@ -711,13 +688,13 @@
 		},
 		{
 			"buffer":0,
-			"byteLength":832,
+			"byteLength":768,
 			"byteOffset":98904
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":99736,
+			"byteLength":99672,
 			"uri":"kart_pods_dragon.bin"
 		}
 	]

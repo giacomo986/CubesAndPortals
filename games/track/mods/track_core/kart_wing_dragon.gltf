@@ -8,7 +8,7 @@
 		{
 			"name":"Scene",
 			"nodes":[
-				15
+				13
 			]
 		}
 	],
@@ -33,48 +33,6 @@
 			]
 		},
 		{
-			"name":"flame_1",
-			"rotation":[
-				-2.1769656299852613e-08,
-				-0.8944272398948669,
-				-0.4472135007381439,
-				6.752738102022704e-08
-			],
-			"scale":[
-				1.0000001192092896,
-				1,
-				1.0000001192092896
-			],
-			"translation":[
-				0.21802332997322083,
-				0.24843555688858032,
-				0.2811078727245331
-			]
-		},
-		{
-			"name":"flame_2",
-			"rotation":[
-				-2.176966162892313e-08,
-				-0.8944271802902222,
-				-0.44721367955207825,
-				6.752737391479968e-08
-			],
-			"scale":[
-				1.0000001192092896,
-				0.9999998211860657,
-				1
-			],
-			"translation":[
-				-0.1769096702337265,
-				0.25594252347946167,
-				0.2813151478767395
-			]
-		},
-		{
-			"children":[
-				1,
-				2
-			],
 			"name":"pipes",
 			"rotation":[
 				3.0908619663705394e-08,
@@ -133,7 +91,7 @@
 		},
 		{
 			"children":[
-				5
+				3
 			],
 			"name":"steer_FL",
 			"rotation":[
@@ -174,7 +132,7 @@
 		},
 		{
 			"children":[
-				7
+				5
 			],
 			"name":"steer_FR",
 			"rotation":[
@@ -254,13 +212,13 @@
 		{
 			"children":[
 				0,
-				3,
+				1,
+				2,
 				4,
 				6,
+				7,
 				8,
-				9,
-				10,
-				11
+				9
 			],
 			"name":"body",
 			"rotation":[
@@ -282,7 +240,7 @@
 		},
 		{
 			"children":[
-				12
+				10
 			],
 			"name":"root",
 			"rotation":[
@@ -304,8 +262,8 @@
 		},
 		{
 			"children":[
-				14,
-				13
+				12,
+				11
 			],
 			"name":"Kart_Rig",
 			"scale":[
@@ -399,20 +357,18 @@
 		{
 			"inverseBindMatrices":15,
 			"joints":[
-				13,
-				12,
+				11,
+				10,
 				0,
-				3,
 				1,
 				2,
 				4,
+				3,
 				6,
 				5,
-				8,
 				7,
-				9,
-				10,
-				11
+				8,
+				9
 			],
 			"name":"Kart_Rig"
 		}
@@ -421,115 +377,115 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":436,
+			"count":442,
 			"max":[
-				0.7026292085647583,
-				0.9312170743942261,
-				1.1088157892227173
+				0.702629029750824,
+				0.899482786655426,
+				0.9589241743087769
 			],
 			"min":[
-				-0.704150915145874,
-				0.46411946415901184,
-				1.0517499446868896
+				-0.7041510343551636,
+				0.4242722690105438,
+				0.9018604755401611
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":436,
+			"count":442,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5121,
-			"count":436,
+			"count":442,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":436,
+			"count":442,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
 			"componentType":5123,
-			"count":1377,
+			"count":1380,
 			"type":"SCALAR"
 		},
 		{
 			"bufferView":5,
 			"componentType":5126,
-			"count":810,
+			"count":807,
 			"max":[
 				0.7418480515480042,
-				0.9625051021575928,
-				1.1274288892745972
+				0.9306702017784119,
+				0.9775394797325134
 			],
 			"min":[
-				-0.7420515418052673,
-				0.4164833426475525,
-				1.0704458951950073
+				-0.7419463992118835,
+				0.3846484422683716,
+				0.9205564856529236
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":6,
 			"componentType":5126,
-			"count":810,
+			"count":807,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":7,
 			"componentType":5121,
-			"count":810,
+			"count":807,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":8,
 			"componentType":5126,
-			"count":810,
+			"count":807,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":9,
 			"componentType":5123,
-			"count":3540,
+			"count":3537,
 			"type":"SCALAR"
 		},
 		{
 			"bufferView":10,
 			"componentType":5126,
-			"count":146,
+			"count":149,
 			"max":[
 				0.18849235773086548,
-				0.5353425145149231,
-				1.229773759841919
+				0.5034409165382385,
+				1.0798841714859009
 			],
 			"min":[
 				-0.18847814202308655,
-				0.2919784486293793,
-				1.0517023801803589
+				0.260143518447876,
+				0.9018128514289856
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":11,
 			"componentType":5126,
-			"count":146,
+			"count":149,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":12,
 			"componentType":5121,
-			"count":146,
+			"count":149,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":13,
 			"componentType":5126,
-			"count":146,
+			"count":149,
 			"type":"VEC4"
 		},
 		{
@@ -541,110 +497,110 @@
 		{
 			"bufferView":15,
 			"componentType":5126,
-			"count":14,
+			"count":12,
 			"type":"MAT4"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":5232,
+			"byteLength":5304,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":5232,
-			"byteOffset":5232,
+			"byteLength":5304,
+			"byteOffset":5304,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1744,
-			"byteOffset":10464,
+			"byteLength":1768,
+			"byteOffset":10608,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":6976,
-			"byteOffset":12208,
+			"byteLength":7072,
+			"byteOffset":12376,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":2754,
-			"byteOffset":19184,
+			"byteLength":2760,
+			"byteOffset":19448,
 			"target":34963
 		},
 		{
 			"buffer":0,
-			"byteLength":9720,
-			"byteOffset":21940,
+			"byteLength":9684,
+			"byteOffset":22208,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":9720,
-			"byteOffset":31660,
+			"byteLength":9684,
+			"byteOffset":31892,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":3240,
-			"byteOffset":41380,
+			"byteLength":3228,
+			"byteOffset":41576,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":12960,
-			"byteOffset":44620,
+			"byteLength":12912,
+			"byteOffset":44804,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":7080,
-			"byteOffset":57580,
+			"byteLength":7074,
+			"byteOffset":57716,
 			"target":34963
 		},
 		{
 			"buffer":0,
-			"byteLength":1752,
-			"byteOffset":64660,
+			"byteLength":1788,
+			"byteOffset":64792,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1752,
-			"byteOffset":66412,
+			"byteLength":1788,
+			"byteOffset":66580,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":584,
-			"byteOffset":68164,
+			"byteLength":596,
+			"byteOffset":68368,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":2336,
-			"byteOffset":68748,
+			"byteLength":2384,
+			"byteOffset":68964,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":954,
-			"byteOffset":71084,
+			"byteOffset":71348,
 			"target":34963
 		},
 		{
 			"buffer":0,
-			"byteLength":896,
-			"byteOffset":72040
+			"byteLength":768,
+			"byteOffset":72304
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":72936,
+			"byteLength":73072,
 			"uri":"kart_wing_dragon.bin"
 		}
 	]

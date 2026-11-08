@@ -424,7 +424,14 @@ if serving then
     local function kart_of(name: string)
         local g = garage[name]
         if g == nil then
-            local w = string.split(core.storage_get(`kart:{name}`), " ")
+            -- Every room's, since the Inferno's is on the way of a lap. What
+            -- the track's room kept for itself before that moves over.
+            local kept = core.shared_storage_get(`kart:{name}`)
+            if kept == "" then
+                kept = core.storage_get(`kart:{name}`)
+                if kept ~= "" then core.shared_storage_set(`kart:{name}`, kept) end
+            end
+            local w = string.split(kept, " ")
             g = { paint = {}, part = {} }
             for i = 1, 3 do
                 g.paint[i] = math.clamp(tonumber(w[i]) or 0, 0, #DYES)
@@ -1621,7 +1628,7 @@ if serving then
         end
         local count = if what == "c" then #DYES else #PARTS[n].variants
         list[n] = (list[n] + (if way == "+" then 1 else count)) % (count + 1)
-        core.storage_set(`kart:{s.name}`, `{table.concat(g.paint, " ")} {table.concat(g.part, " ")}`)
+        core.shared_storage_set(`kart:{s.name}`, `{table.concat(g.paint, " ")} {table.concat(g.part, " ")}`)
         dress_kart(p, s)
         show_garage(p, s)
     end)
@@ -1670,6 +1677,7 @@ if serving then
                     end
                     if #s.items > 0 then tell_items(p, s) end
                     tell(p, "kart 1")
+                    garage[s.name] = nil   -- it may have changed in the room they came from
                     dress_kart(p, s)
                     if TRACKS[ti] ~= nil then
                         local gates = TRACKS[ti].gates

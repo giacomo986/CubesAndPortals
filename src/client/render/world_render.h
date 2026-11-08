@@ -282,7 +282,8 @@ public:
     // render target is begun: it is one itself. A world drawn without it
     // (one only seen through an opening) has the sun on every face it turns
     // to the sun.
-    void draw_shadows(Vec3 eye, Vec3 forward);
+    // `casters`: with the models the eye's pass drew last frame.
+    void draw_shadows(Vec3 eye, Vec3 forward, bool casters = false);
     void forget_shadows() { m_shadow_drawn = false; }
 
     // Clouds over this world, tinted by its sky of the hour. Off for a world

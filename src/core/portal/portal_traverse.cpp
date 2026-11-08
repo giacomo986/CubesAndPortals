@@ -736,15 +736,26 @@ Traversal portal_traverse(const Portal &src, const Portal &dst, Vec3 feet, Vec3 
         const Vec3  start = out.feet;
         bool        found = false;
 
-        for (int step = 0; step <= 3 && !found; ++step) {
-            const float y = (step == 0) ? start.y : std::floor(start.y) + (float)step;
-            for (int push = 0; push <= 1 && !found; ++push) {
-                const Vec3 cand = Vec3{start.x + n_d.x * clear * (float)push, y,
-                                       start.z + n_d.z * clear * (float)push};
-                if (inside_solid(*world, *registry, cand.x, cand.y, cand.z, nullptr, 0, half_width))
-                    continue;
-                out.feet = cand;
-                found    = true;
+        // And last, the whole box inside the hole: a kart along the wall of a
+        // road as wide as the opening has its side in the wall of the road
+        // beyond, and was refused -- it drove on through the hole and out
+        // behind the frame (reported from play, 2026-11-08).
+        const float lateral = dot(off, r_d);
+        const float room    = std::max(0.0f, dst.half_w - half_width);
+        const Vec3  inward  = r_d * (clampf(lateral, -room, room) - lateral);
+
+        for (int slide = 0; slide <= 1 && !found; ++slide) {
+            const Vec3 from = start + inward * (float)slide;
+            for (int step = 0; step <= 3 && !found; ++step) {
+                const float y = (step == 0) ? from.y : std::floor(from.y) + (float)step;
+                for (int push = 0; push <= 1 && !found; ++push) {
+                    const Vec3 cand = Vec3{from.x + n_d.x * clear * (float)push, y,
+                                           from.z + n_d.z * clear * (float)push};
+                    if (inside_solid(*world, *registry, cand.x, cand.y, cand.z, nullptr, 0, half_width))
+                        continue;
+                    out.feet = cand;
+                    found    = true;
+                }
             }
         }
 

@@ -32,6 +32,9 @@ bool read_file(const std::string &path, std::vector<uint8_t> &out)
 
 } // namespace
 
+constexpr size_t kMaxCasters  = 256;
+constexpr float  kCasterReach = 48.0f;
+
 bool ModelRenderer::init()
 {
     m_shader = gfx_shader_create(shaders::kModelVS, shaders::kModelFS);
@@ -45,6 +48,14 @@ bool ModelRenderer::init()
     m_loc_light   = gfx_uniform_location(m_shader, "uLight");
     m_loc_alpha   = gfx_uniform_location(m_shader, "uAlpha");
     m_loc_dissolve = gfx_uniform_location(m_shader, "uDissolve");
+    m_loc_sun_on  = gfx_uniform_location(m_shader, "uSunOn");
+    m_loc_sun_dir = gfx_uniform_location(m_shader, "uSunDir");
+    m_loc_place   = gfx_uniform_location(m_shader, "uPlace");
+    m_loc_inv_vp  = gfx_uniform_location(m_shader, "uInvViewProj");
+    m_loc_shadow_vp    = gfx_uniform_location(m_shader, "uShadowVP");
+    m_loc_shadow       = gfx_uniform_location(m_shader, "uShadow");
+    m_loc_shadow_on    = gfx_uniform_location(m_shader, "uShadowOn");
+    m_loc_shadow_texel = gfx_uniform_location(m_shader, "uShadowTexel");
     m_water.locate(m_shader);
 
     // One white texel, for a material that names no texture. The alternative is
@@ -57,6 +68,7 @@ bool ModelRenderer::init()
 
 void ModelRenderer::shutdown()
 {
+    caster_count = 0;   // they point at renderers, and one is going
     for (Part &p : m_parts)
         if (p.texture.id != 0 && p.texture.id != m_white.id) gfx_texture_destroy(p.texture);
     m_parts.clear();
@@ -173,6 +185,58 @@ bool ModelRenderer::upload(const SkinnedModel &model, std::string &why)
     return true;
 }
 
+void ModelRenderer::set_bones(int location, const std::vector<float> &bones) const
+{
+    // Three vec4 a joint, and the array is uploaded whole rather than per part:
+    // the parts of one character share one skeleton, and uploading it twice
+    // would be uploading it twice.
+    if (location >= 0 && !bones.empty()) {
+        const int rows = (int)(bones.size() / 4);
+        gfx_uniform_set_v4(location, bones.data(), rows);
+    } else if (location >= 0) {
+        // A model with NO skeleton -- a block's, and any glTF exported without
+        // one. The loader binds such a vertex to joint 0 with weight 1, so the
+        // shader reads three rows that nobody uploaded: the mesh collapses to
+        // the origin and draws nothing at all, which is exactly what a block
+        // wearing a model did until this line (TODO.md OPEN-43).
+        //
+        // One identity joint, here rather than in the shader: the shader runs
+        // per vertex and this runs once per draw, and the alternative is a
+        // branch on every vertex of every character.
+        static const float identity[12] = {1.0f, 0.0f, 0.0f, 0.0f,
+                                           0.0f, 1.0f, 0.0f, 0.0f,
+                                           0.0f, 0.0f, 1.0f, 0.0f};
+        gfx_uniform_set_v4(location, identity, 3);
+    }
+}
+
+void ModelRenderer::begin_casters(Vec3 eye)
+{
+    caster_eye   = eye;
+    caster_count = 0;
+    recording    = true;
+}
+
+void ModelRenderer::draw_casters(const Mat4 &vp)
+{
+    static gfx_shader shader = gfx_shader_create(shaders::kModelVS, shaders::kModelDepthFS);
+    if (shader.id == 0 || caster_count == 0) return;
+    static const int loc_mvp = gfx_uniform_location(shader, "uMVP"), loc_bones = gfx_uniform_location(shader, "uBones"),
+                     loc_tex = gfx_uniform_location(shader, "uTexture");
+    gfx_shader_bind(shader);
+    gfx_uniform_set_int(loc_tex, 0);
+    for (size_t i = 0; i < caster_count; ++i) {
+        const Caster &c = casters[i];
+        gfx_uniform_set_mat4(loc_mvp, mat4_multiply(vp, c.place).m);
+        c.who->set_bones(loc_bones, c.bones);
+        for (const Part &p : c.who->m_parts) {
+            if (p.colour[3] < 1.0f) continue;   // a windscreen lets the sun through
+            gfx_texture_bind(c.texture.id != 0 ? c.texture : p.texture, 0);
+            gfx_draw(c.who->m_mesh, (int)p.index_count, (int)p.first_index);
+        }
+    }
+}
+
 void ModelRenderer::draw(const Mat4 &projection, const Mat4 &view, const Mat4 &model,
                          const std::vector<float> &bones, gfx_texture texture, float light,
                          float alpha, uint32_t tag, float dissolve)
@@ -186,26 +250,31 @@ void ModelRenderer::draw(const Mat4 &projection, const Mat4 &view, const Mat4 &m
     const Mat4 mvp = mat4_multiply(mat4_multiply(projection, view), model);
     if (m_loc_mvp >= 0) gfx_uniform_set_mat4(m_loc_mvp, mvp.m);
 
-    // Three vec4 a joint, and the array is uploaded whole rather than per part:
-    // the parts of one character share one skeleton, and uploading it twice
-    // would be uploading it twice.
-    if (m_loc_bones >= 0 && !bones.empty()) {
-        const int rows = (int)(bones.size() / 4);
-        gfx_uniform_set_v4(m_loc_bones, bones.data(), rows);
-    } else if (m_loc_bones >= 0) {
-        // A model with NO skeleton -- a block's, and any glTF exported without
-        // one. The loader binds such a vertex to joint 0 with weight 1, so the
-        // shader reads three rows that nobody uploaded: the mesh collapses to
-        // the origin and draws nothing at all, which is exactly what a block
-        // wearing a model did until this line (TODO.md OPEN-43).
-        //
-        // One identity joint, here rather than in the shader: the shader runs
-        // per vertex and this runs once per draw, and the alternative is a
-        // branch on every vertex of every character.
-        static const float identity[12] = {1.0f, 0.0f, 0.0f, 0.0f,
-                                           0.0f, 1.0f, 0.0f, 0.0f,
-                                           0.0f, 0.0f, 1.0f, 0.0f};
-        gfx_uniform_set_v4(m_loc_bones, identity, 3);
+    set_bones(m_loc_bones, bones);
+
+    // The sun, in the world only: an arm in the hand is drawn with no view, in
+    // its own space.
+    static const Mat4 no_view = mat4_identity();
+    const bool sunlit = sun.on && std::memcmp(view.m, no_view.m, sizeof view.m) != 0;
+    if (m_loc_sun_on >= 0) gfx_uniform_set_f(m_loc_sun_on, sunlit ? 1.0f : 0.0f);
+    if (sunlit) {
+        gfx_uniform_set_v3(m_loc_sun_dir, sun.dir);
+        gfx_uniform_set_mat4(m_loc_place, model.m);
+        gfx_uniform_set_mat4(m_loc_inv_vp, mat4_invert(mat4_multiply(projection, view)).m);
+        gfx_uniform_set_mat4(m_loc_shadow_vp, sun.shadow_vp.m);
+        gfx_uniform_set_f(m_loc_shadow_on, sun.shadows ? 1.0f : 0.0f);
+        gfx_uniform_set_f(m_loc_shadow_texel, sun.texel);
+        gfx_texture_bind(sun.map, 3);
+        gfx_uniform_set_int(m_loc_shadow, 3);
+    }
+    if (recording && sunlit && alpha >= 1.0f && dissolve <= 0.0f && caster_count < kMaxCasters &&
+        length_sq(Vec3{model.m[12], model.m[13], model.m[14]} - caster_eye) < kCasterReach * kCasterReach) {
+        if (casters.size() <= caster_count) casters.emplace_back();
+        Caster &c = casters[caster_count++];
+        c.who     = this;
+        c.place   = model;
+        c.bones   = bones;
+        c.texture = texture;
     }
     if (m_loc_texture >= 0) gfx_uniform_set_int(m_loc_texture, 0);
     if (m_loc_light >= 0) gfx_uniform_set_f(m_loc_light, std::max(light, night_sight * 0.55f));

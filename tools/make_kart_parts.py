@@ -118,13 +118,7 @@ PARTS = {
         P("cyl", "nose", "Kart_Chrome", (0, 0.96, 0.24), (0.03, 0.03, 0.9), (0, 90, 0)),
     ] + [P("cyl", "nose", "Kart_Chrome", (x, 0.93, 0.18), (0.025, 0.025, 0.16)) for x in (-0.42, -0.15, 0.15, 0.42)]
       + [P("cyl", "nose", "Kart_Lamp", (x, 0.91, 0.2), (0.055, 0.055, 0.03), (-90, 0, 0)) for x in (-0.3, 0.3)],
-    "nose_shark": [   # a rounded snout with a row of teeth
-        P("ball", "nose", "tint_1", (0, 0.62, 0.16), (0.3, 0.36, 0.14)),
-        P("box", "nose", "tint_2", (0, 0.88, 0.09), (0.62, 0.06, 0.05)),
-        P("ball", "nose", "Kart_Soot", (0.15, 0.82, 0.21), (0.035, 0.035, 0.035)),
-        P("ball", "nose", "Kart_Soot", (-0.15, 0.82, 0.21), (0.035, 0.035, 0.035)),
-    ] + [P("cone", "nose", "Kart_White", (x, 0.92, 0.1), (1, 1, 1), (90, 0, 0), r1=0.022, r2=0.0, d=0.05, seg=6)
-         for x in (-0.24, -0.16, -0.08, 0.0, 0.08, 0.16, 0.24)],
+    # nose_shark is Meshy's now (tools/make_kart_meshy.py).
     # Side pods.
     "pods_rocket": [   # a rocket on each side
         p for s in (-1, 1) for p in (

@@ -432,7 +432,7 @@ pallone.
 
 **Dopo il finale** (`mods/rewards`). Chi ha battuto l'Ospite trova nel sandbox gli strumenti dei mondi,
 in forma ridotta: la pistola a fune (trenta agganci al giorno), una pistola dei portali (dodici colpi al
-giorno, su qualsiasi muro) e il kart, sulle vie dei villaggi e i sentieri tra loro. `/rewards` li ridà.
+giorno, su qualsiasi muro) e il kart, da guidare ovunque. `/rewards` li ridà.
 
 **Meteo** (`mods/weather`). Cielo sereno, poi pioggia o temporale per qualche minuto: il cielo
 e le nuvole si fanno grigi, la pioggia cade attorno a te e si ferma sui tetti, i campi a cielo
@@ -689,7 +689,7 @@ server acceso tra riavvii e crash, con un log al giorno.
 | | |
 |---|---|
 | `tools/play.sh` (`local`, `--fresh`) | Compila in Release, avvia server e client con tutti i mod e un mondo salvato in `worlds/play/` |
-| `tools/track.sh` (`--fresh`) | Un server con il sandbox e tutti i mondi come stanze, come lo avvia il menù del titolo (mondi e log in `worlds/track/`); `--fresh` ti fa anche suo proprietario, così il catalogo creativo (C) è aperto |
+| `tools/track.sh` (`--fresh`) | Un server con il sandbox e tutti i mondi come stanze, come lo avvia il menù del titolo ma con tutti i mondi sbloccati (una copia di `mods/keys` con `ALL_OPEN`; mondi e log in `worlds/track/`); `--fresh` ti fa anche suo proprietario, così il catalogo creativo (C) è aperto |
 | `tools/arpg.sh`, `tools/fps.sh`, `tools/chambers.sh` (`--fresh`) | Il sandbox e un mondo solo, per lavorare su quel mondo |
 | `tools/portallab.sh` | Una scena per controllare i portali a occhio (games/portallab): vetro visto attraverso le aperture, una a soffitto in cui saltare, due pavimenti tra cui rimbalzare, aperture che scorrono, inseguono e girano su ogni asse; `/lab wall`, `glass`, `head`, `bounce`, `view`, `slide`, `chase`, `spin`, `spiny`, `spinz`, `still`, `at <gradi>`; un'apertura grande come una porta su una alta un ottavo che ti rimpicciolisce a 1/16, `/lab tiny`, `g1`, `scale <s>` |
 | `tools/vehiclelab.sh` | I veicoli attraverso i portali (games/vehiclelab, sopra le mod del sandbox): una linea di binari in un'apertura e fuori da un'altra girata di un quarto, un canale per la barca uguale; un portale portato da un treno in curva; `NAME=boat` o `train` parte lì, `/vlab rail`, `boat`, `train`, `watch`; un client a tempo vuole `--keep-portals` |

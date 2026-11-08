@@ -471,7 +471,8 @@ line), both written by `/difficulty`, `/rule` and the title menu, read at the st
 
 ## Limits
 
-- `/mute` recognises a muted player's words by three in a row: a mod that rewords them, or a
+- `/mute` recognises a muted player's words by three in a row, whatever the case, the punctuation
+  or the quotes round them: a mod that rewords them, or a
   line under six letters, gets through; another player repeating their phrase within the hour
   is held too. A mod that relays words asks `core.is_muted` itself, as `/msg` and `/me` do.
 - A friend that stays unreachable while a player plays on with the copy kept here keeps its own

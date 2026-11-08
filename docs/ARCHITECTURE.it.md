@@ -225,6 +225,13 @@ di tornare. Quando una modifica tocca una di queste, va verificata come dice la 
   ma non lì, la differenza tra i due è la causa: elencarla prima di cambiare qualcosa.
 
 ## Dove si mette una feature
+- **Una coppia che scala prende solo un corpo che può ridimensionare.** Quella che porterebbe la
+  scala di un giocatore fuori da 1/32..4 (`kMinBodyScale`, `kMaxBodyScale`) non lo fa passare: il
+  posto sarebbe della coppia e la taglia del limite. Verifica: un salto sulla teca del giardino
+  resta sul vetro.
+- **I raggi del cielo disfano proiezione e vista separatamente.** `kWaterSkyVS` applica
+  `inverse(uView)` a `inverse(uProjection) * punto`. `inverse(P * V)` faceva vibrare le nuvole di
+  0,82 blocchi a 1/16 mentre l'occhio si muove; così nella stessa prova in float resta 0,0000.
 
 | Cosa | Dove |
 |---|---|

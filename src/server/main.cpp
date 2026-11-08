@@ -2030,7 +2030,7 @@ std::vector<std::string> lower_words(const std::string &text)
     std::vector<std::string> out;
     std::string              w;
     for (const char c : text + " ") {
-        if (std::isspace((unsigned char)c)) {
+        if ((unsigned char)c < 0x80 && !std::isalnum((unsigned char)c)) {
             if (!w.empty()) out.push_back(std::move(w));
             w.clear();
         } else {

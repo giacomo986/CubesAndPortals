@@ -28,6 +28,14 @@ core.register_node("track_core:light", 250, 240, 210, true, 14)
 local KART = core.register_node("track_core:kart", 40, 45, 55, true, 0, "upright", 2)
 core.node_model(KART, core.register_model("track_core:kart", "track_core_kart.gltf"))
 core.node_box(KART, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+-- And the garage's parts, linked from track_core, or a kart comes in here bare.
+for _, part in { "wheel_slick", "wheel_offroad", "wheel_retro", "wheel_dragon",
+                 "nose_wedge", "nose_ram", "nose_shark", "nose_dragon",
+                 "pods_rocket", "pods_slab", "pods_dragon",
+                 "pipes_twin", "pipes_stack", "pipes_jet", "pipes_dragon",
+                 "wing_spoiler", "wing_twin", "wing_fin", "wing_dragon" } do
+    core.register_model("track_core:kart_" .. part, "kart_" .. part .. ".gltf")
+end
 -- And the power-ups' (track_game): the box, what is dropped and thrown, linked
 -- from track_core, under its names; their sounds beside them (inferno_track:box...).
 for _, m in { "item_box", "banana", "shell_green", "shell_red" } do
