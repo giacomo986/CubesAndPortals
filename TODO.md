@@ -1542,6 +1542,14 @@ Seen in Xephyr; not played with the gun by hand.
 - A ticket for one room is good at every room of the server.
 
 **Kart and tracks.**
+- Dragon set from Meshy (2026-11-07): a fifth variant `dragon` for each of
+  the garage's five slots (tools/make_kart_meshy.py). Concepts by
+  image-to-image (nano-banana-2) from a render of the kart, image-to-3D
+  meshy-6, 180 credits in all; the 54 MB of glb kept out of the repository in
+  ~/.cache/cnp_look/kart/src. 1800-4400 triangles per part, flat paintable
+  colours, no texture. Xephyr, scripted: the garage panel's kart wears all
+  five and the paint (blue/orange/light gray) recolours them. Not seen: a lap
+  with the dragon pipes' flames burning at the horns.
 - Nitro flames, skid marks and the garage (2026-10-20, protocol 103): the
   chassis says each step whether the nitro burns and how fast it slides
   sideways (DriveLook, kSlideSeen 2 m/s); the server sends both bits of its

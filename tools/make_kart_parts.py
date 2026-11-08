@@ -311,4 +311,5 @@ def main():
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "blender", "kart_parts.blend"))
 
 
-main()
+if __name__ == "__main__":   # tools/make_kart_meshy.py borrows the rig and the export
+    main()

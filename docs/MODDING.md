@@ -1690,7 +1690,12 @@ on foot and get into a parked kart: `games/track`.
   the panel a slowly turning model, framed by its size, with its colours and the pieces (ids separated
   by spaces) on it as above: `games/track`'s garage shows the chosen kart this way. It does not answer
   clicks (protocol 104). `tools/make_kart_parts.py` makes the kart split into parts (`nose`, `pods`,
-  `pipes`) and its 14 pieces.
+  `pipes`) and its 14 pieces. `tools/make_kart_meshy.py` adds a fifth variant to each slot, `dragon`, made
+  with Meshy (concepts by image-to-image from a render of the kart, then image-to-3D): each model is
+  fitted into its slot's box on the same rig, and its faces take flat colours by the hue of Meshy's
+  texture, which become `tint_1`/`tint_2`/`tint_3` and the kart's fixed materials, so the paint
+  recolours it. The wheel is one wheel placed four times, the pod one pod mirrored, and the pipes put
+  their own `flame_*` joints at the horns' mouths.
 * **First-person arms.** A model registered with the player model's name plus `_arms`
   (`robot:robot` -> `robot:robot_arms`) is drawn in front of the eye when the view is first person.
   It is made in eye space: origin at the eye, forward -Z, up +Y. It plays `swing` while the left

@@ -1884,7 +1884,14 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   inquadrato dalla sua misura, con i suoi colori e i pezzi (id separati da
   spazi) addosso come sopra: il garage di `games/track` mostra così il kart
   scelto. Non risponde ai click (protocollo 104). `tools/make_kart_parts.py` fa il
-  kart diviso in parti (`nose`, `pods`, `pipes`) e i suoi 14 pezzi.
+  kart diviso in parti (`nose`, `pods`, `pipes`) e i suoi 14 pezzi. `tools/make_kart_meshy.py` aggiunge a ogni
+  slot una quinta variante, `dragon`, fatta con Meshy (concept con image-to-image
+  da un render del kart, poi image-to-3D): ogni modello è sistemato nel riquadro
+  del suo slot sullo stesso rig, e le sue facce prendono colori piatti secondo la
+  tinta della texture di Meshy, che diventano `tint_1`/`tint_2`/`tint_3` e i
+  materiali fissi del kart, così la vernice lo ricolora. La ruota è una ruota
+  messa quattro volte, la pancia una pancia specchiata, e gli scarichi mettono i
+  loro giunti `flame_*` alle bocche delle corna.
 * **Braccia in prima persona.** Un modello registrato col nome del modello
   del giocatore più `_arms` (`robot:robot` → `robot:robot_arms`) viene
   disegnato davanti all'occhio quando la vista è in prima persona. È fatto

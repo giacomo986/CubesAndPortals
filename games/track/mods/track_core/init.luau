@@ -38,7 +38,9 @@ local KART_MODEL = core.register_model("track_core:kart", "track_core_kart.gltf"
 -- the kart's bones, in place of the kart's bones of the same part.
 for _, part in {"wheel_slick", "wheel_offroad", "wheel_retro", "nose_wedge", "nose_ram", "nose_shark",
                 "pods_rocket", "pods_slab", "pipes_twin", "pipes_stack", "pipes_jet",
-                "wing_spoiler", "wing_twin", "wing_fin"} do
+                "wing_spoiler", "wing_twin", "wing_fin",
+                -- the dragon set, from Meshy (tools/make_kart_meshy.py)
+                "wheel_dragon", "nose_dragon", "pods_dragon", "pipes_dragon", "wing_dragon"} do
     core.register_model("track_core:kart_" .. part, "kart_" .. part .. ".gltf")
 end
 

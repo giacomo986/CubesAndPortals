@@ -404,11 +404,11 @@ if serving then
     -- the client draws in place of the kart's (track_core's
     -- kart_<part>_<variant>), and the kart itself in slot 6, which paints it.
     local PARTS = {
-        { key = "wheel", label = "Wheels",    variants = { "slick", "offroad", "retro" } },
-        { key = "nose",  label = "Nose",      variants = { "wedge", "ram", "shark" } },
-        { key = "pods",  label = "Side pods", variants = { "rocket", "slab" } },
-        { key = "pipes", label = "Exhaust",   variants = { "twin", "stack", "jet" } },
-        { key = "wing",  label = "Wing",      variants = { "spoiler", "twin", "fin" } },
+        { key = "wheel", label = "Wheels",    variants = { "slick", "offroad", "retro", "dragon" } },
+        { key = "nose",  label = "Nose",      variants = { "wedge", "ram", "shark", "dragon" } },
+        { key = "pods",  label = "Side pods", variants = { "rocket", "slab", "dragon" } },
+        { key = "pipes", label = "Exhaust",   variants = { "twin", "stack", "jet", "dragon" } },
+        { key = "wing",  label = "Wing",      variants = { "spoiler", "twin", "fin", "dragon" } },
     }
     local PAINTS = { "Bodywork", "Trim", "Rims" }
     -- The sixteen dyes, in the engine's order (kDyeColours).
