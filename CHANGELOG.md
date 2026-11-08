@@ -5,6 +5,32 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
+## 0.15.0-alpha.1 — 2026-11-08
+
+**Does not play with 0.14 servers** (protocol 120). Worlds are read as they are, but a front world
+already saved keeps its old walls round the new doors: delete `front.world` to have them built anew.
+
+- **The front**: the rocket launcher has a glass sight, and held on an enemy vehicle for 1.2 s it
+  locks (LOCKING, LOCKED) and its rocket chases the vehicle. The doors to the bases are set into the
+  wall, 2 by 3, and seen through properly. Under the gallery's glass floor lies the whole field in
+  miniature at 1:32, with the battle on it; nobody on the field can see it. Each base has an airstrip.
+- **Portals that scale**: a door-sized opening onto a tiny one shrinks whoever walks through, creatures
+  and tumbling boxes too; and **openings that move**, carried along or turned freely any way at all,
+  crossed relative to how they go. For mods: `core.portal_scale`, `core.body_scale`, `core.body_size`,
+  `core.portal_move`, and `core.portal_window` for a one-way view that nothing crosses.
+- **A garden seen huge**, through a little door by the spawn: ants in lanes, ladybirds and butterflies
+  at their true size, with their voices.
+- **The kart**: a dragon variant for each of the garage's five slots, a garage kept across rooms and
+  fitted in the Inferno too, item boxes in the Inferno, and after the ending the kart runs anywhere in
+  the sandbox. A camera eased out of loops.
+- **Scaffolding** of poles and planks: put up and taken down by robots, climbed by players.
+- **A fourth species**, the knight, in the data but switched off for now.
+- **Shadows on bodies and models**, and clouds that hold still when you are small.
+- **Smaller things**: potions outlast a leave and a restart; the arpg's held buttons repeat the skill,
+  and its crypt has its sounds; power-ups and the torch have sounds; rails laid by a mod take their shape;
+  a track piece taken back gives the ground back; eclipses drawn on every machine; the illustrated deck
+  is complete; `/mute` sees through case, punctuation and quotes; translations aligned.
+
 ## 0.14.0-alpha.1 — 2026-11-05
 
 - **Bees**: wild nests among the meadows' flowers and hives of planks fill with honey (a flask takes

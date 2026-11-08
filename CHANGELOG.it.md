@@ -5,6 +5,35 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
+## 0.15.0-alpha.1 — 2026-11-08
+
+**Non gioca con i server 0.14** (protocollo 120). I mondi si leggono così come sono, ma un mondo del
+fronte già salvato tiene i vecchi muri attorno alle porte nuove: cancella `front.world` per farli
+ricostruire.
+
+- **Il fronte**: il lanciarazzi ha un vetrino trasparente e, tenuto per 1,2 s su un veicolo nemico,
+  aggancia (LOCKING, LOCKED) e il razzo lo insegue. Le porte verso le basi sono incassate nel muro, 2
+  per 3, e ci si vede attraverso come si deve. Sotto il pavimento di vetro della tribuna c'è tutto il
+  campo in miniatura, 1:32, con la battaglia sopra; dal campo non la vede nessuno. Ogni base ha una pista
+  d'atterraggio.
+- **Portali che scalano**: un'apertura grande come una porta su una minuscola rimpicciolisce chi passa,
+  creature e casse comprese; e **aperture che si muovono**, portate in giro o girate in ogni verso,
+  attraversate rispetto a come vanno. Per i mod: `core.portal_scale`, `core.body_scale`, `core.body_size`,
+  `core.portal_move`, e `core.portal_window` per una vista a senso unico che nulla attraversa.
+- **Un giardino visto enorme**, da una porticina vicino allo spawn: formiche in fila, coccinelle e
+  farfalle alla loro vera taglia, con le loro voci.
+- **Il kart**: una variante drago per ognuno dei cinque pezzi del garage, un garage che vale in tutte le
+  stanze e montato anche nell'Inferno, scatole oggetto nell'Inferno e, dopo il finale, il kart va
+  ovunque nel sandbox. La camera esce dolcemente dai giri della morte.
+- **Impalcature** di pali e assi: i robot le montano e le smontano, i giocatori ci si arrampicano.
+- **Una quarta specie**, il cavaliere, nei dati ma per ora spenta.
+- **Ombre su corpi e modelli**, e nuvole che stanno ferme quando si è piccoli.
+- **Cose minori**: le pozioni durano dopo un'uscita e un riavvio; nell'arpg i tasti tenuti ripetono
+  l'abilità e la cripta ha i suoi suoni; suoni per i power-up e la torcia; le rotaie posate da un mod
+  prendono la loro forma; un pezzo di pista ripreso restituisce il terreno; le eclissi si disegnano su
+  ogni macchina; il mazzo illustrato è completo; `/mute` non si fa ingannare da maiuscole, punteggiatura
+  e virgolette; traduzioni allineate.
+
 ## 0.14.0-alpha.1 — 2026-11-05
 
 - **Api**: nidi selvatici tra i fiori dei prati e arnie di assi si riempiono di miele (una fiasca
