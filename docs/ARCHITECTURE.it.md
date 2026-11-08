@@ -208,7 +208,9 @@ di tornare. Quando una modifica tocca una di queste, va verificata come dice la 
   punto di vista, taglio, innesco, uscita), o un occhio rimpicciolito sta in un tubo otto volte più
   profondo del buco e vede il cielo. La sua uscita fa stare il corpo, alla nuova taglia, dentro il
   buco lontano: un sedicesimo appena fuori centro usciva dalla porticina del giardino mezzo nella
-  siepe, incastrato; e `ahead_of_crossing` del client lascia queste coppie al server. Verifica:
+  siepe, incastrato; e `ahead_of_crossing` del client mette il corpo dove lo mostrava l'immagine, dai piedi
+  di prima del passo di quel frame (già fatto con le misure nuove del corpo, che arrivano
+  appena prima del passaggio), a meno che lì non ci stia. Verifica:
   `/lab tiny`, le formiche del giardino sull'erba, fuori da G fuori centro e ritorno.
 - **Niente piano vicino obliquo più vicino del piano vicino.** `portal_oblique_near` rinuncia
   quando la telecamera virtuale è più vicina al piano di taglio della destinazione del suo stesso

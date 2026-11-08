@@ -2196,8 +2196,17 @@ SessionAction ServerSessions::cross_if_triggered(Session &s, const Move &move,
         tp.epoch  = placed(s, t.feet, Vec3{tp.vx, tp.vy, tp.vz}, std::atan2(tp.look_x, -tp.look_z),
                            true);
 
-        a.reply         = tp.encode();
+        // Sized by the pair, the new numbers go first and in the same breath:
+        // left to the end of the tick they could land frames after the place,
+        // a tall eye over tiny feet.
         a.reply_channel = (uint8_t)Channel::Event;
+        if (k != 1.0f) {
+            s.movement_owed = false;
+            a.reply         = movement_message(s.id);
+            a.more.push_back(tp.encode());
+        } else {
+            a.reply = tp.encode();
+        }
         if (s.crossings == 1 || s.crossings % 100 == 0)
             a.log = "'" + s.name + "' crossed (" + std::to_string(s.crossings) + " so far)";
         return a;

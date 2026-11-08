@@ -206,8 +206,9 @@ When a change touches one of them, check it the way the line says.
   (`portal_depth_scale`: doorway, image plane, viewpoint, clip, trigger, exit), or a shrunk eye
   stands inside a tube eight times as deep as the hole and sees sky. Its exit fits the body at
   its new size inside the far hole: a sixteenth a hair off centre came out of the garden's door
-  half in the hedge, stuck; and the client's `ahead_of_crossing` leaves such pairs to the
-  server. Check: `/lab tiny`, the garden's ants on the grass, out of G off centre and back.
+  half in the hedge, stuck; and the client's `ahead_of_crossing` puts the body where the image had it, from the feet
+  before that frame's step (already taken by the new body's numbers, which arrive just before
+  the crossing), unless it does not fit there. Check: `/lab tiny`, the garden's ants on the grass, out of G off centre and back.
 - **No oblique near plane nearer than the near plane.** `portal_oblique_near` gives up when the
   virtual camera is closer to the destination's clip plane than its own near plane: an oblique
   plane that close squeezes the depth range and the far side comes out striped, leaves and sky in

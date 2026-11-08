@@ -13265,7 +13265,7 @@ void settle_roll(Scene &s, float dt)
 // is (portal_shown_depth: the map's depth, plus `view`); the body goes there,
 // and looks where the map sends its own look, when that is a place a body fits
 // and not far from the server's. The server's grace window takes the rest.
-void ahead_of_crossing(Scene &s, Player &player, Vec3 eye_before, Vec3 look_before)
+void ahead_of_crossing(Scene &s, Player &player, Vec3 eye_before, Vec3 look_before, Vec3 feet_before)
 {
     const Session &w    = s.act();
     int            best = -1;
@@ -13276,13 +13276,26 @@ void ahead_of_crossing(Scene &s, Player &player, Vec3 eye_before, Vec3 look_befo
     }
     if (best < 0) return;
     const Portal &src = w.linked_openings[(size_t)best], &dst = w.linked_to[(size_t)best];
-    // A pair that scales changes the body's size: the server's exit (which
-    // fits the new body in the far hole) is the only one.
-    if (src.scales && dst.scales) return;
-    const Vec3 eye  = portal_transform_pos(src, dst, eye_before) + dst.normal() * portal_tuning().view_depth();
-    const Vec3 feet = eye - Vec3{0.0f, player.eye_height, 0.0f};
-    if (length(feet - player.pos) > 0.75f) return;
-    if (box_hits_world(w.world, w.registry, body_box(feet, w.movement.width * 0.5f))) return;
+    // A pair that scales: the body's new numbers came just before this crossing
+    // (cross_if_triggered), and this frame's step was already taken by them --
+    // sixteen times the pace, growing, which put the eye past the plane. What
+    // the image showed was the old body where the last step left it. The place
+    // is the image's own camera, every depth at the far end's size. Where that
+    // does not fit the new body in the far hole (hard by the hedge), the
+    // server's exit, which does, stands.
+    const bool scaling = src.scales && dst.scales;
+    if (scaling) eye_before = feet_before + Vec3{0.0f, w.movement.eye / portal_pair_scale(src, dst), 0.0f};
+    const Vec3 eye = scaling ? portal_virtual_camera(surface_from_portal(src), surface_from_portal(dst), eye_before,
+                                                     Vec3{0.0f, 0.0f, 1.0f}, Vec3{0.0f, 1.0f, 0.0f}).pos
+                             : portal_transform_pos(src, dst, eye_before) + dst.normal() * portal_tuning().view_depth();
+    Vec3 feet = eye - Vec3{0.0f, scaling ? w.movement.eye : player.eye_height, 0.0f};
+    // Growing multiplies the rounding too: feet a hair under the floor the
+    // server's stand on would read as walled in.
+    const float room = portal_depth_scale(dst.scales, dst.half_h);
+    if (scaling && std::fabs(feet.y - player.pos.y) < 0.01f * room) feet.y = player.pos.y;
+    if (length(feet - player.pos) > 0.75f * room) return;
+    if (box_hits_world(w.world, w.registry,
+                       body_box(feet, w.movement.width * 0.5f, 0.0f, kPlayerHeight * w.movement.scale))) return;
     std::printf("portal: %.2f ahead of where the server put us\n", (double)length(feet - player.pos));
     player.pos = feet;
     const Vec3 look = portal_carry_look(src, dst, look_before);
@@ -15769,6 +15782,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         // Where the player was before this frame moved them, for the hold
         // below: holding means NOT FALLING, and not being put back at a height
         // this loop guessed.
+        const Vec3  feet_before  = player.pos;
         const float y_before     = player.pos.y;
         const bool  was_grounded = player.on_ground && !player.vehicle;
 
@@ -16025,7 +16039,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             player.roped     = false;
             s.roll           = moved.roll;
             if (moved.reason == "portal") {
-                ahead_of_crossing(s, player, eye_before, look_before);
+                ahead_of_crossing(s, player, eye_before, look_before, feet_before);
                 aim_after_crossing(s, player);
             }
 

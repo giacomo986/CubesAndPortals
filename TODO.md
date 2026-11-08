@@ -11,6 +11,28 @@ CLOSED-n ids that comments in `src/` still cite:
 
 ---
 
+## Next steps (2026-11-08)
+
+1. Play the garden's door both ways on a real GPU: is the jump in eye height
+   gone? If not: going in or out, jumping or running.
+2. Commit the scaling crossing (`src/client/main.cpp`, `src/core/net/session.cpp`,
+   docs) and, apart, the dragon kart set.
+3. Dragon kart: a lap with the dragon pipes' flames burning at the horns.
+4. Choose among these, each waiting for a decision, hardware or a big job:
+   - Play: Emberwing's balance at level 11; garden and other sounds by ear;
+     the bow's pose.
+   - Worlds: signposts at crossings; lava depth beyond the water box;
+     creatures hanging from ledges; OPEN-35, OPEN-38, OPEN-43.
+   - Front: PvP, flying the plane by hand.
+   - Graphics: lighting on a real GPU (meshing cost, shadows on bodies,
+     coloured light); VRAM of the mouths; windows that show no bodies and
+     never close.
+   - Server: what /mute should cover; the friend copy; the seal checked on
+     the client's side.
+   - Distribution: macOS, real Windows, signing, app id, OPEN-39, OPEN-52.
+
+---
+
 ## The game as a whole
 
 **Declared playable, 2026-10-09.** Giacomo lifted the gate: M10 (distribution)
@@ -1240,6 +1262,12 @@ Portals -- the engine's own trick, used further:
    protocol 118 sends a creature's scale). Kept within 1/32..4: an ant out
    of D is 4x, 20 cm, not 16x. Checked in Xephyr: an ant walked into G came
    out of D at 31.50 39.77, drawn 4x. G's frame now half as deep: a face on
+   Scaling crossing made continuous (2026-11-08, from play): the client now
+   lands where the image had the eye (/lab tiny, in Xephyr: 0.01 ahead of the
+   server going small, 0.04 going big; eye height 41.10 and 42.62, as mapped);
+   the body's numbers now go before the Teleport.
+   Open: not played at the garden's door or on a real GPU; the jump in eye
+   height Giacomo saw never showed in the numbers.
    the doorway's clip plane. Open: a natural creature wandering into D far
    from players despawns (the pig test); the scale limit 4 is the player's.
    The boost is now for whoever is in the garden small, however (core.body_size,
