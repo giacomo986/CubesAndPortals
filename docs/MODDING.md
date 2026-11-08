@@ -1736,7 +1736,8 @@ on foot and get into a parked kart: `games/track`.
   first person: a flat thing lies in the XY plane), in metres of the 1.357 robot and scaled with the
   forearm like the block. It holds on the arms, on your own body and on other players.
   `tools/make_held_models.py` makes the 41 of the project's mods and the icons of those that had
-  none.
+  none (the armour and the reward kart as miniatures of their worn models); `tools/make_gun_icons.py`
+  renders a gun's icon from its held model.
 * **Models from Meshy.** A textured glTF is drawn with its texture (base colour only, no lights
   baked in). `tools/meshy_prop.py` turns a Meshy `.glb` into one: sized in metres, origin at the base
   or the centre, welded and decimated (3000 triangles by default), its colour baked onto a fresh unwrap at 128

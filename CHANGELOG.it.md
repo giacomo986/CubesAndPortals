@@ -14,6 +14,7 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
   la sua corsa. Cavalcata fuori dalla porticina cresce alla tua misura, addomesticata: aspetta sellata
   dove scendi e resta dopo un riavvio.
 - Il kart del finale: F per scendere.
+- **Ogni oggetto ha la sua icona e qualcosa da tenere in mano**: le armi di fronte, assalto e arena hanno l'icona invece del nome nella casella; armature, coloranti, frammenti e il resto si tengono in mano come sono, non come un cubo.
 - Per gli admin: `/story` mostra o assegna chiavi e finale di un giocatore; `/time` ora funziona in ogni mondo, non solo nel sandbox.
 
 ## 0.15.0-alpha.1 — 2026-11-08

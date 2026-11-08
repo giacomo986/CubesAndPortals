@@ -1945,7 +1945,8 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   robot da 1.357 e scalato con l'avambraccio come il blocco. Vale sulle
   braccia, sul proprio corpo e sugli altri giocatori.
   `tools/make_held_models.py` fa i 41 dei mod del progetto e le icone di
-  quelli che non ne avevano.
+  quelli che non ne avevano (le armature e il kart dei premi come miniature dei modelli indossati);
+  `tools/make_gun_icons.py` rende l'icona di un'arma dal suo modello in mano.
 * **Modelli da Meshy.** Un glTF con texture è disegnato con la sua texture
   (solo colore base, nessuna luce cotta dentro). `tools/meshy_prop.py` ne fa
   uno da un `.glb` di Meshy: misurato in metri, origine alla base o al centro,

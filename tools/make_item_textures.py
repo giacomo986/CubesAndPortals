@@ -503,6 +503,57 @@ SHAPES["bees_honeycomb"] = ([
 ], {"w": (215, 160, 50), "W": (240, 195, 90), "o": (230, 140, 20), "O": (255, 215, 110)})
 
 
+# The world anchor (mods/helpers): a ring, a stock and two flukes, a cinnabar stone in the stock.
+SHAPES["helpers_anchor"] = ([
+    "................",
+    "......iiii......",
+    "......i..i......",
+    "......iiii......",
+    ".......ww.......",
+    "...iiiirrwiiii..",
+    "...dddddwwdddd..",
+    ".......ww.......",
+    ".......ww.......",
+    ".i.....ww.....i.",
+    ".ii....ww....ii.",
+    ".wii...ww...iid.",
+    "..wii..ww..iid..",
+    "...wiiiwwiiid...",
+    ".....wiiiid.....",
+    "................",
+], {"i": (150, 156, 168), "w": (205, 210, 220), "d": (92, 96, 108), "r": (220, 60, 40)})
+
+METAL = {"g": (138, 144, 152), "w": (196, 202, 210), "d": (66, 70, 78), "b": (120, 78, 44), "c": (90, 230, 240), "o": (255, 150, 40)}
+# The arena's guns (games/yafps), which have a bone and no model to render.
+YAFPS = {
+    "yafps_game_pistol": [
+        "................", "................", "................", "...wwwwwwwww....",
+        "...ggggggggggg..", "...gddddddddd...", "...ggggdgg......", "...bbbd..d......",
+        "...bbbdddd......", "...bbb..........", "..bbb...........", "..bbb...........",
+        "..bbb...........", "................", "................", "................"],
+    "yafps_game_shotgun": [
+        "................", "................", "................", "................",
+        "................", "b....wwwwwwwwwww", "bbbbgggggggggggg", "bbbbgdddddddddd.",
+        "bbbbbgg.bbbbbb..", "bb..bd..bbbbbb..", "....bb..........", "................",
+        "................", "................", "................", "................"],
+    "yafps_game_ssg": [
+        "................", "................", "................", "................",
+        "b...wwwwwwwwwww.", "bbbbggggggggggg.", "bbbbddddddddddd.", "bbbbggggggggggg.",
+        "bbbbbgg.........", "bb..bd..........", "....bb..........", "................",
+        "................", "................", "................", "................"],
+    "yafps_game_chaingun": [
+        "................", "................", "................", "...wgg..dd..dd.w",
+        ".gggggggggggggg.", ".gddggdddddddddw", ".gggggggggggggg.", ".gddggdddddddddw",
+        ".gggggggggggggg.", "...oo.dd..dd...w", "...bb...........", "..bbb...........",
+        "..bb............", "................", "................", "................"],
+    "yafps_game_plasma": [
+        "................", "................", "................", "..wwwwwwwwww....",
+        ".gggggggggggggw.", ".gdccccccccdgggw", ".gdccccccccdgggw", ".gggggggggggggw.",
+        "...ddb.ddd......", "...bbb..........", "..bbb...........", "..bbb...........",
+        "................", "................", "................", "................"],
+}
+
+
 def draw(rows, colours):
     img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
     filled = set()
@@ -549,6 +600,8 @@ def recolour(kind, head):
 def main():
     for name, (rows, colours) in SHAPES.items():
         draw(rows, colours).save(os.path.join(OUT, name + ".png"))
+    for name, rows in YAFPS.items():
+        draw(rows, METAL).save(os.path.join(OUT, "..", "..", "games", "yafps", "textures", name + ".png"))
     for kind in ("pick", "axe", "shovel", "sword", "hoe"):
         for head in HEADS:
             name = ("farm_hoe" if kind == "hoe" else f"tools_wood_{kind}") if head == "wood" \

@@ -45,6 +45,7 @@ if serving then
     core.register_item(ROPE, 1)
     core.register_item(PORTAL, 1)
     core.register_item(KART, 1)
+    core.register_model("rewards:kart_held", "kart_held.gltf")   -- tools/make_held_models.py
     core.register_model("rewards:rope_gun_held", "rope_gun_held.gltf")
     core.register_model("rewards:portal_gun_held", "portal_gun_held.gltf")
     local KART_MODEL = core.register_model("rewards:kart", "kart.gltf")

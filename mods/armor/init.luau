@@ -26,6 +26,7 @@ for _, m in MATERIALS do
         -- And what it looks like on a robot: a model of the item's own name,
         -- bound to the wearer's bones by their names.
         core.register_model(name, `{mat}_{p[1]}.gltf`)
+        core.register_model(`{name}_held`, `{mat}_{p[1]}_held.gltf`)   -- tools/make_held_models.py
     end
 
     core.recipe_shaped(`armor:{mat}_helmet`, 1,

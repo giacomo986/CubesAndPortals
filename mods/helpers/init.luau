@@ -69,6 +69,8 @@ core.recipe_shaped(ITEM, 1,
     "furnace:iron_ingot  -             furnace:iron_ingot")
 
 core.register_item("helpers:anchor", 1, "", 0, 1.0, "")
+core.register_model("helpers:anchor_held", "anchor_held.gltf")   -- tools/make_held_models.py
+core.register_model("helpers:robot_held", "robot_held.gltf")
 core.recipe_shaped("helpers:anchor", 1,
     "furnace:iron_ingot  ore:cinnabar  furnace:iron_ingot",
     "ore:cinnabar        ore:diamond   ore:cinnabar",

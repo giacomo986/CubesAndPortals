@@ -25,6 +25,7 @@ for i, entry in COLOURS do
     local c, rgb = entry[1], entry[2]
     local dye = `colors:{c}_dye`
     core.register_item(dye, 64, "", 0, 1.0, "")
+    core.register_model(`{dye}_held`, `{c}_dye_held.gltf`)   -- tools/make_held_models.py
     -- One of the engine's sixteen, in the same order (core.recipe_dye): what
     -- colours a backpack at a table.
     core.item_dye(dye, i)

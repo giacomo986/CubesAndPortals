@@ -50,6 +50,7 @@ local PUMPKIN = core.register_node("plants:pumpkin", 226, 130, 30, true, 0, "upr
 local MELON = core.register_node("plants:melon", 120, 170, 40, true, 0, "", 0, 1.0, "wood")
 
 core.register_item("plants:melon_slice", 64, "", 0, 1.0, "")
+core.register_model("plants:melon_slice_held", "melon_slice_held.gltf")   -- tools/make_held_models.py
 core.node_drop_item(DEAD, "timber:stick")
 core.node_drop_item(WEB, "archery:string")
 core.recipe_shaped("plants:melon", 1,

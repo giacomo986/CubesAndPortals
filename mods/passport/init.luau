@@ -17,6 +17,7 @@
 local LETTERBOX = core.register_node("passport:letterbox", 190, 40, 40, true, 0, "upright", 0, 2.0, "wood")
 core.node_box(LETTERBOX, 0.15, 0.0, 0.15, 0.85, 0.95, 0.85)
 core.register_item("passport:passport", 1)
+core.register_model("passport:passport_held", "passport_held.gltf")   -- tools/make_held_models.py
 core.recipe_shaped("passport:passport", 1, "cane:paper animals:leather cane:paper")
 core.recipe_shaped("passport:letterbox", 1,
     "furnace:iron_ingot furnace:iron_ingot furnace:iron_ingot",

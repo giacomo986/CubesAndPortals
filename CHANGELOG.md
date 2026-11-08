@@ -14,6 +14,7 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
   walking and running. Ridden out through the little door it grows to your size, tamed: it waits
   saddled where you get off and keeps across restarts.
 - The kart of the ending: F gets out of it.
+- **Every item has its picture and something to hold**: the guns of the front, the assault and the arena have icons instead of their name in the slot; armour, dyes, the shard and the rest are held as themselves instead of a cube.
 - For admins: `/story` sees or sets a player's keys and ending; `/time` now works in every world, not only the sandbox.
 
 ## 0.15.0-alpha.1 — 2026-11-08

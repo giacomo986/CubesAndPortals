@@ -396,6 +396,9 @@ end
 -- And the two tools a track of pieces is timed with (track_game reads them):
 -- a right click with one on a road puts a start line, or a checkpoint, across
 -- it where it was clicked, crossed away from whoever clicked.
+for _, n in { "start_line", "checkpoint", "offroad", "box_tool", "editor" } do
+    core.register_model(`track_core:{n}_held`, `{n}_held.gltf`)   -- tools/make_held_models.py
+end
 core.register_item("track_core:start_line", 1)
 core.register_item("track_core:checkpoint", 1)
 -- And one for where a lap may leave the road: two clicks, two opposite corners

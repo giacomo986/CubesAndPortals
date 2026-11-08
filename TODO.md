@@ -13,6 +13,7 @@ CLOSED-n ids that comments in `src/` still cite:
 
 ## Next steps (2026-11-08)
 
+000. Items: 19 icons made (tools/make_gun_icons.py, make_item_textures.py) and 45 real 3D held models (tools/make_held_models.py); the track's power-ups and ink blot left without one, as nobody is given them.
 00. Options -> Video, a plain storm sky (assault's in Xephyr's software GL: 13 -> 21 FPS), brightness
     (the night sight's floor), the kart's F, a saddled ladybird (mods/garden, tools/make_ladybird_mount.py), /story, /time in every world. Open: real
     full-screen resolutions and VSync not checkable in Xephyr (one mode, no display sync); not played by hand.

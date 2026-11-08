@@ -19,9 +19,11 @@
 # The items with no picture get one: rendered here from their model, flat-lit,
 # shrunk to 32x32 and outlined, like the rest of assets/textures. Leaves the
 # work in assets/blender/held_items.blend.
+import json
 import math
 import os
 import random
+import re
 import sys
 
 import bmesh
@@ -44,6 +46,8 @@ def mod_dir(mod):
         return os.path.join(ROOT, "games", "inferno", "mods", "inferno")
     if mod == "backrooms":
         return os.path.join(ROOT, "games", "backrooms", "mods", "backrooms")
+    if mod == "track_core":
+        return os.path.join(ROOT, "games", "track", "mods", "track_core")
     return os.path.join(ROOT, "mods", mod)
 
 
@@ -920,9 +924,15 @@ def miniature(path, size):
         # Blender's up to the grip's up (+Y), its front away from the eye.
         obj.data.transform(Matrix.Translation((0, 0.05, 0)) @ Matrix.Scale(k, 4) @
                            Matrix.Rotation(math.radians(-90), 4, "X") @ Matrix.Translation(-mid))
+        # The file's own colours: the importer loses them on some (the kart's, 0.8 all round).
+        with open(os.path.join(ROOT, path)) as f:
+            source = {m.get("name"): m for m in json.load(f)["materials"]}
         for mat in obj.data.materials:
             bsdf = next((n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None) if mat.node_tree else None
             if bsdf is not None:
+                c = source.get(mat.name.split(".")[0], {}).get("pbrMetallicRoughness", {}).get("baseColorFactor")
+                if c:
+                    bsdf.inputs["Base Color"].default_value = tuple(c)
                 mat.diffuse_color = tuple(bsdf.inputs["Base Color"].default_value)
         return obj
     return build_it
@@ -1312,6 +1322,65 @@ BLOCK_ICONS["arena:gong"] = block_icon([((0.1, 0, 0.4, 0.2, 1, 0.6), "dark_wood"
                                         ((0.22, 0.2, 0.46, 0.78, 0.76, 0.54), "gong")])
 BLOCK_TURN = tuple(math.degrees(a) for a in (
     Matrix.Rotation(math.radians(30), 3, "X") @ Matrix.Rotation(math.radians(35), 3, "Y")).to_euler("XYZ"))
+
+
+# ---- the last that had only a cube in the hand
+for _name, _rgb, *_rest in [("amethyst", (0.62, 0.35, 0.85), 0.0, 0.2), ("clay", (0.62, 0.62, 0.66)), ("brick_red", (0.62, 0.30, 0.22)),
+                            ("melon_rind", (0.20, 0.50, 0.20)), ("melon_flesh", (0.85, 0.20, 0.25)), ("passport_red", (0.55, 0.12, 0.12)),
+                            ("black_flat", (0.05, 0.05, 0.06)), ("flag_yellow", (0.95, 0.80, 0.10)), ("cone_orange", (1.0, 0.45, 0.05)),
+                            ("box_yellow", (0.95, 0.72, 0.18)), ("brick_hole", (0.20, 0.10, 0.08))]:
+    M[_name] = material(_name.title(), _rgb, *_rest)
+
+# Armour: its own worn shape, small. The helper and the kart the same way.
+for _m in ("wood", "iron", "gold", "diamond"):
+    for _p, _size in (("helmet", 0.13), ("chestplate", 0.2), ("leggings", 0.2), ("boots", 0.16)):
+        ITEMS[f"armor:{_m}_{_p}"] = miniature(f"mods/armor/{_m}_{_p}.gltf", _size)
+ITEMS["helpers:robot"] = miniature("mods/helpers/helper.gltf", 0.2)
+ITEMS["rewards:kart"] = miniature("mods/rewards/kart.gltf", 0.24)
+
+# A jar of each dye, with the colours of mods/colors.
+for _c, _r, _g, _b in re.findall(r'\{ "(\w+)", \{ (\d+), (\d+), (\d+) \} \}', open(os.path.join(mod_dir("colors"), "init.luau")).read()):
+    M[f"dye_{_c}"] = material(f"Dye_{_c}", (int(_r) / 255, int(_g) / 255, int(_b) / 255), 0.0, 0.35)
+    ITEMS[f"colors:{_c}_dye"] = [
+        (cyl(0.036, 0.06, segs=12, at=(0, -0.01, 0)), f"dye_{_c}"), (cyl(0.02, 0.02, segs=10, at=(0, 0.05, 0)), f"dye_{_c}"),
+        (cyl(0.024, 0.018, segs=10, at=(0, 0.07, 0)), "dark_wood"), (cyl(0.0375, 0.024, segs=12, at=(0, 0.005, 0)), "paper")]
+
+ITEMS["helpers:anchor"] = [
+    (ring(0.028, 0.008, segs=14, at=(0, 0.16, 0), rot=(90, 0, 0)), "dark_iron"), (cyl(0.012, 0.22, segs=8, at=(0, -0.07, 0)), "iron"),
+    (box((0.13, 0.02, 0.02), at=(0, 0.105, 0)), "iron"), (ball(0.012, 8, 6, at=(0, 0.105, 0.015)), "cinnabar"),
+    (ring(0.075, 0.011, start=15, sweep=150, segs=12, rot=(90, 0, 0)), "iron"),
+    (cyl(0.018, 0.05, segs=8, r2=0.001, at=(0.072, -0.024, 0)), "dark_iron"), (cyl(0.018, 0.05, segs=8, r2=0.001, at=(-0.072, -0.024, 0)), "dark_iron")]
+ITEMS["passport:passport"] = [
+    (box((0.1, 0.14, 0.003), at=(0, 0.05, 0.011)), "passport_red"), (box((0.1, 0.14, 0.003), at=(0, 0.05, -0.011)), "passport_red"),
+    (box((0.006, 0.14, 0.025), at=(-0.05, 0.05, 0)), "passport_red"), (box((0.09, 0.13, 0.019), at=(0.002, 0.05, 0)), "paper"),
+    (cyl(0.024, 0.002, segs=14, at=(0.003, 0.05, 0.0125), rot=(90, 0, 0)), "gold")]
+_arc = lambda r, n=8: [(0.0, -0.03)] + [(math.cos(math.radians(55 + 70 * k / n)) * r, -0.03 + math.sin(math.radians(55 + 70 * k / n)) * r) for k in range(n + 1)]
+ITEMS["plants:melon_slice"] = [(slab(_arc(0.14), 0.04, at=(0, 0, 0)), "melon_rind"), (slab(_arc(0.125), 0.044, at=(0, 0, 0)), "melon_flesh")] + [
+    (box((0.006, 0.012, 0.046), at=_s), "melon_seed") for _s in ((-0.02, 0.07, 0), (0.02, 0.07, 0), (0, 0.04, 0), (-0.03, 0.05, 0), (0.03, 0.05, 0))]
+ITEMS["rocks:amethyst_shard"] = [(cyl(0.022, 0.11, segs=6, r2=0.003, at=(0, -0.015, 0)), "amethyst"),
+                                 (cyl(0.013, 0.07, segs=6, r2=0.002, at=(0.022, -0.012, 0.004), rot=(0, 0, -20)), "amethyst"),
+                                 (cyl(0.013, 0.06, segs=6, r2=0.002, at=(-0.02, -0.012, -0.004), rot=(0, 0, 22)), "amethyst"),
+                                 (cyl(0.022, 0.03, segs=6, r2=0.012, at=(0, -0.015, 0), rot=(180, 0, 0)), "amethyst")]
+ITEMS["rocks:brick"] = [(box((0.13, 0.05, 0.07), bevel=0.003, at=(0, 0.04, 0)), "brick_red")] + [
+    (cyl(0.012, 0.002, segs=10, at=(_x, 0.065, 0)), "brick_hole") for _x in (-0.04, 0.0, 0.04)]
+ITEMS["rocks:clay_ball"] = [(lump(0.05, 7, rough=0.07, subdiv=2, at=(0, 0.05, 0), scale=(1, 0.92, 1)), "clay")]
+
+_pole = lambda: (cyl(0.007, 0.22, segs=8, at=(0, -0.08, 0)), "dark_iron")
+ITEMS["track_core:start_line"] = [_pole()] + [
+    (box((0.03, 0.03, 0.006), at=(0.022 + i * 0.03, 0.125 - j * 0.03, 0)), "white" if (i + j) % 2 == 0 else "black_flat")
+    for i in range(5) for j in range(4)]
+ITEMS["track_core:checkpoint"] = [_pole(), (slab([(0.007, 0.14), (0.12, 0.105), (0.007, 0.07)], 0.006), "flag_yellow"),
+                                  (cyl(0.03, 0.012, segs=12, at=(0, -0.08, 0)), "dark_iron")]
+ITEMS["track_core:offroad"] = [(box((0.09, 0.01, 0.09), at=(0, -0.01, 0)), "dark_iron"), (cyl(0.04, 0.14, segs=14, r2=0.01, at=(0, -0.005, 0)), "cone_orange"),
+                               (cyl(0.0285, 0.02, segs=14, r2=0.0265, at=(0, 0.055, 0)), "white")]
+ITEMS["track_core:box_tool"] = [(box((0.11, 0.11, 0.11), bevel=0.005, at=(0, 0.055, 0)), "box_yellow")] + [
+    (box(_s, at=_a), "white") for _s, _a in (((0.05, 0.012, 0.003), (0, 0.092, 0.056)), ((0.012, 0.03, 0.003), (0.019, 0.075, 0.056)),
+                                             ((0.03, 0.012, 0.003), (0.008, 0.058, 0.056)), ((0.012, 0.02, 0.003), (0, 0.042, 0.056)),
+                                             ((0.012, 0.012, 0.003), (0, 0.018, 0.056)))]
+ITEMS["track_core:editor"] = [(box((0.12, 0.16, 0.006), at=(0, 0.05, 0)), "wood"), (box((0.05, 0.02, 0.012), at=(0, 0.13, 0.005)), "iron"),
+                              (box((0.1, 0.13, 0.002), at=(0, 0.04, 0.004)), "paper")] + [
+    (box((0.075, 0.004, 0.001), at=(-0.005, 0.09 - k * 0.022, 0.0055)), "black_flat") for k in range(5)] + [
+    (rod((0.035, -0.01, 0.012), (0.075, 0.08, 0.012), 0.005), "flag_yellow"), (rod((0.075, 0.08, 0.012), (0.08, 0.093, 0.012), 0.004), "dark_iron")]
 
 
 # `-- DIR` after the script: a picture of every model in DIR as well, to look
