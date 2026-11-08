@@ -469,7 +469,7 @@ friend server, given to them the next time they are in.
 (`mods/cards`) with the forty-card Neapolitan deck: briscola, cinquiglio, scopa and tresette, for
 two to five players, with the table playing the empty seats.
 
-**Characters and gear.** Choose robot, human, mole man, frog man or dragon knight, a style, three colours and
+**Characters and gear.** Choose robot, human, mole man or frog man, a style, three colours and
 two accessories, all seen by everyone. On your back: a jetpack to fly, a leather backpack with
 27 slots of its own, or a metal backpack with two jointed arms that each hold a tool. The
 creative catalogue (C) has a search box. `/creative on` is creative mode: flying without the

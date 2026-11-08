@@ -1709,7 +1709,7 @@ on foot and get into a parked kart: `games/track`.
   (`robot:robot_cap`), made on the player's skeleton and drawn as a worn piece; a world that does not
   register them simply does not show them. `tools/make_robot_extras.py` makes them. The species
   (protocol 94, two bits above the accessories: human, mole man, frog man; protocol 119, a third
-  bit above the style: the dragon knight) replaces the player's model with the one named after it
+  bit above the style: the dragon knight, not offered for now) replaces the player's model with the one named after it
   plus `_human`, `_mole`, `_frog`, `_knight` (`robot:robot_mole`, with its `_arms`),
   on the same skeleton and with the same clips; the chosen style is a worn piece named
   `<species>_<style>` (`robot:robot_mole_lamp`). Accessories are the ones remade for the species

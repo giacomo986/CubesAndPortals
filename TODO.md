@@ -167,6 +167,9 @@ Open:
   has it (any mod's core.player_wear). Seen on a frog: helm, plate, greaves.
   Open: weapons stay the robot's (same hands); a weapon held at rest points
   ahead, as the robot's tools do; nothing shows a ring.
+  Dragon knight switched off 2026-11-08: kLiverySpeciesCount back to 3 (client
+  only, the wire is unchanged). A saved knight livery shows as the robot. The
+  models stay in mods/robot; the count at 4 brings it back.
   Dragon knight from Meshy (2026-11-07): a fourth species (protocol 119, a
   third species bit above the style), concept by image-to-image from a
   render of the robot (6 credits). First as one mesh (image-to-3D, 30;

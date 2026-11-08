@@ -6717,7 +6717,9 @@ constexpr int     kLiveryHeadCount = 3, kLiveryNeckCount = 3;
 const char *const kLiverySpecies[] = {"human", "mole", "frog", "knight"};
 const char *const kLiveryStyles[4][3] = {
     {"short", "long", "beard"}, {"lamp", "goggles", "glasses"}, {"spots", "crown", "lily"}, {}};
-constexpr int kLiverySpeciesCount = 4;
+// 3: the knight is switched off, in the picker and on anyone's livery (the
+// robot instead). 4 brings it back; its models are still in mods/robot.
+constexpr int kLiverySpeciesCount = 3;
 constexpr int kLiveryStylesOf[4] = {3, 3, 3, 0};
 // The styles that are hats: an extra on the head is worn instead of them.
 constexpr bool kLiveryStyleHat[4][3] = {

@@ -1909,7 +1909,7 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   registra semplicemente non li mostra. `tools/make_robot_extras.py` li fa.
   La specie (protocollo 94, due bit sopra gli accessori: umano, uomo talpa,
   uomo rana; protocollo 119, un terzo bit sopra lo stile: il cavaliere del
-  drago) sostituisce il modello del giocatore con quello col suo nome più
+  drago, per ora non offerto) sostituisce il modello del giocatore con quello col suo nome più
   `_human`, `_mole`, `_frog`, `_knight` (`robot:robot_mole`, con le sue `_arms`), sullo
   stesso scheletro e con le stesse clip; lo stile scelto è un pezzo indossato
   di nome `<specie>_<stile>` (`robot:robot_mole_lamp`). Gli accessori sono
