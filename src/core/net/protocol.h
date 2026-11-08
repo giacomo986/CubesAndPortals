@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 119; // 119 a fourth species, the knight
+inline constexpr uint16_t kProtocol    = 120; // 120 windows: Portal::view
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -391,7 +391,9 @@ inline constexpr uint16_t kProtocol    = 119; // 119 a fourth species, the knigh
 // Player block, which a 117 client refuses.
 // 119 widens the livery by one bit, the species' third (kLiverySpeciesHigh):
 // a 118 server refuses it as past kLiveryMax.
-inline constexpr uint16_t kMinProtocol = 119;
+// 120 gives an opening a view (Portal::view, two bits over the free and scales
+// ones): a 119 client refuses the bits as a byte past 3.
+inline constexpr uint16_t kMinProtocol = 120;
 
 // What a player picked to look like (protocol 93): the three colours of their
 // model's tint_1..3 materials -- primary, secondary, accent -- five bits each,
@@ -1407,6 +1409,7 @@ struct PortalDesc {
     // axis and normal_sign are then the plane and side nearest.
     uint8_t free   = 0;
     uint8_t scales = 0;   // Portal::scales (117): a pair of two such scales what crosses
+    uint8_t view   = 0;   // Portal::view (120): 1 a window, 2 what it looks out of
     float   nx = 0.0f, ny = 0.0f, nz = 1.0f, ux = 0.0f, uy = 1.0f, uz = 0.0f;
     float   wx = 0.0f, wy = 0.0f, wz = 0.0f;   // how fast it turns, rad/s about this axis
 };

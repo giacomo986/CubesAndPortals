@@ -200,6 +200,19 @@ di tornare. Quando una modifica tocca una di queste, va verificata come dice la 
   prima con l'orologio azzerato: con un messaggio a ogni frame (sotto i ~20 fps) quella ripartenza
   lasciava ogni altro corpo fermo dove era apparso (2026-11-07). Verifica: gli insetti del
   giardino si muovono in Xephyr.
+- **Il centro di un'apertura è il mezzo di un nodo.** Lungo il suo fronte, `Portal::center` è il
+  centro di un nodo e l'immagine sta sulla faccia lontana di quel nodo (`plane` in
+  `config/portal.cfg`). Un centro sul confine tra due nodi mette l'apertura mezzo nodo fuori dal muro
+  e l'immagine mezzo nodo dentro: le porte del fronte erano così fino al 2026-11-08 e non ci si
+  vedeva attraverso come si deve. Per un'apertura incassata, svuota quel nodo e dai un blocco al
+  muro dietro. Verifica: le due porte della tribuna.
+- **Una finestra è solo per gli occhi** (`Portal::view`, `core.portal_window`, protocollo 120).
+  `view` 1 si guarda attraverso, 2 è ciò da cui guarda e non si disegna da nessuna parte; nessuna
+  delle due è attraversata da corpi o creature né tiene un'esenzione del pavimento. Il server manda
+  tutto ciò che l'estremità lontana copre in larghezza (`PlayerInterest::Window::radius`, e i corpi
+  in `entities_for`); il client dà alla finestra un `PortalLink` e nessun posto in
+  `linked_openings`. Verifica: sotto l'estremità lontana della miniatura del fronte il cielo è vuoto,
+  e il vetro della tribuna sopra di essa tiene su il corpo.
 - **I corpi piccoli tengono la scatola sotto i piedi.** `body_box` alza la scatola al massimo di
   `altezza - min(0.1, altezza/2)`; il vecchio "altezza - 0.1" sotto i 0.2 di altezza diventava
   negativo e appendeva la scatola 8 cm sotto i piedi. Una creatura non è mai meno di 0.01 × 0.01
@@ -212,6 +225,13 @@ di tornare. Quando una modifica tocca una di queste, va verificata come dice la 
   di prima del passo di quel frame (già fatto con le misure nuove del corpo, che arrivano
   appena prima del passaggio), a meno che lì non ci stia. Verifica:
   `/lab tiny`, le formiche del giardino sull'erba, fuori da G fuori centro e ritorno.
+- **Una coppia che scala prende solo un corpo che può ridimensionare.** Quella che porterebbe la
+  scala di un giocatore fuori da 1/32..4 (`kMinBodyScale`, `kMaxBodyScale`) non lo fa passare: il
+  posto sarebbe della coppia e la taglia del limite. Verifica: un salto sulla teca del giardino
+  resta sul vetro.
+- **I raggi del cielo disfano proiezione e vista separatamente.** `kWaterSkyVS` applica
+  `inverse(uView)` a `inverse(uProjection) * punto`. `inverse(P * V)` faceva vibrare le nuvole di
+  0,82 blocchi a 1/16 mentre l'occhio si muove; così nella stessa prova in float resta 0,0000.
 - **Niente piano vicino obliquo più vicino del piano vicino.** `portal_oblique_near` rinuncia
   quando la telecamera virtuale è più vicina al piano di taglio della destinazione del suo stesso
   piano vicino: un piano obliquo così vicino schiaccia la profondità e l'altro lato esce a righe,
@@ -225,13 +245,6 @@ di tornare. Quando una modifica tocca una di queste, va verificata come dice la 
   ma non lì, la differenza tra i due è la causa: elencarla prima di cambiare qualcosa.
 
 ## Dove si mette una feature
-- **Una coppia che scala prende solo un corpo che può ridimensionare.** Quella che porterebbe la
-  scala di un giocatore fuori da 1/32..4 (`kMinBodyScale`, `kMaxBodyScale`) non lo fa passare: il
-  posto sarebbe della coppia e la taglia del limite. Verifica: un salto sulla teca del giardino
-  resta sul vetro.
-- **I raggi del cielo disfano proiezione e vista separatamente.** `kWaterSkyVS` applica
-  `inverse(uView)` a `inverse(uProjection) * punto`. `inverse(P * V)` faceva vibrare le nuvole di
-  0,82 blocchi a 1/16 mentre l'occhio si muove; così nella stessa prova in float resta 0,0000.
 
 | Cosa | Dove |
 |---|---|

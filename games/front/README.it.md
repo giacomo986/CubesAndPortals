@@ -20,7 +20,8 @@ i bot non lo vedono. Sulla parete di fondo ci sono due portali, uno rosso e uno
 blu, e dentro ciascuno si vede la sua base. Chi entra in quello rosso esce nel
 bunker della base rossa e combatte per i rossi; lo stesso con il blu. Dal
 portale del bunker si torna in tribuna e si smette di combattere; da lì si può
-scegliere di nuovo. La porta da cui si è entrati, in fondo a sud della
+scegliere di nuovo. Sotto il pavimento di vetro della tribuna c'è il campo in
+miniatura, 1:32, che si vede solo dalla tribuna e non dal campo. La porta da cui si è entrati, in fondo a sud della
 tribuna, riporta sulla piazza. Il fronte non dà chiavi.
 
 Nel gioco finito la porta si apre solo a chi ha battuto l'Ospite nel
@@ -118,7 +119,7 @@ salgono e scendono, il mouse governa quello che vola.
 | nido di mitragliatrice | ai sacchi di sabbia lungo le strade | 1 | |
 | mortaio, obice | nelle basi | 1 | tirano dove guarda il mirino (un palo rosso lo segna) |
 
-La fanteria ha anche il lanciarazzi. Un mezzo distrutto esplode: il
+La fanteria ha anche il lanciarazzi: mirando per 1,2 s un veicolo nemico nel vetrino (LOCKING, poi LOCKED) il razzo lo insegue. Un mezzo distrutto esplode: il
 relitto brucia, perde i pezzi (la torretta del carro vola via, la jeep si
 ribalta) e in 5 s sprofonda; ne torna uno nuovo a casa dopo 30 s.
 

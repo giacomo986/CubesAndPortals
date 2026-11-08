@@ -249,6 +249,8 @@ due mondi:
 - **Il fronte** (`games/front`): un campo di battaglia nello stile dei grandi sparatutto a
   squadre, due basi e tre punti da prendere, rossi contro blu, con bot e mezzi; ogni base ha una
   pista da cui decollano i suoi aerei.
+  La tribuna dove si sceglie la squadra ha il campo intero in miniatura sotto il pavimento di vetro,
+  e il lanciarazzi aggancia i veicoli nemici attraverso il suo vetrino.
 - **L'assalto** (`games/assault`): l'assalto finale alla dimensione di Basoalth, da giocare
   insieme: quattro fortezze, un negozio, alleati e costruttori, un boss che diventa un gigante e
   la fuga in jeep in un tunnel di lava.

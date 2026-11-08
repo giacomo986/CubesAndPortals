@@ -1860,11 +1860,15 @@ void ServerSessions::aim_windows(Session &s, Vec3 feet) const
     const float reach = s.interest.config().window_reach;
     for (int i = 0; i < kMaxOpenings; ++i) {
         const int j = m_link[i];
-        if (!local_pair(i, j)) continue;
+        if (!local_pair(i, j) || m_portal[i].view == 2) continue;
         const float d = length(m_portal[i].center - feet);
         if (d > reach) continue;
         const Vec3 far = m_portal[j].center;
-        windows.push_back(PlayerInterest::Window{far.x, far.y, far.z, d});
+        // A window shows all of what it looks out of, however wide that is.
+        const int radius = m_portal[i].view == 1
+                               ? (int)std::ceil(std::max(m_portal[j].half_w, m_portal[j].half_h) / (float)kChunkSize)
+                               : 0;
+        windows.push_back(PlayerInterest::Window{far.x, far.y, far.z, d, radius});
     }
     s.interest.set_windows(std::move(windows));
 }
@@ -1888,7 +1892,7 @@ size_t ServerSessions::floor_exemptions(SolidExemption *out) const
     size_t n = 0;
 
     for (int i = 0; i < kMaxOpenings && n < kMaxSolidExemptions; ++i) {
-        if (!m_portal_set[i] || m_portal[i].free || m_portal[i].scales) continue;   // in the air, in no block
+        if (!m_portal_set[i] || m_portal[i].free || m_portal[i].scales || m_portal[i].view) continue;   // in the air, in no block
         const Portal &p = m_portal[i];
         if (!p.horizontal()) {
             // A wall opening set inside the wall: the wall round it, one cell
@@ -1998,6 +2002,7 @@ Portals ServerSessions::portals_message() const
         d.vz          = p.vel.z;
         d.free        = p.free ? 1 : 0;
         d.scales      = p.scales ? 1 : 0;
+        d.view        = p.view;
         d.nx = p.fn.x, d.ny = p.fn.y, d.nz = p.fn.z;
         d.ux = p.fu.x, d.uy = p.fu.y, d.uz = p.fu.z;
         d.wx = p.spin.x, d.wy = p.spin.y, d.wz = p.spin.z;
@@ -2128,17 +2133,12 @@ SessionAction ServerSessions::cross_if_triggered(Session &s, const Move &move,
 
     for (int i = 0; i < kMaxOpenings; ++i) {
         const int j = m_link[i];
-        if (!local_pair(i, j)) continue;
+        if (!local_pair(i, j) || m_portal[i].view) continue;
         const Crossing c{&m_portal[i], &m_portal[j], &s.portal_state[i], &s.portal_state[j]};
         if (!trigger_along(*c.from, *c.state, from_feet, feet, vel, eye_of(s), (float)dt) &&
             !portal_swallows(*c.from, feet, eye_of(s), vel))
             continue;
 
-        const Traversal t = portal_traverse(*c.from, *c.to, feet, look, vel, m_world, m_registry,
-                                            eye_of(s), limits_of(s, now).arrival_half);
-        if (t.blocked) {
-            // Refused rather than swallowed, and said once: a destination that
-            // is walled in is a thing somebody built, not a fault.
         // A pair that would make the body bigger or smaller than a body may
         // be is no way through for it: the place is the pair's and the size
         // would be the limit's, a body four times as big put where one twelve
@@ -2148,6 +2148,11 @@ SessionAction ServerSessions::cross_if_triggered(Session &s, const Move &move,
             grown < kMinBodyScale * 0.999f || grown > kMaxBodyScale * 1.001f)
             continue;
 
+        const Traversal t = portal_traverse(*c.from, *c.to, feet, look, vel, m_world, m_registry,
+                                            eye_of(s), limits_of(s, now).arrival_half);
+        if (t.blocked) {
+            // Refused rather than swallowed, and said once: a destination that
+            // is walled in is a thing somebody built, not a fault.
             a.log = "'" + s.name + "' crossed into a blocked destination, refused";
             return a;
         }
@@ -2251,7 +2256,7 @@ int ServerSessions::cross_mobs(double now)
         const float eye = b.height * 0.5f;
         for (int i = 0; i < kMaxOpenings; ++i) {
             const int j = m_link[i];
-            if (!local_pair(i, j)) continue;
+            if (!local_pair(i, j) || m_portal[i].view) continue;
             // A floor opening is the node it is in, which holds a creature up:
             // one standing on it or falling onto it, its middle over the hole,
             // goes in -- as a player's box is let down into it (floor shift).
@@ -4721,7 +4726,14 @@ std::vector<EntityState> ServerSessions::entities_for(PeerId peer, float radius)
         const float dx = p.x - here.x;
         const float dy = p.y - here.y;
         const float dz = p.z - here.z;
-        if (dx * dx + dy * dy + dz * dz > radius * radius) return;
+        if (dx * dx + dy * dy + dz * dz > radius * radius) {
+            // Too far to meet, but on show in a window (Portal::view).
+            bool shown = false;
+            for (const PlayerInterest::Window &w : me->interest.windows())
+                shown = shown || (w.radius > 0 && std::fabs(p.x - w.x) <= (float)(w.radius * kChunkSize) &&
+                                  std::fabs(p.z - w.z) <= (float)(w.radius * kChunkSize));
+            if (!shown) return;
+        }
 
         EntityState s;
         s.id    = e.id();   // the whole id: index AND generation (OPEN-48)

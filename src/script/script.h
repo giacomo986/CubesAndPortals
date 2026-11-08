@@ -108,6 +108,7 @@ typedef struct script_host {
     int (*body_scale)(void *ud, int player, double scale);
     float (*body_size)(void *ud, int player);   // 0 for nobody
     int (*portal_scale)(void *ud, int id, bool on);
+    int (*portal_window)(void *ud, int a, int b);
     int (*portal_move)(void *ud, int id, float x, float y, float z, int axis, int sign, int rot,
                        float nx, float ny, float nz, float ux, float uy, float uz);
     int (*portal_link)(void *ud, int a, int b);

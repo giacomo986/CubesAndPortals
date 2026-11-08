@@ -136,6 +136,7 @@ if serving then
 
     local TOUGH = { [core.node_id("front_core:bedrock")] = true, [core.node_id("front_core:ridge")] = true,
                     [core.node_id("front_core:gallery")] = true, [core.node_id("front_core:pane")] = true,
+                    [core.node_id("front_core:map_glass")] = true,
                     [core.node_id("front_core:frame_red")] = true, [core.node_id("front_core:frame_blue")] = true }
 
     local NADE = "front_game:nade"
@@ -546,7 +547,8 @@ if serving then
         local d = jitter({ dx, dy, dz }, if s.aiming then g.ads else g.spread)
         if g.rocket then
             M.shoot("rocket", { x + d[1] * 0.8, y + EYE - 0.1 + d[2] * 0.8, z + d[3] * 0.8 },
-                    { d[1] * 45, d[2] * 45, d[3] * 45 }, p, s.team)
+                    { d[1] * 45, d[2] * 45, d[3] * 45 }, p, s.team, nil,
+                    if (s.lock_t or 0) >= M.AA_LOCK then s.lock_on else nil)
             return
         end
         bullet(p, s, { x, y + EYE, z }, d, g, item)
@@ -1393,8 +1395,9 @@ if serving then
             -- A missile turns after what it was locked on, faster and faster,
             -- and bursts within 3 of it.
             local tm = sh.homing and M.list[sh.homing]
-            if tm and tm.pose and not tm.dead then
-                local dx, dy, dz = tm.pose.x - x, tm.pose.y + 1 - y, tm.pose.z - z
+            if tm and not tm.dead then
+                local tx, ty, tz = M.where(sh.homing)
+                local dx, dy, dz = tx - x, ty + 1 - y, tz - z
                 local l = math.sqrt(dx * dx + dy * dy + dz * dz)
                 if l < 3 then
                     M.shots[id] = nil
@@ -1640,6 +1643,48 @@ if serving then
             else
                 tell(p, "lock none")
             end
+        end
+    end
+
+    -- The bazooka's lock, aimed down its sight: the enemy vehicle nearest the
+    -- crosshair, within AA_CONE, in sight, held for AA_LOCK. Locked, the next
+    -- rocket goes after it (fire, M.shoot).
+    function M.launcher_lock(p: number, s, dt: number)
+        local loaded = s.aiming and not M.seat_of[p] and short(core.held_item(p)) == "launcher"
+            and s.reload_at == 0 and s.mag.launcher > 0
+        local x, y, z = core.player_pos(p)
+        local lx, ly, lz = core.player_look(p)
+        local best, score = nil, M.AA_CONE
+        if loaded and x ~= nil and lx ~= nil then
+            local o = { x, y + EYE, z }
+            local fx, fy, fz = M.toward(p, o, lx, ly, lz)
+            for _, t in enemies(s.team) do
+                local tm = t.machine and M.list[t.machine]
+                if tm == nil or tm.k.craft == nil then continue end   -- a vehicle, not a gun on legs
+                local tx, ty, tz = M.where(t.machine)
+                local dx, dy, dz = tx - o[1], ty + 1 - o[2], tz - o[3]
+                local l = math.sqrt(dx * dx + dy * dy + dz * dz)
+                if l > M.AA_RANGE or l < 3 then continue end
+                local ang = math.acos(math.clamp((dx * fx + dy * fy + dz * fz) / l, -1, 1))
+                if ang < score then
+                    local _, _, _, wall = core.raycast(o[1], o[2], o[3], dx / l, dy / l, dz / l, l - 2)
+                    if wall == nil then best, score = t.machine, ang end
+                end
+            end
+        end
+        if best ~= nil and best == s.lock_on then
+            s.lock_t += dt
+        else
+            s.lock_on, s.lock_t = best, 0
+        end
+        if clock < (s.lock_said or 0) or (best == nil and not s.locking) then return end
+        s.lock_said, s.locking = clock + 0.1, best ~= nil
+        if best == nil then
+            tell(p, "lock none")
+        else
+            local tx, ty, tz = M.where(best)
+            tell(p, string.format("lock %d %.2f %.1f %.1f %.1f", if s.lock_t >= M.AA_LOCK then 1 else 0,
+                                  math.min(1, s.lock_t / M.AA_LOCK), tx, ty + 1, tz))
         end
     end
 
@@ -2454,7 +2499,7 @@ if serving then
     end
     local watching = {}   -- player -> true once seen in the gallery
 
-    local function step_players()
+    local function step_players(dt: number)
         local here = {}
         for _, p in core.players() do
             here[p] = true
@@ -2512,6 +2557,7 @@ if serving then
                 still_going_home(p, s)
             end
             M.pose(p, s)
+            M.launcher_lock(p, s, dt)
             if s.held and clock >= s.next_fire then
                 fire(p, s)
             end
@@ -2602,7 +2648,7 @@ if serving then
     end
 
     function server_step(dt: number)
-        step_players()
+        step_players(dt)
         M.step(dt)
         step_bots()
         step_points()
@@ -2941,7 +2987,7 @@ if drawing then
         core.hud.text(0.97, 0.95, `GRENADES {nades}   KILLS {kills}`, 0.026, 2, 190, 200, 190, 220)
 
         -- In a machine: what it is, how much of it is left, how it goes.
-        if V.seat and V.seat.gun == "aa" then
+        if (V.seat and V.seat.gun == "aa") or (not V.seat and V.lock and V.lock.left > 0) then
             local L = V.lock
             local text = if L == nil or L.left <= 0 then "NO TARGET" elseif L.on then "LOCKED -- FIRE"
                 else string.format("LOCKING %d%%", math.floor(L.k * 100))

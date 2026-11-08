@@ -151,8 +151,8 @@ Opens a portal while the world runs, on a server, and returns its id: the lowest
 | `axis` | number | — | The plane it lies in: 0 is XY (it faces along z), 1 is YZ (along x), 2 is XZ (a floor or a ceiling). |
 | `sign` | number | — | 1 or -1: which way along that axis its front faces. |
 | `rot` | number | — | 0..3 quarter turns of the opening about its front. |
-| `half_w` | number | — | Half its width, along its own right, after the turn. At most 16. |
-| `half_h` | number | — | Half its height, along its own up. At most 16. |
+| `half_w` | number | — | Half its width, along its own right, after the turn. At most 128. |
+| `half_h` | number | — | Half its height, along its own up. At most 128. |
 | `colour` | number | `0` | What it shows while it leads nowhere: 0 green (a fixed portal), 1 blue, 2 orange (a portal gun's). |
 
 ## `core.portal_link`
@@ -204,6 +204,19 @@ Makes an open portal one that SCALES, on a server. Linked to another that scales
 |---|---|---|---|
 | `id` | number | — | A portal, as portal_open returned it. |
 | `on` | boolean | `true` | false: a hole of its own size again. |
+
+## `core.portal_window`
+
+```luau
+core.portal_window(a: number, b: number) -> number
+```
+
+Links a to b as a WINDOW, on a server: a shows what b faces, and b is drawn from nowhere, so whoever is over there sees nothing; nothing crosses either, and a window lets solid blocks stand in front of it. The player near a is sent all of what b is as wide as (chunks and bodies), and core.portal_scale on both makes it a miniature. Returns 1, or 0 for no such portals or no server.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `a` | number | — | The portal to look through, as portal_open returned it. |
+| `b` | number | — | The portal it looks out of. |
 
 ## `core.portal_close`
 

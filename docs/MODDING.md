@@ -551,6 +551,7 @@ core.portal_scale(id, on?) -> 1|0   -- both ends of a pair of two sizes: what cr
 core.body_scale(player, s?) -> 1|0  -- a body 1/32..4 as big: box, steps, eye, speeds, gravity, reach, drawn so
 core.body_size(player) -> s         -- how big it is now (body_scale, a scaling portal); 0 for nobody
 core.portal_link(a, b) -> 1|0       -- a and b lead to each other; b = -1 unlinks a
+core.portal_window(a, b) -> 1|0     -- a window, one way, for the eyes: a shows what b faces, b is drawn from nowhere, nothing crosses either (with portal_scale on both: a miniature)
 core.log(message)
 core.play_sound("mod:thing", x, y, z) -> 1|0  -- to everybody in the world; file mods/<mod>/<thing>.ogg on the client
 core.sound_loop("mod:thing", x, y, z, range?, gain?) -> id|0  -- going round until stopped; late joiners hear it too

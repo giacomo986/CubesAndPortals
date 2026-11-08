@@ -74,6 +74,21 @@
 				"metallicFactor":0.800000011920929,
 				"roughnessFactor":0.699999988079071
 			}
+		},
+		{
+			"alphaMode":"BLEND",
+			"doubleSided":true,
+			"name":"window",
+			"pbrMetallicRoughness":{
+				"baseColorFactor":[
+					0.550000011920929,
+					0.75,
+					0.8500000238418579,
+					0.30000001192092896
+				],
+				"metallicFactor":0,
+				"roughnessFactor":0.10000000149011612
+			}
 		}
 	],
 	"meshes":[
@@ -111,6 +126,14 @@
 					},
 					"indices":11,
 					"material":3
+				},
+				{
+					"attributes":{
+						"POSITION":12,
+						"NORMAL":13
+					},
+					"indices":14,
+					"material":4
 				}
 			]
 		}
@@ -203,15 +226,15 @@
 		{
 			"bufferView":9,
 			"componentType":5126,
-			"count":24,
+			"count":96,
 			"max":[
-				-0.06000000238418579,
-				0.17500001192092896,
+				-0.054499998688697815,
+				0.17649999260902405,
 				-0.1599999964237213
 			],
 			"min":[
-				-0.09000000357627869,
-				0.125,
+				-0.09549999982118607,
+				0.12350000441074371,
 				-0.24000000953674316
 			],
 			"type":"VEC3"
@@ -219,11 +242,39 @@
 		{
 			"bufferView":10,
 			"componentType":5126,
-			"count":24,
+			"count":96,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":11,
+			"componentType":5123,
+			"count":144,
+			"type":"SCALAR"
+		},
+		{
+			"bufferView":12,
+			"componentType":5126,
+			"count":24,
+			"max":[
+				-0.06000000238418579,
+				0.1720000058412552,
+				-0.1979999989271164
+			],
+			"min":[
+				-0.09000000357627869,
+				0.12800000607967377,
+				-0.20200000703334808
+			],
+			"type":"VEC3"
+		},
+		{
+			"bufferView":13,
+			"componentType":5126,
+			"count":24,
+			"type":"VEC3"
+		},
+		{
+			"bufferView":14,
 			"componentType":5123,
 			"count":36,
 			"type":"SCALAR"
@@ -286,26 +337,44 @@
 		},
 		{
 			"buffer":0,
-			"byteLength":288,
+			"byteLength":1152,
 			"byteOffset":5268,
 			"target":34962
 		},
 		{
 			"buffer":0,
+			"byteLength":1152,
+			"byteOffset":6420,
+			"target":34962
+		},
+		{
+			"buffer":0,
 			"byteLength":288,
-			"byteOffset":5556,
+			"byteOffset":7572,
+			"target":34963
+		},
+		{
+			"buffer":0,
+			"byteLength":288,
+			"byteOffset":7860,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":288,
+			"byteOffset":8148,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":72,
-			"byteOffset":5844,
+			"byteOffset":8436,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":5916,
+			"byteLength":8508,
 			"uri":"launcher_held.bin"
 		}
 	]

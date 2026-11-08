@@ -16,7 +16,7 @@ between the two bases and 16 nodes above the field, with a window to watch the b
 in the gallery only watches: on no team, unseen by the bots. On the back wall are two portals, a
 red one and a blue one, and inside each you see its base. Walking into the red one you come out in
 the red base's bunker and fight for the reds; the same with the blue. The bunker's portal takes you
-back to the gallery and out of the fight; from there you can choose again. The door you came in by,
+back to the gallery and out of the fight; from there you can choose again. Under the gallery's glass floor lies the field in miniature, 1:32, seen from the gallery only: nobody on the field sees it. The door you came in by,
 at the gallery's south end, leads back to the plaza. The front gives no key.
 
 In the finished game the door opens only to whoever has beaten the Host in the laboratory
@@ -101,7 +101,7 @@ what flies.
 | machine-gun nest | at the sandbags along the roads | 1 | |
 | mortar, howitzer | in the bases | 1 | fire where the sight looks (a red pole marks it) |
 
-The infantry has the rocket launcher too. A destroyed machine explodes: the wreck burns, sheds its
+The infantry has the rocket launcher too: aimed through its glass sight at an enemy vehicle for 1.2 s (LOCKING, then LOCKED) its rocket chases it. A destroyed machine explodes: the wreck burns, sheds its
 parts (the tank's turret flies off, the jeep overturns) and sinks in 5 s; a new one comes back home
 after 30 s.
 

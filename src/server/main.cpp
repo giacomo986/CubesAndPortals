@@ -1409,8 +1409,8 @@ int host_portal_open(void *ud, float x, float y, float z, int axis, int sign, in
 
     const bool sane = std::isfinite(x) && std::isfinite(y) && std::isfinite(z) &&
                       axis >= 0 && axis <= 2 && (sign == 1 || sign == -1) && rot >= 0 &&
-                      rot <= 3 && half_w > 0.0f && half_w <= 16.0f && half_h > 0.0f &&
-                      half_h <= 16.0f;
+                      rot <= 3 && half_w > 0.0f && half_w <= 128.0f && half_h > 0.0f &&
+                      half_h <= 128.0f;
     if (!sane) {
         const ModManifest *m = mod_host_current();
         std::printf("[mod] %s: portal_open: not an opening (axis %d, sign %d, rot %d, "
@@ -1604,6 +1604,22 @@ int host_portal_link(void *ud, int a, int b)
         v[a].link = b;
     }
     s->vportal_next = 0.0;
+    return 1;
+}
+
+// core.portal_window: a looks out of b, and nothing goes through either.
+int host_portal_window(void *ud, int a, int b)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    auto        &v = s->vportals;
+    if (!s->sessions || a < 0 || b < 0 || a == b || a >= (int)v.size() || b >= (int)v.size() ||
+        !v[a].alive || !v[b].alive)
+        return 0;
+    host_portal_link(ud, a, b);
+    v[a].p.view = 1;
+    v[b].p.view = 2;
+    for (const int i : {a, b})
+        if (v[i].slot >= 0) s->sessions->open_portal(v[i].p);
     return 1;
 }
 
@@ -6725,6 +6741,7 @@ int serve_room(int argc, char **argv)
         host.body_scale    = host_body_scale;
         host.body_size     = host_body_size;
         host.portal_scale  = host_portal_scale;
+        host.portal_window = host_portal_window;
         host.portal_seal   = host_portal_seal;
         host.portal_link   = host_portal_link;
         host.far_portal_set   = host_far_portal_set;

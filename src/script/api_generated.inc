@@ -173,6 +173,17 @@ int l_portal_scale(lua_State *L)
     return 1;
 }
 
+// core.portal_window(a: number, b: number) -> number
+int l_portal_window(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int a = (int)luaL_checkinteger(L, 1);
+    const int b = (int)luaL_checkinteger(L, 2);
+    const int result = (vm && vm->host.portal_window) ? vm->host.portal_window(vm->host.ud, a, b) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.portal_close(x: number, y: number, z: number) -> number
 int l_portal_close(lua_State *L)
 {
@@ -3304,6 +3315,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "portal_move");
     lua_pushcfunction(L, l_portal_scale, "core.portal_scale");
     lua_setfield(L, -2, "portal_scale");
+    lua_pushcfunction(L, l_portal_window, "core.portal_window");
+    lua_setfield(L, -2, "portal_window");
     lua_pushcfunction(L, l_portal_close, "core.portal_close");
     lua_setfield(L, -2, "portal_close");
     lua_pushcfunction(L, l_portal_seal, "core.portal_seal");

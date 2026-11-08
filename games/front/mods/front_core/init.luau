@@ -28,6 +28,8 @@ local LAMP     = core.register_node("front_core:lamp", 250, 230, 180, true, 14)
 -- shell opens the gallery or the back of a portal.
 local GALLERY  = core.register_node("front_core:gallery", 120, 122, 126)
 local PANE     = core.register_node("front_core:pane", 190, 215, 230)
+-- The clear floor over the field in miniature (below): nearly nothing to see.
+local MAP_GLASS = core.register_node("front_core:map_glass", 200, 225, 240)
 local FRAME_R  = core.register_node("front_core:frame_red", 170, 30, 28)
 local FRAME_B  = core.register_node("front_core:frame_blue", 30, 56, 170)
 -- The airstrips' (below): tarmac, its painted lines, the lights at its ends.
@@ -35,6 +37,7 @@ local TARMAC   = core.register_node("front_core:tarmac", 52, 54, 58)
 local STRIPE   = core.register_node("front_core:stripe", 232, 230, 220)
 local RUNWAY_LIGHT = core.register_node("front_core:runway_light", 255, 200, 90, true, 12)
 core.node_glass(PANE, 60)
+core.node_glass(MAP_GLASS, 18)
 
 -- What a player is here: the sandbox's robot (mods/robot, linked).
 core.player_model(core.register_model("front_core:robot", "robot.gltf"))
@@ -82,13 +85,22 @@ local STRIPS = { STRIP, { x0 = STRIP.x0, x1 = STRIP.x1, z0 = SIZE - STRIP.z1, z1
 local FLOOR = GROUND + 16
 core.set_portal(0, -2.5, FLOOR + 1, MID - 9.5)
 
--- Each side's pair: the gallery's end on its back wall facing +x, the base's
--- on the back wall of its bunker facing the bunker's door, out of the way of
--- the machines parked in the yard. Both 2 wide and 2.5 tall.
+-- Each side's pair: the gallery's end in its back wall facing +x, the base's
+-- in the back wall of its bunker facing the bunker's door, out of the way of
+-- the machines parked in the yard. Both 2 wide and 3 tall, set a node into
+-- the wall: an opening's centre is the middle of the node it stands in, and
+-- the picture is on that node's far face.
 local DOORS = {
-    { gallery = { -8, FLOOR + 1.25, MID - 5 }, base = { RED_BASE[1], GROUND + 1.25, RED_BASE[2] - 12 }, sign = 1 },
-    { gallery = { -8, FLOOR + 1.25, MID + 5 }, base = { BLUE_BASE[1], GROUND + 1.25, BLUE_BASE[2] + 13 }, sign = -1 },
+    { gallery = { -8.5, FLOOR + 1.5, MID - 5 }, base = { RED_BASE[1], GROUND + 1.5, RED_BASE[2] - 12.5 }, sign = 1 },
+    { gallery = { -8.5, FLOOR + 1.5, MID + 5 }, base = { BLUE_BASE[1], GROUND + 1.5, BLUE_BASE[2] + 13.5 }, sign = -1 },
 }
+
+-- The field in miniature, under the gallery's glass floor: a window (one way,
+-- for the eyes) onto an opening over the middle of the field as wide as the
+-- field, at 1:32. Mid-air, high enough for what stands on the field.
+local MAP = { x0 = -6, x1 = 1, z0 = MID - 4, z1 = MID + 3,
+              near = { -2, FLOOR - 1.5, MID }, far = { MID, GROUND + 32.5, MID },
+              half = 4, far_half = 128 }
 
 -- Flat round the places a battle needs flat, hills elsewhere: a sum of waves
 -- (no clock, no random: every machine gets the same field) faded to nothing
@@ -301,13 +313,22 @@ core.register_mapgen("front_core:field", function(ctx)
     for i, d in DOORS do
         local colour = if i == 1 then FRAME_R else FRAME_B
         local gz = d.gallery[3]
-        box(-9, -9, FLOOR, FLOOR + 3, gz - 2, gz + 1, colour)
-        box(-8, -6, FLOOR - 1, FLOOR - 1, gz - 2, gz + 1, colour)
-        -- At the base: the bunker's back wall behind it in the team's colour.
-        local bx, bz = d.base[1], d.base[3]
-        local wz = if d.sign > 0 then bz - 1 else bz
+        box(-10, -9, FLOOR, FLOOR + 3, gz - 2, gz + 1, colour)
+        box(-9, -9, FLOOR, FLOOR + 2, gz - 1, gz, 0)
+        box(-8, -7, FLOOR - 1, FLOOR - 1, gz - 2, gz + 1, colour)
+        -- At the base: the bunker's back wall round it, and behind it, in the
+        -- team's colour.
+        local bx = d.base[1]
+        local wz, bz = math.floor(d.base[3]), math.floor(d.base[3]) - d.sign
         box(bx - 2, bx + 1, GROUND, GROUND + 3, wz, wz, colour)
+        box(bx - 2, bx + 1, GROUND, GROUND + 3, bz, bz, colour)
+        box(bx - 1, bx, GROUND, GROUND + 2, wz, wz, 0)
     end
+    -- The miniature's tray: glass to walk on, and under it the node the
+    -- opening stands in, shut from below so it is seen from nowhere else.
+    box(MAP.x0 - 1, MAP.x1 + 1, FLOOR - 3, FLOOR - 2, MAP.z0 - 1, MAP.z1 + 1, GALLERY)
+    box(MAP.x0, MAP.x1, FLOOR - 2, FLOOR - 2, MAP.z0, MAP.z1, 0)
+    box(MAP.x0, MAP.x1, FLOOR - 1, FLOOR - 1, MAP.z0, MAP.z1, MAP_GLASS)
 
     -- ------------------------------------------------------------ the lines
     -- Two walls across the field, a third of the way from each base: stone,
@@ -353,5 +374,12 @@ core.event.on("core:tick", function(ev)
         end
         core.portal_link(ig, ib)
     end
+    local n, f = MAP.near, MAP.far
+    local inear = core.portal_open(n[1], n[2], n[3], 2, 1, 0, MAP.half, MAP.half)
+    local ifar = core.portal_open(f[1], f[2], f[3], 2, -1, 0, MAP.far_half, MAP.far_half)
+    if inear < 0 or ifar < 0 then return end
+    core.portal_scale(inear)
+    core.portal_scale(ifar)
+    core.portal_window(inear, ifar)
     doors_open = true
 end)

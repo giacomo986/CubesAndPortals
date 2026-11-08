@@ -164,8 +164,8 @@ local api: { Fn } = {
               doc = "The plane it lies in: 0 is XY (it faces along z), 1 is YZ (along x), 2 is XZ (a floor or a ceiling)." },
             { name = "sign", type = "int", doc = "1 or -1: which way along that axis its front faces." },
             { name = "rot", type = "int", doc = "0..3 quarter turns of the opening about its front." },
-            { name = "half_w", type = "float", doc = "Half its width, along its own right, after the turn. At most 16." },
-            { name = "half_h", type = "float", doc = "Half its height, along its own up. At most 16." },
+            { name = "half_w", type = "float", doc = "Half its width, along its own right, after the turn. At most 128." },
+            { name = "half_h", type = "float", doc = "Half its height, along its own up. At most 128." },
             { name = "colour", type = "int", default = 0,
               doc = "What it shows while it leads nowhere: 0 green (a fixed portal), 1 blue, 2 orange (a portal gun's)." },
         },
@@ -244,6 +244,20 @@ local api: { Fn } = {
            .. "it is seen at that scale. Proportions are the far end's half height over this one's; "
            .. "give both the same shape. One that scales stands in the air, as one turned freely. "
            .. "Returns 1, or 0 for no such portal or no server.",
+    },
+    {
+        name = "portal_window",
+        host = "portal_window",
+        ret  = "int",
+        args = {
+            { name = "a", type = "int", doc = "The portal to look through, as portal_open returned it." },
+            { name = "b", type = "int", doc = "The portal it looks out of." },
+        },
+        doc = "Links a to b as a WINDOW, on a server: a shows what b faces, and b is drawn from "
+           .. "nowhere, so whoever is over there sees nothing; nothing crosses either, and a "
+           .. "window lets solid blocks stand in front of it. The player near a is sent all of "
+           .. "what b is as wide as (chunks and bodies), and core.portal_scale on both makes it a "
+           .. "miniature. Returns 1, or 0 for no such portals or no server.",
     },
     {
         name = "portal_close",

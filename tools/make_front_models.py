@@ -90,8 +90,8 @@ def sniper(p, b, flash=None):
 
 
 def launcher(p, b, flash=None):
-    """A tube on the shoulder: the grip under its middle, a sight on the left,
-    a rocket's nose in its mouth."""
+    """A tube on the shoulder: the grip under its middle, a glazed sight on the
+    left, a rocket's nose in its mouth."""
     p.cyl(b, "olive", (0, 0.12, 0.11), 0.055, 1.1, "Y", seg=14)          # the tube
     p.cyl(b, "gunmetal", (0, 0.68, 0.11), 0.062, 0.06, "Y", seg=14)      # its mouth
     p.cyl(b, "gunmetal", (0, -0.44, 0.11), 0.068, 0.08, "Y", seg=14)     # and its back
@@ -99,7 +99,11 @@ def launcher(p, b, flash=None):
     p.box(b, "polymer", (0, -0.005, -0.055), (0.034, 0.045, 0.1), (-0.25, 0, 0))   # grip
     p.box(b, "polymer", (0, 0.03, 0.04), (0.04, 0.06, 0.05))
     p.box(b, "polymer", (0, 0.28, -0.03), (0.032, 0.04, 0.08))           # front grip
-    p.box(b, "steel", (-0.075, 0.2, 0.15), (0.03, 0.08, 0.05))           # the sight
+    for sx in (-1, 1):                                                   # the sight: open
+        p.box(b, "steel", (-0.075 + sx * 0.018, 0.2, 0.15), (0.005, 0.08, 0.05))
+    for sz in (-1, 1):
+        p.box(b, "steel", (-0.075, 0.2, 0.15 + sz * 0.024), (0.036, 0.08, 0.005))
+    p.box(b, "window", (-0.075, 0.2, 0.15), (0.03, 0.004, 0.044))        # and its glass
     if flash:
         p.ball(flash, "flash", (0, 0.76, 0.11), 0.09, (1.5, 1.6, 1.5), 1)
 

@@ -199,6 +199,17 @@ When a change touches one of them, check it the way the line says.
   stretch from the point the old one had reached, never from where the body was drawn last frame
   with the clock reset: with a message every frame (under ~20 fps) that restart left every other
   body standing where it was first seen (2026-11-07). Check: the garden's insects move in Xephyr.
+- **An opening's centre is the middle of a node.** Along its front, `Portal::center` is a node's
+  centre and the picture is on that node's far face (`plane` in `config/portal.cfg`). A centre on a
+  node boundary puts the opening half a node out of the wall and the picture half a node into it:
+  the front's doors stood so until 2026-11-08 and were not seen through properly. For a recessed
+  opening, clear that node and give the wall behind it a block. Check: the gallery's two doors.
+- **A window is for the eyes only** (`Portal::view`, `core.portal_window`, protocol 120). `view` 1
+  is looked through, 2 is what it looks out of and is drawn from nowhere; neither is crossed by a
+  body or a creature nor holds a floor exemption. The server sends all of what the far end is as
+  wide as (`PlayerInterest::Window::radius`, and the bodies in `entities_for`); the client gives a
+  window a `PortalLink` and no place in `linked_openings`. Check: from under the far end of the
+  front's miniature the sky is empty, and standing on the gallery's glass over it holds the body up.
 - **Small bodies keep their box under the feet.** `body_box` lifts the box by at most
   `height - min(0.1, height/2)`; the old "height - 0.1" went negative under 0.2 high and hung the
   box 8 cm below the feet. A creature is never under 0.01 × 0.01 (`size_mob_kind`, the client's aim
@@ -209,6 +220,12 @@ When a change touches one of them, check it the way the line says.
   half in the hedge, stuck; and the client's `ahead_of_crossing` puts the body where the image had it, from the feet
   before that frame's step (already taken by the new body's numbers, which arrive just before
   the crossing), unless it does not fit there. Check: `/lab tiny`, the garden's ants on the grass, out of G off centre and back.
+- **A scaling pair takes only a body it can size.** One that would put a player's scale outside
+  1/32..4 (`kMinBodyScale`, `kMaxBodyScale`) does not cross it: the place would be the pair's and
+  the size the limit's. Check: a jump on the garden's glass case stays on the glass.
+- **The sky's rays undo the projection and the view separately.** `kWaterSkyVS` applies
+  `inverse(uView)` to `inverse(uProjection) * point`. `inverse(P * V)` shook the clouds by 0.82
+  node at 1/16 as the eye moved; this leaves 0.0000 in the same float check.
 - **No oblique near plane nearer than the near plane.** `portal_oblique_near` gives up when the
   virtual camera is closer to the destination's clip plane than its own near plane: an oblique
   plane that close squeezes the depth range and the far side comes out striped, leaves and sky in
@@ -220,12 +237,6 @@ When a change touches one of them, check it the way the line says.
   number can be read (sunlit, no other mods). When a defect shows in a game but not there, the
   difference between the two is the cause: list it before changing anything.
 
-- **A scaling pair takes only a body it can size.** One that would put a player's scale outside
-  1/32..4 (`kMinBodyScale`, `kMaxBodyScale`) does not cross it: the place would be the pair's and
-  the size the limit's. Check: a jump on the garden's glass case stays on the glass.
-- **The sky's rays undo the projection and the view separately.** `kWaterSkyVS` applies
-  `inverse(uView)` to `inverse(uProjection) * point`. `inverse(P * V)` shook the clouds by 0.82
-  node at 1/16 as the eye moved; this leaves 0.0000 in the same float check.
 ## Where a feature goes
 
 | What | Where |

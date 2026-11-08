@@ -111,6 +111,7 @@ public:
     struct Window {
         float x = 0.0f, y = 0.0f, z = 0.0f;   // the far end
         float reach = 0.0f;                    // blocks from the player to the near end
+        int   radius = 0;                      // chunks round the far end; 0 is window_radius
     };
     void set_windows(std::vector<Window> windows) { m_windows = std::move(windows); }
     const std::vector<Window> &windows() const { return m_windows; }

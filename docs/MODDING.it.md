@@ -597,6 +597,7 @@ core.portal_scale(id, on?) -> 1|0   -- le due estremità di una coppia di taglie
 core.body_scale(player, s?) -> 1|0  -- un corpo grande 1/32..4: riquadro, gradini, occhio, velocità, gravità, portata, disegnato così
 core.body_size(player) -> s         -- quanto è grande ora (body_scale, un portale che scala); 0 per nessuno
 core.portal_link(a, b) -> 1|0       -- a e b portano l'una all'altra; b = -1 scollega a
+core.portal_window(a, b) -> 1|0     -- una finestra, a senso unico e solo per gli occhi: a mostra ciò che b guarda, b non si disegna da nessuna parte, non si attraversa nessuna delle due (con portal_scale su entrambe: una miniatura)
 core.log(messaggio)
 core.play_sound("mod:cosa", x, y, z) -> 1|0  -- a tutti nel mondo; file mods/<mod>/<cosa>.ogg sul client
 core.sound_loop("mod:cosa", x, y, z, range?, gain?) -> id|0  -- in loop finché non lo si ferma; lo sente anche chi entra dopo

@@ -1644,7 +1644,7 @@ struct Scene {
     // time a world has them. Two: with link_ab's and link_ba's that is the
     // four nearest openings in sight drawn each frame, and at the default
     // recursion depth 4 + 16 world passes at worst.
-    static constexpr int kMoreShown = 2;
+    static constexpr int kMoreShown = 3;
     gfx_rt more_rt[kMoreShown] = {};
 
     // The targets of the mouths past the second (Session::more_mouths), made
@@ -11369,7 +11369,7 @@ int shown_links(Scene &s, Vec3 eye, const Mat4 &view_projection, PortalLink *out
     });
 
     const gfx_rt lent[2 + Scene::kMoreShown] = {w.link_ab.rt, w.link_ba.rt, s.more_rt[0],
-                                                s.more_rt[1]};
+                                                s.more_rt[1], s.more_rt[2]};
     const int count = std::min((int)seen.size(), 2 + Scene::kMoreShown);
     for (int k = 0; k < count; ++k) {
         out[k]    = *seen[(size_t)k];
@@ -14116,6 +14116,7 @@ Portal portal_from_desc(const net::PortalDesc &d)
     p.vel         = Vec3{d.vx, d.vy, d.vz};
     p.free        = d.free != 0;
     p.scales      = d.scales != 0;
+    p.view        = d.view;
     p.fn          = Vec3{d.nx, d.ny, d.nz};
     p.fu          = Vec3{d.ux, d.uy, d.uz};
     p.spin        = Vec3{d.wx, d.wy, d.wz};
@@ -14141,6 +14142,7 @@ net::PortalDesc desc_from_portal(const Portal &p)
     d.vz          = p.vel.z;
     d.free        = p.free ? 1 : 0;
     d.scales      = p.scales ? 1 : 0;
+    d.view        = p.view;
     d.nx = p.fn.x, d.ny = p.fn.y, d.nz = p.fn.z;
     d.ux = p.fu.x, d.uy = p.fu.y, d.uz = p.fu.z;
     d.wx = p.spin.x, d.wy = p.spin.y, d.wz = p.spin.z;
@@ -14219,10 +14221,11 @@ void apply_server_portals(Scene &s, const net::Portals &ps)
         const auto mouth = [&](int k) { return k < net::kMaxMouths && ps.away[k].leads_away(); };
         for (int i = 0; i < net::kMaxOpenings; ++i) {
             const int j = ps.partner(i);
-            if (j < 0 || mouth(i) || mouth(j)) continue;
+            if (j < 0 || mouth(i) || mouth(j) || ps.opening[i].view == 2) continue;
             s.act().local_links.push_back(
                 PortalLink{surface_from_portal(portal_from_desc(ps.opening[i])),
                            surface_from_portal(portal_from_desc(ps.opening[j])), gfx_rt{}});
+            if (ps.opening[i].view) continue;   // a window: looked through, not fallen into
             // And fallen into, as the openings of a world without mouths are:
             // a floor one holds a body up until it is over it (floor shift),
             // and a fall is steered into it (funnel).
@@ -14248,10 +14251,11 @@ void apply_server_portals(Scene &s, const net::Portals &ps)
     std::vector<PortalLink> all;
     for (int i = 0; i < net::kMaxOpenings; ++i) {
         const int j = ps.partner(i);
-        if (j < 0) continue;
+        if (j < 0 || ps.opening[i].view == 2) continue;
         const Portal from = portal_from_desc(ps.opening[i]);
         all.push_back(PortalLink{surface_from_portal(from),
                                  surface_from_portal(portal_from_desc(ps.opening[j])), gfx_rt{}});
+        if (from.view) continue;   // a window: looked through, not fallen into
         s.act().linked_openings.push_back(from);
         s.act().linked_to.push_back(portal_from_desc(ps.opening[j]));
     }

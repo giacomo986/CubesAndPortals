@@ -13,6 +13,10 @@ CLOSED-n ids that comments in `src/` still cite:
 
 ## Next steps (2026-11-08)
 
+0. The front (0.15.0-alpha.1): doors set a node into the wall (2 x 3), the field in miniature under the
+   gallery's glass floor (`core.portal_window`, protocol 120), the launcher's glass sight and lock on enemy
+   vehicles (checked: an off-axis rocket turned onto a parked jeep and destroyed it). A saved front world
+   keeps its old walls: `tools/track.sh --fresh`.
 1. Play the garden's door both ways on a real GPU: is the jump in eye height
    gone? If not: going in or out, jumping or running.
 2. Commit the scaling crossing (`src/client/main.cpp`, `src/core/net/session.cpp`,
@@ -1487,12 +1491,12 @@ Multiplayer and the plaza:
 14. Rewards after the ending (low-medium). Beaten l'Ospite, the worlds' tools
    come to the sandbox in a limited form: the rope gun, a portal gun with
    charges, the kart on the villages' roads. Gives the seven keys a lasting use.
+   2026-11-08, Giacomo: the kart runs anywhere, still only after l'Ospite (road
+   rule and its stop removed; loads, not driven).
    BUILT 2026-11-05 (mods/rewards): mods/keys says keys:ended as a player
    who beat l'Ospite comes into the sandbox; the first time they get the
    rope gun (core.body_rope, new: the rope without parkour, bit 7 of the
    moves; 30 hooks a day), the portal gun (any wall two tall, core.portal_open
-   2026-11-08, Giacomo: the kart runs anywhere, still only after l'Ospite (road
-   rule and its stop removed; loads, not driven).
    and portal_link, 12 shots a day, the pair closed when they leave) and the
    kart (core.body_drive on a road block -- cobblestone, smooth stone, coarse
    dirt, gravel, sandstone -- off it a second and it stops). Models and icons
@@ -1556,10 +1560,6 @@ Seen in Xephyr; not played with the gun by hand.
   colours, no texture. Xephyr, scripted: the garage panel's kart wears all
   five and the paint (blue/orange/light gray) recolours them. Not seen: a lap
   with the dragon pipes' flames burning at the horns.
-- Nitro flames, skid marks and the garage (2026-10-20, protocol 103): the
-  chassis says each step whether the nitro burns and how fast it slides
-  sideways (DriveLook, kSlideSeen 2 m/s); the server sends both bits of its
-  own copy, so everybody sees them. Flames out of the flame_* joints (a jet
   2026-11-08, from play: the pipes centred on the kart (between seat and wing,
   squeezed in depth), the wing's foot on the rear bumper (it stood behind it);
   only the pipes keep flame_* joints (the other four would have burned too).
@@ -1570,6 +1570,10 @@ Seen in Xephyr; not played with the gun by hand.
   models. A kart along the wall was refused at the far frame ("the way out ...
   is blocked", 10 times in the log) and drove on behind it: the arrival now
   slides inside the hole. Numbers: refused before, 13.15 of 14 wide after.
+- Nitro flames, skid marks and the garage (2026-10-20, protocol 103): the
+  chassis says each step whether the nitro burns and how fast it slides
+  sideways (DriveLook, kSlideSeen 2 m/s); the server sends both bits of its
+  own copy, so everybody sees them. Flames out of the flame_* joints (a jet
   and puffs facing the eye: a ribbon seen end on from the chase camera was
   invisible), marks a ring of 4096 strips fading in 30 s, per world. /garage:
   3 dye colours and 14 parts (tools/make_kart_parts.py), worn as

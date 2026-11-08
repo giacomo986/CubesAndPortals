@@ -799,7 +799,7 @@ bool portal_desc_sane(const PortalDesc &d)
     if (d.normal_sign != 1 && d.normal_sign != -1) return false;
     if (d.rot > 3) return false;
     if (d.half_w <= 0.0f || d.half_h <= 0.0f) return false;
-    if (d.half_w > 64.0f || d.half_h > 64.0f) return false;
+    if (d.half_w > 256.0f || d.half_h > 256.0f) return false;
     if (d.kind > 1) return false;
     return true;
 }
@@ -971,7 +971,7 @@ std::vector<uint8_t> Portals::encode() const
         w.u8(d.kind);
         w.u8(d.colour);
         w.f32(d.vx); w.f32(d.vy); w.f32(d.vz);
-        w.u8((d.free ? 1 : 0) | (d.scales ? 2 : 0));
+        w.u8((d.free ? 1 : 0) | (d.scales ? 2 : 0) | (uint8_t)(d.view << 2));
         if (d.free) {
             w.f32(d.nx); w.f32(d.ny); w.f32(d.nz);
             w.f32(d.ux); w.f32(d.uy); w.f32(d.uz);
@@ -1028,9 +1028,10 @@ bool Portals::decode(ByteReader &r, Portals &out)
         d.vy          = r.f32();
         d.vz          = r.f32();
         const uint8_t how = r.u8();
-        if (how > 3) return false;
+        if (how > 11) return false;   // a view of 3 is nothing
         d.free   = how & 1;
         d.scales = (how >> 1) & 1;
+        d.view   = how >> 2;
         if (d.free) {
             d.nx = r.f32(), d.ny = r.f32(), d.nz = r.f32();
             d.ux = r.f32(), d.uy = r.f32(), d.uz = r.f32();

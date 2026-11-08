@@ -102,6 +102,12 @@ struct Portal {
     // messages); a body is not pushed by it.
     Vec3 spin;
 
+    // A window (core.portal_window), one way and for the eyes only. 1: looked
+    // through, as any opening, and crossed by nothing. 2: what it looks out of,
+    // not drawn from anywhere and crossed by nothing either, so a place can be
+    // watched without anybody in it seeing the opening. 0 for every other.
+    uint8_t view = 0;
+
     // A pair of two sizes that SCALES (core.portal_scale, both ends): what
     // goes through comes out as big against the far end as it was against
     // this one -- a body walking into a door-sized opening on a table comes

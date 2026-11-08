@@ -134,7 +134,7 @@ std::vector<ChunkPos> PlayerInterest::next(const World                         &
     for (const Window &w : m_windows) {
         const ChunkPos wc = World::chunk_of((int)std::floor(w.x), (int)std::floor(w.y),
                                             (int)std::floor(w.z));
-        const int r = m_config.window_radius;
+        const int r = w.radius > 0 ? w.radius : m_config.window_radius;
         for (int dz = -r; dz <= r; ++dz) {
             for (int dy = -m_config.vertical_radius; dy <= m_config.vertical_radius; ++dy) {
                 for (int dx = -r; dx <= r; ++dx) {
@@ -174,13 +174,16 @@ size_t PlayerInterest::forget_distant()
     const int keep   = m_config.radius + m_config.forget_margin;
     const int keep_y = m_config.vertical_radius + m_config.forget_margin;
 
-    const std::vector<ChunkPos> windows = window_centres();
-    const int                   keep_w  = m_config.window_radius + m_config.forget_margin;
+    const std::vector<ChunkPos> centres = window_centres();
     auto near_a_window = [&](ChunkPos p) {
-        for (const ChunkPos &w : windows)
+        for (size_t i = 0; i < centres.size(); ++i) {
+            const ChunkPos &w = centres[i];
+            const int keep_w = (m_windows[i].radius > 0 ? m_windows[i].radius : m_config.window_radius) +
+                               m_config.forget_margin;
             if (std::abs(p.x - w.x) <= keep_w && std::abs(p.z - w.z) <= keep_w &&
                 std::abs(p.y - w.y) <= keep_y)
                 return true;
+        }
         return false;
     };
 
