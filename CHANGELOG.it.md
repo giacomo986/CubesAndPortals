@@ -5,7 +5,7 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
-## Non ancora uscito
+## 0.15.0-alpha.2 — 2026-11-08
 
 - **Opzioni video** (Opzioni, poi Video): finestra, senza bordi o schermo intero, risoluzione, VSync,
   limite FPS, distanza visiva, campo visivo, ombre, luce, dettaglio dei portali, luminosità per il

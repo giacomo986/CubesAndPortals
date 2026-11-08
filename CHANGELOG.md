@@ -5,7 +5,7 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
-## Not released yet
+## 0.15.0-alpha.2 — 2026-11-08
 
 - **Video options** (Options, then Video): window, borderless or full screen, resolution, VSync, FPS
   limit, view distance, field of view, shadows, light, portal detail, brightness for the dark, and a
