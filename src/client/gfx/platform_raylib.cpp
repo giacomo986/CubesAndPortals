@@ -80,9 +80,49 @@ void plat_disable_default_exit_key(void)
 
 // Borderless and not exclusive: the monitor keeps its mode, so switching is
 // instant and alt-tab does not blank the screen.
-void plat_set_fullscreen(bool on)
+void plat_monitor_size(int *w, int *h)
 {
-    if (on != IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE)) ToggleBorderlessWindowed();
+    const int m = GetCurrentMonitor();
+    *w = GetMonitorWidth(m);
+    *h = GetMonitorHeight(m);
+}
+
+void plat_set_display(int mode, int w, int h)
+{
+    static int have_mode = 0, have_w = 0, have_h = 0;
+    if (mode == have_mode && w == have_w && h == have_h) return;
+    have_mode = mode, have_w = w, have_h = h;
+
+    if (IsWindowFullscreen()) ToggleFullscreen();
+    if (IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE)) ToggleBorderlessWindowed();
+    if (IsWindowMaximized()) RestoreWindow();   // or the manager keeps it filling the screen
+    int mw = 0, mh = 0;
+    plat_monitor_size(&mw, &mh);
+    if (mode == 1) {
+        ToggleBorderlessWindowed();
+    } else if (mode == 2) {
+        // ToggleFullscreen asks the monitor for the window's size.
+        SetWindowSize(w > 0 ? w : mw, h > 0 ? h : mh);
+        ToggleFullscreen();
+    } else if (w > 0 && h > 0) {
+        SetWindowSize(w, h);
+        SetWindowPosition((mw - w) / 2, (mh - h) / 2);
+    }
+}
+
+void plat_set_vsync(bool on)
+{
+    static bool have = false;   // gfx_init opens the window without it
+    if (on == have) return;
+    have = on;
+    if (on) SetWindowState(FLAG_VSYNC_HINT);
+    else ClearWindowState(FLAG_VSYNC_HINT);
+}
+
+void plat_set_fps_limit(int fps)
+{
+    static int have = 0;
+    if (fps != have) SetTargetFPS(have = fps);
 }
 
 float  plat_delta_time(void) { return GetFrameTime(); }

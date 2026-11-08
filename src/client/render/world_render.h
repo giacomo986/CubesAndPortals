@@ -342,7 +342,11 @@ public:
     // view range that lived once would be the fourth of the fork's historic
     // dual-client bugs. A huge default means every gate written before this
     // draws exactly what it drew.
-    void set_view_range(float nodes) { m_view_range = nodes; }
+    void set_view_range(float nodes) { m_view_range = std::min(nodes, view_limit); }
+    // Options -> Video: how far anything is drawn, and a storm's sky without
+    // its whirls and twisters (the costliest thing the sky draws).
+    static inline float view_limit  = 512.0f;
+    static inline bool  plain_storm = false;
     float view_range() const { return m_view_range; }
 
     // Chunks dropped by the range on the last draw, as opposed to by the

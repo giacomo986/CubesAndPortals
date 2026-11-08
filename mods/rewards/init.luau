@@ -27,12 +27,14 @@ local ROPE, PORTAL, KART = "rewards:rope_gun", "rewards:portal_gun", "rewards:ka
 local ROPES, SHOTS = 30, 12
 local EYE = 1.62
 
+local in_kart = false
 -- This machine: driving or not, for the view and the body drawn.
 local function heard(text: string)
     if text == "kart 1" or text == "kart 0" then
         local on = text == "kart 1"
         core.view(if on then 5 else 0)
         core.body_model(0, if on then core.model_id("rewards:kart") else 0)
+        in_kart = on
     end
 end
 
@@ -204,7 +206,7 @@ if serving then
                 core.body_model(p, KART_MODEL)
                 core.player_place(p, ev.x + 0.5, ev.y + 1, ev.z + 0.5)
                 tell(p, "kart 1")
-                core.notice(p, "Right click anything to get out of the kart")
+                core.notice(p, "F to get out of the kart")
             end
         elseif ev.held == ROPE or ev.held == PORTAL then
             ev.cancel = true   -- a click on a block is the gun's (below), not a placement
@@ -212,6 +214,10 @@ if serving then
     end)
 
     heard_click = function(p: number, what: string)
+        if what == "kart_off" then
+            on_foot(p)
+            return
+        end
         local held = core.held_item(p)
         if not ended[p] then
             return
@@ -267,7 +273,10 @@ if drawing then
     end
     core.event.on("core:input", function(ev)
         local held = core.held_item(1)
-        if held == PORTAL and (ev.action == "mouse_left" or ev.action == "mouse_right") then
+        if in_kart and ev.action == "key_f" then
+            ev.cancel = true
+            ask("kart_off", ev.player)
+        elseif held == PORTAL and (ev.action == "mouse_left" or ev.action == "mouse_right") then
             ev.cancel = true
             ask(if ev.action == "mouse_left" then "left" else "right", ev.player)
         elseif held == ROPE then

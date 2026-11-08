@@ -613,6 +613,64 @@ if HUB then
     end)
 end
 
+-- /story: an admin sets how far a player has got, without playing it. Only a
+-- player in this room can be named: their progress is kept under their key.
+core.command("story", "NAME [keys all|WORLD...|ending|clear] -- a player's story progress: see it or set it", "admin")
+core.event.on("core:command", function(ev)
+    if ev.name ~= "story" then return end
+    local w = {}
+    for word in string.gmatch(ev.args, "%S+") do table.insert(w, word) end
+    local usage = "Usage: /story NAME [keys all|WORLD...|ending|clear]"
+    local p: number? = nil
+    for _, q in core.players() do
+        if core.player_name(q) == w[1] then p = q end
+    end
+    if p == nil then
+        core.chat(ev.player, if w[1] then `{w[1]} is not in this world` else usage)
+        return
+    end
+    local id = who(p)
+    local got: { [string]: boolean } = {}
+    for k in string.gmatch(core.shared_storage_get("got:" .. id), "[^,]+") do got[k] = true end
+    local what = string.lower(w[2] or "")
+    local wanted: { string } = {}
+    if what == "ending" or (what == "keys" and w[3] == "all") then
+        wanted = WORLDS
+    elseif what == "keys" then
+        for i = 3, #w do
+            if TITLE[w[i]] == nil then
+                core.chat(ev.player, `No such key: {w[i]}. Keys: {table.concat(WORLDS, " ")}`)
+                return
+            end
+            table.insert(wanted, w[i])
+        end
+    end
+    if what == "clear" then
+        for _, k in WORLDS do core.take_item(p, item_of(k), core.bag_count(p, item_of(k))) end
+        got = {}
+        core.shared_storage_set("ending:" .. id, "")
+    elseif what ~= "" and #wanted == 0 then
+        core.chat(ev.player, usage)
+        return
+    end
+    for _, k in wanted do
+        got[k] = true
+        if core.bag_count(p, item_of(k)) == 0 then core.give_item(p, item_of(k), 1) end
+    end
+    if what ~= "" then
+        local list = {}
+        for _, k in WORLDS do if got[k] then table.insert(list, k) end end
+        core.shared_storage_set("got:" .. id, table.concat(list, ","))
+    end
+    if what == "ending" then
+        core.shared_storage_set("ending:" .. id, "1")
+        if HUB then core.event.emit("keys:ended", { player = p }) end   -- the sandbox's rewards, now
+    end
+    local n = 0
+    for _, k in WORLDS do if got[k] then n += 1 end end
+    core.chat(ev.player, `{w[1]}: {n}/7 keys, l'Ospite beaten: ` .. (if core.shared_storage_get("ending:" .. id) == "1" then "yes" else "no"))
+end)
+
 -- ==================================================================== sandbox
 
 local LAB = -1

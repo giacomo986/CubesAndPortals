@@ -13,6 +13,9 @@ CLOSED-n ids that comments in `src/` still cite:
 
 ## Next steps (2026-11-08)
 
+00. Options -> Video, a plain storm sky (assault's in Xephyr's software GL: 13 -> 21 FPS), brightness
+    (the night sight's floor), the kart's F, a saddled ladybird (mods/garden, tools/make_ladybird_mount.py), /story, /time in every world. Open: real
+    full-screen resolutions and VSync not checkable in Xephyr (one mode, no display sync); not played by hand.
 0. The front (0.15.0-alpha.1): doors set a node into the wall (2 x 3), the field in miniature under the
    gallery's glass floor (`core.portal_window`, protocol 120), the launcher's glass sight and lock on enemy
    vehicles (checked: an off-axis rocket turned onto a parked jeep and destroyed it). A saved front world

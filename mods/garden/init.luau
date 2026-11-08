@@ -173,6 +173,156 @@ core.register_mob("garden:ant", ANT, 2, 0.12, "worker", 0, 0, 1, "", 1, 0, false
 core.register_mob("garden:ladybird", LADY, 2, 0.05, "worker", 0, 0, 1, "", 1, 0, false, 0, false, "")
 core.register_mob("garden:butterfly", FLY, 1, 0.5, "worker", 0, 0, 1, "", 1, 0, false, 0.5, false, "")
 
+-- A ladybird to ride. Right click one with a saddle and it swells to a pony's
+-- size against you and carries you (core.player_wear and core.body_mount, as
+-- mods/animals' pony; its clips from tools/make_ladybird_mount.py), and it is
+-- tame from then on: saddled, it waits where you get off (Ctrl, or a right
+-- click on the ground) and a right click rides it again. Ridden out through the
+-- little door it comes out as big as you do, a ladybird a good metre long.
+-- Tame ones are kept in the mod's storage: the engine saves no creatures.
+local MOUNT = {
+    RIDDEN = core.register_model("garden:ladybird_ridden", "ladybird_ridden.gltf"),
+    SLOT = 9,               -- the pony's: nobody rides two
+    WALK = 7.0, CANTER = 11.0, JUMP = 11.0,
+    BIG = "garden:ladybird_tame", SMALL = "garden:ladybird_tame_small",
+    riding = {} :: { [number]: { x: number, y: number, z: number, clip: string } },
+    tame = {} :: { { x: number, y: number, z: number, small: boolean, id: number } },
+    since = 0,
+    loaded = false,
+}
+core.register_mob(MOUNT.BIG, core.register_model(MOUNT.BIG, "ladybird_tame.gltf"), 16, 1, "worker", 0, 0, 1, "", 1, 0, false, 0, false, "")
+core.register_mob(MOUNT.SMALL, core.register_model(MOUNT.SMALL, "ladybird_tame_small.gltf"), 16, 0.1, "worker", 0, 0, 1, "", 1, 0, false, 0, false, "")
+
+function MOUNT.save()
+    local out = {}
+    for _, t in MOUNT.tame do
+        table.insert(out, string.format("%.2f %.2f %.2f %d", t.x, t.y, t.z, if t.small then 1 else 0))
+    end
+    core.storage_set("tame", table.concat(out, ";"))
+end
+
+function MOUNT.load()
+    for _, line in string.split(core.storage_get("tame"), ";") do
+        local w = string.split(line, " ")
+        if #w == 4 then
+            table.insert(MOUNT.tame, { x = tonumber(w[1]) or 0, y = tonumber(w[2]) or 0, z = tonumber(w[3]) or 0,
+                                       small = w[4] == "1", id = 0 })
+        end
+    end
+end
+
+function MOUNT.on(p: number, x: number, y: number, z: number)
+    MOUNT.riding[p] = { x = x, y = y, z = z, clip = "ride_idle" }
+    core.player_clip(p, "ride_idle")
+    core.player_place(p, x, y, z)
+    core.player_wear(p, MOUNT.SLOT, MOUNT.RIDDEN)
+    core.body_movement(p, MOUNT.WALK, MOUNT.CANTER, 0, MOUNT.JUMP)
+    core.body_mount(p, true)
+    core.notice(p, "Riding: Ctrl, or right click the ground, to get off")
+end
+
+function MOUNT.off(p: number, x: number?, y: number?, z: number?)
+    local was = MOUNT.riding[p]
+    if was == nil then return end
+    MOUNT.riding[p] = nil
+    local small = core.body_size(p) ~= 0 and core.body_size(p) < 0.5
+    table.insert(MOUNT.tame, { x = x or was.x, y = y or was.y, z = z or was.z, small = small, id = 0 })
+    MOUNT.save()
+    if core.player_pos(p) ~= nil then
+        core.player_wear(p, MOUNT.SLOT, 0)
+        core.player_clip(p, "")
+        core.body_mount(p, false)
+        core.body_movement(p)
+    end
+end
+
+core.event.on("core:used_mob", function(ev)
+    local kind, p = core.mob_kind(ev.target), ev.player
+    if MOUNT.riding[p] then return end
+    local tamed = kind == MOUNT.BIG or kind == MOUNT.SMALL
+    if not tamed and (kind ~= "garden:ladybird" or ev.held ~= "animals:saddle") then return end
+    local x, y, z = core.mob_pos(ev.target)
+    if x == nil then return end
+    if tamed then
+        if (kind == MOUNT.SMALL) ~= (core.body_size(p) < 0.5) then
+            core.notice(p, "This ladybird is not your size")
+            return
+        end
+        for i, t in MOUNT.tame do
+            if t.id == ev.target then table.remove(MOUNT.tame, i); break end
+        end
+        MOUNT.save()
+    elseif core.take_item(p, "animals:saddle", 1) < 1 then
+        return
+    end
+    core.mob_remove(ev.target)
+    MOUNT.on(p, x, y, z)
+end)
+
+core.event.on("core:used", -20, function(ev)
+    if MOUNT.riding[ev.player] and core.get_block(ev.x, ev.y + 1, ev.z) == 0 then
+        ev.cancel = true
+        local x, y, z = core.player_pos(ev.player)
+        MOUNT.off(ev.player, ev.x + 0.5, ev.y + 1, ev.z + 0.5)
+        if x then core.player_place(ev.player, x, y, z) end
+    end
+end)
+
+core.event.on("core:died", function(ev) MOUNT.off(ev.player, ev.x, ev.y, ev.z) end)
+
+core.event.on("core:tick", function(ev)
+    if not MOUNT.loaded then   -- the storage is not there while mods load
+        MOUNT.loaded = true
+        MOUNT.load()
+    end
+    for p in MOUNT.riding do
+        if core.player_crouching(p) then
+            local x, y, z = core.player_pos(p)
+            local lx, _, lz = core.player_look(p)
+            if x and lx then
+                local len, k = math.max(0.01, math.sqrt(lx * lx + lz * lz)), 1.2 * core.body_size(p)
+                MOUNT.off(p, x - lz / len * k, y, z + lx / len * k)
+            else
+                MOUNT.off(p)
+            end
+        end
+    end
+    MOUNT.since += ev.dt
+    if MOUNT.since < 0.5 then return end
+    MOUNT.since = 0
+    local gone = false
+    for i = #MOUNT.tame, 1, -1 do
+        local t = MOUNT.tame[i]
+        if t.id == 0 then
+            if core.loaded(math.floor(t.x), math.floor(t.y), math.floor(t.z)) == 1 then
+                t.id = core.spawn_mob(if t.small then MOUNT.SMALL else MOUNT.BIG, t.x, t.y, t.z) or 0
+            end
+        elseif core.mob_pos(t.id) == nil then
+            table.remove(MOUNT.tame, i)   -- killed
+            gone = true
+        end
+    end
+    if gone then MOUNT.save() end
+    local here = {}
+    for _, p in core.players() do
+        here[p] = true
+        local r = MOUNT.riding[p]
+        local x, y, z = core.player_pos(p)
+        if r and x then
+            local far = 0.3 * core.body_size(p)
+            local clip = if (x - r.x) ^ 2 + (z - r.z) ^ 2 > far * far then "ride" else "ride_idle"
+            if clip ~= r.clip then
+                r.clip = clip
+                core.player_clip(p, clip)
+            end
+            r.x, r.y, r.z = x, y, z
+        end
+    end
+    for p in MOUNT.riding do
+        if not here[p] then MOUNT.off(p) end
+    end
+end)
+
 local COUNT = { ["garden:ant"] = 8, ["garden:ladybird"] = 3, ["garden:butterfly"] = 4 }
 local RESPAWN = 30
 local FLOWER_TOP = 0.75   -- a flower's model is 0.8 high: where a butterfly sits

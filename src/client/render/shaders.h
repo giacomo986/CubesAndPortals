@@ -411,7 +411,7 @@ void main()
     vec3  sky = vSky * (uAmbient * kFaceAmbient[vFace] + uSunColor * (ndl * sun));
     vec3  lit = max(max(sky, vLamp * kLampTint), vec3(uNightSight * 0.55));
     vec3  rgb = texel.rgb * vAo * (kLightFloor + (1.0 - kLightFloor) * min(lit, vec3(1.0)));
-    if (uClassic > 0.5) rgb = texel.rgb * vClassic;
+    if (uClassic > 0.5) rgb = texel.rgb * max(vClassic, uNightSight * 0.55);
     rgb *= vWave;
 
     if (uWater.w > 0.5) {
@@ -498,7 +498,7 @@ uniform vec4  uSkyColor;
 uniform vec3  uSunDir;     // the sun's, or by night the moon's
 uniform float uSunShown;   // 0 under a fixed sky
 uniform float uMoon;       // 1 when uSunDir is the moon's
-uniform vec4  uStorm;      // core.world_storm: its colour, and w 1 when there is one
+uniform vec4  uStorm;      // core.world_storm: its colour, w 1 when there is one, 0.75 with no whirls
 uniform vec4  uFunnel[4];  // core.storm_funnel: x, ground y, z, and w 1 when there is one
 uniform float uRange;      // how far the world is drawn: a funnel past it would stand over nothing
 uniform float uOvercast;   // core.overcast: 0..1, the layer thicker and grey
@@ -564,7 +564,7 @@ float fbm(vec2 xz)
 float column(vec2 xz)
 {
     float s = fbm(xz);
-    if (uStorm.w > 0.5) {
+    if (uStorm.w > 0.9) {
         ivec2 cell = ivec2(floor(xz / kCell));
         for (int i = -1; i <= 1; ++i) {
             for (int j = -1; j <= 1; ++j) {
@@ -784,11 +784,11 @@ void main()
     bool  any = false;
     for (int k = 0; k < 4; ++k)
         if (uFunnel[k].w > 0.5) { low = min(low, uFunnel[k].y - 1.0); any = true; }
-    vec2 band = uStorm.w > 0.5 || any ? slab(vNear, d, low, kBase) : vec2(1.0, 0.0);
+    vec2 band = uStorm.w > 0.9 || any ? slab(vNear, d, low, kBase) : vec2(1.0, 0.0);
     ntw = 0;
     if (band.y > band.x) {
         float dd = dot(d.xz, d.xz);
-        if (uStorm.w > 0.5) {
+        if (uStorm.w > 0.9) {
             vec2  a = vNear.xz + d.xz * band.x, b = vNear.xz + d.xz * band.y;
             ivec2 lo = ivec2(floor((min(a, b) - kFunnelR) / kCell));
             ivec2 hi = ivec2(floor((max(a, b) + kFunnelR) / kCell));

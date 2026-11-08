@@ -5,6 +5,17 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
+## Not released yet
+
+- **Video options** (Options, then Video): window, borderless or full screen, resolution, VSync, FPS
+  limit, view distance, field of view, shadows, light, portal detail, brightness for the dark, and a
+  plain storm sky: the final world's whirling clouds off, for machines they are too much for.
+- **A ladybird to ride**: saddle one in the garden and it carries you like a pony, with its own
+  walking and running. Ridden out through the little door it grows to your size, tamed: it waits
+  saddled where you get off and keeps across restarts.
+- The kart of the ending: F gets out of it.
+- For admins: `/story` sees or sets a player's keys and ending; `/time` now works in every world, not only the sandbox.
+
 ## 0.15.0-alpha.1 — 2026-11-08
 
 **Does not play with 0.14 servers** (protocol 120). Worlds are read as they are, but a front world

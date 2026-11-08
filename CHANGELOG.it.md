@@ -5,6 +5,17 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
+## Non ancora uscito
+
+- **Opzioni video** (Opzioni, poi Video): finestra, senza bordi o schermo intero, risoluzione, VSync,
+  limite FPS, distanza visiva, campo visivo, ombre, luce, dettaglio dei portali, luminosità per il
+  buio e un cielo in tempesta semplice: via i vortici del mondo finale per i PC che non li reggono.
+- **Una coccinella da cavalcare**: sellata nel giardino ti porta come un pony, con la sua camminata e
+  la sua corsa. Cavalcata fuori dalla porticina cresce alla tua misura, addomesticata: aspetta sellata
+  dove scendi e resta dopo un riavvio.
+- Il kart del finale: F per scendere.
+- Per gli admin: `/story` mostra o assegna chiavi e finale di un giocatore; `/time` ora funziona in ogni mondo, non solo nel sandbox.
+
 ## 0.15.0-alpha.1 — 2026-11-08
 
 **Non gioca con i server 0.14** (protocollo 120). I mondi si leggono così come sono, ma un mondo del

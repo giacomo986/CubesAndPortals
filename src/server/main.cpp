@@ -5327,6 +5327,14 @@ admin::Hooks admin_hooks()
         }
         return out;
     };
+    h.clock = [](net::PeerId peer, double t) -> double {
+        const auto r = g_router.room_of.find(peer);
+        if (r == g_router.room_of.end()) return -1.0;
+        RoomShared &room = g_router.rooms[(size_t)r->second];
+        if (!room.sessions) return -1.0;
+        if (t >= 0.0) room.sessions->set_time(t);
+        return room.sessions->time_of_day();
+    };
     h.give = [](net::PeerId peer, const std::string &item, int count) -> std::string {
         const auto r = g_router.room_of.find(peer);
         if (r == g_router.room_of.end()) return "not in a room";

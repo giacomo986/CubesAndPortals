@@ -124,6 +124,8 @@ struct Hooks {
     // item by name into an online player's bag ("" when it went in).
     std::function<std::vector<std::string>(const Who &)>                             bag_lines;
     std::function<std::string(net::PeerId, const std::string &item, int count)>     give;
+    // The clock of the room that player is in: set to `t` if t >= 0, and what it says now, -1 for no room.
+    std::function<double(net::PeerId, double t)>                                    clock;
 
     // A friend's mod said something to the mod of that name here (core.fed_send
     // there): `from` the friend as /friend named it.

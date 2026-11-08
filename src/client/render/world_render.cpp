@@ -1405,7 +1405,10 @@ void WorldRenderer::draw(const Mat4 &projection, const Mat4 &view, bool cull)
         gfx_uniform_set_v3(m_loc_cloud_sun, m_sky_light.dir);
         gfx_uniform_set_f(m_loc_cloud_sun_on, m_has_sky_light && !m_classic ? 1.0f : 0.0f);
         gfx_uniform_set_f(m_loc_cloud_moon, m_sky_light.moon ? 1.0f : 0.0f);
-        gfx_uniform_set_v4(m_loc_cloud_storm, m_cloud_storm, 1);
+        // 0.75: still this colour, but none of its whirls (kCloudFS).
+        const float storm[4] = {m_cloud_storm[0], m_cloud_storm[1], m_cloud_storm[2],
+                                m_cloud_storm[3] > 0.5f && plain_storm ? 0.75f : m_cloud_storm[3]};
+        gfx_uniform_set_v4(m_loc_cloud_storm, storm, 1);
         gfx_uniform_set_v4(m_loc_cloud_funnel, m_cloud_funnel, 4);
         gfx_uniform_set_f(m_loc_cloud_range, std::min(m_view_range, 1e6f));
         gfx_uniform_set_f(m_loc_cloud_overcast, m_cloud_overcast);
@@ -1417,7 +1420,7 @@ void WorldRenderer::draw(const Mat4 &projection, const Mat4 &view, bool cull)
         gfx_state_set(&sky);
         // With funnels about, the layer and the funnels in two passes, nearer
         // last, each writing its own depth so a hill hides each on its own.
-        bool funnels = m_cloud_storm[3] > 0.5f;
+        bool funnels = m_cloud_storm[3] > 0.5f && !plain_storm;
         for (int k = 0; k < 4; ++k) funnels = funnels || m_cloud_funnel[k * 4 + 3] > 0.5f;
         if (!funnels) {
             gfx_uniform_set_int(m_loc_cloud_part, 3);

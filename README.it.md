@@ -268,6 +268,7 @@ Da piccoli si cammina veloci quanto dice la taglia: il giardino si attraversa in
 Le formiche fanno la spola tra il nido e i fiori, le coccinelle girano, le farfalle si posano sui
 fiori: a grandezza vera, lì una formica è grande come un cane. Una creatura che passa dalla
 porticina cambia taglia come te (un sedicesimo entrando, fino a quattro volte uscendo).
+Una sella su una coccinella la addomestica e ti porta come un pony: cavalcata fuori dalla porticina esce grande quanto te, più di un metro, e aspetta sellata dove scendi (Ctrl o clic destro a terra; clic destro su di lei per risalire).
 
 ### Difficoltà, regole e obiettivi
 
@@ -434,7 +435,7 @@ pallone.
 
 **Dopo il finale** (`mods/rewards`). Chi ha battuto l'Ospite trova nel sandbox gli strumenti dei mondi,
 in forma ridotta: la pistola a fune (trenta agganci al giorno), una pistola dei portali (dodici colpi al
-giorno, su qualsiasi muro) e il kart, da guidare ovunque. `/rewards` li ridà.
+giorno, su qualsiasi muro) e il kart, da guidare ovunque (F per scendere). `/rewards` li ridà.
 
 **Meteo** (`mods/weather`). Cielo sereno, poi pioggia o temporale per qualche minuto: il cielo
 e le nuvole si fanno grigi, la pioggia cade attorno a te e si ferma sui tetti, i campi a cielo
@@ -597,7 +598,7 @@ il server, poi un nome e una password per quello, da cui l'identità viene deriv
 invece di stare in un file; la chiave del server viene fissata al primo join. **Ospita un
 server** apre i propri mondi agli altri su una porta a scelta, e il menù di pausa mostra
 l'indirizzo da dare. **Personaggio** sceglie specie, stile, colori e accessori. **Opzioni** ha
-mouse, volume, luce, ombre, schermo intero, lingua e controllo degli aggiornamenti.
+mouse, volume, lingua e controllo degli aggiornamenti; la pagina **Video** ha finestra, senza bordi o schermo intero, risoluzione, VSync, limite FPS, distanza visiva, campo visivo, luce, ombre, dettaglio dei portali, cielo in tempesta semplice (senza vortici, per i PC deboli) e luminosità per il buio.
 
 **Le traduzioni** sono `assets/lang/<codice>.txt`, una riga `testo come scritto = traduzione` con
 `{}` per le parti variabili. Valgono per tutto ciò che il client disegna: menù, pannelli e avvisi

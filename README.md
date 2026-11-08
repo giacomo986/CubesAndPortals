@@ -265,6 +265,7 @@ Small, you walk as fast as your size makes you: the garden takes a minute or so 
 Ants file between their nest and the flowers, ladybirds wander, butterflies settle on the flowers:
 at their true size, an ant is a dog to you there. A creature that walks through the little door
 changes size as you do (a sixteenth going in, up to four times bigger coming out).
+A saddle on a ladybird tames it and it carries you like a pony: ridden out through the little door it comes out as big as you do, over a metre long, and it waits, saddled, where you get off (Ctrl, or a right click on the ground; a right click on it to ride again).
 
 ### Difficulty, rules and goals
 
@@ -423,7 +424,7 @@ as it rises, the flame roaring up into the envelope.
 
 **After the ending** (`mods/rewards`). Whoever has beaten l'Ospite finds the worlds' tools in the
 sandbox, in a smaller way: the rope gun (thirty hooks a day), a portal gun (twelve shots a day, on any
-wall) and the kart, to drive anywhere. `/rewards` gives them again.
+wall) and the kart, to drive anywhere (F gets out). `/rewards` gives them again.
 
 **Weather** (`mods/weather`). Clear skies, then rain or a storm for a few minutes: the sky
 and the clouds go grey, rain falls round you and stops at roofs, the fields under the open sky
@@ -579,8 +580,7 @@ if it did not answer). The account belongs to the server: you pick a server, the
 password for it, from which your identity is derived (Argon2id) instead of being kept in a file;
 the server's key is pinned at the first join. **Host a server** opens your worlds to others on a
 port of your choice, and the pause menu shows the address to give them. **Character** picks
-species, style, colours and accessories. **Options** holds mouse, volume, light, shadows, full
-screen, language and the update check.
+species, style, colours and accessories. **Options** has the mouse, the volume, the language and the update check; its **Video** page has window, borderless or full screen, resolution, VSync, FPS limit, view distance, field of view, light, shadows, portal detail, a plain storm sky (no whirls, for weak PCs) and brightness for the dark.
 
 **Translations** are `assets/lang/<code>.txt`, one line `text as written = translation` with `{}`
 for the parts that vary. They apply to everything the client draws: menus, mods' panels and

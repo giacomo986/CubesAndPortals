@@ -359,7 +359,7 @@ const PermRow kPerms[] = {
     {"announce", Role::Moderator}, {"staffchat", Role::Helper}, {"warn", Role::Helper},
     {"reports", Role::Helper},     {"notes", Role::Helper},   {"players", Role::Helper},
     {"whois", Role::Moderator},    {"logs", Role::Admin},     {"backup", Role::Admin},
-    {"portals", Role::Admin},      {"federation", Role::Owner},
+    {"portals", Role::Admin},      {"federation", Role::Owner},  {"time", Role::Admin},
     {"inspect", Role::Helper},     {"rollback", Role::Moderator},
     {"bag", Role::Moderator},      {"give", Role::Admin},     {"rules", Role::Admin},
     {"alts", Role::Moderator},
@@ -1112,6 +1112,41 @@ void cmd_give(const Who &c, const Args &a, const Hooks &h, std::vector<std::stri
     out.push_back(t.name + " gets " + std::to_string(n) + " " + a.words[1] + ".");
 }
 
+// The clock of the world the caller is in. In the engine and not a mod, so
+// every world has it (2026-11-08: "Unknown command" in the assault).
+void cmd_time(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    static const struct { const char *word; double t; } kHours[] = {
+        {"day", 0.3}, {"noon", 0.5}, {"dusk", 0.75}, {"night", 0.85}, {"midnight", 0.0}, {"dawn", 0.25}};
+    double t = -1.0;
+    if (!a.words.empty()) {
+        std::string what = a.words[0];
+        for (char &ch : what) ch = (char)std::tolower((unsigned char)ch);
+        int hh = 0, mm = 0;
+        char more = 0;
+        for (const auto &k : kHours)
+            if (what == k.word) t = k.t;
+        if (std::sscanf(what.c_str(), "%d:%d%c", &hh, &mm, &more) == 2 && hh >= 0 && hh < 24 && mm >= 0 && mm < 60)
+            t = (hh * 60 + mm) / 1440.0;
+        if (t < 0.0) {
+            out.push_back("Usage: /time [day|noon|dusk|night|midnight|dawn|HH:MM]");
+            return;
+        }
+    }
+    net::PeerId peer = net::kNoPeer;
+    resolve(c.name, h, &peer);
+    const double now = h.clock && peer != net::kNoPeer ? h.clock(peer, t) : -1.0;
+    if (now < 0.0) {
+        out.push_back("Only from inside a world.");
+        return;
+    }
+    if (t >= 0.0) log(c, "time", "", a.words[0]);
+    const int mins = (int)std::lround(now * 1440.0) % 1440;
+    char line[32];
+    std::snprintf(line, sizeof(line), "Time: %02d:%02d.", mins / 60, mins % 60);
+    out.push_back(line);
+}
+
 // Other players who came in from an address this one came from: the same
 // person under another key, or a household. `banned_only` for the warning
 // to the staff when one comes in.
@@ -1264,6 +1299,7 @@ const Command kCommands[] = {
     {"note", "notes", "NAME text -- a note for the staff", cmd_note},
     {"bag", "bag", "NAME -- what a player carries", cmd_bag},
     {"give", "give", "NAME ITEM [COUNT] -- into a player's bag", cmd_give},
+    {"time", "time", "[day|noon|dusk|night|midnight|dawn|HH:MM] -- this world's hour, or set it", cmd_time},
     {"inspect", "inspect", "X Y Z [ROOM] -- who changed that block", cmd_inspect},
     {"rollback", "rollback", "NAME DURATION [ROOM] -- put back what a player changed", cmd_rollback},
     {"seen", nullptr, "NAME -- when a player was last here", cmd_seen},

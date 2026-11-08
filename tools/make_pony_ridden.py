@@ -88,6 +88,7 @@ def idle(ph):
 
 
 CLIPS = [("worn_idle", idle, 3.0), ("worn_walk", walk, 0.8), ("worn_run", run, 0.45)]
+NAME, BODY = "pony_ridden", "pony_body"   # tools/make_ladybird_mount.py sets these and the tables above
 
 
 def main():
@@ -114,8 +115,8 @@ def main():
     bpy.ops.object.mode_set(mode="OBJECT")
 
     names = list(COLOURS)
-    me = bpy.data.meshes.new("pony_ridden")
-    ob = bpy.data.objects.new("pony_ridden", me)
+    me = bpy.data.meshes.new(NAME)
+    ob = bpy.data.objects.new(NAME, me)
     bpy.context.scene.collection.objects.link(ob)
     for b in rig.data.bones:
         ob.vertex_groups.new(name=b.name)
@@ -150,9 +151,9 @@ def main():
             for bone, angle in turns.items():
                 pb = rig.pose.bones[bone]
                 pb.rotation_mode = "QUATERNION"
-                pb.rotation_quaternion = Quaternion((1, 0, 0), angle)
+                pb.rotation_quaternion = Quaternion(*angle) if isinstance(angle, tuple) else Quaternion((1, 0, 0), angle)
                 pb.keyframe_insert("rotation_quaternion", frame=f + 1)
-            body = rig.pose.bones["pony_body"]
+            body = rig.pose.bones[BODY]
             body.location = (0, 0, 0)
             body.location[2] = lift   # the bone points +Y, roll 0: its own Z is up
             body.keyframe_insert("location", frame=f + 1)
@@ -167,9 +168,10 @@ def main():
     rig.select_set(True)
     bpy.context.view_layer.objects.active = ob
     bpy.ops.export_scene.gltf(
-        filepath=os.path.join(OUT, "pony_ridden.gltf"), export_format="GLTF_SEPARATE",
+        filepath=os.path.join(OUT, NAME + ".gltf"), export_format="GLTF_SEPARATE",
         use_selection=True, export_animations=True, export_animation_mode="NLA_TRACKS", export_skins=True,
         export_apply=True, export_yup=True)
 
 
-main()
+if __name__ == "__main__":
+    main()

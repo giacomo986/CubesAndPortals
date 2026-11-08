@@ -126,6 +126,8 @@ namespace {
 constexpr int   kWindowWidth  = 1920;
 constexpr int   kWindowHeight = 1080;
 constexpr float kFovY         = 1.2217f;   // 70 degrees
+constexpr float kPi           = 3.14159265f;
+float           g_fov_base    = kFovY;     // Options -> Video
 float           g_fov_y       = kFovY;     // narrowed by core.zoom: a bow drawn
 constexpr float kZNear        = 0.05f;
 // The near plane used this frame: kZNear, less for a small body (core.body_scale),
@@ -504,7 +506,13 @@ std::string default_media_dir()
 float g_volume = 1.0f;   // the whole game's, 0..1 (snd_set_volume)
 int   g_shadow_size = 2048;   // the sun's shadow map, texels a side; 0 is no shadows
 bool  g_classic_light = false;   // the light as it was before the rework (WorldRenderer::set_classic)
-bool  g_fullscreen    = false;   // borderless over the monitor; F11 or the options
+int   g_display       = 0;       // 0 window, 1 borderless, 2 full screen; F11 or the video options
+int   g_res_w = 0, g_res_h = 0;  // the window's or the full screen's size; 0 is as it opened
+bool  g_vsync         = false;
+int   g_fps_limit     = 0;       // 0 is none
+float g_brightness    = 0.0f;    // 0..1: nothing drawn darker (the night sight's floor)
+bool  g_video_page    = false;   // the options panel is on its video page
+bool  g_portal_detail_changed = false;   // ScreenTargets makes the targets again
 bool  g_update_check  = true;    // ask GitHub for a newer release on the title screen
 bool  g_no_update_flag = false;  // --no-update-check: not this run, whatever the options say
 
@@ -521,7 +529,17 @@ void load_options(bool &debug)
         else if (key == "volume") g_volume = std::clamp(value, 0.0f, 1.0f);
         else if (key == "debug") debug = value != 0.0f;
         else if (key == "classic_light") g_classic_light = value != 0.0f;
-        else if (key == "fullscreen") g_fullscreen = value != 0.0f;
+        else if (key == "fullscreen") g_display = value != 0.0f ? 1 : 0;   // what 0.15 wrote
+        else if (key == "display") g_display = std::clamp((int)value, 0, 2);
+        else if (key == "res_w") g_res_w = (int)value;
+        else if (key == "res_h") g_res_h = (int)value;
+        else if (key == "vsync") g_vsync = value != 0.0f;
+        else if (key == "fps_limit") g_fps_limit = std::max(0, (int)value);
+        else if (key == "brightness") g_brightness = std::clamp(value, 0.0f, 1.0f);
+        else if (key == "view_limit") WorldRenderer::view_limit = std::clamp(value, 64.0f, 512.0f);
+        else if (key == "plain_storm") WorldRenderer::plain_storm = value != 0.0f;
+        else if (key == "fov") g_fov_y = g_fov_base = std::clamp(value, 60.0f, 110.0f) * kPi / 180.0f;
+        else if (key == "portal_detail") g_portal_scale = std::clamp(value, 0.1f, 1.0f);
         else if (key == "update_check") g_update_check = value != 0.0f;
         // Under 2^24, so a float holds it whole.
         else if (key == "livery" && value >= 0.0f && value < (float)net::kLiveryMax)
@@ -541,7 +559,12 @@ void save_options(bool debug)
     std::ofstream out(path);
     out << "look_scale " << g_look_scale << "\nvolume " << g_volume << "\ndebug " << (debug ? 1 : 0)
         << "\nshadows " << g_shadow_size << "\nclassic_light " << (g_classic_light ? 1 : 0)
-        << "\nfullscreen " << (g_fullscreen ? 1 : 0) << "\nupdate_check " << (g_update_check ? 1 : 0)
+        << "\ndisplay " << g_display << "\nres_w " << g_res_w << "\nres_h " << g_res_h
+        << "\nvsync " << (g_vsync ? 1 : 0) << "\nfps_limit " << g_fps_limit
+        << "\nbrightness " << g_brightness << "\nview_limit " << WorldRenderer::view_limit
+        << "\nplain_storm " << (WorldRenderer::plain_storm ? 1 : 0)
+        << "\nfov " << std::lround(g_fov_base * 180.0f / kPi)
+        << "\nportal_detail " << g_portal_scale << "\nupdate_check " << (g_update_check ? 1 : 0)
         << "\nlivery " << net::g_client_livery
         << "\nlang " << lang::current() << "\n";
     if (!out) std::fprintf(stderr, "could not save the options to %s\n", path.c_str());
@@ -4735,7 +4758,7 @@ void host_arms_clip(void *ud, const char *clip)
 void host_zoom(void *ud, double factor)
 {
     (void)ud;
-    g_fov_y = kFovY * (float)(std::isfinite(factor) ? std::clamp(factor, 0.2, 1.5) : 1.0);
+    g_fov_y = g_fov_base * (float)(std::isfinite(factor) ? std::clamp(factor, 0.2, 1.5) : 1.0);
 }
 
 void host_held_model(void *ud, const char *name)
@@ -8065,7 +8088,7 @@ void apply_clocks(Scene &s)
     for (int i = 0; i < s.count(); ++i) {
         Session &w = s.at(i);
         w.world_render.forget_shadows();   // drawn again below for the world the eye is in
-        w.world_render.set_night_sight(w.night_sight);
+        w.world_render.set_night_sight(std::max(w.night_sight, g_brightness));
         if (w.sky_fixed) {
             for (int c = 0; c < 3; ++c) w.sky[c] = w.sky_rgb[c];
             w.world_render.set_daylight(0.0f);
@@ -8267,13 +8290,13 @@ void camera_follow(Scene &s, const Player &player, float dt)
         static bool fov_ours = false;
         if (iso_engaged(w)) {
             const float t = std::clamp(w.iso_t, 0.0f, 1.0f), k = t * t * (3.0f - 2.0f * t);
-            const float to = w.iso_fov > 0.0f ? w.iso_fov : kFovY;
-            g_fov_y        = kFovY + (to - kFovY) * k;
+            const float to = w.iso_fov > 0.0f ? w.iso_fov : g_fov_base;
+            g_fov_y        = g_fov_base + (to - g_fov_base) * k;
             fov_ours       = true;
             w.view_distance = w.iso_distance;   // the body drawn, no arms, no crosshair
             w.iso_drawn     = true;
         } else {
-            if (fov_ours) g_fov_y = kFovY;
+            if (fov_ours) g_fov_y = g_fov_base;
             fov_ours = false;
             if (w.iso_drawn) w.view_distance = 0.0f;
             w.iso_drawn = false;
@@ -9611,8 +9634,67 @@ std::string g_rejoin_account;
 
 // The options, the pause menu's and the title screen's. `world` is null on the
 // title screen, where there is nobody to see from behind yet.
+// Common sizes that fit this monitor, and the monitor's own.
+std::vector<std::pair<int, int>> video_sizes()
+{
+    static const int common[][2] = {{1280, 720}, {1366, 768}, {1600, 900}, {1920, 1080}, {2560, 1440}, {3840, 2160}};
+    int mw = 0, mh = 0;
+    plat_monitor_size(&mw, &mh);
+    std::vector<std::pair<int, int>> out;
+    for (const auto &c : common)
+        if (c[0] <= mw && c[1] <= mh && !(c[0] == mw && c[1] == mh)) out.push_back({c[0], c[1]});
+    out.push_back({mw, mh});
+    return out;
+}
+
+// Video settings, the options panel's second page.
+ui::Panel video_panel()
+{
+    static const char *const kDisplay[] = {"Display: window", "Display: borderless", "Display: full screen"};
+    char res[48], fps[32], view[32], fov[32], bright[32];
+    const int shown_w = g_res_w > 0 ? g_res_w : gfx_screen_width(), shown_h = g_res_h > 0 ? g_res_h : gfx_screen_height();
+    if (g_display == 1) std::snprintf(res, sizeof(res), "Resolution: desktop");
+    else std::snprintf(res, sizeof(res), "Resolution: %dx%d", shown_w, shown_h);
+    if (g_fps_limit > 0) std::snprintf(fps, sizeof(fps), "FPS limit: %d", g_fps_limit);
+    else std::snprintf(fps, sizeof(fps), "FPS limit: none");
+    std::snprintf(view, sizeof(view), "View distance: %d", (int)WorldRenderer::view_limit);
+    std::snprintf(fov, sizeof(fov), "Field of view: %d", (int)std::lround(g_fov_base * 180.0f / kPi));
+    std::snprintf(bright, sizeof(bright), "Brightness %d%%", (int)std::lround(g_brightness * 100.0f));
+
+    ui::Panel p;
+    p.w = 9.0f;
+    p.h = 8.6f;
+    panel_label(p, "Video", 0.5f, 0.0f);
+    panel_button(p, "back", "Back", 4.6f, 0.0f, 3.9f);
+    float y = 1.2f;
+    panel_button(p, "display", kDisplay[g_display], 0.5f, y, 3.9f);
+    panel_button(p, "resolution", res, 4.6f, y, 3.9f);
+    y += 1.2f;
+    panel_button(p, "vsync", g_vsync ? "VSync: on" : "VSync: off", 0.5f, y, 3.9f);
+    panel_button(p, "fps", fps, 4.6f, y, 3.9f);
+    y += 1.2f;
+    panel_button(p, "view", view, 0.5f, y, 3.9f);
+    panel_button(p, "fov", fov, 4.6f, y, 3.9f);
+    y += 1.2f;
+    panel_button(p, "lighting", g_classic_light ? "Light: classic" : "Light: new", 0.5f, y, 3.9f);
+    panel_button(p, "shadows",
+                 g_shadow_size >= 2048 ? "Shadows: high" : g_shadow_size > 0 ? "Shadows: low" : "Shadows: off",
+                 4.6f, y, 3.9f);
+    y += 1.2f;
+    panel_button(p, "portal_detail",
+                 g_portal_scale >= 0.99f ? "Portals: high" : g_portal_scale >= 0.7f ? "Portals: medium" : "Portals: low",
+                 0.5f, y, 3.9f);
+    panel_button(p, "storm", WorldRenderer::plain_storm ? "Storm sky: plain" : "Storm sky: whirling", 4.6f, y, 3.9f);
+    y += 1.2f;
+    panel_label(p, bright, 0.5f, y);
+    panel_button(p, "darker", "-", 5.8f, y, 1.2f);
+    panel_button(p, "brighter", "+", 7.3f, y, 1.2f);
+    return p;
+}
+
 ui::Panel options_panel(bool debug, const Session *world)
 {
+    if (g_video_page) return video_panel();
     char sens[48];
     std::snprintf(sens, sizeof(sens), "Mouse sensitivity %d%%", (int)std::lround(g_look_scale * 100.0f));
 
@@ -9621,7 +9703,7 @@ ui::Panel options_panel(bool debug, const Session *world)
 
     ui::Panel p;
     p.w = 9.0f;
-    p.h = world ? 9.2f : 7.9f;
+    p.h = world ? 7.9f : 6.6f;
     panel_label(p, "Options", 0.5f, 0.0f);
     // Back up here, beside the title, so the panel is no taller than before
     // the updates had a button and stays clear of the game's name.
@@ -9640,12 +9722,7 @@ ui::Panel options_panel(bool debug, const Session *world)
     }
     // Two to a row, so the panel stays short enough for the title screen's
     // name above it.
-    panel_button(p, "lighting", g_classic_light ? "Light: classic" : "Light: new", 0.5f, y, 3.9f);
-    panel_button(p, "shadows",
-                 g_shadow_size >= 2048 ? "Shadows: high" : g_shadow_size > 0 ? "Shadows: low" : "Shadows: off",
-                 4.6f, y, 3.9f);
-    y += 1.3f;
-    panel_button(p, "fullscreen", g_fullscreen ? "Full screen: on" : "Full screen: off", 0.5f, y, 3.9f);
+    panel_button(p, "video", "Video", 0.5f, y, 3.9f);
     panel_button(p, "debug", debug ? "Debug info: on" : "Debug info: off", 4.6f, y, 3.9f);
     y += 1.3f;
     // Each language in its own name, so one that cannot be read can be left.
@@ -9876,10 +9953,12 @@ void window_keys(bool debug)
 {
     if (g_window_measured) return;
     if (plat_key_pressed(PLAT_KEY_F11)) {
-        g_fullscreen = !g_fullscreen;
+        g_display = g_display == 0 ? 1 : 0;
         save_options(debug);
     }
-    plat_set_fullscreen(g_fullscreen);
+    plat_set_display(g_display, g_res_w, g_res_h);
+    plat_set_vsync(g_vsync);
+    plat_set_fps_limit(g_fps_limit);
 }
 
 bool options_click(const std::string &id, bool &debug)
@@ -9893,7 +9972,34 @@ bool options_click(const std::string &id, bool &debug)
     }
     else if (id == "debug") debug = !debug;
     else if (id == "lighting") g_classic_light = !g_classic_light;
-    else if (id == "fullscreen") g_fullscreen = !g_fullscreen;
+    else if (id == "video") g_video_page = true;
+    else if (id == "back" && g_video_page) g_video_page = false;
+    else if (id == "display") g_display = (g_display + 1) % 3;
+    else if (id == "resolution") {
+        if (g_display == 1) return true;   // the desktop's, whatever is asked
+        const auto all = video_sizes();
+        size_t at = 0;
+        while (at < all.size() && all[at].first != g_res_w) ++at;
+        const auto &next = all[at + 1 < all.size() ? at + 1 : 0];
+        g_res_w = next.first, g_res_h = next.second;
+    }
+    else if (id == "vsync") g_vsync = !g_vsync;
+    else if (id == "fps") g_fps_limit = g_fps_limit == 0 ? 30 : g_fps_limit == 30 ? 60 : g_fps_limit == 60 ? 120 : g_fps_limit == 120 ? 144 : 0;
+    else if (id == "view") {
+        float &v = WorldRenderer::view_limit;
+        v = v >= 512.0f ? 64.0f : v * 2.0f;
+    }
+    else if (id == "fov") {
+        const int d = (int)std::lround(g_fov_base * 180.0f / kPi);
+        g_fov_y = g_fov_base = (float)(d >= 110 ? 60 : d + 5) * kPi / 180.0f;
+    }
+    else if (id == "portal_detail") {
+        g_portal_scale = g_portal_scale >= 0.99f ? 0.75f : g_portal_scale >= 0.7f ? 0.5f : 1.0f;
+        g_portal_detail_changed = true;
+    }
+    else if (id == "storm") WorldRenderer::plain_storm = !WorldRenderer::plain_storm;
+    else if (id == "darker" || id == "brighter")
+        g_brightness = std::clamp(std::round(g_brightness * 10.0f + (id == "brighter" ? 1.0f : -1.0f)) / 10.0f, 0.0f, 1.0f);
     else if (id == "updates") {
         g_update_check = !g_update_check;
         if (g_update_check && !g_no_update_flag) update::start();
@@ -9987,7 +10093,8 @@ bool pause_frame(Scene &s, LookSettle &settle, bool &debug, bool esc, bool inter
     }
 
     if (esc) {
-        if (s.pause.options || s.pause.look) s.pause.options = s.pause.look = false;
+        if (g_video_page) g_video_page = false;
+        else if (s.pause.options || s.pause.look) s.pause.options = s.pause.look = false;
         else resume();
         return false;
     }
@@ -10009,6 +10116,7 @@ bool pause_frame(Scene &s, LookSettle &settle, bool &debug, bool esc, bool inter
         resume();
         s.conn->send_chat("/page world");   // the page frees the cursor as it comes
     }
+    else if (id == "back" && g_video_page) g_video_page = false;
     else if (id == "back") s.pause.options = s.pause.look = false;
     else if (s.pause.look && look_click(id)) {
         // Seen at once here, and by everybody else as soon as the server hears.
@@ -10759,7 +10867,8 @@ MenuChoice title_menu(Scene &s, TitleMenu &m, bool &debug)
                 m.page = MenuPage::Server;   // a server's account, so back to the servers
             else if (m.page == MenuPage::Options) {
                 save_options(debug);
-                m.page = MenuPage::Title;
+                if (g_video_page) g_video_page = false;
+                else m.page = MenuPage::Title;
             } else m.page = MenuPage::Title;
         }
 
@@ -14592,6 +14701,10 @@ struct ScreenTargets {
         const int w = gfx_screen_width();
         const int h = gfx_screen_height();
 
+        if (g_portal_detail_changed) {   // the same window, a target of another size
+            g_portal_detail_changed = false;
+            built_w = 0;
+        }
         if (w != want_w || h != want_h) {
             want_w   = w;
             want_h   = h;

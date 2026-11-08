@@ -68,7 +68,7 @@ Each command asks for a permission, and each permission wants a least role. The 
 |---|---|
 | helper | `mute`, `pages`, `staffchat`, `warn`, `reports`, `notes`, `players`, `inspect` |
 | moderator | `kick`, `ban`, `creative`, `announce`, `whois`, `rollback`, `bag`, `alts` |
-| admin | `ban.ip`, `access`, `roles`, `restart`, `maintenance`, `motd`, `rules`, `logs`, `backup`, `portals`, `give` |
+| admin | `ban.ip`, `access`, `roles`, `restart`, `maintenance`, `motd`, `rules`, `logs`, `backup`, `time`, `portals`, `give` |
 | owner | `perms`, `federation` |
 
 `/perm PERMISSION ROLE` (owner) moves a permission to another role; `/perm` lists them.
@@ -117,7 +117,8 @@ owner of that name on this world, or the bare name.
 | `/backup` | backup | Copy every world file now |
 | `/metrics` | logs | Uptime, players and windows per room, the longest gap between ticks |
 | `/weather [clear\|rain\|storm] [MINUTES]` | admin | The sandbox's sky (`mods/weather`): with no word, what it is and how long it lasts; with one, that sky now, for MINUTES or the usual time |
-| `/time [day\|noon\|dusk\|night\|midnight\|dawn\|HH:MM]` | admin | The clock (`mods/weather`): with no word, the hour now; with one, that hour at once for everybody. Turned back past midnight it counts a day, as a night slept through does |
+| `/time [day\|noon\|dusk\|night\|midnight\|dawn\|HH:MM]` | time (admin) | The clock of the world you are in, in every world: with no word, the hour; with one, that hour at once for everybody there. In the sandbox, turned back past midnight it counts a day, as a night slept through |
+| `/story NAME [keys all\|WORLD...\|ending\|clear]` | admin | A player's story progress, the player being in your world: with no word, how many keys and whether l'Ospite is beaten. `keys all` or `keys pista inferno ...` records those keys and puts them in the bag (worlds: pista inferno arena arpg chambers backrooms parkour); `ending` is all seven and l'Ospite beaten, which opens the front and the assault and gives the rewards; `clear` takes it all back (`mods/keys`) |
 | `/season [spring\|summer\|autumn\|winter]` | admin | The sandbox's season (`mods/weather`, five days each): with no word, which and what day of it; with one, the first day of that season this year |
 | `/difficulty [peaceful\|easy\|normal\|hard]` `/peaceful [on\|off]` | admin | How hard the world is (`mods/rules`, core.set_difficulty): peaceful sends every creature that fights away and lets none out; easy and hard scale their blows, their numbers and hunger. Kept in WORLD.difficulty (`--difficulty`) |
 | `/rule [NAME on\|off]` | admin | The world's rules (`mods/rules`, core.set_rule): keep_bag, day_cycle, weather_cycle, hunger; kept in WORLD.rules. The pause menu's World button shows them all on `/page world`, with the weather, the hour and the season, as buttons for an admin |
