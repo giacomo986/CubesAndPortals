@@ -36,7 +36,17 @@ core.register_mob("mobs:runner", RUNNER, 12, 5.8, "melee", 3, 1.6, 1.0, "mobs:fl
 core.mob_climbs("mobs:runner", 6)
 core.mob_lunge("mobs:runner", 7)
 core.mob_voice("mobs:runner", "mobs:zombie")
-core.mob_share("mobs:runner", 0.1)   -- about one in ten of what comes out in the dark
+-- Rare, and not the same every night: at each dusk a new share of what comes
+-- out in the dark, from none to 8 in 100.
+core.mob_share("mobs:runner", 0.04)
+local last_time = core.time_of_day()
+core.event.on("core:tick", function()
+    local t = core.time_of_day()
+    if last_time < 0.75 and t >= 0.75 then
+        core.mob_share("mobs:runner", math.random(0, 8) / 100)
+    end
+    last_time = t
+end)
 
 -- Keeps six to twelve nodes away and shoots every two seconds from up to
 -- fifteen, while it can see who it is shooting at.
