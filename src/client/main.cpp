@@ -5150,6 +5150,21 @@ int host_monsters_near(void *ud, double x, double y, double z, double r)
                     : 0;
 }
 
+int host_mob_share(void *ud, const char *name, double share)
+{
+    return ecs::mob_share(static_cast<Scene *>(ud)->act().mob_kinds, name, share);
+}
+
+int host_mob_lunge(void *ud, const char *name, double nodes)
+{
+    return ecs::mob_lunge(static_cast<Scene *>(ud)->act().mob_kinds, name, nodes);
+}
+
+int host_mob_climbs(void *ud, const char *name, double nodes)
+{
+    return ecs::mob_climbs(static_cast<Scene *>(ud)->act().mob_kinds, name, nodes);
+}
+
 int host_mob_sight(void *ud, const char *name, double nodes)
 {
     return ecs::mob_sight(static_cast<Scene *>(ud)->act().mob_kinds, name, nodes);
@@ -9153,6 +9168,14 @@ void animate_body(Session &w, uint64_t key, Body &b, Vec3 feet, uint16_t rider,
     else if (working && !arms_only_clip(e->model, working)) name = working;
     else if (own ? own->stepping : !crouching && steps_up(w, m, e->model, feet, b.yaw))
         name = e->model.clip("step_up") >= 0 ? "step_up" : "jump_loop";
+    // A creature on a dive (core.mob_lunge): faster than anything runs.
+    else if (!own && m.speed > 7.0f && e->model.clip("lunge") >= 0) name = "lunge";
+    // A creature going up a sheer wall (core.mob_climbs): rising, its face to it.
+    else if (!own && m.climb > 1.5f && e->model.clip("hang") < 0 && e->model.clip("climb") >= 0 &&
+             w.registry.is_solid(w.world.get_block((int)std::floor(feet.x + std::sin(b.yaw) * 0.6f),
+                                                   (int)std::floor(feet.y + 1.0f),
+                                                   (int)std::floor(feet.z - std::cos(b.yaw) * 0.6f))))
+        name = "climb";
     // Somebody else falling past a ledge -- off a block -- is not holding it.
     else if (int hx = 0, hz = 0;
              own ? (own->hanging || own->mantling) : m.climb > -1.0f && hangs(w, feet, &hx, &hz)) {
@@ -9162,7 +9185,8 @@ void animate_body(Session &w, uint64_t key, Body &b, Vec3 feet, uint16_t rider,
         // nothing under the feet and a ledge by the hands -- and how they move.
         const bool pulls = own ? own->mantling : m.climb > 0.8f;
         name = pulls ? "pull_up" : m.speed > 0.3f ? "hang_shimmy" : "hang";
-        if (e->model.clip(name) < 0) name = e->model.clip("hang") >= 0 ? "hang" : "jump_loop";
+        if (e->model.clip(name) < 0)
+            name = e->model.clip("hang") >= 0 ? "hang" : e->model.clip("climb") >= 0 ? "climb" : "jump_loop";
     }
     else if (box_on_climbable(w.world, w.registry, body_box(feet, 0.3f)) &&
              !(own ? own->on_ground : std::fabs(m.climb) < 0.2f && m.speed > 0.4f)) {
@@ -20416,6 +20440,9 @@ script_host make_client_host(Scene &scene)
     host.push_mobs      = host_push_mobs;
     host.monsters_near  = host_monsters_near;
     host.mob_sight      = host_mob_sight;
+    host.mob_climbs     = host_mob_climbs;
+    host.mob_lunge      = host_mob_lunge;
+    host.mob_share      = host_mob_share;
     host.arms_clip      = host_arms_clip;
     host.zoom           = host_zoom;
     host.rope           = host_rope;

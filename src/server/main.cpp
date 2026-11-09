@@ -4321,6 +4321,21 @@ int host_mob_drop(void *ud, const char *name, const char *item, int max)
     return cnp::ecs::mob_drop(static_cast<ServerState *>(ud)->mob_kinds, name, item, max);
 }
 
+int host_mob_share(void *ud, const char *name, double share)
+{
+    return cnp::ecs::mob_share(static_cast<ServerState *>(ud)->mob_kinds, name, share);
+}
+
+int host_mob_lunge(void *ud, const char *name, double nodes)
+{
+    return cnp::ecs::mob_lunge(static_cast<ServerState *>(ud)->mob_kinds, name, nodes);
+}
+
+int host_mob_climbs(void *ud, const char *name, double nodes)
+{
+    return cnp::ecs::mob_climbs(static_cast<ServerState *>(ud)->mob_kinds, name, nodes);
+}
+
 int host_mob_sight(void *ud, const char *name, double nodes)
 {
     return cnp::ecs::mob_sight(static_cast<ServerState *>(ud)->mob_kinds, name, nodes);
@@ -6700,6 +6715,9 @@ int serve_room(int argc, char **argv)
         host.slow_mobs      = host_slow_mobs;
         host.mob_blow_every = host_mob_blow_every;
         host.mob_sight      = host_mob_sight;
+        host.mob_climbs     = host_mob_climbs;
+        host.mob_lunge      = host_mob_lunge;
+        host.mob_share      = host_mob_share;
         host.shoot          = host_shoot;
         host.shoot_arrow    = host_shoot_arrow;
         host.fall           = host_fall;

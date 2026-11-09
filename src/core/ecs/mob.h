@@ -88,6 +88,9 @@ struct MobKind {
     const std::string &voice_name() const { return voice.empty() ? name : voice; }
     // How far off it notices a player and goes for them (core.mob_sight).
     float       notice = 16.0f;
+    float       climbs = 0.0f;     // the highest wall it goes up (core.mob_climbs)
+    float       lunge  = 0.0f;     // from how far it dives at somebody (core.mob_lunge)
+    float       share  = 0.0f;     // of those that come out in the dark (core.mob_share), 0 for an even chance
     // The part of its blows and arrows armour does not take (core.mob_pierce),
     // 0..1: a village guard's sword through a diamond chestplate.
     float       pierce = 0.0f;
@@ -176,6 +179,9 @@ int mob_lays(std::vector<MobKind> &kinds, const char *name, const char *item, do
              double max_s);
 int mob_drop(std::vector<MobKind> &kinds, const char *name, const char *item, int max);
 int mob_sight(std::vector<MobKind> &kinds, const char *name, double nodes);
+int mob_climbs(std::vector<MobKind> &kinds, const char *name, double nodes);
+int mob_lunge(std::vector<MobKind> &kinds, const char *name, double nodes);
+int mob_share(std::vector<MobKind> &kinds, const char *name, double share);
 
 // A mod's gun (core.shoot): the first body that can be hurt -- a creature, or
 // a mod's entity with health -- whose box a ray from `from` along `dir` (unit)
@@ -504,6 +510,11 @@ struct Brain {
     double   detour_until = 0.0; // going round it, sideways, until then
     float    detour_x = 0.0f, detour_z = 0.0f;
     float    kx = 0.0f, kz = 0.0f;  // knocked back by a blow: m/s, spent on the ground
+    bool     climbing = false;      // up a wall (core.mob_climbs), pressed against it this way
+    float    climb_x = 0.0f, climb_z = 0.0f, climb_from = 0.0f;
+    double   climb_again = 0.0;     // having let go, not before this
+    bool     lunging = false, lunge_hit = false;   // in the air, diving; and it has struck
+    double   lunge_again = 0.0;     // not before this
     double   burn_at = 0.0;         // in the sun: the next point it loses then
     double   shade_at = 0.0;        // when it next looks for shade, burning
     bool     has_shade = false;

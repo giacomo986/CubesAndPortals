@@ -1632,6 +1632,45 @@ How far off a creature of that kind notices a player and goes for them. An arena
 | `name` | string | — | A kind from register_mob. |
 | `nodes` | number | — | How far, 1 to 128. 16 when never said. |
 
+## `core.mob_climbs`
+
+```luau
+core.mob_climbs(name: string, nodes: number) -> number
+```
+
+Lets a creature of that kind go up a sheer wall after whoever it is hunting, when they stand higher and it has no way round or they are close. It plays its "climb" clip, and lets go at that height or under a ceiling. Returns 1, or 0 for a kind nobody registered.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — | A kind from register_mob. |
+| `nodes` | number | — | The highest wall it goes up, 0 to 32. 0 when never said: it climbs none. |
+
+## `core.mob_share`
+
+```luau
+core.mob_share(name: string, share: number) -> number
+```
+
+How many of the creatures that come out in the dark are of that kind: 0.1 is about one in ten, however many other kinds there are. Returns 1, or 0 for a kind nobody registered.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — | A kind from register_mob. |
+| `share` | number | — | Of those that come out in the dark, 0 to 1. 0 when never said: an even chance with the others. |
+
+## `core.mob_lunge`
+
+```luau
+core.mob_lunge(name: string, nodes: number) -> number
+```
+
+Lets a melee creature of that kind dive at whoever it hunts: from the ground, with them in sight, every few seconds, flying flat at them and striking half as hard again if it reaches them. A model with a "lunge" clip plays it in the air. Returns 1, or 0 for a kind nobody registered.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — | A kind from register_mob. |
+| `nodes` | number | — | From how far it dives, 3 to 16. 0 when never said: it does not. |
+
 ## `core.shoot`
 
 ```luau

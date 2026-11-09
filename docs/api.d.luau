@@ -294,6 +294,12 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     mob_drop: (name: string, item: string, max: number) -> number,
     -- How far off a creature of that kind notices a player and goes for them. An arena's demons that hunt the whole floor say 64. Returns 1, or 0 for a kind nobody registered.
     mob_sight: (name: string, nodes: number) -> number,
+    -- Lets a creature of that kind go up a sheer wall after whoever it is hunting, when they stand higher and it has no way round or they are close. It plays its "climb" clip, and lets go at that height or under a ceiling. Returns 1, or 0 for a kind nobody registered.
+    mob_climbs: (name: string, nodes: number) -> number,
+    -- How many of the creatures that come out in the dark are of that kind: 0.1 is about one in ten, however many other kinds there are. Returns 1, or 0 for a kind nobody registered.
+    mob_share: (name: string, share: number) -> number,
+    -- Lets a melee creature of that kind dive at whoever it hunts: from the ground, with them in sight, every few seconds, flying flat at them and striking half as hard again if it reaches them. A model with a "lunge" clip plays it in the air. Returns 1, or 0 for a kind nobody registered.
+    mob_lunge: (name: string, nodes: number) -> number,
     -- A bullet: the first body that can be hurt -- a creature, or a mod's entity with core.ecs.health -- that a ray from x, y, z meets before a solid block and within `max` loses `damage`, and a creature is knocked back from where it came. Returns how far along the ray it was struck and whether that killed it, or NOTHING when it struck no body. Never a player. On a server.
     shoot: (x: number, y: number, z: number, dx: number, dy: number, dz: number, max: number, damage: number) -> (number?, boolean?),
     -- Every cell of `from` in the box (corners included) becomes `to`, as core.set_block would make it -- in a mapgen stage only in the column being made -- and the count comes back. One call where a stage would make one per cell: a host call costs microseconds, and a pocket is hundreds of cells.

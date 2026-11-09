@@ -1877,6 +1877,44 @@ local api: { Fn } = {
            .. "nobody registered.",
     },
     {
+        name = "mob_climbs",
+        host = "mob_climbs",
+        ret  = "int",
+        args = {
+            { name = "name", type = "string", doc = "A kind from register_mob." },
+            { name = "nodes", type = "float", doc = "The highest wall it goes up, 0 to 32. 0 when never said: it climbs none." },
+        },
+        doc = "Lets a creature of that kind go up a sheer wall after whoever it is hunting, when "
+           .. "they stand higher and it has no way round or they are close. It plays its \"climb\" "
+           .. "clip, and lets go at that height or under a ceiling. Returns 1, or 0 for a kind "
+           .. "nobody registered.",
+    },
+    {
+        name = "mob_share",
+        host = "mob_share",
+        ret  = "int",
+        args = {
+            { name = "name", type = "string", doc = "A kind from register_mob." },
+            { name = "share", type = "float", doc = "Of those that come out in the dark, 0 to 1. 0 when never said: an even chance with the others." },
+        },
+        doc = "How many of the creatures that come out in the dark are of that kind: 0.1 is about "
+           .. "one in ten, however many other kinds there are. Returns 1, or 0 for a kind nobody "
+           .. "registered.",
+    },
+    {
+        name = "mob_lunge",
+        host = "mob_lunge",
+        ret  = "int",
+        args = {
+            { name = "name", type = "string", doc = "A kind from register_mob." },
+            { name = "nodes", type = "float", doc = "From how far it dives, 3 to 16. 0 when never said: it does not." },
+        },
+        doc = "Lets a melee creature of that kind dive at whoever it hunts: from the ground, with "
+           .. "them in sight, every few seconds, flying flat at them and striking half as hard "
+           .. "again if it reaches them. A model with a \"lunge\" clip plays it in the air. Returns "
+           .. "1, or 0 for a kind nobody registered.",
+    },
+    {
         name = "shoot",
         host = "shoot",
         rets = { "float", "bool" },

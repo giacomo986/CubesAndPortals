@@ -327,6 +327,8 @@ quota, gole con un torrente sul fondo, grotte collegate fra loro, minerali in ve
 pietra, e il ciclo giorno/notte con nuvole sopra cui si vola. Sotto terra ci sono miniere
 abbandonate e cripte con le casse, e una scala per risalire.
 
+**Creature che si arrampicano** (`mods/mobs`). Gli zombie salgono un muro per raggiungerti quando stai più in alto, e un tipo più rapido, il corridore, scatta, si arrampica e si tuffa su di te da sette blocchi.
+
 **Villaggi** (`mods/villages`, `mods/villagers`). Un mondo nuovo ha città (una per riquadro di 2048 dove il terreno lo permette, larghe fino a 500, palazzi al centro) unite da strade maestre lastricate che passano i monti e fanno ponti sull'acqua, cittadine fitte attorno alle città e villaggi radi nelle zone selvagge; `/town city` porta alla più vicina. Paesi e cittadine con piazza, vie, case, campi,
 fucina e lampioni, collegati da una rete di sentieri tortuosi -- ghiaia, arenaria, ciottoli o terra
 battuta secondo il terreno, con cartelli, pietre miliari, lanterne e ponti. Li abitano tre specie:

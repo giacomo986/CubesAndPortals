@@ -321,6 +321,8 @@ stream at the bottom, caves that connect, ores in veins inside the stone, and a 
 with clouds you can fly over. Underground there are abandoned mines and crypts with chests, and a
 stairway back up.
 
+**Creatures that climb** (`mods/mobs`). Zombies go up a wall after you when you stand above it, and a faster kind, the runner, sprints, climbs and dives at you from seven nodes away.
+
 **Villages** (`mods/villages`, `mods/villagers`). A new world has cities (one to a cell of 2048 where the land allows it, up to 500 across, flats near the middle) joined by paved highways that cross mountains and bridge water, towns thick around the cities and villages thin in the wilderness; `/town city` takes you to the nearest. Villages and towns with a square, streets,
 houses, fields, a forge and lamps, joined into a network of winding paths -- gravel, sandstone,
 cobblestone or beaten earth by the land, with signposts, milestones, lanterns and bridges. They are

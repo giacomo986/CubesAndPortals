@@ -882,6 +882,36 @@ int mob_pierce(std::vector<MobKind> &kinds, const char *name, double part)
     return 0;
 }
 
+int mob_climbs(std::vector<MobKind> &kinds, const char *name, double nodes)
+{
+    for (MobKind &k : kinds)
+        if (k.name == (name ? name : "")) {
+            k.climbs = (float)std::clamp(nodes, 0.0, 32.0);
+            return 1;
+        }
+    return 0;
+}
+
+int mob_share(std::vector<MobKind> &kinds, const char *name, double share)
+{
+    for (MobKind &k : kinds)
+        if (k.name == (name ? name : "")) {
+            k.share = (float)std::clamp(share, 0.0, 1.0);
+            return 1;
+        }
+    return 0;
+}
+
+int mob_lunge(std::vector<MobKind> &kinds, const char *name, double nodes)
+{
+    for (MobKind &k : kinds)
+        if (k.name == (name ? name : "")) {
+            k.lunge = nodes <= 0.0 ? 0.0f : (float)std::clamp(nodes, 3.0, 16.0);
+            return 1;
+        }
+    return 0;
+}
+
 int mob_sight(std::vector<MobKind> &kinds, const char *name, double nodes)
 {
     for (MobKind &k : kinds)
@@ -1498,7 +1528,7 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
                         want_z = dz / flat;
                     }
                 }
-                if (k.damage > 0 && dist <= k.reach && now >= b.next_blow &&
+                if (k.damage > 0 && dist <= k.reach && now >= b.next_blow && !b.lunging &&
                     sees(world, reg, eye, chest)) {
                     const Vec3 push = flat > 1e-3f ? Vec3{dx / flat * kKnock, kKnockUp, dz / flat * kKnock}
                                                    : Vec3{0.0f, kKnockUp, 0.0f};
@@ -1642,6 +1672,42 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
             if (b.vy < -kTerminalFallSpeed) b.vy = -kTerminalFallSpeed;
         }
 
+        // In the air on a dive: where it was thrown, and a blow if it gets there.
+        if (b.lunging) {
+            want_x = want_z = 0.0f;
+            if (goal != nullptr && !b.lunge_hit) {
+                const float gx = goal->x - p.x, gy = goal->y - p.y, gz = goal->z - p.z;
+                if (gx * gx + gy * gy + gz * gz <= k.reach * k.reach) {
+                    const float flat = std::sqrt(gx * gx + gz * gz);
+                    const Vec3  push = flat > 1e-3f ? Vec3{gx / flat * kKnock * 1.5f, kKnockUp, gz / flat * kKnock * 1.5f}
+                                                    : Vec3{0.0f, kKnockUp, 0.0f};
+                    const auto  blow = (uint16_t)std::lround((double)k.damage * 1.5);
+                    if (goal->peer != 0) hurt(goal->peer, blow, bare, push);
+                    else blows.push_back({goal->entity, blow, p.x, p.z});
+                    voice(w, b.kind, "attack", p);
+                    b.lunge_hit = true;
+                    b.kx *= 0.2f;
+                    b.kz *= 0.2f;
+                    b.next_blow = now + k.every * b.blow_every / pace;
+                }
+            }
+        }
+
+        // Up a wall, pressed against it, until it is over the top or too high.
+        if (b.climbing) {
+            if (goal == nullptr || p.y - b.climb_from > k.climbs) {
+                b.climbing    = false;
+                b.climb_again = now + 3.0;
+            } else {
+                want_x   = b.climb_x;
+                want_z   = b.climb_z;
+                look.yaw = yaw_to(want_x, want_z);
+                speed    = size;
+                b.vy     = kClimbUp;
+                b.detour_until = 0.0;
+            }
+        }
+
         // Under the open sky by day: a point a second until it is gone, as it
         // came out of the dark. Not in water.
         if (fights(k) && daylight > 0.5f && !wet &&
@@ -1714,7 +1780,72 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
         }
         if (r.hit_ceiling && b.vy > 0.0f) b.vy = 0.0f;
         const bool blocked = meant > 1e-4f && moved < meant * 0.3f;
-        if (r.on_ground && !ladder && k.hover <= 0.0f && (blocked || way.jump)) b.vy = kJump;
+
+        // Down from a dive; and, on the ground with somebody in range and in
+        // sight, off on the next: thrown so as to come down where they are.
+        if (b.lunging && r.on_ground) {
+            b.lunging = false;
+        } else if (k.lunge > 0.0f && goal != nullptr && r.on_ground && !b.lunging && !b.climbing && !ladder && !wet &&
+                   now >= b.lunge_again) {
+            const float gx = goal->x - r.pos.x, gz = goal->z - r.pos.z;
+            const float flat = std::sqrt(gx * gx + gz * gz);
+            if (flat > 2.5f && flat < k.lunge && std::fabs(goal->y - r.pos.y) < 3.0f &&
+                sees(world, reg, eye, Vec3{goal->x, goal->y + 1.3f, goal->z})) {
+                constexpr float kDive = 9.0f;
+                const float t = flat / kDive;
+                b.vy   = std::clamp((goal->y - r.pos.y) / t - 0.5f * kGravity * t, 2.0f, 12.0f);
+                b.kx   = gx / flat * kDive;
+                b.kz   = gz / flat * kDive;
+                b.lunging     = true;
+                b.lunge_hit   = false;
+                b.lunge_again = now + 3.0;
+                b.detour_until = 0.0;
+                voice(w, b.kind, "say", p);
+            }
+        }
+
+        // The wall it walked up to, when whoever it hunts stands above it.
+        const float reach_out = b.half + 0.25f;
+        if (b.climbing) {
+            const int ax = (int)std::floor(r.pos.x + b.climb_x * reach_out);
+            const int az = (int)std::floor(r.pos.z + b.climb_z * reach_out);
+            if (r.hit_ceiling) {
+                b.climbing    = false;
+                b.climb_again = now + 3.0;
+            } else if (!solid(world, reg, ax, (int)std::floor(r.pos.y), az)) {
+                // Over the top: a hop, and on to it.
+                b.climbing     = false;
+                b.vy           = 3.0f;
+                b.detour_x     = b.climb_x;
+                b.detour_z     = b.climb_z;
+                b.detour_until = now + 0.5;
+            }
+        } else if (k.climbs > 0.0f && goal != nullptr && r.on_ground && !ladder && !wet && now >= b.climb_again &&
+                   goal->y > r.pos.y + 1.2f) {
+            const float gx = goal->x - r.pos.x, gz = goal->z - r.pos.z;
+            if (!b.way_reached || gx * gx + gz * gz < 25.0f) {
+                // Whichever side of it faces them: its way may run along the wall.
+                const bool x_first = std::fabs(gx) > std::fabs(gz);
+                for (int i = 0; i < 2 && !b.climbing; ++i) {
+                    const bool  along_x = (i == 0) == x_first;
+                    const float ux = along_x ? std::copysign(1.0f, gx) : 0.0f;
+                    const float uz = along_x ? 0.0f : std::copysign(1.0f, gz);
+                    const int   ax = (int)std::floor(r.pos.x + ux * reach_out);
+                    const int   az = (int)std::floor(r.pos.z + uz * reach_out);
+                    const int   fy = (int)std::floor(r.pos.y + 0.5f);
+                    if (solid(world, reg, ax, fy, az) && solid(world, reg, ax, fy + 1, az)) {
+                        b.climbing   = true;
+                        b.climb_x    = ux;
+                        b.climb_z    = uz;
+                        b.climb_from = r.pos.y;
+                        b.path.clear();
+                    }
+                }
+            }
+        }
+        if (b.climbing || b.lunging) {
+            // Its own way up, or thrown already.
+        } else if (r.on_ground && !ladder && k.hover <= 0.0f && (blocked || way.jump)) b.vy = kJump;
         // Swimming into a bank: up over its edge, as a player climbs out.
         else if (wet && !ladder && k.hover <= 0.0f && (blocked || way.jump)) b.vy = std::max(b.vy, kJump);
 
@@ -1724,7 +1855,7 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
         // to the middle first: sent sideways from there, in a corridor, it
         // went back the way it came, and round again, for good. In the
         // middle already, round it, to one side or the other by who it is.
-        if (!blocked) {
+        if (!blocked || b.climbing) {
             b.stuck_since = -1.0;
         } else if (b.stuck_since < 0.0) {
             b.stuck_since = now;
@@ -1897,11 +2028,19 @@ SpawnResult spawn_and_despawn(flecs::world &w, const World &world, const NodeReg
                 const bool pet = (float)sun_light(light) * daylight >= 12.0f;
                 if (pet ? pets >= cap : lit > 7.0f || near >= cap) break;
                 std::vector<uint16_t> fit;
-                for (size_t i = 0; i < kinds.size(); ++i)
-                    if (pet ? kinds[i].fight == MobKind::Fight::Pet : fights(kinds[i]))
+                float   roll = unit(h + 3), shared = 0.0f;
+                int     chosen = -1;            // a kind with its own share (core.mob_share)
+                for (size_t i = 0; i < kinds.size(); ++i) {
+                    if (!(pet ? kinds[i].fight == MobKind::Fight::Pet : fights(kinds[i]))) continue;
+                    if (kinds[i].share <= 0.0f) {
                         fit.push_back((uint16_t)i);
-                if (fit.empty()) break;
-                const uint16_t kind = fit[mix(h + 2) % fit.size()];
+                    } else {
+                        shared += kinds[i].share;
+                        if (chosen < 0 && roll < shared) chosen = (int)i;
+                    }
+                }
+                if (chosen < 0 && fit.empty()) break;
+                const uint16_t kind = chosen >= 0 ? (uint16_t)chosen : fit[mix(h + 2) % fit.size()];
 
                 // A kind that comes out only on one block waits for it.
                 if (!kinds[kind].spawn_on.empty() &&

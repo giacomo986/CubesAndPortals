@@ -1366,6 +1366,39 @@ int l_mob_sight(lua_State *L)
     return 1;
 }
 
+// core.mob_climbs(name: string, nodes: number) -> number
+int l_mob_climbs(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_checkstring(L, 1);
+    const float nodes = (float)luaL_checknumber(L, 2);
+    const int result = (vm && vm->host.mob_climbs) ? vm->host.mob_climbs(vm->host.ud, name, nodes) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.mob_share(name: string, share: number) -> number
+int l_mob_share(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_checkstring(L, 1);
+    const float share = (float)luaL_checknumber(L, 2);
+    const int result = (vm && vm->host.mob_share) ? vm->host.mob_share(vm->host.ud, name, share) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.mob_lunge(name: string, nodes: number) -> number
+int l_mob_lunge(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_checkstring(L, 1);
+    const float nodes = (float)luaL_checknumber(L, 2);
+    const int result = (vm && vm->host.mob_lunge) ? vm->host.mob_lunge(vm->host.ud, name, nodes) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.shoot(x: number, y: number, z: number, dx: number, dy: number, dz: number, max: number, damage: number) -> (number?, boolean?)
 int l_shoot(lua_State *L)
 {
@@ -3517,6 +3550,12 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "mob_drop");
     lua_pushcfunction(L, l_mob_sight, "core.mob_sight");
     lua_setfield(L, -2, "mob_sight");
+    lua_pushcfunction(L, l_mob_climbs, "core.mob_climbs");
+    lua_setfield(L, -2, "mob_climbs");
+    lua_pushcfunction(L, l_mob_share, "core.mob_share");
+    lua_setfield(L, -2, "mob_share");
+    lua_pushcfunction(L, l_mob_lunge, "core.mob_lunge");
+    lua_setfield(L, -2, "mob_lunge");
     lua_pushcfunction(L, l_shoot, "core.shoot");
     lua_setfield(L, -2, "shoot");
     lua_pushcfunction(L, l_replace_nodes, "core.replace_nodes");
