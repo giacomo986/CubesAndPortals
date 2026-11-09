@@ -45,11 +45,11 @@ int    plat_fps(void);
 // to releasing the mouse, so it has to be unbound first.
 void plat_disable_default_exit_key(void);
 
-// How the game is shown: 0 a window of w x h, 1 borderless over the monitor at
-// the desktop's resolution, 2 full screen at w x h (the monitor's mode changes).
-// A w of 0 keeps the window's size, or the monitor's in full screen. Asking for
-// what it already is does nothing, so it may be called every frame; so may these.
-void plat_set_display(int mode, int w, int h);
+// How the game is shown: 0 a window, 1 borderless over the monitor, 2 full
+// screen. The monitor keeps its mode; the game's resolution is gfx_set_resolution.
+// Asking for what it already is does nothing, so it may be called every frame;
+// so may these.
+void plat_set_display(int mode);
 void plat_set_vsync(bool on);
 void plat_set_fps_limit(int fps);   // 0 is none
 void plat_monitor_size(int *w, int *h);

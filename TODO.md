@@ -11,27 +11,26 @@ CLOSED-n ids that comments in `src/` still cite:
 
 ---
 
-## Next steps (2026-11-08)
+## Next steps (2026-11-09)
 
 000. Items: 19 icons made (tools/make_gun_icons.py, make_item_textures.py) and 45 real 3D held models (tools/make_held_models.py); the track's power-ups and ink blot left without one, as nobody is given them.
 00. Options -> Video, a plain storm sky (assault's in Xephyr's software GL: 13 -> 21 FPS), brightness
-    (the night sight's floor), the kart's F, a saddled ladybird (mods/garden, tools/make_ladybird_mount.py), /story, /time in every world. Open: real
-    full-screen resolutions and VSync not checkable in Xephyr (one mode, no display sync); not played by hand.
+    (the night sight's floor), the kart's F, a saddled ladybird (mods/garden, tools/make_ladybird_mount.py), /story, /time in every world.
+    The resolution is the game's own, apart from the window's size, in every display mode (640x360 up to the
+    monitor's, or auto): the whole frame goes into an image scaled to the window, bars if the shapes differ, the mouse mapped. Checked in
+    Xephyr: a 1600x1000 borderless at 640x360 and a 1440x900 window at 960x540, clicks on the menu, the portal lab with HUD. On the real GPU (RX 5700, 1920x1080, 60 Hz, 2026-11-09), portal lab: full screen at 1280x720 1043 FPS, VSync on 60 FPS at 1280x720 and at auto, borderless at 640x360 and a window at 1920x1080 fine, no GL errors. Open: clicks not driven on the real display; the window's size is not saved.
 0. The front (0.15.0-alpha.1): doors set a node into the wall (2 x 3), the field in miniature under the
    gallery's glass floor (`core.portal_window`, protocol 120), the launcher's glass sight and lock on enemy
    vehicles (checked: an off-axis rocket turned onto a parked jeep and destroyed it). A saved front world
    keeps its old walls: `tools/track.sh --fresh`.
-1. Play the garden's door both ways on a real GPU: is the jump in eye height
-   gone? If not: going in or out, jumping or running.
-2. Commit the scaling crossing (`src/client/main.cpp`, `src/core/net/session.cpp`,
-   docs) and, apart, the dragon kart set.
-3. Dragon kart: a lap with the dragon pipes' flames burning at the horns.
-4. Choose among these, each waiting for a decision, hardware or a big job:
+1. Giacomo played (2026-11-09): the garden's door no longer jumps in eye height, the dragon kart's lap is
+   fine, the planes fly by hand.
+2. Choose among these, each waiting for a decision, hardware or a big job:
    - Play: Emberwing's balance at level 11; garden and other sounds by ear;
      the bow's pose.
    - Worlds: signposts at crossings; lava depth beyond the water box;
      creatures hanging from ledges; OPEN-35, OPEN-38, OPEN-43.
-   - Front: PvP, flying the plane by hand.
+   - Front: PvP.
    - Graphics: lighting on a real GPU (meshing cost, coloured light); VRAM of the mouths; windows that show no bodies and
      never close.
    - Server: what /mute should cover; the friend copy; the seal checked on

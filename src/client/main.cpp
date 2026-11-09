@@ -507,7 +507,7 @@ float g_volume = 1.0f;   // the whole game's, 0..1 (snd_set_volume)
 int   g_shadow_size = 2048;   // the sun's shadow map, texels a side; 0 is no shadows
 bool  g_classic_light = false;   // the light as it was before the rework (WorldRenderer::set_classic)
 int   g_display       = 0;       // 0 window, 1 borderless, 2 full screen; F11 or the video options
-int   g_res_w = 0, g_res_h = 0;  // the window's or the full screen's size; 0 is as it opened
+int   g_res_w = 0, g_res_h = 0;  // the game's resolution, the window's size apart; 0 follows the window
 bool  g_vsync         = false;
 int   g_fps_limit     = 0;       // 0 is none
 float g_brightness    = 0.0f;    // 0..1: nothing drawn darker (the night sight's floor)
@@ -9637,13 +9637,14 @@ std::string g_rejoin_account;
 // Common sizes that fit this monitor, and the monitor's own.
 std::vector<std::pair<int, int>> video_sizes()
 {
-    static const int common[][2] = {{1280, 720}, {1366, 768}, {1600, 900}, {1920, 1080}, {2560, 1440}, {3840, 2160}};
+    static const int common[][2] = {{640, 360}, {960, 540}, {1280, 720}, {1366, 768}, {1600, 900}, {1920, 1080}, {2560, 1440}, {3840, 2160}};
     int mw = 0, mh = 0;
     plat_monitor_size(&mw, &mh);
     std::vector<std::pair<int, int>> out;
     for (const auto &c : common)
         if (c[0] <= mw && c[1] <= mh && !(c[0] == mw && c[1] == mh)) out.push_back({c[0], c[1]});
     out.push_back({mw, mh});
+    out.push_back({0, 0});   // follow the window
     return out;
 }
 
@@ -9652,9 +9653,8 @@ ui::Panel video_panel()
 {
     static const char *const kDisplay[] = {"Display: window", "Display: borderless", "Display: full screen"};
     char res[48], fps[32], view[32], fov[32], bright[32];
-    const int shown_w = g_res_w > 0 ? g_res_w : gfx_screen_width(), shown_h = g_res_h > 0 ? g_res_h : gfx_screen_height();
-    if (g_display == 1) std::snprintf(res, sizeof(res), "Resolution: desktop");
-    else std::snprintf(res, sizeof(res), "Resolution: %dx%d", shown_w, shown_h);
+    if (g_res_w <= 0) std::snprintf(res, sizeof(res), "Resolution: auto");
+    else std::snprintf(res, sizeof(res), "Resolution: %dx%d", g_res_w, g_res_h);
     if (g_fps_limit > 0) std::snprintf(fps, sizeof(fps), "FPS limit: %d", g_fps_limit);
     else std::snprintf(fps, sizeof(fps), "FPS limit: none");
     std::snprintf(view, sizeof(view), "View distance: %d", (int)WorldRenderer::view_limit);
@@ -9956,7 +9956,8 @@ void window_keys(bool debug)
         g_display = g_display == 0 ? 1 : 0;
         save_options(debug);
     }
-    plat_set_display(g_display, g_res_w, g_res_h);
+    plat_set_display(g_display);
+    gfx_set_resolution(g_res_w, g_res_h);
     plat_set_vsync(g_vsync);
     plat_set_fps_limit(g_fps_limit);
 }
@@ -9976,7 +9977,6 @@ bool options_click(const std::string &id, bool &debug)
     else if (id == "back" && g_video_page) g_video_page = false;
     else if (id == "display") g_display = (g_display + 1) % 3;
     else if (id == "resolution") {
-        if (g_display == 1) return true;   // the desktop's, whatever is asked
         const auto all = video_sizes();
         size_t at = 0;
         while (at < all.size() && all[at].first != g_res_w) ++at;

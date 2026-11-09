@@ -12,6 +12,7 @@
 #include <raylib.h>
 #include <rlgl.h>
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <unordered_map>
@@ -30,6 +31,7 @@ void glBindTexture(unsigned int target, unsigned int texture);
 void glTexParameteri(unsigned int target, unsigned int pname, int param);
 void glDrawBuffer(unsigned int mode);
 void glReadBuffer(unsigned int mode);
+void (*glfwGetProcAddress(const char *name))(void);
 }
 
 #define GL_CLIP_DISTANCE0 0x3000
@@ -101,6 +103,12 @@ struct State {
     int          screen_w = 0;
     int          screen_h = 0;
     int          rt_depth = 0;    // >0 while a render target is bound
+
+    // The game's own resolution, when it is not the window's: the whole frame,
+    // HUD included, goes into `frame` and is scaled to the window at the end.
+    int    want_w = 0, want_h = 0;   // 0 is the window's
+    gfx_rt frame{0};
+    int    fit_x = 0, fit_y = 0, fit_w = 0, fit_h = 0;   // where the image lands in the window
 };
 
 State g;
@@ -242,6 +250,68 @@ void gfx_shutdown(void)
     CloseWindow();
 }
 
+// Back to what the game draws on outside a render target.
+static void bind_frame(void)
+{
+    if (g.frame.id) rlEnableFramebuffer(g.rts[g.frame.id - 1].fbo);
+    else            rlDisableFramebuffer();
+}
+
+void gfx_set_resolution(int w, int h) { g.want_w = w, g.want_h = h; }
+
+// Reads the window's size and sets up this frame's image, proportions kept
+// (bars where the shapes differ). The mouse is mapped here too, so every caller
+// of plat_mouse_position gets the game's pixels without knowing about any of it.
+static void frame_setup(void)
+{
+    const int win_w = GetRenderWidth(), win_h = GetRenderHeight();
+    const bool want = g.want_w > 0 && g.want_h > 0 && (g.want_w != win_w || g.want_h != win_h);
+    if (g.frame.id && (!want || gfx_rt_width(g.frame) != g.want_w || gfx_rt_height(g.frame) != g.want_h)) {
+        gfx_rt_destroy(g.frame);
+        g.frame = gfx_rt{0};
+    }
+    if (want && !g.frame.id) g.frame = gfx_rt_create(g.want_w, g.want_h, true);
+
+    if (g.frame.id) {
+        g.screen_w = g.want_w, g.screen_h = g.want_h;
+        const float fit = std::min((float)win_w / g.screen_w, (float)win_h / g.screen_h);
+        g.fit_w = (int)(g.screen_w * fit), g.fit_h = (int)(g.screen_h * fit);
+        g.fit_x = (win_w - g.fit_w) / 2, g.fit_y = (win_h - g.fit_h) / 2;
+        SetMouseOffset(-g.fit_x, -g.fit_y);
+        SetMouseScale((float)g.screen_w / g.fit_w, (float)g.screen_h / g.fit_h);
+        bind_frame();
+        rlViewport(0, 0, g.screen_w, g.screen_h);
+    } else {
+        g.screen_w = GetScreenWidth(), g.screen_h = GetScreenHeight();
+        SetMouseOffset(0, 0);
+        SetMouseScale(1.0f, 1.0f);
+    }
+    // raylib's own ortho (the debug text's) is the window's until told otherwise.
+    rlMatrixMode(RL_PROJECTION);
+    rlLoadIdentity();
+    rlOrtho(0.0, g.screen_w, g.screen_h, 0.0, 0.0, 1.0);
+    rlMatrixMode(RL_MODELVIEW);
+}
+
+// The image onto the window, smoothed: rlBlitFramebuffer only does nearest.
+static void frame_present(void)
+{
+    if (!g.frame.id) return;
+    using Blit = void (*)(int, int, int, int, int, int, int, int, unsigned int, unsigned int);
+    static const Blit blit = (Blit)glfwGetProcAddress("glBlitFramebuffer");
+    rlDrawRenderBatchActive();
+    rlDisableScissorTest();   // a blit obeys it, and so does the clear
+    rlDisableFramebuffer();
+    rlColorMask(true, true, true, true);
+    rlClearColor(0, 0, 0, 255);
+    rlClearScreenBuffers();   // the bars
+    rlBindFramebuffer(RL_READ_FRAMEBUFFER, g.rts[g.frame.id - 1].fbo);
+    blit(0, 0, g.screen_w, g.screen_h, g.fit_x, g.fit_y, g.fit_x + g.fit_w, g.fit_y + g.fit_h,
+         0x4000 /* GL_COLOR_BUFFER_BIT */, 0x2601 /* GL_LINEAR */);
+    rlDisableFramebuffer();
+    rlViewport(0, 0, GetRenderWidth(), GetRenderHeight());
+}
+
 void gfx_begin_frame(void)
 {
     // The window may have been dragged since the last frame. Read once, here,
@@ -258,12 +328,12 @@ void gfx_begin_frame(void)
     cnp::watchdog_beat();
 
     BeginDrawing();
-    g.screen_w = GetScreenWidth();
-    g.screen_h = GetScreenHeight();
+    frame_setup();
 }
 
 void gfx_end_frame(void)
 {
+    frame_present();
     if (g.present) {
         EndDrawing();
         return;
@@ -344,7 +414,7 @@ unsigned char *gfx_read_target(gfx_rt rt, int *out_w, int *out_h)
     rlDrawRenderBatchActive();
     rlEnableFramebuffer(e.fbo);
     unsigned char *px = rlReadScreenPixels(e.width, e.height);
-    rlDisableFramebuffer();
+    bind_frame();
     rlViewport(0, 0, g.screen_w, g.screen_h);
 
     if (out_w) *out_w = e.width;
@@ -788,7 +858,7 @@ gfx_rt gfx_rt_create(int w, int h, bool with_depth)
     }
 
     const bool complete = rlFramebufferComplete(e.fbo);
-    rlDisableFramebuffer();
+    bind_frame();
     if (!complete) {
         rlUnloadFramebuffer(e.fbo);
         return rt;
@@ -837,7 +907,7 @@ gfx_rt gfx_shadow_create(int size)
     glReadBuffer(GL_NONE);
 
     const bool complete = rlFramebufferComplete(e.fbo);
-    rlDisableFramebuffer();
+    bind_frame();
     if (!complete) {
         rlUnloadFramebuffer(e.fbo);
         return rt;
@@ -889,7 +959,7 @@ void gfx_rt_begin(gfx_rt rt)
 void gfx_rt_end(void)
 {
     rlDrawRenderBatchActive();
-    rlDisableFramebuffer();
+    bind_frame();
     rlViewport(0, 0, g.screen_w, g.screen_h);
     if (g.rt_depth > 0) g.rt_depth--;
 }

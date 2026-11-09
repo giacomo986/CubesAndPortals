@@ -87,11 +87,11 @@ void plat_monitor_size(int *w, int *h)
     *h = GetMonitorHeight(m);
 }
 
-void plat_set_display(int mode, int w, int h)
+void plat_set_display(int mode)
 {
-    static int have_mode = 0, have_w = 0, have_h = 0;
-    if (mode == have_mode && w == have_w && h == have_h) return;
-    have_mode = mode, have_w = w, have_h = h;
+    static int have_mode = 0, back_w = 0, back_h = 0;   // the window to come back to from full screen
+    if (mode == have_mode) return;
+    have_mode = mode;
 
     if (IsWindowFullscreen()) ToggleFullscreen();
     if (IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE)) ToggleBorderlessWindowed();
@@ -102,11 +102,13 @@ void plat_set_display(int mode, int w, int h)
         ToggleBorderlessWindowed();
     } else if (mode == 2) {
         // ToggleFullscreen asks the monitor for the window's size.
-        SetWindowSize(w > 0 ? w : mw, h > 0 ? h : mh);
+        back_w = GetScreenWidth(), back_h = GetScreenHeight();
+        SetWindowSize(mw, mh);
         ToggleFullscreen();
-    } else if (w > 0 && h > 0) {
-        SetWindowSize(w, h);
-        SetWindowPosition((mw - w) / 2, (mh - h) / 2);
+    } else if (back_w > 0) {
+        SetWindowSize(back_w, back_h);
+        SetWindowPosition((mw - back_w) / 2, (mh - back_h) / 2);
+        back_w = 0;
     }
 }
 

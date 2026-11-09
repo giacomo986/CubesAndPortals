@@ -598,7 +598,7 @@ il server, poi un nome e una password per quello, da cui l'identità viene deriv
 invece di stare in un file; la chiave del server viene fissata al primo join. **Ospita un
 server** apre i propri mondi agli altri su una porta a scelta, e il menù di pausa mostra
 l'indirizzo da dare. **Personaggio** sceglie specie, stile, colori e accessori. **Opzioni** ha
-mouse, volume, lingua e controllo degli aggiornamenti; la pagina **Video** ha finestra, senza bordi o schermo intero, risoluzione, VSync, limite FPS, distanza visiva, campo visivo, luce, ombre, dettaglio dei portali, cielo in tempesta semplice (senza vortici, per i PC deboli) e luminosità per il buio.
+mouse, volume, lingua e controllo degli aggiornamenti; la pagina **Video** ha finestra, senza bordi o schermo intero, risoluzione del gioco (indipendente dalla grandezza della finestra, in ogni modalità; l'immagine viene scalata per riempirla), VSync, limite FPS, distanza visiva, campo visivo, luce, ombre, dettaglio dei portali, cielo in tempesta semplice (senza vortici, per i PC deboli) e luminosità per il buio.
 
 **Le traduzioni** sono `assets/lang/<codice>.txt`, una riga `testo come scritto = traduzione` con
 `{}` per le parti variabili. Valgono per tutto ciò che il client disegna: menù, pannelli e avvisi

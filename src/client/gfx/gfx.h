@@ -81,6 +81,11 @@ void gfx_clear(float r, float g, float b, float a, bool depth);
 int  gfx_screen_width(void);
 int  gfx_screen_height(void);
 
+// The size the game draws at, whatever the window's: from the next frame the
+// sizes above are this one and the image is scaled to the window, bars where
+// the shapes differ. 0 draws straight to the window.
+void gfx_set_resolution(int w, int h);
+
 // Reads the colour buffer back as RGBA8, TOP-DOWN: row 0 is the top of the
 // screen. glReadPixels itself hands back bottom-up and the backend flips it,
 // so callers that computed a rectangle in OpenGL's convention have to mirror

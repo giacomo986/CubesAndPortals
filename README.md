@@ -580,7 +580,7 @@ if it did not answer). The account belongs to the server: you pick a server, the
 password for it, from which your identity is derived (Argon2id) instead of being kept in a file;
 the server's key is pinned at the first join. **Host a server** opens your worlds to others on a
 port of your choice, and the pause menu shows the address to give them. **Character** picks
-species, style, colours and accessories. **Options** has the mouse, the volume, the language and the update check; its **Video** page has window, borderless or full screen, resolution, VSync, FPS limit, view distance, field of view, light, shadows, portal detail, a plain storm sky (no whirls, for weak PCs) and brightness for the dark.
+species, style, colours and accessories. **Options** has the mouse, the volume, the language and the update check; its **Video** page has window, borderless or full screen, the game's resolution (independent of the window's size, in every display mode; the image is scaled to fill it), VSync, FPS limit, view distance, field of view, light, shadows, portal detail, a plain storm sky (no whirls, for weak PCs) and brightness for the dark.
 
 **Translations** are `assets/lang/<code>.txt`, one line `text as written = translation` with `{}`
 for the parts that vary. They apply to everything the client draws: menus, mods' panels and
