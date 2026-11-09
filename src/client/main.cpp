@@ -9199,7 +9199,8 @@ void animate_body(Session &w, uint64_t key, Body &b, Vec3 feet, uint16_t rider,
     else if (own ? !own->on_ground : std::fabs(m.climb) > 2.0f) name = "jump_loop";
     else if (crouching)                      name = m.speed < 0.3f ? "crouch_idle" : "crouch_walk";
     else if (m.speed < 0.4f)                 name = "idle";
-    else if (m.speed < 5.5f)                 name = "walk";   // ponytail: at its own pace, whatever the speed
+    // A kind that dives sprints from a jog: its "run" is what it does most.
+    else if (m.speed < (e->model.clip("lunge") >= 0 ? 3.0f : 5.5f)) name = "walk";   // ponytail: at its own pace, whatever the speed
     else                                     name = "run";
     play(m.body, e->model, name, now, b.clips);
     // A clip of the arms alone (a gun held, aimed, reloaded) over whatever

@@ -17,9 +17,14 @@ from mathutils import Euler, Quaternion, Vector
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 OUT = os.path.join(ROOT, "mods", "mobs")
 
+# Made again from nothing: a run of this script leaves no second copy behind.
 for n in ("Runner_Rig", "Runner_Mesh"):
     if n in bpy.data.objects:
         bpy.data.objects.remove(bpy.data.objects[n])
+for block in (bpy.data.actions, bpy.data.materials):
+    for item in list(block):
+        if item.name.lower().startswith("runner_"):
+            block.remove(item)
 
 zr, zm = bpy.data.objects["Zombie_Rig"], bpy.data.objects["Zombie_Mesh"]
 rig = zr.copy()
@@ -29,6 +34,9 @@ mesh = zm.copy()
 mesh.data = zm.data.copy()
 mesh.name = "Runner_Mesh"
 mesh.parent = rig
+# Setting the parent drops this, and the rig is scaled: without it the mesh comes
+# out a third bigger than the bones it hangs on and every joint bends off its pivot.
+mesh.matrix_parent_inverse = zm.matrix_parent_inverse.copy()
 for m in mesh.modifiers:
     if m.type == "ARMATURE":
         m.object = rig
@@ -102,7 +110,7 @@ def lunge(t):
     body = rot_x(-72.0)
     out = {"hips": body, "spine": rot_x(4.0), "chest": rot_x(4.0), "neck": rot_x(24.0), "head": rot_x(10.0)}
     chest = body @ rot_x(8.0)
-    for side, sign in zip(SIDES, (1.0, -1.0)):
+    for side, sign in zip(SIDES, (-1.0, 1.0)):   # outwards: L is at -X
         out[f"upper_arm_{side}"] = aim(f"upper_arm_{side}", (sign * (0.16 + flail), 1.0, 0.04 + flail), chest)
         out[f"forearm_{side}"] = Quaternion()
         out[f"hand_{side}"] = Quaternion()
