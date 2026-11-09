@@ -42,7 +42,7 @@ quello sotto). `/perm` mostra e cambia quale ruolo chiede un permesso;
 | `/kill` | chiunque | Muori e torni al tuo letto o allo spawn del mondo; l'armatura si consuma un poco, come per un colpo qualsiasi. Per un corpo bloccato da qualche parte. Funziona anche in modalità creativa (`mods/creative`) |
 | `/giveup` | chiunque, in un mondo con una prova | Abbandona la prova di quel mondo: muori, poi vieni fatto uscire dall'ingresso del mondo e torni nel sandbox, fuori dal portale di quel mondo. Un corpo che non può essere ferito viene solo fatto uscire. Quello che la prova ha già contato (una chiave guadagnata) resta (`mods/keys`) |
 | `/journal` | chiunque | Apre le pagine dell'ingegnere delle chiavi che porti, una pagina per chiave e un'ultima quando le hai tutte e sette (`mods/keys`) |
-| `/town [città]` | chiunque | Ti porta nella piazza del villaggio più vicino; con una parola qualsiasi dopo, della città più vicina (un villaggio più grande, cercata al doppio della distanza) (`mods/villages`) |
+| `/town [town\|city]` | chiunque | Ti porta nella piazza del villaggio più vicino; con una parola qualsiasi dopo, della cittadina più vicina (un villaggio più grande, cercata al doppio della distanza); con `city`, della città più vicina (`mods/villages`) |
 | `/creative TESTO` | creative (moderator) | Apre il catalogo creativo ristretto agli oggetti il cui nome contiene il testo (`mods/creative`) |
 
 ### In un solo mondo

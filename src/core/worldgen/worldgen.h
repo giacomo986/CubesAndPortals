@@ -32,10 +32,11 @@ namespace cnp {
 // not optional.
 inline constexpr int kWorldHeight = 64;
 
-// And how far under y 0 a world may hold blocks: the engine's terrain stops at
-// its bedrock on 0, and a mod's stage may build below it (mods/deep). Lit,
-// kept and sent like any other cell.
-inline constexpr int kWorldBottom = -64;
+// And how far under y 0 a world may hold blocks. A world's own depth is
+// --world-depth (0 by default: the bedrock on y 0, and a mod's stage may build
+// below it, mods/deep), at most kMaxWorldDepth, over a chunk of bedrock.
+inline constexpr int kMaxWorldDepth = 1024;
+inline constexpr int kWorldBottom   = -kMaxWorldDepth - 32;
 
 // Height of the flat plaza the portals stand on, and the level players spawn
 // at. Shared for the same reason: the client places its scene on it and the
@@ -108,6 +109,7 @@ struct MapgenContext {
     const BiomeSet      *biomes = nullptr;
     std::vector<BlockId> biome_top;
     std::vector<BlockId> biome_filler;
+    int      depth  = 0;   // diggable below y 0 (--world-depth); 0 is the bedrock on y 0
 };
 
 using MapgenStageFn = std::function<void(MapgenContext &)>;
@@ -126,6 +128,10 @@ public:
 
     // No stages at all: a world whose mods make all of it (core.mapgen_core).
     void clear_stages() { m_stages.clear(); }
+
+    // How deep this world's stone goes (--world-depth): every stage is told.
+    void set_depth(int depth) { m_depth = depth; }
+    int  depth() const { return m_depth; }
 
     // Runs every stage in registration order over one column. Order is the
     // contract: a stage sees what the ones before it wrote.
@@ -147,6 +153,7 @@ public:
     const BiomeSet &biomes() const { return m_biomes; }
 
 private:
+    int m_depth = 0;
     std::vector<MapgenStage> m_stages;
     BiomeSet                 m_biomes;
 };

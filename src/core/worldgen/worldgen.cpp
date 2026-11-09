@@ -18,6 +18,15 @@ constexpr int kPlazaZ0 = 20, kPlazaZ1 = 100;
 
 void stage_terrain(MapgenContext &ctx)
 {
+    // The rock under y 0, a whole chunk at a time and uniform: nothing to store
+    // or light until somebody digs into it. The last chunk is the floor.
+    if (ctx.depth > 0) {
+        const ChunkPos c = World::chunk_of(ctx.min_x, 0, ctx.min_z);
+        const int      n = ctx.depth / kChunkSize;
+        for (int cy = -n; cy < 0; ++cy) ctx.world.ensure_uniform_chunk(ChunkPos{c.x, cy, c.z}, ctx.stone);
+        ctx.world.ensure_uniform_chunk(ChunkPos{c.x, -n - 1, c.z}, ctx.bedrock);
+    }
+
     for (int z = ctx.min_z; z <= ctx.max_z; ++z) {
         for (int x = ctx.min_x; x <= ctx.max_x; ++x) {
             const int    top    = mapgen_terrain_height(ctx, x, z);
@@ -29,7 +38,7 @@ void stage_terrain(MapgenContext &ctx)
             for (int y = 0; y < top; ++y) {
                 // The bottom layer does not break. Without it the world has no
                 // floor, which is not a hard mode, it is a hole.
-                const BlockId id = (y == 0)                  ? ctx.bedrock
+                const BlockId id = (y == 0 && ctx.depth == 0) ? ctx.bedrock
                                  : (y == top - 1)            ? top_id
                                  : (y >= top - 1 - depth)    ? filler_id
                                                              : ctx.stone;
@@ -350,6 +359,7 @@ void Mapgen::generate_column(World &world, const NodeRegistry &registry, uint32_
 {
     MapgenContext ctx = mapgen_make_context(world, registry, m_biomes, seed, height);
     mapgen_set_column(ctx, column);
+    ctx.depth = m_depth;
     for (const MapgenStage &stage : m_stages) stage.fn(ctx);
 }
 

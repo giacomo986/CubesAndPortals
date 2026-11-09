@@ -147,7 +147,7 @@ local function vein(ctx, x: number, y: number, z: number, id: number, len: numbe
     for i = 0, len - 1 do
         -- Never y 0: that is the floor of the world, and a floor with a hole in
         -- it is not a hard mode.
-        if cy < 1 or cy >= ctx.height then
+        if cy < (if ctx.depth > 0 then -ctx.depth else 1) or cy >= ctx.height then
             break
         end
 
@@ -175,6 +175,25 @@ local function vein(ctx, x: number, y: number, z: number, id: number, len: numbe
     return placed
 end
 
+-- Below y 0 (--world-depth), one chunk of rock in two has veins and the rest
+-- stays one solid block: a whole deep column of ore would be most of a world's
+-- memory. The richest ores, more of them the further down.
+local function deep_veins(ctx, stone: number)
+    local cx, cz = math.floor(ctx.min_x / 32), math.floor(ctx.min_z / 32)
+    for cy = -math.floor(ctx.depth / 32), -1 do
+        local h = hash(cx * 31 + cy, cz, ctx.seed + 0xD33B)
+        if h % 2 == 0 then
+            local veins = 3 + math.min(5, -cy // 2)
+            for v = 1, veins do
+                local r = hash(cx + v, cy * 17 + cz, ctx.seed + 0xD33C)
+                local ore = ORES[1 + r % #ORES]
+                vein(ctx, ctx.min_x + bit32.rshift(r, 4) % 32, cy * 32 + bit32.rshift(r, 10) % 32,
+                     ctx.min_z + bit32.rshift(r, 16) % 32, ore.id, ore.len, stone, bit32.rshift(r, 22))
+            end
+        end
+    end
+end
+
 core.register_mapgen("ore:veins", function(ctx)
     -- Asked for by name rather than registered here: the stone this fills is
     -- the engine's, and a mod that registered its own would be burying ore in a
@@ -182,6 +201,9 @@ core.register_mapgen("ore:veins", function(ctx)
     local stone = core.node_id("core:stone")
     if stone == 0 then
         return
+    end
+    if ctx.depth > 0 then
+        deep_veins(ctx, stone)
     end
 
     for z = ctx.min_z - REACH, ctx.max_z do

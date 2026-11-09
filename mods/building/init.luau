@@ -965,8 +965,13 @@ if drawing then
     end
     core.hud.pass("building:sign", 50, function()
         if shown_sign ~= "" and shown_sign ~= " " then
-            core.hud.rect(0.5, 0.40, 0.42, 0.06, 90, 64, 36, 220)
-            core.hud.text(0.5, 0.40, shown_sign, 0.03, 1, 255, 245, 220, 255)
+            local _, n = string.gsub(shown_sign, "\n", "")
+            core.hud.rect(0.5, 0.40, 0.42, 0.06 + n * 0.04, 90, 64, 36, 220)
+            local y = 0.40 - n * 0.02
+            for line in string.gmatch(shown_sign, "[^\n]+") do
+                core.hud.text(0.5, y, line, 0.03, 1, 255, 245, 220, 255)
+                y += 0.04
+            end
         end
     end)
 end

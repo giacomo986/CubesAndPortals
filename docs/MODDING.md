@@ -1388,7 +1388,7 @@ A **stage** is a piece of world generation written in Lua. The engine registers 
 local ORE = core.register_node("mine:iron", 180, 120, 90)
 
 core.register_mapgen("mine:veins", function(ctx)
-    -- ctx.seed, ctx.height, and the column to generate: ctx.min_x..ctx.max_x and
+    -- ctx.seed, ctx.height, ctx.depth (the rock under y 0, 0 for none), and the column to generate: ctx.min_x..ctx.max_x and
     -- ctx.min_z..ctx.max_z, inclusive, 32 by 32. There is nothing else inside,
     -- and nothing is written inside: a stage writes with core.set_block and
     -- reads the terrain with core.terrain_height.

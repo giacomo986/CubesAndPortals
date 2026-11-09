@@ -112,6 +112,22 @@ void plat_set_display(int mode)
     }
 }
 
+void plat_window_size(int *w, int *h)
+{
+    *w = GetScreenWidth();
+    *h = GetScreenHeight();
+}
+
+void plat_set_window_size(int w, int h)
+{
+    int mw = 0, mh = 0;
+    plat_monitor_size(&mw, &mh);
+    if (w > mw) w = mw;
+    if (h > mh) h = mh;
+    SetWindowSize(w, h);
+    SetWindowPosition((mw - w) / 2, (mh - h) / 2);
+}
+
 void plat_set_vsync(bool on)
 {
     static bool have = false;   // gfx_init opens the window without it

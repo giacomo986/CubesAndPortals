@@ -1527,7 +1527,7 @@ ne registra uno suo — `core:terrain` — e un mod ne aggiunge altri:
 local ORE = core.register_node("miniera:ferro", 180, 120, 90)
 
 core.register_mapgen("miniera:vene", function(ctx)
-    -- ctx.seed, ctx.height, e la colonna da generare: ctx.min_x..ctx.max_x e
+    -- ctx.seed, ctx.height, ctx.depth (la roccia sotto y 0, 0 se non c'è), e la colonna da generare: ctx.min_x..ctx.max_x e
     -- ctx.min_z..ctx.max_z, estremi compresi, 32 per 32. Non c'è altro dentro,
     -- e non si scrive niente dentro: uno stage scrive con core.set_block e
     -- legge il terreno con core.terrain_height.

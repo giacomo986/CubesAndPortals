@@ -475,7 +475,7 @@ Nel file di mondo della prima stanza (un archivio per tutte le stanze), accanto 
 Le borse stesse stanno nel file di mondo di ogni stanza, come sempre. Accanto al file di mondo di
 ogni stanza, due piccoli file di testo: WORLD.difficulty (il suo nome, nessuno per normale) e
 WORLD.rules (`nome = valore` una riga), scritti da `/difficulty`, `/rule` e dal menù del titolo, letti
-all'avvio.
+all'avvio; e WORLD.shape (`profondità altezza`, da `--world-depth` e `--world-top` alla creazione del mondo): va spostato insieme al mondo.
 
 ## Limiti
 

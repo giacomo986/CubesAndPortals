@@ -321,7 +321,7 @@ stream at the bottom, caves that connect, ores in veins inside the stone, and a 
 with clouds you can fly over. Underground there are abandoned mines and crypts with chests, and a
 stairway back up.
 
-**Villages** (`mods/villages`, `mods/villagers`). Villages and towns with a square, streets,
+**Villages** (`mods/villages`, `mods/villagers`). A new world has cities (one to a cell of 2048 where the land allows it, up to 500 across, flats near the middle) joined by paved highways that cross mountains and bridge water, towns thick around the cities and villages thin in the wilderness; `/town city` takes you to the nearest. Villages and towns with a square, streets,
 houses, fields, a forge and lamps, joined into a network of winding paths -- gravel, sandstone,
 cobblestone or beaten earth by the land, with signposts, milestones, lanterns and bridges. They are
 inhabited by three species: human farmers, frog fishers and mole gatherers, each with a home, a
@@ -627,6 +627,7 @@ The full list is in `main()` in [`src/client/main.cpp`](src/client/main.cpp).
 | `--listen PORT` | Accept players. Without it, generate the world, run `--ticks` ticks and print its hash |
 | `--bind HOST` | The address to listen on (default all of them); the client's menu uses 127.0.0.1 |
 | `--world N` `--seed N` `--world-file FILE` | Side of the region generated at startup (default 128; the world has no edge), seed (default 1), SQLite file to save to. One server per file: a second one finds the lock and exits |
+| `--world-depth N` `--world-top N` | Only when a world is made: how far the diggable rock goes under y 0 (default 0, the old bedrock on y 0; up to 1024, in steps of 32, over a floor of bedrock) and how high the world is (default 64). Kept beside the world file as `<file>.shape`; a world made before keeps 0 and 64. The title screen's new world defaults to 128 and 256 |
 | `--save-every S` | How often to write what changed (default 10 s; 0 only on shutdown). Ctrl+C or SIGTERM save and stop |
 | `--mods DIR` `--no-mods` | The world's mods |
 | `--user-mods DIR` (repeatable) `--no-mod NAME` (repeatable) | More mods, the player's own, loaded with `--mods` as one set: one `depends` order, and a name already loaded refused. A world started from the title screen passes `~/.cubes-and-portals/mods` (Windows: `%APPDATA%/cubes-and-portals/mods`) to its sandbox room, then the world's own `mods/`, and `--no-mod` for each name its `mods.conf` turns off (`off = a, b`) |

@@ -50,6 +50,8 @@ void plat_disable_default_exit_key(void);
 // Asking for what it already is does nothing, so it may be called every frame;
 // so may these.
 void plat_set_display(int mode);
+void plat_window_size(int *w, int *h);
+void plat_set_window_size(int w, int h);
 void plat_set_vsync(bool on);
 void plat_set_fps_limit(int fps);   // 0 is none
 void plat_monitor_size(int *w, int *h);

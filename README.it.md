@@ -327,7 +327,7 @@ quota, gole con un torrente sul fondo, grotte collegate fra loro, minerali in ve
 pietra, e il ciclo giorno/notte con nuvole sopra cui si vola. Sotto terra ci sono miniere
 abbandonate e cripte con le casse, e una scala per risalire.
 
-**Villaggi** (`mods/villages`, `mods/villagers`). Paesi e città con piazza, vie, case, campi,
+**Villaggi** (`mods/villages`, `mods/villagers`). Un mondo nuovo ha città (una per riquadro di 2048 dove il terreno lo permette, larghe fino a 500, palazzi al centro) unite da strade maestre lastricate che passano i monti e fanno ponti sull'acqua, cittadine fitte attorno alle città e villaggi radi nelle zone selvagge; `/town city` porta alla più vicina. Paesi e cittadine con piazza, vie, case, campi,
 fucina e lampioni, collegati da una rete di sentieri tortuosi -- ghiaia, arenaria, ciottoli o terra
 battuta secondo il terreno, con cartelli, pietre miliari, lanterne e ponti. Li abitano tre specie:
 umani contadini, rospi pescatori e talpe raccoglitrici, ognuno con una casa, un mestiere, i pasti
@@ -645,6 +645,7 @@ L'elenco completo è in `main()` di [`src/client/main.cpp`](src/client/main.cpp)
 | `--listen PORT` | Accetta giocatori. Senza, genera il mondo, esegue `--ticks` tick e ne stampa l'hash |
 | `--bind HOST` | L'indirizzo su cui ascoltare (default tutti); il menù del client usa 127.0.0.1 |
 | `--world N` `--seed N` `--world-file FILE` | Lato della regione generata all'avvio (default 128; il mondo non ha bordo), seme (default 1), file SQLite dove salvarlo. Un solo server per file: il secondo trova il lucchetto ed esce |
+| `--world-depth N` `--world-top N` | Solo alla creazione del mondo: fin dove arriva la roccia scavabile sotto y 0 (default 0, la vecchia roccia madre su y 0; fino a 1024, a passi di 32, sopra un fondo di roccia madre) e quanto è alto il mondo (default 64). Conservati accanto al file del mondo come `<file>.shape`; un mondo già fatto resta 0 e 64. Il nuovo mondo della schermata iniziale parte da 128 e 256 |
 | `--save-every S` | Ogni quanto scrivere quello che è cambiato (default 10 s; 0 solo alla chiusura). Ctrl+C o SIGTERM salvano e chiudono |
 | `--mods DIR` `--no-mods` | I mod del mondo |
 | `--user-mods DIR` (ripetibile) `--no-mod NOME` (ripetibile) | Altri mod, quelli del giocatore, caricati con `--mods` come un solo insieme: un solo ordine per `depends`, e un nome già caricato rifiutato. Un mondo avviato dalla schermata del titolo passa `~/.cubes-and-portals/mods` (Windows: `%APPDATA%/cubes-and-portals/mods`) alla sua stanza sandbox, poi la cartella `mods/` del mondo, e `--no-mod` per ogni nome che il suo `mods.conf` spegne (`off = a, b`) |

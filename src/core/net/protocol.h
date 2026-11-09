@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 120; // 120 windows: Portal::view
+inline constexpr uint16_t kProtocol    = 121; // 121 Welcome::world_depth; 120 windows: Portal::view
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -1191,6 +1191,7 @@ struct Welcome {
     // A sky tinted this colour by day, sun and all, its clouds the same colour
     // and turning in whirls (core.world_storm, protocol 108).
     bool    has_storm = false;
+    uint16_t world_depth = 0;   // how far the rock goes under y 0 (--world-depth)
     uint8_t storm[3]{};
 
     // This world's item table, in id order, the way `nodes` is its block table.
@@ -2573,6 +2574,7 @@ struct ServerConfig {
     bool    has_sky = false;
     uint8_t sky[3]{};
     bool    has_storm = false;
+    uint16_t world_depth = 0;   // how far the rock goes under y 0 (--world-depth)
     uint8_t storm[3]{};
 };
 

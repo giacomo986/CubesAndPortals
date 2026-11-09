@@ -318,9 +318,10 @@ uint64_t build(Fixture &f, uint32_t seed, int extent, int ticks, const char *mod
                         if (st.vm && m.vm == st.vm) running = m.running;
                     if (!running) continue;
 
-                    script_field fields[6] = {
+                    script_field fields[7] = {
                         {"seed",   SCRIPT_V_NUMBER, (double)seed,         nullptr, 0},
                         {"height", SCRIPT_V_NUMBER, (double)kWorldHeight, nullptr, 0},
+                        {"depth",  SCRIPT_V_NUMBER, 0.0,                  nullptr, 0},
                         {"min_x",  SCRIPT_V_NUMBER, (double)f.ctx->min_x, nullptr, 0},
                         {"min_z",  SCRIPT_V_NUMBER, (double)f.ctx->min_z, nullptr, 0},
                         {"max_x",  SCRIPT_V_NUMBER, (double)f.ctx->max_x, nullptr, 0},
@@ -330,7 +331,7 @@ uint64_t build(Fixture &f, uint32_t seed, int extent, int ticks, const char *mod
                     f.generating = true;
                     f.mods.enter_vm(st.vm);
                     const bool ok =
-                        script_call_handler(st.vm, st.ref, fields, 6, 0, nullptr, stage_err,
+                        script_call_handler(st.vm, st.ref, fields, 7, 0, nullptr, stage_err,
                                             sizeof(stage_err));
                     f.mods.leave_vm(st.vm);
                     f.generating = false;

@@ -29,7 +29,7 @@ local GOALS: { Goal } = {
     { id = "diamond", title = "A diamond", hint = "Deep down, near the bedrock.", items = { "ore:diamond" } },
     { id = "relic", title = "A relic", hint = "A temple in the desert, a wreck on a shore, a ruin in the hills.", pin = 3 },
     { id = "portal", title = "A portal", hint = "One stands on the plaza for every world; out on the land too.", pin = 1 },
-    { id = "heart", title = "The guardian's heart", hint = "Under the bedrock, in a hollow: its altar.", items = { "deep:heart" } },
+    { id = "heart", title = "The guardian's heart", hint = "Deep down, in a hollow walled in bedrock: its altar.", items = { "deep:heart" } },
     { id = "key_pista", title = "Key of the Race", hint = "Win the kart track's trial.", items = { "keys:pista" } },
     { id = "key_inferno", title = "Key of Fire", hint = "Light the fortress's braziers in the inferno.", items = { "keys:inferno" } },
     { id = "key_arena", title = "Key of the Siege", hint = "Hold the arena.", items = { "keys:arena" } },

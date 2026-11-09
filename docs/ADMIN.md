@@ -468,7 +468,8 @@ In the first room's world file (one store for every room), next to the world:
 
 Bags themselves are in each room's world file, as they always were. Beside each room's world file,
 two small text files: WORLD.difficulty (its name, none for normal) and WORLD.rules (`name = value` a
-line), both written by `/difficulty`, `/rule` and the title menu, read at the start.
+line), both written by `/difficulty`, `/rule` and the title menu, read at the start; and WORLD.shape
+(`depth top`, from `--world-depth` and `--world-top` when the world was made): move it with the world.
 
 ## Limits
 

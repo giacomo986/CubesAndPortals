@@ -507,6 +507,8 @@ float g_volume = 1.0f;   // the whole game's, 0..1 (snd_set_volume)
 int   g_shadow_size = 2048;   // the sun's shadow map, texels a side; 0 is no shadows
 bool  g_classic_light = false;   // the light as it was before the rework (WorldRenderer::set_classic)
 int   g_display       = 0;       // 0 window, 1 borderless, 2 full screen; F11 or the video options
+bool  g_window_measured = false;
+int   g_win_w = 0, g_win_h = 0;  // the floating window's size, as last left
 int   g_res_w = 0, g_res_h = 0;  // the game's resolution, the window's size apart; 0 follows the window
 bool  g_vsync         = false;
 int   g_fps_limit     = 0;       // 0 is none
@@ -532,6 +534,8 @@ void load_options(bool &debug)
         else if (key == "fullscreen") g_display = value != 0.0f ? 1 : 0;   // what 0.15 wrote
         else if (key == "display") g_display = std::clamp((int)value, 0, 2);
         else if (key == "res_w") g_res_w = (int)value;
+        else if (key == "win_w") g_win_w = (int)value;
+        else if (key == "win_h") g_win_h = (int)value;
         else if (key == "res_h") g_res_h = (int)value;
         else if (key == "vsync") g_vsync = value != 0.0f;
         else if (key == "fps_limit") g_fps_limit = std::max(0, (int)value);
@@ -556,8 +560,9 @@ void save_options(bool debug)
     if (path.empty()) return;
     std::error_code ec;
     std::filesystem::create_directories(std::filesystem::path(path).parent_path(), ec);
+    if (g_display == 0 && !g_window_measured) plat_window_size(&g_win_w, &g_win_h);
     std::ofstream out(path);
-    out << "look_scale " << g_look_scale << "\nvolume " << g_volume << "\ndebug " << (debug ? 1 : 0)
+    out << "win_w " << g_win_w << "\nwin_h " << g_win_h << "\nlook_scale " << g_look_scale << "\nvolume " << g_volume << "\ndebug " << (debug ? 1 : 0)
         << "\nshadows " << g_shadow_size << "\nclassic_light " << (g_classic_light ? 1 : 0)
         << "\ndisplay " << g_display << "\nres_w " << g_res_w << "\nres_h " << g_res_h
         << "\nvsync " << (g_vsync ? 1 : 0) << "\nfps_limit " << g_fps_limit
@@ -1010,6 +1015,10 @@ PortalLink &mouth_link(Session &w, int m)
     return m == 0 ? w.link_ab : m == 1 ? w.link_ba : w.more_mouths[m - 2].link;
 }
 int mouth_world(const Session &w, int m)
+{
+    return m == 0 ? w.link_session : m == 1 ? w.link_session_b : w.more_mouths[m - 2].session;
+}
+int &mouth_world_ref(Session &w, int m)
 {
     return m == 0 ? w.link_session : m == 1 ? w.link_session_b : w.more_mouths[m - 2].session;
 }
@@ -3827,9 +3836,10 @@ size_t run_mod_stages(Session &sess, ColumnPos column)
             if (st.vm && m.vm == st.vm) alive = m.running;
         if (!alive) continue;
 
-        script_field fields[6] = {
+        script_field fields[7] = {
             {"seed",   SCRIPT_V_NUMBER, (double)c.seed,       nullptr, 0},
             {"height", SCRIPT_V_NUMBER, (double)kWorldHeight, nullptr, 0},
+            {"depth",  SCRIPT_V_NUMBER, 0.0,                  nullptr, 0},
             {"min_x",  SCRIPT_V_NUMBER, (double)c.min_x,      nullptr, 0},
             {"min_z",  SCRIPT_V_NUMBER, (double)c.min_z,      nullptr, 0},
             {"max_x",  SCRIPT_V_NUMBER, (double)c.max_x,      nullptr, 0},
@@ -3839,7 +3849,7 @@ size_t run_mod_stages(Session &sess, ColumnPos column)
         char stage_err[256] = {0};
         sess.mapgen_generating = true;
         sess.mods.enter_vm(st.vm);
-        const bool ok = script_call_handler(st.vm, st.ref, fields, 6, 0, nullptr, stage_err,
+        const bool ok = script_call_handler(st.vm, st.ref, fields, 7, 0, nullptr, stage_err,
                                             sizeof(stage_err));
         sess.mods.leave_vm(st.vm);
         sess.mapgen_generating = false;
@@ -9948,10 +9958,49 @@ bool look_click(const std::string &id)
 // F11 in any loop a person plays in, and the window made to agree with the
 // option every frame -- the options button and a saved setting go through the
 // same line. A window being measured is never touched.
-bool g_window_measured = false;
+// The bodies of a world behind a mouth, as its stream says them: where they are
+// and what they wear. Plainer than the world the player is in, which also
+// predicts machines, seats and hands; nobody aims at these.
+void window_bodies(Session &sh, const net::ClientSession &w)
+{
+    sh.bodies.clear();
+    for (const net::RemotePlayer &sent : w.players()) {
+        net::RemotePlayer p = sent;
+        glide(sh.motion[p.id], p, plat_time());
+        if (p.held || p.kind == net::EntityKind::Drop) continue;
+        Body b;
+        b.id    = p.id;
+        b.scale = p.kind == net::EntityKind::Thing ? 1.0f : p.scale;
+        if (p.kind == net::EntityKind::Thing) {
+            b.center = Vec3{p.x, p.y + 0.25f, p.z};
+            b.half   = Vec3{0.25f, 0.25f, 0.25f};
+            b.pitch  = p.pitch;
+            if (p.chassis) b.roll = p.body_roll;
+        } else {
+            const float h = (p.kind == net::EntityKind::Mob ? ecs::kMobHeight : kPlayerHeight) * b.scale;
+            const float r = (p.kind == net::EntityKind::Mob ? ecs::kMobHalfWidth : kPlayerHalfWidth) * b.scale;
+            b.center = Vec3{p.x, p.y + h * 0.5f, p.z};
+            b.half   = Vec3{r, h * 0.5f, r};
+        }
+        b.colour[0] = 0.6f, b.colour[1] = 0.6f, b.colour[2] = 0.6f;
+        b.model     = p.kind == net::EntityKind::Player ? species_model(sh.models, p.model, p.livery) : p.model;
+        b.yaw       = p.yaw;
+        if (p.model != 0)
+            animate_body(sh, p.id, b, Vec3{p.x, p.y, p.z},
+                         species_model(sh.models, w.welcome().player_model, p.livery), nullptr,
+                         p.clip.empty() ? nullptr : p.clip.c_str(), p.crouching,
+                         p.kind == net::EntityKind::Player && p.lying,
+                         p.kind == net::EntityKind::Player && p.flying);
+        sh.bodies.push_back(b);
+    }
+}
+
 void window_keys(bool debug)
 {
     if (g_window_measured) return;
+    static bool placed = false;
+    if (!placed && g_display == 0 && g_win_w >= 320 && g_win_h >= 200) plat_set_window_size(g_win_w, g_win_h);
+    placed = true;
     if (plat_key_pressed(PLAT_KEY_F11)) {
         g_display = g_display == 0 ? 1 : 0;
         save_options(debug);
@@ -10388,6 +10437,7 @@ struct TitleMenu {
     // writes. Chosen here
     // for a new world; a saved one's is toggled in its settings.
     int                     difficulty = 2;
+    int                     world_depth = 128, world_top = 256;   // a new world's rock and sky
     std::string             address;     // what is typed into the list of servers
     std::vector<ServerRow>  servers;
     bool                    hosting   = false;   // the world list is picking a world to HOST
@@ -10668,20 +10718,26 @@ ui::Panel title_panel(const TitleMenu &m, bool debug)
 
     case MenuPage::NewWorld:
         p.w = 10.0f;
-        p.h = 9.6f;
-        panel_label(p, "Create a new world", 0.5f, 0.0f);
-        panel_label(p, "Name", 0.5f, 1.0f);
-        panel_add(p, ui::ElemKind::Field, "name", m.name, 0.5f, 1.9f, 9.0f);
-        panel_label(p, "Seed (none for a random one)", 0.5f, 3.0f);
-        panel_add(p, ui::ElemKind::Field, "seed", m.seed, 0.5f, 3.9f, 9.0f);
+        p.h = 9.8f;   // no title of its own: the taller panel put it under the game's
+        panel_label(p, "Name", 0.5f, 0.0f);
+        panel_add(p, ui::ElemKind::Field, "name", m.name, 0.5f, 0.9f, 9.0f);
+        panel_label(p, "Seed (none for a random one)", 0.5f, 2.0f);
+        panel_add(p, ui::ElemKind::Field, "seed", m.seed, 0.5f, 2.9f, 9.0f);
         panel_button(p, "mode",
                      m.survival ? "Mode: Survival -- portals scattered over the land"
                                 : "Mode: Sandbox -- the plaza and its portals",
-                     0.5f, 5.1f, 9.0f);
+                     0.5f, 4.1f, 9.0f);
         panel_button(p, "difficulty", kMonstersLabel[m.difficulty],
-                     0.5f, 6.3f, 9.0f);
-        panel_button(p, "create", "Create", 0.5f, 7.5f, 9.0f);
-        panel_button(p, "back", "Back", 0.5f, 8.7f, 9.0f);
+                     0.5f, 5.3f, 9.0f);
+        {
+            char depth[40], top[40];
+            std::snprintf(depth, sizeof(depth), "Depth: %d", m.world_depth);
+            std::snprintf(top, sizeof(top), "Height: %d", m.world_top);
+            panel_button(p, "world_depth", depth, 0.5f, 6.5f, 4.4f);
+            panel_button(p, "world_top", top, 5.1f, 6.5f, 4.4f);
+        }
+        panel_button(p, "create", "Create", 0.5f, 7.7f, 9.0f);
+        panel_button(p, "back", "Back", 0.5f, 8.9f, 9.0f);
         break;
 
     case MenuPage::EditWorld: {
@@ -10812,7 +10868,7 @@ void draw_title(Scene &s, const TitleMenu &m, const ui::Panel &p)
                        typing, shown.c_str());
     draw_server_marks(m, p, at);
 
-    draw_title_name();
+    if (m.page != MenuPage::NewWorld) draw_title_name();   // its panel needs the room
     gfx_2d_end();
     if (m.page == MenuPage::Look) {
         ModelStore &robot = title_robot();
@@ -11004,6 +11060,7 @@ MenuChoice title_menu(Scene &s, TitleMenu &m, bool &debug)
         } else if (id == "options") {
             m.page = MenuPage::Options;
         } else if (id == "quit") {
+            save_options(debug);
             return MenuChoice::Quit;
         } else if (id == "update") {
             gfx_open_url(kReleasesPage);
@@ -11029,6 +11086,10 @@ MenuChoice title_menu(Scene &s, TitleMenu &m, bool &debug)
             m.page = MenuPage::NewWorld;
         } else if (id == "mode") {
             m.survival = !m.survival;
+        } else if (id == "world_depth") {
+            m.world_depth = m.world_depth >= 512 ? 0 : m.world_depth == 0 ? 64 : m.world_depth * 2;
+        } else if (id == "world_top") {
+            m.world_top = m.world_top >= 512 ? 64 : m.world_top * 2;
         } else if (id == "difficulty" && m.page == MenuPage::NewWorld) {
             m.difficulty = (m.difficulty + 1) % 4;
         } else if (id == "difficulty") {
@@ -11233,9 +11294,13 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
                        std::filesystem::is_directory(lab_mods, ec) &&
                        std::filesystem::is_directory(front_mods, ec) &&
                        std::filesystem::is_directory(assault_mods, ec);
+    // Only for a world being made: an existing one keeps its own (<file>.shape).
+    const std::string depth_s = std::to_string(m.world_depth), top_s = std::to_string(m.world_top);
+    if (!rooms) for (const char *a : {"--world-depth", depth_s.c_str(), "--world-top", top_s.c_str()}) args.push_back(a);
     if (rooms) {
         args.erase(args.begin() + 7, args.begin() + 9);   // "--world-file", file
         for (const char *a : {"--portals", "--room", "sandbox", "--world-file", file.c_str(),
+                              "--world-depth", depth_s.c_str(), "--world-top", top_s.c_str(),
                               "--portal-to", "@pista/0", "--portal-to", "@inferno/0",
                               "--portal-to", "@arena/0", "--portal-to", "@arpg/0",
                               "--portal-to", "@chambers/0", "--portal-to", "@backrooms/0",
@@ -15015,6 +15080,10 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
     };
     std::vector<unsigned>   conn_atlas_built((size_t)net_sessions.count(), 0);
     std::vector<ModelsRead> conn_models_read((size_t)net_sessions.count());
+    // When a near mouth last wanted each window (never, for a --watch one, which
+    // stays), and the worlds of closed windows, ready for the next one opened.
+    std::vector<double> conn_wanted((size_t)net_sessions.count(), 0.0);
+    std::vector<int>    free_worlds;
     conn_world[(size_t)self_conn] = s.active;
 
     const auto conn_grew = [&]() {
@@ -15025,6 +15094,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         conn_media_version.resize(n, 0);
         conn_atlas_built.resize(n, 0);
         conn_models_read.resize(n);
+        conn_wanted.resize(n, 0.0);
     };
     const auto world_of = [&](int id) {
         return (id >= 0 && (size_t)id < conn_world.size()) ? conn_world[(size_t)id] : -1;
@@ -16517,6 +16587,36 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             // catches the ones already in flight; this stops making more.
             if (w->scope() != net::Scope::Observe) continue;
 
+            // A window no near mouth has wanted for half a minute is closed and
+            // its world emptied: a hub with a door to everywhere opens them as
+            // the player walks past, and they would add up. The mouth opens it
+            // again when it is one of the nearest once more.
+            if (id != left_conn && !crossing_pending && (size_t)id < conn_wanted.size() &&
+                conn_wanted[(size_t)id] > 0.0 && now - conn_wanted[(size_t)id] > 30.0) {
+                const int gone = world_of(id);
+                for (Mouth &mo : mouths)
+                    if (mo.conn == id) {
+                        mo.conn = net::ClientSessionSet::kNoSession;
+                        mo.tried = false;
+                        mo.drawn_far = mo.linked_near = 0;
+                    }
+                for (int i = 0; i < s.count() && gone >= 0; ++i)
+                    for (int m = 0; m < net::kMaxMouths; ++m)
+                        if (mouth_world(s.at(i), m) == gone) mouth_world_ref(s.at(i), m) = -1;
+                net_sessions.close(id);
+                std::printf("window %s closed: no near opening has wanted it\n",
+                            conn_spec[(size_t)id].c_str());
+                conn_world[(size_t)id] = -1;
+                conn_spec[(size_t)id].clear();
+                if (gone >= 0) {
+                    if (conn_meshed[(size_t)id]) s.at(gone).world_render.shutdown();
+                    s.sessions[(size_t)gone] = std::make_unique<Session>();
+                    free_worlds.push_back(gone);
+                }
+                continue;
+            }
+            if (const int shown = world_of(id); shown >= 0) window_bodies(s.at(shown), *w);
+
             // For the world behind a mouth, the viewpoint is where the opening
             // comes out over there -- which is the point DESIGN.md 4.4 wants an
             // observer's chunks kept in a sphere around. For a --watch world
@@ -17706,15 +17806,16 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             // Only a mouth among the nearest (kMouthsShown) opens its window:
             // a sandbox with a door to every world would otherwise stream them
             // all at once. Nearest to where the server put the body (a join is
-            // placed by a Teleport), not to where it stood before. ponytail: a
-            // window once open stays open; closing the far ones wants a Scene
-            // that can drop a world.
+            // placed by a Teleport), not to where it stood before.
             const bool near_here = conn->teleports() > 0 && mouth_near(m, player.pos, [&](int k, Vec3 &c) {
                 const net::Portals &ps = conn->portals();
                 if (!ps.away[k].leads_away() || !ps.has(k)) return false;
                 c = Vec3{ps.opening[k].cx, ps.opening[k].cy, ps.opening[k].cz};
                 return true;
             });
+            if (near_here && mo.conn != net::ClientSessionSet::kNoSession &&
+                (size_t)mo.conn < conn_wanted.size())
+                conn_wanted[(size_t)mo.conn] = now;
             const bool opening_new =
                 mo.conn == net::ClientSessionSet::kNoSession && !mo.tried && near_here;
             // Another room of the server already being played on needs no
@@ -17813,7 +17914,13 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 wcfg.retry_first = 2.0;
                 wcfg.retry_max   = 60.0;
 
-                const int   world = s.add();
+                int world;
+                if (free_worlds.empty()) {
+                    world = s.add();
+                } else {
+                    world = free_worlds.back();
+                    free_worlds.pop_back();
+                }
                 std::string werr;
                 const int   id    = net_sessions.open(wcfg, self_name, now, werr);
                 conn_grew();
@@ -18572,6 +18679,14 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
     for (int m = 0; m < net::kMaxMouths && !g_no_passive; ++m) {
         const net::PortalAway &away = conn->portals().away[m];
         if (!away.leads_away()) continue;
+        // Only the nearest are looked into: the rest are closed, not broken.
+        if (!mouth_near(m, player.pos, [&](int k, Vec3 &c) {
+                const net::Portals &ps = conn->portals();
+                if (!ps.away[k].leads_away() || !ps.has(k)) return false;
+                c = Vec3{ps.opening[k].cx, ps.opening[k].cy, ps.opening[k].cz};
+                return true;
+            }))
+            continue;
 
         const net::ClientSession *far         = net_sessions.get(mouths[m].conn);
         const int                 world       = world_of(mouths[m].conn);
@@ -19653,7 +19768,7 @@ int run_interactive(Scene &s, double seconds)
         // bottom -- so that is a death rather than something to wait out. The
         // same two rules the server runs, through the same functions: see
         // core/physics/fall.h, which is in core for exactly this reason.
-        if (player.pos.y < kBelowWorld) {
+        if (player.pos.y < below_world(s.conn ? s.conn->welcome().world_depth : 0)) {
             hurt_local(&s, demo_health.max, false, false);   // kill_body on the server
         } else if (player.flying) {
             // The server's rule: a flight down to the ground is not a fall.

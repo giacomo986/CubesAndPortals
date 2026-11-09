@@ -150,9 +150,9 @@ uniform vec4      uWaterLo;      // the cells of it that hold any water: from xy
 uniform vec4      uWaterHi;      // to xyz, far side excluded, in the box's own frame
 uniform vec4      uWaterColor;   // vec4 because the setter the renderer has uploads four
 uniform vec4      uLavaColor;    // a glowing liquid's, lava's: the box's dense cells
-uniform sampler2D uWaterCells;   // the box, 64 x 32 x 64 cells, its 32 layers in 8 x 4 tiles
+uniform sampler2D uWaterCells;   // the box, 64 x 64 x 64 cells, its 64 layers in 8 x 8 tiles
 
-const ivec3 kWaterBox = ivec3(64, 32, 64);
+const ivec3 kWaterBox = ivec3(64, 64, 64);
 
 // Cell c's surface at its four corners, 0..1, x + 2 z as the mesher has them;
 // all four 0 where the cell is not water. `dense` 1 for lava, which the box

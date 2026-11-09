@@ -42,7 +42,7 @@ everything below it). `/perm` shows and changes which role a permission wants;
 | `/kill` | anybody | You die and come back at your bed or the world's spawn; armour wears a little, as from any blow. For a body stuck somewhere. Works in creative mode too (`mods/creative`) |
 | `/giveup` | anybody, in a world with a trial | Gives up that world's trial: you die, then are walked out through the world's way in and come back on the sandbox, outside that world's gate. A body that cannot be hurt is only walked out. What the trial already counted (a key earned) stays (`mods/keys`) |
 | `/journal` | anybody | Opens the engineer's pages of the keys you carry, one page a key and a last page when you have all seven (`mods/keys`) |
-| `/town [town]` | anybody | Takes you to the square of the nearest village; with any word after it, of the nearest town (a bigger village, searched twice as far) (`mods/villages`) |
+| `/town [town\|city]` | anybody | Takes you to the square of the nearest village; with any word after it, of the nearest town (a bigger village, searched twice as far); with `city`, of the nearest city (`mods/villages`) |
 | `/creative TEXT` | creative (moderator) | Opens the creative catalogue narrowed to items whose name has the text (`mods/creative`) |
 
 ### In one world only

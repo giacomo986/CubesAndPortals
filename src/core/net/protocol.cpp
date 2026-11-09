@@ -245,6 +245,7 @@ std::vector<uint8_t> Welcome::encode() const
     if (has_sky) w.bytes(sky, 3);
     w.u8(has_storm ? 1 : 0);
     if (has_storm) w.bytes(storm, 3);
+    w.u16(world_depth);
 
     const size_t ni = items.size() > kMaxItemTable ? kMaxItemTable : items.size();
     w.u16((uint16_t)ni);
@@ -414,6 +415,7 @@ bool Welcome::decode(ByteReader &r, Welcome &out)
     if (has_storm > 1) return false;
     out.has_storm = has_storm == 1;
     if (out.has_storm && !r.bytes(out.storm, 3)) return false;
+    out.world_depth = r.u16();
 
     size_t ni = 0;
     if (!r.count(ni, kMaxItemTable)) return false;
@@ -3119,6 +3121,7 @@ HandshakeResult negotiate(const Hello &hello, const ServerConfig &config, bool v
     w.has_sky = config.has_sky;
     std::memcpy(w.sky, config.sky, 3);
     w.has_storm = config.has_storm;
+    w.world_depth = config.world_depth;
     std::memcpy(w.storm, config.storm, 3);
 
     // The intersection, walked in the server's order. Order matters: both sides

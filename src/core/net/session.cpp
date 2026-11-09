@@ -652,7 +652,7 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
             // that has no bottom, and waiting for it to land is waiting
             // forever.
             if (s.scope == Scope::Enter) {
-                if (v.y < kBelowWorld) {
+                if (v.y < below_world(m_config.world_depth)) {
                     kill_body(s, now);
                 } else if (s.roped && length(Vec3{v.x, v.y + kRopeHands, v.z} - s.rope_at) <=
                                           kRopeReach + 1.0f) {

@@ -40,13 +40,27 @@ void compute_column_lighting(World &world, const NodeRegistry &reg, int cx, int 
     const int x0 = cx * kChunkSize, z0 = cz * kChunkSize;
     const int x1 = x0 + kChunkSize - 1, z1 = z0 + kChunkSize - 1;
     const int r  = kMaxLight;
-    // Down under y 0 only where this column has blocks there (kWorldBottom): a
-    // box twice as tall for every column of a world with nothing below its
-    // bedrock is the whole cost of lighting, twice.
+    // Under y 0 only down to the deepest chunk with air in it: solid rock holds
+    // no light, and a box as tall as a deep world for every column would be the
+    // whole cost of lighting, many times over.
     int bottom = 0;
-    for (int cy = kWorldBottom / kChunkSize; cy < 0 && bottom == 0; ++cy)
-        if (world.find_chunk(ChunkPos{cx, cy, cz}) != nullptr) bottom = cy * kChunkSize;
-    light_box(world, reg, x0 - r, bottom, z0 - r, x1 + r, height - 1, z1 + r, x0, z0, x1, z1);
+    for (int cy = kWorldBottom / kChunkSize; cy < 0 && bottom == 0; ++cy) {
+        const Chunk *c = world.find_chunk(ChunkPos{cx, cy, cz});
+        if (c == nullptr) continue;
+        bool air = c->is_uniform() && c->uniform_block() == kAir;
+        for (int i = 0; !c->is_uniform() && !air && i < kChunkVolume; ++i)
+            air = c->get(i % kChunkSize, (i / kChunkSize) % kChunkSize, i / (kChunkSize * kChunkSize)) == kAir;
+        if (air) bottom = cy * kChunkSize;
+    }
+    // And above the standard height only as far as anything has been built, in
+    // this column or the next: the box's top is sky either way.
+    int top = kWorldHeight;
+    for (int dz = -1; dz <= 1; ++dz)
+        for (int dx = -1; dx <= 1; ++dx)
+            for (int cy = (height - 1) / kChunkSize; cy * kChunkSize >= top; --cy)
+                if (world.find_chunk(ChunkPos{cx + dx, cy, cz + dz}) != nullptr) top = (cy + 1) * kChunkSize;
+    top = std::min(top, height);
+    light_box(world, reg, x0 - r, bottom, z0 - r, x1 + r, top - 1, z1 + r, x0, z0, x1, z1);
 }
 
 namespace {

@@ -572,9 +572,9 @@ private:
     // when the eye has gone a quarter of the box from its middle or a chunk's
     // water changed.
     void refresh_water();
-    static constexpr int kWaterBox[3] = {64, 32, 64};   // kWaterBox in shaders.h
-    static constexpr int kWaterTexW   = 8 * 64;         // its 32 layers, 8 x 4
-    static constexpr int kWaterTexH   = 4 * 64;
+    static constexpr int kWaterBox[3] = {64, 64, 64};   // kWaterBox in shaders.h
+    static constexpr int kWaterTexW   = 8 * 64;         // its 64 layers, 8 x 8
+    static constexpr int kWaterTexH   = 8 * 64;
     struct WaterBox {
         gfx_texture          tex{0};
         std::vector<uint8_t> px;

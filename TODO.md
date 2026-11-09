@@ -25,14 +25,19 @@ CLOSED-n ids that comments in `src/` still cite:
    keeps its old walls: `tools/track.sh --fresh`.
 1. Giacomo played (2026-11-09): the garden's door no longer jumps in eye height, the dragon kart's lap is
    fine, the planes fly by hand.
-2. Choose among these, each waiting for a decision, hardware or a big job:
+2. Done 2026-11-09: a signpost where two paths cross away from a settlement (seed 1: 1 crossing over 17 paths in 13 x 13 regions, placed and read at 1355 25 -1156);
+   the floating window's size kept; the world's shape per world (`--world-depth`, `--world-top`, new worlds 128 and 256, `<file>.shape`, protocol 121): rock in uniform chunks,
+   veins in one chunk of two, +5 MB over 36 columns; a player stood alive at y -100. A window onto another world now gets its bodies (15 counted in the stream, not looked at);
+   liquids' box 64 tall, so lava shows depth 32 up and down from the eye. Meshing (soak, CPU): sync 8.4 ms new light against 6.7 classic. VRAM of the mouths computed, not measured: 16.6 MB each at 1080p, 26 past the first two.
+   Open: `--soak` on the real display spins in window creation at a fixed 1920x1080 (same run on a virtual 1920x1080 is fine, so it wants the real desktop to look at); creatures hanging not built (no hang clip in any model, and pathfinding plans one step up).
+3. Done 2026-11-09, new worlds only (storage "path version" 3): cities on a cell of 2048 (63 of 64 cells on seed 1, radius 192-256, a sample one 393 buildings, 185 streets), towns thick near them, villages thin in the wild, highways city to city (49 of 49 pairs, mean 2 km, stone, bridges, milestones). City streets and highways are worked out a column at a time: a whole-city plan broke the 2 million step budget. `mods/villages` now has 128 MB and 12 M steps (mod.conf) and lets go of its caches past about 55 MB. Windows no near mouth wants close after 30 s and their world slot is reused (hub: 4 opened, 2 closed, reopened as near again, no crash in 170 s). Depth and height chosen in the menu reach the world (`world.db.shape` 512 512): they were lost before, `admin::open` made the file first.
+   Seen by eye: a city from above, highway with bridge. Not seen: bodies through a window (21 reached the client, none caught on screen).
+4. Choose among these, each waiting for a decision, hardware or a big job:
    - Play: Emberwing's balance at level 11; garden and other sounds by ear;
      the bow's pose.
-   - Worlds: signposts at crossings; lava depth beyond the water box;
-     creatures hanging from ledges; OPEN-35, OPEN-38, OPEN-43.
+   - Worlds: creatures hanging from ledges; lava depth past 32 from the eye; OPEN-35, OPEN-38, OPEN-43.
    - Front: PvP.
-   - Graphics: lighting on a real GPU (meshing cost, coloured light); VRAM of the mouths; windows that show no bodies and
-     never close.
+   - Graphics: lighting on a real GPU (meshing cost, coloured light); VRAM of the mouths.
    - Server: what /mute should cover; the friend copy; the seal checked on
      the client's side.
    - Distribution: macOS, real Windows, signing, app id, OPEN-39, OPEN-52.
@@ -626,8 +631,7 @@ the villagers and start with questions (memory: villagers-need-design-first).
    their map (maps:route: a red dotted line to a flag, the land along it
    shown; three at most, gone on arriving). Checked: -170,127 to 411,-356,
    772 nodes over three paths, its body walking the path, "95 nodes to the
-   south-west" said and drawn. Open: no signpost at crossings away from a
-   village (paths meet at the villages, mostly); a sign where the path's end
+   south-west" said and drawn. Open: a sign where the path's end
    is a bridge is left out.
 4. Boats -- built 2026-10-28 in `mods/boats` (`core.body_boat`: bit 2 of
    BodyMovement's moves byte, which a 109 client ignores and swims). Five
@@ -1549,7 +1553,6 @@ Seen in Xephyr; not played with the gun by hand.
 
 **Mouths and windows.**
 - A window once open stays open and streams: a Scene cannot drop a world.
-- A window shows no bodies.
 - Gates are at fixed spots on the plaza, holes 1x2: a kart does not fit.
 - A window's stream is centred on the world's `portal_a`.
 - A ticket for one room is good at every room of the server.
@@ -1842,7 +1845,7 @@ the first corner's top bit, colour = its tile's mean, since a client knows only 
 colour for a server's block); lava opacity 130, murk 0.35 a node; past 8-24 from the eye a
 glowing liquid closes. Seen in Xephyr: strips 1, 2, 4 deep over fungus caps (the cap shows
 faintly at 1), inside lava an orange fog, a water pool unchanged, frames 0.7 s apart differ.
-Open: lava beyond the water box (more than 16 above or below the eye, 32 across) shows no depth,
+Open: lava beyond the water box (more than 32 above or below the eye, 32 across) shows no depth,
 only the distance fade; the ripple not seen moving by a person.
 
 **The assault (2026-10-23).** A co-op final world against Basoalth
@@ -2315,7 +2318,7 @@ mesh memory 31 → 36 MB. Open:
   bodies; models in the openings' views cast none; at most 256 casters within
   48 nodes.
 - One map, no cascades: shadow edges near the eye are 5.5 cm texels, soft.
-- No coloured light: every lamp is the same warm white.
+- No coloured light: every lamp is the same warm white (the packed light byte would have to grow).
 - `relight_around` may give false sunlight in caves taller than 16 (light.cpp
   sun seed at the box top); not checked.
 

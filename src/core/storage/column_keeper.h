@@ -60,6 +60,7 @@ public:
     };
 
     ColumnKeeper(World &world, const NodeRegistry &registry, int height);
+    void set_height(int height) { m_height = height; }
 
     ColumnKeeper(const ColumnKeeper &)            = delete;
     ColumnKeeper &operator=(const ColumnKeeper &) = delete;

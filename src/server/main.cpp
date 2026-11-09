@@ -354,6 +354,7 @@ struct ServerState {
     // the world, which has none.
     int      extent = 128;
     int      height = kWorldHeight;
+    int      depth  = 0;   // --world-depth
     uint32_t seed   = 1;
     // The spawn of a world without a plaza, known before the mods load (and
     // before there are sessions to ask): core.world_spawn answers it then.
@@ -4676,9 +4677,10 @@ size_t run_mod_stages(ServerState &s, ColumnPos column)
         // Read-only, and there is no way to say otherwise: a stage writes with
         // core.set_block and reads the ground with core.terrain_height, and
         // nothing it puts back in this table is looked at.
-        script_field fields[6] = {
+        script_field fields[7] = {
             {"seed",   SCRIPT_V_NUMBER, (double)s.seed,   nullptr, 0},
             {"height", SCRIPT_V_NUMBER, (double)s.height, nullptr, 0},
+            {"depth",  SCRIPT_V_NUMBER, (double)s.depth,  nullptr, 0},
             {"min_x",  SCRIPT_V_NUMBER, (double)c.min_x,  nullptr, 0},
             {"min_z",  SCRIPT_V_NUMBER, (double)c.min_z,  nullptr, 0},
             {"max_x",  SCRIPT_V_NUMBER, (double)c.max_x,  nullptr, 0},
@@ -4688,7 +4690,7 @@ size_t run_mod_stages(ServerState &s, ColumnPos column)
         char stage_err[256] = {0};
         s.mods.enter_vm(st.vm);
         const bool ok =
-            script_call_handler(st.vm, st.ref, fields, 6, 0, nullptr, stage_err, sizeof(stage_err));
+            script_call_handler(st.vm, st.ref, fields, 7, 0, nullptr, stage_err, sizeof(stage_err));
         s.mods.leave_vm(st.vm);
 
         // A stage that errors costs its own mod and nobody else, which is the
@@ -6296,6 +6298,7 @@ int serve_room(int argc, char **argv)
     bool     quiet  = false;
     int      port   = 0;   // 0 means the offline run: generate, tick, print a hash
     const char *world_file = nullptr;   // and no file means the world is not kept
+    int         world_depth = 0, world_top = kWorldHeight;   // for a world not yet made
 
     // How often a running server writes what changed, in seconds. 0 means only
     // when it stops, which a kill -9, a crash or a power cut never reaches.
@@ -6385,6 +6388,10 @@ int serve_room(int argc, char **argv)
             ticks = std::atoi(argv[++i]);
         else if (std::strcmp(argv[i], "--world") == 0 && i + 1 < argc)
             extent = std::atoi(argv[++i]);
+        else if (std::strcmp(argv[i], "--world-depth") == 0 && i + 1 < argc)
+            world_depth = std::atoi(argv[++i]);
+        else if (std::strcmp(argv[i], "--world-top") == 0 && i + 1 < argc)
+            world_top = std::atoi(argv[++i]);
         else if (std::strcmp(argv[i], "--mods") == 0 && i + 1 < argc)
             mods_dir = argv[++i];
         else if (std::strcmp(argv[i], "--user-mods") == 0 && i + 1 < argc)
@@ -6467,6 +6474,21 @@ int serve_room(int argc, char **argv)
         }
     }
 
+    // A world's shape is settled when it is made and kept beside its file: its
+    // columns were made to it. A file older than this is the old shape.
+    world_depth = std::clamp(world_depth - world_depth % kChunkSize, 0, kMaxWorldDepth);
+    world_top   = std::clamp(world_top, kWorldHeight, 4096);
+    if (world_file != nullptr) {
+        const std::string shape = std::string(world_file) + ".shape";
+        std::error_code   ec;
+        if (std::ifstream in(shape); in) {
+            in >> world_depth >> world_top;
+        } else {
+            if (std::filesystem::exists(world_file, ec)) world_depth = 0, world_top = kWorldHeight;
+            std::ofstream(shape) << world_depth << " " << world_top << "\n";
+        }
+    }
+
     // The owner's two by hand, under the lock so no running server has the
     // file, and nothing generated.
     if (list_names || free_name) {
@@ -6524,6 +6546,9 @@ int serve_room(int argc, char **argv)
         if (s.difficulty != 2) std::printf("        difficulty: %s\n", kDifficulties[s.difficulty]);
     }
     s.extent = extent;
+    s.depth  = world_depth;
+    s.height = world_top;
+    s.keeper.set_height(world_top);
     s.seed   = seed;
     for (size_t k = 0; k < portal_to.size() && k < (size_t)net::kMaxMouths; ++k) {
         const std::string spec = portal_to[k];
@@ -6553,6 +6578,7 @@ int serve_room(int argc, char **argv)
     const auto t_gen = std::chrono::steady_clock::now();
     Mapgen mapgen;
     s.mapgen = &mapgen;
+    mapgen.set_depth(s.depth);
     mapgen.biomes().plaza = !survival;
     Vec3 land_spawn{};
     if (survival) {
@@ -7632,6 +7658,7 @@ int serve_room(int argc, char **argv)
         config.has_sky          = s.has_sky;
         std::memcpy(config.sky, s.sky, 3);
         config.has_storm        = s.has_storm;
+        config.world_depth      = (uint16_t)s.depth;
         std::memcpy(config.storm, s.storm, 3);
 
         // Whose word this world takes. Read before the sessions are built, so a
@@ -9946,6 +9973,16 @@ int main(int argc, char **argv)
     };
     std::string first_world = last_of(rooms[0].second, "--world-file");
     if (first_world.empty()) first_world = last_of(common, "--world-file");
+
+    // admin::open below makes the first room's file, and a world with a file and
+    // no .shape is an old one: a world being made says its shape first.
+    if (std::error_code ec; !first_world.empty() && !std::filesystem::exists(first_world, ec) &&
+                            !std::filesystem::exists(first_world + ".shape", ec)) {
+        const std::string d = last_of(rooms[0].second, "--world-depth"), t = last_of(rooms[0].second, "--world-top");
+        const int depth = d.empty() ? 0 : std::clamp(std::atoi(d.c_str()) - std::atoi(d.c_str()) % kChunkSize, 0, kMaxWorldDepth);
+        const int top   = t.empty() ? kWorldHeight : std::clamp(std::atoi(t.c_str()), kWorldHeight, 4096);
+        std::ofstream(first_world + ".shape") << depth << " " << top << "\n";
+    }
 
     // Who may do what, once for every room, in the first room's file
     // (src/server/admin.h). --owner is every room's, so it is read here.
