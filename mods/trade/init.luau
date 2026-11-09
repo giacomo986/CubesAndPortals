@@ -160,6 +160,10 @@ core.event.on("core:page_action", function(ev)
         return
     end
     local x, y, z = at[1], at[2], at[3]
+    if core.is_muted(ev.player) == 1 then   -- /mute holds dealings with other players too
+        core.notice(ev.player, "You are muted: no trading")
+        return
+    end
     if core.get_block(x, y, z) ~= STALL then
         return
     end

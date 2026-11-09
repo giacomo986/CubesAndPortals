@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 121; // 121 Welcome::world_depth; 120 windows: Portal::view
+inline constexpr uint16_t kProtocol    = 122; // 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -393,7 +393,8 @@ inline constexpr uint16_t kProtocol    = 121; // 121 Welcome::world_depth; 120 w
 // a 118 server refuses it as past kLiveryMax.
 // 120 gives an opening a view (Portal::view, two bits over the free and scales
 // ones): a 119 client refuses the bits as a byte past 3.
-inline constexpr uint16_t kMinProtocol = 120;
+// 122 adds Slain, and a client that meets a message it does not know hangs up.
+inline constexpr uint16_t kMinProtocol = 122;
 
 // What a player picked to look like (protocol 93): the three colours of their
 // model's tint_1..3 materials -- primary, secondary, accent -- five bits each,
@@ -676,6 +677,10 @@ enum class MsgType : uint8_t {
     // client that joins late hears the rain already falling, and a stop can
     // never be the one message lost that leaves a loop playing for ever.
     SoundLoops = 52,     // server -> client, channel 3
+
+    // "These monsters were killed" (protocol 122): a body missing from the
+    // list may only have gone out of reach, and the client draws the two apart.
+    Slain = 53,          // server -> client, channel 3
 };
 
 // Players per world, decided in DESIGN.md, and the reason the entity message
@@ -1091,6 +1096,7 @@ struct NodeBodyDesc {
     bool    liquid  = false;
     uint8_t fill    = 8;   // eighths of a cell, for a liquid (protocol 40)
     uint8_t light   = 0;   // the light it gives, 0..15 (protocol 84)
+    uint8_t light_tint = kWhiteTint;   // its colour (protocol 122)
     bool    climbable = false;   // a ladder (protocol 53)
     float   conveyor        = 0.0f;   // a belt, m/s, and its top (protocol 78)
     float   conveyor_height = 1.0f;
@@ -1120,6 +1126,7 @@ struct NodeShapeDesc {
     uint8_t          turn  = 0;   // NodeTurn: what the cell's facing byte means
     uint16_t         model = 0;   // its id in this welcome's model table, 0 for none
     std::vector<Box> boxes;
+    std::vector<Box> selection;   // protocol 122
     PieceShape       piece;       // plan 0 for a block that is not a track piece
 };
 
@@ -2223,6 +2230,13 @@ struct Push {
 
     std::vector<uint8_t> encode() const;
     static bool decode(ByteReader &r, Push &out);
+};
+
+struct Slain {
+    std::vector<uint64_t> ids;   // at most kMaxEntities
+
+    std::vector<uint8_t> encode() const;
+    static bool decode(ByteReader &r, Slain &out);
 };
 
 struct Seal {

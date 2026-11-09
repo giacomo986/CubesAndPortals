@@ -44,7 +44,7 @@ if serving then
     core.register_item(BOW, 1, "", 0, 1.0, "", 0, "", 0, 384)
     core.register_item(ARROW, 64, "", 0, 1.0, "")
     core.register_item("archery:string", 64, "", 0, 1.0, "")
-    for _, n in { "bow", "bow_pulling_0", "bow_pulling_1", "bow_pulling_2", "arrow", "string" } do
+    for _, n in { "bow", "bow_pulling_0", "bow_pulling_1", "bow_pulling_2", "bow_left", "bow_left_bow_aim", "arrow", "string" } do
         core.register_model(`archery:{n}_held`, `{n}_held.gltf`)
     end
 
@@ -73,6 +73,7 @@ if serving then
     local function stop(p: number)
         since[p] = nil
         core.body_movement(p)
+        core.player_clip(p, "")
     end
 
     pull = function(p: number, down: boolean)
@@ -88,6 +89,7 @@ if serving then
             core.give_item(p, ARROW, 1)
             since[p] = clock
             core.body_movement(p, 4.8 * SLOW, 4.8 * SLOW)
+            core.player_clip(p, "bow_aim")
             tell(p, "draw")
             return
         end

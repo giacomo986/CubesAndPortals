@@ -33,14 +33,24 @@ CLOSED-n ids that comments in `src/` still cite:
    Creatures climbing (`core.mob_climbs`, zombie 6 high): up a 5-high wall in 2 s at night, seen in the log. New kind `mobs:runner` (`tools/make_runner_model.py`, `core.mob_lunge`): 5.8 m/s, climbs, dives from 7 away at 9 m/s for 1.5 times a blow (log; on screen only in the dark). Runner model fixed: the mesh came out 33% too big for its bones (parent inverse lost), now bind-identical to the zombie joint by joint. `core.mob_share`: runners are a new 0 to 8 in 100 of what comes out in the dark, drawn at each dusk.
 3. Done 2026-11-09, new worlds only (storage "path version" 3): cities on a cell of 2048 (63 of 64 cells on seed 1, radius 192-256, a sample one 393 buildings, 185 streets), towns thick near them, villages thin in the wild, highways city to city (49 of 49 pairs, mean 2 km, stone, bridges, milestones). City streets and highways are worked out a column at a time: a whole-city plan broke the 2 million step budget. `mods/villages` now has 128 MB and 12 M steps (mod.conf) and lets go of its caches past about 55 MB. Windows no near mouth wants close after 30 s and their world slot is reused (hub: 4 opened, 2 closed, reopened as near again, no crash in 170 s). Depth and height chosen in the menu reach the world (`world.db.shape` 512 512): they were lost before, `admin::open` made the file first.
    Seen by eye: a city from above, highway with bridge. Not seen: bodies through a window (21 reached the client, none caught on screen).
-4. Choose among these, each waiting for a decision, hardware or a big job:
-   - Play: Emberwing's balance at level 11; garden and other sounds by ear;
-     the bow's pose.
-   - Worlds: creatures hanging from ledges; lava depth past 32 from the eye; OPEN-35, OPEN-38, OPEN-43.
+4. Done 2026-11-09, last batch (protocol 122, 13/13 ctest):
+   - Garden voices: `core.mob_say_every`, ants 8 times as seldom, ladybirds and butterflies 5. Not heard (Xephyr has no sound).
+   - The bow: first person the arrow on the crosshair (computed from robot_arms' idle); seen by others a `bow_aim` clip on all four bodies and the bow in the left fist ("<item>_left_held", "<item>_left_<clip>_held"). Seen in Xephyr, from behind and from the side.
+   - Monsters killed come apart in red (`Slain` message, dissolve shader with `uDissolveRed`), only those that fight; animals and those out of reach fade as before. Seen in Xephyr.
+   - `tools/windowlab.sh`: two rooms, six creatures marching in the far one; seen through the window on screen, moving, cut by the frame. Closes "bodies through a window not caught on screen".
+   - Creatures hang (those with `core.mob_climbs`): falling past a ledge the hands take it, 0.7-1.3 s, then up; a blow makes them let go, the sun does not. Headless: caught at 65.39, on top at 67.02. The "hang" clip is the robot's, not looked at on a zombie.
+   - Lava: nothing to do, it is opaque from 24 away and the box reaches 32.
+   - OPEN-38: past 64 MB the changed columns of a world with no file go to a temporary file. Not run past the limit.
+   - OPEN-35: a furnace makes every smelt that came due while its column was away (5 s overdue: 3 ingots at once). Past a restart the clock starts again, so not then.
+   - OPEN-43: `core.node_selection_box`; seen in Xephyr, a thin post outlined as a whole cell. The dig the client could predict was already refused.
+   - /mute: stalls, joining a chess or card game, adding territory owners, the letterbox. Not driven with a muted player.
+   - Friend copy: the bag that moved most stays, the other in `bagold` rows, `/oldbags`. Not run between two servers.
+   - Seal: no Enter ticket for a mouth sealed to that player. Open: a world without `--require-ticket` still lets a modified client walk in by naming the room.
+5. Coloured light, done 2026-11-09 (protocol 122): every lamp lights in its own registered colour (`pack_tint`, 3-3-2 bits a cell, each channel 0.3..1), carried by the same flood as the block light, in a plane a chunk has only when a coloured lamp reaches it, on the wire and in the world file. Levels are unchanged, so spawning and gameplay are too. Seen in Xephyr: red, green, blue and warm pools in a dark room. Vertex 12 -> 16 bytes (mesh memory a third more). Soak, Xephyr, software GL: sync 7.5 -> 9.2 ms, render 46.3 -> 48.4 ms a frame; not measured on the real GPU. Open: columns saved before this have no colour until something relights them (`tools/track.sh --fresh` for new ones); stained glass does not filter light; sky light is not tinted.
+6. Choose among these, each waiting for a decision, hardware or a big job:
+   - Play: Emberwing's balance at level 11; other sounds by ear.
+   - Worlds: OPEN-35's rest (a seam when a stage changes, `core.get_block` reading air on columns not in memory, 20 ms a tick on columns, the welcome's hash): each a design choice, see below.
    - Front: PvP.
-   - Graphics: lighting on a real GPU (meshing cost, coloured light); VRAM of the mouths.
-   - Server: what /mute should cover; the friend copy; the seal checked on
-     the client's side.
    - Distribution: macOS, real Windows, signing, app id, OPEN-39, OPEN-52.
 
 ---
@@ -415,8 +425,7 @@ Open:
   mouths of one world streams round the nearer one's far end. Checked in
   Xephyr: arches red but chambers' (key given), walked through it into
   the chambers' way out; arena's way out red, keys:earned emitted, opened onto
-  the plaza. Open: the seal is the client's to keep for the seamless
-  crossing (the far room does not check it); 15 mouths' render targets are
+  the plaza. Open: 15 mouths' render targets are
   made as each links (VRAM not measured).
   Key altars (2026-10-10, from play: "keys to pick up from pedestals at the
   end of the trials"): no trial gives its key any more; it emits keys:earned
@@ -2319,21 +2328,19 @@ mesh memory 31 → 36 MB. Open:
   bodies; models in the openings' views cast none; at most 256 casters within
   48 nodes.
 - One map, no cascades: shadow edges near the eye are 5.5 cm texels, soft.
-- No coloured light: every lamp is the same warm white (the packed light byte would have to grow).
 - `relight_around` may give false sunlight in caves taller than 16 (light.cpp
   sun seed at the box top); not checked.
 
 **OPEN-35 -- the world made as players go.** A stage changed between runs
 shows a seam; `core.get_block` on a column not in memory reads air (use
 `core.loaded`); a listening server spends 20 ms a tick on columns; the
-welcome's hash covers the region only. A furnace smelts only while its column
-is in memory.
+welcome's hash covers the region only.
 
 **OPEN-38 -- letting go of the world.** Without a world file changed columns
-stay in memory for the life of the process.
+stay in memory up to 64 MB and then go to a temporary file, which only grows
+(a column let go again leaves its old bytes).
 
-**OPEN-43 -- block shapes.** No separate selection box; the client does not
-refuse a dig it could predict. One material per block and per tool (CLOSED-31).
+**OPEN-43 -- block shapes.** One material per block and per tool (CLOSED-31).
 
 **Villagers** (design in memory; new behaviour starts with questions).
 - `mods/villagers` is at 194 of Luau's 200 locals in its main chunk: new state
@@ -2342,8 +2349,7 @@ refuse a dig it could predict. One material per block and per tool (CLOSED-31).
 
 **Creatures.** (Rechecked 2026-11-07: a blow finds a creature in its model's
 box, up to 8 x 3, down to 0.01; players and creatures shove each other, at
-their sizes.) Creatures do not hang (from ledges, as a body does); one
-chasing burns rather than hides; a creature in a column not in memory waits.
+their sizes.) One chasing burns rather than hides; a creature in a column not in memory waits.
 
 **Smaller gaps.**
 - Furnace: an old furnace keeps what is in a wrong row; no heat gauge. (No
@@ -2625,7 +2631,6 @@ own letters, one sharing two of bob's words, pass. ctest 13/13.
 Open:
 - /mute knows words, not meaning: punctuation, quotes and case no longer hide
   them (2026-11-08), a mod that rewords them still gets through.
-- A friend unreachable while the player plays on keeps its own copy too.
 - The client's far-key check is behind the ticket check, which refuses
   first; a server lying about tickets is the only case it catches.
 

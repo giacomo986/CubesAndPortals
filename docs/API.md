@@ -345,7 +345,7 @@ Declares a block and returns its id. Registering the same name again keeps the i
 | `g` | number | `180` |  |
 | `b` | number | `180` |  |
 | `solid` | boolean | `true` | Stops movement and light. |
-| `light_source` | number | `0` | 0..15, block light emitted. |
+| `light_source` | number | `0` | 0..15, block light emitted, of the block's own colour (r, g, b), paler. |
 | `turn` | string | `` | What a cell's facing byte MEANS for this block, and nothing means it does not turn. "upright": 0..3 quarter turns about the vertical, which is a chest or a furnace. "facedir": 0..23, any orientation of a cube -- a log lying down, a stair. "wallmounted": 0..5, the FACE the block's front points at -- a ladder, a sign. Placing a block turns the cell to face whoever put it down, or, for a wallmounted one, out of the face they clicked; core.set_facing writes the byte and core.get_facing reads it. The id in the world is the one this call returned whichever way the block faces, so a handler compares against it directly. An unknown word is a load error, not a block that quietly does not turn. |
 | `dig_level` | number | `0` | What a hand must be holding for this to come out at all. 0 is a bare hand, which is what every block is unless it says otherwise; a block asking for 2 does not break for a level 1 tool however long anybody holds the button. A LEVEL and not a kind: a level 2 axe digs this as well as a level 2 pick does. Separate from breakable -- the floor of the world is not a very hard block, and no tool ever takes it out. |
 | `hardness` | number | `0` | How many SECONDS this takes to dig with a bare hand, divided by the tool's dig_speed. Zero is instant, which is what every block is unless it says otherwise. The player holds the button; the server times it. |
@@ -1631,6 +1631,37 @@ How far off a creature of that kind notices a player and goes for them. An arena
 |---|---|---|---|
 | `name` | string | — | A kind from register_mob. |
 | `nodes` | number | — | How far, 1 to 128. 16 when never said. |
+
+## `core.node_selection_box`
+
+```luau
+core.node_selection_box(id: number, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number) -> number
+```
+
+Adds a box to what the crosshair finds on this block and outlines, apart from the boxes bodies collide with (core.node_box): a thin lever easy to point at, a flower to hit anywhere in its cell. It turns with the block. Call it before the world starts. Returns how many it has now, or 0 for a block that does not exist.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `id` | number | — | A block from register_node. |
+| `x0` | number | — | The box in the cell's own coordinates, 0 to 1 (a bit more to stick out). |
+| `y0` | number | — |  |
+| `z0` | number | — |  |
+| `x1` | number | — |  |
+| `y1` | number | — |  |
+| `z1` | number | — |  |
+
+## `core.mob_say_every`
+
+```luau
+core.mob_say_every(name: string, factor: number) -> number
+```
+
+How seldom a kind makes a sound of its own, for creatures that live in crowds. Blows and deaths are heard as ever. Returns 1, or 0 for a kind nobody registered.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — | A kind from register_mob. |
+| `factor` | number | — | 1 as usual (one sound every 6 to 20 seconds), 5 five times as seldom. 0.1 to 100. |
 
 ## `core.mob_climbs`
 

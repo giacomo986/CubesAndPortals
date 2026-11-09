@@ -115,6 +115,15 @@ uint8_t World::get_light(int x, int y, int z) const
     return c->light(lx, ly, lz);
 }
 
+uint8_t World::get_tint(int x, int y, int z) const
+{
+    const Chunk *c = find_chunk(chunk_of(x, y, z));
+    if (!c) return kWhiteTint;
+    int lx, ly, lz;
+    local_of(x, y, z, lx, ly, lz);
+    return c->tint(lx, ly, lz);
+}
+
 void World::set_light(int x, int y, int z, uint8_t packed)
 {
     Chunk &c = ensure_chunk(chunk_of(x, y, z));

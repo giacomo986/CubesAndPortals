@@ -91,6 +91,7 @@ struct MobKind {
     float       climbs = 0.0f;     // the highest wall it goes up (core.mob_climbs)
     float       lunge  = 0.0f;     // from how far it dives at somebody (core.mob_lunge)
     float       share  = 0.0f;     // of those that come out in the dark (core.mob_share), 0 for an even chance
+    float       say_every = 1.0f;  // how much longer than usual between its own sounds (core.mob_say_every)
     // The part of its blows and arrows armour does not take (core.mob_pierce),
     // 0..1: a village guard's sword through a diamond chestplate.
     float       pierce = 0.0f;
@@ -180,6 +181,7 @@ int mob_lays(std::vector<MobKind> &kinds, const char *name, const char *item, do
 int mob_drop(std::vector<MobKind> &kinds, const char *name, const char *item, int max);
 int mob_sight(std::vector<MobKind> &kinds, const char *name, double nodes);
 int mob_climbs(std::vector<MobKind> &kinds, const char *name, double nodes);
+int mob_say_every(std::vector<MobKind> &kinds, const char *name, double factor);
 int mob_lunge(std::vector<MobKind> &kinds, const char *name, double nodes);
 int mob_share(std::vector<MobKind> &kinds, const char *name, double share);
 
@@ -358,6 +360,9 @@ struct Mob {};
 
 // What a worker is doing, as its mod said (core.mob_act): streamed, so a
 // client plays the clip and draws the thing in its hand (protocol 81).
+// A creature hanging from a ledge: drawn playing "hang".
+struct Hanging {};
+
 struct Act {
     std::string clip;
     ItemId      held = kNoItem;
@@ -513,6 +518,11 @@ struct Brain {
     bool     climbing = false;      // up a wall (core.mob_climbs), pressed against it this way
     float    climb_x = 0.0f, climb_z = 0.0f, climb_from = 0.0f;
     double   climb_again = 0.0;     // having let go, not before this
+    bool     pulling = false;       // up over a ledge it hung from: goes on with nobody to go for
+    bool     hanging = false;       // from a ledge, its hands on it, facing climb_x, climb_z
+    int      hang_ledge = 0;        // the block its hands are on
+    float    hang_y = 0.0f;         // where its feet are meanwhile
+    double   hang_until = 0.0;      // then it pulls itself up
     bool     lunging = false, lunge_hit = false;   // in the air, diving; and it has struck
     double   lunge_again = 0.0;     // not before this
     double   burn_at = 0.0;         // in the sun: the next point it loses then
@@ -673,6 +683,9 @@ SpawnResult spawn_and_despawn(flecs::world &w, const World &world, const NodeReg
 // Only things with Mob on them. A player's avatar has Health too, and a player
 // who dies is put back on their feet by the session that owns them -- destroying
 // that entity here would take the body out from under a live connection.
-size_t reap_dead(flecs::world &w, double now);
+// `kinds` and `slain`, when given: the ids of the dead that fought, for the
+// client to take them apart in red (net::Slain).
+size_t reap_dead(flecs::world &w, double now, const std::vector<MobKind> *kinds = nullptr,
+                 std::vector<uint64_t> *slain = nullptr);
 
 } // namespace cnp::ecs

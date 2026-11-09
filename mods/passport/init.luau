@@ -134,6 +134,10 @@ core.event.on("core:page_action", function(ev)
         show_box(p, "Too far from the letterbox.")
         return
     end
+    if core.is_muted(p) == 1 then   -- /mute holds the post as it holds /msg
+        show_box(p, "You are muted: nothing can be sent.")
+        return
+    end
     local kind, rest = string.match(ev.id, "^(%a+) (.*)$")
     local to, server, words = string.match(rest or "", "^%s*([^@%s]+)@(%S+)%s*(.*)$")
     if kind == nil or to == nil or server == nil then

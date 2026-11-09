@@ -8,9 +8,9 @@
 
 namespace cnp {
 
-// Twelve bytes: DESIGN.md 2.6's eight, and the light grown from one packed byte
-// to two full ones (sky, lamp) with three left over to keep the stride a
-// multiple of four.
+// Sixteen bytes: DESIGN.md 2.6's eight, the light grown from one packed byte to
+// four (sky, and the lamps in red, green and blue), and what is left over to
+// keep the stride a multiple of four.
 //
 // Everything is an unsigned byte, and every field is read back in the shader by
 // converting the float the vertex fetch produced and pulling bits out of it.
@@ -34,13 +34,14 @@ struct Vertex {
     uint8_t u, v;         // texture coordinate in tiles, 0..32, wraps per block
     uint8_t sky;          // how much of the sky this corner sees, as brightness 0..255
     uint8_t tex;          // texture layer's low eight bits, from the node definition
-    uint8_t lamp;         // block light reaching this corner, as brightness 0..255
+    uint8_t lamp[3];      // block light reaching this corner, as brightness 0..255, red green blue
     uint8_t classic;      // the face's light as it was: the packed byte of the cell it looks into
     uint8_t flow    = 0;  // a liquid's (PartVertex has its own); unused on a cube
     uint8_t foliage = 0;  // 1 on a block that takes the season's colour (NodeDef::foliage)
+    uint8_t spare[2] = {0, 0};
 };
 
-static_assert(sizeof(Vertex) == 12, "vertex layout is a contract with world_render.cpp");
+static_assert(sizeof(Vertex) == 16, "vertex layout is a contract with world_render.cpp");
 
 // How bright a light level is, 0..1, for a level 0..15 (fractions allowed).
 // Steep at the bottom, so the last few levels of a torch's reach fall off into
@@ -90,6 +91,7 @@ struct ChunkSnapshot {
     ChunkPos pos;
     std::vector<BlockId> blocks;   // kDim^3
     std::vector<uint8_t> light;
+    std::vector<uint8_t> tint;   // empty where every lamp near is white
 
     // Which way each cell is turned, or EMPTY for a snapshot where nothing is.
     //
@@ -108,6 +110,7 @@ struct ChunkSnapshot {
     // Coordinates run -kPad .. kChunkSize + kPad - 1.
     BlockId block(int x, int y, int z) const { return blocks[(size_t)index(x, y, z)]; }
     uint8_t light_at(int x, int y, int z) const { return light[(size_t)index(x, y, z)]; }
+    uint8_t tint_at(int x, int y, int z) const { return tint.empty() ? kWhiteTint : tint[(size_t)index(x, y, z)]; }
     uint8_t facing_at(int x, int y, int z) const
     {
         return facing.empty() ? (uint8_t)0 : facing[(size_t)index(x, y, z)];
@@ -277,6 +280,7 @@ struct PartCell {
     BlockId block  = kAir;
     uint8_t facing = 0;
     uint8_t light  = 0;
+    uint8_t tint   = kWhiteTint;
 };
 
 // A cell of liquid, and the shape of its surface.
@@ -298,6 +302,7 @@ struct LiquidCell {
     // looks into, which is how a cube is lit, and not the cell's own -- a
     // channel's side in the shade of a wall is darker than its top in the sun.
     uint8_t light[6] = {};
+    uint8_t tint[6]  = {kWhiteTint, kWhiteTint, kWhiteTint, kWhiteTint, kWhiteTint, kWhiteTint};
 
     // And the top's light at each corner, indexed like `h`: the four cells over
     // the surface that meet at that corner, averaged, the opaque ones left out.

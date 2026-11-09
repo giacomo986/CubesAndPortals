@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/registry/light_tint.h"
+
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
@@ -113,6 +115,24 @@ public:
             materialize_light();
         }
         m_light[index(x, y, z)] = packed;
+    }
+
+    // The colour of the block light in each cell (registry pack_tint). No plane
+    // at all where every lamp is white or there are none.
+    bool    has_tint() const { return m_tint != nullptr; }
+    uint8_t tint(int x, int y, int z) const
+    {
+        return in_bounds(x, y, z) && m_tint ? m_tint[index(x, y, z)] : kWhiteTint;
+    }
+    void set_tint(int x, int y, int z, uint8_t tint)
+    {
+        if (!in_bounds(x, y, z)) return;
+        if (!m_tint) {
+            if (tint == kWhiteTint) return;
+            m_tint = std::make_unique<uint8_t[]>(kChunkVolume);
+            for (int i = 0; i < kChunkVolume; ++i) m_tint[i] = kWhiteTint;
+        }
+        m_tint[index(x, y, z)] = tint;
     }
 
     // Uniform chunks still need a light value: a chunk of open air is fully
@@ -233,6 +253,7 @@ public:
         if (m_blocks) n += kChunkVolume * sizeof(BlockId);
         if (m_light)  n += kChunkVolume * sizeof(uint8_t);
         if (m_facing) n += kChunkVolume * sizeof(uint8_t);
+        if (m_tint)   n += kChunkVolume * sizeof(uint8_t);
         return n;
     }
 
@@ -249,6 +270,7 @@ private:
     std::unique_ptr<BlockId[]> m_blocks;
     std::unique_ptr<uint8_t[]> m_light;
     std::unique_ptr<uint8_t[]> m_facing;
+    std::unique_ptr<uint8_t[]> m_tint;
     bool     m_dirty = true;
     bool     m_unsaved = true;
 };
@@ -265,6 +287,7 @@ public:
     bool    is_solid(int x, int y, int z) const { return get_block(x, y, z) != kAir; }
 
     uint8_t get_light(int x, int y, int z) const;
+    uint8_t get_tint(int x, int y, int z) const;
     void    set_light(int x, int y, int z, uint8_t packed);
 
     // How the block in a cell is turned. See Chunk::facing.

@@ -1295,6 +1295,10 @@ if serving then
         local key, bd = board_at(ev.x, ev.y, ev.z)
         local p = ev.player
         local c = if bd.white == p then "w" elseif bd.black == p then "b" else nil
+        if c == nil and core.is_muted(p) == 1 then   -- /mute: no sitting down with anybody new
+            core.notice(p, "You are muted: you cannot join a game")
+            return
+        end
         charge(bd)   -- the clock may start again with somebody sitting
         if c == nil then
             local want = half_of(p, key, bd)

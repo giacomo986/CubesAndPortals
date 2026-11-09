@@ -121,6 +121,7 @@ everything below it). `/perm` shows and changes which role a permission wants;
 |---|---|---|
 | `/inspect X Y Z [ROOM]` | inspect (helper) | The last ten players who changed that block, from what to what, when |
 | `/rollback NAME DURATION [ROOM]` | rollback (moderator) | Puts back every block that player changed in that time |
+| `/oldbags NAME [N]` | oldbags (admin) | The copies of a bag that lost out between friend servers; with N, gives that one back |
 
 ### Portals and friend servers
 

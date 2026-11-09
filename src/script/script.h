@@ -314,7 +314,9 @@ typedef struct script_host {
     int (*mob_lays)(void *ud, const char *name, const char *item, double min_s, double max_s);
     int (*mob_drop)(void *ud, const char *name, const char *item, int max);
     int (*mob_sight)(void *ud, const char *name, double nodes);
+    int (*node_selection_box)(void *ud, int id, double x0, double y0, double z0, double x1, double y1, double z1);
     int (*mob_climbs)(void *ud, const char *name, double nodes);
+    int (*mob_say_every)(void *ud, const char *name, double factor);
     int (*mob_lunge)(void *ud, const char *name, double nodes);
     int (*mob_share)(void *ud, const char *name, double share);
     int (*shoot)(void *ud, double x, double y, double z, double dx, double dy, double dz,

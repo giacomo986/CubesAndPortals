@@ -16,6 +16,7 @@ struct Node {
 struct Glow {
     int     x, y, z;
     uint8_t level;
+    uint8_t tint;
 };
 
 } // namespace
@@ -90,13 +91,14 @@ void light_box(World &world, const NodeRegistry &reg, int min_x, int min_y, int 
     constexpr size_t kRetainLimit = 4u * 1024u * 1024u;   // cells, not bytes
 
     const size_t cells = (size_t)size_x * size_y * size_z;
-    static thread_local std::vector<uint8_t> retained_sun, retained_blk, retained_solid;
-    std::vector<uint8_t> local_sun, local_blk, local_solid;
+    static thread_local std::vector<uint8_t> retained_sun, retained_blk, retained_solid, retained_tint;
+    std::vector<uint8_t> local_sun, local_blk, local_solid, local_tint;
 
     const bool retain = cells <= kRetainLimit;
     std::vector<uint8_t> &sun   = retain ? retained_sun   : local_sun;
     std::vector<uint8_t> &blk   = retain ? retained_blk   : local_blk;
     std::vector<uint8_t> &solid = retain ? retained_solid : local_solid;
+    std::vector<uint8_t> &tint  = retain ? retained_tint  : local_tint;
 
     sun.assign(cells, 0);
     blk.assign(cells, 0);
@@ -111,12 +113,14 @@ void light_box(World &world, const NodeRegistry &reg, int min_x, int min_y, int 
 
     // What each block does to light, once per id rather than once per cell.
     const size_t kinds = reg.size();
-    static thread_local std::vector<uint8_t> opaque_of, emit_of;
+    static thread_local std::vector<uint8_t> opaque_of, emit_of, tint_of;
     opaque_of.assign(kinds, 0);
     emit_of.assign(kinds, 0);
+    tint_of.assign(kinds, kWhiteTint);
     for (size_t id = 0; id < kinds; ++id) {
         opaque_of[id] = reg.is_opaque((BlockId)id) ? 1 : 0;
         emit_of[id]   = reg.light_source((BlockId)id);
+        tint_of[id]   = reg.light_tint((BlockId)id);
     }
 
     // One chunk lookup per chunk crossed and not one per cell: the walk goes
@@ -149,7 +153,7 @@ void light_box(World &world, const NodeRegistry &reg, int min_x, int min_y, int 
                     solid[idx(x, y, z)] =
                         known ? opaque_of[id] : (reg.is_opaque(id) ? 1 : 0);
                     const uint8_t emit = known ? emit_of[id] : reg.light_source(id);
-                    if (emit != 0) glowing.push_back(Glow{x, y, z, emit});
+                    if (emit != 0) glowing.push_back(Glow{x, y, z, emit, known ? tint_of[id] : reg.light_tint(id)});
                 }
             }
         }
@@ -225,8 +229,13 @@ void light_box(World &world, const NodeRegistry &reg, int min_x, int min_y, int 
     // attenuate independently -- sunlight falls vertically for free, block
     // light does not, and merging them makes a torch light a shaft downward.
     queue.clear();
+    // The colour goes with the light, and only when some lamp here has one.
+    bool coloured = false;
+    for (const Glow &g : glowing) coloured = coloured || g.tint != kWhiteTint;
+    if (coloured) tint.assign(cells, kWhiteTint);
     for (const Glow &g : glowing) {
         blk[idx(g.x, g.y, g.z)] = g.level;
+        if (coloured) tint[idx(g.x, g.y, g.z)] = g.tint;
         queue.push_back(Node{g.x, g.y, g.z});
     }
 
@@ -245,8 +254,14 @@ void light_box(World &world, const NodeRegistry &reg, int min_x, int min_y, int 
             if (solid[idx(nx, ny, nz)]) continue;
 
             const uint8_t next = (uint8_t)(level - 1);
-            if (blk[idx(nx, ny, nz)] >= next) continue;
+            if (blk[idx(nx, ny, nz)] >= next) {
+                // Two lights as strong as each other here: their colours meet.
+                if (coloured && blk[idx(nx, ny, nz)] == next)
+                    tint[idx(nx, ny, nz)] = mix_tint(tint[idx(nx, ny, nz)], tint[idx(n.x, n.y, n.z)]);
+                continue;
+            }
             blk[idx(nx, ny, nz)] = next;
+            if (coloured) tint[idx(nx, ny, nz)] = tint[idx(n.x, n.y, n.z)];
             queue.push_back(Node{nx, ny, nz});
         }
     }
@@ -267,6 +282,7 @@ void light_box(World &world, const NodeRegistry &reg, int min_x, int min_y, int 
                     int lx, ly, lz;
                     World::local_of(x, y, z, lx, ly, lz);
                     dst->set_light(lx, ly, lz, pack_light(sun[idx(x, y, z)], blk[idx(x, y, z)]));
+                    dst->set_tint(lx, ly, lz, coloured && blk[idx(x, y, z)] != 0 ? tint[idx(x, y, z)] : kWhiteTint);
                 }
             }
         }
@@ -288,7 +304,7 @@ bool light_unchanged(const NodeRegistry &reg, BlockId from, BlockId to)
 {
     if (from == to) return true;
     return reg.is_opaque(from) == reg.is_opaque(to) &&
-           reg.light_source(from) == reg.light_source(to);
+           reg.light_source(from) == reg.light_source(to) && reg.light_tint(from) == reg.light_tint(to);
 }
 
 LightBatch::Box LightBatch::joined(const Box &a, const Box &b)

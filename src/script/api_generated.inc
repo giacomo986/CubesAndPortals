@@ -1366,6 +1366,33 @@ int l_mob_sight(lua_State *L)
     return 1;
 }
 
+// core.node_selection_box(id: number, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number) -> number
+int l_node_selection_box(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const float x0 = (float)luaL_checknumber(L, 2);
+    const float y0 = (float)luaL_checknumber(L, 3);
+    const float z0 = (float)luaL_checknumber(L, 4);
+    const float x1 = (float)luaL_checknumber(L, 5);
+    const float y1 = (float)luaL_checknumber(L, 6);
+    const float z1 = (float)luaL_checknumber(L, 7);
+    const int result = (vm && vm->host.node_selection_box) ? vm->host.node_selection_box(vm->host.ud, id, x0, y0, z0, x1, y1, z1) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.mob_say_every(name: string, factor: number) -> number
+int l_mob_say_every(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_checkstring(L, 1);
+    const float factor = (float)luaL_checknumber(L, 2);
+    const int result = (vm && vm->host.mob_say_every) ? vm->host.mob_say_every(vm->host.ud, name, factor) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.mob_climbs(name: string, nodes: number) -> number
 int l_mob_climbs(lua_State *L)
 {
@@ -3550,6 +3577,10 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "mob_drop");
     lua_pushcfunction(L, l_mob_sight, "core.mob_sight");
     lua_setfield(L, -2, "mob_sight");
+    lua_pushcfunction(L, l_node_selection_box, "core.node_selection_box");
+    lua_setfield(L, -2, "node_selection_box");
+    lua_pushcfunction(L, l_mob_say_every, "core.mob_say_every");
+    lua_setfield(L, -2, "mob_say_every");
     lua_pushcfunction(L, l_mob_climbs, "core.mob_climbs");
     lua_setfield(L, -2, "mob_climbs");
     lua_pushcfunction(L, l_mob_share, "core.mob_share");

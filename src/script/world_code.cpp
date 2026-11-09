@@ -133,7 +133,9 @@ script_host world_code_host(script_host full)
     h.mob_drop         = nullptr;
     h.mob_breed        = nullptr;
     h.mob_sight        = nullptr;
+    h.node_selection_box = nullptr;
     h.mob_climbs       = nullptr;
+    h.mob_say_every    = nullptr;
     h.mob_lunge        = nullptr;
     h.mob_share        = nullptr;
     h.find_path        = nullptr;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/registry/light_tint.h"
 #include "core/item/slot_rules.h"
 #include "core/media/face_tiles.h"
 #include "core/registry/model_registry.h"
@@ -61,6 +62,7 @@ struct PieceShape {
 
 inline constexpr int kFaceCount = 6;   // +X, -X, +Y, -Y, +Z, -Z
 
+
 // What a block is, as data.
 //
 // Everything the engine asks about a block goes through this struct, and a mod
@@ -94,6 +96,7 @@ struct NodeDef {
     // stop light and still be see-through.
     uint8_t opacity      = 255;
     uint8_t light_source = 0;       // 0..15, emitted block light
+    uint8_t light_tint   = kWhiteTint;   // the colour of that light (pack_tint of `colour`)
 
     // Water, and whatever else a mod makes one of (core.node_liquid): a body
     // goes through it and swims in it, light goes through it, and it is drawn
@@ -171,6 +174,9 @@ struct NodeDef {
     // cell hides none of its neighbour's faces, and a chest that hid them would
     // have a hole in the floor behind it.
     std::vector<Box> parts;
+    // What the crosshair finds instead of `parts` (core.node_selection_box), in
+    // the cell's own coordinates; turned with the block. Empty: the parts.
+    std::vector<Box> selection;
 
     // What this block is DRAWN as, when a cube and a set of boxes are not it: a
     // model, by its id in the world's model table (registry/model_registry.h) --
@@ -476,6 +482,11 @@ public:
     // Everything meshed from the old shape is wrong the moment this changes, so
     // it is called while the table is being built and not while a world is
     // being drawn from it.
+    void set_selection(BlockId id, std::vector<NodeDef::Box> boxes)
+    {
+        if (id < m_defs.size()) m_defs[id].selection = std::move(boxes);
+    }
+
     void set_shape(BlockId id, NodeTurn turn, std::vector<NodeDef::Box> boxes, ModelId model,
                    const PieceShape &piece = PieceShape{})
     {
@@ -509,6 +520,12 @@ public:
     // was a wall on every client without that mod -- and a lake was a floor.
     // And the light it gives (protocol 84): without it a client that relit
     // round a change counted a mod's lamp as dark, and a room went black.
+    uint8_t light_tint(BlockId id) const { return id < m_defs.size() ? m_defs[id].light_tint : kWhiteTint; }
+    void    set_light_tint(BlockId id, uint8_t tint)
+    {
+        if (id < m_defs.size()) m_defs[id].light_tint = tint;
+    }
+
     void set_light_source(BlockId id, uint8_t light)
     {
         if (id >= m_defs.size()) return;

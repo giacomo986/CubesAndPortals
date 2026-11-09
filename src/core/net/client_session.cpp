@@ -565,6 +565,16 @@ void ClientSession::handle(const std::vector<uint8_t> &data, double now, uint8_t
             // the same number a body carries, and the decode already refused
             // one past the end of it.
             m_registry->set_shape((BlockId)d.node, turn, std::move(boxes), (ModelId)d.model, d.piece);
+            std::vector<NodeDef::Box> selection;
+            for (const net::NodeShapeDesc::Box &b : d.selection) {
+                NodeDef::Box out;
+                for (int a = 0; a < 3; ++a) {
+                    out.min[a] = b.min[a];
+                    out.max[a] = b.max[a];
+                }
+                selection.push_back(std::move(out));
+            }
+            m_registry->set_selection((BlockId)d.node, std::move(selection));
         }
 
         // And how each of them digs, since protocol 36, over this build's own
@@ -578,6 +588,7 @@ void ClientSession::handle(const std::vector<uint8_t> &data, double now, uint8_t
                                  b.climbable);
             m_registry->set_conveyor((BlockId)id, b.conveyor, b.conveyor_height, b.conveyor_rise, b.rail);
             m_registry->set_light_source((BlockId)id, b.light);
+            m_registry->set_light_tint((BlockId)id, b.light_tint);
             m_registry->set_door((BlockId)id, b.door);
         }
 
@@ -918,6 +929,13 @@ void ClientSession::handle(const std::vector<uint8_t> &data, double now, uint8_t
     case MsgType::SoundLoops: {
         SoundLoops loops;
         if (SoundLoops::decode(r, loops)) m_loops = std::move(loops.loops);
+        break;
+    }
+
+    case MsgType::Slain: {
+        Slain slain;
+        if (Slain::decode(r, slain))
+            m_slain.insert(m_slain.end(), slain.ids.begin(), slain.ids.end());
         break;
     }
 

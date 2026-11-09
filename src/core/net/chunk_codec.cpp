@@ -28,6 +28,7 @@ enum class Encoding : uint8_t {
 // flagged byte refuses it as an unknown encoding, and refusing is what the
 // version range is for.
 constexpr uint8_t kHasFacings = 0x80;
+constexpr uint8_t kHasTint    = 0x40;   // the colour of the light, behind the facings
 
 constexpr size_t kBlockBytes  = (size_t)kChunkVolume * sizeof(BlockId);
 constexpr size_t kLightBytes  = (size_t)kChunkVolume;
@@ -148,7 +149,7 @@ bool encode_chunk(const Chunk &chunk, std::vector<uint8_t> &out, int level,
     // header, which is every chunk of every world this engine makes today.
     const bool facing_free = chunk.is_facing_uniform() && chunk.uniform_facing() == 0;
 
-    if (chunk.is_uniform() && chunk.is_light_uniform() && facing_free) {
+    if (chunk.is_uniform() && chunk.is_light_uniform() && facing_free && !chunk.has_tint()) {
         // Nothing to compress: a chunk that is one block and one light value is
         // two values, and running them through zstd would make them bigger.
         header.u8((uint8_t)Encoding::Uniform);
@@ -237,6 +238,9 @@ bool encode_chunk(const Chunk &chunk, std::vector<uint8_t> &out, int level,
     // has never turned a block a longer payload and a decoder that has to know
     // which shape it is looking at; the flag says which.
     if (!facing_free) plain.insert(plain.end(), facing.begin(), facing.end());
+    if (chunk.has_tint())
+        for (int i = 0; i < kChunkVolume; ++i)
+            plain.push_back(chunk.tint(i % kChunkSize, (i / kChunkSize) % kChunkSize, i / (kChunkSize * kChunkSize)));
 
     st.before_zstd = plain.size();
 
@@ -244,7 +248,7 @@ bool encode_chunk(const Chunk &chunk, std::vector<uint8_t> &out, int level,
     if (!compress_into(plain, level, compressed)) return false;
     st.after_zstd = compressed.size();
 
-    header.u8((uint8_t)((uint8_t)encoding | (facing_free ? 0 : kHasFacings)));
+    header.u8((uint8_t)((uint8_t)encoding | (facing_free ? 0 : kHasFacings) | (chunk.has_tint() ? kHasTint : 0)));
     header.u16(0);   // unused where the encoding is not Uniform
     header.u8(0);
     header.u32((uint32_t)compressed.size());
@@ -265,7 +269,8 @@ std::unique_ptr<Chunk> decode_chunk(ByteReader &r, std::string &err)
 
     const uint8_t  encoding_byte = r.u8();
     const bool     has_facings   = (encoding_byte & kHasFacings) != 0;
-    const uint8_t  encoding      = (uint8_t)(encoding_byte & (uint8_t)~kHasFacings);
+    const bool     has_tint      = (encoding_byte & kHasTint) != 0;
+    const uint8_t  encoding      = (uint8_t)(encoding_byte & (uint8_t)~(kHasFacings | kHasTint));
     const uint16_t uniform_block = r.u16();
     const uint8_t  uniform_light = r.u8();
     const uint32_t payload_size  = r.u32();
@@ -302,7 +307,7 @@ std::unique_ptr<Chunk> decode_chunk(ByteReader &r, std::string &err)
     // buffer larger than any honest chunk could need. Uncompressed is the worst
     // case a real encoder produces; the small slack covers zstd's own framing
     // when its input does not compress at all.
-    const size_t max_payload = kBlockBytes + kLightBytes + kFacingBytes + 1024;
+    const size_t max_payload = kBlockBytes + kLightBytes + kFacingBytes + kLightBytes + 1024;
     if (payload_size > max_payload) {
         err = "chunk payload claims " + std::to_string(payload_size) + " bytes";
         return nullptr;
@@ -317,7 +322,7 @@ std::unique_ptr<Chunk> decode_chunk(ByteReader &r, std::string &err)
     std::vector<uint8_t> plain;
 
     if (encoding == (uint8_t)Encoding::Raw) {
-        const size_t want = kBlockBytes + kLightBytes + (has_facings ? kFacingBytes : 0);
+        const size_t want = kBlockBytes + kLightBytes + (has_facings ? kFacingBytes : 0) + (has_tint ? kLightBytes : 0);
         if (!decompress_exact(compressed.data(), compressed.size(), want, plain)) {
             err = "chunk payload does not expand to one chunk";
             return nullptr;
@@ -334,6 +339,8 @@ std::unique_ptr<Chunk> decode_chunk(ByteReader &r, std::string &err)
                     chunk->set_light(x, y, z, plain[kBlockBytes + i]);
                     if (has_facings)
                         chunk->set_facing(x, y, z, plain[kBlockBytes + kLightBytes + i]);
+                    if (has_tint)
+                        chunk->set_tint(x, y, z, plain[kBlockBytes + kLightBytes + (has_facings ? kFacingBytes : 0) + i]);
                 }
         return chunk;
     }
@@ -343,7 +350,7 @@ std::unique_ptr<Chunk> decode_chunk(ByteReader &r, std::string &err)
     // legitimately be: a 256-entry table, a byte of width, one byte per block,
     // and the light.
     const size_t palette_max_plain =
-        2 + kMaxPalette * 2 + 1 + kChunkVolume + kLightBytes + kFacingBytes;
+        2 + kMaxPalette * 2 + 1 + kChunkVolume + kLightBytes + kFacingBytes + kLightBytes;
     std::vector<uint8_t> buf(palette_max_plain);
     const size_t n = ZSTD_decompress(buf.data(), buf.size(), compressed.data(), compressed.size());
     if (ZSTD_isError(n)) {
@@ -375,7 +382,7 @@ std::unique_ptr<Chunk> decode_chunk(ByteReader &r, std::string &err)
     // itself, and pretending otherwise is how a defence gets removed later by
     // someone who tested that it was load bearing and found it was not.
     const size_t index_bytes = ((size_t)kChunkVolume * (size_t)bits + 7) / 8;
-    if (pr.remaining() != index_bytes + kLightBytes + (has_facings ? kFacingBytes : 0)) {
+    if (pr.remaining() != index_bytes + kLightBytes + (has_facings ? kFacingBytes : 0) + (has_tint ? kLightBytes : 0)) {
         err = "chunk body is not the size its palette implies";
         return nullptr;
     }
@@ -404,6 +411,11 @@ std::unique_ptr<Chunk> decode_chunk(ByteReader &r, std::string &err)
         err = "truncated chunk facings";
         return nullptr;
     }
+    std::vector<uint8_t> tint(has_tint ? kLightBytes : 0);
+    if (has_tint && !pr.bytes(tint.data(), kLightBytes)) {
+        err = "truncated chunk tint";
+        return nullptr;
+    }
     if (!pr.done()) {
         err = "chunk body has bytes after the planes it declared";
         return nullptr;
@@ -425,6 +437,7 @@ std::unique_ptr<Chunk> decode_chunk(ByteReader &r, std::string &err)
                 chunk->set(x, y, z, palette[index]);
                 chunk->set_light(x, y, z, light[i]);
                 if (has_facings) chunk->set_facing(x, y, z, facing[i]);
+                if (has_tint) chunk->set_tint(x, y, z, tint[i]);
             }
 
     return chunk;
@@ -471,6 +484,7 @@ void install_chunk(World &world, std::unique_ptr<Chunk> chunk)
                 dst.set(x, y, z, chunk->get(x, y, z));
                 dst.set_light(x, y, z, chunk->light(x, y, z));
                 dst.set_facing(x, y, z, chunk->facing(x, y, z));
+                dst.set_tint(x, y, z, chunk->tint(x, y, z));
             }
 
     if (chunk->is_uniform()) {

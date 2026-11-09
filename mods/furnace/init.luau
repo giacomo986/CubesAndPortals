@@ -328,19 +328,27 @@ core.register_abm("furnace:burn", { "furnace:furnace", "furnace:lit" }, 0.25, 1,
         stop(x, y, z)   -- the ore was taken out
         cooking = false
     elseif cooking and clock >= (ends :: number) then
-        for _, s in smelt_ids do
-            if s[1] == what then
-                if core.container_add(x, y, z, s[2], 1, "product") == 0 then
-                    core.container_take(x, y, z, s[1], 1, "raw")
-                    core.meta_set(x, y, z, "heat", tostring((tonumber(core.meta_get(x, y, z, "heat")) or 1) - 1))
-                    local kept = tonumber(core.meta_get(x, y, z, "xp")) or 0
-                    core.meta_set(x, y, z, "xp", tostring(kept + s[3]))
+        -- Every smelt that came due, not just the last: its column may have
+        -- been out of memory meanwhile (nobody near), and the clock went on.
+        local due = ends :: number
+        while cooking and clock >= due do
+            what = tonumber(core.meta_get(x, y, z, "what")) or 0
+            for _, s in smelt_ids do
+                if s[1] == what then
+                    if core.container_add(x, y, z, s[2], 1, "product") == 0 then
+                        core.container_take(x, y, z, s[1], 1, "raw")
+                        core.meta_set(x, y, z, "heat", tostring((tonumber(core.meta_get(x, y, z, "heat")) or 1) - 1))
+                        local kept = tonumber(core.meta_get(x, y, z, "xp")) or 0
+                        core.meta_set(x, y, z, "xp", tostring(kept + s[3]))
+                    end
+                    break
                 end
-                break
             end
+            stop(x, y, z)
+            cooking = start(x, y, z)
+            due += COOK
+            if cooking and clock >= due then core.meta_set(x, y, z, "cook", tostring(due)) end
         end
-        stop(x, y, z)
-        cooking = start(x, y, z)
     elseif not cooking then
         cooking = start(x, y, z)
     end

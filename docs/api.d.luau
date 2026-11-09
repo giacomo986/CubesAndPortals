@@ -294,6 +294,10 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     mob_drop: (name: string, item: string, max: number) -> number,
     -- How far off a creature of that kind notices a player and goes for them. An arena's demons that hunt the whole floor say 64. Returns 1, or 0 for a kind nobody registered.
     mob_sight: (name: string, nodes: number) -> number,
+    -- Adds a box to what the crosshair finds on this block and outlines, apart from the boxes bodies collide with (core.node_box): a thin lever easy to point at, a flower to hit anywhere in its cell. It turns with the block. Call it before the world starts. Returns how many it has now, or 0 for a block that does not exist.
+    node_selection_box: (id: number, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number) -> number,
+    -- How seldom a kind makes a sound of its own, for creatures that live in crowds. Blows and deaths are heard as ever. Returns 1, or 0 for a kind nobody registered.
+    mob_say_every: (name: string, factor: number) -> number,
     -- Lets a creature of that kind go up a sheer wall after whoever it is hunting, when they stand higher and it has no way round or they are close. It plays its "climb" clip, and lets go at that height or under a ceiling. Returns 1, or 0 for a kind nobody registered.
     mob_climbs: (name: string, nodes: number) -> number,
     -- How many of the creatures that come out in the dark are of that kind: 0.1 is about one in ten, however many other kinds there are. Returns 1, or 0 for a kind nobody registered.

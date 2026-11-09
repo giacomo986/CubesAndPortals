@@ -26,7 +26,7 @@ layout(location = 4) in float aTex;      // texture layer
 layout(location = 5) in float aFlow;     // a liquid's picture runs: 0 still, 1..8, 9 down;
                                          // +16 a liquid (sways), +32 its surface (ripples),
                                          // +64 a glowing one, +128 held by a block
-layout(location = 6) in float aLamp;     // brightness of the lamps here, already turned to the face, 0..255
+layout(location = 6) in vec3  aLamp;     // the lamps here, red green blue, already turned to the face, 0..255
 layout(location = 7) in float aClassic;  // the classic look's light: sun in the high nibble, block in the low
 layout(location = 8) in float aFoliage;  // 1: takes the season's colour (core.foliage)
 
@@ -40,7 +40,7 @@ uniform float uTime;                     // seconds, for what moves
 out vec2  vUV;
 out float vClassic;                      // the whole shade in the classic look
 out float vSky;                          // how much sky this point sees, 0..1
-out float vLamp;                         // the lamps' light on it, 0..1
+out vec3  vLamp;                         // the lamps' light on it, 0..1
 out float vAo;
 flat out float vTex;
 flat out int   vFace;
@@ -339,7 +339,7 @@ inline constexpr const char *kWorldFS = R"(#version 330 core
 in vec2  vUV;
 in float vClassic;
 in float vSky;
-in float vLamp;
+in vec3 vLamp;
 in float vAo;
 flat in float vTex;
 flat in int   vFace;
@@ -409,7 +409,10 @@ void main()
     float ndl = max(dot(n, uSunDir), 0.0);
     float sun = (ndl > 0.0 && vSky > 0.0) ? sun_shadow(vWorld, n) : 0.0;
     vec3  sky = vSky * (uAmbient * kFaceAmbient[vFace] + uSunColor * (ndl * sun));
-    vec3  lit = max(max(sky, vLamp * kLampTint), vec3(uNightSight * 0.55));
+    // A lamp with no colour of its own is warm; one with a colour is that colour.
+    float tinted = max(vLamp.r, max(vLamp.g, vLamp.b)) - min(vLamp.r, min(vLamp.g, vLamp.b));
+    vec3  warm   = mix(kLampTint, vec3(1.0), smoothstep(0.0, 0.15, tinted));
+    vec3  lit    = max(max(sky, vLamp * warm), vec3(uNightSight * 0.55));
     vec3  rgb = texel.rgb * vAo * (kLightFloor + (1.0 - kLightFloor) * min(lit, vec3(1.0)));
     if (uClassic > 0.5) rgb = texel.rgb * max(vClassic, uNightSight * 0.55);
     rgb *= vWave;
@@ -1123,10 +1126,12 @@ uniform sampler2D uTexture;
 uniform vec4 uColour;
 uniform float uGlow;   // 1 for a material that gives its own light
 uniform float uLight;  // how bright the cell it stands in is; 1 for a body
+uniform vec3 uLampTint;  // the colour of the lamps on it, white for none
 uniform float uAlpha;  // 1 but for something fading out: a creature that died
 // 0, or how much of the model is gone (core.render.model's dissolve): eaten in
 // patches of a noise fixed on the model, every edge burning electric blue.
 uniform float uDissolve;
+uniform float uDissolveRed;   // 1 for a monster killed: the same, with edges of red fire
 uniform float           uSunOn;
 uniform vec3            uSunDir;
 uniform mat4            uPlace;         // the model matrix, for the normal
@@ -1185,10 +1190,12 @@ void main()
     // (a vehicle's window, drawn after the rest of the model).
     vec4 tex = texture(uTexture, vUV);
     if (tex.a < 0.5) discard;
-    vec3 rgb = tex.rgb * uColour.rgb * lit;
+    vec3 rgb = tex.rgb * uColour.rgb * lit * mix(uLampTint, vec3(1.0), uGlow);
     // What is left goes blue as it goes, and the edge is white-hot.
-    rgb = mix(rgb, rgb * vec3(0.55, 0.8, 1.3), clamp(uDissolve * 1.6, 0.0, 1.0));
-    rgb = mix(rgb, vec3(0.6, 0.85, 1.0) * 2.2, burn);
+    vec3 tint = mix(vec3(0.55, 0.8, 1.3), vec3(1.4, 0.3, 0.25), uDissolveRed);
+    vec3 edge = mix(vec3(0.6, 0.85, 1.0), vec3(1.0, 0.16, 0.08), uDissolveRed);
+    rgb = mix(rgb, rgb * tint, clamp(uDissolve * 1.6, 0.0, 1.0));
+    rgb = mix(rgb, edge * 2.2, burn);
     fragColour = vec4(water_fade(rgb, vClip), uAlpha * uColour.a);
 }
 )";

@@ -119,6 +119,12 @@ struct Hooks {
         bag_take;
     std::function<void(const uint8_t *identity)>                                   bag_late;
     std::function<int64_t(const uint8_t *identity)> bag_seen;   // kept here when, -1 for never or not held
+    // The copy kept here, read and left where it is; false for none or empty.
+    std::function<bool(const uint8_t *identity, std::string &bag)> bag_peek;
+    // /oldbags: that bag in place of this one, whatever is going on with it.
+    std::function<void(const uint8_t *identity, const std::string &bag, const std::string &hidden,
+                       const std::string &packs)>
+        bag_put_back;
 
     // /bag and /give: what a player carries, a line a stack; and `count` of an
     // item by name into an online player's bag ("" when it went in).

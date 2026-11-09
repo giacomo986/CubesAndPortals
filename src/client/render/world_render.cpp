@@ -47,9 +47,9 @@ gfx_vertexlayout world_layout()
     l.attrs[2] = gfx_attr{  2, 2, GFX_ATTR_U8,  false,      4};   // uv in tiles
     l.attrs[3] = gfx_attr{  3, 1, GFX_ATTR_U8,  false,      6};   // sky brightness
     l.attrs[4] = gfx_attr{  4, 1, GFX_ATTR_U8,  false,      7};   // texture layer
-    l.attrs[5] = gfx_attr{  6, 1, GFX_ATTR_U8,  false,      8};   // lamp brightness
-    l.attrs[6] = gfx_attr{  7, 1, GFX_ATTR_U8,  false,      9};   // the classic look's packed light
-    l.attrs[7] = gfx_attr{  8, 1, GFX_ATTR_U8,  false,     11};   // takes the season's colour
+    l.attrs[5] = gfx_attr{  6, 3, GFX_ATTR_U8,  false,      8};   // the lamps' red, green and blue
+    l.attrs[6] = gfx_attr{  7, 1, GFX_ATTR_U8,  false,     11};   // the classic look's packed light
+    l.attrs[7] = gfx_attr{  8, 1, GFX_ATTR_U8,  false,     13};   // takes the season's colour
     return l;
 }
 
@@ -599,7 +599,7 @@ void WorldRenderer::upload_liquid(MeshBuffer &cm, const std::vector<PartVertex> 
         layout.attrs[3]   = {3, 1, GFX_ATTR_U8, false, offsetof(PartVertex, sky)};
         layout.attrs[4]   = {4, 1, GFX_ATTR_U8, false, offsetof(PartVertex, tex)};
         layout.attrs[5]   = {5, 1, GFX_ATTR_U8, false, offsetof(PartVertex, flow)};
-        layout.attrs[6]   = {6, 1, GFX_ATTR_U8, false, offsetof(PartVertex, lamp)};
+        layout.attrs[6]   = {6, 3, GFX_ATTR_U8, false, offsetof(PartVertex, lamp)};
         layout.attrs[7]   = {7, 1, GFX_ATTR_U8, false, offsetof(PartVertex, classic)};
         layout.attr_count = 8;
         cm.mesh           = gfx_mesh_create(&layout, cm.vb, gfx_buffer{0});
@@ -781,7 +781,7 @@ bool WorldRenderer::catching_up() const
 // The eight corners of a box, per face, in the winding the world's own quads
 // use: two triangles, counter-clockwise seen from outside.
 void emit_node_box(const NodeDef::Box &box, const NodeDef &def, float wx, float wy, float wz,
-                   uint8_t turn, uint8_t light, float open, std::vector<PartVertex> &out)
+                   uint8_t turn, uint8_t light, float open, std::vector<PartVertex> &out, uint8_t tint)
 {
     // The cell's orientation, which for most blocks is the byte and for a
     // wallmounted one is a face (registry/node_registry.h). One of twenty-four
@@ -855,7 +855,7 @@ void emit_node_box(const NodeDef::Box &box, const NodeDef &def, float wx, float 
             quad[c].u       = k.u;
             quad[c].v       = k.v;
             quad[c].face_ao = pack_face_ao(shade_face, 3, def.tex[f]);   // no ambient occlusion on a box
-            quad[c].set_light(light);
+            quad[c].set_light(light, tint);
             quad[c].tex     = (uint8_t)(def.tex[f] & 0xFF);
         }
 
@@ -871,7 +871,7 @@ void emit_node_box(const NodeDef::Box &box, const NodeDef &def, float wx, float 
 // ponytail: drawn when the corner's chunk is, so a piece whose corner is off
 // screen pops at the edge of the view; cull by the footprint if that shows.
 void emit_piece(const NodeDef &def, float wx, float wy, float wz, uint8_t facing, uint8_t light,
-                std::vector<PartVertex> &out)
+                std::vector<PartVertex> &out, uint8_t tint = kWhiteTint)
 {
     static std::map<std::array<int, 11>, std::vector<PieceTri>> made;
     const PieceShape  &p = def.piece;
@@ -910,7 +910,7 @@ void emit_piece(const NodeDef &def, float wx, float wy, float wz, uint8_t facing
             v.u       = face == kFaceTop ? c.x : (face == kFaceRight || face == kFaceLeft) ? c.z : c.x;
             v.v       = face == kFaceTop ? c.z : c.y;
             v.face_ao = pack_face_ao(face, ao, def.tex[tile]);
-            v.set_light(light);
+            v.set_light(light, tint);
             v.tex     = (uint8_t)(def.tex[tile] & 0xFF);
             out.push_back(v);
         }
@@ -978,7 +978,7 @@ void emit_liquid_cell(const LiquidCell &cell, const NodeDef &def, std::vector<Pa
             quad[c].u       = k.u;
             quad[c].v       = k.v;
             quad[c].face_ao = pack_face_ao(f, 3, def.tex[f]);
-            quad[c].set_light(f == 2 ? cell.top_light[kTopCorner[c]] : cell.light[f]);
+            quad[c].set_light(f == 2 ? cell.top_light[kTopCorner[c]] : cell.light[f], cell.tint[f]);
             quad[c].tex     = (uint8_t)(def.tex[f] & 0xFF);
             // The top's corners, and a side's two at the top, ripple together;
             // not one at the very top of its cell, which is where the cell over
@@ -1067,7 +1067,7 @@ void WorldRenderer::draw_parts(const NodeRegistry &reg, const Mat4 &projection,
             if (def.piece.plan != 0) {
                 ++m_parts_drawn;
                 emit_piece(def, cm->origin.x + (float)cell.x, cm->origin.y + (float)cell.y,
-                           cm->origin.z + (float)cell.z, cell.facing, cell.light, m_part_vertices);
+                           cm->origin.z + (float)cell.z, cell.facing, cell.light, m_part_vertices, cell.tint);
                 continue;
             }
 
@@ -1085,7 +1085,7 @@ void WorldRenderer::draw_parts(const NodeRegistry &reg, const Mat4 &projection,
             for (const NodeDef::Box &box : def.parts)
                 emit_node_box(box, def, cm->origin.x + (float)cell.x,
                               cm->origin.y + (float)cell.y, cm->origin.z + (float)cell.z,
-                              cell.facing, cell.light, open, into);
+                              cell.facing, cell.light, open, into, cell.tint);
         }
 
     // The models, after the boxes of this frame have been handed over and
@@ -1124,7 +1124,7 @@ void WorldRenderer::draw_parts(const NodeRegistry &reg, const Mat4 &projection,
         layout.attrs[2]   = {2, 2, GFX_ATTR_F32, false, offsetof(PartVertex, u)};
         layout.attrs[3]   = {3, 1, GFX_ATTR_U8, false, offsetof(PartVertex, sky)};
         layout.attrs[4]   = {4, 1, GFX_ATTR_U8, false, offsetof(PartVertex, tex)};
-        layout.attrs[5]   = {6, 1, GFX_ATTR_U8, false, offsetof(PartVertex, lamp)};
+        layout.attrs[5]   = {6, 3, GFX_ATTR_U8, false, offsetof(PartVertex, lamp)};
         layout.attrs[6]   = {7, 1, GFX_ATTR_U8, false, offsetof(PartVertex, classic)};
         layout.attr_count = 7;
         m_parts_mesh      = gfx_mesh_create(&layout, m_parts_vb, gfx_buffer{0});

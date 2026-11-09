@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdio>
+#include <memory>
+
 #include "core/registry/node_registry.h"
 #include "core/storage/world_db.h"
 #include "core/world/columns.h"
@@ -140,7 +143,7 @@ public:
 
     double fill_ms() const { return m_fill_ms; }
     double light_ms() const { return m_light_ms; }
-    size_t kept_columns() const { return m_kept.size(); }
+    size_t kept_columns() const { return m_kept.size() + m_spilled.size(); }
 
     // Columns brought back because a write's relight would have read them as
     // air. Nothing is wrong with a number here -- it is a mod writing where
@@ -165,6 +168,15 @@ private:
 
     std::unordered_map<ColumnPos, std::vector<std::vector<uint8_t>>, ColumnPosHash> m_kept;
     size_t                                                                          m_kept_bytes = 0;
+    // Past kKeptInMemory the columns go to a file of this process's own, which
+    // the system takes away with it.
+    // ponytail: append-only; a column let go again leaves its old bytes behind.
+    struct Spilled {
+        long                  at = 0;
+        std::vector<uint32_t> sizes;
+    };
+    std::unordered_map<ColumnPos, Spilled, ColumnPosHash> m_spilled;
+    std::unique_ptr<std::FILE, int (*)(std::FILE *)>      m_spill{nullptr, &std::fclose};
 
     std::unordered_set<ColumnPos, ColumnPosHash> m_from_store;   // read back, not generated
     std::unordered_map<ColumnPos, std::vector<PendingWrite>, ColumnPosHash> m_pending;

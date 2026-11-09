@@ -361,6 +361,7 @@ const PermRow kPerms[] = {
     {"whois", Role::Moderator},    {"logs", Role::Admin},     {"backup", Role::Admin},
     {"portals", Role::Admin},      {"federation", Role::Owner},  {"time", Role::Admin},
     {"inspect", Role::Helper},     {"rollback", Role::Moderator},
+    {"oldbags", Role::Admin},
     {"bag", Role::Moderator},      {"give", Role::Admin},     {"rules", Role::Admin},
     {"alts", Role::Moderator},
 };
@@ -973,6 +974,57 @@ void cmd_inspect(const Who &c, const Args &a, const Hooks &h, std::vector<std::s
     if (out.empty()) out.push_back("No player changed " + a.words[0] + " " + a.words[1] + " " + a.words[2] + " this month.");
 }
 
+// The copies of a bag that lost out between friend servers: listed, or one of
+// them given back in place of what the player has now, which is kept aside in its turn.
+void cmd_oldbags(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    if (a.name.empty()) {
+        out.push_back("/oldbags NAME [N] -- the bags kept aside for a player; N gives that one back");
+        return;
+    }
+    const Who t = resolve(a.name, h);
+    if (!t.has_identity) {
+        out.push_back(a.name + " has no key: their bag does not travel.");
+        return;
+    }
+    const std::string key = key_target(t.identity) + ":";
+    std::vector<Row>  rows;
+    for (const Row &r : all("bagold"))
+        if (r.target.rfind(key, 0) == 0) rows.push_back(r);
+    if (a.reason.empty()) {
+        if (rows.empty()) out.push_back("Nothing kept aside for " + a.name + ".");
+        for (size_t i = 0; i < rows.size(); ++i)
+            out.push_back(std::to_string(i + 1) + ": from " + rows[i].label + ", " + std::to_string(now() - rows[i].at) +
+                          " seconds ago");
+        return;
+    }
+    const size_t n = (size_t)std::atoll(a.reason.c_str());
+    if (n < 1 || n > rows.size()) {
+        out.push_back("No such bag: /oldbags " + a.name + " lists them.");
+        return;
+    }
+    if (!h.bag_put_back) return;
+    std::istringstream in(rows[n - 1].value);
+    std::string        hex[3], bytes[3];
+    bool               ok = true;
+    for (int i = 0; i < 3; ++i) {
+        std::getline(in, hex[i]);
+        bytes[i].resize(hex[i].size() / 2);
+        ok = ok && net::from_hex(hex[i], (uint8_t *)bytes[i].data(), bytes[i].size());
+    }
+    if (!ok) {
+        out.push_back("That copy cannot be read.");
+        return;
+    }
+    if (std::string now_bag; h.bag_peek && h.bag_peek(t.identity, now_bag))
+        put("bagold", key + std::to_string(now()) + ":replaced", "before /oldbags",
+            net::to_hex((const uint8_t *)now_bag.data(), now_bag.size()) + "\n\n", "staff:" + c.name, 0);
+    h.bag_put_back(t.identity, bytes[0], bytes[1], bytes[2]);
+    drop("bagold", rows[n - 1].target);
+    log(c, "oldbags", t.name, rows[n - 1].label);
+    out.push_back("Given back.");
+}
+
 void cmd_rollback(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
 {
     if (a.name.empty() || a.seconds <= 0) {
@@ -1302,6 +1354,7 @@ const Command kCommands[] = {
     {"time", "time", "[day|noon|dusk|night|midnight|dawn|HH:MM] -- this world's hour, or set it", cmd_time},
     {"inspect", "inspect", "X Y Z [ROOM] -- who changed that block", cmd_inspect},
     {"rollback", "rollback", "NAME DURATION [ROOM] -- put back what a player changed", cmd_rollback},
+    {"oldbags", "oldbags", "NAME [N] -- bags kept aside between friend servers; N gives one back", cmd_oldbags},
     {"seen", nullptr, "NAME -- when a player was last here", cmd_seen},
     {"players", "players", "[7d] -- who came in lately", cmd_players},
     {"whois", "whois", "NAME -- what the staff knows of a player", cmd_whois},
@@ -2652,8 +2705,32 @@ void apply_bag(const Friend &f, const std::string &kind, std::istringstream &in,
             !net::from_hex(packs_hex, (uint8_t *)packs.data(), packs.size()))
             return;
         g_bag_asks.erase(id_hex);
+        // A copy here nobody handed over: the player played on here while the
+        // friend could not be reached. The one that moved most stays; the
+        // other is kept for the staff (/oldbags), so nothing is doubled and nothing lost.
+        Row           away;
+        std::string   here;
+        const bool    both   = !find("bagaway", key, away) && h.bag_peek && h.bag_peek(id, here);
+        const int64_t theirs = std::atoll(gen_text.c_str()), ours = bag_gen(key);
+        const auto keep_aside = [&](const std::string &b, const std::string &hi, const std::string &pa) {
+            put("bagold", key + ":" + std::to_string(now()) + ":" + f.name, f.name,
+                net::to_hex((const uint8_t *)b.data(), b.size()) + "\n" +
+                    net::to_hex((const uint8_t *)hi.data(), hi.size()) + "\n" +
+                    net::to_hex((const uint8_t *)pa.data(), pa.size()),
+                "friend:" + f.name, 0);
+        };
         drop("bagaway", key);
-        put("baggen", key, "", std::to_string(std::atoll(gen_text.c_str()) + 1), "friend:" + f.name, 0);
+        if (both && ours > theirs) {
+            keep_aside(bag, hid, packs);
+            std::printf("        federation: the bag here moved more than %s's; theirs kept aside\n", f.name.c_str());
+            if (h.bag_take) h.bag_take(id, here, "", "", f.name);
+            return;
+        }
+        if (both) {
+            keep_aside(here, "", "");
+            std::printf("        federation: %s's bag moved more; the one here kept aside\n", f.name.c_str());
+        }
+        put("baggen", key, "", std::to_string(theirs + 1), "friend:" + f.name, 0);
         if (h.bag_take) h.bag_take(id, bag, hid, packs, f.name);
         return;
     }

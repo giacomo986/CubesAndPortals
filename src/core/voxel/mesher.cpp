@@ -102,7 +102,7 @@ struct Face {
     BlockId  block = kAir;
     uint16_t tex   = 0;
     uint8_t sky[4]  = {};
-    uint8_t lamp[4] = {};
+    uint8_t lamp[4][3] = {};
     uint8_t classic = 0;   // the packed light of the cell in front, for the classic look
     uint8_t ao[4] = {3, 3, 3, 3};
     bool    present = false;
@@ -110,13 +110,14 @@ struct Face {
     bool flat() const
     {
         return sky[0] == sky[1] && sky[0] == sky[2] && sky[0] == sky[3] &&
-               lamp[0] == lamp[1] && lamp[0] == lamp[2] && lamp[0] == lamp[3];
+               std::memcmp(lamp[0], lamp[1], 3) == 0 && std::memcmp(lamp[0], lamp[2], 3) == 0 &&
+               std::memcmp(lamp[0], lamp[3], 3) == 0;
     }
 
     bool merges_with(const Face &o) const
     {
         return present && o.present && block == o.block && tex == o.tex && flat() && o.flat() &&
-               sky[0] == o.sky[0] && lamp[0] == o.lamp[0] && classic == o.classic &&
+               sky[0] == o.sky[0] && std::memcmp(lamp[0], o.lamp[0], 3) == 0 && classic == o.classic &&
                ao[0] == o.ao[0] && ao[1] == o.ao[1] && ao[2] == o.ao[2] && ao[3] == o.ao[3];
     }
 };
@@ -155,6 +156,7 @@ void snapshot_chunk_into(const World &world, ChunkPos pos, ChunkSnapshot &s)
     // chunk's turns. clear() keeps the capacity, so the second chunk that needs
     // a plane does not allocate one.
     s.facing.clear();
+    s.tint.clear();
 
     const int bx = pos.x * kChunkSize;
     const int by = pos.y * kChunkSize;
@@ -193,6 +195,12 @@ void snapshot_chunk_into(const World &world, ChunkPos pos, ChunkSnapshot &s)
                 if (fc != 0) {
                     if (s.facing.empty()) s.facing.assign(s.blocks.size(), 0);
                     s.facing[i] = fc;
+                }
+                // The same for the colour of the light.
+                const uint8_t tn = (interior && centre) ? centre->tint(x, y, z) : world.get_tint(bx + x, by + y, bz + z);
+                if (tn != kWhiteTint) {
+                    if (s.tint.empty()) s.tint.assign(s.blocks.size(), kWhiteTint);
+                    s.tint[i] = tn;
                 }
             }
         }
@@ -315,6 +323,7 @@ void mesh_snapshot_into(const ChunkSnapshot &snap, const NodeRegistry &reg,
                     // falling on it. A cube's faces each take their neighbour's
                     // light because each face is on a wall of the cell.
                     c.light = snap.light_at(x, y, z);
+                    c.tint  = snap.tint_at(x, y, z);
                     parts->push_back(c);
                 }
     }
@@ -351,8 +360,10 @@ void mesh_snapshot_into(const ChunkSnapshot &snap, const NodeRegistry &reg,
 
                     static const int kLook[6][3] = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0},
                                                     {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
-                    for (int f = 0; f < 6; ++f)
+                    for (int f = 0; f < 6; ++f) {
                         c.light[f] = snap.light_at(x + kLook[f][0], y + kLook[f][1], z + kLook[f][2]);
+                        c.tint[f]  = snap.tint_at(x + kLook[f][0], y + kLook[f][1], z + kLook[f][2]);
+                    }
 
                     // The sun and the block light apart, each the mean of what
                     // is lit around the corner; a corner with nothing but
@@ -495,20 +506,23 @@ void mesh_snapshot_into(const ChunkSnapshot &snap, const NodeRegistry &reg,
                             // light can be in. The diagonal one only when the
                             // two beside it do not wall it off, or light leaks
                             // through the corner of two blocks.
-                            float sky = 0.0f, lamp = 0.0f;
+                            float sky = 0.0f, lamp[3] = {0.0f, 0.0f, 0.0f};
                             int   cells = 0;
                             const auto take = [&](const int c[3]) {
                                 sky += light_curve((float)sun_light(snap.light_at(c[0], c[1], c[2])));
-                                lamp += facing_light(c, axis, dir);
+                                const float  on   = facing_light(c, axis, dir);
+                                const uint8_t tn  = snap.tint_at(c[0], c[1], c[2]);
+                                for (int k = 0; k < 3; ++k) lamp[k] += on * tint_channel(tn, k);
                                 ++cells;
                             };
                             take(n);
                             if (usable(s1)) take(s1);
                             if (usable(s2)) take(s2);
                             if (usable(cn) && !(o1 && o2)) take(cn);
-                            lamp = std::max(lamp / (float)cells, self_glow);
-                            f.sky[corner]  = (uint8_t)std::lround(sky / (float)cells * 255.0f);
-                            f.lamp[corner] = (uint8_t)std::lround(std::min(lamp, 1.0f) * 255.0f);
+                            f.sky[corner] = (uint8_t)std::lround(sky / (float)cells * 255.0f);
+                            for (int k = 0; k < 3; ++k)
+                                f.lamp[corner][k] = (uint8_t)std::lround(
+                                    std::min(std::max(lamp[k] / (float)cells, self_glow), 1.0f) * 255.0f);
                         }
 
                         mask[(size_t)j * kChunkSize + i] = f;
@@ -584,7 +598,7 @@ void mesh_snapshot_into(const ChunkSnapshot &snap, const NodeRegistry &reg,
                             quad[c].u       = (uint8_t)uv[c][0];
                             quad[c].v       = (uint8_t)uv[c][1];
                             quad[c].sky     = start.sky[c];
-                            quad[c].lamp    = start.lamp[c];
+                            std::memcpy(quad[c].lamp, start.lamp[c], 3);
                             quad[c].classic = start.classic;
                             quad[c].tex     = (uint8_t)(start.tex & 0xFF);
                             quad[c].foliage = reg.get(start.block).foliage ? 1 : 0;

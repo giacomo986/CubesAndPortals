@@ -172,6 +172,10 @@ local FLY = core.register_model("garden:butterfly", "butterfly.gltf")
 core.register_mob("garden:ant", ANT, 2, 0.12, "worker", 0, 0, 1, "", 1, 0, false, 0, false, "")
 core.register_mob("garden:ladybird", LADY, 2, 0.05, "worker", 0, 0, 1, "", 1, 0, false, 0, false, "")
 core.register_mob("garden:butterfly", FLY, 1, 0.5, "worker", 0, 0, 1, "", 1, 0, false, 0.5, false, "")
+-- A lawn full of them, each with its own voice: heard now and then, not all the time.
+core.mob_say_every("garden:ant", 8)
+core.mob_say_every("garden:ladybird", 5)
+core.mob_say_every("garden:butterfly", 5)
 
 -- A ladybird to ride. Right click one with a saddle and it swells to a pony's
 -- size against you and carries you (core.player_wear and core.body_mount, as

@@ -31,16 +31,24 @@ bool ray_meets_cell(const World &world, const NodeRegistry &reg, int bx, int by,
     // A block that is not solid but has boxes -- a crop -- is walked through
     // and still aimed at by them: what would a hoe or a hand be dug with else.
     const NodeDef &def = reg.get(id);
-    if (!reg.is_solid(id) && !node_has_shape(def)) return false;
-    if (!node_has_shape(def)) return true;   // the whole cell: the caller already knows where
+    // ponytail: copies the definition, only for the few blocks with a selection box.
+    NodeDef with_selection;
+    const bool selects = !solid_only && !def.selection.empty();
+    if (selects) {
+        with_selection       = def;
+        with_selection.parts = def.selection;
+    }
+    const NodeDef &aimed = selects ? with_selection : def;
+    if (!reg.is_solid(id) && !node_has_shape(aimed)) return false;
+    if (!node_has_shape(aimed)) return true;   // the whole cell: the caller already knows where
 
     const uint8_t facing = world.get_facing(bx, by, bz);
-    const int     count  = node_shape_count(def);
+    const int     count  = node_shape_count(aimed);
 
     bool  found = false;
     float best  = max_distance;
     for (int i = 0; i < count; ++i) {
-        const NodeBox nb = node_shape_box(def, facing, i, bx, by, bz);
+        const NodeBox nb = node_shape_box(aimed, facing, i, bx, by, bz);
         const AABB    part{Vec3{nb.min[0], nb.min[1], nb.min[2]},
                         Vec3{nb.max[0], nb.max[1], nb.max[2]}};
 

@@ -388,7 +388,7 @@ local api: { Fn } = {
             { name = "g", type = "int", default = 180 },
             { name = "b", type = "int", default = 180 },
             { name = "solid", type = "bool", default = true, doc = "Stops movement and light." },
-            { name = "light_source", type = "int", default = 0, doc = "0..15, block light emitted." },
+            { name = "light_source", type = "int", default = 0, doc = "0..15, block light emitted, of the block's own colour (r, g, b), paler." },
             { name = "turn", type = "string", default = "",
               doc = "What a cell's facing byte MEANS for this block, and nothing means it "
                  .. "does not turn. \"upright\": 0..3 quarter turns about the vertical, "
@@ -1875,6 +1875,35 @@ local api: { Fn } = {
         doc = "How far off a creature of that kind notices a player and goes for them. An "
            .. "arena's demons that hunt the whole floor say 64. Returns 1, or 0 for a kind "
            .. "nobody registered.",
+    },
+    {
+        name = "node_selection_box",
+        host = "node_selection_box",
+        ret  = "int",
+        args = {
+            { name = "id", type = "int", doc = "A block from register_node." },
+            { name = "x0", type = "float", doc = "The box in the cell's own coordinates, 0 to 1 (a bit more to stick out)." },
+            { name = "y0", type = "float", doc = "" },
+            { name = "z0", type = "float", doc = "" },
+            { name = "x1", type = "float", doc = "" },
+            { name = "y1", type = "float", doc = "" },
+            { name = "z1", type = "float", doc = "" },
+        },
+        doc = "Adds a box to what the crosshair finds on this block and outlines, apart from the "
+           .. "boxes bodies collide with (core.node_box): a thin lever easy to point at, a "
+           .. "flower to hit anywhere in its cell. It turns with the block. Call it before the "
+           .. "world starts. Returns how many it has now, or 0 for a block that does not exist.",
+    },
+    {
+        name = "mob_say_every",
+        host = "mob_say_every",
+        ret  = "int",
+        args = {
+            { name = "name", type = "string", doc = "A kind from register_mob." },
+            { name = "factor", type = "float", doc = "1 as usual (one sound every 6 to 20 seconds), 5 five times as seldom. 0.1 to 100." },
+        },
+        doc = "How seldom a kind makes a sound of its own, for creatures that live in crowds. "
+           .. "Blows and deaths are heard as ever. Returns 1, or 0 for a kind nobody registered.",
     },
     {
         name = "mob_climbs",

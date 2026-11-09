@@ -282,6 +282,7 @@ std::vector<uint8_t> Welcome::encode() const
         w.u8(b.opacity);
         w.u8(b.fill);
         w.u8(b.light);
+        w.u8(b.light_tint);
         if (b.conveyor > 0.0f || b.rail) {   // a belt, since protocol 78, or a rail (110)
             w.f32(b.conveyor);
             w.f32(b.conveyor_height);
@@ -314,6 +315,12 @@ std::vector<uint8_t> Welcome::encode() const
             for (int a = 0; a < 3; ++a) w.f32(d.boxes[b].min[a]);
             for (int a = 0; a < 3; ++a) w.f32(d.boxes[b].max[a]);
             w.str(d.boxes[b].part);
+        }
+        const size_t ns = d.selection.size() > kMaxNodeBoxes ? kMaxNodeBoxes : d.selection.size();
+        w.u16((uint16_t)ns);
+        for (size_t b = 0; b < ns; ++b) {
+            for (int a = 0; a < 3; ++a) w.f32(d.selection[b].min[a]);
+            for (int a = 0; a < 3; ++a) w.f32(d.selection[b].max[a]);
         }
         const PieceShape &p = d.piece;
         for (const int8_t v : {(int8_t)p.plan, (int8_t)p.size, p.climb, p.grade0, p.grade1, p.bank0,
@@ -459,6 +466,7 @@ bool Welcome::decode(ByteReader &r, Welcome &out)
         body.opacity = r.u8();
         body.fill    = r.u8();
         body.light   = r.u8();
+        body.light_tint = r.u8();
         // Eight flags (climbable since 53, conveyor since 78, rail since 110, a
         // door shut or open since 115), and a door is not both. And a fill of
         // 1..8, because an empty cell of water is air and a fuller one than a
@@ -524,6 +532,13 @@ bool Welcome::decode(ByteReader &r, Welcome &out)
             for (int a = 0; a < 3; ++a) d.boxes[b].min[a] = r.f32();
             for (int a = 0; a < 3; ++a) d.boxes[b].max[a] = r.f32();
             if (!r.str(d.boxes[b].part, kMaxNodePartName)) return false;
+        }
+        size_t ns = 0;
+        if (!r.count(ns, kMaxNodeBoxes)) return false;
+        d.selection.resize(ns);
+        for (size_t b = 0; b < ns; ++b) {
+            for (int a = 0; a < 3; ++a) d.selection[b].min[a] = r.f32();
+            for (int a = 0; a < 3; ++a) d.selection[b].max[a] = r.f32();
         }
         PieceShape &p = d.piece;
         p.plan   = r.u8();
@@ -1863,6 +1878,25 @@ bool Push::decode(ByteReader &r, Push &out)
     return true;
 }
 
+std::vector<uint8_t> Slain::encode() const
+{
+    ByteWriter w;
+    w.u8((uint8_t)MsgType::Slain);
+    w.u8((uint8_t)std::min(ids.size(), kMaxEntities));
+    for (size_t i = 0; i < ids.size() && i < kMaxEntities; ++i) w.u64(ids[i]);
+    return w.data();
+}
+
+bool Slain::decode(ByteReader &r, Slain &out)
+{
+    out = Slain{};
+    if (r.u8() != (uint8_t)MsgType::Slain) return false;
+    const size_t n = r.u8();
+    if (n > kMaxEntities) return false;
+    for (size_t i = 0; i < n; ++i) out.ids.push_back(r.u64());
+    return r.done();
+}
+
 std::vector<uint8_t> Seal::encode() const
 {
     ByteWriter w;
@@ -2982,6 +3016,7 @@ MsgType peek_type(const void *data, size_t size)
     case MsgType::Lie:
     case MsgType::Sound:
     case MsgType::Seal:
+    case MsgType::Slain:
     case MsgType::Dress:
     case MsgType::StatusQuery:
     case MsgType::Status:

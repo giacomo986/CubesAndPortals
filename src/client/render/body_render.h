@@ -102,6 +102,8 @@ struct Body {
 
     // Under 1 while it fades out (fade_the_gone): a model drawn see-through.
     float alpha = 1.0f;
+    // Above 0 while a monster killed comes apart in red, 0..1 (fade_the_gone).
+    float slain = 0.0f;
 
     // Who it is (the entity's id; kOwnBody for this machine's own), for what
     // follows a body from one frame to the next: the marks its tyres leave.

@@ -44,6 +44,8 @@ public:
     // core.night_sight, 0..1: no model drawn darker. One for every renderer,
     // as the eye is one.
     static inline float night_sight = 0.0f;
+    // The colour of the lamps on what is drawn next (WorldRenderer::cell_tint).
+    static inline float lamp_tint[3] = {1.0f, 1.0f, 1.0f};
 
     static inline ModelSun sun;
 
@@ -80,7 +82,8 @@ public:
               float light = 1.0f,    // how bright where it stands, 0..1; a body is 1
               float alpha = 1.0f,    // under 1 blended over what is behind it: fading out
               uint32_t tag = 0,      // a stack's colours (ItemStack::tag) on its tint_1..3 materials
-              float dissolve = 0.0f); // 0..1, how much of it is eaten away (core.render.model)
+              float dissolve = 0.0f,  // 0..1, how much of it is eaten away (core.render.model)
+              bool dissolve_red = false); // a monster killed: its edges red, not electric blue
 
     int joint_count() const { return m_joint_count; }
 
@@ -124,6 +127,8 @@ private:
     int m_loc_light = -1;
     int m_loc_alpha = -1;
     int m_loc_dissolve = -1;
+    int m_loc_lamp_tint = -1;
+    int m_loc_dissolve_red = -1;
     int m_loc_sun_on = -1, m_loc_sun_dir = -1, m_loc_place = -1, m_loc_inv_vp = -1;
     int m_loc_shadow_vp = -1, m_loc_shadow = -1, m_loc_shadow_on = -1, m_loc_shadow_texel = -1;
     WaterUniforms m_water;

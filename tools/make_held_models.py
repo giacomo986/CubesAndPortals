@@ -186,7 +186,7 @@ def rod(p0, p1, r, segs=6):
     return placed(bm, at=a, rot=[math.degrees(x) for x in q.to_euler()])
 
 
-def bow(stage):
+def bow(stage, slant=True):
     """The bow in the YZ plane about its grip, the string toward the eye (+Z),
     turned so first person sees it at a slant as the classic block game's is held. `stage`
     0 at rest, 1..3 drawn further each time, with the arrow on the string."""
@@ -201,6 +201,13 @@ def bow(stage):
     if pull > 0:
         tail, head = Vector(nock), Vector(nock) + Vector((0, 0, -0.52))
         parts += arrow_parts(tail, head)
+    if not slant:   # on another body, in the left fist: the limbs ahead at rest, upright once aimed
+        return parts
+    if stage > 0:   # drawn, in first person: the arrow on the crosshair from where the fist is (robot_arms' idle)
+        aim = Matrix.Translation((-0.09333, 0.09218, -0.13330)) @ Matrix(((0.99418, -0.03204, 0.10134), (0.07191, 0.90317, -0.42181), (-0.07878, 0.42734, 0.90083))).to_4x4()
+        for bm, _ in parts:
+            bmesh.ops.transform(bm, matrix=aim, verts=bm.verts)
+        return parts
     return [(placed(placed(bm, rot=(0, 0, 18)), rot=(0, 30, 0)), m) for bm, m in parts]
 
 
@@ -641,6 +648,8 @@ ITEMS = {
     "archery:bow_pulling_0": bow(1),
     "archery:bow_pulling_1": bow(2),
     "archery:bow_pulling_2": bow(3),
+    "archery:bow_left": bow(0, slant=False),
+    "archery:bow_left_bow_aim": bow(3, slant=False),
     "archery:arrow": arrow_parts((0, -0.2, 0), (0, 0.32, 0)),
     "archery:string": [(ring(0.04, 0.0035, segs=18, minor_segs=4, at=(x, 0.04 + y, 0), rot=(90, 0, a),
                              scale=(1, 1, 0.55)), "white")

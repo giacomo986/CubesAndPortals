@@ -68,7 +68,7 @@ Each command asks for a permission, and each permission wants a least role. The 
 |---|---|
 | helper | `mute`, `pages`, `staffchat`, `warn`, `reports`, `notes`, `players`, `inspect` |
 | moderator | `kick`, `ban`, `creative`, `announce`, `whois`, `rollback`, `bag`, `alts` |
-| admin | `ban.ip`, `access`, `roles`, `restart`, `maintenance`, `motd`, `rules`, `logs`, `backup`, `time`, `portals`, `give` |
+| admin | `ban.ip`, `access`, `roles`, `restart`, `maintenance`, `motd`, `rules`, `logs`, `backup`, `time`, `portals`, `give`, `oldbags` |
 | owner | `perms`, `federation` |
 
 `/perm PERMISSION ROLE` (owner) moves a permission to another role; `/perm` lists them.
@@ -149,6 +149,7 @@ owner of that name on this world, or the bare name.
 |---|---|---|
 | `/inspect X Y Z [ROOM]` | inspect | The last ten players who changed that block, from what to what, when |
 | `/rollback NAME DURATION [ROOM]` | rollback | Put back every block that player changed in that time |
+| `/oldbags NAME [N]` | oldbags | The copies of a bag that lost out between friend servers; with N, that one given back (the bag it replaces is kept aside in its turn) |
 
 ### Portals and friend servers
 
@@ -261,6 +262,15 @@ letters or more, or all they said if that is less) reaches only them, then or la
 delivered on a later tick, a note pinned on a board. A held page line reads `(held: NAME is
 muted)`. Words are noted while the player is muted and kept while they stay muted and for an
 hour after; what they said in under six letters is not. The log says each time a line is held.
+
+A mute also stops what a player does towards others: market stalls (`trade`), sitting down at a
+new chess or card game (a game already under way goes on), adding owners to a territory, and
+the letterbox (`passport`). A mod that adds a way of reaching other players asks `core.is_muted`.
+
+**Bags between friend servers.** A player who plays on here while the friend holding their bag
+cannot be reached has two copies. When the two meet, the one that moved most between servers stays
+and the other is kept in the `bagold` rows; `/oldbags NAME` lists them and `/oldbags NAME N` gives
+one back.
 
 ## Rules to accept
 

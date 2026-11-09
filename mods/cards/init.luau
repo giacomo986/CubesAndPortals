@@ -1273,6 +1273,10 @@ if serving then
         local key, T = table_at(ev.x, ev.y, ev.z)
         local p = ev.player
         local s = seat_of(T, p)
+        if s < 0 and core.is_muted(p) == 1 then   -- /mute: no sitting down with anybody new
+            core.notice(p, "You are muted: you cannot join a table")
+            return
+        end
         if s < 0 then
             local want = side_of(T, key, p)
             for k = 0, T.n - 1 do

@@ -383,7 +383,9 @@ if serving then
             core.ui_show(ev.panel, false, ev.player)
             return
         end
-        if ev.id == "add" then
+        if ev.id == "add" and core.is_muted(ev.player) == 1 then   -- /mute: no inviting either
+            core.notice(ev.player, "You are muted: you cannot add owners")
+        elseif ev.id == "add" then
             local fx, fy, fz = core.player_pos(ev.player)
             local added = 0
             for _, p in core.players() do

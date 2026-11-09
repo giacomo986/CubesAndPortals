@@ -77,15 +77,16 @@ struct PartVertex {
     // kFlowPinned on a corner against a block (it stays put).
     uint8_t flow = 0;
     static constexpr uint8_t kFlowLiquid = 16, kFlowSurface = 32, kFlowDense = 64, kFlowPinned = 128;
-    uint8_t lamp;   // Vertex::lamp
+    uint8_t lamp[3];   // Vertex::lamp
     uint8_t classic;   // Vertex::classic
 
     // From a cell's packed light, with no direction: a box is inside its cell.
-    void set_light(uint8_t packed)
+    void set_light(uint8_t packed, uint8_t tint = kWhiteTint)
     {
         classic = packed;
-        sky  = (uint8_t)(light_curve((float)(packed >> 4)) * 255.0f + 0.5f);
-        lamp = (uint8_t)(light_curve((float)(packed & 15)) * 255.0f + 0.5f);
+        sky     = (uint8_t)(light_curve((float)(packed >> 4)) * 255.0f + 0.5f);
+        for (int k = 0; k < 3; ++k)
+            lamp[k] = (uint8_t)(light_curve((float)(packed & 15)) * tint_channel(tint, k) * 255.0f + 0.5f);
     }
 };
 
@@ -105,7 +106,8 @@ struct PartVertex {
 // -- and the turn is applied after it, which is what keeps a chest turned east
 // from opening northwards.
 void emit_node_box(const NodeDef::Box &box, const NodeDef &def, float wx, float wy, float wz,
-                   uint8_t turn, uint8_t light, float open, std::vector<PartVertex> &out);
+                   uint8_t turn, uint8_t light, float open, std::vector<PartVertex> &out,
+                   uint8_t tint = kWhiteTint);
 
 // The triangles one cell of liquid is drawn as, appended to `out`, in the cell's
 // own chunk-local space. Each face the mesher kept, with its top edge at the
@@ -263,6 +265,14 @@ public:
         if (body) return 1.0f;
         const float sun = (float)(packed >> 4) / 15.0f * m_classic_day, lamp = (float)(packed & 15) / 15.0f;
         return 0.15f + 0.85f * (sun > lamp ? sun : lamp);
+    }
+
+    // The colour of the light on something another shader draws: the lamps'
+    // where they outshine the sky here, white where they do not.
+    void cell_tint(uint8_t packed, uint8_t tint, float out[3]) const
+    {
+        const bool lamps = !m_classic && light_curve((float)(packed & 15)) > light_curve((float)(packed >> 4)) * m_daylight;
+        for (int k = 0; k < 3; ++k) out[k] = lamps ? tint_channel(tint, k) : 1.0f;
     }
 
     // The sun or the moon, for the faces it lights and the shadows it casts.

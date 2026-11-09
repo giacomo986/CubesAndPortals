@@ -1645,6 +1645,7 @@ int host_register_node(void *ud, const char *name, int r, int g, int b, int soli
     d.solid  = solid != 0;
     d.opaque = solid != 0;
     d.light_source = (uint8_t)light_source;
+    d.light_tint   = pack_tint((uint8_t)r, (uint8_t)g, (uint8_t)b);
     bool turn_ok   = true;
     d.turn         = node_turn_from_name(turn, &turn_ok);
     if (!turn_ok) {
@@ -1943,6 +1944,20 @@ int host_player_spawn(void *ud, int player, double x, double y, double z, int on
     sess->bed[1]  = (float)y;
     sess->bed[2]  = (float)z;
     return 1;
+}
+
+int host_node_selection_box(void *ud, int id_in, double x0, double y0, double z0, double x1, double y1, double z1)
+{
+    ServerState  *s  = static_cast<ServerState *>(ud);
+    const BlockId id = (BlockId)id_in;
+    if (id == kAir || id >= s->registry.size()) return 0;
+    NodeDef      d = s->registry.get(id);
+    NodeDef::Box box;
+    box.min[0] = (float)x0; box.min[1] = (float)y0; box.min[2] = (float)z0;
+    box.max[0] = (float)x1; box.max[1] = (float)y1; box.max[2] = (float)z1;
+    d.selection.push_back(box);
+    s->registry.register_node(d);
+    return (int)d.selection.size();
 }
 
 int host_node_box(void *ud, int id_in, double x0, double y0, double z0, double x1, double y1,
@@ -4331,6 +4346,11 @@ int host_mob_lunge(void *ud, const char *name, double nodes)
     return cnp::ecs::mob_lunge(static_cast<ServerState *>(ud)->mob_kinds, name, nodes);
 }
 
+int host_mob_say_every(void *ud, const char *name, double factor)
+{
+    return cnp::ecs::mob_say_every(static_cast<ServerState *>(ud)->mob_kinds, name, factor);
+}
+
 int host_mob_climbs(void *ud, const char *name, double nodes)
 {
     return cnp::ecs::mob_climbs(static_cast<ServerState *>(ud)->mob_kinds, name, nodes);
@@ -5136,6 +5156,9 @@ void bag_take_here(const uint8_t *identity, const std::string &bag, const std::s
                    const std::string &packs, const std::string &from);
 void bag_late_here(const uint8_t *identity);
 int64_t bag_seen_here(const uint8_t *identity);
+bool bag_peek_here(const uint8_t *identity, std::string &out);
+void bag_put_back_here(const uint8_t *identity, const std::string &bag, const std::string &hidden,
+                       const std::string &packs);
 net::Session *bag_holder(const uint8_t *identity, int &room);
 WorldDb      *newest_bag_file(const uint8_t *identity);
 
@@ -5368,6 +5391,8 @@ admin::Hooks admin_hooks()
     h.bag_take = bag_take_here;
     h.bag_late = bag_late_here;
     h.bag_seen = bag_seen_here;
+    h.bag_peek = bag_peek_here;
+    h.bag_put_back = bag_put_back_here;
     h.say = [](net::PeerId peer, const std::string &line) {
         g_router.transport.send(peer, net::Channel::Event, net::Chat{line}.encode(), true);
     };
@@ -6091,6 +6116,29 @@ constexpr uint32_t kFriendPacksFrom = 100000;
 // A friend server wants this player's bag: the session holding it here lets
 // go of it, as take_carried does for a room of this process, so it is neither
 // used nor saved here any more.
+bool bag_peek_here(const uint8_t *identity, std::string &out)
+{
+    WorldDb    *db = newest_bag_file(identity);
+    Inventory   bag;
+    std::string err;
+    if (db == nullptr || g_router.rooms[0].items == nullptr ||
+        !db->load_player_bag(identity, *g_router.rooms[0].items, bag, err))
+        return false;
+    bool any = false;
+    for (const ItemStack &st : bag.slots()) any = any || !st.empty();
+    if (!any) return false;
+    const std::vector<uint8_t> bytes = encode_inventory(*g_router.rooms[0].items, bag);
+    out.assign(bytes.begin(), bytes.end());
+    return true;
+}
+
+void bag_put_back_here(const uint8_t *identity, const std::string &bag, const std::string &hidden,
+                       const std::string &packs)
+{
+    g_bag_waiting.insert(identity_key(identity));
+    bag_take_here(identity, bag, hidden, packs, "the staff");
+}
+
 bool bag_give_here(const uint8_t *identity, bool from_file, std::string &out, std::string &packs)
 {
     if (g_bag_waiting.count(identity_key(identity))) return false;
@@ -6716,6 +6764,7 @@ int serve_room(int argc, char **argv)
         host.mob_blow_every = host_mob_blow_every;
         host.mob_sight      = host_mob_sight;
         host.mob_climbs     = host_mob_climbs;
+        host.mob_say_every  = host_mob_say_every;
         host.mob_lunge      = host_mob_lunge;
         host.mob_share      = host_mob_share;
         host.shoot          = host_shoot;
@@ -6875,6 +6924,7 @@ int serve_room(int argc, char **argv)
         host.container_clear = host_container_clear;
         host.node_id       = host_node_id;
         host.node_box      = host_node_box;
+        host.node_selection_box = host_node_selection_box;
         host.node_model    = host_node_model;
         host.node_drop     = host_node_drop;
         host.node_drop_item = host_node_drop_item;
@@ -7592,7 +7642,8 @@ int serve_room(int argc, char **argv)
         // block: the list is a handful of entries in a table of thousands.
         for (size_t id = 0; id < s.registry.size(); ++id) {
             const NodeDef &d = s.registry.get((BlockId)id);
-            if (d.parts.empty() && d.turn == NodeTurn::None && d.model == kNoModel && d.piece.plan == 0)
+            if (d.parts.empty() && d.selection.empty() && d.turn == NodeTurn::None && d.model == kNoModel &&
+                d.piece.plan == 0)
                 continue;
 
             net::NodeShapeDesc desc;
@@ -7609,6 +7660,14 @@ int serve_room(int argc, char **argv)
                 }
                 w.part = b.part;
                 desc.boxes.push_back(std::move(w));
+            }
+            for (const NodeDef::Box &b : d.selection) {
+                net::NodeShapeDesc::Box w;
+                for (int a = 0; a < 3; ++a) {
+                    w.min[a] = b.min[a];
+                    w.max[a] = b.max[a];
+                }
+                desc.selection.push_back(std::move(w));
             }
             config.shapes.push_back(std::move(desc));
         }
@@ -7659,6 +7718,7 @@ int serve_room(int argc, char **argv)
             b.fill    = d.liquid_fill;
             b.climbable = d.climbable;
             b.light     = d.light_source;
+            b.light_tint = d.light_tint;
             b.conveyor        = d.conveyor;
             b.conveyor_height = d.conveyor_height;
             b.conveyor_rise   = d.conveyor_rise;
@@ -9008,8 +9068,14 @@ int serve_room(int argc, char **argv)
             // A body with nothing left leaves what it was carrying and goes.
             // Before the drops are stepped, so the stack it left falls on the
             // tick it appeared instead of hanging in the air for one.
-            if (const size_t died = cnp::ecs::reap_dead(sessions.ecs(), seconds_since(t_start));
-                died > 0 && !quiet)
+            std::vector<uint64_t> slain;
+            const size_t died = cnp::ecs::reap_dead(sessions.ecs(), seconds_since(t_start), &s.mob_kinds, &slain);
+            if (!slain.empty()) {
+                const std::vector<uint8_t> told = net::Slain{slain}.encode();
+                for (const net::PeerId peer : sessions.ready_peers())
+                    transport.send(peer, net::Channel::Event, told, true);
+            }
+            if (died > 0 && !quiet)
                 std::printf("        %zu bod%s died and left what %s carrying\n", died,
                             died == 1 ? "y" : "ies", died == 1 ? "it was" : "they were");
 

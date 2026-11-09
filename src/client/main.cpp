@@ -726,10 +726,14 @@ struct Session {
     // (fade_the_gone).
     std::unordered_map<uint64_t, Body> creatures_seen;
     struct Fading {
-        Body   body;
-        double since = 0.0;
+        Body     body;
+        double   since = 0.0;
+        uint64_t id    = 0;
     };
     std::vector<Fading> fading;
+    // Monsters the server says were killed, and when (net::Slain): those come
+    // apart in red instead of fading.
+    std::unordered_map<uint64_t, double> slain;
 
     // The marks karts' tyres left sliding (kart_marks): a ring of strips on
     // the road, each fading over kMarkLife, and where each body's rear wheels
@@ -3273,6 +3277,7 @@ int host_register_node(void *ud, const char *name, int r, int g, int b, int soli
     d.solid  = solid != 0;
     d.opaque = solid != 0;
     d.light_source = (uint8_t)light_source;
+    d.light_tint   = pack_tint((uint8_t)r, (uint8_t)g, (uint8_t)b);
     bool turn_ok   = true;
     d.turn         = node_turn_from_name(turn, &turn_ok);
     if (!turn_ok) {
@@ -3647,6 +3652,20 @@ int host_player_spawn(void *ud, int player, double x, double y, double z, int on
     s->has_bed = on != 0;
     s->bed     = Vec3{(float)x, (float)y, (float)z};
     return 1;
+}
+
+int host_node_selection_box(void *ud, int id_in, double x0, double y0, double z0, double x1, double y1, double z1)
+{
+    Scene        *s  = static_cast<Scene *>(ud);
+    const BlockId id = (BlockId)id_in;
+    if (id == kAir || id >= s->act().registry.size()) return 0;
+    NodeDef      d = s->act().registry.get(id);
+    NodeDef::Box box;
+    box.min[0] = (float)x0; box.min[1] = (float)y0; box.min[2] = (float)z0;
+    box.max[0] = (float)x1; box.max[1] = (float)y1; box.max[2] = (float)z1;
+    d.selection.push_back(box);
+    s->act().registry.register_node(d);
+    return (int)d.selection.size();
 }
 
 int host_node_box(void *ud, int id_in, double x0, double y0, double z0, double x1, double y1,
@@ -5160,6 +5179,11 @@ int host_mob_lunge(void *ud, const char *name, double nodes)
     return ecs::mob_lunge(static_cast<Scene *>(ud)->act().mob_kinds, name, nodes);
 }
 
+int host_mob_say_every(void *ud, const char *name, double factor)
+{
+    return ecs::mob_say_every(static_cast<Scene *>(ud)->act().mob_kinds, name, factor);
+}
+
 int host_mob_climbs(void *ud, const char *name, double nodes)
 {
     return ecs::mob_climbs(static_cast<Scene *>(ud)->act().mob_kinds, name, nodes);
@@ -6593,7 +6617,18 @@ void wheel_pose(const SkinnedModel &m, const Body &b, std::vector<float> &out)
 void draw_held_block(HeldCube &cube, Session &w, const SkinnedModel &m,
                      const std::vector<float> &posed, const std::string &item, BlockId block,
                      const Mat4 &projection, const Mat4 &view, const Mat4 &place,
-                     const std::string &model = "", uint32_t tag = 0, float light = 1.0f);
+                     const std::string &model = "", uint32_t tag = 0, float light = 1.0f,
+                     const std::string *body_clip = nullptr);
+
+// The colour of the lamps at a point on every model drawn while this lasts.
+struct LampTintHere {
+    LampTintHere(const Session &w, Vec3 at)
+    {
+        const int x = (int)std::floor(at.x), y = (int)std::floor(at.y), z = (int)std::floor(at.z);
+        w.world_render.cell_tint(w.world.get_light(x, y, z), w.world.get_tint(x, y, z), ModelRenderer::lamp_tint);
+    }
+    ~LampTintHere() { ModelRenderer::lamp_tint[0] = ModelRenderer::lamp_tint[1] = ModelRenderer::lamp_tint[2] = 1.0f; }
+};
 
 // The world's model of that name, or null.
 ModelStore::Entry *model_named(ModelStore &models, const std::string &name)
@@ -7104,6 +7139,7 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
                                                                     (int)std::floor(place.at(1, 3) + 0.5f),
                                                                     (int)std::floor(place.at(2, 3))),
                                                   true);
+    const LampTintHere lit_by(w, Vec3{place.at(0, 3), place.at(1, 3) + 0.5f, place.at(2, 3)});
 
     // What is worn and held goes on whoever wears it: the rider when there is
     // one, never the vehicle -- a kart has no chest, and a pack bound to one
@@ -7139,10 +7175,15 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
                     draw_worn(w.models, on.model, posed, (fit ? fit : piece)->name, projection, view, place,
                               b.dress_tint[k], gait);
                 }
-        if (b.hand_known)
+        if (b.hand_known) {
+            const int arms_clip = b.clips[2].clip;
+            const std::string arms = arms_clip >= 0 && arms_clip < (int)on.model.clips.size()
+                                         ? on.model.clips[(size_t)arms_clip].name
+                                         : std::string();
             draw_held_block(s.held_bodies[(uint64_t)b.hand_block * 1000003u + (uint64_t)(uintptr_t)&on.model],
                             w, on.model, posed, b.hand, b.hand_block, projection, view, place, "",
-                            b.hand_tag, light);
+                            b.hand_tag, light, &arms);
+        }
     };
     ModelStore::Entry *r = b.rider != 0 ? w.models.entry(b.rider) : nullptr;
     if (e->model.skinned() && r != nullptr) {
@@ -7178,7 +7219,8 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
         if (b.sliding || w.mark_last.count(b.id)) leave_marks(w, e->model, b, place);
     } else if (e->model.skinned()) {
         wheel_pose(e->model, b, posed);
-        e->renderer.draw(projection, view, place, posed, gfx_texture{0}, light, b.alpha, livery_tag(b.livery));
+        e->renderer.draw(projection, view, place, posed, gfx_texture{0}, light, b.alpha, livery_tag(b.livery), b.slain,
+                         b.slain > 0.0f);
         if (!b.arms_only) {   // nothing worn shows from inside the head
             draw_extras(w.models, *e, posed, b.livery, false, projection, view, place);
             if (r == nullptr) dress(*e);
@@ -7190,7 +7232,8 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
                               gait);
         }
     } else {
-        e->renderer.draw(projection, view, place, e->model.bind_pose, gfx_texture{0}, light, b.alpha);
+        e->renderer.draw(projection, view, place, e->model.bind_pose, gfx_texture{0}, light, b.alpha, 0, b.slain,
+                         b.slain > 0.0f);
     }
     // Whoever is sat in it, in the same place: a rider's clips are authored
     // about the vehicle's own origin.
@@ -7305,8 +7348,9 @@ constexpr double kFadeOut = 1.2;   // seconds from a death to nothing
 void fade_the_gone(Session &w, std::unordered_map<uint64_t, Body> &now_seen, double now)
 {
     for (const auto &[id, b] : w.creatures_seen)
-        if (now_seen.find(id) == now_seen.end()) w.fading.push_back({b, now});
+        if (now_seen.find(id) == now_seen.end()) w.fading.push_back({b, now, id});
     w.creatures_seen.swap(now_seen);
+    std::erase_if(w.slain, [&](const auto &s) { return now - s.second > kFadeOut + 1.0; });
 
     for (size_t i = 0; i < w.fading.size();) {
         const double t = now - w.fading[i].since;
@@ -7316,6 +7360,16 @@ void fade_the_gone(Session &w, std::unordered_map<uint64_t, Body> &now_seen, dou
         }
         Body b  = w.fading[i].body;
         b.alpha = (float)(1.0 - t / kFadeOut);
+        // A monster killed: eaten in patches as a dissolved cube is, in red,
+        // and shaking as it goes. The message may come a tick after the body has gone.
+        if (w.slain.count(w.fading[i].id) != 0) {
+            const double left = 1.0 - t / kFadeOut;
+            b.alpha   = 1.0f;
+            b.slain   = (float)std::min(1.0, t / kFadeOut * 1.15);
+            const uint64_t h = w.fading[i].id * 0x9E3779B97F4A7C15ull ^ (uint64_t)(now * 60.0) * 0xC2B2AE3D27D4EB4Full;
+            b.center.x += (float)(((h >> 8) & 255) / 255.0 - 0.5) * 0.05f * (float)left;
+            b.center.z += (float)(((h >> 24) & 255) / 255.0 - 0.5) * 0.05f * (float)left;
+        }
         if (const ModelStore::Entry *e = w.models.entry(b.model)) {
             const int death = e->model.clip("death");
             if (death >= 0) {
@@ -9319,11 +9373,19 @@ SkinnedModel held_piece_model(const NodeDef &def, int tiles, Vec3 centre, float 
 void draw_held_block(HeldCube &cube, Session &w, const SkinnedModel &m,
                      const std::vector<float> &posed, const std::string &item, BlockId block,
                      const Mat4 &projection, const Mat4 &view, const Mat4 &place,
-                     const std::string &model, uint32_t tag, float light)
+                     const std::string &model, uint32_t tag, float light, const std::string *body_clip)
 {
+    // On a body seen from outside (body_clip: what its arms play, "" for
+    // nothing), an item with a "<item>_left_held" model is in the left fist: a
+    // bow. "<item>_left_<clip>_held" instead while the arms play that clip.
+    ModelStore::Entry *left = nullptr;
+    if (body_clip != nullptr && !item.empty()) {
+        if (!body_clip->empty()) left = model_named(w, item + "_left_" + *body_clip + "_held");
+        if (left == nullptr) left = model_named(w, item + "_left_held");
+    }
     int hand = -1;
     for (int j = 0; j < m.joint_count; ++j)
-        if (m.joint_names[(size_t)j] == "hand_R") hand = j;
+        if (m.joint_names[(size_t)j] == (left != nullptr ? "hand_L" : "hand_R")) hand = j;
     if (hand < 0) return;
     const std::vector<float> bone(posed.begin() + hand * 12, posed.begin() + hand * 12 + 12);
     // Sized by the forearm (hand_R's parent), so a bigger robot holds a bigger
@@ -9332,7 +9394,8 @@ void draw_held_block(HeldCube &cube, Session &w, const SkinnedModel &m,
     const float scale = arm >= 0 ? length(m.joint_rest[(size_t)hand] - m.joint_rest[(size_t)arm]) / 0.21f
                                  : 1.0f;
 
-    ModelStore::Entry *held = !model.empty() ? model_named(w, model)
+    ModelStore::Entry *held = left != nullptr ? left
+                            : !model.empty() ? model_named(w, model)
                             : item.empty()   ? nullptr
                                              : model_named(w, item + "_held");
     if (held != nullptr && !held->model.skinned()) {
@@ -9460,6 +9523,7 @@ void draw_arms(Scene &s, const Mat4 &projection)
     const float light = w.world_render.cell_light(
         w.world.get_light((int)std::floor(s.cam_eye.x), (int)std::floor(s.cam_eye.y), (int)std::floor(s.cam_eye.z)),
         true);
+    const LampTintHere lit_by(w, s.cam_eye);
     arms->renderer.draw(proj, mat4_identity(), bob, posed, gfx_texture{0}, light, 1.0f,
                         livery_tag(net::g_client_livery));
 
@@ -11873,14 +11937,20 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
         const bool of_piece = (def.turn == NodeTurn::Height || def.piece.plan != 0) &&
                               piece_find(s.act().world, s.act().registry, s.target.x, s.target.y,
                                          s.target.z, ox, oy, oz);
-        const int count = of_piece ? 0 : node_shape_count(def);
+        NodeDef with_selection;
+        if (!def.selection.empty()) {
+            with_selection       = def;
+            with_selection.parts = def.selection;
+        }
+        const NodeDef &outlined = def.selection.empty() ? def : with_selection;
+        const int count = of_piece ? 0 : node_shape_count(outlined);
         if (of_piece) {
             const float colour[4] = {0.03f, 0.03f, 0.05f, 1.0f};
             outline_piece(s.act().registry.get(s.act().world.get_block(ox, oy, oz)).piece,
                           s.act().world.get_facing(ox, oy, oz), ox, oy, oz, colour);
         }
         for (int i = 0; i < count; ++i) {
-            const NodeBox b = node_shape_box(def, facing, i, s.target.x, s.target.y, s.target.z);
+            const NodeBox b = node_shape_box(outlined, facing, i, s.target.x, s.target.y, s.target.z);
             const float   colour[4] = {0.03f, 0.03f, 0.05f, 1.0f};
             s.selection.draw_box(Vec3{b.min[0], b.min[1], b.min[2]},
                                  Vec3{b.max[0] - b.min[0], b.max[1] - b.min[1],
@@ -16519,6 +16589,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             if (p.kind == net::EntityKind::Mob && p.model != 0) creatures_now[p.id] = body;
             if (p.burning) add_flames(s.act().bodies, Vec3{p.x, p.y, p.z}, p.id);
         }
+        for (const uint64_t id : conn->take_slain()) s.act().slain[id] = plat_time();
         fade_the_gone(s.act(), creatures_now, plat_time());
         {
             World &w = s.act().world;
@@ -20151,7 +20222,10 @@ int run_interactive(Scene &s, double seconds)
                     std::printf("creatures: %d came out of the dark, %d went\n", sr.came, sr.went);
             }
         }
-        if (const size_t died = ecs::reap_dead(demo_ecs, demo_clock); died > 0)
+        std::vector<uint64_t> slain_now;
+        const size_t died = ecs::reap_dead(demo_ecs, demo_clock, &s.act().mob_kinds, &slain_now);
+        for (const uint64_t id : slain_now) s.act().slain[id] = plat_time();
+        if (died > 0)
             std::printf("%zu creature%s died\n", died, died == 1 ? "" : "s");
 
         ecs::step_drops(demo_ecs, s.act().world, s.act().registry, dt);
@@ -20442,6 +20516,7 @@ script_host make_client_host(Scene &scene)
     host.monsters_near  = host_monsters_near;
     host.mob_sight      = host_mob_sight;
     host.mob_climbs     = host_mob_climbs;
+    host.mob_say_every  = host_mob_say_every;
     host.mob_lunge      = host_mob_lunge;
     host.mob_share      = host_mob_share;
     host.arms_clip      = host_arms_clip;
@@ -20577,6 +20652,7 @@ script_host make_client_host(Scene &scene)
     host.container_clear = host_container_clear;
     host.node_id       = host_node_id;
     host.node_box      = host_node_box;
+    host.node_selection_box = host_node_selection_box;
     host.node_model    = host_node_model;
     host.node_drop     = host_node_drop;
     host.node_drop_item = host_node_drop_item;

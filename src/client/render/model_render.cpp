@@ -48,6 +48,8 @@ bool ModelRenderer::init()
     m_loc_light   = gfx_uniform_location(m_shader, "uLight");
     m_loc_alpha   = gfx_uniform_location(m_shader, "uAlpha");
     m_loc_dissolve = gfx_uniform_location(m_shader, "uDissolve");
+    m_loc_lamp_tint = gfx_uniform_location(m_shader, "uLampTint");
+    m_loc_dissolve_red = gfx_uniform_location(m_shader, "uDissolveRed");
     m_loc_sun_on  = gfx_uniform_location(m_shader, "uSunOn");
     m_loc_sun_dir = gfx_uniform_location(m_shader, "uSunDir");
     m_loc_place   = gfx_uniform_location(m_shader, "uPlace");
@@ -239,7 +241,7 @@ void ModelRenderer::draw_casters(const Mat4 &vp)
 
 void ModelRenderer::draw(const Mat4 &projection, const Mat4 &view, const Mat4 &model,
                          const std::vector<float> &bones, gfx_texture texture, float light,
-                         float alpha, uint32_t tag, float dissolve)
+                         float alpha, uint32_t tag, float dissolve, bool dissolve_red)
 {
     if (m_index_count == 0 || m_shader.id == 0) return;
 
@@ -280,6 +282,8 @@ void ModelRenderer::draw(const Mat4 &projection, const Mat4 &view, const Mat4 &m
     if (m_loc_light >= 0) gfx_uniform_set_f(m_loc_light, std::max(light, night_sight * 0.55f));
     if (m_loc_alpha >= 0) gfx_uniform_set_f(m_loc_alpha, alpha);
     if (m_loc_dissolve >= 0) gfx_uniform_set_f(m_loc_dissolve, dissolve);
+    if (m_loc_lamp_tint >= 0) gfx_uniform_set_v3(m_loc_lamp_tint, lamp_tint);
+    if (m_loc_dissolve_red >= 0) gfx_uniform_set_f(m_loc_dissolve_red, dissolve_red ? 1.0f : 0.0f);
     m_water.set(projection, view);   // before the parts bind their textures to unit 0
 
     gfx_state state = gfx_state_default();

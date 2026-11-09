@@ -882,6 +882,16 @@ int mob_pierce(std::vector<MobKind> &kinds, const char *name, double part)
     return 0;
 }
 
+int mob_say_every(std::vector<MobKind> &kinds, const char *name, double factor)
+{
+    for (MobKind &k : kinds)
+        if (k.name == name) {
+            k.say_every = (float)std::clamp(factor, 0.1, 100.0);
+            return 1;
+        }
+    return 0;
+}
+
 int mob_climbs(std::vector<MobKind> &kinds, const char *name, double nodes)
 {
     for (MobKind &k : kinds)
@@ -1320,11 +1330,17 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
 
         // Heard: a blow since the last tick, from wherever it came, and now
         // and then a sound of its own. A killing blow is reap_dead's "death".
-        if (health.alive() && health.hp < b.heard_hp) voice(w, b.kind, "hurt", p);
+        if (health.alive() && health.hp < b.heard_hp) {
+            voice(w, b.kind, "hurt", p);
+            if (b.hanging && b.burn_at <= 0.0) {   // struck, it lets go; the sun takes no hold off it
+                b.hanging     = false;
+                b.climb_again = now + 3.0;
+            }
+        }
         b.heard_hp = health.hp;
         if (b.say_at == 0.0 || now >= b.say_at) {
             if (b.say_at != 0.0) voice(w, b.kind, "say", p);
-            b.say_at = now + 6.0 + std::fmod((double)(e.id() % 997) * 0.618 + now * 0.37, 1.0) * 14.0;
+            b.say_at = now + (6.0 + std::fmod((double)(e.id() % 997) * 0.618 + now * 0.37, 1.0) * 14.0) * k.say_every;
         }
 
         // Where the world is not in memory there is nothing to stand on, and a
@@ -1695,8 +1711,9 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
 
         // Up a wall, pressed against it, until it is over the top or too high.
         if (b.climbing) {
-            if (goal == nullptr || p.y - b.climb_from > k.climbs) {
+            if ((goal == nullptr && !b.pulling) || p.y - b.climb_from > k.climbs) {
                 b.climbing    = false;
+                b.pulling     = false;
                 b.climb_again = now + 3.0;
             } else {
                 want_x   = b.climb_x;
@@ -1764,8 +1781,10 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
         }
         // On a belt, carried as a player is.
         const Belt belt = b.vy <= 0.0f ? belt_under(world, reg, p.x, p.y, p.z) : Belt{};
-        const Vec3 delta{(want_x * speed + b.kx + push_x + belt.dx * belt.speed) * dt, b.vy * dt,
-                         (want_z * speed + b.kz + push_z + belt.dz * belt.speed) * dt};
+        if (b.hanging) b.vy = 0.0f;
+        const Vec3 delta = b.hanging ? Vec3{}
+                                     : Vec3{(want_x * speed + b.kx + push_x + belt.dx * belt.speed) * dt, b.vy * dt,
+                                            (want_z * speed + b.kz + push_z + belt.dz * belt.speed) * dt};
         const MoveResult r = move_body(world, reg, Vec3{p.x, p.y, p.z}, delta, 0.0f,
                                        kStepHeight * size, b.half, b.height);
 
@@ -1806,15 +1825,56 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
 
         // The wall it walked up to, when whoever it hunts stands above it.
         const float reach_out = b.half + 0.25f;
+        const auto ledge_at = [&](int ax, int y, int az) {
+            return solid(world, reg, ax, y, az) && !solid(world, reg, ax, y + 1, az) &&
+                   !solid(world, reg, ax, y + 2, az);
+        };
+        if (b.hanging) {
+            // Its hands on the ledge a moment, and up; if the ledge is dug away, it falls.
+            const int ax = (int)std::floor(r.pos.x + b.climb_x * reach_out);
+            const int az = (int)std::floor(r.pos.z + b.climb_z * reach_out);
+            if (!ledge_at(ax, b.hang_ledge, az)) {
+                b.hanging     = false;
+                b.climb_again = now + 3.0;
+            } else if (now >= b.hang_until) {
+                b.hanging    = false;
+                b.climbing   = true;
+                b.pulling    = true;
+                b.climb_from = r.pos.y;
+            }
+        } else if (k.climbs > 0.0f && !r.on_ground && b.vy < -1.0f && !b.climbing && !b.lunging && !ladder && !wet &&
+                   now >= b.climb_again) {
+            // Falling past a ledge within reach: caught by the hands.
+            const float hands = r.pos.y + b.height * 0.92f;
+            const int   high  = (int)std::floor(hands);
+            for (int i = 0; i < 4 && !b.hanging; ++i) {
+                const float ux = i == 0 ? 1.0f : i == 1 ? -1.0f : 0.0f, uz = i == 2 ? 1.0f : i == 3 ? -1.0f : 0.0f;
+                const int   ax = (int)std::floor(r.pos.x + ux * reach_out);
+                const int   az = (int)std::floor(r.pos.z + uz * reach_out);
+                for (int y = high; y >= high - 1 && !b.hanging; --y) {
+                    if (std::fabs((float)y + 1.0f - hands) >= 0.5f || !ledge_at(ax, y, az)) continue;
+                    b.hanging    = true;
+                    b.hang_ledge = y;
+                    b.hang_y     = (float)y + 1.0f - b.height * 0.92f;
+                    b.climb_x    = ux;
+                    b.climb_z    = uz;
+                    b.hang_until = now + 0.7 + std::fmod((double)e.id() * 0.618, 1.0) * 0.6;
+                    b.vy         = 0.0f;
+                    look.yaw     = yaw_to(ux, uz);
+                }
+            }
+        }
         if (b.climbing) {
             const int ax = (int)std::floor(r.pos.x + b.climb_x * reach_out);
             const int az = (int)std::floor(r.pos.z + b.climb_z * reach_out);
             if (r.hit_ceiling) {
                 b.climbing    = false;
+                b.pulling     = false;
                 b.climb_again = now + 3.0;
             } else if (!solid(world, reg, ax, (int)std::floor(r.pos.y), az)) {
                 // Over the top: a hop, and on to it.
                 b.climbing     = false;
+                b.pulling      = false;
                 b.vy           = 3.0f;
                 b.detour_x     = b.climb_x;
                 b.detour_z     = b.climb_z;
@@ -1877,6 +1937,7 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
 
         p.x = r.pos.x;
         p.y = r.pos.y;
+        if (b.hanging) p.y = b.hang_y;
         p.z = r.pos.z;
         p.valid = true;
 
@@ -1885,6 +1946,10 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
         if (busy != e.has<Working>()) {
             if (busy) e.add<Working>();
             else      e.remove<Working>();
+        }
+        if (b.hanging != e.has<Hanging>()) {
+            if (b.hanging) e.add<Hanging>();
+            else           e.remove<Hanging>();
         }
         const bool burning = b.burn_at > 0.0;
         if (burning != e.has<Burning>()) {
@@ -2056,7 +2121,7 @@ SpawnResult spawn_and_despawn(flecs::world &w, const World &world, const NodeReg
     return out;
 }
 
-size_t reap_dead(flecs::world &w, double now)
+size_t reap_dead(flecs::world &w, double now, const std::vector<MobKind> *kinds, std::vector<uint64_t> *slain)
 {
     // Collected first and destroyed after, rather than destroyed inside the
     // walk: spawning a drop CREATES an entity, and creating one during an
@@ -2073,6 +2138,9 @@ size_t reap_dead(flecs::world &w, double now)
 
         if (const Brain *b = e.try_get<Brain>(); b != nullptr && p != nullptr)
             voice(w, b->kind, "death", *p);
+        if (const Brain *b = e.try_get<Brain>();
+            b != nullptr && kinds != nullptr && slain != nullptr && b->kind < kinds->size() && fights((*kinds)[b->kind]))
+            slain->push_back(id);
 
         if (p != nullptr && left != nullptr && left->item != kNoItem && left->count > 0) {
             ItemStack stack;

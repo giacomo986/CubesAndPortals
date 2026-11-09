@@ -68,7 +68,7 @@ Ogni comando chiede un permesso, e ogni permesso vuole un ruolo minimo. I valori
 |---|---|
 | helper | `mute`, `pages`, `staffchat`, `warn`, `reports`, `notes`, `players`, `inspect` |
 | moderator | `kick`, `ban`, `creative`, `announce`, `whois`, `rollback`, `bag`, `alts` |
-| admin | `ban.ip`, `access`, `roles`, `restart`, `maintenance`, `motd`, `rules`, `logs`, `backup`, `time`, `portals`, `give` |
+| admin | `ban.ip`, `access`, `roles`, `restart`, `maintenance`, `motd`, `rules`, `logs`, `backup`, `time`, `portals`, `give`, `oldbags` |
 | owner | `perms`, `federation` |
 
 `/perm PERMESSO RUOLO` (owner) sposta un permesso a un altro ruolo; `/perm` li elenca.
@@ -149,6 +149,7 @@ il proprietario di quel nome in questo mondo, o il nome e basta.
 |---|---|---|
 | `/inspect X Y Z [STANZA]` | inspect | Gli ultimi dieci giocatori che hanno cambiato quel blocco, da cosa a cosa, quando |
 | `/rollback NOME DURATA [STANZA]` | rollback | Rimette ogni blocco che quel giocatore ha cambiato in quel tempo |
+| `/oldbags NOME [N]` | oldbags | Le copie di una borsa rimaste indietro tra server amici; con N, quella viene restituita (la borsa che sostituisce viene messa da parte a sua volta) |
 
 ### Portali e server amici
 
@@ -263,6 +264,16 @@ solo a lui, allora o dopo -- una lettera consegnata a un tick successivo, un big
 bacheca. Una riga di pagina trattenuta si legge `(held: NOME is muted)`. Le parole si annotano
 mentre il giocatore è silenziato e si tengono finché resta silenziato e per un'ora dopo; quello che
 ha detto in meno di sei lettere no. Il log dice ogni volta che una riga è trattenuta.
+
+Il mute ferma anche ciò che un giocatore fa verso gli altri: le bancarelle (`trade`), il sedersi a
+una nuova partita di scacchi o carte (una già in corso continua), l'aggiunta di proprietari a un
+territorio e la buca delle lettere (`passport`). Un mod che aggiunge un modo di raggiungere altri
+giocatori chiede `core.is_muted`.
+
+**Borse tra server amici.** Un giocatore che continua a giocare qui mentre l'amico che ha la sua
+borsa è irraggiungibile ha due copie. Quando si incontrano resta quella che si è mossa di più tra i
+server e l'altra finisce nelle righe `bagold`; `/oldbags NOME` le elenca e `/oldbags NOME N` ne
+restituisce una.
 
 ## Regole da accettare
 

@@ -10,6 +10,9 @@
 namespace cnp {
 namespace {
 
+// What changed columns may hold in memory in a world with no file.
+constexpr size_t kKeptInMemory = 64u * 1024u * 1024u;
+
 double ms_since(std::chrono::steady_clock::time_point t0)
 {
     return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0)
@@ -129,6 +132,16 @@ void ColumnKeeper::fill(ColumnPos c)
             if (std::unique_ptr<Chunk> chunk = net::decode_chunk(r, err))
                 stored.push_back(std::move(chunk));
         }
+    } else if (const auto sp = m_spilled.find(c); sp != m_spilled.end() && m_spill) {
+        std::fseek(m_spill.get(), sp->second.at, SEEK_SET);
+        for (const uint32_t size : sp->second.sizes) {
+            std::vector<uint8_t> blob(size);
+            if (std::fread(blob.data(), 1, size, m_spill.get()) != size) break;
+            ByteReader  r(blob.data(), blob.size());
+            std::string err;
+            if (std::unique_ptr<Chunk> chunk = net::decode_chunk(r, err))
+                stored.push_back(std::move(chunk));
+        }
     }
 
     if (!stored.empty()) {
@@ -205,8 +218,27 @@ void ColumnKeeper::release(const std::vector<ColumnPos> &columns)
             std::vector<uint8_t> blob;
             if (net::encode_chunk(*m_world.find_chunk(p), blob, 3)) blobs.push_back(std::move(blob));
         }
-        if (it != m_kept.end())
+        if (it != m_kept.end()) {
             for (const std::vector<uint8_t> &b : it->second) m_kept_bytes -= b.size();
+            m_kept.erase(it);
+        }
+        m_spilled.erase(c);
+        if (m_kept_bytes > kKeptInMemory) {
+            if (!m_spill) m_spill.reset(std::tmpfile());
+            if (m_spill && std::fseek(m_spill.get(), 0, SEEK_END) == 0) {
+                Spilled sp;
+                sp.at   = std::ftell(m_spill.get());
+                bool ok = sp.at >= 0;
+                for (const std::vector<uint8_t> &b : blobs) {
+                    ok = ok && std::fwrite(b.data(), 1, b.size(), m_spill.get()) == b.size();
+                    sp.sizes.push_back((uint32_t)b.size());
+                }
+                if (ok) {
+                    m_spilled[c] = std::move(sp);
+                    continue;
+                }
+            }
+        }
         for (const std::vector<uint8_t> &b : blobs) m_kept_bytes += b.size();
         m_kept[c] = std::move(blobs);
     }

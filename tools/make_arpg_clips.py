@@ -5,7 +5,7 @@
 #   flatpak run org.blender.Blender --background --python "$PWD/tools/make_arpg_clips.py"
 #   for m in robot robot_human robot_mole robot_frog; do
 #       python3 tools/gltf_add_clips.py mods/robot/$m.gltf ~/kart_assets/arpg_clips_$m.gltf \
-#           bow_shoot staff_cast cast_nova war_cry dagger_stab spin_slash; done
+#           bow_shoot bow_aim staff_cast cast_nova war_cry dagger_stab spin_slash; done
 #
 # Made once for each of the four bodies, from its own file: Blender writes a
 # species' arms with another turn at rest, so a key is only good for the file
@@ -44,6 +44,7 @@ LOOSED_BOW = {"upper_arm_L": [(X, 88), (Z, -12)], "upper_arm_R": [(X, 75), (Z, 5
               "chest": [(Z, 25)], "head": [(Z, -20)]}
 CLIPS = {
     "bow_shoot": [(0, READY_BOW), (6, DRAWN_BOW), (11, DRAWN_BOW), (12, LOOSED_BOW), (16, READY_BOW)],
+    "bow_aim": [(0, DRAWN_BOW), (12, DRAWN_BOW)],   # held as long as it is drawn (mods/archery)
     "staff_cast": [
         (0, {"upper_arm_R": [(X, 20)]}),
         (4, {"upper_arm_R": [(X, 150)], "chest": [(X, -8)], "upper_arm_L": [(X, 20)]}),

@@ -1539,6 +1539,13 @@ bool ServerSessions::issue_ticket(PeerId peer, const TicketRequest &req, double 
         return false;
     }
 
+    // A mouth sealed to this player (core.portal_seal): no way through it from
+    // this server, whatever the client keeps to itself.
+    if ((req.scopes & kTicketEnter) != 0 && req.opening < kMaxMouths && (s->sealed >> req.opening & 1u)) {
+        why = "that opening is sealed to you";
+        return false;
+    }
+
     if (!leads_away()) {
         why = "this world's openings lead back into itself; there is nothing to ticket for";
         return false;
@@ -4785,6 +4792,7 @@ std::vector<EntityState> ServerSessions::entities_for(PeerId peer, float radius)
                 s.item = act->held;
                 s.clip = act->clip;
             }
+            if (e.has<ecs::Hanging>()) s.clip = "hang";
         } else if (e.has<ecs::Thing>()) {
             // Something a mod made visible (TODO.md OPEN-20): not a person and
             // not a creature, and the client is told so rather than left to

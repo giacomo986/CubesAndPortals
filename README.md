@@ -489,7 +489,7 @@ altar holds (a key, the portal gun, a shard) hangs over it, turning.
   (F6).
 - **Light.** Real darkness: a cave without torches is black, and night is nearly so. Sun and moon
   cast shadows (leaves too); torches light the faces turned towards them. The old light is still
-  there: Options, Light: classic.
+  there: Options, Light: classic. Lamps light in their own colour: a block gives light of the colour it is registered with, paler, and two lights meet in a mix.
 - **Portals.** A seamless image of the real view, recursion up to three levels, all 24
   orientations (floor, wall, ceiling, turned), bodies cut as they cross, and the horizon levelled
   after a tilted crossing. You keep your speed through a portal, turned with it. Portals are
@@ -680,6 +680,7 @@ server running across restarts and crashes, with a log a day.
 | `tools/track.sh` (`--fresh`) | A server with the sandbox and every world as rooms, as the title menu starts it but with every world unlocked (a copy of `mods/keys` with `ALL_OPEN`; worlds and logs in `worlds/track/`); `--fresh` also makes you its owner, so the creative catalogue (C) is open |
 | `tools/arpg.sh`, `tools/fps.sh`, `tools/chambers.sh` (`--fresh`) | The sandbox and one world, for working on that world |
 | `tools/portallab.sh` | A scene for checking portals by eye (games/portallab): glass seen through openings, a ceiling one to jump into, two floors to bounce between, openings that slide, chase and turn on every axis; `/lab wall`, `glass`, `head`, `bounce`, `view`, `slide`, `chase`, `spin`, `spiny`, `spinz`, `still`, `at <degrees>`; a door-sized opening onto one an eighth high that shrinks you to 1/16, `/lab tiny`, `g1`, `scale <s>` |
+| `tools/windowlab.sh` | Bodies seen through a window onto another world (games/windowlab): two rooms, six creatures marching past the far mouth. |
 | `tools/vehiclelab.sh` | Vehicles through portals (games/vehiclelab, over the sandbox's mods): a cart line into one opening and out of another a quarter turn round, a boat channel the same; a portal carried by a train round a bend; `NAME=boat` or `train` starts there, `/vlab rail`, `boat`, `train`, `watch`; a timed client wants `--keep-portals` |
 | `build/tools/cnp_modpack pack mods/ore` | A mod in a `.cnpmod` file, which loads from `mods/` like a directory |
 | `tools/dist/package-*.sh` | The packages for Linux, Windows and macOS ([`docs/BUILDING.md`](docs/BUILDING.md)) |

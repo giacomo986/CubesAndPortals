@@ -503,7 +503,7 @@ un altare contiene (una chiave, la pistola dei portali, un frammento) galleggia 
   (F6).
 - **Luce.** Buio vero: una grotta senza torce è nera, e la notte quasi. Sole e luna fanno ombra
   (anche le foglie); le torce illuminano le facce rivolte verso di loro. La luce di prima c'è
-  ancora: Opzioni, Luce: classica.
+  ancora: Opzioni, Luce: classica. Le lampade fanno luce del loro colore: un blocco dà luce del colore con cui è registrato, più tenue, e due luci che si incontrano si mescolano.
 - **Portali.** Un'immagine continua con la vista reale, ricorsione fino a tre livelli, tutte e 24
   le orientazioni (pavimento, parete, soffitto, girati), corpi tagliati mentre attraversano, e
   l'orizzonte che torna in bolla dopo un attraversamento inclinato. Attraverso un portale si
@@ -698,6 +698,7 @@ server acceso tra riavvii e crash, con un log al giorno.
 | `tools/track.sh` (`--fresh`) | Un server con il sandbox e tutti i mondi come stanze, come lo avvia il menù del titolo ma con tutti i mondi sbloccati (una copia di `mods/keys` con `ALL_OPEN`; mondi e log in `worlds/track/`); `--fresh` ti fa anche suo proprietario, così il catalogo creativo (C) è aperto |
 | `tools/arpg.sh`, `tools/fps.sh`, `tools/chambers.sh` (`--fresh`) | Il sandbox e un mondo solo, per lavorare su quel mondo |
 | `tools/portallab.sh` | Una scena per controllare i portali a occhio (games/portallab): vetro visto attraverso le aperture, una a soffitto in cui saltare, due pavimenti tra cui rimbalzare, aperture che scorrono, inseguono e girano su ogni asse; `/lab wall`, `glass`, `head`, `bounce`, `view`, `slide`, `chase`, `spin`, `spiny`, `spinz`, `still`, `at <gradi>`; un'apertura grande come una porta su una alta un ottavo che ti rimpicciolisce a 1/16, `/lab tiny`, `g1`, `scale <s>` |
+| `tools/windowlab.sh` | I corpi visti da una finestra su un altro mondo (games/windowlab): due stanze, sei creature che sfilano davanti alla bocca lontana. |
 | `tools/vehiclelab.sh` | I veicoli attraverso i portali (games/vehiclelab, sopra le mod del sandbox): una linea di binari in un'apertura e fuori da un'altra girata di un quarto, un canale per la barca uguale; un portale portato da un treno in curva; `NAME=boat` o `train` parte lì, `/vlab rail`, `boat`, `train`, `watch`; un client a tempo vuole `--keep-portals` |
 | `build/tools/cnp_modpack pack mods/ore` | Un mod in un file `.cnpmod`, che si carica da `mods/` come una directory |
 | `tools/dist/package-*.sh` | I pacchetti per Linux, Windows e macOS ([`docs/BUILDING.md`](docs/BUILDING.it.md)) |
