@@ -1928,7 +1928,9 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   `tools/make_species.py` li fa tutti: ogni pezzo del corpo (testa, busto,
   braccio, gamba) è un'unica superficie, primitive fuse con un remesh a voxel,
   levigate e sfoltite, con pesi sfumati alle giunture; occhi e piccoli dettagli
-  restano netti. Un osso `sway_*` oscilla solo in avanti, via dal petto.
+  restano netti. Gli accessori di una specie sono costruiti sulle sue misure
+  (`WEARS` lì, `extras()` in `tools/make_robot_extras.py`), non scalati da
+  quelli del robot. Un osso `sway_*` oscilla solo in avanti, via dal petto.
   In un pezzo indossato, un osso che il giocatore non ha segue il suo
   genitore, e se si chiama `sway_*` dondola anche attorno a dove è legato.
 * **Attrezzi in mano.** Un osso `tool_<nome>` si vede solo quando in mano c'è

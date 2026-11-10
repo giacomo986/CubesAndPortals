@@ -8,7 +8,7 @@
 		{
 			"name":"Scene",
 			"nodes":[
-				28
+				27
 			]
 		}
 	],
@@ -96,25 +96,6 @@
 			]
 		},
 		{
-			"name":"sway_medal",
-			"rotation":[
-				-1,
-				0,
-				-7.549790126404332e-08,
-				2.027253458436462e-07
-			],
-			"scale":[
-				1.0000001192092896,
-				1.0000001192092896,
-				1.0000001192092896
-			],
-			"translation":[
-				-0.09046665579080582,
-				0.1310528814792633,
-				-0.14323881268501282
-			]
-		},
-		{
 			"name":"sway_scarf_a",
 			"rotation":[
 				-1,
@@ -173,7 +154,7 @@
 		},
 		{
 			"children":[
-				7
+				6
 			],
 			"name":"forearm_L",
 			"rotation":[
@@ -195,7 +176,7 @@
 		},
 		{
 			"children":[
-				8
+				7
 			],
 			"name":"upper_arm_L",
 			"rotation":[
@@ -293,10 +274,10 @@
 		},
 		{
 			"children":[
+				9,
 				10,
 				11,
-				12,
-				13
+				12
 			],
 			"name":"hand_R",
 			"rotation":[
@@ -318,7 +299,7 @@
 		},
 		{
 			"children":[
-				14
+				13
 			],
 			"name":"forearm_R",
 			"rotation":[
@@ -340,7 +321,7 @@
 		},
 		{
 			"children":[
-				15
+				14
 			],
 			"name":"upper_arm_R",
 			"rotation":[
@@ -366,9 +347,8 @@
 				3,
 				4,
 				5,
-				6,
-				9,
-				16
+				8,
+				15
 			],
 			"name":"chest",
 			"rotation":[
@@ -390,7 +370,7 @@
 		},
 		{
 			"children":[
-				17
+				16
 			],
 			"name":"spine",
 			"rotation":[
@@ -431,7 +411,7 @@
 		},
 		{
 			"children":[
-				19
+				18
 			],
 			"name":"shin_L",
 			"rotation":[
@@ -453,7 +433,7 @@
 		},
 		{
 			"children":[
-				20
+				19
 			],
 			"name":"thigh_L",
 			"rotation":[
@@ -494,7 +474,7 @@
 		},
 		{
 			"children":[
-				22
+				21
 			],
 			"name":"shin_R",
 			"rotation":[
@@ -516,7 +496,7 @@
 		},
 		{
 			"children":[
-				23
+				22
 			],
 			"name":"thigh_R",
 			"rotation":[
@@ -538,9 +518,9 @@
 		},
 		{
 			"children":[
-				18,
-				21,
-				24
+				17,
+				20,
+				23
 			],
 			"name":"hips",
 			"rotation":[
@@ -562,7 +542,7 @@
 		},
 		{
 			"children":[
-				25
+				24
 			],
 			"name":"root",
 			"rotation":[
@@ -584,8 +564,8 @@
 		},
 		{
 			"children":[
-				27,
-				26
+				26,
+				25
 			],
 			"name":"Robot_Rig",
 			"scale":[
@@ -680,33 +660,32 @@
 		{
 			"inverseBindMatrices":15,
 			"joints":[
-				26,
 				25,
-				18,
+				24,
 				17,
+				16,
 				0,
 				3,
 				2,
 				1,
 				4,
 				5,
-				6,
-				9,
 				8,
 				7,
-				16,
+				6,
 				15,
 				14,
+				13,
+				9,
 				10,
 				11,
 				12,
-				13,
-				21,
 				20,
 				19,
-				24,
+				18,
 				23,
-				22
+				22,
+				21
 			],
 			"name":"Robot_Rig"
 		}
@@ -835,7 +814,7 @@
 		{
 			"bufferView":15,
 			"componentType":5126,
-			"count":27,
+			"count":26,
 			"type":"MAT4"
 		}
 	],
@@ -932,13 +911,13 @@
 		},
 		{
 			"buffer":0,
-			"byteLength":1728,
+			"byteLength":1664,
 			"byteOffset":198408
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":200136,
+			"byteLength":200072,
 			"uri":"robot_headphones.bin"
 		}
 	]

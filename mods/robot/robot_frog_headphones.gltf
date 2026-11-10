@@ -8,7 +8,7 @@
 		{
 			"name":"Scene",
 			"nodes":[
-				28
+				27
 			]
 		}
 	],
@@ -96,60 +96,41 @@
 			]
 		},
 		{
-			"name":"sway_medal",
-			"rotation":[
-				-1,
-				8.470329472543003e-22,
-				-7.549790126404332e-08,
-				2.3880059529801656e-07
-			],
-			"scale":[
-				1.0000001192092896,
-				1.0000001192092896,
-				1.0000001192092896
-			],
-			"translation":[
-				-0.09840000420808792,
-				0.47800007462501526,
-				-0.0814998671412468
-			]
-		},
-		{
 			"name":"sway_scarf_a",
 			"rotation":[
-				-1,
-				4.235164736271502e-22,
-				-7.549790126404332e-08,
-				1.8626455755565985e-07
+				-0.9969173669815063,
+				1.3794805298061874e-09,
+				-1.7527922224758186e-08,
+				0.07845878601074219
 			],
 			"scale":[
 				1.0000001192092896,
 				1.0000001192092896,
-				1.0000001192092896
+				1.000012755393982
 			],
 			"translation":[
-				0.04510000720620155,
-				0.5299999713897705,
-				-0.08574984967708588
+				0.053560007363557816,
+				0.4806871712207794,
+				-0.17202448844909668
 			]
 		},
 		{
 			"name":"sway_scarf_b",
 			"rotation":[
-				-1,
-				8.470329472543003e-22,
-				-7.549790126404332e-08,
-				1.960679583135061e-07
+				-0.9969173669815063,
+				1.3794796416277677e-09,
+				-1.752791156661715e-08,
+				0.07845917344093323
 			],
 			"scale":[
 				1.0000001192092896,
-				1.0000001192092896,
-				1.0000001192092896
+				1,
+				1.0000025033950806
 			],
 			"translation":[
-				0.0820000022649765,
-				0.5219999551773071,
-				-0.10274985432624817
+				0.09856000542640686,
+				0.47393909096717834,
+				-0.19334261119365692
 			]
 		},
 		{
@@ -173,7 +154,7 @@
 		},
 		{
 			"children":[
-				7
+				6
 			],
 			"name":"forearm_L",
 			"rotation":[
@@ -195,7 +176,7 @@
 		},
 		{
 			"children":[
-				8
+				7
 			],
 			"name":"upper_arm_L",
 			"rotation":[
@@ -293,10 +274,10 @@
 		},
 		{
 			"children":[
+				9,
 				10,
 				11,
-				12,
-				13
+				12
 			],
 			"name":"hand_R",
 			"rotation":[
@@ -318,7 +299,7 @@
 		},
 		{
 			"children":[
-				14
+				13
 			],
 			"name":"forearm_R",
 			"rotation":[
@@ -340,7 +321,7 @@
 		},
 		{
 			"children":[
-				15
+				14
 			],
 			"name":"upper_arm_R",
 			"rotation":[
@@ -366,9 +347,8 @@
 				3,
 				4,
 				5,
-				6,
-				9,
-				16
+				8,
+				15
 			],
 			"name":"chest",
 			"rotation":[
@@ -390,7 +370,7 @@
 		},
 		{
 			"children":[
-				17
+				16
 			],
 			"name":"spine",
 			"rotation":[
@@ -431,7 +411,7 @@
 		},
 		{
 			"children":[
-				19
+				18
 			],
 			"name":"shin_L",
 			"rotation":[
@@ -453,7 +433,7 @@
 		},
 		{
 			"children":[
-				20
+				19
 			],
 			"name":"thigh_L",
 			"rotation":[
@@ -494,7 +474,7 @@
 		},
 		{
 			"children":[
-				22
+				21
 			],
 			"name":"shin_R",
 			"rotation":[
@@ -516,7 +496,7 @@
 		},
 		{
 			"children":[
-				23
+				22
 			],
 			"name":"thigh_R",
 			"rotation":[
@@ -538,9 +518,9 @@
 		},
 		{
 			"children":[
-				18,
-				21,
-				24
+				17,
+				20,
+				23
 			],
 			"name":"hips",
 			"rotation":[
@@ -562,7 +542,7 @@
 		},
 		{
 			"children":[
-				25
+				24
 			],
 			"name":"root",
 			"rotation":[
@@ -584,8 +564,8 @@
 		},
 		{
 			"children":[
-				27,
-				26
+				26,
+				25
 			],
 			"name":"Robot_Rig",
 			"scale":[
@@ -680,33 +660,32 @@
 		{
 			"inverseBindMatrices":15,
 			"joints":[
-				26,
 				25,
-				18,
+				24,
 				17,
+				16,
 				0,
 				3,
 				2,
 				1,
 				4,
 				5,
-				6,
-				9,
 				8,
 				7,
-				16,
+				6,
 				15,
 				14,
+				13,
+				9,
 				10,
 				11,
 				12,
-				13,
-				21,
 				20,
 				19,
-				24,
+				18,
 				23,
-				22
+				22,
+				21
 			],
 			"name":"Robot_Rig"
 		}
@@ -715,41 +694,41 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":2582,
+			"count":2574,
 			"max":[
-				0.24931666254997253,
-				1.6184003353118896,
-				0.14411351084709167
+				0.2592056095600128,
+				1.6105003356933594,
+				0.11721266806125641
 			],
 			"min":[
-				-0.25255104899406433,
-				1.417658805847168,
-				-0.0815001055598259
+				-0.2592056095600128,
+				1.377787470817566,
+				-0.15000002086162567
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":2582,
+			"count":2574,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5121,
-			"count":2582,
+			"count":2574,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":2582,
+			"count":2574,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
 			"componentType":5123,
-			"count":15468,
+			"count":15420,
 			"type":"SCALAR"
 		},
 		{
@@ -757,14 +736,14 @@
 			"componentType":5126,
 			"count":554,
 			"max":[
-				0.2644500136375427,
-				1.5604002475738525,
-				0.14205001294612885
+				0.2670000195503235,
+				1.5204002857208252,
+				0.11540001630783081
 			],
 			"min":[
-				-0.2644500136375427,
-				1.4196001291275024,
-				-0.10020001232624054
+				-0.2670000195503235,
+				1.379600167274475,
+				-0.17200002074241638
 			],
 			"type":"VEC3"
 		},
@@ -797,14 +776,14 @@
 			"componentType":5126,
 			"count":386,
 			"max":[
-				0.2804400324821472,
-				1.533137559890747,
-				0.1130848079919815
+				0.2826000452041626,
+				1.4928951263427734,
+				0.08789500594139099
 			],
 			"min":[
-				-0.2804400324821472,
-				1.4468629360198975,
-				0.021415192633867264
+				-0.2826000452041626,
+				1.4071052074432373,
+				0.0021049974020570517
 			],
 			"type":"VEC3"
 		},
@@ -835,110 +814,110 @@
 		{
 			"bufferView":15,
 			"componentType":5126,
-			"count":27,
+			"count":26,
 			"type":"MAT4"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":30984,
+			"byteLength":30888,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":30984,
-			"byteOffset":30984,
+			"byteLength":30888,
+			"byteOffset":30888,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":10328,
-			"byteOffset":61968,
+			"byteLength":10296,
+			"byteOffset":61776,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":41312,
-			"byteOffset":72296,
+			"byteLength":41184,
+			"byteOffset":72072,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":30936,
-			"byteOffset":113608,
+			"byteLength":30840,
+			"byteOffset":113256,
 			"target":34963
 		},
 		{
 			"buffer":0,
 			"byteLength":6648,
-			"byteOffset":144544,
+			"byteOffset":144096,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":6648,
-			"byteOffset":151192,
+			"byteOffset":150744,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":2216,
-			"byteOffset":157840,
+			"byteOffset":157392,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":8864,
-			"byteOffset":160056,
+			"byteOffset":159608,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":6576,
-			"byteOffset":168920,
+			"byteOffset":168472,
 			"target":34963
 		},
 		{
 			"buffer":0,
 			"byteLength":4632,
-			"byteOffset":175496,
+			"byteOffset":175048,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":4632,
-			"byteOffset":180128,
+			"byteOffset":179680,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":1544,
-			"byteOffset":184760,
+			"byteOffset":184312,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":6176,
-			"byteOffset":186304,
+			"byteOffset":185856,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":4584,
-			"byteOffset":192480,
+			"byteOffset":192032,
 			"target":34963
 		},
 		{
 			"buffer":0,
-			"byteLength":1728,
-			"byteOffset":197064
+			"byteLength":1664,
+			"byteOffset":196616
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":198792,
+			"byteLength":198280,
 			"uri":"robot_frog_headphones.bin"
 		}
 	]

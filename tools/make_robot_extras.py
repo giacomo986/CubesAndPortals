@@ -12,8 +12,8 @@
 # primary, secondary and accent the robot's own are.
 #
 # Bones the robot has not got are added here: one named sway_* hangs from its
-# parent and the client swings it about where it is bound (the scarf's ends,
-# the medal), so an extra moves a little of its own. Leaves the work in
+# parent and the client swings it about where it is bound (the scarf's ends),
+# so an extra moves a little of its own. Leaves the work in
 # assets/blender/robot_extras.blend. Shapes are in world space at rest, metres,
 # Z up and the robot facing +Y.
 import math
@@ -32,83 +32,167 @@ MATS = {
     "tint_2": ((0.10, 0.12, 0.15), 0.0, 0.5),
     "tint_3": ((0.85, 0.18, 0.03), 0.0, 0.45),
     "Extra_Gold": ((1.00, 0.76, 0.20), 1.0, 0.3),
+    # The emblem's own, whatever the player's colours (tools/dist/icon.png).
+    "Emblem_Cube": ((0.80, 0.80, 0.78), 0.0, 0.5),
+    "Emblem_Dark": ((0.08, 0.08, 0.12), 0.0, 0.4),
+    "Emblem_Blue": ((0.24, 0.55, 1.00), 0.0, 0.4),
+    "Emblem_Orange": ((1.00, 0.55, 0.12), 0.0, 0.4),
 }
 
-# The bones added to the rig: name, parent, head, tail (world, at rest).
-BONES = [
-    ("sway_scarf_a", "chest", (0.055, 0.195, 1.30), (0.055, 0.195, 1.05)),
-    ("sway_scarf_b", "chest", (0.10, 0.215, 1.29), (0.10, 0.215, 1.10)),
-    ("sway_medal", "chest", (-0.12, 0.19, 1.235), (-0.12, 0.19, 1.04)),
-]
-
-# A part: its shape (box, cyl, cone, dome, ball, torus, star), the bone it is
+# A part: its shape (box, cyl, cone, dome, ball, torus), the bone it is
 # bound to, its material, and where: c the centre, s a scale on the shape's own
 # axes, r a turn (degrees, applied z first, then y, then x).
 def P(k, bone, m, c, s=(1, 1, 1), r=(0, 0, 0), **kw):
     return dict(k=k, bone=bone, m=m, c=c, s=s, r=r, **kw)
 
 
-EXTRAS = {
-    # A baseball cap: a dome over the head, its peak forward and a little down.
-    "cap": [
-        P("dome", "head", "tint_1", (0, 0.005, 1.598), (0.232, 0.178, 0.13)),
-        P("cyl", "head", "tint_3", (0, 0.005, 1.606), (0.234, 0.18, 0.018)),
-        P("cyl", "head", "tint_3", (0, 0.17, 1.603), (0.175, 0.16, 0.012), (-7, 0, 0)),
-        P("ball", "head", "tint_3", (0, 0.005, 1.727), (0.024, 0.024, 0.016)),
-    ],
-    # A top hat: a crown flaring a little to the top, a band and a curled brim.
-    "tophat": [
-        P("cyl", "head", "tint_2", (-0.02, 0.005, 1.642), (0.205, 0.19, 0.016)),
-        P("torus", "head", "tint_2", (-0.02, 0.005, 1.648), (0.205, 0.19, 0.205), R=1.0, t=0.06),
-        P("cone", "head", "tint_2", (-0.02, 0.005, 1.785), (1, 1, 1), r1=0.122, r2=0.142, d=0.27),
-        P("cyl", "head", "tint_3", (-0.02, 0.005, 1.685), (0.128, 0.128, 0.05)),
-        P("star", "head", "tint_1", (-0.02, 0.135, 1.685), (1, 1, 1), (-90, 0, 0), ro=0.022, ri=0.01, d=0.008),
-    ],
-    # Headphones: an arched band over the top, padded cups and a microphone.
-    "headphones": [
-        P("torus", "head", "tint_2", (0, 0.015, 1.50), (0.285, 0.15, 0.285), (90, 0, 0), R=1.0, t=0.07,
-          arc=(0, 180)),
-        P("cyl", "head", "tint_3", (0.29, 0.015, 1.50), (0.088, 0.088, 0.065), (0, 90, 0)),
-        P("cyl", "head", "tint_3", (-0.29, 0.015, 1.50), (0.088, 0.088, 0.065), (0, 90, 0)),
-        P("torus", "head", "tint_2", (0.255, 0.015, 1.50), (0.07, 0.07, 0.07), (0, 90, 0), R=1.0, t=0.3),
-        P("torus", "head", "tint_2", (-0.255, 0.015, 1.50), (0.07, 0.07, 0.07), (0, 90, 0), R=1.0, t=0.3),
-        P("dome", "head", "tint_1", (0.322, 0.015, 1.50), (0.055, 0.055, 0.02), (0, 90, 0)),
-        P("dome", "head", "tint_1", (-0.322, 0.015, 1.50), (0.055, 0.055, 0.02), (0, -90, 0)),
-        P("cyl", "head", "tint_2", (-0.30, 0.10, 1.465), (0.008, 0.008, 0.18), (-90, 0, 12)),
-        P("ball", "head", "tint_3", (-0.282, 0.19, 1.465), (0.022, 0.022, 0.022)),
-    ],
-    # A knitted scarf: a thick loop round the neck, a knot in front and two
+# Where a body wears its extras, world at rest: what differs from one body to
+# another (tools/make_species.py has one of these for each species).
+#   cap     c the centre (x, y) and z the height of its rim, rx ry its half
+#           widths there, h how high it domes; back: worn peak backwards
+#   hat     the top hat: c, z its brim, r the crown's radius at the brim, h
+#           the crown's height
+#   ears    the headphones: x y z where a cup meets the head (the left one at
+#           -x), top the band's highest point, cup its size against the
+#           robot's, mic how far forward the microphone reaches
+#   neck    the scarf's loop: y z its centre, rx ry its radii, tube its
+#           thickness; lean the degrees its ends hang forward, over a belly
+#   bow     the bow tie's knot: y z, and s its size against the robot's
+#   medal   its pin: x y z, and lean as the scarf's
+ROBOT = dict(
+    cap=dict(c=(0.0, 0.005), z=1.598, rx=0.232, ry=0.178, h=0.13),
+    hat=dict(c=(-0.02, 0.005), z=1.642, r=0.122, h=0.27),
+    ears=dict(x=0.255, y=0.015, z=1.50, top=1.65, cup=1.0, mic=0.18),
+    neck=dict(y=0.015, z=1.335, rx=0.125, ry=0.115, tube=0.045, lean=0),
+    bow=dict(y=0.205, z=1.29, s=1.0),
+    medal=dict(x=-0.12, y=0.192, z=1.24, lean=0),
+)
+
+
+def emblem(bone, c, size, tilt=0):
+    """The game's emblem, a cube with a blue portal on one side and an orange
+    one on the other (tools/dist/icon.png), an edge forward and half sunk in
+    what it is on at `c`; tipped back `tilt` degrees, on a cap's dome."""
+    back = Matrix.Rotation(math.radians(tilt), 3, "X")
+    out = [P("box", bone, "Emblem_Cube", c, (size, size, size), (tilt, 0, 45))]
+    for side, colour in ((1, "Emblem_Blue"), (-1, "Emblem_Orange")):   # blue on the left, seen from in front
+        face = Vector(c) + back @ Vector((side * 0.3536 * size, 0.3536 * size, 0))   # the face's middle
+        turn, oval = (tilt - 90, side * 45, 0), (0.25 * size, 0.36 * size)
+        out += [P("cyl", bone, "Emblem_Dark", tuple(face), (*oval, 0.02 * size + 0.002), turn),
+                P("torus", bone, colour, tuple(face), (*oval, oval[0]), turn, R=1.0, t=0.22)]
+    return out
+
+
+def leaned(parts, pivot, lean):
+    """The parts hung `lean` degrees forward about the X axis through `pivot`."""
+    turn = Matrix.Rotation(math.radians(lean), 3, "X")
+    return [dict(p, c=tuple(Vector(pivot) + turn @ (Vector(p["c"]) - Vector(pivot))),
+                 r=(p["r"][0] + lean, p["r"][1], p["r"][2])) for p in parts]
+
+
+def extras(a):
+    """The six extras on a body whose places are `a`, and the bones they add to
+    the rig: name, parent, head, tail."""
+    out = {}
+
+    # A baseball cap: a dome, a band round its rim, a peak forward and a
+    # little down, a button on top and the emblem on the front.
+    x, y = a["cap"]["c"]
+    z, rx, ry, h = (a["cap"][k] for k in ("z", "rx", "ry", "h"))
+    cap = [
+        P("dome", "head", "tint_1", (x, y, z), (rx, ry, h)),
+        P("cyl", "head", "tint_3", (x, y, z + 0.008), (rx + 0.002, ry + 0.002, 0.018)),
+        P("cyl", "head", "tint_3", (x, y + 0.93 * ry, z + 0.005), (0.75 * rx, 0.9 * ry, 0.012), (-7, 0, 0)),
+        P("ball", "head", "tint_3", (x, y, z + 0.99 * h), (0.024, 0.024, 0.016)),
+    ] + emblem("head", (x, y + 0.80 * ry, z + 0.62 * h), 0.3 * rx, 38)
+    if a["cap"].get("back"):   # half a turn about the upright through its centre
+        cap = [dict(p, c=(2 * x - p["c"][0], 2 * y - p["c"][1], p["c"][2]),
+                    r=(-p["r"][0], -p["r"][1], p["r"][2] + 180)) for p in cap]
+    out["cap"] = cap
+
+    # A top hat: a brim with a curled edge, a crown flaring a little to the
+    # top, a band and the emblem on it.
+    x, y = a["hat"]["c"]
+    z, r, h = (a["hat"][k] for k in ("z", "r", "h"))
+    out["tophat"] = [
+        P("cyl", "head", "tint_2", (x, y, z), (1.68 * r, 1.56 * r, 0.016)),
+        P("torus", "head", "tint_2", (x, y, z + 0.006), (1.68 * r, 1.56 * r, 1.68 * r), R=1.0, t=0.06),
+        P("cone", "head", "tint_2", (x, y, z + 0.008 + h / 2), (1, 1, 1), r1=r, r2=1.16 * r, d=h),
+        P("cyl", "head", "tint_3", (x, y, z + 0.043), (1.05 * r, 1.05 * r, 0.05)),
+    ] + emblem("head", (x, y + 1.05 * r, z + 0.043), 0.042)
+
+    # Headphones: a band arched over the top, a padded cup on each side and a
+    # microphone on a boom from the left one.
+    x, y, z, top, k, mic = (a["ears"][k] for k in ("x", "y", "z", "top", "cup", "mic"))
+    phones = [P("torus", "head", "tint_2", (0, y, z), (x + 0.03, top - z, 0.285), (90, 0, 0), R=1.0, t=0.07,
+                arc=(0, 180))]
+    for side in (1, -1):
+        phones += [
+            P("cyl", "head", "tint_3", (side * (x + 0.035 * k), y, z), (0.088 * k, 0.088 * k, 0.065 * k), (0, 90, 0)),
+            P("torus", "head", "tint_2", (side * x, y, z), (0.07 * k, 0.07 * k, 0.07 * k), (0, 90, 0), R=1.0, t=0.3),
+            P("dome", "head", "tint_1", (side * (x + 0.067 * k), y, z), (0.055 * k, 0.055 * k, 0.02 * k),
+              (0, side * 90, 0)),
+        ]
+    out["headphones"] = phones + [
+        P("cyl", "head", "tint_2", (-(x + 0.045 * k), y - 0.005 + mic / 2, z - 0.035 * k),
+          (0.008, 0.008, mic), (-90, 0, 12)),
+        P("ball", "head", "tint_3", (-(x + 0.045 * k) + 0.1 * mic, y + mic - 0.005, z - 0.035 * k),
+          (0.022, 0.022, 0.022)),
+    ]
+
+    # A knitted scarf: wound twice round the neck, a knot in front and two
     # striped ends with a fringe, hanging free.
-    "scarf": [
-        P("torus", "chest", "tint_3", (0, 0.015, 1.335), (0.125, 0.115, 0.125), R=1.0, t=0.36),
-        P("ball", "chest", "tint_3", (0.06, 0.15, 1.31), (0.05, 0.04, 0.045)),
-        P("box", "sway_scarf_a", "tint_3", (0.055, 0.197, 1.175), (0.085, 0.026, 0.25)),
-        P("box", "sway_scarf_a", "tint_2", (0.055, 0.197, 1.11), (0.087, 0.028, 0.018)),
-        P("box", "sway_scarf_a", "tint_2", (0.055, 0.197, 1.145), (0.087, 0.028, 0.018)),
-        P("box", "sway_scarf_b", "tint_3", (0.10, 0.217, 1.195), (0.075, 0.022, 0.19), (0, -8, 0)),
-        P("box", "sway_scarf_b", "tint_2", (0.107, 0.217, 1.14), (0.077, 0.024, 0.018), (0, -8, 0)),
-    ] + [P("box", "sway_scarf_a", "tint_2", (0.025 + 0.02 * i, 0.197, 1.035), (0.008, 0.012, 0.03))
-         for i in range(4)],
+    y, z, rx, ry, tube, lean = (a["neck"][k] for k in ("y", "z", "rx", "ry", "tube", "lean"))
+    kx, ey = 0.48 * rx, y + ry + tube + 0.022
+    ends = [
+        P("box", "sway_scarf_a", "tint_3", (kx - 0.005, ey, z - 0.16), (0.085, 0.026, 0.25)),
+        P("box", "sway_scarf_a", "tint_2", (kx - 0.005, ey, z - 0.225), (0.087, 0.028, 0.018)),
+        P("box", "sway_scarf_a", "tint_2", (kx - 0.005, ey, z - 0.19), (0.087, 0.028, 0.018)),
+        P("box", "sway_scarf_b", "tint_3", (kx + 0.04, ey + 0.02, z - 0.14), (0.075, 0.022, 0.19), (0, -8, 0)),
+        P("box", "sway_scarf_b", "tint_2", (kx + 0.047, ey + 0.02, z - 0.195), (0.077, 0.024, 0.018), (0, -8, 0)),
+    ] + [P("box", "sway_scarf_a", "tint_2", (kx - 0.035 + 0.02 * i, ey, z - 0.30), (0.008, 0.012, 0.03))
+         for i in range(4)]
+    hang = (0, ey, z - 0.035)
+    out["scarf"] = [
+        P("torus", "chest", "tint_3", (0, y, z), (rx, ry, rx), R=1.0, t=tube / rx),
+        P("torus", "chest", "tint_3", (0, y - 0.004, z + 0.75 * tube), (0.93 * rx, 0.93 * ry, 0.93 * rx), (7, 0, 20),
+          R=1.0, t=0.8 * tube / rx),
+        P("ball", "chest", "tint_3", (kx, y + ry + 0.78 * tube, z - 0.025), (0.05, 0.04, 0.045)),
+    ] + leaned(ends, hang, lean)
+
     # A bow tie under the chin: two lobes and a knot.
-    "bowtie": [
-        P("cone", "chest", "tint_3", (0.062, 0.205, 1.29), (1, 1, 1), (0, -90, 45), r1=0.06, r2=0.016, d=0.085,
-          seg=4),
-        P("cone", "chest", "tint_3", (-0.062, 0.205, 1.29), (1, 1, 1), (0, 90, 45), r1=0.06, r2=0.016, d=0.085,
-          seg=4),
-        P("ball", "chest", "tint_2", (0, 0.212, 1.29), (0.03, 0.024, 0.028)),
-    ],
-    # A medal on a ribbon, on the left of the chest, swinging from its pin.
-    "medal": [
-        P("box", "chest", "Extra_Gold", (-0.12, 0.192, 1.24), (0.07, 0.012, 0.016)),
-        P("box", "sway_medal", "tint_3", (-0.12, 0.19, 1.175), (0.064, 0.012, 0.115)),
-        P("box", "sway_medal", "tint_1", (-0.12, 0.191, 1.175), (0.018, 0.013, 0.116)),
-        P("cyl", "sway_medal", "Extra_Gold", (-0.12, 0.198, 1.075), (0.05, 0.05, 0.014), (-90, 0, 0)),
-        P("torus", "sway_medal", "Extra_Gold", (-0.12, 0.198, 1.075), (0.05, 0.05, 0.05), (-90, 0, 0), R=1.0,
+    y, z, k = (a["bow"][k] for k in ("y", "z", "s"))
+    out["bowtie"] = [
+        P("cone", "chest", "tint_3", (0.062 * k, y, z), (1, 1, 1), (0, -90, 45), r1=0.06 * k, r2=0.016 * k,
+          d=0.085 * k, seg=4),
+        P("cone", "chest", "tint_3", (-0.062 * k, y, z), (1, 1, 1), (0, 90, 45), r1=0.06 * k, r2=0.016 * k,
+          d=0.085 * k, seg=4),
+        P("ball", "chest", "tint_2", (0, y + 0.007, z), (0.03 * k, 0.024 * k, 0.028 * k)),
+    ]
+
+    # A medal on a ribbon, pinned on the left of the chest and still on it: one
+    # that swung (a sway_medal bone) left the chest at every step.
+    x, y, z, mlean = (a["medal"][k] for k in ("x", "y", "z", "lean"))
+    out["medal"] = [P("box", "chest", "Extra_Gold", (x, y, z), (0.07, 0.012, 0.016))] + leaned([
+        P("box", "chest", "tint_3", (x, y - 0.002, z - 0.065), (0.064, 0.012, 0.115)),
+        P("box", "chest", "tint_1", (x, y - 0.001, z - 0.065), (0.018, 0.013, 0.116)),
+        P("cyl", "chest", "Extra_Gold", (x, y + 0.006, z - 0.165), (0.05, 0.05, 0.014), (-90, 0, 0)),
+        P("torus", "chest", "Extra_Gold", (x, y + 0.006, z - 0.165), (0.05, 0.05, 0.05), (-90, 0, 0), R=1.0,
           t=0.16),
-        P("star", "sway_medal", "tint_3", (-0.12, 0.206, 1.075), (1, 1, 1), (-90, 0, 0), ro=0.032, ri=0.014,
-          d=0.008),
-    ],
-}
+    ] + emblem("chest", (x, y + 0.013, z - 0.165), 0.046), (x, y, z), mlean)
+
+    def bone(name, head, tail, pivot, by):
+        turn = Matrix.Rotation(math.radians(by), 3, "X")
+        return (name, "chest", *(tuple(Vector(pivot) + turn @ (Vector(q) - Vector(pivot))) for q in (head, tail)))
+    nz = a["neck"]["z"]
+    bones = [
+        bone("sway_scarf_a", (kx - 0.005, ey - 0.002, nz - 0.035), (kx - 0.005, ey - 0.002, nz - 0.285), hang, lean),
+        bone("sway_scarf_b", (kx + 0.04, ey + 0.018, nz - 0.045), (kx + 0.04, ey + 0.018, nz - 0.235), hang, lean),
+    ]
+    return out, bones
+
+
+EXTRAS, BONES = extras(ROBOT)
 
 
 def material(name, rgb, metal, rough):
@@ -145,23 +229,6 @@ def torus(bm, R, t, arc=(0, 360), nu=28, nv=10):
     return [v for row in rows for v in row]
 
 
-def star(bm, ro, ri, d):
-    """A five-pointed star in the XY plane, d thick along Z."""
-    pts = []
-    for i in range(10):
-        a = math.pi / 2 + math.pi * i / 5
-        r = ro if i % 2 == 0 else ri
-        pts.append((r * math.cos(a), r * math.sin(a)))
-    low = [bm.verts.new((x, y, -d / 2)) for x, y in pts]
-    high = [bm.verts.new((x, y, d / 2)) for x, y in pts]
-    bm.faces.new(low[::-1])
-    bm.faces.new(high)
-    for i in range(10):
-        j = (i + 1) % 10
-        bm.faces.new((low[i], low[j], high[j], high[i]))
-    return low + high
-
-
 def shape(bm, part):
     k = part["k"]
     if k == "box":
@@ -181,8 +248,6 @@ def shape(bm, part):
             bmesh.ops.contextual_create(bm, geom=rim)
     elif k == "torus":
         verts = torus(bm, part["R"], part["t"], part.get("arc", (0, 360)))
-    elif k == "star":
-        verts = star(bm, part["ro"], part["ri"], part["d"])
     turn = Euler([math.radians(a) for a in part["r"]], "ZYX").to_matrix().to_4x4()
     m = Matrix.Translation(Vector(part["c"])) @ turn @ Matrix.Diagonal((*part["s"], 1))
     for v in verts:

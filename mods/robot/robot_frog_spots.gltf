@@ -604,7 +604,7 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":1288,
+			"count":1033,
 			"max":[
 				0.1698247492313385,
 				1.5895764827728271,
@@ -613,32 +613,32 @@
 			"min":[
 				-0.16121944785118103,
 				1.005000114440918,
-				-0.04970704764127731
+				-0.04952128976583481
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":1288,
+			"count":1033,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5121,
-			"count":1288,
+			"count":1033,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":1288,
+			"count":1033,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
 			"componentType":5123,
-			"count":7632,
+			"count":6102,
 			"type":"SCALAR"
 		},
 		{
@@ -651,43 +651,43 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":15456,
+			"byteLength":12396,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":15456,
-			"byteOffset":15456,
+			"byteLength":12396,
+			"byteOffset":12396,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":5152,
-			"byteOffset":30912,
+			"byteLength":4132,
+			"byteOffset":24792,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":20608,
-			"byteOffset":36064,
+			"byteLength":16528,
+			"byteOffset":28924,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":15264,
-			"byteOffset":56672,
+			"byteLength":12204,
+			"byteOffset":45452,
 			"target":34963
 		},
 		{
 			"buffer":0,
 			"byteLength":1536,
-			"byteOffset":71936
+			"byteOffset":57656
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":73472,
+			"byteLength":59192,
 			"uri":"robot_frog_spots.bin"
 		}
 	]

@@ -519,7 +519,7 @@
 		},
 		{
 			"mesh":0,
-			"name":"robot_human_long_head",
+			"name":"robot_human_long_fine",
 			"skin":0
 		},
 		{
@@ -553,7 +553,7 @@
 	],
 	"meshes":[
 		{
-			"name":"robot_human_long_head",
+			"name":"robot_human_long_fine",
 			"primitives":[
 				{
 					"attributes":{
@@ -604,41 +604,41 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":1089,
+			"count":675,
 			"max":[
-				0.19674994051456451,
-				1.6937408447265625,
-				0.18758121132850647
+				0.17947521805763245,
+				1.6887425184249878,
+				0.18856334686279297
 			],
 			"min":[
-				-0.19687452912330627,
-				1.2316161394119263,
-				-0.15834727883338928
+				-0.17890211939811707,
+				1.2630658149719238,
+				-0.15724407136440277
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":1089,
+			"count":675,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5121,
-			"count":1089,
+			"count":675,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":1089,
+			"count":675,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
 			"componentType":5123,
-			"count":6522,
+			"count":4026,
 			"type":"SCALAR"
 		},
 		{
@@ -651,43 +651,43 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":13068,
+			"byteLength":8100,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":13068,
-			"byteOffset":13068,
+			"byteLength":8100,
+			"byteOffset":8100,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":4356,
-			"byteOffset":26136,
+			"byteLength":2700,
+			"byteOffset":16200,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":17424,
-			"byteOffset":30492,
+			"byteLength":10800,
+			"byteOffset":18900,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":13044,
-			"byteOffset":47916,
+			"byteLength":8052,
+			"byteOffset":29700,
 			"target":34963
 		},
 		{
 			"buffer":0,
 			"byteLength":1536,
-			"byteOffset":60960
+			"byteOffset":37752
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":62496,
+			"byteLength":39288,
 			"uri":"robot_human_long.bin"
 		}
 	]

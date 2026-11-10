@@ -603,11 +603,11 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":438,
+			"count":352,
 			"max":[
-				0.09473764151334763,
+				0.09480718523263931,
 				1.6750001907348633,
-				0.1550000160932541
+				0.15462593734264374
 			],
 			"min":[
 				-0.09476570039987564,
@@ -619,25 +619,25 @@
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":438,
+			"count":352,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5121,
-			"count":438,
+			"count":352,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":438,
+			"count":352,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
 			"componentType":5123,
-			"count":2556,
+			"count":2040,
 			"type":"SCALAR"
 		},
 		{
@@ -650,43 +650,43 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":5256,
+			"byteLength":4224,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":5256,
-			"byteOffset":5256,
+			"byteLength":4224,
+			"byteOffset":4224,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1752,
-			"byteOffset":10512,
+			"byteLength":1408,
+			"byteOffset":8448,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":7008,
-			"byteOffset":12264,
+			"byteLength":5632,
+			"byteOffset":9856,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":5112,
-			"byteOffset":19272,
+			"byteLength":4080,
+			"byteOffset":15488,
 			"target":34963
 		},
 		{
 			"buffer":0,
 			"byteLength":1536,
-			"byteOffset":24384
+			"byteOffset":19568
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":25920,
+			"byteLength":21104,
 			"uri":"robot_frog_crown.bin"
 		}
 	]

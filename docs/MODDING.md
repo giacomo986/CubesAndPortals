@@ -1723,8 +1723,9 @@ on foot and get into a parked kart: `games/track`.
   replaces the styles that are hats (lamp, crown, lily pad). A world that does not register the
   species shows the robot. `tools/make_species.py` makes them all: every body part (head, torso, arm,
   leg) is a single surface, primitives fused with a voxel remesh, smoothed and decimated, with weights
-  blended at the joints; eyes and small details stay sharp. A `sway_*` bone swings only forwards, away
-  from the chest. In a worn piece, a bone the player lacks follows its parent, and if named `sway_*`
+  blended at the joints; eyes and small details stay sharp. A species' accessories are built to its
+  own measures (`WEARS` there, `extras()` in `tools/make_robot_extras.py`), not scaled from the robot's.
+  A `sway_*` bone swings only forwards, away from the chest. In a worn piece, a bone the player lacks follows its parent, and if named `sway_*`
   dangles too round where it is attached.
 * **Tools in hand.** A `tool_<name>` bone shows only when the item in hand is named `<mod>:<name>`
   (`tool_pick` for `tools:pick`), and the other `tool_*` vanish: on the arms and on your own body in

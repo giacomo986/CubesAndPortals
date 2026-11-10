@@ -9,7 +9,8 @@ written -- but whose skeleton has not: export only the new clips from the
 .blend (NLA tracks named as the clips) and add them here. A clip already in
 the target under that name is replaced. Each channel goes to the target node
 of the same name; a channel for a node the target does not have is dropped.
-The keys are appended to the target's .bin; nothing else in it moves.
+The keys are appended to the target's .bin, equal runs of them once; nothing
+else in it moves.
 """
 import json
 import os
@@ -39,6 +40,7 @@ def main():
 
     tbin = tbins[0]
     copied = {}   # source accessor -> target accessor
+    views = {}    # bytes copied -> the target view holding them
 
     def copy_accessor(ai):
         if ai in copied:
@@ -46,14 +48,19 @@ def main():
         acc = dict(src["accessors"][ai])
         view = src["bufferViews"][acc["bufferView"]]
         data = sbins[view["buffer"]][view.get("byteOffset", 0):view.get("byteOffset", 0) + view["byteLength"]]
-        while len(tbin) % 4:
-            tbin.append(0)
-        new_view = {"buffer": 0, "byteOffset": len(tbin), "byteLength": len(data)}
-        if "byteStride" in view:
-            new_view["byteStride"] = view["byteStride"]
-        tbin.extend(data)
-        tgt["bufferViews"].append(new_view)
-        acc["bufferView"] = len(tgt["bufferViews"]) - 1
+        # The same bytes are written once: a clip's bones share their key
+        # times, and most of their scales.
+        key = (bytes(data), view.get("byteStride"))
+        if key not in views:
+            while len(tbin) % 4:
+                tbin.append(0)
+            new_view = {"buffer": 0, "byteOffset": len(tbin), "byteLength": len(data)}
+            if "byteStride" in view:
+                new_view["byteStride"] = view["byteStride"]
+            tbin.extend(data)
+            tgt["bufferViews"].append(new_view)
+            views[key] = len(tgt["bufferViews"]) - 1
+        acc["bufferView"] = views[key]
         tgt["accessors"].append(acc)
         copied[ai] = len(tgt["accessors"]) - 1
         return copied[ai]
