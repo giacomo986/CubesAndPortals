@@ -2387,6 +2387,12 @@ Alcuni che usano altri mod:
   **`cinnabar:changed { x, y, z }`**: un mod ha cambiato lì un blocco che può far parte di un circuito --
   il circuito attorno viene ricalcolato. `mods/cameras` dichiara `cameras:camera_on` e avvisa a ogni
   cambio.
+* **`cinnabar:family { name, find, way }`** (mods/cinnabar): molti blocchi di un mod in una volta. `find` è
+  un `prefisso*` cercato una volta sola per tutti. `way` è `all` (dà energia da ogni lato, senza premere il
+  blocco sotto), `out` (la dà come un ripetitore, dal lato opposto al fronte) o `join` (la polvere si limita
+  a disegnare una linea verso il blocco; `find` vuoto). **`cinnabar:put { x, y, z }`**: cinnabar ha cambiato
+  il blocco lì; può arrivare a metà del suo calcolo, quindi va annotato e gestito al tick dopo. Li usa
+  `mods/circuits`.
 * **`weather:darken { amount }`** (mods/weather): il giorno del server più scuro di tanto, 0..1, qualunque
   sia il meteo (vale il più scuro dei due): l'eclissi di `mods/sky`, che fa uscire le creature della notte.
 * **`farm:season { name, left }`** (mods/farm, detto da mods/weather): la stagione, e i giorni che ne

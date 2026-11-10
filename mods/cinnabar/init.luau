@@ -390,6 +390,29 @@ core.event.on("cinnabar:source", function(ev)
     end
 end)
 
+-- Many blocks of one mod at once (mods/circuits). `find` is a "prefix*" searched
+-- once for all of them. way "all" gives power out of every side, as a source
+-- does but without pressing the block under it; "out" gives it as a repeater
+-- does, out of the side away from the front; "join" only draws dust into it.
+local OTHER_GENTLE: { [number]: boolean } = {}
+local OUT_FINDS: { string } = {}
+core.event.define("cinnabar:family", { fields = { name = "string", find = "string", way = "string" }, cancellable = false })
+core.event.on("cinnabar:family", function(ev)
+    local id = core.node_id(ev.name)
+    if id == 0 then
+        return
+    end
+    OTHER_SOURCES[id] = true
+    PART[id] = true
+    OTHER_GENTLE[id] = ev.way == "all" or nil
+    local list = if ev.way == "all" then OTHER_NAMES elseif ev.way == "out" then OUT_FINDS else nil
+    if list and not table.find(list, ev.find) then
+        table.insert(list, ev.find)
+    end
+end)
+-- Every block this mod changes, for the mods that read a circuit.
+core.event.define("cinnabar:put", { fields = { x = "number", y = "number", z = "number" }, cancellable = false })
+
 local function dust_joins(id: number, x: number, y: number, z: number, dx: number, dz: number): boolean
     if OTHER_SOURCES[id] or DUST[id] or id == LEVER or id == LEVER_ON or id == BUTTON or id == BUTTON_ON or id == TORCH
         or id == TORCH_OFF or id == BLOCK or id == MORE.PLATE or id == MORE.PLATE_ON or PISTONS[id] then
@@ -450,6 +473,7 @@ local function put(x: number, y: number, z: number, id: number)
         if not (DUST[was] and DUST[id]) then
             reshape_around(x, y, z)
         end
+        core.event.emit("cinnabar:put", { x = x, y = y, z = z })
     end
 end
 
@@ -564,7 +588,8 @@ local function solve(cx: number, cy: number, cz: number): { Cell }
 
     for _, s in sources do
         src[k(s.x, s.y, s.z)] = 15
-        if core.get_block(s.x, s.y, s.z) ~= BLOCK then
+        local here = core.get_block(s.x, s.y, s.z)
+        if here ~= BLOCK and not OTHER_GENTLE[here] then
             strongly(s.x, s.y - 1, s.z)
         end
     end
@@ -592,6 +617,9 @@ local function solve(cx: number, cy: number, cz: number): { Cell }
         if core.get_block(c.x, c.y, c.z) == COMPARATOR_ON then
             gives(c, level_of(c.x, c.y, c.z))
         end
+    end
+    for _, c in found(cx, cy, cz, OUT_FINDS) do
+        gives(c, 15)
     end
     -- An observer mid-pulse gives fifteen out of its front.
     for _, o in observers do

@@ -2114,6 +2114,12 @@ Some that other mods use:
   that is on, once that mod has said its name; dust beside it draws a line into it. **`cinnabar:changed
   { x, y, z }`**: a mod changed a block there that may be in a circuit -- the circuit round it is worked
   out again. `mods/cameras` says `cameras:camera_on` and tells each change.
+* **`cinnabar:family { name, find, way }`** (mods/cinnabar): many blocks of one mod at once. `find` is a
+  `prefix*` searched once for all of them. `way` is `all` (gives power out of every side, without pressing
+  the block under it), `out` (gives it like a repeater, out of the side away from the front) or `join`
+  (dust only draws a line into it; `find` empty). **`cinnabar:put { x, y, z }`**: cinnabar changed the block
+  there; it can arrive in the middle of its solving, so note it and act on the next tick. `mods/circuits`
+  uses both.
 * **`weather:darken { amount }`** (mods/weather): the server's day darker by this much, 0..1, whatever
   the weather (the darker of the two holds): `mods/sky`'s eclipse, which lets the night's creatures out.
 * **`farm:season { name, left }`** (mods/farm, told by mods/weather): the season, and the days left of

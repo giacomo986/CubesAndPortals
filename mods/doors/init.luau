@@ -115,6 +115,13 @@ local function powered(x: number, y: number, z: number): boolean
                 on[id] = true
             end
         end end end end
+        -- Alloy wire that is lit, in every shape (mods/circuits).
+        for _, s in { "none", "end", "line", "corner", "tee", "cross", "riser" } do
+            local id = core.node_id(`circuits:alloy_on_{s}`)
+            if id ~= 0 then
+                on[id] = true
+            end
+        end
         ON = on
     end
     local on = ON :: { [number]: boolean }

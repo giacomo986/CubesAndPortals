@@ -314,5 +314,13 @@ def main():
                        ("hopper_locked", (70, 60, 60))):   # cinnabar_hopper.png is the icon (make_held_models.py)
         stone("cinnabar_" + name, tint, rng)
     gravel(random.Random(4242))
+    # The placed block keeps these pictures on its faces; the plain file is the
+    # item's icon, drawn by tools/make_item_textures.py (run it after this).
+    for name in ("cinnabar_lever", "cinnabar_torch", "torches_torch"):
+        plain = os.path.join(OUT, name + ".png")
+        img = Image.open(plain)
+        for face in ("top", "bottom", "side"):
+            img.save(os.path.join(OUT, f"{name}_{face}.png"))
+        os.remove(plain)
 
 main()

@@ -458,6 +458,11 @@ comparators, lamps, pistons, observers and hoppers, so clocks and logic work. Co
 (`mods/helpers`) you program with up to six orders: chop trees, plant, dig, mine, sort chests,
 cook, quarry, light up the land, follow you.
 
+**Circuits** (`mods/circuits`). Alloy wire that carries power without fading, insulated wire in sixteen
+colours that joins only its own colour, cables that carry sixteen signals at once, risers, sixteen logic
+gates (AND, OR, NOT, XOR and friends, latches, pulse, timer, counter, random, light sensor) and lamps that
+light in their colour. They work with cinnabar; dust goes into a wire through a repeater or a buffer gate.
+
 **Cameras** (`mods/cameras`). A camera -- on a floor, a wall or a ceiling, wherever it is put -- and a
 screen: right click the camera, then the screen, and the
 screen shows live what the camera sees -- the base, the race, a village. Right click the screen again

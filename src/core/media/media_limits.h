@@ -19,8 +19,8 @@ namespace cnp {
 // memory problem.
 inline constexpr size_t kMaxMediaBytes = 1024u * 1024u;
 
-// One per block, and a world with four thousand distinct blocks is well past
-// anything this engine has generated.
-inline constexpr size_t kMaxMediaItems = 4096;
+// One name per block, item, model file, sound and mod. The sandbox filled 4096
+// (protocol 123 doubled it): what comes last, the mods' client code, was dropped.
+inline constexpr size_t kMaxMediaItems = 8192;
 
 } // namespace cnp

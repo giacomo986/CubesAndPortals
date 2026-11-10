@@ -8229,8 +8229,8 @@ int serve_room(int argc, char **argv)
                     }
                     const size_t size = pkg.size();
                     if (!media.add(world_code_media_name(mod.manifest.name), std::move(pkg))) {
-                        std::printf("        world code '%s': not offered -- %zu bytes, more than "
-                                    "one media file may be\n",
+                        std::printf("        world code '%s': not offered -- %zu bytes: a media file too "
+                                    "big, or the world's media full\n",
                                     mod.manifest.name.c_str(), size);
                         continue;
                     }

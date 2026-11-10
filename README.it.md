@@ -470,6 +470,12 @@ estrattori. Robot aiutanti (`mods/helpers`) da programmare con fino a sei ordini
 alberi, piantare, scavare, cercare minerali, ordinare le casse, cucinare, cavare, illuminare il
 terreno, seguire chi li ha messi.
 
+**Circuiti** (`mods/circuits`). Filo di lega che porta l'energia senza calare, filo isolato in sedici
+colori che si unisce solo al proprio colore, cavi che portano sedici segnali insieme, montanti, sedici porte
+logiche (AND, OR, NOT, XOR e simili, latch, impulso, temporizzatore, contatore, casuale, sensore di luce) e
+lampade che si accendono del loro colore. Funzionano col cinabro; la polvere entra in un filo attraverso un
+ripetitore o una porta buffer.
+
 **Telecamere** (`mods/cameras`). Una telecamera -- a terra, su una parete o al soffitto, dove la si
 appoggia -- e uno schermo: tasto destro sulla telecamera, poi
 sullo schermo, e lo schermo mostra dal vivo cosa vede la telecamera -- la base, la gara, un villaggio.

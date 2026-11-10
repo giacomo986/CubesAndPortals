@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 122; // 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
+inline constexpr uint16_t kProtocol    = 123; // 123 kMaxNodeShapes 2048; 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -394,7 +394,10 @@ inline constexpr uint16_t kProtocol    = 122; // 122 Slain, a block's selection 
 // 120 gives an opening a view (Portal::view, two bits over the free and scales
 // ones): a 119 client refuses the bits as a byte past 3.
 // 122 adds Slain, and a client that meets a message it does not know hangs up.
-inline constexpr uint16_t kMinProtocol = 122;
+// 123 lets the welcome hold 2048 blocks with a shape (kMaxNodeShapes), which a
+// 122 client refuses past 1024: the sandbox reached 1117 with mods/circuits.
+// And a world offer 8192 media (kMaxMediaItems), refused by a 122 past 4096.
+inline constexpr uint16_t kMinProtocol = 123;
 
 // What a player picked to look like (protocol 93): the three colours of their
 // model's tint_1..3 materials -- primary, secondary, accent -- five bits each,
@@ -783,9 +786,9 @@ inline constexpr size_t kMaxNodeName     = 96;
 //
 // Both are far above what content does -- a game of the original engine's nodeboxes are a few
 // hundred blocks of a handful of boxes each -- and both are here because this is
-// a list a stranger's server sends: 1024 x 16 boxes is at most 1024 * 16 * 25
-// bytes, about 400 KB, the same ceiling the name table already has.
-inline constexpr size_t kMaxNodeShapes   = 1024;
+// a list a stranger's server sends: 2048 x 16 boxes is at most 2048 * 16 * 25
+// bytes, about 800 KB (protocol 123; 1024 before).
+inline constexpr size_t kMaxNodeShapes   = 2048;
 inline constexpr size_t kMaxNodeBoxes    = 16;
 
 // And what a box's PART may be called. A name is what makes a box a piece that
