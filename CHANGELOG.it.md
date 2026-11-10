@@ -5,6 +5,32 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
+## 0.16.0-alpha.1 — 2026-11-10
+
+**Non gioca con i server 0.15** (protocollo 123). I mondi si leggono così come sono; le lampade nelle
+colonne salvate prima di questa versione prendono il loro colore quando vengono riaccese.
+
+- **Città e autostrade**: i mondi nuovi hanno città collegate da autostrade, paesi attorno e villaggi
+  sparsi nella natura, con un cartello dove si incrociano due sentieri. Ogni mondo sceglie la sua
+  profondità e la sua altezza.
+- **Luce colorata**: ogni lampada illumina del suo colore.
+- **Circuiti** (mod `circuits`): filo di lega che porta la corrente senza perderla, filo isolato in
+  sedici colori, cavi da sedici segnali, montanti, sedici porte logiche e lampade colorate, tutti
+  compatibili col cinabro.
+- **Il corridore** (`mobs:runner`): un mostro notturno raro che scatta, si arrampica sui muri e ti salta addosso da 7
+  blocchi. Anche gli zombie si arrampicano, fino a 6 blocchi, e chi si arrampica si aggrappa a un
+  bordo quando cade e si tira su.
+- I mostri uccisi si disfano in rosso. In prima persona l'arco mira al mirino.
+- **Umano, talpa e rana rifatti**, con cappelli, medaglia e gli altri accessori fatti su misura per
+  ogni corpo; un cubo con due portali sostituisce la stella su berretto, cilindro e medaglia.
+- **La risoluzione** funziona in ogni modalità, schermo intero compreso, senza ridimensionare la
+  finestra: il gioco viene scalato per riempirla.
+- Le creature del giardino parlano molto meno spesso. La fornace completa le fusioni maturate mentre
+  eri lontano. La finestra fluttuante mantiene la sua dimensione.
+- Per gli admin: `/mute` blocca anche gli scambi, l'ingresso in una partita, l'aggiunta di proprietari
+  a un territorio e la cassetta delle lettere. Di due copie di una borsa resta quella che si è mossa
+  di più, l'altra va in `/oldbags`.
+
 ## 0.15.0-alpha.2 — 2026-11-08
 
 - **Opzioni video** (Opzioni, poi Video): finestra, senza bordi o schermo intero, risoluzione, VSync,

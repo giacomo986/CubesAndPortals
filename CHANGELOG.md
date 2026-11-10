@@ -5,6 +5,30 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
+## 0.16.0-alpha.1 — 2026-11-10
+
+**Does not play with 0.15 servers** (protocol 123). Worlds are read as they are; lamps in columns
+saved before this version shine in their colour once they are lit again.
+
+- **Cities and highways**: new worlds have cities joined by highways, towns around them and villages
+  scattered in the wilderness, with a signpost where two paths cross. Each world chooses its own depth
+  and height.
+- **Coloured light**: every lamp lights in its own colour.
+- **Circuits** (mod `circuits`): alloy wire that carries power without fading, insulated wire in
+  sixteen colours, sixteen-signal cables, risers, sixteen logic gates and coloured lamps, all working
+  with cinnabar.
+- **The runner**: a rare night monster that sprints, climbs walls and dives at you from 7 blocks away.
+  Zombies climb too, up to 6 blocks, and climbers catch a ledge when they fall and pull themselves up.
+- Monsters killed come apart in red. The bow aims at the crosshair in first person.
+- **Human, mole and frog remade**, with hats, medal and the other accessories made to fit each body;
+  a cube with two portals replaces the star on cap, top hat and medal.
+- **Resolution** works in every display mode, full screen included, without resizing the window: the
+  game is scaled to fill it.
+- The garden's creatures talk far less often. A furnace finishes the smelting that came due while you
+  were away. A floating window keeps its size.
+- For admins: `/mute` also stops trading, joining a game, adding territory owners and the letterbox.
+  Of two copies of a bag the one that moved most is kept, the other goes to `/oldbags`.
+
 ## 0.15.0-alpha.2 — 2026-11-08
 
 - **Video options** (Options, then Video): window, borderless or full screen, resolution, VSync, FPS
