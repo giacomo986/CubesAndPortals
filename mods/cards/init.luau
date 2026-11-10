@@ -76,13 +76,13 @@ local function value(c: number): number
     return (c - 1) % 10 + 1
 end
 
-local SUIT_NAME = { [0] = "denari", "coppe", "spade", "bastoni" }
-local VALUE_NAME = { "asso", "due", "tre", "quattro", "cinque", "sei", "sette", "fante", "cavallo", "re" }
+local SUIT_NAME = { [0] = "coins", "cups", "swords", "clubs" }
+local VALUE_NAME = { "ace", "two", "three", "four", "five", "six", "seven", "jack", "knight", "king" }
 local GAME_NAME = { briscola = "Briscola", scopa = "Scopa", tresette = "Tresette", cinquiglio = "Cinquiglio" }
-local COUNT_NAME = { [2] = "due", [3] = "tre", [4] = "quattro", [5] = "cinque" }
+local COUNT_NAME = { [2] = "two", [3] = "three", [4] = "four", [5] = "five" }
 
 local function name_of(c: number): string
-    return `{VALUE_NAME[value(c)]} di {SUIT_NAME[suit(c)]}`
+    return `{VALUE_NAME[value(c)]} of {SUIT_NAME[suit(c)]}`
 end
 
 local BR_RANK = { 10, 1, 9, 2, 3, 4, 5, 6, 7, 8 }   -- ace, three, king, horse, jack, 7..2
@@ -106,9 +106,9 @@ end
 
 local function bid_name(level: number): string
     if level <= 9 then
-        return `il {VALUE_NAME[bid_value(level)]}`
+        return `the {VALUE_NAME[bid_value(level)]}`
     end
-    return `il due a {bid_target(level)}`
+    return `the two, to make {bid_target(level)}`
 end
 
 -- The rules a trick is taken by.
@@ -1354,50 +1354,50 @@ if serving then
         if T.phase == "bid" then
             local buttons = {}
             for l = T.level + 1, math.min(T.level + 3, MAX_BID) do
-                table.insert(buttons, { `l{l}`, `Chiamo {bid_name(l)}` })
+                table.insert(buttons, { `l{l}`, `Bid {bid_name(l)}` })
             end
-            table.insert(buttons, { "pass", "Passo" })
-            row_panel(`cards:b{p}`, if T.level == 0 then "Asta: nessuno ha chiamato" else `Asta: si chiama {bid_name(T.level)}`,
+            table.insert(buttons, { "pass", "Pass" })
+            row_panel(`cards:b{p}`, if T.level == 0 then "Auction: no bids yet" else `Auction: the bid is {bid_name(T.level)}`,
                       buttons, p)
         else
             local v = bid_value(T.level)
             local buttons = {}
             for x = 0, 3 do
                 local mine = table.find(T.hands[T.turn], x * 10 + v) ~= nil
-                table.insert(buttons, { `x{x}`, `{VALUE_NAME[v]} di {SUIT_NAME[x]}` .. (if mine then " (tuo)" else "") })
+                table.insert(buttons, { `x{x}`, `{VALUE_NAME[v]} of {SUIT_NAME[x]}` .. (if mine then " (yours)" else "") })
             end
-            row_panel(`cards:b{p}`, `Hai vinto l'asta con {bid_name(T.level)}: quale carta chiami? (la tua: da solo)`, buttons, p)
+            row_panel(`cards:b{p}`, `You won the auction with {bid_name(T.level)}: which card do you call? (your own: you play alone)`, buttons, p)
         end
     end
 
     -- Two to a row in the menu.
-    local CHOICES = { { "briscola", 2, "Briscola a due" }, { "briscola", 3, "Briscola a tre" },
-                      { "briscola", 4, "Briscola a 4, a coppie" }, { "cinquiglio", 5, "Cinquiglio, in cinque" },
-                      { "scopa", 2, "Scopa a due" }, { "scopa", 4, "Scopa a 4, a coppie" },
-                      { "tresette", 2, "Tresette a due" }, { "tresette", 4, "Tresette a 4, a coppie" } }
+    local CHOICES = { { "briscola", 2, "Briscola for two" }, { "briscola", 3, "Briscola for three" },
+                      { "briscola", 4, "Briscola for 4, in pairs" }, { "cinquiglio", 5, "Cinquiglio, for five" },
+                      { "scopa", 2, "Scopa for two" }, { "scopa", 4, "Scopa for 4, in pairs" },
+                      { "tresette", 2, "Tresette for two" }, { "tresette", 4, "Tresette for 4, in pairs" } }
 
     local function show_menu(p: number, key: string, T: Table, confirm: boolean?)
         menu_of[p] = key
         local rows = {}
         if seat_of(T, p) < 0 then
-            panel(`cards:m{p}`, { { "label", "Guardi la partita" }, { "up", "Alzati" }, { "close", "Chiudi" } }, p)
+            panel(`cards:m{p}`, { { "label", "Watching the game" }, { "up", "Get up" }, { "close", "Close" } }, p)
             return
         end
         local busy = T.phase ~= "idle" and T.phase ~= "hand" and T.phase ~= "match"
         if busy and confirm then
-            panel(`cards:m{p}`, { { "label", "Lasci la partita a metà?" }, { "quit_yes", "Sì, smetti" },
-                                  { "close", "No, continua" } }, p)
+            panel(`cards:m{p}`, { { "label", "Leave the game half-way?" }, { "quit_yes", "Yes, quit" },
+                                  { "close", "No, keep playing" } }, p)
             return
         end
         if busy or T.phase == "hand" then
-            table.insert(rows, { "quit", `Smetti il gioco ({GAME_NAME[T.game]})` })
+            table.insert(rows, { "quit", `Quit the game ({GAME_NAME[T.game]})` })
         end
-        table.insert(rows, { "deck", if T.deck == "e" then "Mazzo illustrato: passa al classico" else "Mazzo classico: passa all'illustrato" })
-        table.insert(rows, { "label", if T.phase == "idle" then "A che si gioca?" else "Un'altra partita:" })
+        table.insert(rows, { "deck", if T.deck == "e" then "Illustrated deck: switch to the classic one" else "Classic deck: switch to the illustrated one" })
+        table.insert(rows, { "label", if T.phase == "idle" then "What shall we play?" else "Another game:" })
         for i = 1, #CHOICES, 2 do
             table.insert(rows, { { `g{i}`, CHOICES[i][3] }, { `g{i + 1}`, CHOICES[i + 1][3] } })
         end
-        table.insert(rows, { { "up", "Alzati" }, { "close", "Chiudi" } })
+        table.insert(rows, { { "up", "Get up" }, { "close", "Close" } })
         panel(`cards:m{p}`, rows, p)
     end
 
@@ -1521,7 +1521,7 @@ if serving then
                 local ways = captures(T.tbl, c)
                 if #ways > 1 then
                     choosing[p] = { key, c }
-                    local rows = { { "label", `Con il {name_of(c)} prendi:` } }
+                    local rows = { { "label", `With the {name_of(c)}, take:` } }
                     for i, set in ways do
                         local names = {}
                         for _, x in set do
@@ -2485,10 +2485,10 @@ if drawing then
 
     local function who(s: Seen, q: number): string
         if q == seat then
-            return "Tu"
+            return "You"
         end
         local n = s.names[q + 1] or ""
-        return if n == "" then `Tavolo {q + 1}` else n
+        return if n == "" then `Seat {q + 1}` else n
     end
 
     -- A team's name as this player sees it: "noi"/"loro" at four, a player's own otherwise.
@@ -2497,9 +2497,9 @@ if drawing then
             return who(s, t)
         end
         if seat >= 0 then
-            return if t == team_of(s, seat) then "Noi" else "Loro"
+            return if t == team_of(s, seat) then "Us" else "Them"
         end
-        return if t == 0 then "Squadra 1" else "Squadra 2"
+        return if t == 0 then "Team 1" else "Team 2"
     end
 
     local function teams_of(s: Seen): number
@@ -2522,15 +2522,15 @@ if drawing then
             return nil
         end
         if s.phase == "bid" or s.phase == "suit" then
-            return if x[1] == 0 then "Asta: nessuno ha ancora chiamato" else `Asta: {who(s, x[2])} chiama {bid_name(x[1])}`
+            return if x[1] == 0 then "Auction: no bids yet" else `Auction: {bid_name(x[1])}, bid by {who(s, x[2])}`
         end
         if x[4] <= 0 then
             return nil
         end
-        local line = `{who(s, x[5])} chiama il {name_of(x[4])} (fa {bid_target(x[1])})`
+        local line = `Called by {who(s, x[5])}: the {name_of(x[4])} (to make {bid_target(x[1])})`
         if x[6] >= 0 then
-            line ..= if x[6] == x[5] then " -- da solo" elseif x[6] == seat then " -- il compagno sei tu"
-                else ` -- compagno: {who(s, x[6])}`
+            line ..= if x[6] == x[5] then " -- alone" elseif x[6] == seat then " -- you are the partner"
+                else ` -- partner: {who(s, x[6])}`
         end
         return line
     end
@@ -2540,7 +2540,7 @@ if drawing then
         local m = s.sum
         local out = {}
         if s.game == "briscola" and #m >= 2 then
-            table.insert(out, `Punti: {tally(s, m)}`)
+            table.insert(out, `Points: {tally(s, m)}`)
             local best, at, tie = -1, -1, false
             for i, p in m do
                 if p > best then
@@ -2549,29 +2549,29 @@ if drawing then
                     tie = true
                 end
             end
-            table.insert(out, if tie then "Pari" else `Vince {side_name(s, at)}`)
+            table.insert(out, if tie then "Tie" else `Winner: {side_name(s, at)}`)
         elseif s.game == "cinquiglio" and #m >= 6 then
             local caller, partner = who(s, m[5]), who(s, m[6])
-            table.insert(out, if m[5] == m[6] then `{caller} da solo: {m[1]} punti, ne servivano {m[4]}`
-                else `{caller} e {partner}: {m[1]} punti, ne servivano {m[4]}`)
-            local callers = if m[5] == m[6] then caller else `{caller} e {partner}`
-            table.insert(out, if m[3] == 1 then `Fatto: incassa{if m[5] == m[6] then "" else "no"} {callers}, pagano gli altri`
-                else `Non fatto (gli altri {m[2]}): paga{if m[5] == m[6] then "" else "no"} {callers}`)
+            table.insert(out, if m[5] == m[6] then `{caller} alone: {m[1]} points, {m[4]} needed`
+                else `{caller} and {partner}: {m[1]} points, {m[4]} needed`)
+            local callers = if m[5] == m[6] then caller else `{caller} and {partner}`
+            table.insert(out, if m[3] == 1 then `Made: the others pay {callers}`
+                else `Not made (the others {m[2]}): {callers} pay the others`)
         elseif s.game == "tresette" and #m >= 4 then
             local a, b = side_name(s, 0), side_name(s, 1)
-            table.insert(out, `Mano: {a} {m[1]}, {b} {m[3]}`)
+            table.insert(out, `Hand: {a} {m[1]}, {b} {m[3]}`)
             if m[2] + m[4] > 0 then
-                table.insert(out, `Accusi: {a} {m[2]}, {b} {m[4]}`)
+                table.insert(out, `Declarations: {a} {m[2]}, {b} {m[4]}`)
             end
         elseif s.game == "scopa" and #m >= 11 then
             local a, b = side_name(s, 0), side_name(s, 1)
             local function by(x: number, y: number): string
-                return if x > y then a elseif y > x then b else "nessuno"
+                return if x > y then a elseif y > x then b else "nobody"
             end
-            table.insert(out, `Carte {m[1]}-{m[2]}: {by(m[1], m[2])}   Denari {m[3]}-{m[4]}: {by(m[3], m[4])}`)
-            table.insert(out, `Settebello: {if m[5] == 0 then a elseif m[5] == 1 then b else "nessuno"}   `
-                .. `Primiera {m[6]}-{m[7]}: {by(m[6], m[7])}   Scope {m[8]}-{m[9]}`)
-            table.insert(out, `Mano: {a} {m[10]}, {b} {m[11]}`)
+            table.insert(out, `Cards {m[1]}-{m[2]}: {by(m[1], m[2])}   Coins {m[3]}-{m[4]}: {by(m[3], m[4])}`)
+            table.insert(out, `Settebello: {if m[5] == 0 then a elseif m[5] == 1 then b else "nobody"}   `
+                .. `Primiera {m[6]}-{m[7]}: {by(m[6], m[7])}   Sweeps {m[8]}-{m[9]}`)
+            table.insert(out, `Hand: {a} {m[10]}, {b} {m[11]}`)
         end
         return out
     end
@@ -2585,9 +2585,9 @@ if drawing then
         local hint
         if s.game == "" then
             core.hud.rect(0.5, 0.875, 1.0, 0.065, 0, 0, 0, 150)
-            core.hud.text(0.5, 0.875, if seat >= 0 then "Tasto destro: scegli il gioco" else "Il tavolo è libero",
+            core.hud.text(0.5, 0.875, if seat >= 0 then "Right click: choose the game" else "The table is free",
                           0.038)
-            core.hud.text(0.5, 0.94, "Briscola, cinquiglio, scopa o tresette   --   tasto destro: menu, alzati", 0.028, 1,
+            core.hud.text(0.5, 0.94, "Briscola, cinquiglio, scopa or tresette   --   right click: menu, get up", 0.028, 1,
                           230, 230, 230, 255)
             return
         end
@@ -2601,22 +2601,22 @@ if drawing then
             end
             local on = (s.phase == "play" or s.phase == "bid" or s.phase == "suit") and s.turn == q
             local out = s.game == "cinquiglio" and s.phase == "bid" and bit32.btest(s.x_[3] or 0, bit32.lshift(1, q))
-            local label = who(s, q) .. (if q == s.dealer then "  (mazziere)" else "") .. (if out then "  passa" else "")
+            local label = who(s, q) .. (if q == s.dealer then "  (dealer)" else "") .. (if out then "  passed" else "")
             core.hud.rect(x, y, 0.36, 0.045, 0, 0, 0, if on then 190 else 110)
             core.hud.text(x, y, label, 0.03, 1, 255, if on then 220 else 255, if on then 90 else 255, 255)
         end
         -- the score, top right (the engine's lines are top left)
-        local title = `{GAME_NAME[s.game]} a {COUNT_NAME[s.n] or s.n}`
+        local title = `{GAME_NAME[s.game]} for {COUNT_NAME[s.n] or s.n}`
         local line2 = tally(s, s.score)
         if s.game == "briscola" then
-            line2 = `Partite vinte: {line2}`
+            line2 = `Games won: {line2}`
         elseif s.game == "scopa" then
-            line2 = `{line2}   (a 11)   scope {s.scope[1] or 0}-{s.scope[2] or 0}`
+            line2 = `{line2}   (to 11)   sweeps {s.scope[1] or 0}-{s.scope[2] or 0}`
         elseif s.game == "tresette" then
-            line2 = `{line2}   (a 21)`
+            line2 = `{line2}   (to 21)`
         end
         local line3 = if (s.game == "briscola" or s.game == "cinquiglio") and s.trump > 0
-            then `Briscola: {SUIT_NAME[suit(s.trump)]}` else nil
+            then `Trumps: {SUIT_NAME[suit(s.trump)]}` else nil
         local wide = if s.n >= 3 and s.n ~= 4 then 1.0 else 0.74   -- a name a player
         local sx = 1 - (wide / 2 + 0.03) / a
         core.hud.rect(sx, 0.1, wide, if line3 then 0.15 else 0.1, 0, 0, 0, 140)
@@ -2635,7 +2635,7 @@ if drawing then
                 end
             end
             if #said > 0 then
-                over = `Accusi: {table.concat(said, ", ")}`
+                over = `Declarations: {table.concat(said, ", ")}`
             end
         end
         if over and s.phase ~= "hand" and s.phase ~= "match" then
@@ -2654,40 +2654,40 @@ if drawing then
                         w, best = t, s.score[t + 1] or 0
                     end
                 end
-                table.insert(lines, `Partita finita: vince {side_name(s, w)}`)
+                table.insert(lines, `Match over, winner: {side_name(s, w)}`)
             end
             for i, l in lines do
                 local y = 0.44 + (i - 1) * 0.055
                 core.hud.rect(0.5, y, 1.2, 0.05, 0, 0, 0, 170)
                 core.hud.text(0.5, y, l, 0.032)
             end
-            line = if s.phase == "match" then "Click: un'altra partita" else "Click: la mano dopo"
-            hint = "tasto destro: un altro gioco, alzati"
+            line = if s.phase == "match" then "Click: another match" else "Click: the next hand"
+            hint = "right click: another game, get up"
         elseif s.phase == "bid" or s.phase == "suit" then
-            line = if s.turn == seat then (if s.phase == "bid" then "Tocca a te: chiama o passa" else "Scegli il seme")
-                else `Asta: tocca a {who(s, s.turn)}`
-            hint = if s.turn == seat then "tasto destro: la domanda di nuovo" else "tasto destro: menu"
+            line = if s.turn == seat then (if s.phase == "bid" then "Your turn: bid or pass" else "Choose the suit")
+                else `Auction: {who(s, s.turn)}'s turn`
+            hint = if s.turn == seat then "right click: the question again" else "right click: menu"
         elseif s.phase == "show" and #s.show >= 2 then
             local took = {}
             for i = 3, #s.show do
                 table.insert(took, name_of(s.show[i]))
             end
             local by, mine = who(s, s.show[1]), s.show[1] == seat
-            line = if #took == 0 then (if mine then `Cali il {name_of(s.show[2])}` else `{by} cala il {name_of(s.show[2])}`)
-                elseif mine then `Prendi con il {name_of(s.show[2])}: {table.concat(took, ", ")}`
-                else `{by} prende con il {name_of(s.show[2])}: {table.concat(took, ", ")}`
-            hint = "tasto destro: menu"
+            line = if #took == 0 then (if mine then `You lay the {name_of(s.show[2])}` else `{by} lays the {name_of(s.show[2])}`)
+                elseif mine then `You take with the {name_of(s.show[2])}: {table.concat(took, ", ")}`
+                else `{by} takes with the {name_of(s.show[2])}: {table.concat(took, ", ")}`
+            hint = "right click: menu"
         elseif s.phase == "trick" then
-            line = if #s.trick > 0 then `Prende: {who(s, taker(s.game, s.trick, if s.trump > 0 then suit(s.trump) else -1))}`
+            line = if #s.trick > 0 then `Trick to: {who(s, taker(s.game, s.trick, if s.trump > 0 then suit(s.trump) else -1))}`
                 else "..."
-            hint = "tasto destro: menu"
+            hint = "right click: menu"
         elseif my_turn(s) then
-            line = if s.game == "tresette" and #s.trick > 0 then "Tocca a te: rispondi al seme se puoi"
-                else "Tocca a te: clicca una carta"
-            hint = "tasto destro: un altro gioco, alzati"
+            line = if s.game == "tresette" and #s.trick > 0 then "Your turn: follow suit if you can"
+                else "Your turn: click a card"
+            hint = "right click: another game, get up"
         else
-            line = if s.turn >= 0 then `Tocca a: {who(s, s.turn)}` else "..."
-            hint = if seat < 0 then "Guardi -- tasto destro: alzati" else "tasto destro: un altro gioco, alzati"
+            line = if s.turn >= 0 then `Turn: {who(s, s.turn)}` else "..."
+            hint = if seat < 0 then "Watching -- right click: get up" else "right click: another game, get up"
         end
         -- the card under the cursor, by name, in case its picture is not enough
         local hv = if seat >= 0 then under_cursor(s) else nil
@@ -2703,15 +2703,15 @@ if drawing then
             local by = nil
             for _, t in s.trick do
                 if t[2] == ot then
-                    by = `giocato da {who(s, t[1])}`
+                    by = `played by {who(s, t[1])}`
                 end
             end
             if #s.show >= 2 and s.show[2] == ot then
-                by = `calato da {who(s, s.show[1])}`
+                by = `laid by {who(s, s.show[1])}`
             elseif ot == s.trump and s.game ~= "scopa" then
-                by = "la briscola"
+                by = "the trump card"
             elseif not by then
-                by = "sul tavolo"
+                by = "on the table"
             end
             local nx, ny = if eye_view(s) then 0.5 else 0.77, if eye_view(s) then 0.885 else 0.805
             core.hud.rect(nx, ny, 0.6, 0.05, 0, 0, 0, 170)
@@ -2722,9 +2722,9 @@ if drawing then
         core.hud.rect(0.5, ly, 1.2, 0.065, 0, 0, 0, 150)
         core.hud.text(0.5, ly, line, 0.036)
         if eye_view(s) then
-            core.hud.text(0.74, 0.95, `{hint}   --   V: dall'alto`, 0.022, 1, 230, 230, 230, 255)
+            core.hud.text(0.74, 0.95, `{hint}   --   V: from above`, 0.022, 1, 230, 230, 230, 255)
         else
-            core.hud.text(0.5, 0.94, if seat >= 0 then `{hint}   --   V: in mano` else hint, 0.028, 1, 230, 230, 230, 255)
+            core.hud.text(0.5, 0.94, if seat >= 0 then `{hint}   --   V: in hand` else hint, 0.028, 1, 230, 230, 230, 255)
         end
     end)
 end

@@ -75,10 +75,10 @@ local START = "RNBQKBNRPPPPPPPP" .. string.rep(".", 32) .. "pppppppprnbqkbnr"
 --   horde  white has 36 pawns and no king (those on the first rank may go
 --          two too), black the usual set: black wins taking them all
 local VARIANTS = { "std", "960", "koth", "3check", "race", "anti", "atomic", "zh", "horde", "dama", "mulino" }
-local VARIANT_NAME = { std = "Classica", ["960"] = "Scacchi 960", koth = "Re della collina",
-                       ["3check"] = "Tre scacchi", race = "Corsa dei re", anti = "Vinciperdi",
-                       atomic = "Atomica", zh = "Crazyhouse", horde = "Orda", dama = "Dama italiana",
-                       mulino = "Mulino" }
+local VARIANT_NAME = { std = "Standard", ["960"] = "Chess960", koth = "King of the Hill",
+                       ["3check"] = "Three-check", race = "Racing Kings", anti = "Antichess",
+                       atomic = "Atomic", zh = "Crazyhouse", horde = "Horde", dama = "Italian draughts",
+                       mulino = "Nine men's morris" }
 
 -- Crazyhouse puts pieces down from the hand: a move from 100 + k for white
 -- and 110 + k for black, k the place in DROPS of the piece put down.
@@ -991,7 +991,7 @@ local from_client: (number, string) -> () = function(_, _) end
 
 
 local function who(c: string): string
-    return if c == "w" then "bianco" else "nero"
+    return if c == "w" then "White" else "Black"
 end
 
 -- ==================================================================== server
@@ -1015,8 +1015,8 @@ if serving then
         "timber:stick  timber:planks timber:stick")
 
     -- The clocks a game can be played with: seconds each and seconds a move.
-    local CLOCKS = { { 0, 0, "Senza orologio" }, { 180, 2, "3 minuti + 2 secondi" }, { 300, 0, "5 minuti" },
-                     { 600, 0, "10 minuti" } }
+    local CLOCKS = { { 0, 0, "No clock" }, { 180, 2, "3 minutes + 2 seconds" }, { 300, 0, "5 minutes" },
+                     { 600, 0, "10 minutes" } }
 
     type Board = {
         facing: number,
@@ -1409,39 +1409,39 @@ if serving then
             if p == bd.white or p == bd.black then
                 return
             end
-            panel(`chess:m{p}`, { { "label", "Guardi la partita" }, { "up", "Alzati" }, { "close", "Chiudi" } }, p)
+            panel(`chess:m{p}`, { { "label", "Watching the game" }, { "up", "Get up" }, { "close", "Close" } }, p)
             return
         end
         if st.result == "" and confirm then
-            table.insert(rows, { "label", "Abbandoni la partita?" })
-            table.insert(rows, { "resign_yes", "Sì, abbandono" })
-            table.insert(rows, { "close", "No, continuo" })
+            table.insert(rows, { "label", "Resign the game?" })
+            table.insert(rows, { "resign_yes", "Yes, resign" })
+            table.insert(rows, { "close", "No, keep playing" })
             panel(`chess:m{p}`, rows, p)
             return
         end
         if st.result == "" then
             if me ~= "both" and st.offer == other(me) then
-                table.insert(rows, { "label", `Il {who(st.offer)} propone la patta` })
-                table.insert(rows, { "accept", "Accetta la patta" })
-                table.insert(rows, { "decline", "Rifiuta" })
+                table.insert(rows, { "label", `{who(st.offer)} offers a draw` })
+                table.insert(rows, { "accept", "Accept the draw" })
+                table.insert(rows, { "decline", "Decline" })
             elseif me ~= "both" and st.offer == me then
-                table.insert(rows, { "label", "Patta proposta: aspetta la risposta" })
+                table.insert(rows, { "label", "Draw offered: waiting for the answer" })
             elseif me ~= "both" and bd.offered == bd.plies then
-                table.insert(rows, { "label", "Patta già proposta in questa mossa" })
+                table.insert(rows, { "label", "Draw already offered this move" })
             else
-                table.insert(rows, { "draw", if me == "both" then "Patta" else "Proponi la patta" })
+                table.insert(rows, { "draw", if me == "both" then "Draw" else "Offer a draw" })
             end
-            table.insert(rows, { "resign", if me == "both" then `Abbandona il {who(st.turn)}` else "Abbandona" })
+            table.insert(rows, { "resign", if me == "both" then `{who(st.turn)} resigns` else "Resign" })
         end
         if st.result ~= "" or st.from == 0 then
-            table.insert(rows, { "var", `Variante: {VARIANT_NAME[st.var]} (cambia)` })
-            table.insert(rows, { "label", if st.result ~= "" then "Nuova partita:" else "Orologio:" })
+            table.insert(rows, { "var", `Variant: {VARIANT_NAME[st.var]} (change)` })
+            table.insert(rows, { "label", if st.result ~= "" then "New game:" else "Clock:" })
             for i, c in CLOCKS do
                 table.insert(rows, { `tc{i}`, c[3] })
             end
         end
-        table.insert(rows, { "up", "Alzati" })
-        table.insert(rows, { "close", "Chiudi" })
+        table.insert(rows, { "up", "Get up" })
+        table.insert(rows, { "close", "Close" })
         panel(`chess:m{p}`, rows, p)
     end
 
@@ -1536,10 +1536,10 @@ if serving then
                 tell(p, state_line(key, bd))   -- puts back the piece it put down
             elseif promotes(bd.st, from, to) and w[5] == nil then
                 promoting[p] = { key, from, to }
-                local rows = { { "label", "Il pedone diventa:" }, { "Q", "Donna" }, { "R", "Torre" },
-                               { "B", "Alfiere" }, { "N", "Cavallo" } }
+                local rows = { { "label", "Promote the pawn to:" }, { "Q", "Queen" }, { "R", "Rook" },
+                               { "B", "Bishop" }, { "N", "Knight" } }
                 if bd.st.var == "anti" then
-                    table.insert(rows, { "K", "Re" })
+                    table.insert(rows, { "K", "King" })
                 end
                 panel(`chess:q{p}`, rows, p)
             else
@@ -2030,12 +2030,12 @@ if drawing then
         return string.format("%d:%02d", n // 60, n % 60)
     end
 
-    local DRAWN = { stalemate = "stallo", fifty = "cinquanta mosse", material = "materiale insufficiente",
-                    repetition = "triplice ripetizione", agreed = "d'accordo", time = "tempo scaduto",
-                    race = "tutti e due i re all'ottava", forty = "quaranta mosse senza prese" }
-    local WON = { hill = "Re sulla collina", checks = "Terzo scacco", race = "Re all'ottava traversa",
-                  anti = "Senza più mosse", atomic = "Re saltato in aria", horde = "Orda distrutta",
-                  blocked = "Avversario senza mosse", few = "Avversario ridotto a due pedine" }
+    local DRAWN = { stalemate = "stalemate", fifty = "fifty-move rule", material = "insufficient material",
+                    repetition = "threefold repetition", agreed = "by agreement", time = "time out",
+                    race = "both kings on the eighth rank", forty = "forty moves without a capture" }
+    local WON = { hill = "King on the hill", checks = "Third check", race = "King on the eighth rank",
+                  anti = "No moves left", atomic = "King blown up", horde = "Horde destroyed",
+                  blocked = "Opponent has no moves", few = "Opponent down to two stones" }
     core.hud.pass("chess:status", 100, function()
         local s = if sitting then seen[sitting] else nil
         if s == nil then
@@ -2045,20 +2045,20 @@ if drawing then
         local line
         if st.result == "w" or st.result == "b" then
             local loser = who(other(st.result))
-            line = if st.why == "resign" then `Il {loser} abbandona: vince il {who(st.result)}`
-                elseif st.why == "time" then `Tempo scaduto al {loser}: vince il {who(st.result)}`
-                elseif WON[st.why] then `{WON[st.why]}: vince il {who(st.result)}`
-                else `Scacco matto: vince il {who(st.result)}`
+            line = if st.why == "resign" then `{loser} resigns: {who(st.result)} wins`
+                elseif st.why == "time" then `{loser} ran out of time: {who(st.result)} wins`
+                elseif WON[st.why] then `{WON[st.why]}: {who(st.result)} wins`
+                else `Checkmate: {who(st.result)} wins`
         elseif st.result == "=" then
-            line = `Patta: {DRAWN[st.why] or st.why}`
+            line = `Draw: {DRAWN[st.why] or st.why}`
         else
             line = (if st.var == "std" then "" else `{VARIANT_NAME[st.var]} -- `)
-                .. `Muove il {who(st.turn)}` .. (if in_check(st) then " -- scacco!" else "")
-                .. (if st.var == "mulino" and st.ep == 1 then " -- mulino! togli una pedina" else "")
+                .. `{who(st.turn)} to move` .. (if in_check(st) then " -- check!" else "")
+                .. (if st.var == "mulino" and st.ep == 1 then " -- mill! remove a stone" else "")
                 .. (if st.var == "3check"
-                    then ` -- scacchi dati {string.sub(st.checks, 1, 1)}-{string.sub(st.checks, 2, 2)}` else "")
-                .. (if st.offer ~= "" then ` -- il {who(st.offer)} propone la patta` else "")
-                .. (if string.find(s.seats, "!", 1, true) then ` -- orologio fermo, il {who(st.turn)} si è alzato`
+                    then ` -- checks given {string.sub(st.checks, 1, 1)}-{string.sub(st.checks, 2, 2)}` else "")
+                .. (if st.offer ~= "" then ` -- {who(st.offer)} offers a draw` else "")
+                .. (if string.find(s.seats, "!", 1, true) then ` -- clock stopped, {who(st.turn)} got up`
                     else "")
         end
         -- Under the board: the top of the screen is the engine's (F3).
@@ -2082,13 +2082,13 @@ if drawing then
                 end
             end
         end
-        local you = if playing == "v" then "Guardi la partita"
-            elseif may_move(s, other(playing)) then "Giochi con tutti e due"
-            else `Giochi con il {who(playing)}`
-        local hint = if playing == "v" then "tasto destro: alzati"
-            elseif st.result ~= "" then "click: un'altra   tasto destro: variante, orologio, alzati"
-            elseif st.from == 0 then "tasto destro: variante, orologio, patta, abbandono, alzati"
-            else "tasto destro: patta, abbandono, alzati"
+        local you = if playing == "v" then "Watching the game"
+            elseif may_move(s, other(playing)) then "Playing both sides"
+            else `Playing {who(playing)}`
+        local hint = if playing == "v" then "right click: get up"
+            elseif st.result ~= "" then "click: another   right click: variant, clock, get up"
+            elseif st.from == 0 then "right click: variant, clock, draw, resign, get up"
+            else "right click: draw, resign, get up"
         core.hud.text(0.5, 0.94, `{you}   --   {hint}`, 0.028, 1, 230, 230, 230, 255)
     end)
 end
