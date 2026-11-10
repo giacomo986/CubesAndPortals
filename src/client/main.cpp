@@ -634,7 +634,7 @@ struct Session {
     // walking into the race's speeds.
     MovementRules movement;
     std::string   movement_by;   // which mod said so, to name it if another replaces it
-    float         fly_held = -1.0f;  // core.player_fly: the flying speed kept aside, -1 when it may fly
+    float         fly_held = -1.0f;  // core.player_fly: the flying speed kept aside, a body at 1's; -1 when it may fly
 
     // The panels the mods of THIS world declared. Same argument as the two
     // registries above: a world's mods are its own, and a panel belonging to a
@@ -2899,7 +2899,7 @@ int host_body_movement(void *ud, int player, double walk, double sprint, double 
     }
     // Grounded (core.player_fly): this speed is kept aside.
     if (sess.fly_held >= 0.0f) {
-        sess.fly_held = rules.fly;
+        sess.fly_held = rules.fly / rules.scale;
         rules.fly     = 0.0f;
     }
     // And the factor in force (core.player_factors), as host_body_movement on a server.
@@ -2918,11 +2918,11 @@ int host_player_fly(void *ud, int player, int allowed)
     Session &sess = static_cast<Scene *>(ud)->act();
     if (allowed) {
         if (sess.fly_held < 0.0f) return 1;
-        sess.movement.fly = sess.fly_held;
+        sess.movement.fly = sess.fly_held * sess.movement.scale;   // as big as the body is now
         sess.fly_held     = -1.0f;
     } else {
         if (sess.fly_held >= 0.0f) return 1;
-        sess.fly_held     = sess.movement.fly;
+        sess.fly_held     = sess.movement.fly / sess.movement.scale;
         sess.movement.fly = 0.0f;
     }
     return 1;

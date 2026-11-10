@@ -311,7 +311,9 @@ struct ServerState {
     bool base_trusted_kept = false;
 
     // core.player_fly: the players who may not fly, and the flying speed each
-    // gets back when they may again.
+    // gets back when they may again -- a body at 1's, times the size it is
+    // then: one made small while grounded (a scaling portal, core.body_scale)
+    // flies at its new size's speed, not at the size it was grounded at.
     std::unordered_map<int, float> fly_held;
 
     // Stages of world generation a mod registered, in the order they asked for
@@ -2793,9 +2795,10 @@ int host_body_movement(void *ud, int player, double walk, double sprint, double 
         std::printf("[mod] %s: body_movement: refused -- %s\n", who, why.c_str());
         return 0;
     }
-    // Somebody who may not fly (core.player_fly) keeps this speed aside.
+    // Somebody who may not fly (core.player_fly) keeps this speed aside, as a
+    // body at 1's (fly_held).
     if (auto held = s->fly_held.find(player); held != s->fly_held.end()) {
-        held->second = rules.fly;
+        held->second = rules.fly / rules.scale;
         rules.fly    = 0.0f;
     }
     if (player <= 0 || s->sessions == nullptr ||
@@ -2858,12 +2861,12 @@ int host_player_fly(void *ud, int player, int allowed)
     auto held = s->fly_held.find(player);
     if (allowed) {
         if (held == s->fly_held.end()) return 1;
-        rules.fly = held->second;
+        rules.fly = held->second * rules.scale;   // as big as the body is now
         s->fly_held.erase(held);
     } else {
         // Kept aside once; a body that flies again all the same (an id a
         // new connection was given) is grounded again.
-        if (held == s->fly_held.end()) s->fly_held[player] = rules.fly;
+        if (held == s->fly_held.end()) s->fly_held[player] = rules.fly / rules.scale;
         else if (rules.fly <= 0.0f) return 1;
         rules.fly = 0.0f;
     }
