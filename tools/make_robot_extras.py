@@ -12,8 +12,8 @@
 # primary, secondary and accent the robot's own are.
 #
 # Bones the robot has not got are added here: one named sway_* hangs from its
-# parent and the client swings it about where it is bound (the scarf's ends),
-# so an extra moves a little of its own. Leaves the work in
+# parent and the client swings it about where it is bound (the scarf's ends,
+# the medal), so an extra moves a little of its own. Leaves the work in
 # assets/blender/robot_extras.blend. Shapes are in world space at rest, metres,
 # Z up and the robot facing +Y.
 import math
@@ -170,16 +170,15 @@ def extras(a):
         P("ball", "chest", "tint_2", (0, y + 0.007, z), (0.03 * k, 0.024 * k, 0.028 * k)),
     ]
 
-    # A medal on a ribbon, pinned on the left of the chest and still on it: one
-    # that swung (a sway_medal bone) left the chest at every step.
+    # A medal on a ribbon, on the left of the chest, swinging from its pin.
     x, y, z, mlean = (a["medal"][k] for k in ("x", "y", "z", "lean"))
     out["medal"] = [P("box", "chest", "Extra_Gold", (x, y, z), (0.07, 0.012, 0.016))] + leaned([
-        P("box", "chest", "tint_3", (x, y - 0.002, z - 0.065), (0.064, 0.012, 0.115)),
-        P("box", "chest", "tint_1", (x, y - 0.001, z - 0.065), (0.018, 0.013, 0.116)),
-        P("cyl", "chest", "Extra_Gold", (x, y + 0.006, z - 0.165), (0.05, 0.05, 0.014), (-90, 0, 0)),
-        P("torus", "chest", "Extra_Gold", (x, y + 0.006, z - 0.165), (0.05, 0.05, 0.05), (-90, 0, 0), R=1.0,
+        P("box", "sway_medal", "tint_3", (x, y - 0.002, z - 0.065), (0.064, 0.012, 0.115)),
+        P("box", "sway_medal", "tint_1", (x, y - 0.001, z - 0.065), (0.018, 0.013, 0.116)),
+        P("cyl", "sway_medal", "Extra_Gold", (x, y + 0.006, z - 0.165), (0.05, 0.05, 0.014), (-90, 0, 0)),
+        P("torus", "sway_medal", "Extra_Gold", (x, y + 0.006, z - 0.165), (0.05, 0.05, 0.05), (-90, 0, 0), R=1.0,
           t=0.16),
-    ] + emblem("chest", (x, y + 0.013, z - 0.165), 0.046), (x, y, z), mlean)
+    ] + emblem("sway_medal", (x, y + 0.013, z - 0.165), 0.046), (x, y, z), mlean)
 
     def bone(name, head, tail, pivot, by):
         turn = Matrix.Rotation(math.radians(by), 3, "X")
@@ -188,6 +187,7 @@ def extras(a):
     bones = [
         bone("sway_scarf_a", (kx - 0.005, ey - 0.002, nz - 0.035), (kx - 0.005, ey - 0.002, nz - 0.285), hang, lean),
         bone("sway_scarf_b", (kx + 0.04, ey + 0.018, nz - 0.045), (kx + 0.04, ey + 0.018, nz - 0.235), hang, lean),
+        bone("sway_medal", (x, y - 0.002, z - 0.005), (x, y - 0.002, z - 0.2), (x, y, z), mlean),
     ]
     return out, bones
 

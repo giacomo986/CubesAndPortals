@@ -1932,7 +1932,10 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   (`WEARS` lì, `extras()` in `tools/make_robot_extras.py`), non scalati da
   quelli del robot. Un osso `sway_*` oscilla solo in avanti, via dal petto.
   In un pezzo indossato, un osso che il giocatore non ha segue il suo
-  genitore, e se si chiama `sway_*` dondola anche attorno a dove è legato.
+  genitore, e se si chiama `sway_*` dondola anche attorno a dove è legato, ogni corpo fuori passo
+  dall'altro secondo i suoi colori. La sua testa è il punto da cui pende: data in spazio mondo a
+  riposo, va messa nello spazio del rig, che è scalato (`to_rig` nei due strumenti) -- lasciata in
+  mondo stava un terzo troppo in fuori e ciò che ne pendeva si staccava dal corpo.
 * **Attrezzi in mano.** Un osso `tool_<nome>` si vede solo quando in mano c'è
   un oggetto che si chiama `<mod>:<nome>` (`tool_pick` per `tools:pick`), e gli
   altri `tool_*` spariscono: sulle braccia e sul proprio corpo in terza

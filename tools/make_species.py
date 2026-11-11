@@ -643,11 +643,16 @@ def main():
             for k, (rgb, metal, rough) in MATS.items():
                 material(k, rgb, metal, rough)
             bpy.data.objects.remove(mesh)
+            # Heads and tails are world at rest and a bone is placed in the
+            # rig's own space, which is scaled (add_bones, make_robot_extras.py):
+            # left in world, a sway_* bone stood 1.33 times too far from the
+            # origin, up by the head, and what hung from it swung on that arm.
+            to_rig = rig.matrix_world.inverted()
             bpy.context.view_layer.objects.active = rig
             bpy.ops.object.mode_set(mode="EDIT")
             for bone, parent, head, tail in bones:
                 b = rig.data.edit_bones.new(bone)
-                b.head, b.tail = Vector(head), Vector(tail)
+                b.head, b.tail = to_rig @ Vector(head), to_rig @ Vector(tail)
                 b.parent = rig.data.edit_bones[parent]
             bpy.ops.object.mode_set(mode="OBJECT")
             ob = build(rig, f"{name}_{extra}", worn[extra])

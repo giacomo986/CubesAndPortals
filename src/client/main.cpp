@@ -6689,7 +6689,10 @@ void draw_worn(ModelStore &models, const SkinnedModel &body, const std::vector<f
         return out;
     };
     const double t     = plat_time();
-    const float  phase = place.at(0, 3) * 1.3f + place.at(2, 3) * 0.7f;
+    // Out of step from one body to the next by its colours, not by where it
+    // stands: a phase from the position sped the pendulum up with every step
+    // (walking at 4 m/s shook a medal at 8 rad/s, off the chest it hung from).
+    const float  phase = (float)(tint % 61) * 0.41f;
     for (bool more = true; more;) {
         more = false;
         for (int j = 0; j < m.joint_count; ++j) {

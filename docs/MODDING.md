@@ -1726,7 +1726,10 @@ on foot and get into a parked kart: `games/track`.
   blended at the joints; eyes and small details stay sharp. A species' accessories are built to its
   own measures (`WEARS` there, `extras()` in `tools/make_robot_extras.py`), not scaled from the robot's.
   A `sway_*` bone swings only forwards, away from the chest. In a worn piece, a bone the player lacks follows its parent, and if named `sway_*`
-  dangles too round where it is attached.
+  dangles too round where it is attached, each body out of step with the next by its colours. Its
+  head is where it hangs from: given in world space at rest, it is put in the rig's own space, which
+  is scaled (`to_rig` in both tools) -- left in world it stood a third too far out and what hung
+  from it swung off the body.
 * **Tools in hand.** A `tool_<name>` bone shows only when the item in hand is named `<mod>:<name>`
   (`tool_pick` for `tools:pick`), and the other `tool_*` vanish: on the arms and on your own body in
   third person, and on other players (since protocol 48 the server sends everyone what each holds).

@@ -176,8 +176,6 @@ Mods:
 
 - Species bodies are near the 1 MB a server serves (.bin 937 / 959 / 978 KB for human, mole,
   frog; the clips alone are 646 KB). Every new robot clip eats that margin: the export asserts.
-- `sway_*` bones (the scarf's ends): the pendulum's phase depends on the player's position
-  (`draw_worn`), so it speeds up and jumps while walking. The medal no longer sways for this.
 
 - OPEN-45: above about 120 m/s a body outruns the streamed ground.
 - OPEN-46: a claim whose path turns back on an axis is refused.
