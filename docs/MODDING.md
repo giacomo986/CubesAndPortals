@@ -1721,7 +1721,12 @@ on foot and get into a parked kart: `games/track`.
   `<species>_<style>` (`robot:robot_mole_lamp`). Accessories are the ones remade for the species
   (`robot:robot_mole_cap`) if the world registers them, otherwise the player's; a head accessory
   replaces the styles that are hats (lamp, crown, lily pad). A world that does not register the
-  species shows the robot. `tools/make_species.py` makes them all: every body part (head, torso, arm,
+  species shows the robot. Species 4 to 7 are add-ons', mods outside the game: any pair
+  `<player model>_<name>` and `<player model>_<name>_arms` a world registers, `<name>` of a-z and 0-9
+  and none of the game's, is offered after the game's, sorted by name so every client numbers them
+  alike (four at most); it has no styles and wears the robot's accessories unless it registers its
+  own (`<that>_cap`). The title screen finds the same files in the mod folders, the player's
+  `~/.cubes-and-portals/mods` included. `contrib/lizard` is one. `tools/make_species.py` makes them all: every body part (head, torso, arm,
   leg) is a single surface, primitives fused with a voxel remesh, smoothed and decimated, with weights
   blended at the joints; eyes and small details stay sharp. A species' accessories are built to its
   own measures (`WEARS` there, `extras()` in `tools/make_robot_extras.py`), not scaled from the robot's.
@@ -1759,7 +1764,15 @@ on foot and get into a parked kart: `games/track`.
   into the file, a constant channel kept as one key so it stays under 1 MB. The knight is generated in Meshy's smart topology, a hundred separate pieces, and is
   built like the robot: each piece follows one bone whole and takes a flat colour read off the
   texture, red tint_1 and gold tint_2 for the player to dye; the texture itself is not kept. It has
-  no styles.
+  no styles. `contrib/lizard/make_lizard.py` makes the lizard man, an add-on, a third way, for a model Meshy drew as
+  if of cubes but whose mesh has no flat face (high detail, one mesh of 336792 triangles, its
+  scales only in the texture): its parts are cut apart and brought onto the robot's joints -- the
+  arms turned down from the A-pose, arms and legs stretched to the robot's -- and then, at rest,
+  filled with cubes 4 cm across, each following the bone its height puts it on and each side that
+  shows taking the colour the texture has nearest it (skin tint_1, belly tint_2, harness tint_3).
+  A point is inside a part when most of five rays out of it cross the surface an odd number of
+  times: the parts are open where they were cut, and the surface's own normals cannot be asked.
+  About 1500 faces is what fits beside the robot's clips under the megabyte.
 * **Worn armour.** An item with `wear` (`core.register_item`) goes in one of the bag's four worn
   slots (head, chest, legs, feet; shift-click with the bag open puts it on and takes it off). If the
   world has a model with the item's name (`core.register_model("armor:iron_helmet", ...)`), the body

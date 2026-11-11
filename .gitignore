@@ -47,3 +47,7 @@ __pycache__/
 
 # The backups Blender leaves beside a .blend it saves.
 *.blend1
+
+# The lizard add-on's Meshy source (16.6 MB): make_lizard.py reads it, the
+# repository keeps only what it made.
+contrib/lizard/meshy/

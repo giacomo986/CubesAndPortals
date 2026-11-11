@@ -503,7 +503,8 @@ varianti (960, re della collina, tre scacchi, corsa dei re, vinciperdi, atomica,
 orda). Carte (`mods/cards`) col mazzo napoletano da quaranta: briscola, cinquiglio, scopa e
 tresette, da due a cinque giocatori, con il tavolo che gioca i posti vuoti.
 
-**Personaggi ed equipaggiamento.** Si sceglie robot, umano, uomo talpa o uomo rana, uno stile,
+**Personaggi ed equipaggiamento.** Si sceglie robot, umano, uomo talpa o uomo rana (o quella di un add-on, come l'uomo lucertola
+in `contrib/lizard`), uno stile,
 tre colori e due accessori, visti da tutti. Sulla schiena: un jetpack per volare, uno zaino di
 cuoio con 27 slot suoi, o uno zaino di metallo con due braccia snodate che tengono uno strumento
 ciascuna. Il catalogo creativo (C) ha una casella di ricerca. `/creative on` è la modalità creativa: volo

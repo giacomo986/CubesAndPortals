@@ -167,6 +167,12 @@ Mods:
 - Track: the same item odds for everybody; shells do not climb loops; other
   karts do not collide with yours; nobody rides as a passenger (OPEN-47).
 - Assault: tanks in the escape are behind the jeep when ripe.
+- Lizard man (Meshy, 2026-11-11, an add-on in `contrib/lizard`, not in the game):
+  seen in a client: on the title's look page and in a world, in first and third person.
+  No styles; the extras are the robot's, not fitted (a cap on a snouted head); the
+  hands are thin, a cube or two; its tail follows the hips and does not sway;
+  `robot_lizard.bin` is 974616 of 1040384 bytes, so a new robot clip of 65 KB
+  breaks its export. Its source `contrib/lizard/meshy/lizard.glb` is 16.6 MB.
 - Dragon knight (switched off): no styles, gear not refitted, the cape passes
   through the legs.
 - Arpg: weapons are the robot's on every species; nothing shows a ring.

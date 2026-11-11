@@ -6799,25 +6799,89 @@ constexpr int     kLiveryHeadCount = 3, kLiveryNeckCount = 3;
 // "<player model>_<species>", on the player model's rig and with its clips,
 // and each one's styles, "<that>_<style>" worn on it (tools/make_species.py).
 // The wire's order, as the extras'.
-// The knight (tools/make_knight_meshy.py) has no styles.
-const char *const kLiverySpecies[] = {"human", "mole", "frog", "knight"};
-const char *const kLiveryStyles[4][3] = {
-    {"short", "long", "beard"}, {"lamp", "goggles", "glasses"}, {"spots", "crown", "lily"}, {}};
-// 3: the knight is switched off, in the picker and on anyone's livery (the
-// robot instead). 4 brings it back; its models are still in mods/robot.
+const char *const kLiverySpecies[] = {"human", "mole", "frog"};
+const char *const kLiveryStyles[3][3] = {
+    {"short", "long", "beard"}, {"lamp", "goggles", "glasses"}, {"spots", "crown", "lily"}};
 constexpr int kLiverySpeciesCount = 3;
-constexpr int kLiveryStylesOf[4] = {3, 3, 3, 0};
+constexpr int kLiveryStylesOf[3] = {3, 3, 3};
 // The styles that are hats: an extra on the head is worn instead of them.
-constexpr bool kLiveryStyleHat[4][3] = {
-    {false, false, false}, {true, false, false}, {false, true, true}, {false, false, false}};
+constexpr bool kLiveryStyleHat[3][3] = {
+    {false, false, false}, {true, false, false}, {false, true, true}};
+// Species whose models the game has and does not offer: the knight
+// (tools/make_knight_meshy.py) is switched off. Never taken for an add-on's.
+const char *const kLiveryOff[] = {"knight"};
 
-// Two bits and, since protocol 119, a third above the style; one this build
-// does not know (a newer client's) is the robot.
+// Species 4 to 7 are an add-on's (a mod outside the game, contrib/): a body
+// "<player model>_<name>" with its first-person arms "<player model>_<name>_arms",
+// both registered by the add-on, the name of a-z and 0-9 and none of the game's.
+// The world's, sorted by name, so every client of a world numbers them alike;
+// the title screen's are the same files found in the mod folders, so a world
+// started from it numbers them as the picker did. No styles; the robot's
+// extras, unless the add-on fits its own ("<that>_cap"). Kept for a store as
+// long as it has as many models: it fills while a world's media arrives.
+constexpr int kLiveryAddons = 4;   // what the species' three bits leave
+bool game_species(const std::string &name)
+{
+    for (const char *k : kLiverySpecies)
+        if (name == k) return true;
+    for (const char *k : kLiveryOff)
+        if (name == k) return true;
+    return false;
+}
+const std::vector<std::string> &addon_species(const ModelStore &models, const std::string &base)
+{
+    struct Seen {
+        const ModelStore        *store = nullptr;
+        size_t                   size  = 0;
+        std::string              base;
+        std::vector<std::string> names;
+    };
+    static Seen seen[4];   // the title's store and a world or three
+    static int  next = 0;
+    Seen       *at   = nullptr;
+    for (Seen &k : seen)
+        if (k.store == &models && k.base == base) at = &k;
+    if (at != nullptr && at->size == models.size()) return at->names;
+    if (at == nullptr) {
+        at   = &seen[next];
+        next = (next + 1) % 4;
+    }
+    at->store = &models;
+    at->size  = models.size();
+    at->base  = base;
+    at->names.clear();
+    std::set<std::string> have;   // sorted: the order below
+    for (size_t id = 1; id <= models.size(); ++id)
+        if (const ModelStore::Entry *e = models.entry((uint16_t)id)) have.insert(e->name);
+    const std::string head = base + "_", tail = "_arms";
+    for (const std::string &n : have) {
+        if (n.size() <= head.size() + tail.size() || n.compare(0, head.size(), head) != 0 ||
+            n.compare(n.size() - tail.size(), tail.size(), tail) != 0)
+            continue;
+        const std::string name = n.substr(head.size(), n.size() - head.size() - tail.size());
+        if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789") != std::string::npos ||
+            game_species(name) || have.count(head + name) == 0)
+            continue;
+        if (at->names.size() < (size_t)kLiveryAddons) at->names.push_back(name);
+    }
+    return at->names;
+}
+
+// Two bits and, since protocol 119, a third above the style: 1 to 3 the
+// game's, 4 to 7 an add-on's (species_name).
 int livery_species(uint32_t livery)
 {
-    const int s = (int)((livery >> net::kLiverySpeciesShift) & 3) |
-                  (int)(((livery >> net::kLiverySpeciesHigh) & 1) << 2);
-    return s <= kLiverySpeciesCount ? s : 0;
+    return (int)((livery >> net::kLiverySpeciesShift) & 3) |
+           (int)(((livery >> net::kLiverySpeciesHigh) & 1) << 2);
+}
+// Species s's name on a body of `base` (the player model's name), or "" for
+// the robot: none, or an add-on this store has not got.
+std::string species_name(const ModelStore &models, const std::string &base, int s)
+{
+    if (s >= 1 && s <= kLiverySpeciesCount) return kLiverySpecies[s - 1];
+    const std::vector<std::string> &more = addon_species(models, base);
+    const int k = s - kLiverySpeciesCount - 1;
+    return k >= 0 && k < (int)more.size() ? more[(size_t)k] : std::string();
 }
 uint32_t with_species(uint32_t livery, int species)
 {
@@ -6835,7 +6899,9 @@ uint16_t species_model(ModelStore &models, uint16_t model, uint32_t livery)
     const int species = livery_species(livery);
     const ModelStore::Entry *e = species >= 1 ? models.entry(model) : nullptr;
     if (e == nullptr) return model;
-    const std::string name = e->name + "_" + kLiverySpecies[species - 1];
+    const std::string who = species_name(models, e->name, species);
+    if (who.empty()) return model;
+    const std::string name = e->name + "_" + who;
     for (size_t id = 1; id <= models.size(); ++id) {
         const ModelStore::Entry *s = models.entry((uint16_t)id);
         if (s != nullptr && s->name == name) return (uint16_t)id;
@@ -6859,12 +6925,18 @@ void draw_extras(ModelStore &models, const ModelStore::Entry &e, const std::vect
     const uint16_t tint = (uint16_t)(livery & net::kLiveryColours);
     const int species = livery_species(livery), style = livery_style(livery);
     const bool hat = head >= 1 && head <= kLiveryHeadCount;
+    // `e` is the species' body, "<player model>_<species>": the robot's extras
+    // are the player model's. An add-on's name has no "_" in it (addon_species).
     std::string base = e.name;
-    if (species >= 1) {
-        const std::string tail = std::string("_") + kLiverySpecies[species - 1];
+    const size_t cut = base.rfind('_');
+    const std::string who =
+        species < 1 ? std::string() : species <= kLiverySpeciesCount ? std::string(kLiverySpecies[species - 1])
+        : cut == std::string::npos ? std::string() : species_name(models, base.substr(0, cut), species);
+    if (!who.empty()) {
+        const std::string tail = "_" + who;
         if (base.size() > tail.size() && base.compare(base.size() - tail.size(), tail.size(), tail) == 0) {
             base.resize(base.size() - tail.size());
-            if (style >= 1 && style <= kLiveryStylesOf[species - 1] && !headless &&
+            if (species <= kLiverySpeciesCount && style >= 1 && style <= kLiveryStylesOf[species - 1] && !headless &&
                 !(hat && kLiveryStyleHat[species - 1][style - 1]))
                 draw_worn(models, e.model, posed, e.name + "_" + kLiveryStyles[species - 1][style - 1],
                           projection, view, place, tint);
@@ -9865,6 +9937,42 @@ ModelStore &title_robot()
         for (const std::string &n : names)
             if (!store.put(id++, "robot:robot_" + n, g_robot_dir + "/robot_" + n + ".gltf", why))
                 std::fprintf(stderr, "robot preview: %s\n", why.c_str());
+
+        // And the add-ons' species (addon_species): any mod in the game's mods
+        // folder or the player's whose folder has robot_<name>.gltf and
+        // robot_<name>_arms.gltf, with the extras it fitted. A world started
+        // from here loads the player's folder, so it numbers them alike.
+        namespace fs = std::filesystem;
+        std::error_code ec;
+        for (const std::string &root : {fs::path(g_robot_dir).parent_path().string(), user_mods_dir()}) {
+            if (root.empty() || !fs::is_directory(root, ec)) continue;
+            for (const fs::directory_entry &mod : fs::directory_iterator(root, ec)) {
+                if (!mod.is_directory(ec)) continue;
+                for (const fs::directory_entry &f : fs::directory_iterator(mod.path(), ec)) {
+                    const std::string file = f.path().filename().string();
+                    const std::string head = "robot_", tail = "_arms.gltf";
+                    if (file.size() <= head.size() + tail.size() || file.compare(0, head.size(), head) != 0 ||
+                        file.compare(file.size() - tail.size(), tail.size(), tail) != 0)
+                        continue;
+                    const std::string n = file.substr(head.size(), file.size() - head.size() - tail.size());
+                    const fs::path body = mod.path() / ("robot_" + n + ".gltf");
+                    if (n.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789") != std::string::npos ||
+                        game_species(n) || !fs::exists(body, ec) || model_named(store, "robot:robot_" + n))
+                        continue;
+                    // the arms too: addon_species knows a species by them
+                    for (const char *part : {"", "_arms"})
+                        if (!store.put(id++, "robot:robot_" + n + part,
+                                       (mod.path() / ("robot_" + n + part + ".gltf")).string(), why))
+                            std::fprintf(stderr, "robot preview: %s\n", why.c_str());
+                    for (const char *const *list : {kLiveryHeads, kLiveryNecks})
+                        for (int j = 0; j < 3; ++j) {
+                            const fs::path fit = mod.path() / ("robot_" + n + "_" + list[j] + ".gltf");
+                            if (fs::exists(fit, ec) && !store.put(id++, "robot:robot_" + n + "_" + list[j], fit.string(), why))
+                                std::fprintf(stderr, "robot preview: %s\n", why.c_str());
+                        }
+                }
+            }
+        }
     }
     return store;
 }
@@ -9964,7 +10072,16 @@ void draw_look_preview(ModelStore &models, uint16_t model, const ui::PanelPlacem
 // What the player looks like: the three colours of their robot and an extra
 // on the head and one at the neck (net::Hello::livery). Picked on the title
 // screen, so it goes in the hello of every world joined after.
-ui::Panel look_panel()
+// The add-on species of the world being played, on its player model.
+const std::vector<std::string> &world_addons(const Scene &s)
+{
+    const ModelStore::Entry *e = s.act().models.entry(s.act().player_model_id);
+    return addon_species(s.act().models, e != nullptr ? e->name : std::string("robot:robot"));
+}
+// And those the title screen found in the mod folders (title_robot).
+const std::vector<std::string> &title_addons() { return addon_species(title_robot(), "robot:robot"); }
+
+ui::Panel look_panel(const std::vector<std::string> &more)
 {
     const uint32_t livery = net::g_client_livery;
     ui::Panel      p;
@@ -10007,9 +10124,12 @@ ui::Panel look_panel()
         return std::string(what) + ": " + name;
     };
     const int species = livery_species(livery);
-    const std::string who = species >= 1 ? kLiverySpecies[species - 1] : "robot";
+    const int addon   = species - kLiverySpeciesCount - 1;
+    const std::string who = species >= 1 && species <= kLiverySpeciesCount ? std::string(kLiverySpecies[species - 1])
+                          : addon >= 0 && addon < (int)more.size()     ? more[(size_t)addon]
+                                                                       : std::string("robot");
     panel_button(p, "species", "Species: " + who, 0.5f, 4.0f, 5.9f);
-    if (species >= 1 && kLiveryStylesOf[species - 1] > 0)
+    if (species >= 1 && species <= kLiverySpeciesCount && kLiveryStylesOf[species - 1] > 0)
         panel_button(p, "style", said("Style", kLiveryStyles[species - 1], kLiveryStylesOf[species - 1], livery_style(livery)),
                      6.8f, 4.0f, 5.9f);
     panel_button(p, "head", said("Head", kLiveryHeads, kLiveryHeadCount, head), 0.5f, 5.3f, 5.9f);
@@ -10019,7 +10139,7 @@ ui::Panel look_panel()
 }
 
 // A click on the look page. False for any other button.
-bool look_click(const std::string &id)
+bool look_click(const std::string &id, int addons)
 {
     uint32_t &livery = net::g_client_livery;
     int k = 0, d = 0;
@@ -10027,8 +10147,10 @@ bool look_click(const std::string &id)
         livery = (livery & ~net::kLiveryColours) |
                  (tag_with_colour(livery_tag(livery), k, d) >> kTagIdBits);
     } else if (id == "species") {   // another one's styles go with it
-        livery = with_species(livery, (livery_species(livery) + 1) % (kLiverySpeciesCount + 1)) &
-                 ~(3u << net::kLiveryStyleShift);
+        // the robot (0), the game's, then the add-ons' this page knows of
+        const int count = kLiverySpeciesCount + addons;
+        const int now   = std::min(livery_species(livery), count);
+        livery = with_species(livery, (now + 1) % (count + 1)) & ~(3u << net::kLiveryStyleShift);
     } else if (id == "head" || id == "neck" || id == "style") {
         const int shift = id == "head" ? net::kLiveryHeadShift
                         : id == "neck" ? net::kLiveryNeckShift
@@ -10036,7 +10158,7 @@ bool look_click(const std::string &id)
         const int species = livery_species(livery);
         const int count = id == "head" ? kLiveryHeadCount
                         : id == "neck" ? kLiveryNeckCount
-                                       : (species >= 1 ? kLiveryStylesOf[species - 1] : 0);
+                                       : (species >= 1 && species <= kLiverySpeciesCount ? kLiveryStylesOf[species - 1] : 0);
         const uint32_t mask = id == "head" || id == "neck" ? 7u : 3u;
         const int at = (((int)(livery >> shift) & (int)mask) + 1) % (count + 1);
         livery = (livery & ~(mask << shift)) | ((uint32_t)at << shift);
@@ -10163,7 +10285,7 @@ bool options_click(const std::string &id, bool &debug)
 ui::Panel pause_panel(const Scene &s, bool debug)
 {
     if (s.pause.options) return options_panel(debug, &s.act());
-    if (s.pause.look) return look_panel();
+    if (s.pause.look) return look_panel(world_addons(s));
 
     ui::Panel p;
     p.w = 8.0f;
@@ -10259,7 +10381,7 @@ bool pause_frame(Scene &s, LookSettle &settle, bool &debug, bool esc, bool inter
     }
     else if (id == "back" && g_video_page) g_video_page = false;
     else if (id == "back") s.pause.options = s.pause.look = false;
-    else if (s.pause.look && look_click(id)) {
+    else if (s.pause.look && look_click(id, (int)world_addons(s).size())) {
         // Seen at once here, and by everybody else as soon as the server hears.
         save_options(debug);
         if (s.conn != nullptr) s.conn->send_livery(net::g_client_livery);
@@ -10747,7 +10869,7 @@ ui::Panel title_panel(const TitleMenu &m, bool debug)
         break;
 
     case MenuPage::Look:
-        p = look_panel();
+        p = look_panel(title_addons());
         break;
 
     case MenuPage::Worlds: {
@@ -11158,7 +11280,7 @@ MenuChoice title_menu(Scene &s, TitleMenu &m, bool &debug)
             gfx_open_url(kReleasesPage);
         } else if (id == "look") {
             m.page = MenuPage::Look;
-        } else if (m.page == MenuPage::Look && look_click(id)) {
+        } else if (m.page == MenuPage::Look && look_click(id, (int)title_addons().size())) {
             save_options(debug);
         } else if (m.page == MenuPage::Options && options_click(id, debug)) {
         } else if (id == "back") {

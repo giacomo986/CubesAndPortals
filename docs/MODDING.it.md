@@ -1924,7 +1924,13 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   quelli rifatti per la specie (`robot:robot_mole_cap`) se il mondo li
   registra, se no quelli del giocatore; un accessorio in testa sostituisce gli
   stili che sono cappelli (lampada, corona, ninfea). Un mondo che non registra
-  la specie mostra il robot.
+  la specie mostra il robot. Le specie da 4 a 7 sono di add-on, mod fuori dal gioco: ogni coppia
+  `<modello del giocatore>_<nome>` e `<modello del giocatore>_<nome>_arms` che un mondo registra,
+  `<nome>` di a-z e 0-9 e diverso da quelli del gioco, è offerta dopo quelle del gioco, in ordine di
+  nome perché ogni client le numeri allo stesso modo (al massimo quattro); non ha stili e porta gli
+  accessori del robot, a meno che non registri i suoi (`<quello>_cap`). La schermata del titolo trova
+  gli stessi file nelle cartelle delle mod, compresa quella del giocatore `~/.cubes-and-portals/mods`.
+  `contrib/lizard` è una di queste.
   `tools/make_species.py` li fa tutti: ogni pezzo del corpo (testa, busto,
   braccio, gamba) è un'unica superficie, primitive fuse con un remesh a voxel,
   levigate e sfoltite, con pesi sfumati alle giunture; occhi e piccoli dettagli
@@ -1977,6 +1983,16 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   è fatto come il robot: ogni pezzo segue un solo osso intero e prende un
   colore piatto letto dalla texture, rosso tint_1 e oro tint_2 che il
   giocatore tinge; la texture non viene tenuta. Non ha stili.
+  `contrib/lizard/make_lizard.py` fa l'uomo lucertola, un add-on, in un terzo modo, per un modello che Meshy ha
+  disegnato come fatto di cubi ma la cui mesh non ha una faccia piana (alto dettaglio, una mesh sola
+  di 336792 triangoli, le scaglie solo nella texture): le sue parti vengono separate e portate sulle
+  giunture del robot -- le braccia girate in giù dalla posa ad A, braccia e gambe allungate su quelle
+  del robot -- e poi, a riposo, riempite di cubi di 4 cm, ognuno sull'osso che gli dà la sua altezza
+  e ogni lato visibile del colore che la texture ha lì vicino (pelle tint_1, pancia tint_2,
+  bardatura tint_3). Un punto è dentro una parte quando la maggior parte di cinque raggi che ne
+  escono attraversa la superficie un numero dispari di volte: le parti sono aperte dove sono state
+  tagliate, e alle normali della superficie non si può chiedere. Circa 1500 facce è quanto sta
+  accanto ai clip del robot sotto il megabyte.
 * **Armature indossate.** Un oggetto con `wear` (`core.register_item`) va in
   uno dei quattro slot indossati della borsa (testa, petto, gambe, piedi; lo
   shift-click a borsa aperta lo mette e lo toglie). Se il mondo ha un modello
