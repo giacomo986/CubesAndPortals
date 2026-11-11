@@ -222,6 +222,53 @@ Mods:
 - 151 TODO/FIXME lines and 52 `ponytail:` notes in the code are not in this
   file: harvest once, keep what still holds.
 
+## Portals, rooms and zones (plan of 2026-11-11, Giacomo's decisions in it)
+
+Decided: a player makes and moves the portal of their own room (below); portals to other
+worlds, and those worlds' rules, are an admin's. Rooms are made while the server
+runs, when a portal to one is loaded, and let go when nothing leads to them. Bag
+and health stay shared between rooms. A zone is a reusable piece of a level; a
+player's zones are theirs alone until an admin approves them for everybody's
+survival levels.
+
+1. The frame's menu (`mods/portal`). Done 2026-11-11, by script only: owner,
+   colour, scaling, window. Not seen in a client. Missing: a portal made or
+   resized without a frame; who may CROSS a local portal (the engine seals
+   mouths only, `core.portal_seal`).
+2. Virtual mouths: one scheduler gives the 28 mouths to the links nearest the
+   players, in place of what `mods/gates`, `mods/pocket` and `mods/keys` each do.
+   The sandbox uses all 28 today, so nothing built by hand has one. Closes "a far
+   portal between servers is a mouth" under Limits.
+3. A portal to another room from the frame's menu, as `core.far_portal_*` does
+   between servers; tickets between rooms required and bound to the room (see
+   Waiting for a decision).
+4. Rooms from a file in the saved world, not from the list written in
+   `src/client/main.cpp` and `tools/track.sh`; started and stopped while the
+   server runs (the router's arrays are sized at start today); rules declared by
+   each mod so the page lists them; difficulty in every room. Closes two entries
+   under Limits.
+5. The zone (`mods/zones`). Done 2026-11-11, by script only, in no client: a box
+   saved with its doorways (`zones:doorway` in a side) and markers, turned and
+   mirrored with every block's facing; a level laid from a seed, an "end" zone
+   last; `zones:lay` / `zones:mark` / `zones:laid`; a player's zones private
+   until `/zone approve`. 196608 cells saved and read back in one call, so
+   OPEN-42 does not bite at 64 x 48 x 64. Missing: a level laid by a mapgen
+   stage for a survival slot (it is written at run time, 4000 cells a tick);
+   zones shipped with the game as files (a mod reads none: a tool has to turn
+   the store into a `.luau`); doorway kinds other than "door"; levels on more
+   than one floor are only what the zones' own doorway heights give.
+6. The workshop room: an editor in the game, a "try" button, an admin's approval.
+   6b. Tools made for each kind of world (chambers: panels, buttons, doors and
+   triggers joined; arpg: areas, corridors, lairs; backrooms: rooms and lights;
+   parkour: stations with jumps measured; Inferno: fortress pieces; front and
+   assault: bases and points).
+7. Each world onto zones: chambers, arpg, backrooms, parkour, Inferno, then the
+   front and the assault after their shared library (Structure).
+
+A player's own room is a room of the server with a world of its own, one a
+player (not the pocket hall, which stays what it is): made the first time its
+portal is loaded, let go when nobody can reach it.
+
 ## Additions proposed (2026-11-09), none designed
 
 Small, on what exists:

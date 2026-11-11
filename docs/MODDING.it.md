@@ -2518,6 +2518,68 @@ all'arrivo. Così le colonne si fanno quando servono e restano nel file del mond
 `track_core:level` / `track_core:laid`), `games/chambers/mods/chambers_game` (una copia della
 fila di camere da x 20000).
 
+### Livelli fatti di pezzi salvati: `mods/zones`
+
+Una **zona** è un volume del mondo salvato come pezzo di livello; un **livello** è fatto di zone
+unite varco a varco. Il mod tiene le zone (nello storage condiviso del server, così ogni stanza ha
+le stesse) e posa i livelli; il mod di un mondo ne chiede uno e mette le sue cose dove stanno i
+marcatori.
+
+**Farne una**, in gioco: si costruisce il pezzo, poi nel suo volume
+
+- blocchi `zones:doorway`, un rettangolo pieno in uno dei quattro lati (non in un angolo, non
+  dentro): salvato come il buco che segna, col suo lato, larghezza e altezza, e il blocco che ha
+  sotto, che è quello che chiude il varco quando non ci si attacca niente;
+- `zones:start`, `zones:exit`, `zones:mob`, `zones:loot`, `zones:key`, `zones:trigger`: salvati come
+  aria, con quale marcatore era e da che parte guardava (girano `upright`);
+
+e `/zone save MONDO NOME X1 Y1 Z1 X2 Y2 Z2 [start|room|end]`. La zona è `MONDO.NOME`, al massimo
+64 x 64 e alta 48. `/zone set ID d MIN MAX | weight N | mirror on|off | role start|room|end` dice a
+quali difficoltà va bene (da 1 a 10), quanto spesso esce, se può essere posata specchiata, e se
+comincia un livello, lo finisce o è una stanza lungo la strada.
+
+**Di chi è.** Una zona è della chiave che l'ha salvata (`core.player_key`) ed è `private`: la usano
+solo i livelli chiesti con quella chiave come `owner`. `/zone approve ID` di un admin la rende
+`approved`, in ogni livello del suo mondo; `/zone private ID` la ritira, e la ritira anche chi l'ha
+fatta quando la cambia.
+
+**Chiedere un livello**, da un altro mod:
+
+```luau
+core.event.on("zones:mark", function(ev)
+    -- ev.tag, ev.kind ("start", "exit", "mob", "loot", "key", "trigger"), ev.x, ev.y, ev.z,
+    -- ev.facing (da 0 a 3, girato come la sua zona)
+end)
+core.event.on("zones:laid", function(ev)
+    -- ev.tag, ev.pieces (0: il mondo non ha zone con cui cominciare), e il volume del livello,
+    -- da ev.x1 ev.y1 ev.z1 a ev.x2 ev.y2 ev.z2
+end)
+core.event.emit("zones:lay", { tag = "mio 7", world = "chambers", owner = core.player_key(player),
+                               x = 9000, y = 20, z = 100, seed = 42, d = 3, count = 6 })
+```
+
+`x y z` è dove va l'angolo più basso della prima zona, non girata; le altre crescono dai suoi
+varchi, da qualunque parte guardino. Il livello viene scritto 4000 celle a tick, ogni `zones:mark`
+arriva quando è in piedi, poi `zones:laid`. `tag` è una parola di chi chiede, per riconoscere le
+risposte.
+
+**Come si posa un livello** (`layout.luau`, che non legge né scrive il mondo: le stesse zone, seme,
+numero e `d` danno lo stesso livello ovunque). Prima una zona "start"; poi una "room" attaccata al
+varco aperto più recente a cui si adatta -- stessa larghezza, altezza e tipo, le due facce opposte --
+provando ognuno dei suoi varchi e, se può essere specchiata, in tutti e due i modi, in un ordine
+estratto dal seme, peso 3 tre volte più probabile per primo di peso 1; due zone non condividono mai
+una cella; per ultima una zona "end". Un tentativo che si avvolge su se stesso e non ha posto per la
+fine si butta per il successivo, sedici al massimo. Un lato è 0 +x, 1 -z, 2 -x, 3 +z, così un quarto
+di giro porta ognuno al successivo.
+
+**La rotazione di un blocco gira con la sua zona** (`turns.luau`): `upright` e `facedir` con due
+tabelle ricavate dalle matrici dell'engine (`src/core/media/face_tiles.h`), `wallmounted` con la sua
+faccia. Un blocco specchiato è giusto quando la sua forma è uguale ai due lati del suo mezzo -- una
+scala, un tronco, una cassa; una zona con un blocco che non lo è non va messa `mirror on`.
+
+**Non c'è ancora**: un livello posato da uno stage di mapgen, che serve a uno slot survival
+(TODO.md); zone fornite col gioco come file; tipi di varco diversi da "door".
+
 ---
 
 ## Esempio minimo

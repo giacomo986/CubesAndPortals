@@ -363,6 +363,15 @@ a robot build it. A robot puts up a tower of scaffolding for what its hand does 
 it down after; scaffolding (six from three planks and four sticks) is climbed like a ladder, by
 anybody.
 
+**Zones** (`mods/zones`): a piece of a level saved out of the world, to make levels of. Build a room,
+put **doorway** blocks in its sides where another piece may join and **marker** blocks where a world
+puts its own things (start, exit, creature, loot, key, trigger), and `/zone save WORLD NAME X1 Y1 Z1
+X2 Y2 Z2 [start|room|end]` saves the box, up to 64x48x64, with every block's turn. A level is zones
+joined doorway to doorway, turned and mirrored as they need, from a start to an end, the same for
+the same seed; a doorway nothing joined is shut. A zone is its maker's, and only in levels asked
+for in their name, until an admin approves it (`/zone approve`); `/zone try WORLD` lays a level
+beside an admin. For mod makers: `docs/MODDING.md`, "Levels out of saved pieces".
+
 **Errands**: each village posts up to three on a notice board by its well -- bring what it lacks,
 procure a material, craft tools, hunt at night, carry a parcel to another village, explore a far place --
 taken and paid (from its treasury) at the mayor and the merchant; after five, the merchant gives a discount.

@@ -371,6 +371,16 @@ o lo fa il costruttore del villaggio, o un robot. Il robot monta una torre di im
 che la sua mano non raggiunge e poi la smonta; l'impalcatura (sei da tre assi e quattro bastoni) si
 sale come una scala, chiunque può farlo.
 
+**Zone** (`mods/zones`): un pezzo di livello salvato dal mondo, con cui fare livelli. Si costruisce
+una stanza, si mettono blocchi **varco** nei lati dove un altro pezzo può attaccarsi e blocchi
+**marcatore** dove un mondo mette le sue cose (inizio, uscita, creatura, bottino, chiave, innesco), e
+`/zone save MONDO NOME X1 Y1 Z1 X2 Y2 Z2 [start|room|end]` salva il volume, fino a 64x48x64, con la
+rotazione di ogni blocco. Un livello è fatto di zone unite varco a varco, ruotate e specchiate come
+serve, da un inizio a una fine, uguale per lo stesso seme; un varco a cui non si attacca niente
+viene chiuso. Una zona è di chi l'ha fatta, e sta solo nei livelli chiesti a suo nome, finché un
+admin non la approva (`/zone approve`); `/zone try MONDO` posa un livello accanto a un admin. Per chi
+scrive mod: `docs/MODDING.it.md`, "Livelli fatti di pezzi salvati".
+
 **Commissioni**: ogni villaggio ne espone fino a tre su una bacheca accanto al pozzo -- portare ciò che
 manca, procurare un materiale, fabbricare utensili, cacciare di notte, portare un pacco a un altro
 villaggio, esplorare un luogo lontano -- prese e pagate (dalla tesoreria) dal sindaco e dal mercante;

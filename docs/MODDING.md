@@ -2236,6 +2236,64 @@ needed and stay in the world file. Examples: `games/parkour/mods/parkour` (stati
 `games/track/mods/track_core` (a circuit, `track_core:level` / `track_core:laid`),
 `games/chambers/mods/chambers_game` (a copy of the row of chambers from x 20000).
 
+### Levels out of saved pieces: `mods/zones`
+
+A **zone** is a box of the world saved as a piece of a level; a **level** is zones joined doorway
+to doorway. The mod keeps the zones (the server's shared storage, so every room has the same ones)
+and lays the levels; a world's own mod asks for one and puts its things where the markers are.
+
+**Making one**, in the game: build the piece, then in its box
+
+- `zones:doorway` blocks, a full rectangle of them in one of the four sides (not in a corner, not
+  inside): saved as the hole it marks, with its side, its width and height, and the block under it,
+  which is what shuts the doorway when nothing joins it;
+- `zones:start`, `zones:exit`, `zones:mob`, `zones:loot`, `zones:key`, `zones:trigger`: saved as air,
+  with which marker it was and the way it faced (they turn `upright`);
+
+and `/zone save WORLD NAME X1 Y1 Z1 X2 Y2 Z2 [start|room|end]`. The zone is `WORLD.NAME`, at most
+64 x 64 and 48 high. `/zone set ID d MIN MAX | weight N | mirror on|off | role start|room|end` says
+which difficulties it suits (1 to 10), how often it comes up, whether it may be laid mirrored, and
+whether it starts a level, ends one or is a room on the way.
+
+**Whose it is.** A zone belongs to the key that saved it (`core.player_key`) and is `private`: only
+levels asked for with that key as `owner` use it. An admin's `/zone approve ID` makes it `approved`,
+in every level of its world; `/zone private ID` takes that back, and so does its maker changing it.
+
+**Asking for a level**, from another mod:
+
+```luau
+core.event.on("zones:mark", function(ev)
+    -- ev.tag, ev.kind ("start", "exit", "mob", "loot", "key", "trigger"), ev.x, ev.y, ev.z,
+    -- ev.facing (0 to 3, turned as its zone was)
+end)
+core.event.on("zones:laid", function(ev)
+    -- ev.tag, ev.pieces (0: the world has no zone to start with), and the level's box,
+    -- ev.x1 ev.y1 ev.z1 to ev.x2 ev.y2 ev.z2
+end)
+core.event.emit("zones:lay", { tag = "mine 7", world = "chambers", owner = core.player_key(player),
+                               x = 9000, y = 20, z = 100, seed = 42, d = 3, count = 6 })
+```
+
+`x y z` is where the first zone's lowest corner goes, unturned; the rest grow from its doorways,
+whichever way they face. The level is written 4000 cells a tick, every `zones:mark` comes when it
+stands, then `zones:laid`. `tag` is the asker's own word, to know its answers by.
+
+**How a level is laid** (`layout.luau`, which reads and writes no world: the same zones, seed, count
+and `d` give the same level anywhere). A "start" zone first; then a "room" joined to the newest open
+doorway it fits -- same width, height and kind, the two faces opposite -- trying each of its doorways
+and, if it may be mirrored, both ways, in an order drawn from the seed, weight 3 three times as
+likely to come first as weight 1; no two zones share a cell; an "end" zone last. A try that winds
+round on itself and has no room for its end is thrown away for the next, sixteen at most. A side is
+0 +x, 1 -z, 2 -x, 3 +z, so that a quarter turn takes each to the next.
+
+**A block's turn turns with its zone** (`turns.luau`): `upright` and `facedir` by two tables worked
+out from the engine's own matrices (`src/core/media/face_tiles.h`), `wallmounted` by its face. A
+mirrored block is right when its shape is the same either side of its middle -- a stair, a log, a
+chest; a zone with a block that is not should not be set `mirror on`.
+
+**Not there yet**: a level laid by a mapgen stage, which a survival slot wants (TODO.md); zones
+shipped with the game as files; doorway kinds other than "door".
+
 ---
 
 ## Minimal example
