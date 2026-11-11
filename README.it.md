@@ -515,7 +515,9 @@ un altare contiene (una chiave, la pistola dei portali, un frammento) galleggia 
   l'orizzonte che torna in bolla dopo un attraversamento inclinato. Attraverso un portale si
   mantiene la velocità, girata come il portale. I portali **si costruiscono in gioco**
   (`mods/portal`): una cornice attorno a un buco si apre quando va a posto l'ultimo blocco, fino a
-  16 per mondo. Un'apertura senza l'altro capo è chiusa da una membrana animata.
+  16 per mondo. Un'apertura senza l'altro capo è chiusa da una membrana animata. Dal menù della
+  cornice (clic destro) chi l'ha costruita, o un admin, sceglie dove porta, il colore, se scala e
+  se è una finestra: mostra l'altro capo e non lascia passare.
 - **Mondi e server.** Due mondi in un solo processo, portali verso **un altro server** con ticket
   firmati, e più mondi (stanze) sullo stesso server e sulla stessa porta. Il mondo non ha bordo:
   le colonne si generano o si caricano quando un giocatore si avvicina, e si lasciano quando non

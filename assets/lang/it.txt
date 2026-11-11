@@ -191,6 +191,20 @@ to set it up = per impostarlo
 there is already a frame called {} = c'è già una cornice di nome {}
 done = fatto
 its frame is broken = la sua cornice è rotta
+a window onto {}, at {}: nothing crosses = una finestra su {}, a {}: non passa niente
+{}, at {}, looks out of this one: nothing crosses = {}, a {}, guarda fuori da questo: non passa niente
+colour: green = colore: verde
+colour: blue = colore: blu
+colour: orange = colore: arancione
+scales: yes = scala: sì
+scales: no = scala: no
+a window: yes = finestra: sì
+a window: no = finestra: no
+it scales once its other end scales too: give both the same proportions = scala quando scala anche l'altra estremità: dai a tutte e due le stesse proporzioni
+link it to another frame first: a window shows what that one faces = collegalo prima a un'altra cornice: una finestra mostra ciò che quella ha davanti
+{} is somebody else's and leads elsewhere: they link it from their side = {} è di qualcun altro e porta altrove: lo collega lui dal suo lato
+{} leads to {} = {} porta a {}
+{} leads nowhere = {} non porta da nessuna parte
 
 # --- Portals to other servers (portal:server_frame) ---
 WARNING: {} = ATTENZIONE: {}

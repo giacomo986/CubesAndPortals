@@ -10,7 +10,15 @@
 -- to one other frame: the last one finished that led nowhere, when it is
 -- finished, or whichever its menu links it to later. A right click on the frame
 -- opens that menu: its name, where it leads, the other frames to link it to,
--- and buttons to turn the front round, turn it a quarter, or close it.
+-- and buttons to turn the front round, turn it a quarter, or close it; and
+-- what the engine's openings can be besides a door: the colour it shows while
+-- it leads nowhere, one that SCALES (core.portal_scale: with an other end of
+-- another size, what crosses comes out that much bigger or smaller), and a
+-- WINDOW (core.portal_window: it shows what its other end faces and nothing
+-- crosses). A frame is its builder's (core.player_key): they and whoever has
+-- the `portals` permission set it up, anybody else's right click says where
+-- it leads. A frame from before frames had owners, or built by somebody with
+-- no key, is anybody's, as every frame was.
 --
 -- A world holds as many frames as are built: core.portal_open's portals are
 -- virtual, and only the ones near a player (and what they lead to) take one
@@ -38,6 +46,10 @@ type Frame = {
     slot: number,                         -- which of the world's openings it is
     name: string,                         -- "portal 3": what the menus call it
     link: string?,                        -- the name of the frame it leads to
+    owner: string,                        -- the key of whoever finished it; "" is anybody's
+    colour: number,                       -- shown while it leads nowhere: 0 green, 1 blue, 2 orange
+    scales: boolean,                      -- core.portal_scale
+    window: boolean,                      -- it only shows what its link faces (core.portal_window)
 }
 
 -- The frames that are open now, as many as there are.
@@ -148,7 +160,7 @@ local function hole(block: number, axis: number, x: number, y: number, z: number
         ex, ez = w, h
     end
     return { x = lx, y = ly, z = lz, ex = ex, ey = ey, ez = ez, axis = axis, sign = 1, rot = 0,
-             slot = -1, name = "" }
+             slot = -1, name = "", owner = "", colour = 0, scales = false, window = false }
 end
 
 -- The whole frame the `block` at x, y, z is part of, or nil: a hole next to
@@ -215,33 +227,76 @@ local function apply(f: Frame): number
     if f.rot % 2 == 1 then
         w, h = h, w
     end
-    f.slot = core.portal_open(cx, cy, cz, f.axis, f.sign, f.rot, w / 2, h / 2)
+    f.slot = core.portal_open(cx, cy, cz, f.axis, f.sign, f.rot, w / 2, h / 2, f.colour)
+    -- An opening given a shape is that shape and nothing else: whether it
+    -- scales is said again, and a window is by whoever calls this (wire).
+    if f.slot >= 0 and f.scales then
+        core.portal_scale(f.slot, true)
+    end
     return f.slot
 end
 
--- One row a frame: its name, its shape, and the name it leads to.
+-- One row a frame: its name, its shape, the name it leads to, and whose it is
+-- with what it was set to (a row from before 2026-11-11 stops at the third).
 local function save()
     local rows = {}
     for _, f in frames do
         table.insert(rows, `{f.name}|{f.x} {f.y} {f.z} {f.ex} {f.ey} {f.ez} {f.axis} {f.sign} `
-            .. `{f.rot}|{f.link or ""}`)
+            .. `{f.rot}|{f.link or ""}|{if f.owner == "" then "-" else f.owner} {f.colour} `
+            .. `{if f.scales then 1 else 0} {if f.window then 1 else 0}`)
     end
     core.storage_set("frames", table.concat(rows, ";"))
 end
 
+-- Tells the engine how f and the frame it leads to are joined, after either
+-- was opened or reshaped (apply): a door both ways, or a window from the one
+-- that is a window onto the other.
+local function wire(f: Frame)
+    local g = named(f.link)
+    if g == nil then
+        core.portal_link(f.slot, -1)
+    elseif f.window then
+        core.portal_window(f.slot, g.slot)
+    elseif g.window then
+        core.portal_window(g.slot, f.slot)
+    else
+        core.portal_link(f.slot, g.slot)
+    end
+end
+
+-- Whether that player sets f up: its builder, whoever the server lets set
+-- portals up, and anybody at all for a frame that is nobody's.
+local function may_edit(player: number, f: Frame): boolean
+    return f.owner == "" or f.owner == core.player_key(player) or core.has_perm(player, "portals") == 1
+end
+
 -- f leads to g, and g to f; whatever either led to before leads nowhere. g nil
 -- unlinks f. The engine keeps the same pairs by opening (core.portal_link).
+-- A window is one way: the end that is one shows what the other faces. A frame
+-- left with no other end is no window any more, and neither is the far end of
+-- one that becomes a window itself.
 local function link(f: Frame, g: Frame?)
     for _, h in frames do
         if h.link == f.name or (g and h.link == g.name) then
             h.link = nil
+            if h ~= f and h ~= g then
+                h.window = false
+                apply(h)   -- its opening forgets the window it was half of
+            end
         end
     end
     f.link = if g then g.name else nil
     if g then
         g.link = f.name
+        if f.window then
+            g.window = false
+        end
+        apply(g)
+    else
+        f.window = false
     end
-    core.portal_link(f.slot, if g then g.slot else -1)
+    apply(f)
+    wire(f)
 end
 
 local function facing(f: Frame): string
@@ -280,7 +335,7 @@ local function menu()
         return a.name < b.name
     end)
     local rows = math.ceil(#others / 2)
-    if core.ui_define(PANEL, 13.0, 6.6 + rows) == 0 then
+    if core.ui_define(PANEL, 13.0, 7.8 + rows) == 0 then
         return
     end
 
@@ -292,7 +347,11 @@ local function menu()
         .. "click the name to change it")
 
     local other = named(f.link)
-    if other then
+    if other and f.window then
+        core.ui_label(PANEL, 0.5, 2.0, `a window onto {other.name}, at {where(other)}: nothing crosses`)
+    elseif other and other.window then
+        core.ui_label(PANEL, 0.5, 2.0, `{other.name}, at {where(other)}, looks out of this one: nothing crosses`)
+    elseif other then
         core.ui_label(PANEL, 0.5, 2.0, `leads to {other.name}, at {where(other)}`)
     else
         core.ui_label(PANEL, 0.5, 2.0, "leads nowhere: link it to another frame below")
@@ -303,15 +362,27 @@ local function menu()
     core.ui_button(PANEL, "shut", 0.5, 4.1, 6.0, 0.9, "close the portal")
     core.ui_button(PANEL, "close", 6.7, 4.1, 5.8, 0.9, "done")
 
-    if #others == 0 then
-        core.ui_label(PANEL, 0.5, 5.4, "no other frame is open to link it to")
+    -- What it is besides a door: each button says what it is now and a click
+    -- makes it the next.
+    if f.colour == 1 then
+        core.ui_button(PANEL, "colour", 0.5, 5.3, 3.9, 0.9, "colour: blue")
+    elseif f.colour == 2 then
+        core.ui_button(PANEL, "colour", 0.5, 5.3, 3.9, 0.9, "colour: orange")
     else
-        core.ui_label(PANEL, 0.5, 5.4, "link it to:")
-        core.ui_button(PANEL, "unlink", 6.7, 5.2, 5.8, 0.8, "nothing")
+        core.ui_button(PANEL, "colour", 0.5, 5.3, 3.9, 0.9, "colour: green")
+    end
+    core.ui_button(PANEL, "scales", 4.6, 5.3, 3.9, 0.9, if f.scales then "scales: yes" else "scales: no")
+    core.ui_button(PANEL, "window", 8.7, 5.3, 3.8, 0.9, if f.window then "a window: yes" else "a window: no")
+
+    if #others == 0 then
+        core.ui_label(PANEL, 0.5, 6.6, "no other frame is open to link it to")
+    else
+        core.ui_label(PANEL, 0.5, 6.6, "link it to:")
+        core.ui_button(PANEL, "unlink", 6.7, 6.4, 5.8, 0.8, "nothing")
         for i, g in others do
             local col, row = (i - 1) % 2, (i - 1) // 2
             local mark = if g == other then "> " else ""
-            core.ui_button(PANEL, `link:{g.name}`, 0.5 + col * 6.2, 6.2 + row, 6.0, 0.8,
+            core.ui_button(PANEL, `link:{g.name}`, 0.5 + col * 6.2, 7.4 + row, 6.0, 0.8,
                 `{mark}{g.name} ({where(g)})`)
         end
     end
@@ -367,6 +438,7 @@ local function try_open(f: Frame, player: number): Frame?
         end
     end
     f.name = new_name()
+    f.owner = core.player_key(player)
     table.insert(frames, f)
     link(f, lone)
     save()
@@ -451,7 +523,10 @@ core.event.on("core:used", function(ev)
     end
 
     ev.cancel = true
-    if f then
+    if f and not may_edit(ev.player, f) then
+        local other = named(f.link)
+        core.notice(ev.player, if other then `{f.name} leads to {other.name}` else `{f.name} leads nowhere`)
+    elseif f then
         shown = f
         viewer = ev.player
         menu()
@@ -472,6 +547,13 @@ core.event.on("core:ui_click", function(ev)
         return
     end
 
+    -- The one panel shows the frame clicked last, which may be somebody else's
+    -- by now: a click from whoever may not set that one up closes their menu.
+    if not may_edit(ev.player, f) then
+        core.ui_show(PANEL, false, ev.player)
+        return
+    end
+
     viewer = ev.player
     if ev.id == "shut" then
         for i, g in frames do
@@ -485,6 +567,25 @@ core.event.on("core:ui_click", function(ev)
         f.sign = -f.sign
     elseif ev.id == "turn" then
         f.rot = (f.rot + 1) % 4
+    elseif ev.id == "colour" then
+        f.colour = (f.colour + 1) % 3
+    elseif ev.id == "scales" then
+        f.scales = not f.scales
+        if f.scales then
+            core.notice(ev.player, "it scales once its other end scales too: give both the same proportions")
+        end
+    elseif ev.id == "window" then
+        local g = named(f.link)
+        if g == nil then
+            core.notice(ev.player, "link it to another frame first: a window shows what that one faces")
+            menu()
+            return
+        end
+        f.window = not f.window
+        if f.window then
+            g.window = false
+        end
+        apply(g)   -- as a door again, until wire says otherwise
     elseif ev.id == "name" then
         -- What a player typed: trimmed, without the two characters the saved
         -- rows are split on, and short enough for a button in the list.
@@ -521,7 +622,10 @@ core.event.on("core:ui_click", function(ev)
         return
     elseif string.sub(ev.id, 1, 5) == "link:" then
         local g = named(string.sub(ev.id, 6))
-        if g and g ~= f then
+        if g and g ~= f and g.link ~= nil and g.link ~= f.name and not may_edit(ev.player, g) then
+            -- Linking takes g from whatever it led to: only for whoever sets g up.
+            core.notice(ev.player, `{g.name} is somebody else's and leads elsewhere: they link it from their side`)
+        elseif g and g ~= f then
             link(f, g)
             save()
             core.log(`{f.name} now leads to {g.name}`)
@@ -533,6 +637,7 @@ core.event.on("core:ui_click", function(ev)
     end
 
     apply(f)
+    wire(f)
     save()
     menu()
 end)
@@ -576,9 +681,13 @@ core.event.on("core:tick", function(_)
         for _, word in string.split(parts[2] or "", " ") do
             table.insert(n, tonumber(word) or 0)
         end
-        if #parts == 3 and #n == 9 then
+        if (#parts == 3 or #parts == 4) and #n == 9 then
+            local set = string.split(parts[4] or "", " ")
             local f: Frame = { x = n[1], y = n[2], z = n[3], ex = n[4], ey = n[5], ez = n[6],
-                               axis = n[7], sign = n[8], rot = n[9], slot = -1, name = parts[1] }
+                               axis = n[7], sign = n[8], rot = n[9], slot = -1, name = parts[1],
+                               owner = if set[1] == nil or set[1] == "-" then "" else set[1],
+                               colour = math.clamp(tonumber(set[2]) or 0, 0, 2),
+                               scales = set[3] == "1", window = set[4] == "1" }
             if apply(f) >= 0 then
                 table.insert(frames, f)
                 leads[f] = parts[3]

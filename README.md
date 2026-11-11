@@ -499,7 +499,9 @@ altar holds (a key, the portal gun, a shard) hangs over it, turning.
   orientations (floor, wall, ceiling, turned), bodies cut as they cross, and the horizon levelled
   after a tilted crossing. You keep your speed through a portal, turned with it. Portals are
   **built in game** (`mods/portal`): a frame around a hole opens when its last block goes in, up
-  to 16 per world. An opening without its other end is closed by an animated membrane.
+  to 16 per world. An opening without its other end is closed by an animated membrane. From the
+  frame's menu (right click) its builder, or an admin, picks where it leads, its colour, whether it
+  scales and whether it is a window: it shows its other end and lets nothing through.
 - **Worlds and servers.** Two worlds in one process, portals to **another server** with signed
   tickets, and several worlds (rooms) on one server and port. The world has no edge: columns are
   generated or loaded as players get near, and dropped when nobody is.
