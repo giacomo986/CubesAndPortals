@@ -7495,20 +7495,35 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
     }
     // Whoever is sat in it, in the same place: a rider's clips are authored
     // about the vehicle's own origin.
-    // Without its head when the eye is in it: its arms on the wheel and its
-    // knees in the seat are what a driver sees of themselves -- and nothing
-    // worn on the head, which would be over the eye.
+    // When the eye is in it, only its arms: on the wheel, and what they hold,
+    // are what a driver sees of themselves. The rest -- a lizard's neck and
+    // crest stood up in front of the eye -- is shrunk to its joints, and
+    // nothing worn is drawn. Not by `show`: that takes a bone's children with
+    // it, and the arms hang from the chest.
     if (r != nullptr) {
-        std::vector<int8_t> show;
+        pose(r->model, b.rider_clips, 2, nullptr, nullptr, posed);
         if (b.rider_headless) {
-            show.assign((size_t)r->model.joint_count, -1);
-            for (int j = 0; j < r->model.joint_count; ++j)
-                if (r->model.joint_names[(size_t)j] == "head") show[(size_t)j] = 0;
+            const SkinnedModel &m = r->model;
+            std::vector<char>   arm((size_t)m.joint_count, 0);   // an arm's bone, or under one
+            for (int j = 0; j < m.joint_count; ++j)
+                for (int k = j; k >= 0 && !arm[(size_t)j]; k = m.joint_parent[(size_t)k])
+                    if (m.joint_names[(size_t)k].rfind("upper_arm_", 0) == 0) arm[(size_t)j] = 1;
+            for (int j = 0; j < m.joint_count; ++j) {
+                if (arm[(size_t)j]) continue;
+                float     *q  = &posed[(size_t)j * 12];
+                const Vec3 at = m.joint_rest[(size_t)j];
+                for (int row = 0; row < 3; ++row) {
+                    const float to = q[row * 4] * at.x + q[row * 4 + 1] * at.y + q[row * 4 + 2] * at.z + q[row * 4 + 3];
+                    q[row * 4] = q[row * 4 + 1] = q[row * 4 + 2] = 0.0f;
+                    q[row * 4 + 3] = to;   // where the joint is posed: every vertex of it there
+                }
+            }
         }
-        pose(r->model, b.rider_clips, 2, nullptr, show.empty() ? nullptr : show.data(), posed);
         r->renderer.draw(projection, view, place, posed, gfx_texture{0}, 1.0f, 1.0f, livery_tag(b.livery));
-        draw_extras(w.models, *r, posed, b.livery, b.rider_headless, projection, view, place);
-        dress(*r);
+        if (!b.rider_headless) {
+            draw_extras(w.models, *r, posed, b.livery, false, projection, view, place);
+            dress(*r);
+        }
     }
     return true;
 }
