@@ -174,8 +174,6 @@ Mods:
   top hat, scarf and frill on. The bow tie and medal in Blender only, and the
   tail's lift at a run is not looked at from the side. Its source
   `contrib/lizard/meshy/lizard.glb` (16.6 MB) is not in the repository.
-- Walking into another room of a server, its models arrive a few at a time
-  over some seconds: until then bodies (your own too) are yellow boxes.
 - Dragon knight (switched off): no styles, gear not refitted, the cape passes
   through the legs.
 - Arpg: weapons are the robot's on every species; nothing shows a ring.

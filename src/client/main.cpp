@@ -803,6 +803,9 @@ struct Session {
     // And what the world dresses players in, off its welcome (0 in a local
     // world, which dresses nobody): what first-person arms are looked up by.
     uint16_t player_model_id = 0;
+    // Its models are still being read (a few a frame, ModelsRead): a body whose
+    // model has not come yet is left out rather than drawn as a box.
+    bool models_arriving = false;
 
     // How far behind the player's head this world is seen from, in nodes; 0 is
     // the eye. Per world, because a world asks for it (core.view) and a
@@ -7712,10 +7715,16 @@ void draw_bodies(Scene &s, Session &w, const Mat4 &projection, const Mat4 &view)
         ~After() { draw_kart_fx(s, w, projection, view); }
     } after{s, w, projection, view};
     if (w.bodies.empty()) return;
+    // A body with a model this world has named and this machine has not read
+    // yet: nothing, for the moment its models take to come, and not a box.
+    const auto coming = [&](const Body &b) {
+        return w.models_arriving && b.model != 0 && !b.dropped && b.as_block == kAir &&
+               w.models.entry(b.model) == nullptr;
+    };
 
     if (!w.portals || !s.cut_bodies) {
         for (const Body &b : w.bodies) {
-            if (draw_body_model(s, w, b, projection, view)) continue;
+            if (draw_body_model(s, w, b, projection, view) || coming(b)) continue;
             s.body_render.draw(b, projection, view);
         }
         return;
@@ -7724,7 +7733,7 @@ void draw_bodies(Scene &s, Session &w, const Mat4 &projection, const Mat4 &view)
     const PortalLink *links[2] = {&w.link_ab, &w.link_ba};
 
     for (const Body &b : w.bodies) {
-        if (draw_body_model(s, w, b, projection, view)) continue;
+        if (draw_body_model(s, w, b, projection, view) || coming(b)) continue;
 
         const AABB box = b.bounds();
 
@@ -15512,6 +15521,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         size_t      next    = 0;   // the next id to read, minus one
         int         from_wire = 0, from_disk = 0;
         std::string told;
+        bool        firsts = false;   // the player's own models read ahead of the rest
     };
     std::vector<unsigned>   conn_atlas_built((size_t)net_sessions.count(), 0);
     std::vector<ModelsRead> conn_models_read((size_t)net_sessions.count());
@@ -15968,11 +15978,36 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         // sandbox, its 94 took 120-335 ms of one frame the first time. A world
         // seen through an opening has them by the time anyone walks in, and its
         // bodies are drawn with them in the opening meanwhile.
-        const double models_until = plat_time() + 0.003;
+        //
+        // The world the player is in goes first and gets longer while it is
+        // still short of models -- walked into before it was seen through an
+        // opening, its bodies were yellow boxes for seconds (the track room's
+        // 600 at 3 ms a frame) -- and in it the player's own models come
+        // first of all: the player model and every "<it>_*" (species, arms,
+        // extras), so whoever is standing there is drawn as themselves.
+        const auto read_one = [&](net::ClientSession *w, ModelStore &store, ModelsRead &mr, size_t i) {
+            if (store.has((uint16_t)(i + 1))) return;   // read ahead already
+            const std::vector<std::string> &names = w->welcome().models;
+            // The world's own first, out of the media it served: a client
+            // that has never seen this game rebuilds its characters from what
+            // arrived. Then the player's folder, for whatever the world did
+            // not serve.
+            if (!g_media_dir.empty() && g_media_dir != "-")
+                mr.from_wire += store.load_from_media(names, world_media(w), g_media_dir + "/models", mr.told, i, 1);
+            mr.from_disk += store.fill_from_dir(names, g_models_dir, mr.told, i, 1);
+        };
+        const double models_from = plat_time();
+        for (int pass = 0; pass < 2; ++pass)
         for (int id = 0; id < net_sessions.count(); ++id) {
             net::ClientSession *w     = net_sessions.get(id);
             const int           world = world_of(id);
-            if (!w || world < 0 || !w->playing() || !w->media_complete()) continue;
+            if (!w || world < 0) continue;
+            const bool here = world == s.active;
+            if ((pass == 0) != here) continue;   // the one stood in, then the rest
+            if (!w->playing() || !w->media_complete()) {
+                s.at(world).models_arriving = true;
+                continue;
+            }
 
             ModelsRead                     &mr    = conn_models_read[(size_t)id];
             ModelStore                     &store = s.at(world).models;
@@ -15981,17 +16016,26 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 mr = ModelsRead{w->media_version() + 1};
                 store.clear();
             }
+            s.at(world).models_arriving = mr.next < names.size();
+            const double models_until = models_from + (here && mr.next < names.size() ? 0.012 : 0.003);
+            if (here && !mr.firsts) {
+                mr.firsts = true;
+                const uint16_t pm = w->welcome().player_model;
+                if (pm >= 1 && pm <= names.size()) {
+                    std::vector<std::string> heads;
+                    for (const std::string &b : species_bases(names[pm - 1u])) heads.push_back(b);
+                    for (size_t i = 0; i < names.size(); ++i)
+                        for (const std::string &h : heads)
+                            if (names[i] == h || names[i].rfind(h + "_", 0) == 0) {
+                                read_one(w, store, mr, i);
+                                break;
+                            }
+                }
+            }
             while (mr.next < names.size() && plat_time() < models_until) {
-                // The world's own first, out of the media it served: a client
-                // that has never seen this game rebuilds its characters from
-                // what arrived. Then the player's folder, for whatever the
-                // world did not serve.
-                if (!g_media_dir.empty() && g_media_dir != "-")
-                    mr.from_wire += store.load_from_media(names, world_media(w),
-                                                          g_media_dir + "/models", mr.told,
-                                                          mr.next, 1);
-                mr.from_disk += store.fill_from_dir(names, g_models_dir, mr.told, mr.next, 1);
+                read_one(w, store, mr, mr.next);
                 if (++mr.next < names.size()) continue;
+                s.at(world).models_arriving = false;
                 std::printf("models: %zu named by %s, %d from it, %d from this machine, "
                             "%d refused\n",
                             names.size(), conn_spec[(size_t)id].c_str(), mr.from_wire,
