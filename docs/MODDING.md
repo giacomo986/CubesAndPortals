@@ -1730,7 +1730,7 @@ on foot and get into a parked kart: `games/track`.
   own (`<that>_cap`). A species' body and arms need not carry clips: one that has none plays the
   player model's (and `<player model>_arms`'s), its bones found by name, so the file is its mesh and
   not a megabyte of the robot's clips. In a worn piece a `wag_<n>` bone swings side to side about the
-  upright, each link behind the one before by its number, so a chain of them is a tail that wags. The title screen finds the same files in the mod folders, the player's
+  upright, each link behind the one before by its number, so a chain of them is a tail that wags: it trails out of a turn, and at a run it wags quicker and narrower and lifts. The title screen finds the same files in the mod folders, the player's
   `~/.cubes-and-portals/mods` included. `contrib/lizard` is one. `tools/make_species.py` makes them all: every body part (head, torso, arm,
   leg) is a single surface, primitives fused with a voxel remesh, smoothed and decimated, with weights
   blended at the joints; eyes and small details stay sharp. A species' accessories are built to its

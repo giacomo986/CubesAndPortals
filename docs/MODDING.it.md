@@ -1935,7 +1935,7 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   `<modello del giocatore>_arms`), con le ossa trovate per nome, così il file è la sua mesh e non un
   megabyte di clip del robot. In un pezzo indossato un osso `wag_<n>` oscilla di lato attorno alla
   verticale, ogni anello dietro al precedente secondo il suo numero, così una catena è una coda che
-  scodinzola. La schermata del titolo trova
+  scodinzola: resta indietro in curva, e di corsa scodinzola più svelta e più stretta e si alza. La schermata del titolo trova
   gli stessi file nelle cartelle delle mod, compresa quella del giocatore `~/.cubes-and-portals/mods`.
   `contrib/lizard` è una di queste.
   `tools/make_species.py` li fa tutti: ogni pezzo del corpo (testa, busto,

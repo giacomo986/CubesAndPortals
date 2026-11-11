@@ -168,11 +168,11 @@ Mods:
   karts do not collide with yours; nobody rides as a passenger (OPEN-47).
 - Assault: tanks in the escape are behind the jeep when ripe.
 - Lizard man (Meshy, 2026-11-11, an add-on in `contrib/lizard`, not in the game):
-  seen in a client, on the title's look page (its three styles) and in a world:
-  walking on the borrowed clips, the tail wagging, a cap and scarf on. The frill
-  and the fitted top hat, headphones, bow tie and medal seen in Blender only;
-  the tail does not follow a turn or lean into a run, it only wags. Its source
-  `contrib/lizard/meshy/lizard.glb` (16.6 MB) is not in the repository.
+  seen in a client, on the look pages (title and tools/track.sh's world, its
+  three styles) and in a world: walking on the borrowed clips, the tail wagging,
+  trailing out of a turn; cap, top hat, scarf and frill on. The bow tie and medal
+  in Blender only, and the tail's lift at a run is not looked at from the side.
+  Its source `contrib/lizard/meshy/lizard.glb` (16.6 MB) is not in the repository.
 - Dragon knight (switched off): no styles, gear not refitted, the cape passes
   through the legs.
 - Arpg: weapons are the robot's on every species; nothing shows a ring.

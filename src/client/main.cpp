@@ -6641,6 +6641,51 @@ ModelStore::Entry *model_named(ModelStore &models, const std::string &name)
 }
 ModelStore::Entry *model_named(Session &w, const std::string &name) { return model_named(w.models, name); }
 
+// How a body drawn with a wagging piece moves: its turn (radians a second,
+// about the upright) and its speed on the ground, smoothed, found from where
+// `place` put it the last time -- the body nearest that spot a moment ago --
+// for a tail that trails out of a turn and lifts into a run (draw_worn).
+struct WagMotion {
+    float turn = 0.0f, speed = 0.0f;
+};
+WagMotion wag_motion(const Mat4 &place)
+{
+    struct Trail {
+        Vec3   at;
+        float  yaw  = 0.0f;
+        double seen = 0.0;
+        WagMotion m;
+    };
+    static std::vector<Trail> trails;
+    const double now = plat_time();
+    const Vec3   at{place.at(0, 3), place.at(1, 3), place.at(2, 3)};
+    const float  yaw = std::atan2(place.at(0, 2), place.at(2, 2));
+    trails.erase(std::remove_if(trails.begin(), trails.end(), [&](const Trail &t) { return now - t.seen > 1.0; }),
+                 trails.end());
+    Trail *best = nullptr;
+    float  near = 0.6f * 0.6f;   // further than a body goes in a frame or two: another body
+    for (Trail &t : trails) {
+        const float dx = t.at.x - at.x, dy = t.at.y - at.y, dz = t.at.z - at.z;
+        if (dx * dx + dy * dy + dz * dz < near) near = dx * dx + dy * dy + dz * dz, best = &t;
+    }
+    if (best == nullptr) {
+        trails.push_back(Trail{at, yaw, now, {}});
+        return {};
+    }
+    const float dt = (float)(now - best->seen);
+    if (dt > 1e-3f) {   // drawn twice in a frame (a portal's view): the first said it
+        const float turn  = std::remainder(yaw - best->yaw, 6.2831853f) / dt;
+        const float speed = std::hypot(at.x - best->at.x, at.z - best->at.z) / dt;
+        const float k     = std::min(1.0f, dt * 5.0f);
+        best->m.turn += (std::clamp(turn, -8.0f, 8.0f) - best->m.turn) * k;
+        best->m.speed += (std::min(speed, 12.0f) - best->m.speed) * k;
+        best->at   = at;
+        best->yaw  = yaw;
+        best->seen = now;
+    }
+    return best->m;
+}
+
 // A worn piece: the model named for the item, skinned to the wearer's bones by
 // their NAMES -- a piece made on the robot's rig follows whatever pose the
 // robot is in. A bone the wearer has not got follows its parent, and one named
@@ -6693,6 +6738,13 @@ void draw_worn(ModelStore &models, const SkinnedModel &body, const std::vector<f
     // stands: a phase from the position sped the pendulum up with every step
     // (walking at 4 m/s shook a medal at 8 rad/s, off the chest it hung from).
     const float  phase = (float)(tint % 61) * 0.41f;
+    WagMotion    moving;
+    for (int j = 0; j < m.joint_count; ++j)
+        if (m.joint_names[(size_t)j].rfind("wag_", 0) == 0) {
+            moving = wag_motion(place);
+            break;
+        }
+    const float run = std::min(moving.speed / 6.0f, 1.0f);   // nothing standing, all at a sprint
     for (bool more = true; more;) {
         more = false;
         for (int j = 0; j < m.joint_count; ++j) {
@@ -6721,9 +6773,14 @@ void draw_worn(ModelStore &models, const SkinnedModel &body, const std::vector<f
                 // tail wags with it.
                 const Vec3  at   = m.joint_rest[(size_t)j];
                 const int   link = std::atoi(m.joint_names[(size_t)j].c_str() + 4);
-                const float turn = 0.13f * (float)std::sin(t * 2.2 + phase - 0.75 * link);
+                // Narrower and quicker at a run, and lifted off the ground;
+                // out of a turn it trails behind, bent the other way.
+                const float wag   = (0.13f - 0.06f * run) * (float)std::sin(t * (2.2 + 2.0 * run) + phase - 0.75 * link);
+                const float trail = std::clamp(-0.07f * moving.turn, -0.3f, 0.3f);
+                const float lift  = -0.07f * run;   // the tail runs back along +Z: up is a turn about X this way
                 local = mat4_multiply(mat4_translate(at),
-                                      mat4_multiply(mat4_rotate_y(turn), mat4_translate(Vec3{-at.x, -at.y, -at.z})));
+                                      mat4_multiply(mat4_multiply(mat4_rotate_y(wag + trail), mat4_rotate_x(lift)),
+                                                    mat4_translate(Vec3{-at.x, -at.y, -at.z})));
             }
             const Mat4 skin = mat4_multiply(rows(&mine[(size_t)parent * 12]), local);
             for (int row = 0; row < 3; ++row)
