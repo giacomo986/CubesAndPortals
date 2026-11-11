@@ -6646,8 +6646,11 @@ ModelStore::Entry *model_named(Session &w, const std::string &name) { return mod
 // `place` put it the last time -- the body nearest that spot a moment ago --
 // for a tail that trails out of a turn and lifts into a run (draw_worn).
 struct WagMotion {
-    float turn = 0.0f, speed = 0.0f;
+    float  turn = 0.0f, speed = 0.0f;
+    double phase = 0.0;   // where its wag is: added up, so a change of pace never jumps it
 };
+// The wag's pace, radians a second: slow standing, a little quicker at a run.
+float wag_pace(float speed) { return 1.5f + 1.1f * std::min(speed / 6.0f, 1.0f); }
 WagMotion wag_motion(const Mat4 &place)
 {
     struct Trail {
@@ -6672,18 +6675,24 @@ WagMotion wag_motion(const Mat4 &place)
         trails.push_back(Trail{at, yaw, now, {}});
         return {};
     }
+    // Measured over a twentieth of a second at least: frame to frame (and a
+    // body drawn twice in one, for a shadow or a portal's view) a step is
+    // noise, and a tail fed it shook.
     const float dt = (float)(now - best->seen);
-    if (dt > 1e-3f) {   // drawn twice in a frame (a portal's view): the first said it
+    if (dt >= 0.05f) {
         const float turn  = std::remainder(yaw - best->yaw, 6.2831853f) / dt;
         const float speed = std::hypot(at.x - best->at.x, at.z - best->at.z) / dt;
-        const float k     = std::min(1.0f, dt * 5.0f);
-        best->m.turn += (std::clamp(turn, -8.0f, 8.0f) - best->m.turn) * k;
+        const float k     = std::min(1.0f, dt * 3.0f);
+        best->m.phase += dt * wag_pace(best->m.speed);
+        best->m.turn += (std::clamp(turn, -6.0f, 6.0f) - best->m.turn) * k;
         best->m.speed += (std::min(speed, 12.0f) - best->m.speed) * k;
         best->at   = at;
         best->yaw  = yaw;
         best->seen = now;
     }
-    return best->m;
+    WagMotion m = best->m;   // and on from there, smoothly, until it is measured again
+    m.phase += (now - best->seen) * wag_pace(m.speed);
+    return m;
 }
 
 // A worn piece: the model named for the item, skinned to the wearer's bones by
@@ -6775,7 +6784,7 @@ void draw_worn(ModelStore &models, const SkinnedModel &body, const std::vector<f
                 const int   link = std::atoi(m.joint_names[(size_t)j].c_str() + 4);
                 // Narrower and quicker at a run, and lifted off the ground;
                 // out of a turn it trails behind, bent the other way.
-                const float wag   = (0.13f - 0.06f * run) * (float)std::sin(t * (2.2 + 2.0 * run) + phase - 0.75 * link);
+                const float wag   = (0.13f - 0.05f * run) * (float)std::sin(moving.phase + phase - 0.75 * link);
                 const float trail = std::clamp(-0.07f * moving.turn, -0.3f, 0.3f);
                 const float lift  = -0.07f * run;   // the tail runs back along +Z: up is a turn about X this way
                 local = mat4_multiply(mat4_translate(at),
@@ -6899,6 +6908,20 @@ bool game_species(const std::string &name)
         if (name == k) return true;
     return false;
 }
+// Where a world's species are looked for: "<its player model>_<species>",
+// and, when its player model is a game's own robot under another mod's name
+// ("track_core:robot", the same rig and clips), "robot:robot_<species>" as
+// well -- an add-on registers its species once, under that name, and every
+// room of a server that loads it has it (--user-mods before the first --room).
+std::vector<std::string> species_bases(const std::string &player_model)
+{
+    std::vector<std::string> out{player_model};
+    const std::string tail = ":robot";
+    if (player_model != "robot:robot" && player_model.size() > tail.size() &&
+        player_model.compare(player_model.size() - tail.size(), tail.size(), tail) == 0)
+        out.push_back("robot:robot");
+    return out;
+}
 struct AddonStyle {
     std::string name;   // what the look page says
     std::string piece;  // the model worn: "<that>_style_<name>" or "<that>_hat_<name>"
@@ -6936,13 +6959,21 @@ const AddonSpecies &addon_seen(const ModelStore &models, const std::string &base
     const auto plain = [](const std::string &n) {
         return !n.empty() && n.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789") == std::string::npos;
     };
-    const std::string head = base + "_", tail = "_arms";
-    for (const std::string &n : have) {
-        if (n.size() <= head.size() + tail.size() || n.compare(0, head.size(), head) != 0 ||
-            n.compare(n.size() - tail.size(), tail.size(), tail) != 0)
-            continue;
-        const std::string name = n.substr(head.size(), n.size() - head.size() - tail.size());
-        if (!plain(name) || game_species(name) || have.count(head + name) == 0) continue;
+    // name -> the base it was found under, sorted by name whichever base
+    std::map<std::string, std::string> found;
+    for (const std::string &b : species_bases(base)) {
+        const std::string head = b + "_", tail = "_arms";
+        for (const std::string &n : have) {
+            if (n.size() <= head.size() + tail.size() || n.compare(0, head.size(), head) != 0 ||
+                n.compare(n.size() - tail.size(), tail.size(), tail) != 0)
+                continue;
+            const std::string name = n.substr(head.size(), n.size() - head.size() - tail.size());
+            if (!plain(name) || game_species(name) || have.count(head + name) == 0) continue;
+            found.emplace(name, b);   // the world's own name first
+        }
+    }
+    for (const auto &[name, b] : found) {
+        const std::string head = b + "_";
         if (at->found.names.size() >= (size_t)kLiveryAddons) break;
         at->found.names.push_back(name);
         // its styles, sorted by their own names whichever kind
@@ -7042,12 +7073,14 @@ uint16_t species_model(ModelStore &models, uint16_t model, uint32_t livery)
     if (e == nullptr) return model;
     const std::string who = species_name(models, e->name, species);
     if (who.empty()) return model;
-    const std::string name = e->name + "_" + who;
-    for (size_t id = 1; id <= models.size(); ++id) {
-        ModelStore::Entry *s = models.entry((uint16_t)id);
-        if (s != nullptr && s->name == name) {
-            borrow_clips(s->model, e->model);
-            return (uint16_t)id;
+    for (const std::string &b : species_bases(e->name)) {
+        const std::string name = b + "_" + who;
+        for (size_t id = 1; id <= models.size(); ++id) {
+            ModelStore::Entry *s = models.entry((uint16_t)id);
+            if (s != nullptr && s->name == name) {
+                borrow_clips(s->model, e->model);   // the world's own robot's clips
+                return (uint16_t)id;
+            }
         }
     }
     return model;

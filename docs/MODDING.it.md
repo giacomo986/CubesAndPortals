@@ -1930,7 +1930,11 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   nome perché ogni client le numeri allo stesso modo (al massimo quattro). I suoi stili sono i pezzi
   `<quello>_style_<stile>` e `<quello>_hat_<stile>` che registra, per nome dello stile, al massimo tre
   (uno `_hat_` non si porta sotto un accessorio in testa); porta sempre `<quello>_worn` se c'è; porta
-  gli accessori del robot, a meno che non registri i suoi (`<quello>_cap`). Corpo e braccia di una
+  gli accessori del robot, a meno che non registri i suoi (`<quello>_cap`). Un mondo il cui modello del
+  giocatore è un robot del gioco sotto il nome di un'altra mod (`track_core:robot`) trova una specie
+  anche come `robot:robot_<nome>`, così un add-on registra i suoi modelli una volta sola e non gli
+  serve nessun'altra mod; data con `--user-mods` prima del primo `--room`, ce l'ha ogni stanza del
+  server (tools/track.sh lo fa). Corpo e braccia di una
   specie non devono portarsi le clip: una che non ne ha suona quelle del modello del giocatore (e di
   `<modello del giocatore>_arms`), con le ossa trovate per nome, così il file è la sua mesh e non un
   megabyte di clip del robot. In un pezzo indossato un osso `wag_<n>` oscilla di lato attorno alla

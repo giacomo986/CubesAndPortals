@@ -1727,7 +1727,10 @@ on foot and get into a parked kart: `games/track`.
   alike (four at most). Its styles are the pieces `<that>_style_<style>` and `<that>_hat_<style>` it
   registers, by the style's name, three at most (a `_hat_` one is not worn under a head accessory); it
   always wears `<that>_worn` if there is one; it wears the robot's accessories unless it registers its
-  own (`<that>_cap`). A species' body and arms need not carry clips: one that has none plays the
+  own (`<that>_cap`). A world whose player model is a game's robot under another mod's name
+  (`track_core:robot`) finds a species as `robot:robot_<name>` too, so an add-on registers its models
+  once and needs no other mod; given with `--user-mods` before the first `--room`, every room of a
+  server has it (tools/track.sh does). A species' body and arms need not carry clips: one that has none plays the
   player model's (and `<player model>_arms`'s), its bones found by name, so the file is its mesh and
   not a megabyte of the robot's clips. In a worn piece a `wag_<n>` bone swings side to side about the
   upright, each link behind the one before by its number, so a chain of them is a tail that wags: it trails out of a turn, and at a run it wags quicker and narrower and lifts. The title screen finds the same files in the mod folders, the player's

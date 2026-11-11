@@ -169,10 +169,13 @@ Mods:
 - Assault: tanks in the escape are behind the jeep when ripe.
 - Lizard man (Meshy, 2026-11-11, an add-on in `contrib/lizard`, not in the game):
   seen in a client, on the look pages (title and tools/track.sh's world, its
-  three styles) and in a world: walking on the borrowed clips, the tail wagging,
-  trailing out of a turn; cap, top hat, scarf and frill on. The bow tie and medal
-  in Blender only, and the tail's lift at a run is not looked at from the side.
-  Its source `contrib/lizard/meshy/lizard.glb` (16.6 MB) is not in the repository.
+  three styles) and in the sandbox and the track room of track.sh: walking on
+  the borrowed clips, the tail wagging slowly and trailing out of a turn; cap,
+  top hat, scarf and frill on. The bow tie and medal in Blender only, and the
+  tail's lift at a run is not looked at from the side. Its source
+  `contrib/lizard/meshy/lizard.glb` (16.6 MB) is not in the repository.
+- Walking into another room of a server, its models arrive a few at a time
+  over some seconds: until then bodies (your own too) are yellow boxes.
 - Dragon knight (switched off): no styles, gear not refitted, the cape passes
   through the legs.
 - Arpg: weapons are the robot's on every species; nothing shows a ring.

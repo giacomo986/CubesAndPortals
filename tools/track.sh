@@ -12,7 +12,7 @@
 #   tools/track.sh -- --shot 20   # quello dopo -- va al client
 #
 # Le mod in ~/.cubes-and-portals/mods (le specie degli add-on, contrib/lizard)
-# vanno nel sandbox, nell'inferno e nelle sale tascabili.
+# vanno in tutte le stanze.
 #
 # Le aperture del sandbox: 0 (40.5 ... 44.5, guarda +Z) la pista, 1 (60.5 ...
 # 60.5, guarda +X) l'inferno, 2 l'arena, 3 le rovine, 4 le camere di prova, 5 le backrooms, 6 il
@@ -99,8 +99,8 @@ grep -q '^local ALL_OPEN = true' "$SANDBOX_MODS/keys/init.luau" \
 echo "== tutti i mondi sbloccati"
 
 # Le mod del giocatore (~/.cubes-and-portals/mods: le specie degli add-on, come
-# contrib/lizard), nelle stanze che hanno il robot e quindi le specie --
-# sandbox, inferno e sale tascabili -- come fa un mondo avviato dal titolo.
+# contrib/lizard), in tutte le stanze: date prima del primo --room valgono per
+# ognuna, così una specie scelta in un mondo c'è anche negli altri.
 USER_MODS=()
 if [ -d "$HOME/.cubes-and-portals/mods" ]; then
     USER_MODS=(--user-mods "$HOME/.cubes-and-portals/mods")
@@ -133,8 +133,8 @@ trap 'exit 130' INT TERM
 for f in server.log client.log; do [ -f "$HERE/$f" ] && mv -f "$HERE/$f" "$HERE/$f.prev"; done
 echo "== avvio il server (sandbox, pista, inferno, arena, arpg, camere di prova, backrooms, parkour, laboratorio, fronte, assalto e le sale tascabili) sulla porta $PORT"
 # --ticks 0: senza, un server in ascolto si ferma dopo 50 s.
-"$SRV" --listen "$PORT" --ticks 0 --seed "$SEED" --portals ${OWNER[@]+"${OWNER[@]}"} \
-    --room sandbox ${SURVIVAL[@]+"${SURVIVAL[@]}"} --mods "$SANDBOX_MODS" ${USER_MODS[@]+"${USER_MODS[@]}"} --world-file "$HERE/sandbox.world" \
+"$SRV" --listen "$PORT" --ticks 0 --seed "$SEED" --portals ${OWNER[@]+"${OWNER[@]}"} ${USER_MODS[@]+"${USER_MODS[@]}"} \
+    --room sandbox ${SURVIVAL[@]+"${SURVIVAL[@]}"} --mods "$SANDBOX_MODS" --world-file "$HERE/sandbox.world" \
         --portal-to @pista/0 --portal-to @inferno/0 --portal-to @arena/0 --portal-to @arpg/0 \
         --portal-to @chambers/0 --portal-to @backrooms/0 --portal-to @parkour/0 \
         --portal-to @laboratorio/0 \
@@ -147,7 +147,7 @@ echo "== avvio il server (sandbox, pista, inferno, arena, arpg, camere di prova,
     --room pista --mods "$ROOT/games/track/mods" --textures "$ROOT/games/track/textures" \
         --world-file "$HERE/pista.world" --portal-to @sandbox/0 --portal-to @inferno/2 --portal-to @inferno/1 \
         --portal-to @sandbox/8 \
-    --room inferno --mods "$ROOT/games/inferno/mods" ${USER_MODS[@]+"${USER_MODS[@]}"} --textures "$ROOT/games/inferno/textures" --fallback-textures "$ROOT/assets/textures" \
+    --room inferno --mods "$ROOT/games/inferno/mods" --textures "$ROOT/games/inferno/textures" --fallback-textures "$ROOT/assets/textures" \
         --world-file "$HERE/inferno.world" --portal-to @sandbox/1 --portal-to @pista/2 --portal-to @pista/1 \
         --portal-to @sandbox/9 \
     --room arena --mods "$ROOT/games/yafps/mods" --textures "$ROOT/games/yafps/textures" \
@@ -166,7 +166,7 @@ echo "== avvio il server (sandbox, pista, inferno, arena, arpg, camere di prova,
         --world-file "$HERE/front.world" --portal-to @sandbox/15 \
     --room assalto --mods "$ASSAULT_MODS" \
         --portal-to @sandbox/16 --portal-to @sandbox/16 \
-    --room pockets --mods "$SANDBOX_MODS" ${USER_MODS[@]+"${USER_MODS[@]}"} --world-file "$HERE/pockets.world" \
+    --room pockets --mods "$SANDBOX_MODS" --world-file "$HERE/pockets.world" \
         --portal-to @sandbox/24 --portal-to @sandbox/25 --portal-to @sandbox/26 --portal-to @sandbox/27 \
     > "$HERE/server.log" 2>&1 &
 SERVER=$!
