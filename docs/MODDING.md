@@ -1724,8 +1724,13 @@ on foot and get into a parked kart: `games/track`.
   species shows the robot. Species 4 to 7 are add-ons', mods outside the game: any pair
   `<player model>_<name>` and `<player model>_<name>_arms` a world registers, `<name>` of a-z and 0-9
   and none of the game's, is offered after the game's, sorted by name so every client numbers them
-  alike (four at most); it has no styles and wears the robot's accessories unless it registers its
-  own (`<that>_cap`). The title screen finds the same files in the mod folders, the player's
+  alike (four at most). Its styles are the pieces `<that>_style_<style>` and `<that>_hat_<style>` it
+  registers, by the style's name, three at most (a `_hat_` one is not worn under a head accessory); it
+  always wears `<that>_worn` if there is one; it wears the robot's accessories unless it registers its
+  own (`<that>_cap`). A species' body and arms need not carry clips: one that has none plays the
+  player model's (and `<player model>_arms`'s), its bones found by name, so the file is its mesh and
+  not a megabyte of the robot's clips. In a worn piece a `wag_<n>` bone swings side to side about the
+  upright, each link behind the one before by its number, so a chain of them is a tail that wags. The title screen finds the same files in the mod folders, the player's
   `~/.cubes-and-portals/mods` included. `contrib/lizard` is one. `tools/make_species.py` makes them all: every body part (head, torso, arm,
   leg) is a single surface, primitives fused with a voxel remesh, smoothed and decimated, with weights
   blended at the joints; eyes and small details stay sharp. A species' accessories are built to its
@@ -1772,7 +1777,8 @@ on foot and get into a parked kart: `games/track`.
   shows taking the colour the texture has nearest it (skin tint_1, belly tint_2, harness tint_3).
   A point is inside a part when most of five rays out of it cross the surface an odd number of
   times: the parts are open where they were cut, and the surface's own normals cannot be asked.
-  About 1500 faces is what fits beside the robot's clips under the megabyte.
+  The tail is its worn piece, on four `wag_*` links; the styles (crest, frill, spikes) are cubes laid
+  on the body's, and the accessories are measured off its cubes.
 * **Worn armour.** An item with `wear` (`core.register_item`) goes in one of the bag's four worn
   slots (head, chest, legs, feet; shift-click with the bag open puts it on and takes it off). If the
   world has a model with the item's name (`core.register_model("armor:iron_helmet", ...)`), the body

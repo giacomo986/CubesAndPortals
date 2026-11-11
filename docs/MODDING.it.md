@@ -1927,8 +1927,15 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   la specie mostra il robot. Le specie da 4 a 7 sono di add-on, mod fuori dal gioco: ogni coppia
   `<modello del giocatore>_<nome>` e `<modello del giocatore>_<nome>_arms` che un mondo registra,
   `<nome>` di a-z e 0-9 e diverso da quelli del gioco, è offerta dopo quelle del gioco, in ordine di
-  nome perché ogni client le numeri allo stesso modo (al massimo quattro); non ha stili e porta gli
-  accessori del robot, a meno che non registri i suoi (`<quello>_cap`). La schermata del titolo trova
+  nome perché ogni client le numeri allo stesso modo (al massimo quattro). I suoi stili sono i pezzi
+  `<quello>_style_<stile>` e `<quello>_hat_<stile>` che registra, per nome dello stile, al massimo tre
+  (uno `_hat_` non si porta sotto un accessorio in testa); porta sempre `<quello>_worn` se c'è; porta
+  gli accessori del robot, a meno che non registri i suoi (`<quello>_cap`). Corpo e braccia di una
+  specie non devono portarsi le clip: una che non ne ha suona quelle del modello del giocatore (e di
+  `<modello del giocatore>_arms`), con le ossa trovate per nome, così il file è la sua mesh e non un
+  megabyte di clip del robot. In un pezzo indossato un osso `wag_<n>` oscilla di lato attorno alla
+  verticale, ogni anello dietro al precedente secondo il suo numero, così una catena è una coda che
+  scodinzola. La schermata del titolo trova
   gli stessi file nelle cartelle delle mod, compresa quella del giocatore `~/.cubes-and-portals/mods`.
   `contrib/lizard` è una di queste.
   `tools/make_species.py` li fa tutti: ogni pezzo del corpo (testa, busto,
@@ -1991,8 +1998,9 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   e ogni lato visibile del colore che la texture ha lì vicino (pelle tint_1, pancia tint_2,
   bardatura tint_3). Un punto è dentro una parte quando la maggior parte di cinque raggi che ne
   escono attraversa la superficie un numero dispari di volte: le parti sono aperte dove sono state
-  tagliate, e alle normali della superficie non si può chiedere. Circa 1500 facce è quanto sta
-  accanto ai clip del robot sotto il megabyte.
+  tagliate, e alle normali della superficie non si può chiedere. La coda è il suo pezzo indossato,
+  su quattro anelli `wag_*`; gli stili (cresta, collare, spine) sono cubi posati su quelli del corpo,
+  e gli accessori sono misurati sui suoi cubi.
 * **Armature indossate.** Un oggetto con `wear` (`core.register_item`) va in
   uno dei quattro slot indossati della borsa (testa, petto, gambe, piedi; lo
   shift-click a borsa aperta lo mette e lo toglie). Se il mondo ha un modello

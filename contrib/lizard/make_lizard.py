@@ -1,7 +1,7 @@
 # The lizard man, a player body from Meshy (meshy/lizard.glb, beside this
-# file: image-to-3D in high detail with a texture, one mesh of 336792
-# triangles), on the robot's own skeleton with the robot's clips. An add-on,
-# not the game's: see README.md here. From the checkout's top:
+# file and not in the repository: image-to-3D in high detail with a texture,
+# one mesh of 336792 triangles), on the robot's own skeleton. An add-on, not
+# the game's (mod.conf, init.luau here). From the checkout's top:
 #
 #   flatpak run org.blender.Blender --background --python "$PWD/contrib/lizard/make_lizard.py"
 #
@@ -17,15 +17,22 @@
 # middle is inside a part, of the colour the texture has nearest it, following
 # the bone its height puts it on. Each bone's cubes are a closed shell of their
 # own -- a bent elbow shows a face, not a hole -- and faces of one colour side
-# by side are one face.
+# by side are one face. The hands, a cube or two thin as Meshy made them, are
+# grown by HAND_GROW cubes across.
 #
 # The colours are flat materials: the skin tint_1, the belly tint_2 and the
 # harness tint_3, which the player dyes; the dark scales and the eyes stay.
 #
-# Writes robot_lizard.gltf + .bin and robot_lizard_arms (the arms seen in
-# first person, on robot_arms.gltf's rig and clips) beside this file, and four
-# views of it at rest to build/look/lizard_*.png. It has no styles, and wears
-# the robot's extras where the robot does.
+# Writes beside this file, none of them with clips (the client plays the
+# player model's on them: borrow_clips in src/client/main.cpp):
+#   robot_lizard              the body, without its tail
+#   robot_lizard_arms         the arms seen in first person, on robot_arms.gltf's rig
+#   robot_lizard_worn         the tail, always worn, on WAGS wag_* links that swing it
+#   robot_lizard_hat_crest    the styles: a crest (a hat: a cap goes on instead),
+#   robot_lizard_style_frill  a frill round the neck
+#   robot_lizard_style_spikes and spikes down the back
+#   robot_lizard_<extra>      the robot's six extras, measured onto its head and neck
+# and views of them at rest to build/look/lizard_*.png.
 import math
 import os
 import sys
@@ -40,8 +47,8 @@ from mathutils.kdtree import KDTree
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..", "..")
 sys.path.insert(0, os.path.join(ROOT, "tools"))   # the game's own tools, for the rig and the export
-from make_robot_extras import material  # noqa: E402
-from make_species import ARM_BONES, TO_ARMS, export, fresh, keep_tools  # noqa: E402
+from make_robot_extras import MATS as EXTRA_MATS, extras, material  # noqa: E402
+from make_species import ARM_BONES, TO_ARMS, build, export, fresh, keep_tools  # noqa: E402
 
 GAME = os.path.join(ROOT, "mods", "robot")   # the robot it is made on
 OUT = HERE
@@ -50,6 +57,8 @@ LOOK = os.path.join(ROOT, "build", "look")
 NAME = "robot_lizard"
 
 CELL = 0.04   # metres a cube
+WAGS = 4   # the tail's links, wag_1 at the hips to wag_4 at the tip
+HAND_GROW = 1   # cubes the hands are grown by, across: Meshy's were a cube or two thin
 
 # The lizard's own joints, read off front and side renders of the file, in
 # shares of its height: x either side of its middle, z up from its soles. Its
@@ -202,6 +211,7 @@ def cubes(tris, label, bones):
         rest[m] = at_rest(tris[m].reshape(-1, 3), k).reshape(-1, 3, 3)
     lo = np.floor(rest.reshape(-1, 3).min(0) / CELL).astype(int) - 1
     hi = np.ceil(rest.reshape(-1, 3).max(0) / CELL).astype(int) + 1
+    hi[2] += 4   # room over the head for a crest
     lo[2] = 0   # the soles on the ground
     size = hi - lo
     bone = np.full(size, -1, np.int32)
@@ -229,13 +239,15 @@ def cubes(tris, label, bones):
                         name = ("head" if c.z > heights["head"] else "chest" if c.z > heights["chest"]
                                 else "spine" if c.z > heights["spine"] else "hips")
                         if c.y < TAIL_Y * S and c.z < R_HIP[1] + (TAIL_Z - L_HIP[1]) * S:
-                            name = "hips"   # the tail, whatever its height
+                            name = "wag_1"   # the tail, whatever its height: links below
                     elif k in (1, 2):
                         name = ("upper_arm" if c.z > R_ELBOW else "forearm" if c.z > R_WRIST else "hand") + "_" + "LR"[k - 1]
                     else:
                         name = ("thigh" if c.z > R_KNEE else "shin" if c.z > R_ANKLE else "foot") + "_" + "LR"[k - 3]
                     bone[i, j, kk] = BONE_NAMES.index(name)
         print(f"{PARTS[k]}: {int(m.sum())} triangles")
+    tail = links(bone, lo)
+    grow_hands(bone)
     print(f"{int((bone >= 0).sum())} cubes of {CELL * 100:g} cm in a grid of {tuple(size)}")
     # The colour of each side of each cube that shows: what most of the five
     # triangles nearest that side's middle are.
@@ -257,12 +269,55 @@ def cubes(tris, label, bones):
                     count[label[fi]] = count.get(label[fi], 0) + 1
                 mat[i, j, kk] = max(count, key=count.get)
             mats[(a, sign)] = mat
-    return bone, mats, lo
+    return bone, mats, lo, tail
 
 
 BONE_NAMES = ["hips", "spine", "chest", "head",
               "upper_arm_L", "forearm_L", "hand_L", "upper_arm_R", "forearm_R", "hand_R",
-              "thigh_L", "shin_L", "foot_L", "thigh_R", "shin_R", "foot_R"]
+              "thigh_L", "shin_L", "foot_L", "thigh_R", "shin_R", "foot_R"] + [f"wag_{k}" for k in range(1, WAGS + 1)]
+WAG = [BONE_NAMES.index(f"wag_{k}") for k in range(1, WAGS + 1)]
+
+
+def centre(lo, idx):
+    """A cell's middle, metres."""
+    return (np.asarray(lo) + np.asarray(idx) + 0.5) * CELL
+
+
+def links(bone, lo):
+    """The tail's cubes (all wag_1 so far) shared among its links by how far
+    back they are, each link as long; and the links' joints: (name, parent,
+    head, tail), world at rest, along the middle of the tail."""
+    cells = np.argwhere(bone == WAG[0])
+    ys = centre(lo, cells)[:, 1]
+    root, tip = ys.max() + CELL / 2, ys.min() - CELL / 2
+    step = (root - tip) / WAGS
+    k = np.clip(((root - ys) / step).astype(int), 0, WAGS - 1)
+    for (i, j, kk), n in zip(cells, k):
+        bone[i, j, kk] = WAG[n]
+    joints, parent = [], "hips"
+    for n in range(WAGS):
+        y0, y1 = root - n * step, root - (n + 1) * step
+        near = np.abs(ys - (y0 - 0.25 * step)) < 0.5 * step
+        z = float(centre(lo, cells[near])[:, 2].mean()) if near.any() else float(centre(lo, cells)[:, 2].mean())
+        z1 = float(centre(lo, cells[k == n])[:, 2].mean()) if (k == n).any() else z
+        joints.append((f"wag_{n + 1}", parent, (0.0, y0, z), (0.0, y1, z1)))
+        parent = f"wag_{n + 1}"
+    print(f"tail: {len(cells)} cubes, {root:.2f} to {tip:.2f} m back, links at", [round(j[2][1], 2) for j in joints])
+    return joints
+
+
+def grow_hands(bone):
+    """Each hand grown by HAND_GROW cubes across (x and y), into what is empty."""
+    hands = [BONE_NAMES.index(b) for b in ("hand_L", "hand_R")]
+    for _ in range(HAND_GROW):
+        grown = bone.copy()
+        for h in hands:
+            mine = bone == h
+            for a in (0, 1):
+                for d in (1, -1):
+                    moved = np.roll(mine, d, axis=a)
+                    grown[moved & (grown < 0)] = h
+        bone[:] = grown
 
 
 def shell(bone, mats, lo, only=None):
@@ -345,10 +400,12 @@ def mesh(rig, name, quads, lo, offset=Vector()):
     return ob
 
 
-def look(ob, tag):
-    """Four views of the object at rest, to judge it by."""
+def look(tag, hide=()):
+    """Four views of what the scene has at rest, to judge it by."""
     os.makedirs(LOOK, exist_ok=True)
     sc = bpy.context.scene
+    for o in sc.objects:
+        o.hide_render = o.name in hide
     sc.render.engine = "BLENDER_WORKBENCH"
     sc.display.shading.light, sc.display.shading.color_type = "STUDIO", "MATERIAL"
     sc.render.resolution_x, sc.render.resolution_y = 700, 900
@@ -371,29 +428,222 @@ def materials():
         material(k, rgb, 0.0, 0.6)
 
 
+def rigged(path, joints=()):
+    """A scene with that file's rig, the joints added to it (name, parent,
+    head, tail; world at rest, put in the rig's own space, which is scaled:
+    see make_species.py) and our materials; and the file's tools."""
+    rig, tools = fresh(path)
+    if joints:
+        to_rig = rig.matrix_world.inverted()
+        bpy.context.view_layer.objects.active = rig
+        bpy.ops.object.mode_set(mode="EDIT")
+        for name, parent, head, tail in joints:
+            b = rig.data.edit_bones.new(name)
+            b.head, b.tail = to_rig @ Vector(head), to_rig @ Vector(tail)
+            b.parent = rig.data.edit_bones[parent]
+        bpy.ops.object.mode_set(mode="OBJECT")
+    materials()
+    for k, (rgb, metal, rough) in EXTRA_MATS.items():
+        if k not in MATS:
+            material(k, rgb, metal, rough)
+    return rig, tools
+
+
+# The styles: pieces of cubes on the body, in the colour the player dyes the
+# harness. A crest along the top of the skull (a hat: a cap goes on instead),
+# a frill round the neck, and spikes down the back.
+STYLE_HAT = {"crest": True, "frill": False, "spikes": False}
+
+
+def styles(bone, lo):
+    """Each style as cells: {(i, j, k): (bone, material)}."""
+    out = {k: {} for k in STYLE_HAT}
+    head, t3, t2 = BONE_NAMES.index("head"), NAMES.index("tint_3"), NAMES.index("tint_2")
+    body = (bone >= 0) & ~np.isin(bone, WAG)
+    xs = centre(lo, np.stack([np.arange(bone.shape[0])] * 3, 1))[:, 0]
+    middle = np.abs(xs) < CELL   # the two columns either side of the middle
+    # The crest: over the skull's top, from behind the eyes to the back of the
+    # head, tallest in its middle and notched every other cube.
+    cells = np.argwhere(bone == head)
+    y0, y1 = cells[:, 1].min(), cells[:, 1].max()
+    for j in range(y0, y1 + 1):
+        t = (j - y0) / max(1, y1 - y0)
+        if not 0.1 <= t <= 0.62:
+            continue
+        hgt = max(1, int(round(1 + 2 * math.sin(math.pi * (t - 0.1) / 0.52))) - (j % 2))
+        for i in np.nonzero(middle)[0]:
+            col = np.nonzero(bone[i, j, :] == head)[0]
+            if len(col):
+                for d in range(1, hgt + 1):
+                    out["crest"][(i, j, col.max() + d)] = (head, t3)
+    # The spikes: behind the back from the hips to the neck, every other cube.
+    for kk in range(bone.shape[2]):
+        for i in np.nonzero(middle)[0]:
+            col = np.nonzero(body[i, :, kk] & np.isin(bone[i, :, kk], [BONE_NAMES.index(b) for b in ("hips", "spine", "chest")]))[0]
+            if len(col) and kk % 3 != 2 and centre(lo, (0, 0, kk))[2] > R_HIP[1] + 0.04:
+                # three cubes up a spike: two out, then one, then a gap
+                for d in range(1, 3 if kk % 3 == 0 else 2):
+                    out["spikes"][(i, col.min() - d, kk)] = (bone[i, col.min(), kk], t3)
+    # The frill: a flat collar one cube thick round the neck, just under the
+    # head, open behind; its edge pale.
+    hz = HEAD_Z
+    kk = int(np.floor(hz / CELL - lo[2])) - 1
+    neck = np.argwhere(body[:, :, kk])
+    mid = centre(lo, np.c_[neck, np.full(len(neck), kk)])[:, :2]
+    cx, cy = 0.0, float(mid[:, 1].mean())
+    rn = float(np.hypot(mid[:, 0] - cx, mid[:, 1] - cy).max())
+    chest = BONE_NAMES.index("chest")
+    for i in range(bone.shape[0]):
+        for j in range(bone.shape[1]):
+            x, y = centre(lo, (i, j, kk))[:2]
+            d = math.hypot(x - cx, y - cy)
+            if body[i, j, kk] or not rn < d <= rn + 0.13 or y < cy - 0.6 * (d - rn) - 0.02:
+                continue
+            # rising outwards, a collar and not a plate
+            out["frill"][(i, j, kk + (1 if d > rn + 0.07 else 0))] = (chest, t2 if d > rn + 0.09 else t3)
+    for k, v in out.items():
+        print(f"style {k}: {len(v)} cubes")
+    return out
+
+
+def piece_grid(cells, shape):
+    """Cells as a grid of bones and the colours of their sides (shell)."""
+    bone = np.full(shape, -1, np.int32)
+    mat = np.zeros(shape, np.int32)
+    for (i, j, k), (b, m) in cells.items():
+        bone[i, j, k], mat[i, j, k] = b, m
+    return bone, {(a, sg): mat for a in range(3) for sg in (1, -1)}
+
+
+def wears(bone, lo):
+    """Where the lizard wears the robot's extras (make_robot_extras.py says
+    what each number is), measured off its cubes at rest."""
+    head = BONE_NAMES.index("head")
+    body = (bone >= 0) & ~np.isin(bone, WAG)
+    cells = np.argwhere(bone == head)
+    pts = centre(lo, cells)
+    top = pts[:, 2].max() + CELL / 2
+    skull = pts[pts[:, 2] > top - 3 * CELL]   # its top three layers
+    sx = np.abs(skull[:, 0]).max() + CELL / 2
+    sy0, sy1 = skull[:, 1].min() - CELL / 2, skull[:, 1].max() + CELL / 2
+    sy = (sy0 + sy1) / 2
+    mid = pts[np.abs(pts[:, 2] - (top - 0.12)) < CELL]
+    ex = np.abs(mid[:, 0]).max() + CELL / 2
+
+    def layer(z):
+        kk = int(np.floor(z / CELL - lo[2]))
+        return centre(lo, np.c_[np.argwhere(body[:, :, kk]), np.full(int(body[:, :, kk].sum()), kk)])
+    nz = HEAD_Z - 0.02
+    n = layer(nz)
+    bz = nz - 0.06
+    mz = nz - 0.17
+    return dict(
+        cap=dict(c=(0.0, sy), z=top - 0.045, rx=sx + 0.012, ry=(sy1 - sy0) / 2 + 0.012, h=0.1),
+        hat=dict(c=(0.0, sy), z=top - 0.01, r=0.8 * min(sx, (sy1 - sy0) / 2), h=0.24),
+        ears=dict(x=ex, y=sy, z=top - 0.12, top=top + 0.03, cup=0.8, mic=0.17),
+        neck=dict(y=float(n[:, 1].mean()), z=nz, rx=float(np.abs(n[:, 0]).max()) + CELL / 2 + 0.02,
+                  ry=(n[:, 1].max() - n[:, 1].min()) / 2 + CELL / 2 + 0.02, tube=0.04, lean=6),
+        bow=dict(y=float(layer(bz)[:, 1].max()) + CELL / 2 + 0.01, z=bz, s=0.85),
+        medal=dict(x=-0.09, y=float(layer(mz)[np.abs(layer(mz)[:, 0] + 0.09) < CELL][:, 1].max()) + CELL / 2 + 0.006,
+                   z=mz, lean=0),
+    )
+
+
+HEAD_Z = 0.0   # the robot's head joint's height, set in main
+
+
 def main():
+    global HEAD_Z
     tris, label = load()
     robot_path = os.path.join(GAME, "robot.gltf")
+    arms_path = os.path.join(GAME, "robot_arms.gltf")
     rig, tools = fresh(robot_path)
     bones = {b.name: rig.matrix_world @ b.head_local for b in rig.data.bones}
+    HEAD_Z = bones["head"].z
     print("robot joints:", {k: tuple(round(c, 3) for c in v) for k, v in bones.items() if k in BONE_NAMES})
-    bone, mats, lo = cubes(tris, label, bones)
-    materials()
+    bone, mats, lo, tail = cubes(tris, label, bones)
+    body_bones = [i for i in range(len(BONE_NAMES)) if i not in WAG]
+    made = []
+
+    # The body without its tail, and without clips: the client plays the
+    # player model's on it (borrow_clips, src/client/main.cpp).
+    rig, tools = rigged(robot_path)
     keep_tools(tools)
     tools.name = NAME + "_tools"
-    body = mesh(rig, NAME, shell(bone, mats, lo), lo)
-    look(body, "rest")
-    export(rig, [body, tools], os.path.join(OUT, NAME + ".gltf"), robot_path)
+    body = mesh(rig, NAME, shell(bone, mats, lo, body_bones), lo)
+    export(rig, [body, tools], os.path.join(OUT, NAME + ".gltf"))
+    made.append(NAME)
 
-    arms_path = os.path.join(GAME, "robot_arms.gltf")
-    rig, tools = fresh(arms_path)
-    materials()
+    # The arms seen in first person, on robot_arms.gltf's rig.
+    rig, tools = rigged(arms_path)
     keep_tools(tools)
     arm = [BONE_NAMES.index(b) for b in BONE_NAMES if b in ARM_BONES]
     arms = mesh(rig, NAME + "_arms", shell(bone, mats, lo, arm), lo, TO_ARMS)
-    export(rig, [arms, tools], os.path.join(OUT, NAME + "_arms.gltf"), arms_path)
-    for f in (NAME + ".gltf", NAME + ".bin", NAME + "_arms.gltf", NAME + "_arms.bin"):
-        print(f"{f}: {os.path.getsize(os.path.join(OUT, f))} bytes")
+    export(rig, [arms, tools], os.path.join(OUT, NAME + "_arms.gltf"))
+    made.append(NAME + "_arms")
+
+    # What it always wears: the tail, on wag_* links that swing it.
+    rig, tools = rigged(robot_path, tail)
+    bpy.data.objects.remove(tools)
+    worn = mesh(rig, NAME + "_worn", shell(bone, mats, lo, WAG), lo)
+    export(rig, [worn], os.path.join(OUT, NAME + "_worn.gltf"))
+    made.append(NAME + "_worn")
+
+    # The styles, "<that>_hat_<name>" or "<that>_style_<name>".
+    for style, cells in styles(bone, lo).items():
+        rig, tools = rigged(robot_path)
+        bpy.data.objects.remove(tools)
+        sb, sm = piece_grid(cells, bone.shape)
+        kind = "hat" if STYLE_HAT[style] else "style"
+        ob = mesh(rig, f"{NAME}_{kind}_{style}", shell(sb, sm, lo), lo)
+        export(rig, [ob], os.path.join(OUT, f"{NAME}_{kind}_{style}.gltf"))
+        made.append(f"{NAME}_{kind}_{style}")
+
+    # The robot's extras, made to its measure, with their sway_* bones.
+    a = wears(bone, lo)
+    print("wears:", {k: {q: (tuple(round(x, 3) for x in w) if isinstance(w, tuple) else round(w, 3))
+                         for q, w in v.items()} for k, v in a.items()})
+    pieces, sway = extras(a)
+    for extra, parts in pieces.items():
+        rig, tools = rigged(robot_path, sway)
+        bpy.data.objects.remove(tools)
+        ob = build(rig, f"{NAME}_{extra}", parts)
+        export(rig, [ob], os.path.join(OUT, f"{NAME}_{extra}.gltf"))
+        made.append(f"{NAME}_{extra}")
+
+    # To judge it by: everything at rest in one scene, then each extra on it.
+    rig, tools = rigged(robot_path, tail + sway)
+    bpy.data.objects.remove(tools)
+    mesh(rig, "body", shell(bone, mats, lo, body_bones), lo)
+    mesh(rig, "tail", shell(bone, mats, lo, WAG), lo)
+    look("rest")
+    every = styles(bone, lo)
+    for style in ("crest", "spikes"):
+        sb, sm = piece_grid(every[style], bone.shape)
+        mesh(rig, style, shell(sb, sm, lo), lo)
+    look("styles")
+    for o in [o for o in bpy.data.objects if o.name in ("crest", "spikes")]:
+        bpy.data.objects.remove(o)
+    sb, sm = piece_grid(every["frill"], bone.shape)
+    mesh(rig, "frill", shell(sb, sm, lo), lo)
+    for extra in ("cap", "scarf", "medal"):
+        build(rig, extra, pieces[extra])
+    look("extras_a", hide=("frill",))
+    for o in [o for o in bpy.data.objects if o.name in ("cap", "scarf", "medal")]:
+        bpy.data.objects.remove(o)
+    for extra in ("tophat", "headphones", "bowtie"):
+        build(rig, extra, pieces[extra])
+    look("extras_b", hide=("frill",))
+    for o in [o for o in bpy.data.objects if o.name in ("tophat", "headphones", "bowtie")]:
+        bpy.data.objects.remove(o)
+    look("frill")
+
+    total = 0
+    for f in made:
+        for ext in (".gltf", ".bin"):
+            total += os.path.getsize(os.path.join(OUT, f + ext))
+        print(f"{f}: {os.path.getsize(os.path.join(OUT, f + '.gltf')) + os.path.getsize(os.path.join(OUT, f + '.bin'))} bytes")
+    print(f"all: {total} bytes")
 
 
 if __name__ == "__main__":
