@@ -155,7 +155,7 @@ owner of that name on this world, or the bare name.
 
 | Command | Permission | What it does |
 |---|---|---|
-| `/portals` | portals | Where each room's openings lead, and which servers send players in, how many, from where |
+| `/portals` | portals | Where each room's openings lead, the portals between rooms built in the world and which mouth each has now, and which servers send players in, how many, from where |
 | `/friend add NAME HOST:PORT KEY [shares]` | federation | A friend server; `shares` is any of `bans,presence,chat,bags,portals,mods`, all by default; a NAME already there is replaced |
 | `/friend remove NAME` `/friend list` | federation | Stop being friends (its bans are lifted here); the friends, and when each was last heard |
 | `/fed TEXT` | anybody | Chat to the players of every friend server |
@@ -349,6 +349,26 @@ characters.
 tickets another server signs, `--require-ticket` takes nobody else. A client crossing checks
 that the far server's key is the one the link names, through a portal window and through the
 slow redirect alike. `/portals` shows both directions.
+
+### Portals between rooms, built in the world
+
+On a server of several rooms a frame of `portal:frame` (eight frames round an iron ingot) can lead
+to a frame in another room, set up in the game:
+
+1. Build a frame standing up in each of the two rooms, the same size (1 to 8 wide, 2 to 8 tall).
+   Rooms that load `mods/portal` have frames: the sandbox, the Inferno, the pocket halls.
+2. With the `portals` permission (admin), right click one: **other rooms: yes** says it to the
+   other rooms. Do the same on the other.
+3. The menu of either now lists the other rooms' frames; a click on one links the two, a click on
+   the one it leads to lets go. A frame of another size says why it cannot be linked.
+
+Such a portal holds one of its room's 28 mouths only while a player is within 160 nodes of either
+end: the server hands the mouths it has to spare to the linked portals nearest a player and takes
+them back from the rest, so the hole is empty with nobody about and a world may hold many more
+frames than mouths. To spare are the mouths past the world's own (`--portal-to`) and those of its
+own a mod has parked (`core.portal_park`): on a plaza sandbox, the seven second ways in and the
+pocket doors' mouths not at a door. `/portals` lists each one and the mouth it has now; the log says
+`mouths: N given to NAME` and `given back`.
 
 ### Portals built in the world
 

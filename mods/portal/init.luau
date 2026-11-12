@@ -20,6 +20,15 @@
 -- it leads. A frame from before frames had owners, or built by somebody with
 -- no key, is anybody's, as every frame was.
 --
+-- On a server of several rooms, whoever has the `portals` permission may make
+-- a standing frame lead to ANOTHER ROOM: "other rooms: yes" in its menu says
+-- it to the other rooms (core.room_portal_set), and the menu then lists the
+-- frames those rooms say, each a button that links the two. Such a frame has
+-- no opening of this mod's: the server gives it one of the world's mouths
+-- while a player is near either end, and takes it back after, so the hole is
+-- empty with nobody about. A link made or undone from the other room is seen
+-- here within two seconds and kept.
+--
 -- A world holds as many frames as are built: core.portal_open's portals are
 -- virtual, and only the ones near a player (and what they lead to) take one
 -- of the world's openings at a time. Breaking a block of a frame closes it; a right click on a
@@ -50,6 +59,9 @@ type Frame = {
     colour: number,                       -- shown while it leads nowhere: 0 green, 1 blue, 2 orange
     scales: boolean,                      -- core.portal_scale
     window: boolean,                      -- it only shows what its link faces (core.portal_window)
+    away: boolean,                        -- said to the other rooms (core.room_portal_set)
+    far_room: string,                     -- the room and the frame there it leads to, or ""
+    far_name: string,
 }
 
 -- The frames that are open now, as many as there are.
@@ -160,7 +172,8 @@ local function hole(block: number, axis: number, x: number, y: number, z: number
         ex, ez = w, h
     end
     return { x = lx, y = ly, z = lz, ex = ex, ey = ey, ez = ez, axis = axis, sign = 1, rot = 0,
-             slot = -1, name = "", owner = "", colour = 0, scales = false, window = false }
+             slot = -1, name = "", owner = "", colour = 0, scales = false, window = false,
+             away = false, far_room = "", far_name = "" }
 end
 
 -- The whole frame the `block` at x, y, z is part of, or nil: a hole next to
@@ -227,6 +240,17 @@ local function apply(f: Frame): number
     if f.rot % 2 == 1 then
         w, h = h, w
     end
+    -- Said to the other rooms as it stands now; and one that leads to another
+    -- room has no opening from here: the server gives it a mouth (0, not -1:
+    -- it is not refused).
+    if f.away then
+        core.room_portal_set(f.name, cx, cy, cz, f.axis, f.sign, w / 2, h / 2)
+        if f.far_room ~= "" then
+            core.portal_close(cx, cy, cz)
+            f.slot = -1
+            return 0
+        end
+    end
     f.slot = core.portal_open(cx, cy, cz, f.axis, f.sign, f.rot, w / 2, h / 2, f.colour)
     -- An opening given a shape is that shape and nothing else: whether it
     -- scales is said again, and a window is by whoever calls this (wire).
@@ -237,13 +261,15 @@ local function apply(f: Frame): number
 end
 
 -- One row a frame: its name, its shape, the name it leads to, and whose it is
--- with what it was set to (a row from before 2026-11-11 stops at the third).
+-- with what it was set to (a row from before 2026-11-11 stops at the third),
+-- then whether the other rooms are told of it and the room and frame it leads to.
 local function save()
     local rows = {}
     for _, f in frames do
         table.insert(rows, `{f.name}|{f.x} {f.y} {f.z} {f.ex} {f.ey} {f.ez} {f.axis} {f.sign} `
             .. `{f.rot}|{f.link or ""}|{if f.owner == "" then "-" else f.owner} {f.colour} `
-            .. `{if f.scales then 1 else 0} {if f.window then 1 else 0}`)
+            .. `{if f.scales then 1 else 0} {if f.window then 1 else 0}`
+            .. `|{if f.away then 1 else 0}|{f.far_room}|{f.far_name}`)
     end
     core.storage_set("frames", table.concat(rows, ";"))
 end
@@ -252,6 +278,9 @@ end
 -- was opened or reshaped (apply): a door both ways, or a window from the one
 -- that is a window onto the other.
 local function wire(f: Frame)
+    if f.slot < 0 then
+        return   -- it leads to another room: the server's to join
+    end
     local g = named(f.link)
     if g == nil then
         core.portal_link(f.slot, -1)
@@ -318,6 +347,19 @@ local function where(f: Frame): string
     return `{math.floor(x)} {math.floor(y)} {math.floor(z)}`
 end
 
+-- The frames the other rooms say, as core.room_portals lists them for f.
+type RoomOffer = { room: string, name: string, state: string, why: string }
+local function far_offers(f: Frame): { RoomOffer }
+    local out: { RoomOffer } = {}
+    for line in string.gmatch(core.room_portals(f.name), "[^\n]+") do
+        local w = string.split(line, "\t")
+        if w[1] == "P" then
+            table.insert(out, { room = w[2] or "", name = w[3] or "", state = w[4] or "", why = w[5] or "" })
+        end
+    end
+    return out
+end
+
 local function menu()
     local f = shown
     if f == nil then
@@ -327,15 +369,19 @@ local function menu()
     -- The others, two to a row, each a button that links this frame to it.
     local others: { Frame } = {}
     for _, g in frames do
-        if g ~= f then
+        if g ~= f and not g.away then
             table.insert(others, g)
         end
     end
     table.sort(others, function(a: Frame, b: Frame): boolean
         return a.name < b.name
     end)
-    local rows = math.ceil(#others / 2)
-    if core.ui_define(PANEL, 13.0, 7.8 + rows) == 0 then
+    -- To other rooms: for whoever sets the server's portals up, on a server
+    -- that has rooms, and a frame that stands.
+    local rooms = viewer ~= 0 and core.has_perm(viewer, "portals") == 1 and core.room() ~= "" and f.axis ~= 2
+    local offers = if f.away then far_offers(f) else {}
+    local rows = if f.away then #offers else math.ceil(#others / 2)
+    if core.ui_define(PANEL, 13.0, 7.8 + rows + (if rooms or f.away then 1.1 else 0)) == 0 then
         return
     end
 
@@ -347,7 +393,20 @@ local function menu()
         .. "click the name to change it")
 
     local other = named(f.link)
-    if other and f.window then
+    if f.away and f.far_room ~= "" then
+        local st = core.room_portal_state(f.name)
+        if string.sub(st, 1, 6) == "linked" then
+            if string.sub(st, -4) == "live" then
+                core.ui_label(PANEL, 0.5, 2.0, `leads to {f.far_name}, in the room {f.far_room}`)
+            else
+                core.ui_label(PANEL, 0.5, 2.0, `leads to {f.far_name}, in the room {f.far_room}: shut while nobody is near`)
+            end
+        else
+            core.ui_label(PANEL, 0.5, 2.0, `waits for {f.far_name}, in the room {f.far_room}`)
+        end
+    elseif f.away then
+        core.ui_label(PANEL, 0.5, 2.0, "leads nowhere: link it to a frame of another room below")
+    elseif other and f.window then
         core.ui_label(PANEL, 0.5, 2.0, `a window onto {other.name}, at {where(other)}: nothing crosses`)
     elseif other and other.window then
         core.ui_label(PANEL, 0.5, 2.0, `{other.name}, at {where(other)}, looks out of this one: nothing crosses`)
@@ -374,15 +433,33 @@ local function menu()
     core.ui_button(PANEL, "scales", 4.6, 5.3, 3.9, 0.9, if f.scales then "scales: yes" else "scales: no")
     core.ui_button(PANEL, "window", 8.7, 5.3, 3.8, 0.9, if f.window then "a window: yes" else "a window: no")
 
-    if #others == 0 then
-        core.ui_label(PANEL, 0.5, 6.6, "no other frame is open to link it to")
+    local y = 6.4
+    if rooms or f.away then
+        core.ui_button(PANEL, "rooms", 0.5, y, 12.0, 0.8,
+            if f.away then "other rooms: yes -- they may link to it" else "other rooms: no")
+        y += 1.1
+    end
+    if f.away then
+        if #offers == 0 then
+            core.ui_label(PANEL, 0.5, y + 0.2, "no other room has a frame said to the other rooms")
+        end
+        for i, o in offers do
+            local tag = if o.state == "yours" then "> " elseif o.state == "busy" then "(linked elsewhere) " else ""
+            local text = `{tag}{o.name}, in {o.room}`
+            if o.why ~= "" then
+                text ..= ` -- {o.why}`
+            end
+            core.ui_button(PANEL, `far:{o.room}\t{o.name}`, 0.5, y + (i - 1), 12.0, 0.8, text)
+        end
+    elseif #others == 0 then
+        core.ui_label(PANEL, 0.5, y + 0.2, "no other frame is open to link it to")
     else
-        core.ui_label(PANEL, 0.5, 6.6, "link it to:")
-        core.ui_button(PANEL, "unlink", 6.7, 6.4, 5.8, 0.8, "nothing")
+        core.ui_label(PANEL, 0.5, y + 0.2, "link it to:")
+        core.ui_button(PANEL, "unlink", 6.7, y, 5.8, 0.8, "nothing")
         for i, g in others do
             local col, row = (i - 1) % 2, (i - 1) // 2
             local mark = if g == other then "> " else ""
-            core.ui_button(PANEL, `link:{g.name}`, 0.5 + col * 6.2, 7.4 + row, 6.0, 0.8,
+            core.ui_button(PANEL, `link:{g.name}`, 0.5 + col * 6.2, y + 1.0 + row, 6.0, 0.8,
                 `{mark}{g.name} ({where(g)})`)
         end
     end
@@ -433,7 +510,7 @@ local function try_open(f: Frame, player: number): Frame?
     -- leading nowhere, until the next frame or its menu.
     local lone: Frame? = nil
     for _, g in frames do
-        if g.link == nil then
+        if g.link == nil and not g.away then
             lone = g
         end
     end
@@ -457,6 +534,9 @@ end
 local function shut(i: number, player: number, why: string)
     local f = frames[i]
     link(f, nil)
+    if f.away then
+        core.room_portal_close(f.name)
+    end
     core.portal_close(centre(f))
     table.remove(frames, i)
     save()
@@ -566,6 +646,11 @@ core.event.on("core:ui_click", function(ev)
     elseif ev.id == "flip" then
         f.sign = -f.sign
     elseif ev.id == "turn" then
+        if f.away then
+            core.notice(ev.player, "a portal to another room stands up and is not turned")
+            menu()
+            return
+        end
         f.rot = (f.rot + 1) % 4
     elseif ev.id == "colour" then
         f.colour = (f.colour + 1) % 3
@@ -610,9 +695,59 @@ core.event.on("core:ui_click", function(ev)
             end
         end
         f.name = name
+        if f.away then   -- the other rooms know it by its name: said again, linked again
+            core.room_portal_close(was)
+            apply(f)
+            if f.far_room ~= "" then
+                core.room_portal_link(f.name, f.far_room, f.far_name)
+            end
+        end
         save()
         core.notice(ev.player, `{was} is now called {name}`)
         core.log(`{was} renamed {name}`)
+        menu()
+        return
+    elseif ev.id == "rooms" then
+        if core.has_perm(ev.player, "portals") == 0 then
+            return
+        end
+        if f.away then
+            core.room_portal_close(f.name)
+            f.away, f.far_room, f.far_name = false, "", ""
+            core.log(`{f.name} no longer said to the other rooms`)
+        elseif f.axis == 2 or f.rot ~= 0 then
+            core.notice(ev.player, "a portal to another room stands up and is not turned")
+            menu()
+            return
+        else
+            link(f, nil)
+            f.away = true
+            core.log(`{f.name} said to the other rooms`)
+        end
+        apply(f)
+        wire(f)
+        save()
+        menu()
+        return
+    elseif string.sub(ev.id, 1, 4) == "far:" then
+        if core.has_perm(ev.player, "portals") == 0 or not f.away then
+            return
+        end
+        local to = string.split(string.sub(ev.id, 5), "\t")
+        local room, name = to[1] or "", to[2] or ""
+        if room == f.far_room and name == f.far_name then
+            room, name = "", ""   -- a click on the one it leads to lets go of it
+        end
+        local no = core.room_portal_link(f.name, room, name)
+        if no ~= "" then
+            core.notice(ev.player, no)
+        else
+            f.far_room, f.far_name = room, name
+            apply(f)
+            wire(f)
+            save()
+            core.log(if room == "" then `{f.name} leads to no room now` else `{f.name} now leads to {name} in room {room}`)
+        end
         menu()
         return
     elseif ev.id == "unlink" then
@@ -622,7 +757,9 @@ core.event.on("core:ui_click", function(ev)
         return
     elseif string.sub(ev.id, 1, 5) == "link:" then
         local g = named(string.sub(ev.id, 6))
-        if g and g ~= f and g.link ~= nil and g.link ~= f.name and not may_edit(ev.player, g) then
+        if f.away or (g and g.away) then
+            -- one that leads to other rooms is no end of a pair here
+        elseif g and g ~= f and g.link ~= nil and g.link ~= f.name and not may_edit(ev.player, g) then
             -- Linking takes g from whatever it led to: only for whoever sets g up.
             core.notice(ev.player, `{g.name} is somebody else's and leads elsewhere: they link it from their side`)
         elseif g and g ~= f then
@@ -681,13 +818,14 @@ core.event.on("core:tick", function(_)
         for _, word in string.split(parts[2] or "", " ") do
             table.insert(n, tonumber(word) or 0)
         end
-        if (#parts == 3 or #parts == 4) and #n == 9 then
+        if #parts >= 3 and #parts <= 7 and #n == 9 then
             local set = string.split(parts[4] or "", " ")
             local f: Frame = { x = n[1], y = n[2], z = n[3], ex = n[4], ey = n[5], ez = n[6],
                                axis = n[7], sign = n[8], rot = n[9], slot = -1, name = parts[1],
                                owner = if set[1] == nil or set[1] == "-" then "" else set[1],
                                colour = math.clamp(tonumber(set[2]) or 0, 0, 2),
-                               scales = set[3] == "1", window = set[4] == "1" }
+                               scales = set[3] == "1", window = set[4] == "1",
+                               away = parts[5] == "1", far_room = parts[6] or "", far_name = parts[7] or "" }
             if apply(f) >= 0 then
                 table.insert(frames, f)
                 leads[f] = parts[3]
@@ -695,7 +833,16 @@ core.event.on("core:tick", function(_)
         end
     end
     for f, to in leads do
-        link(f, named(to))
+        if not f.away then
+            link(f, named(to))
+        end
+    end
+    -- And the links to other rooms, asked for again: the far frame may not be
+    -- said yet, and the link waits for it (core.room_portal_link).
+    for _, f in frames do
+        if f.away and f.far_room ~= "" then
+            core.room_portal_link(f.name, f.far_room, f.far_name)
+        end
     end
     local pairs_open = 0
     for _, f in frames do
@@ -705,6 +852,43 @@ core.event.on("core:tick", function(_)
     end
     save()
     core.log(`portal: {#frames} frame(s) open again, {pairs_open // 2} linked pair(s)`)
+end)
+
+-- Every two seconds: what the server says each frame said to the other rooms
+-- leads to. A link made from the other room, or let go of there, is taken
+-- and kept; one still waiting for a room that has not said its frames is left.
+local polled = 0.0
+core.event.on("core:tick", function(ev)
+    polled += ev.dt
+    if polled < 2.0 or not restored then
+        return
+    end
+    polled = 0.0
+    local changed = false
+    for _, f in frames do
+        if f.away then
+            local st = core.room_portal_state(f.name)
+            local room, name = "", ""
+            local word, rest = string.match(st, "^(%a+) (.*)$")
+            if word == "linked" or word == "waiting" then
+                local w = string.split(rest :: string, "\t")
+                room, name = w[1] or "", w[2] or ""
+            end
+            if room ~= f.far_room or name ~= f.far_name then
+                core.log(if room == "" then `{f.name} leads to no room now` else `{f.name} now leads to {name} in room {room}`)
+                f.far_room, f.far_name = room, name
+                apply(f)
+                wire(f)
+                changed = true
+            end
+        end
+    end
+    if changed then
+        save()
+        if shown ~= nil and viewer ~= 0 then
+            menu()
+        end
+    end
 end)
 
 -- Portals to OTHER SERVERS: a ring of portal:server_frame, gold, round a hole

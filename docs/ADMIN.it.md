@@ -155,7 +155,7 @@ il proprietario di quel nome in questo mondo, o il nome e basta.
 
 | Comando | Permesso | Cosa fa |
 |---|---|---|
-| `/portals` | portals | Dove portano le aperture di ogni stanza, e quali server mandano giocatori, quanti, da dove |
+| `/portals` | portals | Dove portano le aperture di ogni stanza, i portali tra stanze costruiti nel mondo e quale bocca ha ora ognuno, e quali server mandano giocatori, quanti, da dove |
 | `/friend add NOME HOST:PORTA CHIAVE [cosa]` | federation | Un server amico; `cosa` è uno qualunque di `bans,presence,chat,bags,portals,mods`, tutti se non si dice; un NOME già presente viene sostituito |
 | `/friend remove NOME` `/friend list` | federation | Smettere di essere amici (i suoi ban qui si tolgono); gli amici, e quando si è sentito ognuno l'ultima volta |
 | `/fed TESTO` | chiunque | Chat con i giocatori di ogni server amico |
@@ -353,6 +353,27 @@ i ticket che firma un altro server, `--require-ticket` non accetta nessun altro.
 attraversa controlla che la chiave del server lontano sia quella che il collegamento nomina,
 attraverso una finestra di portale come attraverso il redirect lento. `/portals` mostra le due
 direzioni.
+
+### Portali tra stanze, costruiti nel mondo
+
+Su un server con più stanze una cornice di `portal:frame` (otto cornici attorno a un lingotto di
+ferro) può portare a una cornice in un'altra stanza, impostata in gioco:
+
+1. Si costruisce una cornice in piedi in ognuna delle due stanze, della stessa misura (larga da 1 a
+   8, alta da 2 a 8). Hanno cornici le stanze che caricano `mods/portal`: il sandbox, l'Inferno, le
+   sale tascabili.
+2. Col permesso `portals` (admin), clic destro su una: **altre stanze: sì** la rende nota alle altre
+   stanze. Lo stesso sull'altra.
+3. Il menù di ognuna elenca ora le cornici delle altre stanze; un clic su una collega le due, un clic
+   su quella a cui porta la lascia. Una cornice di un'altra misura dice perché non si può collegare.
+
+Un portale così occupa una delle 28 bocche della sua stanza solo mentre un giocatore è entro 160
+nodi da uno dei due capi: il server dà le bocche che ha libere ai portali collegati più vicini a un
+giocatore e le riprende agli altri, quindi il foro è vuoto quando non c'è nessuno e un mondo può
+avere molte più cornici che bocche. Libere sono le bocche oltre quelle del mondo (`--portal-to`) e
+quelle del mondo che un mod ha parcheggiato (`core.portal_park`): in un sandbox con la piazza, le
+sette seconde entrate e le bocche delle porte tascabili che non stanno a una porta. `/portals`
+elenca ognuno e la bocca che ha ora; il log dice `mouths: N given to NAME` e `given back`.
 
 ### Portali costruiti nel mondo
 

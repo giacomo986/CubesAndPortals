@@ -249,13 +249,30 @@ survival levels.
    colour, scaling, window. Not seen in a client. Missing: a portal made or
    resized without a frame; who may CROSS a local portal (the engine seals
    mouths only, `core.portal_seal`).
-2. Virtual mouths: one scheduler gives the 28 mouths to the links nearest the
-   players, in place of what `mods/gates`, `mods/pocket` and `mods/keys` each do.
-   The sandbox uses all 28 today, so nothing built by hand has one. Closes "a far
-   portal between servers is a mouth" under Limits.
-3. A portal to another room from the frame's menu, as `core.far_portal_*` does
-   between servers; tickets between rooms required and bound to the room (see
-   Waiting for a decision).
+2. Virtual mouths. Done 2026-11-12 for portals made while the server runs
+   (`src/server/room_portals.*`, `schedule_mouths`): a portal between rooms
+   holds a mouth only while a player is within 160 of either end, nearest
+   first; the mouths to hand out are those past the world's own and the
+   world's own a mod parked (`core.portal_park`: gates' second ways in on a
+   plaza, pocket's mouths with no door). Server only, no protocol change.
+   Seen in a client: through a frame of room b into room a's, on a lent mouth;
+   the lender placed again and the portal moved to another mouth, the far end
+   following. Missing: the world's own mouths are not scheduled -- a placed
+   gate keeps its mouth with nobody near, so a survival sandbox, which parks
+   nothing, has none to lend (`mods/gates` to park the sites nobody is near);
+   portals to other servers still hold a mouth each (Limits); a player
+   arriving in the half second a lent mouth changes hands comes out of
+   whatever holds that index; a room that is a pair of openings and no mouth
+   cannot have one.
+3. A portal to another room from the frame's menu. Done 2026-11-12
+   (`mods/portal`): "other rooms: yes" by whoever has the `portals`
+   permission, then the other rooms' frames listed to link to; kept by each
+   room's mod, a link made from the far room taken within two seconds. Seen in
+   a client by script (the clicks sent as events, the crossing walked), the
+   menu itself not looked at. Missing: only rooms that load `mods/portal` have
+   frames (sandbox, inferno, pocket halls); such a frame is empty, with no
+   membrane, while nobody is near; who may cross; tickets between rooms
+   required and bound to the room (see Waiting for a decision).
 4. Rooms from a file in the saved world, not from the list written in
    `src/client/main.cpp` and `tools/track.sh`; started and stopped while the
    server runs (the router's arrays are sized at start today); rules declared by

@@ -515,7 +515,9 @@ altar holds (a key, the portal gun, a shard) hangs over it, turning.
   frame's menu (right click) its builder, or an admin, picks where it leads, its colour, whether it
   scales and whether it is a window: it shows its other end and lets nothing through.
 - **Worlds and servers.** Two worlds in one process, portals to **another server** with signed
-  tickets, and several worlds (rooms) on one server and port. The world has no edge: columns are
+  tickets, and several worlds (rooms) on one server and port. An admin links a frame built in one
+  room to a frame in another from its menu; such portals take one of a room's mouths only while a
+  player is near, so a world holds more of them than it has mouths. The world has no edge: columns are
   generated or loaded as players get near, and dropped when nobody is.
 - **Network.** A headless server at 20 ticks a second, ENet + zstd, X25519 + XChaCha20-Poly1305
   encryption, key-based player identity, content-addressed media with a disk cache shared between

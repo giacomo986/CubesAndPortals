@@ -205,6 +205,15 @@ link it to another frame first: a window shows what that one faces = collegalo p
 {} is somebody else's and leads elsewhere: they link it from their side = {} è di qualcun altro e porta altrove: lo collega lui dal suo lato
 {} leads to {} = {} porta a {}
 {} leads nowhere = {} non porta da nessuna parte
+other rooms: no = altre stanze: no
+other rooms: yes -- they may link to it = altre stanze: sì -- possono collegarsi qui
+leads to {}, in the room {} = porta a {}, nella stanza {}
+leads to {}, in the room {}: shut while nobody is near = porta a {}, nella stanza {}: chiuso finché non c'è nessuno vicino
+waits for {}, in the room {} = aspetta {}, nella stanza {}
+leads nowhere: link it to a frame of another room below = non porta da nessuna parte: collegalo qui sotto a una cornice di un'altra stanza
+no other room has a frame said to the other rooms = nessun'altra stanza ha una cornice aperta alle altre stanze
+a portal to another room stands up and is not turned = un portale verso un'altra stanza sta in piedi e non è ruotato
+that portal is in this room: link the two frames as a pair = quel portale è in questa stanza: collega le due cornici come coppia
 
 # --- Portals to other servers (portal:server_frame) ---
 WARNING: {} = ATTENZIONE: {}

@@ -532,7 +532,9 @@ un altare contiene (una chiave, la pistola dei portali, un frammento) galleggia 
   cornice (clic destro) chi l'ha costruita, o un admin, sceglie dove porta, il colore, se scala e
   se è una finestra: mostra l'altro capo e non lascia passare.
 - **Mondi e server.** Due mondi in un solo processo, portali verso **un altro server** con ticket
-  firmati, e più mondi (stanze) sullo stesso server e sulla stessa porta. Il mondo non ha bordo:
+  firmati, e più mondi (stanze) sullo stesso server e sulla stessa porta. Un admin collega dal menù
+  una cornice costruita in una stanza a una cornice in un'altra; questi portali occupano una bocca
+  della stanza solo mentre un giocatore è vicino, così un mondo ne ha più di quante bocche ha. Il mondo non ha bordo:
   le colonne si generano o si caricano quando un giocatore si avvicina, e si lasciano quando non
   c'è nessuno.
 - **Rete.** Server headless a 20 tick al secondo, ENet + zstd, cifratura X25519 +
