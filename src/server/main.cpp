@@ -5309,6 +5309,16 @@ int        g_max_per_address = 0;    // --max-per-address, 0 for no limit
 // kRoomIdle seconds it saves and stops; the next call starts it again from
 // its world file. The rooms the server was started with are never stopped.
 //
+// A section whose name ends in a star, [room home-*], is a TEMPLATE: any room
+// whose name begins that way is made from it the first time something leads
+// to it, "{name}" in its flags standing for the room's name; with no
+// --world-file of its own its world is NAME.world beside the rooms file, and
+// with no --seed its seed is made of its name. So a
+// mod gives every player a room by linking a portal to "home-" and something
+// of theirs (mods/portal, mods/home). A client that names such a room gets it
+// only when its world file is there already: a portal makes one, a name does
+// not.
+//
 // Everything here is read and written by a room's thread holding the rooms'
 // lock, but the flags a room's own loop and the watchdog read.
 constexpr size_t kRoomSlots = 64;     // the router's tables are this long from the start
@@ -5323,12 +5333,59 @@ struct HotRooms {
     double              wanted[kRoomSlots]  = {};   // when something last led to it, seconds since the start
     std::mutex               threads_m;
     std::vector<std::thread> threads;
+    std::map<std::string, std::vector<std::string>> made;   // the rooms made from a template, by name
 
-    const std::vector<std::string> *def(const std::string &name) const
+    static bool is_template(const std::string &name) { return !name.empty() && name.back() == '*'; }
+    // The template a room of that name is made from, or nullptr.
+    const std::pair<std::string, std::vector<std::string>> *template_of(const std::string &name) const
     {
+        if (name.empty() || name.size() > 48 || is_template(name)) return nullptr;
+        for (const char c : name)
+            if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-')) return nullptr;
+        for (const auto &d : defs)
+            if (d.first == name) return nullptr;   // a room of its own in the file
+        for (const auto &d : defs)
+            if (is_template(d.first) && name.size() >= d.first.size() &&
+                name.compare(0, d.first.size() - 1, d.first, 0, d.first.size() - 1) == 0)
+                return &d;
+        return nullptr;
+    }
+    // A room's flags: its own section's, or its template's made out for it.
+    const std::vector<std::string> *def(const std::string &name)
+    {
+        if (is_template(name)) return nullptr;
         for (const auto &d : defs)
             if (d.first == name) return &d.second;
-        return nullptr;
+        const auto *t = template_of(name);
+        if (t == nullptr) return nullptr;
+        std::vector<std::string> flags = t->second;
+        bool                     has_file = false, has_seed = false;
+        for (std::string &f : flags) {
+            for (size_t at; (at = f.find("{name}")) != std::string::npos;) f.replace(at, 6, name);
+            has_file = has_file || f == "--world-file";
+            has_seed = has_seed || f == "--seed";
+        }
+        if (!has_seed) {   // a world of its own: its seed is its name's, the same at every start
+            uint32_t h = 2166136261u;
+            for (const unsigned char c : name) h = (h ^ c) * 16777619u;
+            flags.push_back("--seed");
+            flags.push_back(std::to_string(h % 2000000000u + 1));
+        }
+        if (!has_file) {
+            const size_t slash = file.find_last_of('/');
+            flags.push_back("--world-file");
+            flags.push_back((slash == std::string::npos ? std::string() : file.substr(0, slash + 1)) + name + ".world");
+        }
+        return &(made[name] = std::move(flags));
+    }
+    // The world file of a room made from a template, or "" for any other room.
+    std::string template_world(const std::string &name)
+    {
+        if (template_of(name) == nullptr) return "";
+        const std::vector<std::string> *d = def(name);
+        for (size_t i = 0; d != nullptr && i + 1 < d->size(); ++i)
+            if ((*d)[i] == "--world-file") return (*d)[i + 1];
+        return "";
     }
 };
 HotRooms &g_hot = *new HotRooms;
@@ -5375,7 +5432,10 @@ struct Router {
     {
         int r = find(name);
         if (r >= 0 && g_hot.running[(size_t)r]) return r;
-        if (name.empty() || g_hot.def(name) == nullptr || !start_room(name).empty()) return -1;
+        if (name.empty() || g_hot.def(name) == nullptr) return -1;
+        // Made from a template: for a name alone only once its world is there.
+        if (const std::string w = g_hot.template_world(name); !w.empty() && !std::ifstream(w)) return -1;
+        if (!start_room(name).empty()) return -1;
         r = find(name);
         return r >= 0 && g_hot.running[(size_t)r] ? r : -1;
     }
@@ -10415,8 +10475,16 @@ std::string start_room(const std::string &name)
     for (size_t i = 0; i < g_router.rooms.size(); ++i)
         if (g_router.rooms[i].name == name) at = (int)i;
     if (at >= 0 && g_hot.running[(size_t)at]) return name + " is up";
-    if (at < 0) {
-        if (g_router.rooms.size() >= kRoomSlots) return "this server has all the rooms it can hold";
+    if (at < 0 && g_router.rooms.size() >= kRoomSlots) {
+        // Every place taken: that of a room that is down goes to this one,
+        // which starts from its own world file when it is wanted again.
+        for (size_t i = 0; i < g_router.rooms.size() && at < 0; ++i)
+            if (g_hot.hot[i] && !g_hot.running[i]) {
+                g_router.rooms[i].name = name;
+                at = (int)i;
+            }
+        if (at < 0) return "this server has all the rooms it can hold";
+    } else if (at < 0) {
         g_router.rooms.push_back(RoomShared{name});
         at = (int)g_router.rooms.size() - 1;
     }
@@ -10484,14 +10552,23 @@ std::vector<std::string> room_command(const std::vector<std::string> &w)
                           (g_hot.hot[i] ? " (started when wanted)" : ""));
         }
         for (const auto &d : g_hot.defs)
-            if (g_router.find(d.first) < 0) out.push_back(d.first + ": not started yet");
+            if (HotRooms::is_template(d.first))
+                out.push_back(d.first + ": a template, a room made from it when something leads to one");
+            else if (g_router.find(d.first) < 0)
+                out.push_back(d.first + ": not started yet");
         if (g_hot.file.empty()) out.push_back("No rooms file: this server starts no rooms while it runs (--rooms-file).");
         return out;
     }
     if (g_hot.file.empty()) return {"This server has no rooms file (--rooms-file)."};
     bool good = !name.empty() && name.size() <= 48;
-    for (const char c : name) good = good && ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-');
-    if (!good) return {"/room list | add NAME [FLAG [VALUE]...] | start NAME | stop NAME | remove NAME -- a name is a-z, 0-9, _ and -"};
+    const bool templ = HotRooms::is_template(name) && (verb == "add" || verb == "remove");
+    for (size_t i = 0; i + (templ ? 1 : 0) < name.size(); ++i) {
+        const char c = name[i];
+        good = good && ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-');
+    }
+    if (!good)
+        return {"/room list | add NAME [FLAG [VALUE]...] | start NAME | stop NAME | remove NAME -- a name is a-z, 0-9, _ and "
+                "-; one that ends in * (add, remove) is a template"};
     if (verb == "start") {
         const std::string no = start_room(name);
         return {no.empty() ? "Starting " + name + "." : "Not started: " + no + "."};
@@ -10516,6 +10593,7 @@ std::vector<std::string> room_command(const std::vector<std::string> &w)
             return {"Not added: " + g_hot.file + " cannot be written."};
         }
         tell_rooms();
+        if (templ) return {"Added the template " + name + ": a room is made from it when something leads to one."};
         return {"Added " + name + ": it starts when something leads to it, or with /room start " + name + "."};
     }
     if (verb == "remove") {
@@ -10524,6 +10602,8 @@ std::vector<std::string> room_command(const std::vector<std::string> &w)
         std::erase_if(g_hot.defs, [&](const auto &d) { return d.first == name; });
         if (g_hot.defs.size() == was) return {"The rooms file names no room called " + name + "."};
         write();
+        tell_rooms();
+        if (templ) return {"Removed the template " + name + "; the rooms made from it keep their world files."};
         return {"Removed " + name + " from the rooms file; its world file is left where it is."};
     }
     return {"/room list | add NAME [FLAG [VALUE]...] | start NAME | stop NAME | remove NAME"};

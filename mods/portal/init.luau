@@ -29,6 +29,12 @@
 -- empty with nobody about. A link made or undone from the other room is seen
 -- here within two seconds and kept.
 --
+-- On a server that gives players rooms of their own (the rooms file's template
+-- home-*, mods/home) the builder of a standing frame, one wide and two tall,
+-- has "my room" in its menu: the frame then leads to the door of their room,
+-- which the server makes the first time and starts whenever somebody is near.
+-- One frame of a room at a time: saying it of another moves the way in there.
+--
 -- A world holds as many frames as are built: core.portal_open's portals are
 -- virtual, and only the ones near a player (and what they lead to) take one
 -- of the world's openings at a time. Breaking a block of a frame closes it; a right click on a
@@ -335,6 +341,18 @@ local function facing(f: Frame): string
     return `{if f.sign > 0 then "+" else "-"}{if f.axis == 0 then "z" else "x"}`
 end
 
+-- A player's own room (mods/home): a room of this server made for them from
+-- the rooms file's template home-*, a world of their own. Its name is "home-"
+-- and the start of their key, so it is theirs on every start of the server;
+-- "" for somebody who came without a key, who has nothing to keep.
+local function own_room(player: number): string
+    local key = string.gsub(string.lower(core.player_key(player)), "[^a-z0-9]", "")
+    return if key == "" then "" else "home-" .. string.sub(key, 1, 24)
+end
+local function is_home(room: string): boolean
+    return string.sub(room, 1, 5) == "home-"
+end
+
 -- The menu. One panel for the mod, about the frame last clicked: a panel's
 -- contents are the same on every screen it is on, so two players setting up
 -- two frames at once see the one clicked last.
@@ -378,10 +396,19 @@ local function menu()
     end)
     -- To other rooms: for whoever sets the server's portals up, on a server
     -- that has rooms, and a frame that stands.
-    local rooms = viewer ~= 0 and core.has_perm(viewer, "portals") == 1 and core.room() ~= "" and f.axis ~= 2
-    local offers = if f.away then far_offers(f) else {}
-    local rows = if f.away then #offers else math.ceil(#others / 2)
-    if core.ui_define(PANEL, 13.0, 7.8 + rows + (if rooms or f.away then 1.1 else 0)) == 0 then
+    local admin = viewer ~= 0 and core.has_perm(viewer, "portals") == 1
+    local rooms = admin and core.room() ~= "" and f.axis ~= 2
+    -- To the viewer's own room: for a frame they built, on a server of rooms,
+    -- from any room but one of those. Whoever sets the server's portals up
+    -- sees where such a frame leads and may take it back with "other rooms".
+    local mine = if viewer ~= 0 and core.room() ~= "" and not is_home(core.room()) and f.axis ~= 2
+        and f.owner ~= "" and f.owner == core.player_key(viewer) then own_room(viewer) else ""
+    local homeward = f.away and is_home(f.far_room)
+    local listed = f.away and not homeward and (admin or mine == "")
+    local offers = if listed then far_offers(f) else {}
+    local rows = if listed then #offers elseif f.away then 0 else math.ceil(#others / 2)
+    local extra = (if rooms or (f.away and not homeward) then 1.1 else 0) + (if mine ~= "" then 1.1 else 0)
+    if core.ui_define(PANEL, 13.0, 7.8 + rows + extra) == 0 then
         return
     end
 
@@ -395,14 +422,19 @@ local function menu()
     local other = named(f.link)
     if f.away and f.far_room ~= "" then
         local st = core.room_portal_state(f.name)
+        local to = if f.far_room == mine then "your own room"
+            elseif homeward then "a player's own room"
+            else `{f.far_name}, in the room {f.far_room}`
         if string.sub(st, 1, 6) == "linked" then
             if string.sub(st, -4) == "live" then
-                core.ui_label(PANEL, 0.5, 2.0, `leads to {f.far_name}, in the room {f.far_room}`)
+                core.ui_label(PANEL, 0.5, 2.0, `leads to {to}`)
             else
-                core.ui_label(PANEL, 0.5, 2.0, `leads to {f.far_name}, in the room {f.far_room}: shut while nobody is near`)
+                core.ui_label(PANEL, 0.5, 2.0, `leads to {to}: shut while nobody is near`)
             end
+        elseif homeward then
+            core.ui_label(PANEL, 0.5, 2.0, `leads to {to}: it opens in a moment, the room is being started`)
         else
-            core.ui_label(PANEL, 0.5, 2.0, `waits for {f.far_name}, in the room {f.far_room}`)
+            core.ui_label(PANEL, 0.5, 2.0, `waits for {to}`)
         end
     elseif f.away then
         core.ui_label(PANEL, 0.5, 2.0, "leads nowhere: link it to a frame of another room below")
@@ -434,12 +466,19 @@ local function menu()
     core.ui_button(PANEL, "window", 8.7, 5.3, 3.8, 0.9, if f.window then "a window: yes" else "a window: no")
 
     local y = 6.4
-    if rooms or f.away then
+    if mine ~= "" then
+        core.ui_button(PANEL, "mine", 0.5, y, 12.0, 0.8,
+            if f.far_room == mine then "my room: yes -- this frame leads to it" else "my room: no")
+        y += 1.1
+    end
+    if rooms or (f.away and not homeward) then
         core.ui_button(PANEL, "rooms", 0.5, y, 12.0, 0.8,
             if f.away then "other rooms: yes -- they may link to it" else "other rooms: no")
         y += 1.1
     end
-    if f.away then
+    if f.away and not listed then
+        -- a frame to somebody's own room, or one its builder may not set up
+    elseif f.away then
         if #offers == 0 then
             core.ui_label(PANEL, 0.5, y + 0.2, "no other room has a frame said to the other rooms")
         end
@@ -705,6 +744,62 @@ core.event.on("core:ui_click", function(ev)
         save()
         core.notice(ev.player, `{was} is now called {name}`)
         core.log(`{was} renamed {name}`)
+        menu()
+        return
+    elseif ev.id == "mine" then
+        -- The frame's builder makes it the way into their own room, or no
+        -- longer that. One frame a room at a time: the others of this room that
+        -- led there lead nowhere (a frame in another room keeps its wish, and
+        -- whichever the room's door takes first has it).
+        local room = own_room(ev.player)
+        if room == "" or f.owner ~= core.player_key(ev.player) or core.room() == "" or is_home(core.room()) then
+            return
+        end
+        if f.away and f.far_room == room then
+            core.room_portal_close(f.name)
+            f.away, f.far_room, f.far_name = false, "", ""
+            core.log(`{f.name} no longer leads to {room}`)
+        elseif f.away and f.far_room ~= "" then
+            core.notice(ev.player, "this frame is set up to lead to another room")
+            menu()
+            return
+        elseif f.axis == 2 or f.rot ~= 0 then
+            core.notice(ev.player, "the way into your room stands up and is not turned")
+            menu()
+            return
+        else
+            local w, h = size(f)
+            if w ~= 1 or h ~= 2 then
+                core.notice(ev.player, "the door of your room is one wide and two tall: build the frame round such a hole")
+                menu()
+                return
+            end
+            link(f, nil)
+            f.away = true
+            apply(f)   -- said to the other rooms, so it can be linked
+            local no = core.room_portal_link(f.name, room, "door")
+            if no ~= "" then
+                core.room_portal_close(f.name)
+                f.away = false
+                core.notice(ev.player, if string.find(no, "no room called", 1, true)
+                    then "this server gives players no rooms of their own" else no)
+            else
+                for _, g in frames do
+                    if g ~= f and g.away and g.far_room == room then
+                        core.room_portal_close(g.name)
+                        g.away, g.far_room, g.far_name = false, "", ""
+                        apply(g)
+                        wire(g)
+                    end
+                end
+                f.far_room, f.far_name = room, "door"
+                core.notice(ev.player, "this frame leads to your own room: it opens once the room has started")
+                core.log(`{f.name} now leads to {room}`)
+            end
+        end
+        apply(f)
+        wire(f)
+        save()
         menu()
         return
     elseif ev.id == "rooms" then

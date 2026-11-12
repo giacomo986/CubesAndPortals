@@ -68,6 +68,18 @@ void unlink(Entry &e)
     e.to_name.clear();
 }
 
+// Whether the server has, or makes, a room of that name: one of its rooms, or
+// a template's ("home-*", set_rooms) with something after the star's place.
+bool known_room(const std::string &room)
+{
+    for (const std::string &r : g_rooms) {
+        if (r == room) return true;
+        if (!r.empty() && r.back() == '*' && room.size() >= r.size() && room.compare(0, r.size() - 1, r, 0, r.size() - 1) == 0)
+            return true;
+    }
+    return false;
+}
+
 // Why `e` cannot be linked to `o`, or "".
 std::string compat(const Entry &e, const Entry &o)
 {
@@ -134,8 +146,7 @@ std::string link(const std::string &room, const std::string &name, const std::st
         return "";
     }
     if (far_room == room) return "that portal is in this room: link the two frames as a pair";
-    if (std::find(g_rooms.begin(), g_rooms.end(), far_room) == g_rooms.end())
-        return "this server has no room called " + far_room;
+    if (!known_room(far_room)) return "this server has no room called " + far_room;
     if (!good_name(far_name)) return "a portal's name is 1 to 96 printable characters";
     Entry *o = find(far_room, far_name);
     if (o) {
@@ -170,7 +181,7 @@ std::string list(const std::string &room, const std::string &name)
     const Entry *mine = find(room, name);
     std::string  out;
     for (const std::string &r : g_rooms) {
-        if (r == room) continue;
+        if (r == room || (!r.empty() && r.back() == '*')) continue;   // a template's rooms are whoever's they are
         out += "R\t" + r + "\n";
         std::vector<const Entry *> there;
         for (const Entry &e : g_entries)

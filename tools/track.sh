@@ -66,7 +66,8 @@ CLI="$BUILD/src/client/cnp_client"
 mkdir -p "$HERE"
 if [ "$FRESH" = 1 ]; then
     rm -f "$HERE"/sandbox.world* "$HERE"/pista.world* "$HERE"/inferno.world* \
-          "$HERE"/arena.world* "$HERE"/arpg.world* "$HERE"/chambers.world* "$HERE"/backrooms.world* "$HERE"/parkour.world* "$HERE"/laboratorio.world* "$HERE"/front.world*
+          "$HERE"/arena.world* "$HERE"/arpg.world* "$HERE"/chambers.world* "$HERE"/backrooms.world* "$HERE"/parkour.world* "$HERE"/laboratorio.world* "$HERE"/front.world* \
+          "$HERE"/home-*.world* "$HERE"/rooms.conf
     echo "== mondi salvati cancellati"
     # Proprietario del server: il permesso creative (moderatore in su) apre il
     # catalogo con C. In survival resta chiuso (creative a nobody).
@@ -98,6 +99,23 @@ sed -i 's/^local ALL_OPEN = false/local ALL_OPEN = true/' "$SANDBOX_MODS/keys/in
 grep -q '^local ALL_OPEN = true' "$SANDBOX_MODS/keys/init.luau" \
     || { echo "track.sh: ALL_OPEN non trovato in mods/keys/init.luau"; exit 1; }
 echo "== tutti i mondi sbloccati"
+
+# Le stanze avviate a server acceso (--rooms-file): il modello home-*, da cui
+# nasce la stanza personale di ogni giocatore la prima volta che una sua
+# cornice ci porta ("my room" nel menu della cornice, mods/portal e mods/home).
+# Un mondo come il sandbox, con le stesse mod, in un file suo. Scritto solo se
+# manca: /room add ci aggiunge le sue stanze.
+if [ ! -f "$HERE/rooms.conf" ]; then
+    {
+        echo "# Stanze avviate quando qualcosa ci porta (--rooms-file)."
+        echo "[room home-*]"
+        echo "world-file $HERE/{name}.world"
+        echo "mods $SANDBOX_MODS"
+        [ ${#SURVIVAL[@]} -gt 0 ] && echo "survival"
+        [ -d "$HOME/.cubes-and-portals/mods" ] && echo "user-mods $HOME/.cubes-and-portals/mods"
+        true
+    } > "$HERE/rooms.conf"
+fi
 
 # Le mod del giocatore (~/.cubes-and-portals/mods), al sandbox e alle sale
 # tascabili come le dà il menù del titolo: una con `rooms = all` (una specie,
@@ -134,7 +152,7 @@ trap 'exit 130' INT TERM
 for f in server.log client.log; do [ -f "$HERE/$f" ] && mv -f "$HERE/$f" "$HERE/$f.prev"; done
 echo "== avvio il server (sandbox, pista, inferno, arena, arpg, camere di prova, backrooms, parkour, laboratorio, fronte, assalto e le sale tascabili) sulla porta $PORT"
 # --ticks 0: senza, un server in ascolto si ferma dopo 50 s.
-"$SRV" --listen "$PORT" --ticks 0 --seed "$SEED" --portals ${OWNER[@]+"${OWNER[@]}"} \
+"$SRV" --listen "$PORT" --ticks 0 --seed "$SEED" --portals --rooms-file "$HERE/rooms.conf" ${OWNER[@]+"${OWNER[@]}"} \
     --room sandbox ${SURVIVAL[@]+"${SURVIVAL[@]}"} ${USER_MODS[@]+"${USER_MODS[@]}"} --mods "$SANDBOX_MODS" --world-file "$HERE/sandbox.world" \
         --portal-to @pista/0 --portal-to @inferno/0 --portal-to @arena/0 --portal-to @arpg/0 \
         --portal-to @chambers/0 --portal-to @backrooms/0 --portal-to @parkour/0 \

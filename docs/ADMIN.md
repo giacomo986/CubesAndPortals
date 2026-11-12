@@ -394,8 +394,33 @@ near. The rooms the server started with never stop before the server does.
 `/room add NAME [FLAG [VALUE]...]` writes a room into the file while the server runs (flags with
 or without the `--`), `/room remove NAME` takes a stopped one out and leaves its world file where
 it is, `/room list` says which are up. All of `/room` is the owner's (`rooms` permission). A
-server holds 64 rooms at most, counting those that were started and stopped, and two rooms cannot
+server holds 64 rooms at a time: when every place is taken, a room that is down gives its place to
+the one being started, and starts again from its world file when it is wanted. Two rooms cannot
 run on one world file.
+
+**A template** is a section whose name ends in a star:
+
+```
+[room home-*]
+world-file worlds/{name}.world
+survival
+```
+
+Any room whose name begins that way (`home-anna`, `home-7`) is made from it the first time
+something leads to it, `{name}` in the flags standing for the room's name. With no `world-file`
+its world is `NAME.world` beside the rooms file, and with no `seed` its seed is made of its name,
+so every such room is another world and the same one at every start. A portal linked to such a
+room makes it; a player who only names one when joining gets it once its world file is there.
+`/room add home-* ...` and `/room remove home-*` write and take out a template; the rooms made
+from it are not listed to the other rooms' frames.
+
+**Every player's own room.** The template `home-*` is the one `mods/portal` and `mods/home` use:
+a player who built a standing frame one wide and two tall finds "my room" in its menu, and the
+frame then leads to the door of a room that is theirs alone, called `home-` and the start of
+their key. It needs no permission; saying it of another frame moves the way in there. The game
+writes this template itself for a world started from its menu (`rooms.conf` in the world's
+folder, a world as the sandbox is, with the same mods), and `tools/track.sh` does the same. A
+server without the template gives no such rooms, and the button says so.
 
 ### Portals built in the world
 

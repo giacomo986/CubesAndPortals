@@ -237,6 +237,12 @@ room of their own, `pockets`, with every mod of the sandbox's, yours too; break 
 door folds up, to open on the same hall wherever you put it down again. A village's mayor sells a
 pocket hut ready-made; four pocket doors can be in use at once.
 
+**A room of your own** (`mods/home`). Build a standing portal frame round a hole one wide and two
+tall, right click it and pick "my room": the frame leads to a whole world that is yours alone,
+made the first time you come near and kept in a file of its own beside the sandbox's. It sleeps a
+minute after you leave it and wakes when you come back to the frame. Say "my room" of another
+frame and the way in moves there; the door inside stands by the spawn and leads back out.
+
 **The seven keys** (`mods/keys`, the game's ending). The engineer who built the portals locked
 the Host in the laboratory and split the lock into seven keys, one in each world, behind a
 trial. The eighth portal on the plaza, a dark steel frame with seven pedestals, leads to the
@@ -676,7 +682,7 @@ The full list is in `main()` in [`src/client/main.cpp`](src/client/main.cpp).
 | `--portals` `--portal-to HOST:PORT[/N]` | A pair of server-managed openings; `--portal-to` says where the first leads (and which opening `N` you come out of); repeated, the second, third and fourth |
 | `--ticket-key FILE` `--portal-peer-key HEX` `--trust HEX` `--require-ticket` | Signed tickets for crossing between servers |
 | `--mobs N` `--ticks N` `--quiet` | Test mobs, ticks before exiting, less logging |
-| `--rooms-file FILE` | Rooms started and stopped while the server runs: a `[room NAME]` line and that room's flags; one starts when a portal or a player leads to it and saves and stops when left alone. `/room` manages them ([ADMIN](docs/ADMIN.md)) |
+| `--rooms-file FILE` | Rooms started and stopped while the server runs: a `[room NAME]` line and that room's flags; one starts when a portal or a player leads to it and saves and stops when left alone. A name that ends in a star (`[room home-*]`) is a template, a room made from it for each name asked for: every player's own room. `/room` manages them ([ADMIN](docs/ADMIN.md)) |
 | `--room NAME` | A room: one more world on the same server and port. What follows applies to that room only (`--mods`, `--world-file`, `--portal-to`...), what comes before the first `--room` to all of them. `--portal-to @NAME[/N]` leads to another room; bag and health are shared between rooms. The client picks a room with `--room NAME` |
 
 ### Server administration

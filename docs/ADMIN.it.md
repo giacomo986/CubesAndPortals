@@ -399,9 +399,33 @@ partito non si fermano prima del server.
 
 `/room add NOME [FLAG [VALORE]...]` scrive una stanza nel file a server acceso (flag con o senza
 `--`), `/room remove NOME` ne toglie una ferma e lascia il suo world file dov'è, `/room list` dice
-quali sono accese. Tutto `/room` è dell'owner (permesso `rooms`). Un server tiene al massimo 64
-stanze, contando quelle avviate e poi fermate, e due stanze non possono girare sullo stesso world
-file.
+quali sono accese. Tutto `/room` è dell'owner (permesso `rooms`). Un server tiene 64 stanze alla
+volta: quando i posti sono finiti, una stanza ferma cede il suo a quella che parte, e riparte dal
+suo world file quando serve di nuovo. Due stanze non possono girare sullo stesso world file.
+
+**Un modello** è una sezione il cui nome finisce con un asterisco:
+
+```
+[room home-*]
+world-file worlds/{name}.world
+survival
+```
+
+Ogni stanza il cui nome comincia così (`home-anna`, `home-7`) nasce dal modello la prima volta
+che qualcosa ci porta, con `{name}` nei flag al posto del nome della stanza. Senza `world-file`
+il suo mondo è `NOME.world` accanto al file delle stanze, e senza `seed` il seme è ricavato dal
+nome: ogni stanza così è un mondo diverso, e lo stesso a ogni avvio. Un portale collegato a una
+stanza del genere la crea; un giocatore che la chiede solo per nome entrando la ottiene quando il
+suo world file c'è già. `/room add home-* ...` e `/room remove home-*` scrivono e tolgono un
+modello; le stanze nate da un modello non compaiono nell'elenco delle cornici delle altre stanze.
+
+**La stanza personale di ogni giocatore.** Il modello `home-*` è quello che usano `mods/portal` e
+`mods/home`: chi ha costruito una cornice in piedi, larga uno e alta due, trova "my room" nel suo
+menù, e la cornice porta alla porta di una stanza soltanto sua, chiamata `home-` più l'inizio
+della sua chiave. Non serve nessun permesso; dirlo di un'altra cornice sposta lì l'ingresso. Il
+gioco scrive da sé questo modello per un mondo avviato dal menù (`rooms.conf` nella cartella del
+mondo: un mondo come il sandbox, con le stesse mod), e `tools/track.sh` fa lo stesso. Un server
+senza il modello non dà stanze personali, e il pulsante lo dice.
 
 ### Portali costruiti nel mondo
 

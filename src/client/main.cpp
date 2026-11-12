@@ -10720,6 +10720,50 @@ std::vector<std::string> world_mod_flags(const std::string &world_dir)
     return out;
 }
 
+// The rooms a world's server starts while it runs (cnp_server --rooms-file):
+// <world>/rooms.conf. The game keeps one section of it, the template every
+// player's own room is made from (mods/home, mods/portal's "my room"): a world
+// as the sandbox is, with the same mods, in a file of its own beside the
+// sandbox's. The section is written again at every start, so the mods turned
+// on and off since are the room's too, for as long as its second line is the
+// game's; whoever takes that line out keeps what they wrote. The rest of the
+// file -- rooms added with /room -- is left as it is.
+void write_home_template(const std::string &path, const std::string &dir, bool survival,
+                         const std::string &depth, const std::string &top,
+                         const std::vector<std::string> &mod_flags)
+{
+    const std::string head = "[room home-*]";
+    const std::string mark = "# written by the game at every start: take this line out to keep changes of yours";
+    std::vector<std::string> lines;
+    {
+        std::ifstream in(path);
+        for (std::string l; std::getline(in, l);) lines.push_back(l);
+    }
+    size_t from = lines.size(), to = lines.size();
+    for (size_t i = 0; i < lines.size(); ++i)
+        if (lines[i] == head) {
+            if (i + 1 >= lines.size() || lines[i + 1] != mark) return;   // theirs now
+            from = i;
+            for (to = i + 1; to < lines.size() && lines[to].rfind("[room ", 0) != 0;) ++to;
+            break;
+        }
+    std::vector<std::string> section{head, mark, "world-file " + dir + "/{name}.db",
+                                     "world-depth " + depth, "world-top " + top};
+    if (survival) section.push_back("survival");
+    for (size_t i = 0; i + 1 < mod_flags.size(); i += 2)
+        section.push_back(mod_flags[i].substr(2) + " " + mod_flags[i + 1]);
+    section.push_back("");
+    if (lines.empty()) {
+        lines.push_back("# Rooms started when something leads to them (--rooms-file).");
+        from = to = 1;
+    }
+    if (from == lines.size() && !lines.back().empty()) section.insert(section.begin(), "");
+    lines.erase(lines.begin() + (std::ptrdiff_t)from, lines.begin() + (std::ptrdiff_t)to);
+    lines.insert(lines.begin() + (std::ptrdiff_t)from, section.begin(), section.end());
+    std::ofstream out(path, std::ios::trunc);
+    for (const std::string &l : lines) out << l << "\n";
+}
+
 // A world directory holds the server's world file, its key, its log, and
 // `seed`: the seed the world was made with, which the world file insists on,
 // written again at every start so its time is when the world was last played.
@@ -11769,7 +11813,9 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
                       assault_mods = games + "/assault/mods",
                       // The pocket halls (mods/pocket): the sandbox's own mods, so a hall
                       // is somewhere to keep and make things as at home.
-                      pockets_file = dir + "/pockets.db";
+                      pockets_file = dir + "/pockets.db",
+                      // The rooms started while it runs: every player's own (write_home_template).
+                      rooms_file = dir + "/rooms.conf";
     const bool rooms = std::filesystem::is_directory(track_mods, ec) &&
                        std::filesystem::is_directory(inferno_mods, ec) &&
                        std::filesystem::is_directory(arena_mods, ec) &&
@@ -11785,7 +11831,8 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
     if (!rooms) for (const char *a : {"--world-depth", depth_s.c_str(), "--world-top", top_s.c_str()}) args.push_back(a);
     if (rooms) {
         args.erase(args.begin() + 7, args.begin() + 9);   // "--world-file", file
-        for (const char *a : {"--portals", "--room", "sandbox", "--world-file", file.c_str(),
+        for (const char *a : {"--portals", "--rooms-file", rooms_file.c_str(),
+                              "--room", "sandbox", "--world-file", file.c_str(),
                               "--world-depth", depth_s.c_str(), "--world-top", top_s.c_str(),
                               "--portal-to", "@pista/0", "--portal-to", "@inferno/0",
                               "--portal-to", "@arena/0", "--portal-to", "@arpg/0",
@@ -11855,6 +11902,7 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
     // world turns off (<world>/mods.conf, `off = name, name`).
     // The pocket halls take the same: a hall is the sandbox's, indoors.
     const std::vector<std::string> mod_flags = world_mod_flags(dir);
+    if (rooms) write_home_template(rooms_file, dir, survival, depth_s, top_s, mod_flags);
     for (const char *room : {"sandbox", "pockets"}) {
         auto at = std::find_if(args.begin(), args.end(),
                                [room](const char *a) { return std::strcmp(a, room) == 0; });

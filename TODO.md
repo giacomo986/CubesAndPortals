@@ -279,13 +279,30 @@ survival levels.
    `/room start`, saved and stopped after a minute alone or by `/room stop`,
    `/room add|remove|list` writing the file; a stopped room started again from
    its world file. Seen with a client: the start from a portal, the crossing,
-   the stop when left. Missing: the client's title screen and `tools/track.sh`
-   still write their own list of rooms; the other rooms wait while one starts
-   (it takes the rooms' lock for the whole of its start); a stopped room keeps
-   its slot, 64 in the server's life; rules declared by each mod so the page
-   lists them; difficulty in every room; a page for all of this; the personal
-   room of each player, a world of its own made from a template when first
-   asked for.
+   the stop when left. Second part done 2026-11-12: a template (`[room
+   home-*]`, a room made from it for any name that begins so, its world file
+   and seed from its name); a room that is down gives its place up when all 64
+   are taken (not tried: no run had 64); the personal room of each player
+   (`mods/home`, "my room" in a frame's menu, `mods/portal`): the builder of a
+   standing frame, 1 x 2, links it to the door of `home-<key>`, moves the way
+   in by saying it of another frame; the title screen's worlds
+   (`rooms.conf`, written by the client) and `tools/track.sh` have the
+   template. Seen with a client by script (the click sent as an event): the
+   room made, the walk through the frame out of the room's door, the stop
+   when left, the start again by name, a name with no world refused; the
+   title screen's world starting with its file. The menu not looked at, and
+   nobody has walked back out. Missing: the client's title screen and
+   `tools/track.sh` still write their own list of the rooms they start with;
+   the other rooms wait while one starts (it takes the rooms' lock for the
+   whole of its start); rules declared by each mod so the page lists them;
+   difficulty in every room; a page for all of this. Of the personal room:
+   its door stands where the world put it, 3 north of the spawn, on a plaza
+   in a world that has one (the player moves the other end only); a frame
+   broken while its builder is inside leaves no way out but the title screen;
+   anybody walks through the frame (who may cross, 1 and 3); frames of one
+   player in two rooms both wish for the door and the first has it; gates,
+   keys and pocket load there as in the sandbox and lead nowhere; the
+   template's mods are those of the client's last start.
 5. The zone (`mods/zones`). Done 2026-11-11, by script only, in no client: a box
    saved with its doorways (`zones:doorway` in a side) and markers, turned and
    mirrored with every block's facing; a level laid from a seed, an "end" zone
@@ -306,7 +323,7 @@ survival levels.
 
 A player's own room is a room of the server with a world of its own, one a
 player (not the pocket hall, which stays what it is): made the first time its
-portal is loaded, let go when nobody can reach it.
+portal is loaded, let go when nobody can reach it. Built 2026-11-12 (4).
 
 ## Additions proposed (2026-11-09), none designed
 

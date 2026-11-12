@@ -26,7 +26,9 @@
 namespace cnp {
 namespace roomp {
 
-// The rooms of this server, once, before any of them runs.
+// The rooms of this server, and again when its rooms file changes. A name that
+// ends in a star is a template (--rooms-file): any room whose name begins that
+// way may be linked to, and none of them is listed.
 void set_rooms(const std::vector<std::string> &rooms);
 
 // --- what the mods call (room: the caller's room) ---------------------------
