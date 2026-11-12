@@ -111,6 +111,12 @@ void test_manifest_parsing()
     check(!mod_manifest_parse("name = a\ncapabilties = os\n", bad, err),
           "refuses an unknown key instead of ignoring it");
 
+    ModManifest every;
+    check(mod_manifest_parse("name = a\nrooms = all\n", every, err) && every.every_room,
+          "reads rooms = all");
+    check(!m.every_room, "a mod that says nothing about rooms stays where it is given");
+    check(!mod_manifest_parse("name = a\nrooms = some\n", bad, err), "refuses rooms that is not all");
+
     std::vector<std::string> keep;
     check(mod_capability_globals({"os"}, keep, err) && keep.size() == 1, "grants os");
     check(!mod_capability_globals({"native"}, keep, err), "refuses native");

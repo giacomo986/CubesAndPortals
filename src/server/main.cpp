@@ -73,6 +73,7 @@
 #include <deque>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <mutex>
 #include <condition_variable>
 #include <thread>
@@ -6424,6 +6425,7 @@ int serve_room(int argc, char **argv)
     // has the order and the reason.
     std::string mods_dir = data_dir("mods", CNP_SOURCE_ROOT "/mods");
     std::vector<std::string> user_mods;   // --user-mods (repeatable): loaded with mods_dir as one set
+    std::vector<std::string> added_mods;  // --add-mod (repeatable): one mod's directory each
     std::vector<std::string> left_out;    // --no-mod NAME (repeatable): found and not loaded
     bool        use_mods = true;
 
@@ -6464,6 +6466,8 @@ int serve_room(int argc, char **argv)
             user_mods.push_back(argv[++i]);
         else if (std::strcmp(argv[i], "--no-mod") == 0 && i + 1 < argc)
             left_out.push_back(argv[++i]);
+        else if (std::strcmp(argv[i], "--add-mod") == 0 && i + 1 < argc)
+            added_mods.push_back(argv[++i]);
         else if (std::strcmp(argv[i], "--no-mods") == 0)
             use_mods = false;
         else if (std::strcmp(argv[i], "--quiet") == 0)
@@ -7214,6 +7218,7 @@ int serve_room(int argc, char **argv)
         std::printf("mods from %s (%s)\n", mods_dir.c_str(),
                     data_dir_reason(mods_dir, CNP_SOURCE_ROOT "/mods").c_str());
         for (const std::string &d : user_mods) std::printf("and more mods from %s\n", d.c_str());
+        for (const std::string &d : added_mods) std::printf("and the mod in %s\n", d.c_str());
 
         // A mod builds its scene while it loads -- mods/palette writes twenty
         // cells, and somebody's structure mod would write ten thousand -- so
@@ -7224,6 +7229,7 @@ int serve_room(int argc, char **argv)
             std::vector<std::string> dirs{mods_dir};
             dirs.insert(dirs.end(), user_mods.begin(), user_mods.end());
             s.mods.set_left_out(left_out);
+            s.mods.set_added(added_mods);
             running = s.mods.load_dir(dirs);
         }
 
@@ -10051,6 +10057,58 @@ int main(int argc, char **argv)
                             "empty\n", rooms[i].first.c_str());
                 return 1;
             }
+
+    // A player's mod that says `rooms = all` (ModManifest::every_room), given
+    // with --user-mods to one room -- the title screen gives them to the
+    // sandbox and the pocket halls -- goes to every other room as well, one
+    // mod at a time (--add-mod): the rest of that folder stays where it was
+    // given, and so does a mod the room it came from leaves out (--no-mod).
+    // Given before the first --room, a folder is every room's already.
+    if (rooms.size() > 1) {
+        const auto values = [](const std::vector<std::string> &args, const char *flag) {
+            std::vector<std::string> out;
+            for (size_t i = 0; i + 1 < args.size(); ++i)
+                if (args[i] == flag) out.push_back(args[++i]);
+            return out;
+        };
+        std::vector<std::pair<std::string, std::string>> everywhere;   // (name, its directory)
+        std::vector<size_t>                               from;         // the room it was given to
+        for (size_t r = 0; r < rooms.size(); ++r) {
+            const std::vector<std::string> off = values(rooms[r].second, "--no-mod");
+            for (const std::string &root : values(rooms[r].second, "--user-mods")) {
+                std::error_code ec;
+                std::vector<std::filesystem::path> dirs;
+                for (const auto &e : std::filesystem::directory_iterator(root, ec))
+                    if (e.is_directory(ec)) dirs.push_back(e.path());
+                std::sort(dirs.begin(), dirs.end());
+                for (const std::filesystem::path &d : dirs) {
+                    std::ifstream     in(d / "mod.conf");
+                    std::stringstream text;
+                    text << in.rdbuf();
+                    ModManifest m;
+                    std::string why;
+                    if (!in || !mod_manifest_parse(text.str(), m, why) || !m.every_room) continue;
+                    if (std::find(off.begin(), off.end(), m.name) != off.end()) continue;
+                    if (std::any_of(everywhere.begin(), everywhere.end(),
+                                    [&](const auto &e) { return e.first == m.name; }))
+                        continue;
+                    everywhere.push_back({m.name, d.string()});
+                    from.push_back(r);
+                }
+            }
+        }
+        for (size_t k = 0; k < everywhere.size(); ++k) {
+            const std::string root = std::filesystem::path(everywhere[k].second).parent_path().string();
+            for (size_t r = 0; r < rooms.size(); ++r) {
+                if (r == from[k]) continue;
+                const std::vector<std::string> has = values(rooms[r].second, "--user-mods");
+                if (std::find(has.begin(), has.end(), root) != has.end()) continue;   // the whole folder
+                rooms[r].second.push_back("--add-mod");
+                rooms[r].second.push_back(everywhere[k].second);
+            }
+            std::printf("server: mod '%s' in every room (rooms = all)\n", everywhere[k].first.c_str());
+        }
+    }
 
     const auto last_of = [](const std::vector<std::string> &args, const char *flag) {
         std::string v;

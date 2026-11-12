@@ -117,6 +117,12 @@ struct ModManifest {
     // human can read rather than get it by being loaded first.
     size_t   memory_limit_bytes = 32u * 1024u * 1024u;
     unsigned interrupt_budget   = 2000000;
+
+    // `rooms = all`: given to one room of a server among the player's mods
+    // (--user-mods), it is loaded in every other room too -- an add-on species
+    // the player picked is drawn in every world they walk into. Without it a
+    // player's mod stays in the rooms it was given to.
+    bool every_room = false;
 };
 
 struct Mod {
@@ -204,6 +210,9 @@ public:
     // A world turns off a mod of the player's that it does not want; its blocks
     // already in the world become placeholders until it is back (world_db.h).
     void set_left_out(std::vector<std::string> names) { m_left_out = std::move(names); }
+    // Single mods to load as well, each a mod's own directory (--add-mod): a
+    // player's mod with `rooms = all` given to another room of the server.
+    void set_added(std::vector<std::string> dirs) { m_added = std::move(dirs); }
 
     // Loads every enabled mod found in `mods_dir`. Returns how many are running.
     // A mod that fails to load is kept in the list with its error, so the
@@ -285,6 +294,7 @@ private:
     bool             m_world_code = false;
     std::vector<std::string> m_world_code_mods;
     std::vector<std::string> m_left_out;
+    std::vector<std::string> m_added;
 };
 
 // While mod code is on the stack this names the mod that is running. Host

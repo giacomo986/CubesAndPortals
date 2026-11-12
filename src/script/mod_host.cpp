@@ -490,6 +490,13 @@ bool mod_manifest_parse(const std::string &text, ModManifest &out, std::string &
         }
         else if (key == "memory_kb")   out.memory_limit_bytes = (size_t)std::strtoul(val.c_str(), nullptr, 10) * 1024u;
         else if (key == "interrupt_budget") out.interrupt_budget = (unsigned)std::strtoul(val.c_str(), nullptr, 10);
+        else if (key == "rooms") {
+            if (val != "all") {
+                error = "line " + std::to_string(lineno) + ": rooms is all, or say nothing, not '" + val + "'";
+                return false;
+            }
+            out.every_room = true;
+        }
         else if (key == "side") {
             if      (val == "server") out.side = ModSide::Server;
             else if (val == "client") out.side = ModSide::Client;
@@ -781,6 +788,8 @@ int ModHost::load_dir(const std::vector<std::string> &mods_dirs)
             }
         }
     }
+    for (const std::string &d : m_added)   // one mod each, a room's own copy is its own business
+        if (fs::is_directory(d, ec) && std::find(dirs.begin(), dirs.end(), d) == dirs.end()) dirs.push_back(d);
     if (dirs.empty() && packages.empty()) return 0;
     std::sort(dirs.begin(), dirs.end());
     std::sort(packages.begin(), packages.end());
