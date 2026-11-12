@@ -370,6 +370,33 @@ own a mod has parked (`core.portal_park`): on a plaza sandbox, the seven second 
 pocket doors' mouths not at a door. `/portals` lists each one and the mouth it has now; the log says
 `mouths: N given to NAME` and `given back`.
 
+### Rooms started while the server runs
+
+`--rooms-file FILE` names rooms the server does not start with. The file is a `server.conf` with
+a `[room NAME]` line before each room's flags, and it needs a server that already has rooms (two
+`--room` at least):
+
+```
+[room cave]
+world-file worlds/cave.world
+seed 7
+mods games/inferno/mods
+```
+
+Such a room takes what comes before the first `--room` on the command line, as the others do, and
+then its own flags. It **starts when something leads to it**: a player comes near a portal linked
+to one of its portals, a player asks for it by name when joining, or `/room start NAME`. While it
+starts the other rooms wait (a second or two for a small world). It **saves and stops** a minute
+after the last player left it and nobody stands near a portal onto it, or with `/room stop NAME`
+when it is empty; a portal that led to it reads "waiting" and starts it again when somebody comes
+near. The rooms the server started with never stop before the server does.
+
+`/room add NAME [FLAG [VALUE]...]` writes a room into the file while the server runs (flags with
+or without the `--`), `/room remove NAME` takes a stopped one out and leaves its world file where
+it is, `/room list` says which are up. All of `/room` is the owner's (`rooms` permission). A
+server holds 64 rooms at most, counting those that were started and stopped, and two rooms cannot
+run on one world file.
+
 ### Portals built in the world
 
 Between [friend servers](#friend-servers) that share **portals**, a portal can be built and set

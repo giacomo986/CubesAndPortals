@@ -360,6 +360,7 @@ const PermRow kPerms[] = {
     {"reports", Role::Helper},     {"notes", Role::Helper},   {"players", Role::Helper},
     {"whois", Role::Moderator},    {"logs", Role::Admin},     {"backup", Role::Admin},
     {"portals", Role::Admin},      {"federation", Role::Owner},  {"time", Role::Admin},
+    {"rooms", Role::Owner},
     {"inspect", Role::Helper},     {"rollback", Role::Moderator},
     {"oldbags", Role::Admin},
     {"bag", Role::Moderator},      {"give", Role::Admin},     {"rules", Role::Admin},
@@ -1302,6 +1303,17 @@ void cmd_portals(const Who &, const Args &, const Hooks &h, std::vector<std::str
                       when_text(r.at) + " from " + r.label + ".");
 }
 
+void cmd_room(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    if (h.rooms) out = h.rooms(a.words);
+    if (out.empty()) out.push_back("No rooms.");
+    if (!a.words.empty() && a.words[0] != "list") {
+        std::string line;
+        for (const std::string &w : a.words) line += (line.empty() ? "" : " ") + w;
+        log(c, "room", line, out[0]);
+    }
+}
+
 void cmd_metrics(const Who &, const Args &, const Hooks &h, std::vector<std::string> &out)
 {
     if (h.metrics) out = h.metrics();
@@ -1363,6 +1375,7 @@ const Command kCommands[] = {
     {"metrics", "logs", "-- how the server is doing", cmd_metrics},
     {"backup", "backup", "-- copy every world file now", cmd_backup},
     {"portals", "portals", "-- links out, and who sends players in", cmd_portals},
+    {"room", "rooms", "[list|add NAME [FLAG [VALUE]...]|start NAME|stop NAME|remove NAME] -- the server's rooms, and those started when wanted", cmd_room},
     {"friend", "federation", "add NAME HOST:PORT KEY [bans,presence,chat,bags,portals,mods]|remove NAME|list -- friend servers", cmd_friend},
     {"fed", nullptr, "TEXT -- to the players of every friend server", cmd_fed},
     {"where", nullptr, "NAME -- here, or on which friend server", cmd_where},

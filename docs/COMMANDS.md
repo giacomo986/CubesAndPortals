@@ -129,6 +129,10 @@ everything below it). `/perm` shows and changes which role a permission wants;
 | Command | Permission | What it does |
 |---|---|---|
 | `/portals` | portals (admin) | Where each room's openings lead, and which servers send players in |
+| `/room [list]` | rooms (owner) | The server's rooms: up or down, how many in each, which are started when wanted |
+| `/room add NAME [FLAG [VALUE]...]` | rooms (owner) | A new room in the rooms file (`--rooms-file`), with its own flags; it starts when something leads to it |
+| `/room start NAME` `/room stop NAME` | rooms (owner) | Start a room of the rooms file now; save and stop an empty one |
+| `/room remove NAME` | rooms (owner) | Take a stopped room out of the rooms file; its world file stays |
 | `/friend add NAME HOST:PORT KEY [shares]` | federation (owner) | A friend server; `shares` is any of `bans,presence,chat,bags,portals,mods`, all by default; a NAME already there is replaced (a friend whose key changed) |
 | `/friend remove NAME` | federation (owner) | No longer friends; its bans are lifted here |
 | `/friend list` | federation (owner) | The friends, and when each was last heard |

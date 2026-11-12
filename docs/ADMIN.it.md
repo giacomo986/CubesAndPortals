@@ -375,6 +375,34 @@ quelle del mondo che un mod ha parcheggiato (`core.portal_park`): in un sandbox 
 sette seconde entrate e le bocche delle porte tascabili che non stanno a una porta. `/portals`
 elenca ognuno e la bocca che ha ora; il log dice `mouths: N given to NAME` e `given back`.
 
+### Stanze avviate a server acceso
+
+`--rooms-file FILE` nomina stanze con cui il server non parte. Il file è un `server.conf` con una
+riga `[room NOME]` prima dei flag di ogni stanza, e serve un server che abbia già delle stanze
+(almeno due `--room`):
+
+```
+[room grotta]
+world-file worlds/grotta.world
+seed 7
+mods games/inferno/mods
+```
+
+Una stanza così prende quello che sta prima del primo `--room` sulla riga di comando, come le
+altre, e poi i propri flag. **Parte quando qualcosa ci porta**: un giocatore si avvicina a un
+portale collegato a uno dei suoi, un giocatore la chiede per nome entrando, oppure
+`/room start NOME`. Mentre parte le altre stanze aspettano (un secondo o due per un mondo
+piccolo). **Salva e si ferma** un minuto dopo che l'ultimo giocatore è uscito e nessuno sta vicino
+a un portale che ci porta, oppure con `/room stop NOME` quando è vuota; un portale che ci portava
+dice "in attesa" e la fa ripartire quando qualcuno si avvicina. Le stanze con cui il server è
+partito non si fermano prima del server.
+
+`/room add NOME [FLAG [VALORE]...]` scrive una stanza nel file a server acceso (flag con o senza
+`--`), `/room remove NOME` ne toglie una ferma e lascia il suo world file dov'è, `/room list` dice
+quali sono accese. Tutto `/room` è dell'owner (permesso `rooms`). Un server tiene al massimo 64
+stanze, contando quelle avviate e poi fermate, e due stanze non possono girare sullo stesso world
+file.
+
 ### Portali costruiti nel mondo
 
 Fra [server amici](#server-amici) che condividono **portals**, un portale si può costruire e

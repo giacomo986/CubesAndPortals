@@ -676,6 +676,7 @@ The full list is in `main()` in [`src/client/main.cpp`](src/client/main.cpp).
 | `--portals` `--portal-to HOST:PORT[/N]` | A pair of server-managed openings; `--portal-to` says where the first leads (and which opening `N` you come out of); repeated, the second, third and fourth |
 | `--ticket-key FILE` `--portal-peer-key HEX` `--trust HEX` `--require-ticket` | Signed tickets for crossing between servers |
 | `--mobs N` `--ticks N` `--quiet` | Test mobs, ticks before exiting, less logging |
+| `--rooms-file FILE` | Rooms started and stopped while the server runs: a `[room NAME]` line and that room's flags; one starts when a portal or a player leads to it and saves and stops when left alone. `/room` manages them ([ADMIN](docs/ADMIN.md)) |
 | `--room NAME` | A room: one more world on the same server and port. What follows applies to that room only (`--mods`, `--world-file`, `--portal-to`...), what comes before the first `--room` to all of them. `--portal-to @NAME[/N]` leads to another room; bag and health are shared between rooms. The client picks a room with `--room NAME` |
 
 ### Server administration

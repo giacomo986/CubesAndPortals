@@ -696,6 +696,7 @@ L'elenco completo è in `main()` di [`src/client/main.cpp`](src/client/main.cpp)
 | `--portals` `--portal-to HOST:PORT[/N]` | Una coppia di aperture gestita dal server; `--portal-to` dice dove porta la prima (e da quale apertura `N` si esce); ripetuto, la seconda, la terza e la quarta |
 | `--ticket-key FILE` `--portal-peer-key HEX` `--trust HEX` `--require-ticket` | Ticket firmati per attraversare fra server |
 | `--mobs N` `--ticks N` `--quiet` | Mob di prova, tick prima di uscire, meno log |
+| `--rooms-file FILE` | Stanze avviate e fermate a server acceso: una riga `[room NOME]` e i flag di quella stanza; una stanza parte quando un portale o un giocatore ci porta e salva e si ferma quando resta sola. Le gestisce `/room` ([ADMIN](docs/ADMIN.it.md)) |
 | `--room NOME` | Una stanza: un mondo in più sullo stesso server e sulla stessa porta. Quello che segue vale solo per quella stanza (`--mods`, `--world-file`, `--portal-to`...), quello prima del primo `--room` per tutte. `--portal-to @NOME[/N]` porta in un'altra stanza; borsa e salute sono le stesse in tutte. Il client sceglie la stanza con `--room NOME` |
 
 ### Amministrazione del server

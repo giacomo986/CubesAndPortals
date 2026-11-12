@@ -83,6 +83,9 @@
 
 using namespace cnp;
 
+// One room, from its own flags, until it is told to stop (below).
+int serve_room(int argc, char **argv);
+
 namespace {
 
 // Everything a mod can reach on a server. The same script_host the client
@@ -1382,6 +1385,7 @@ void tell_far_room(const std::string &room, int portal, const Portal &p);
 void release_mouth(ServerState &s, int k);
 int  world_mouths(ServerState &s);
 const std::string &room_name();   // the room this thread serves (below, with the router)
+void want_room(const std::string &name);   // something near a player leads to it (below)
 
 // core.portal_park: one of the world's own mouths is not in use now -- a second
 // way in nobody is near, a pocket door's mouth with no door to stand in. Its
@@ -1680,6 +1684,8 @@ void schedule_mouths(ServerState &s)
         for (const Vec3 &b : bodies) d = std::min(d, length(c - b));
         return d;
     });
+    // A room a portal near a player leads to: kept up, or started.
+    for (const std::string &far : roomp::wanted_rooms(room, kPortalNear)) want_room(far);
     bool any = !items.empty();
     for (int k = 0; k < net::kMaxMouths && !any; ++k) any = !s.dyn_at[k].empty();
     if (!any) return;
@@ -1704,7 +1710,8 @@ void schedule_mouths(ServerState &s)
     // A world that is a pair of openings and no mouth stays one: a mouth
     // beside a pair is a world the wire has no word for.
     size_t room_for = 0;
-    if (own > 0 || (ss.opening(0) == nullptr && ss.opening(1) == nullptr)) {
+    const auto pair_end = [&](int k) { return ss.opening(k) != nullptr && s.dyn_at[k].empty(); };
+    if (own > 0 || (!pair_end(0) && !pair_end(1))) {
         for (int k = 0; k < net::kMaxMouths; ++k)
             if (k < own ? s.parked[k] : s.dyn_at[k].empty() ? !ss.away(k).leads_away() : true) ++room_for;
     }
@@ -5156,9 +5163,39 @@ void install_stop_handler() { install_stop_flag(&g_stop); }
 // other's -- a world that loses whatever the player who joined the wrong one
 // did. The lock is a separate file beside the world's, held for as long as this
 // process runs; the kernel drops it however the server ends, including a kill.
+//
+// A room that is stopped and started again while the server runs (--rooms-file)
+// meets its own lock: the process still holds it, and the kernel would say
+// somebody else does. So the server remembers the locks it holds and whether a
+// room is using each -- a lock nobody uses is taken up again, and two rooms of
+// one server on one world file are still refused.
+std::mutex g_world_locks_m;
+std::map<std::string, bool> g_world_locks;   // path -> a room is using it
+
+void release_world_file(const std::string &world_file)
+{
+    std::lock_guard<std::mutex> g(g_world_locks_m);
+    const auto it = g_world_locks.find(world_file + ".lock");
+    if (it != g_world_locks.end()) it->second = false;
+}
+
 bool lock_world_file(const std::string &world_file, std::string &err)
 {
     const std::string path = world_file + ".lock";
+    const size_t slash0 = world_file.find_last_of('/');
+    const std::string shown =
+        slash0 == std::string::npos ? world_file : world_file.substr(slash0 + 1);
+
+    std::lock_guard<std::mutex> g(g_world_locks_m);
+    const auto mine = g_world_locks.find(path);
+    if (mine != g_world_locks.end()) {
+        if (mine->second) {
+            err = "another room of this server is already running on " + shown;
+            return false;
+        }
+        mine->second = true;
+        return true;
+    }
 
     const int held = hold_lock_file(path);
     if (held < 0) {
@@ -5174,6 +5211,7 @@ bool lock_world_file(const std::string &world_file, std::string &err)
               (slash == std::string::npos ? world_file : world_file.substr(slash + 1));
         return false;
     }
+    g_world_locks[path] = true;
     return true;
 }
 
@@ -5263,6 +5301,41 @@ std::string update_line()
 int        g_exit_code = 0;          // 75 for a restart: tools/serve.sh starts it again
 int        g_max_per_address = 0;    // --max-per-address, 0 for no limit
 
+// Rooms started while the server runs (--rooms-file). The file names rooms
+// that are not up at the start -- a section each, as --config's -- and one is
+// started the first time something leads to it: a portal between rooms a
+// player comes near (schedule_mouths), a client asking for it by name, or
+// /room start. With nobody in it and nothing near leading to it for
+// kRoomIdle seconds it saves and stops; the next call starts it again from
+// its world file. The rooms the server was started with are never stopped.
+//
+// Everything here is read and written by a room's thread holding the rooms'
+// lock, but the flags a room's own loop and the watchdog read.
+constexpr size_t kRoomSlots = 64;     // the router's tables are this long from the start
+constexpr double kRoomIdle  = 60.0;
+struct HotRooms {
+    std::string                                                   file;
+    std::vector<std::pair<std::string, std::vector<std::string>>> defs;   // name, its flags
+    std::vector<std::string>                                      base;   // the program and every room's flags
+    std::atomic<bool>   running[kRoomSlots] = {};
+    std::atomic<bool>   stop[kRoomSlots]    = {};
+    bool                hot[kRoomSlots]     = {};
+    double              wanted[kRoomSlots]  = {};   // when something last led to it, seconds since the start
+    std::mutex               threads_m;
+    std::vector<std::thread> threads;
+
+    const std::vector<std::string> *def(const std::string &name) const
+    {
+        for (const auto &d : defs)
+            if (d.first == name) return &d.second;
+        return nullptr;
+    }
+};
+HotRooms &g_hot = *new HotRooms;
+std::vector<std::string> room_command(const std::vector<std::string> &w);
+// Starts a room the rooms file names: "" or why not. The caller holds the lock.
+std::string start_room(const std::string &name);
+
 struct Router {
     TurnLock                                 big;
     net::Transport                           transport;
@@ -5296,6 +5369,15 @@ struct Router {
         for (size_t i = 0; i < rooms.size(); ++i)
             if (rooms[i].name == name) return (int)i;
         return name.empty() && !rooms.empty() ? 0 : -1;
+    }
+    // A room that is up; one the rooms file names is started for the asking.
+    int find_up(const std::string &name)
+    {
+        int r = find(name);
+        if (r >= 0 && g_hot.running[(size_t)r]) return r;
+        if (name.empty() || g_hot.def(name) == nullptr || !start_room(name).empty()) return -1;
+        r = find(name);
+        return r >= 0 && g_hot.running[(size_t)r] ? r : -1;
     }
 
     void route(net::NetEvent &ev)
@@ -5349,7 +5431,7 @@ struct Router {
             ByteReader r(ev.data);
             if (net::peek_type(ev.data.data(), ev.data.size()) == net::MsgType::Hello &&
                 net::Hello::decode(r, hello)) {
-                room = find(hello.room);
+                room = find_up(hello.room);
                 if (room < 0) {
                     net::Refuse no;
                     no.reason = net::RefuseReason::NoSuchRoom;
@@ -5670,6 +5752,7 @@ admin::Hooks admin_hooks()
         std::lock_guard<std::mutex> hold(g_fedmod_m);
         if (g_fedmod_in.size() < 256) g_fedmod_in.push_back({from, mod, text});
     };
+    h.rooms   = [](const std::vector<std::string> &words) { return room_command(words); };
     h.portals = [] {
         std::vector<std::string> out;
         for (const RoomShared &r : g_router.rooms) {
@@ -6810,6 +6893,12 @@ int serve_room(int argc, char **argv)
             return 1;
         }
     }
+    // Let go of when this room ends, however it ends: the next start of the
+    // same room takes it up again.
+    struct WorldFileUse {
+        const char *file;
+        ~WorldFileUse() { if (file != nullptr) release_world_file(file); }
+    } world_file_use{world_file};
 
     // A world's shape is settled when it is made and kept beside its file: its
     // columns were made to it. A file older than this is the old shape.
@@ -8750,7 +8839,7 @@ int serve_room(int argc, char **argv)
         const bool  forever   = ticks <= 0;
 
 
-        while ((forever || tick < ticks) && !g_stop) {
+        while ((forever || tick < ticks) && !g_stop && !g_hot.stop[(size_t)g_room]) {
             const double next_tick_at = (double)(tick + 1) * kTickSeconds;
 
             for (int drained = 0;;) {
@@ -9939,6 +10028,20 @@ int serve_room(int argc, char **argv)
                 schedule_mouths(s);
                 sync_far_portals(s);
                 schedule_mouths(s);
+                // A room started while the server runs stops when nobody is
+                // in it or looking into it and nothing near a player leads to
+                // it (schedule_mouths in the other rooms says when one does).
+                if (g_hot.hot[(size_t)g_room]) {
+                    const double t  = seconds_since(g_started);
+                    bool         in = false;
+                    for (const auto &[peer, room] : g_router.room_of) in = in || room == g_room;
+                    if (in) g_hot.wanted[(size_t)g_room] = t;
+                    else if (t - g_hot.wanted[(size_t)g_room] > kRoomIdle) {
+                        std::printf("server: room '%s' has been empty, with nothing leading to it, for %.0f s: "
+                                    "it saves and stops\n", room_name().c_str(), kRoomIdle);
+                        g_hot.stop[(size_t)g_room] = true;
+                    }
+                }
                 schedule_portals(s, seconds_since(t_start));
                 sessions.settle_portals(s.now);
 
@@ -10281,6 +10384,153 @@ bool expand_config(const std::vector<std::string> &in, std::vector<std::string> 
     return true;
 }
 
+namespace {
+
+// The rooms a portal may be linked to: those the server has, up or not, and
+// those its rooms file names.
+void tell_rooms()
+{
+    std::vector<std::string> names;
+    for (const RoomShared &r : g_router.rooms) names.push_back(r.name);
+    for (const auto &d : g_hot.defs)
+        if (std::find(names.begin(), names.end(), d.first) == names.end()) names.push_back(d.first);
+    roomp::set_rooms(names);
+}
+
+void want_room(const std::string &name)
+{
+    for (size_t i = 0; i < g_router.rooms.size(); ++i)
+        if (g_router.rooms[i].name == name && g_hot.running[i]) {
+            g_hot.wanted[i] = seconds_since(g_started);
+            return;
+        }
+    if (g_hot.def(name) != nullptr) start_room(name);
+}
+
+std::string start_room(const std::string &name)
+{
+    const std::vector<std::string> *def = g_hot.def(name);
+    if (def == nullptr) return "the rooms file names no room called " + name;
+    int at = -1;
+    for (size_t i = 0; i < g_router.rooms.size(); ++i)
+        if (g_router.rooms[i].name == name) at = (int)i;
+    if (at >= 0 && g_hot.running[(size_t)at]) return name + " is up";
+    if (at < 0) {
+        if (g_router.rooms.size() >= kRoomSlots) return "this server has all the rooms it can hold";
+        g_router.rooms.push_back(RoomShared{name});
+        at = (int)g_router.rooms.size() - 1;
+    }
+    const size_t i = (size_t)at;
+    g_hot.hot[i]     = true;
+    g_hot.stop[i]    = false;
+    g_hot.wanted[i]  = seconds_since(g_started);
+    g_hot.running[i] = true;
+    g_router.queues[i].clear();
+    g_router.far_moved[i].clear();
+    g_router.restores[i].clear();
+    std::vector<std::string> args = g_hot.base;
+    args.insert(args.end(), def->begin(), def->end());
+    std::printf("server: starting room '%s'\n", name.c_str());
+
+    std::lock_guard<std::mutex> hold(g_hot.threads_m);
+    g_hot.threads.emplace_back([i, args, name] {
+        std::vector<char *> av;
+        for (const std::string &a : args) av.push_back(const_cast<char *>(a.c_str()));
+        av.push_back(nullptr);
+
+        g_room = (int)i;
+        std::lock_guard<TurnLock> turn(g_router.big);
+        g_held_since = std::chrono::steady_clock::now();
+        const int rc = serve_room((int)args.size(), av.data());
+        // Its portals went with its mods; what led to them waits for it.
+        roomp::forget_room(name);
+        g_router.queues[i].clear();
+        g_router.rooms[i].beat = 0;
+        g_hot.running[i]       = false;
+        std::printf("server: room '%s' is down%s\n", name.c_str(), rc != 0 ? ": it could not start" : "");
+    });
+    return "";
+}
+
+// /room: the rooms this server has and those its rooms file names.
+std::vector<std::string> room_command(const std::vector<std::string> &w)
+{
+    std::vector<std::string> out;
+    const std::string        verb = w.empty() ? "" : w[0], name = w.size() > 1 ? w[1] : "";
+    const auto up = [](const std::string &n) {
+        for (size_t i = 0; i < g_router.rooms.size(); ++i)
+            if (g_router.rooms[i].name == n && g_hot.running[i]) return (int)i;
+        return -1;
+    };
+    const auto write = [&]() -> bool {
+        std::ofstream f(g_hot.file);
+        f << "# Rooms started when something leads to them (--rooms-file). Written by /room.\n";
+        for (const auto &d : g_hot.defs) {
+            f << "\n[room " << d.first << "]\n";
+            for (size_t i = 0; i < d.second.size(); ++i) {
+                f << d.second[i].substr(d.second[i].rfind("--", 0) == 0 ? 2 : 0);
+                if (i + 1 < d.second.size() && d.second[i + 1].rfind("--", 0) != 0) f << " " << d.second[++i];
+                f << "\n";
+            }
+        }
+        return (bool)f;
+    };
+    if (verb.empty() || verb == "list") {
+        for (size_t i = 0; i < g_router.rooms.size(); ++i) {
+            int players = 0;
+            for (const auto &[peer, room] : g_router.room_of) players += room == (int)i ? 1 : 0;
+            out.push_back((g_router.rooms[i].name.empty() ? std::string("this world") : g_router.rooms[i].name) + ": " +
+                          (g_hot.running[i] ? "up, " + std::to_string(players) + " in it or looking in" : "down") +
+                          (g_hot.hot[i] ? " (started when wanted)" : ""));
+        }
+        for (const auto &d : g_hot.defs)
+            if (g_router.find(d.first) < 0) out.push_back(d.first + ": not started yet");
+        if (g_hot.file.empty()) out.push_back("No rooms file: this server starts no rooms while it runs (--rooms-file).");
+        return out;
+    }
+    if (g_hot.file.empty()) return {"This server has no rooms file (--rooms-file)."};
+    bool good = !name.empty() && name.size() <= 48;
+    for (const char c : name) good = good && ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-');
+    if (!good) return {"/room list | add NAME [FLAG [VALUE]...] | start NAME | stop NAME | remove NAME -- a name is a-z, 0-9, _ and -"};
+    if (verb == "start") {
+        const std::string no = start_room(name);
+        return {no.empty() ? "Starting " + name + "." : "Not started: " + no + "."};
+    }
+    if (verb == "stop") {
+        const int i = up(name);
+        if (i < 0) return {name + " is not up."};
+        if (!g_hot.hot[(size_t)i]) return {name + " is one of the rooms the server started with: it stops with the server."};
+        for (const auto &[peer, room] : g_router.room_of)
+            if (room == i) return {"Somebody is in " + name + " or looking into it."};
+        g_hot.stop[(size_t)i] = true;
+        return {name + " saves and stops."};
+    }
+    if (verb == "add") {
+        if (g_router.find(name) >= 0 || g_hot.def(name)) return {"There is a room called " + name + " already."};
+        std::vector<std::string> flags(w.begin() + 2, w.end());
+        for (std::string &f : flags)
+            if (f.rfind("--", 0) != 0 && (&f == &flags[0] || (&f)[-1].rfind("--", 0) != 0)) f = "--" + f;
+        g_hot.defs.push_back({name, flags});
+        if (!write()) {
+            g_hot.defs.pop_back();
+            return {"Not added: " + g_hot.file + " cannot be written."};
+        }
+        tell_rooms();
+        return {"Added " + name + ": it starts when something leads to it, or with /room start " + name + "."};
+    }
+    if (verb == "remove") {
+        if (up(name) >= 0) return {name + " is up: /room stop " + name + " first."};
+        const size_t was = g_hot.defs.size();
+        std::erase_if(g_hot.defs, [&](const auto &d) { return d.first == name; });
+        if (g_hot.defs.size() == was) return {"The rooms file names no room called " + name + "."};
+        write();
+        return {"Removed " + name + " from the rooms file; its world file is left where it is."};
+    }
+    return {"/room list | add NAME [FLAG [VALUE]...] | start NAME | stop NAME | remove NAME"};
+}
+
+} // namespace
+
 int main(int argc, char **argv)
 {
     // Before anything else, so a crash while a world is being generated says
@@ -10541,9 +10791,51 @@ int main(int argc, char **argv)
                     }
             }
         }).detach();
-    g_router.queues.resize(rooms.size());
-    g_router.far_moved.resize(rooms.size());
-    g_router.restores.resize(rooms.size());
+    // As long as they will ever be: a room started later takes a place, and
+    // nothing another thread is reading moves.
+    g_router.rooms.reserve(kRoomSlots);
+    g_router.queues.resize(kRoomSlots);
+    g_router.far_moved.resize(kRoomSlots);
+    g_router.restores.resize(kRoomSlots);
+    for (size_t i = 0; i < rooms.size(); ++i) g_hot.running[i] = true;
+
+    // --rooms-file FILE: rooms to start when something leads to them.
+    if (const std::string f = last_of(common, "--rooms-file"); !f.empty()) {
+        if (rooms.size() < 2) {
+            std::printf("server: --rooms-file wants a server of rooms: at least two --room\n");
+            return 1;
+        }
+        g_hot.file = f;
+        std::string              err;
+        std::vector<std::string> tokens;
+        if (std::ifstream(f) && !expand_config({"--config", f}, tokens, err)) {
+            std::printf("server: %s\n", err.c_str());
+            return 1;
+        }
+        for (size_t i = 0; i < tokens.size(); ++i) {
+            if (tokens[i] == "--room" && i + 1 < tokens.size())
+                g_hot.defs.push_back({tokens[++i], {}});
+            else if (!g_hot.defs.empty())
+                g_hot.defs.back().second.push_back(tokens[i]);
+        }
+        std::erase_if(g_hot.defs, [&](const auto &d) { return g_router.find(d.first) >= 0 || d.first.empty(); });
+        // Every room's flags but the pair of openings, the rooms file itself
+        // and the first world's file: a room started later is reached by a
+        // portal between rooms, which a world that is a pair cannot hold.
+        g_hot.base.push_back(argv[0]);
+        for (size_t i = 0; i < common.size(); ++i) {
+            if (common[i] == "--portals") continue;
+            if (common[i] == "--rooms-file" || common[i] == "--world-file" || common[i] == "--portal-to") {
+                ++i;
+                continue;
+            }
+            g_hot.base.push_back(common[i]);
+        }
+        g_hot.base.insert(g_hot.base.end(), shared.begin(), shared.end());
+        tell_rooms();
+        std::printf("server: %zu room(s) in %s, each started when something leads to it\n", g_hot.defs.size(),
+                    f.c_str());
+    }
 
     std::vector<int>         rc(rooms.size(), 0);
     std::vector<std::thread> threads;
@@ -10569,6 +10861,15 @@ int main(int argc, char **argv)
         });
     }
     for (std::thread &t : threads) t.join();
+    for (;;) {   // and the rooms started since, which stop as the others did
+        std::vector<std::thread> more;
+        {
+            std::lock_guard<std::mutex> hold(g_hot.threads_m);
+            more.swap(g_hot.threads);
+        }
+        if (more.empty()) break;
+        for (std::thread &t : more) t.join();
+    }
     g_router.transport.close();
     admin::close();
 

@@ -129,6 +129,10 @@ quello sotto). `/perm` mostra e cambia quale ruolo chiede un permesso;
 | Comando | Permesso | Cosa fa |
 |---|---|---|
 | `/portals` | portals (admin) | Dove portano le aperture di ogni stanza, e quali server mandano giocatori |
+| `/room [list]` | rooms (owner) | Le stanze del server: accese o spente, quanti in ognuna, quali partono quando servono |
+| `/room add NOME [FLAG [VALORE]...]` | rooms (owner) | Una stanza nuova nel file delle stanze (`--rooms-file`), con i suoi flag; parte quando qualcosa ci porta |
+| `/room start NOME` `/room stop NOME` | rooms (owner) | Avvia subito una stanza del file; salva e ferma una stanza vuota |
+| `/room remove NOME` | rooms (owner) | Toglie dal file una stanza ferma; il suo world file resta |
 | `/friend add NOME HOST:PORTA CHIAVE [condivisi]` | federation (owner) | Un server amico; `condivisi` è un elenco tra `bans,presence,chat,bags,portals,mods`, tutti di default; un NOME già presente viene sostituito (un amico la cui chiave è cambiata) |
 | `/friend remove NOME` | federation (owner) | Non più amici; i suoi ban qui vengono tolti |
 | `/friend list` | federation (owner) | Gli amici, e quando si è sentito ciascuno l'ultima volta |

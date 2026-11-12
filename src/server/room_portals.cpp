@@ -207,6 +207,24 @@ std::vector<Item> items(const std::string &room, const std::function<float(Vec3)
     return out;
 }
 
+std::vector<std::string> wanted_rooms(const std::string &room, float within)
+{
+    std::lock_guard<std::mutex> hold(g_m);
+    std::vector<std::string> out;
+    for (const Entry &e : g_entries)
+        if (e.room == room && !e.to_room.empty() && e.near <= within &&
+            std::find(out.begin(), out.end(), e.to_room) == out.end())
+            out.push_back(e.to_room);
+    return out;
+}
+
+void forget_room(const std::string &room)
+{
+    std::lock_guard<std::mutex> hold(g_m);
+    g_entries.erase(std::remove_if(g_entries.begin(), g_entries.end(), [&](const Entry &e) { return e.room == room; }),
+                    g_entries.end());
+}
+
 void took(const std::string &room, const std::string &name, int index)
 {
     std::lock_guard<std::mutex> hold(g_m);

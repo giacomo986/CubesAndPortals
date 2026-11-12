@@ -273,11 +273,19 @@ survival levels.
    frames (sandbox, inferno, pocket halls); such a frame is empty, with no
    membrane, while nobody is near; who may cross; tickets between rooms
    required and bound to the room (see Waiting for a decision).
-4. Rooms from a file in the saved world, not from the list written in
-   `src/client/main.cpp` and `tools/track.sh`; started and stopped while the
-   server runs (the router's arrays are sized at start today); rules declared by
-   each mod so the page lists them; difficulty in every room. Closes two entries
-   under Limits.
+4. Rooms from a file, started and stopped while the server runs. First part
+   done 2026-11-12: `--rooms-file` (`[room NAME]` and its flags), a room started
+   when a player nears a portal linked into it, joins it by name or by
+   `/room start`, saved and stopped after a minute alone or by `/room stop`,
+   `/room add|remove|list` writing the file; a stopped room started again from
+   its world file. Seen with a client: the start from a portal, the crossing,
+   the stop when left. Missing: the client's title screen and `tools/track.sh`
+   still write their own list of rooms; the other rooms wait while one starts
+   (it takes the rooms' lock for the whole of its start); a stopped room keeps
+   its slot, 64 in the server's life; rules declared by each mod so the page
+   lists them; difficulty in every room; a page for all of this; the personal
+   room of each player, a world of its own made from a template when first
+   asked for.
 5. The zone (`mods/zones`). Done 2026-11-11, by script only, in no client: a box
    saved with its doorways (`zones:doorway` in a side) and markers, turned and
    mirrored with every block's facing; a level laid from a seed, an "end" zone

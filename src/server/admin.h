@@ -101,6 +101,7 @@ struct Hooks {
     std::function<void(net::PeerId, const std::string &line)>                     say;      // one chat
     std::function<std::vector<std::string>()>                                     metrics;
     std::function<std::vector<std::string>()>                                     portals;  // links out
+    std::function<std::vector<std::string>(const std::vector<std::string> &)>     rooms;    // /room
     std::function<std::string(const std::string &room, int block)>                block_name;
     std::function<void(const std::vector<Restore> &)>                             restore;
 

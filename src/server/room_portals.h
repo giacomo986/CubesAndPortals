@@ -61,6 +61,11 @@ struct Item {
 // Every linked portal of that room; `near` says how far the nearest player of
 // this room is from a point, and is kept for the far room's next call.
 std::vector<Item> items(const std::string &room, const std::function<float(Vec3)> &near);
+// The rooms this room's portals within `within` of a player wish to lead to,
+// linked yet or not, as items last measured: a room to keep up, or to start.
+std::vector<std::string> wanted_rooms(const std::string &room, float within);
+// A room stopped: its portals are gone, and what led to them waits.
+void forget_room(const std::string &room);
 // That portal has that mouth now (-1: none).
 void took(const std::string &room, const std::string &name, int index);
 
