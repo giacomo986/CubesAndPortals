@@ -519,14 +519,26 @@ bool  g_update_check  = true;    // ask GitHub for a newer release on the title 
 bool  g_no_update_flag = false;  // --no-update-check: not this run, whatever the options say
 
 
+// An add-on's species this player picked, by its name (addon_seen): the
+// number a livery gives it is each world's own, so it is kept as a name and
+// the livery's species left 0 (livery_for). Empty for the robot or one of the
+// game's. Saved after the language, the one other word in the options file.
+std::string g_addon_species;
+
 void load_options(bool &debug)
 {
     std::ifstream in(options_path());
     std::string   key, language = lang::from_environment();
     float         value = 0.0f;
     // The language is the one option that is a word, not a number.
-    while (in >> key && (key == "lang" ? bool(in >> language) : bool(in >> value))) {
+    std::string word;
+    while (in >> key && (key == "lang" ? bool(in >> language)
+                         : key == "addon_species" ? bool(in >> word) : bool(in >> value))) {
         if (key == "lang") continue;
+        if (key == "addon_species") {
+            g_addon_species = word;
+            continue;
+        }
         if (key == "look_scale") g_look_scale = std::clamp(value, 0.2f, 3.0f);
         else if (key == "volume") g_volume = std::clamp(value, 0.0f, 1.0f);
         else if (key == "debug") debug = value != 0.0f;
@@ -572,6 +584,7 @@ void save_options(bool debug)
         << "\nportal_detail " << g_portal_scale << "\nupdate_check " << (g_update_check ? 1 : 0)
         << "\nlivery " << net::g_client_livery
         << "\nlang " << lang::current() << "\n";
+    if (!g_addon_species.empty()) out << "addon_species " << g_addon_species << "\n";   // after lang: a word stops an older build's reading
     if (!out) std::fprintf(stderr, "could not save the options to %s\n", path.c_str());
 }
 
@@ -6934,6 +6947,7 @@ struct AddonSpecies {
     std::vector<std::string>             names;
     std::vector<std::vector<AddonStyle>> styles;   // one list a name
 };
+AddonSpecies addons_from(const std::set<std::string> &have, const std::string &base);
 const AddonSpecies &addon_seen(const ModelStore &models, const std::string &base)
 {
     struct Seen {
@@ -6955,10 +6969,16 @@ const AddonSpecies &addon_seen(const ModelStore &models, const std::string &base
     at->store = &models;
     at->size  = models.size();
     at->base  = base;
-    at->found = AddonSpecies{};
     std::set<std::string> have;   // sorted: the order below
     for (size_t id = 1; id <= models.size(); ++id)
         if (const ModelStore::Entry *e = models.entry((uint16_t)id)) have.insert(e->name);
+    at->found = addons_from(have, base);
+    return at->found;
+}
+// The add-on species among a world's model names, on a body of `base`.
+AddonSpecies addons_from(const std::set<std::string> &have, const std::string &base)
+{
+    AddonSpecies out;
     const auto plain = [](const std::string &n) {
         return !n.empty() && n.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789") == std::string::npos;
     };
@@ -6977,8 +6997,8 @@ const AddonSpecies &addon_seen(const ModelStore &models, const std::string &base
     }
     for (const auto &[name, b] : found) {
         const std::string head = b + "_";
-        if (at->found.names.size() >= (size_t)kLiveryAddons) break;
-        at->found.names.push_back(name);
+        if (out.names.size() >= (size_t)kLiveryAddons) break;
+        out.names.push_back(name);
         // its styles, sorted by their own names whichever kind
         std::vector<AddonStyle> styles;
         for (const bool hat : {false, true}) {
@@ -6989,9 +7009,9 @@ const AddonSpecies &addon_seen(const ModelStore &models, const std::string &base
         std::sort(styles.begin(), styles.end(),
                   [](const AddonStyle &a, const AddonStyle &b) { return a.name < b.name; });
         if (styles.size() > 3) styles.resize(3);   // the style's two bits
-        at->found.styles.push_back(std::move(styles));
+        out.styles.push_back(std::move(styles));
     }
-    return at->found;
+    return out;
 }
 const std::vector<std::string> &addon_species(const ModelStore &models, const std::string &base)
 {
@@ -7022,6 +7042,21 @@ std::string species_name(const ModelStore &models, const std::string &base, int 
     const int k = s - kLiverySpeciesCount - 1;
     return k >= 0 && k < (int)more.size() ? more[(size_t)k] : std::string();
 }
+uint32_t with_species(uint32_t livery, int species);
+
+// This player's livery in a world whose add-on species are `more`: the one
+// picked by name (g_addon_species) is that world's number for it, or the
+// robot in a world without it. A livery saved with an add-on's number before
+// species were kept by name is left as it is, until the look page is used.
+uint32_t livery_for(const AddonSpecies &more)
+{
+    const uint32_t l = net::g_client_livery;
+    if (g_addon_species.empty()) return l;
+    for (size_t k = 0; k < more.names.size(); ++k)
+        if (more.names[k] == g_addon_species) return with_species(l, kLiverySpeciesCount + 1 + (int)k);
+    return with_species(l, 0);
+}
+
 uint32_t with_species(uint32_t livery, int species)
 {
     livery &= ~((3u << net::kLiverySpeciesShift) | (1u << net::kLiverySpeciesHigh));
@@ -7030,7 +7065,6 @@ uint32_t with_species(uint32_t livery, int species)
 }
 int livery_style(uint32_t livery) { return (int)(livery >> net::kLiveryStyleShift) & 3; }
 
-// The model a body wearing `model` is drawn as in this livery: the world's
 // A body with no clips of its own made on the rig of one that has: given that
 // one's, its joints found by name -- a joint the body has not got is dropped
 // from a clip, one the clips do not move stays at rest. So a species' file
@@ -7066,6 +7100,7 @@ void borrow_clips(SkinnedModel &to, const SkinnedModel &from)
     }
 }
 
+// The model a body wearing `model` is drawn as in this livery: the world's
 // "<its name>_<species>" when it has one, else `model` -- a kart, a world with
 // no such model, a robot. One without clips takes the player model's
 // (borrow_clips).
@@ -9744,12 +9779,19 @@ void hold_arms(Scene &s, const Player &p)
     s.arms_pitch     = p.pitch;
 }
 
+// This player's livery in world w (livery_for), on its player model.
+uint32_t own_livery(const Session &w)
+{
+    const ModelStore::Entry *e = w.models.entry(w.player_model_id);
+    return livery_for(addon_seen(w.models, e != nullptr ? e->name : std::string("robot:robot")));
+}
+
 void draw_arms(Scene &s, const Mat4 &projection)
 {
     Session &w = s.act();
     // The species' own arms, else the player model's.
     const ModelStore::Entry *player =
-        w.models.entry(species_model(w.models, w.player_model_id, net::g_client_livery));
+        w.models.entry(species_model(w.models, w.player_model_id, own_livery(w)));
     const ModelStore::Entry *plain = w.models.entry(w.player_model_id);
     if (player == nullptr || plain == nullptr) return;
     ModelStore::Entry *plain_arms = model_named(w, plain->name + "_arms");
@@ -9845,7 +9887,7 @@ void draw_arms(Scene &s, const Mat4 &projection)
 // kart while it drives, with the player's own model sat in it.
 void add_own_body(Scene &s, const Player &player, uint16_t model)
 {
-    model = species_model(s.act().models, model, net::g_client_livery);   // as a rider too
+    model = species_model(s.act().models, model, own_livery(s.act()));   // as a rider too
     Body b;
     const float tall = kPlayerHeight * s.act().movement.scale;   // core.body_scale
     b.scale  = s.act().movement.scale;
@@ -9884,7 +9926,7 @@ void add_own_body(Scene &s, const Player &player, uint16_t model)
     }
     if (player.lying) lay(b, player.lie_at, player.lie_head);
     b.model  = s.act().own_body_model != 0
-                   ? species_model(s.act().models, s.act().own_body_model, net::g_client_livery)
+                   ? species_model(s.act().models, s.act().own_body_model, own_livery(s.act()))
                    : model;
     if (s.act().own_body_block != kAir && s.act().own_body_block < s.act().registry.size()) {
         b.as_block = s.act().own_body_block;
@@ -9895,7 +9937,7 @@ void add_own_body(Scene &s, const Player &player, uint16_t model)
     b.hand       = s.hand;
     b.hand_block = s.hand_block;
     b.hand_tag   = s.hand_tag;
-    b.livery     = net::g_client_livery;
+    b.livery     = own_livery(s.act());
     std::copy(std::begin(s.own_dress), std::end(s.own_dress), std::begin(b.dress));
     std::copy(std::begin(s.own_dress_tint), std::end(s.own_dress_tint), std::begin(b.dress_tint));
     // And what a mod on the server put on it (OwnPose), where world code here did not.
@@ -10255,7 +10297,9 @@ void draw_panel_models(ModelStore &models, const ui::Panel &p, const ui::PanelPl
 // tools put away. Drawn after the panel, into the panel's box for it.
 void draw_look_preview(ModelStore &models, uint16_t model, const ui::PanelPlacement &at)
 {
-    ModelStore::Entry *robot = models.entry(species_model(models, model, net::g_client_livery));
+    const ModelStore::Entry *plain = models.entry(model);
+    const uint32_t livery = livery_for(addon_seen(models, plain != nullptr ? plain->name : std::string("robot:robot")));
+    ModelStore::Entry *robot = models.entry(species_model(models, model, livery));
     if (robot == nullptr || !robot->ready || !robot->model.skinned() || at.cell <= 0.0f) return;
     const int sh = render_height();
     const int x  = (int)(at.x + kPreviewX * at.cell), y = (int)(at.y + kPreviewY * at.cell);
@@ -10276,7 +10320,6 @@ void draw_look_preview(ModelStore &models, uint16_t model, const ui::PanelPlacem
     const Mat4 projection = mat4_perspective(0.62f, (float)w / (float)h, 0.1f, 20.0f);
     const Mat4 view       = mat4_multiply(mat4_rotate_x(0.1f), mat4_translate(Vec3{0.0f, -1.05f, -4.1f}));
     const Mat4 place      = mat4_rotate_y(3.14159265f + (float)std::fmod(t * 0.6, 6.283185307));
-    const uint32_t livery = net::g_client_livery;
     robot->renderer.draw(projection, view, place, posed, gfx_texture{0}, 1.0f, 1.0f, livery_tag(livery));
     draw_extras(models, *robot, posed, livery, false, projection, view, place);
 
@@ -10284,9 +10327,6 @@ void draw_look_preview(ModelStore &models, uint16_t model, const ui::PanelPlacem
     gfx_viewport(0, 0, render_width(), sh);
 }
 
-// What the player looks like: the three colours of their robot and an extra
-// on the head and one at the neck (net::Hello::livery). Picked on the title
-// screen, so it goes in the hello of every world joined after.
 // The add-on species of the world being played, on its player model.
 const AddonSpecies &world_addons(const Scene &s)
 {
@@ -10296,9 +10336,14 @@ const AddonSpecies &world_addons(const Scene &s)
 // And those the title screen found in the mod folders (title_robot).
 const AddonSpecies &title_addons() { return addon_seen(title_robot(), "robot:robot"); }
 
+// What the player looks like: the three colours of their robot and an extra
+// on the head and one at the neck (net::Hello::livery), and who they are.
+// Picked on the title screen, so it goes in the hello of every world joined
+// after; an add-on's species by its name, told to each world in its own
+// numbering once its models are known (livery_for).
 ui::Panel look_panel(const AddonSpecies &more)
 {
-    const uint32_t livery = net::g_client_livery;
+    const uint32_t livery = livery_for(more);
     ui::Panel      p;
     p.w = 17.8f;
     p.h = 7.9f;   // short enough for the title screen's name above it
@@ -10368,15 +10413,18 @@ bool look_click(const std::string &id, const AddonSpecies &more)
         livery = (livery & ~net::kLiveryColours) |
                  (tag_with_colour(livery_tag(livery), k, d) >> kTagIdBits);
     } else if (id == "species") {   // another one's styles go with it
-        // the robot (0), the game's, then the add-ons' this page knows of
+        // the robot (0), the game's, then the add-ons' this page knows of,
+        // an add-on's kept by its name (g_addon_species)
         const int count = kLiverySpeciesCount + (int)more.names.size();
-        const int now   = std::min(livery_species(livery), count);
-        livery = with_species(livery, (now + 1) % (count + 1)) & ~(3u << net::kLiveryStyleShift);
+        const int now   = std::min(livery_species(livery_for(more)), count);
+        const int next  = (now + 1) % (count + 1);
+        g_addon_species = next > kLiverySpeciesCount ? more.names[(size_t)(next - kLiverySpeciesCount - 1)] : "";
+        livery = with_species(livery, next > kLiverySpeciesCount ? 0 : next) & ~(3u << net::kLiveryStyleShift);
     } else if (id == "head" || id == "neck" || id == "style") {
         const int shift = id == "head" ? net::kLiveryHeadShift
                         : id == "neck" ? net::kLiveryNeckShift
                                        : net::kLiveryStyleShift;
-        const int species = livery_species(livery);
+        const int species = livery_species(livery_for(more));
         const int count = id == "head" ? kLiveryHeadCount
                         : id == "neck" ? kLiveryNeckCount
                                        : species >= 1 && species <= kLiverySpeciesCount ? kLiveryStylesOf[species - 1]
@@ -10608,7 +10656,7 @@ bool pause_frame(Scene &s, LookSettle &settle, bool &debug, bool esc, bool inter
     else if (s.pause.look && look_click(id, world_addons(s))) {
         // Seen at once here, and by everybody else as soon as the server hears.
         save_options(debug);
-        if (s.conn != nullptr) s.conn->send_livery(net::g_client_livery);
+        if (s.conn != nullptr) s.conn->send_livery(own_livery(s.act()));
     }
     else if (id == "quit") return true;
     else if (id == "title") return g_to_title = true;
@@ -15525,6 +15573,15 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
     };
     std::vector<unsigned>   conn_atlas_built((size_t)net_sessions.count(), 0);
     std::vector<ModelsRead> conn_models_read((size_t)net_sessions.count());
+    // What each world was last told this player looks like, and off what: an
+    // add-on's species is that world's number for it (livery_for), known once
+    // its model names are -- the hello goes before them, with the robot.
+    struct LiveryTold {
+        unsigned    media = 0;   // the media version it was worked out under, plus one
+        uint32_t    picked = 0, told = 0;
+        std::string addon;
+    };
+    std::vector<LiveryTold> conn_livery;
     // When a near mouth last wanted each window (never, for a --watch one, which
     // stays), and the worlds of closed windows, ready for the next one opened.
     std::vector<double> conn_wanted((size_t)net_sessions.count(), 0.0);
@@ -16041,6 +16098,36 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                             names.size(), conn_spec[(size_t)id].c_str(), mr.from_wire,
                             mr.from_disk, store.refused());
                 if (!mr.told.empty()) std::fputs(mr.told.c_str(), stdout);
+            }
+        }
+
+        // Each world told this player's livery in its own numbering: the same
+        // add-on species is 4 on one server and 5 on another, or absent.
+        if (conn_livery.size() < (size_t)net_sessions.count()) conn_livery.resize((size_t)net_sessions.count());
+        for (int id = 0; id < net_sessions.count(); ++id) {
+            net::ClientSession *w = net_sessions.get(id);
+            if (!w || !w->playing()) {
+                conn_livery[(size_t)id] = LiveryTold{};   // a world joined again starts from its hello
+                continue;
+            }
+            LiveryTold &t = conn_livery[(size_t)id];
+            if (t.media == 0) t.told = net::g_client_livery;   // what the hello said
+            if (t.media == w->media_version() + 1 && t.picked == net::g_client_livery && t.addon == g_addon_species)
+                continue;
+            t.media  = w->media_version() + 1;
+            t.picked = net::g_client_livery;
+            t.addon  = g_addon_species;
+            const std::vector<std::string> &names = w->welcome().models;
+            const uint16_t                  pm    = w->welcome().player_model;
+            const std::set<std::string>     have(names.begin(), names.end());
+            const uint32_t want = livery_for(
+                addons_from(have, pm >= 1 && pm <= names.size() ? names[pm - 1u] : std::string("robot:robot")));
+            if (want != t.told && w->send_livery(want)) {
+                t.told = want;
+                if (!g_addon_species.empty())
+                    std::printf("look: %s told the %s, its species %d\n", conn_spec[(size_t)id].c_str(),
+                                livery_species(want) > kLiverySpeciesCount ? g_addon_species.c_str() : "robot (it has no such species)",
+                                livery_species(want));
             }
         }
 
@@ -21328,6 +21415,9 @@ int client_main(int argc, char **argv)
         // The look picked on the title screen, for a join that skips it.
         if (std::strcmp(argv[i], "--livery") == 0 && i + 1 < argc)
             net::g_client_livery = (uint32_t)std::strtoul(argv[++i], nullptr, 10) % net::kLiveryMax;
+        // And an add-on's species by its name (g_addon_species), which a
+        // livery's number cannot say the same way to every server.
+        if (std::strcmp(argv[i], "--addon-species") == 0 && i + 1 < argc) g_addon_species = argv[++i];
         if (std::strcmp(argv[i], "--press-r-at") == 0 && i + 1 < argc)
             g_press_r_at = atof(argv[++i]);
         if (std::strcmp(argv[i], "--textures") == 0 && i + 1 < argc)

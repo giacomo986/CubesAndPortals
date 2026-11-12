@@ -34,6 +34,7 @@ Formato `chiave = valore`, righe che iniziano con `#` sono commenti.
 | `depends` | vuoto | mod che devono essere caricati prima, con o senza versione |
 | `memory_kb` | 32768 | tetto dell'heap della VM |
 | `interrupt_budget` | 2000000 | safepoint per singola chiamata |
+| `rooms` | — | `all`: un mod del giocatore dato a una stanza di un server si carica anche in tutte le altre (vedi sotto) |
 
 **Una chiave sconosciuta è un errore di caricamento, non un avviso.** Scritto
 `capabilties = os` per sbaglio, il mod non parte: un manifest che si legge come
@@ -41,6 +42,14 @@ Formato `chiave = valore`, righe che iniziano con `#` sono commenti.
 sistema di permessi finisce per mentire.
 
 Una directory senza `mod.conf` non è un mod che ottiene tutto: non è un mod.
+
+**`rooms = all`.** I mod del giocatore (`--user-mods`) vanno alle stanze a cui sono dati: un mondo
+avviato dal menù del titolo li dà al sandbox e alle sale tascabili, così un mod fatto per il sandbox
+non gira nell'arena o sulla pista. Uno che dice `rooms = all` -- una specie di un add-on, che va
+disegnata in ogni mondo in cui il giocatore entra -- il server lo carica anche in tutte le altre
+stanze, quel mod soltanto (`--add-mod DIR`, che scrive da sé): il resto della cartella resta dove è
+stato dato, e un mod che il mondo spegne (`--no-mod`) non viene portato. Il log dice
+`server: mod 'lizard' in every room (rooms = all)`.
 
 ---
 
@@ -1927,14 +1936,18 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   la specie mostra il robot. Le specie da 4 a 7 sono di add-on, mod fuori dal gioco: ogni coppia
   `<modello del giocatore>_<nome>` e `<modello del giocatore>_<nome>_arms` che un mondo registra,
   `<nome>` di a-z e 0-9 e diverso da quelli del gioco, è offerta dopo quelle del gioco, in ordine di
-  nome perché ogni client le numeri allo stesso modo (al massimo quattro). I suoi stili sono i pezzi
+  nome (al massimo quattro). Il numero che una livrea le dà è quello del mondo -- lo stesso add-on è 4
+  su un server che ha solo lui e 5 su uno che ne ha un altro prima -- quindi il client tiene la specie
+  scelta per nome (`addon_species` nelle opzioni, `--addon-species NOME` per un join da script) e dice
+  a ogni mondo il suo numero non appena ne conosce i modelli; fino ad allora l'hello dice il robot, e
+  un mondo senza quella specie resta col robot. I suoi stili sono i pezzi
   `<quello>_style_<stile>` e `<quello>_hat_<stile>` che registra, per nome dello stile, al massimo tre
   (uno `_hat_` non si porta sotto un accessorio in testa); porta sempre `<quello>_worn` se c'è; porta
   gli accessori del robot, a meno che non registri i suoi (`<quello>_cap`). Un mondo il cui modello del
   giocatore è un robot del gioco sotto il nome di un'altra mod (`track_core:robot`) trova una specie
   anche come `robot:robot_<nome>`, così un add-on registra i suoi modelli una volta sola e non gli
-  serve nessun'altra mod; data con `--user-mods` prima del primo `--room`, ce l'ha ogni stanza del
-  server (tools/track.sh lo fa). Corpo e braccia di una
+  serve nessun'altra mod; con `rooms = all` nel suo `mod.conf` ce l'ha ogni stanza del server
+  (`contrib/lizard` lo dice). Corpo e braccia di una
   specie non devono portarsi le clip: una che non ne ha suona quelle del modello del giocatore (e di
   `<modello del giocatore>_arms`), con le ossa trovate per nome, così il file è la sua mesh e non un
   megabyte di clip del robot. In un pezzo indossato un osso `wag_<n>` oscilla di lato attorno alla

@@ -174,6 +174,13 @@ Mods:
   top hat, scarf and frill on. The bow tie and medal in Blender only, and the
   tail's lift at a run is not looked at from the side. Its source
   `contrib/lizard/meshy/lizard.glb` (16.6 MB) is not in the repository.
+  Since 2026-11-12 it says `rooms = all`, and every room of a server started
+  from the title screen has it, not only the sandbox and the pocket halls;
+  each server is told its own number for it (4 on one with only it, 5 with
+  another add-on before it, the robot where it is missing), checked against
+  two servers with --addon-species. A client that cannot read an add-on's
+  body or arms counts one species fewer than the server and draws the next
+  add-on's players one off.
 - Dragon knight (switched off): no styles, gear not refitted, the cape passes
   through the legs.
 - Arpg: weapons are the robot's on every species; nothing shows a ring.

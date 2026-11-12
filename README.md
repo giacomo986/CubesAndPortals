@@ -153,7 +153,9 @@ The project is open to everyone, and there are many ways to help:
 - **translate**: a new language is a new file in `assets/lang/` (see `it.txt`);
 - **make mods, worlds and texture packs**: see [`docs/MODDING.md`](docs/MODDING.md),
   [`docs/API.md`](docs/API.md) and [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.md); the Blender
-  sources of the models are in [`assets/blender/`](assets/blender/README.md);
+  sources of the models are in [`assets/blender/`](assets/blender/README.md); a mod that adds to
+  the game from outside it -- a species for the player, say -- can be tried as an add-on first, the
+  way [`contrib/`](contrib/README.md) keeps the lizard man;
 - **work on the engine**: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) explains how the code is
   laid out and where a new feature goes; [`TODO.md`](TODO.md) lists what is missing.
 
@@ -615,6 +617,7 @@ or `en.txt` (for Italian text) has no line for; run it after changing a mod's te
 | `--quick` | Quick start, no menu: a single-process local world that is not saved |
 | `--connect HOST` `--port N` `--name NAME` | Join a server instead of making a local world |
 | `--livery N` | What the player looks like, for a join with `--connect` |
+| `--addon-species NAME` | An add-on's species to be, by its name, for a join with `--connect` (each server numbers it its own way) |
 | `--server-key HEX` | Accept only the server with this key (the server prints it at startup) |
 | `--player-key FILE` | Where the player's identity is (default `player.key`, created on first run) |
 | `--watch HOST:PORT` | Look into another world as an observer (repeatable) |
@@ -649,7 +652,8 @@ The full list is in `main()` in [`src/client/main.cpp`](src/client/main.cpp).
 | `--world-depth N` `--world-top N` | Only when a world is made: how far the diggable rock goes under y 0 (default 0, the old bedrock on y 0; up to 1024, in steps of 32, over a floor of bedrock) and how high the world is (default 64). Kept beside the world file as `<file>.shape`; a world made before keeps 0 and 64. The title screen's new world defaults to 128 and 256 |
 | `--save-every S` | How often to write what changed (default 10 s; 0 only on shutdown). Ctrl+C or SIGTERM save and stop |
 | `--mods DIR` `--no-mods` | The world's mods |
-| `--user-mods DIR` (repeatable) `--no-mod NAME` (repeatable) | More mods, the player's own, loaded with `--mods` as one set: one `depends` order, and a name already loaded refused. A world started from the title screen passes `~/.cubes-and-portals/mods` (Windows: `%APPDATA%/cubes-and-portals/mods`) to its sandbox room, then the world's own `mods/`, and `--no-mod` for each name its `mods.conf` turns off (`off = a, b`) |
+| `--user-mods DIR` (repeatable) `--no-mod NAME` (repeatable) | More mods, the player's own, loaded with `--mods` as one set: one `depends` order, and a name already loaded refused. A world started from the title screen passes `~/.cubes-and-portals/mods` (Windows: `%APPDATA%/cubes-and-portals/mods`) to its sandbox room and its pocket halls, then the world's own `mods/`, and `--no-mod` for each name its `mods.conf` turns off (`off = a, b`). A mod among them with `rooms = all` the server loads in every room |
+| `--add-mod DIR` (repeatable) | One mod's own directory, loaded with the others; the server writes it itself for a `rooms = all` mod |
 | `--textures DIR` `--no-textures` | The media the world serves |
 | `--day-length S` `--time T` | Day/night cycle |
 | `--key-file FILE` `--no-encryption` | The server's identity; encryption off (testing only) |
