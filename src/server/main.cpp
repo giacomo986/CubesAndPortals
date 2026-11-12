@@ -51,6 +51,7 @@
 #include "script/world_code.h"
 #include "server/admin.h"
 #include "server/far_portals.h"
+#include "server/room_portals.h"
 #include "core/update_check.h"
 
 #include <algorithm>
@@ -270,6 +271,21 @@ struct ServerState {
     };
     std::vector<VirtualPortal> vportals;
     double                     vportal_next = 0.0;
+
+    // The mouths (schedule_mouths). The first static_mouths are the world's
+    // own (--portal-to), counted on the first tick. One of them a mod PARKED
+    // (core.portal_park: not in use now) may be lent to a portal between
+    // rooms (core.room_portal_*, src/server/room_portals.h), its own
+    // destination kept in lent_away until it is placed again; past them the
+    // room portals and the portals to other servers share what is left.
+    // dyn_at: the room portal that has each mouth, by name.
+    int             static_mouths = -1;
+    bool            parked[net::kMaxMouths] = {};
+    bool            lent[net::kMaxMouths]   = {};
+    net::PortalAway lent_away[net::kMaxMouths];
+    std::string     dyn_at[net::kMaxMouths];
+    std::string     dyn_applied[net::kMaxMouths];
+    uint8_t         own_sign[net::kSignPublicBytes] = {};   // the key every room of this server signs with
 
     // Seats taken or left by a mod (core.ride), decided at the call and sent
     // with the placements, in the order they were asked for.
@@ -1363,6 +1379,25 @@ const char *host_portal_room(void *ud, int index)
 void tell_far_room(const std::string &room, int portal, const Portal &p);
 
 // One of the two openings moved while the world runs (core.portal_place).
+void release_mouth(ServerState &s, int k);
+int  world_mouths(ServerState &s);
+const std::string &room_name();   // the room this thread serves (below, with the router)
+
+// core.portal_park: one of the world's own mouths is not in use now -- a second
+// way in nobody is near, a pocket door's mouth with no door to stand in. Its
+// opening goes, and until core.portal_place puts it somewhere again the mouth
+// may be lent to a portal between rooms.
+int host_portal_park(void *ud, int index)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (!s->sessions || index < 0 || index >= net::kMaxMouths) return 0;
+    if (s->parked[index]) return 1;
+    if (index >= world_mouths(*s)) return 0;   // not one of the world's own
+    s->parked[index] = true;
+    s->sessions->close_opening(index);
+    return 1;
+}
+
 int host_portal_place(void *ud, int index, float x, float y, float z, int axis, int sign,
                       float half_w, float half_h)
 {
@@ -1371,7 +1406,15 @@ int host_portal_place(void *ud, int index, float x, float y, float z, int axis, 
         (sign != 1 && sign != -1) || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) ||
         !(half_w > 0.0f && half_w <= 16.0f) || !(half_h > 0.0f && half_h <= 16.0f))
         return 0;
-    if (s->sessions->opening(index) == nullptr) return 0;   // no openings here (--portals)
+    // A mouth a room portal took past the world's own is that portal's.
+    if (!s->dyn_at[index].empty() && !s->lent[index]) return 0;
+    // Parked, it is wanted again: whatever borrowed it gives it back now.
+    if (s->parked[index]) {
+        if (s->lent[index]) release_mouth(*s, index);
+        s->parked[index] = false;
+    } else if (s->sessions->opening(index) == nullptr) {
+        return 0;   // no openings here (--portals)
+    }
     // Past the pair only a mouth's: an opening a mod opened there is its own.
     if (index >= 2 && !s->sessions->away(index).leads_away()) return 0;
     Portal p;
@@ -1575,6 +1618,228 @@ void schedule_portals(ServerState &s, double now)
     }
 }
 
+// How many mouths are the world's own (--portal-to): the first ones, counted
+// once, before any portal made while it runs has taken one past them.
+int world_mouths(ServerState &s)
+{
+    if (s.static_mouths < 0 && s.sessions) {
+        int n = 0;
+        while (n < net::kMaxMouths && s.sessions->away(n).leads_away()) ++n;
+        s.static_mouths = n;
+    }
+    return std::max(0, s.static_mouths);
+}
+
+// The room portal that has mouth k lets go of it: one past the world's own
+// leads nowhere, one lent is the parked mouth it was again.
+void release_mouth(ServerState &s, int k)
+{
+    net::ServerSessions &ss = *s.sessions;
+    roomp::took(room_name(), s.dyn_at[k], -1);
+    s.dyn_at[k].clear();
+    s.dyn_applied[k].clear();
+    ss.link_portals(k, -1);
+    ss.clear_destination(k);
+    ss.close_opening(k);
+    if (s.lent[k]) {
+        const net::PortalAway &was = s.lent_away[k];
+        ss.set_destination(k, was.host, was.port, was.portal, was.room);
+        if (was.has_key) ss.set_destination_key(k, was.key);
+        s.lent[k] = false;
+    }
+}
+
+// Every tick: which portals between rooms (src/server/room_portals.h) have a
+// mouth. Wanted are the linked ones with a player within kPortalNear of either
+// end, nearest first, one that has a mouth a little ahead of one that has not;
+// there is a mouth for as many as the world has to spare -- the ones past its
+// own that no portal to another server holds, and its own that a mod parked
+// (core.portal_park). The rest give theirs back. A mouth is an opening only
+// once the far end has one too: until then it is kept, and leads nowhere.
+//
+// The wire wants the mouths without a gap (net::Portals), so past the world's
+// own the highest moves down into a hole; called before and after the portals
+// to other servers are given theirs, which fill holes the same way, no gap is
+// left when the openings are sent.
+void schedule_mouths(ServerState &s)
+{
+    if (!s.sessions) return;
+    net::ServerSessions &ss   = *s.sessions;
+    const std::string   &room = room_name();
+    const int            own  = world_mouths(s);
+
+    std::vector<Vec3> bodies;
+    for (const net::PeerId peer : ss.ready_peers()) {
+        const net::Session *sess = ss.find(peer);
+        if (!sess || sess->scope == net::Scope::Observe) continue;
+        const MovementState &at = sess->authority();
+        if (at.valid) bodies.push_back(Vec3{at.x, at.y, at.z});
+    }
+    const std::vector<roomp::Item> items = roomp::items(room, [&](Vec3 c) {
+        float d = 1e30f;
+        for (const Vec3 &b : bodies) d = std::min(d, length(c - b));
+        return d;
+    });
+    bool any = !items.empty();
+    for (int k = 0; k < net::kMaxMouths && !any; ++k) any = !s.dyn_at[k].empty();
+    if (!any) return;
+
+    const auto item = [&](const std::string &name) -> const roomp::Item * {
+        for (const roomp::Item &it : items)
+            if (it.name == name) return &it;
+        return nullptr;
+    };
+    const auto mouth_of = [&](const std::string &name) {
+        for (int k = 0; k < net::kMaxMouths; ++k)
+            if (s.dyn_at[k] == name) return k;
+        return -1;
+    };
+
+    std::vector<std::pair<float, const roomp::Item *>> wanted;
+    for (const roomp::Item &it : items)
+        if (it.key <= kPortalNear) wanted.emplace_back(it.key - (mouth_of(it.name) >= 0 ? 8.0f : 0.0f), &it);
+    std::sort(wanted.begin(), wanted.end(),
+              [](const auto &a, const auto &b) { return a.first != b.first ? a.first < b.first : a.second->name < b.second->name; });
+
+    // A world that is a pair of openings and no mouth stays one: a mouth
+    // beside a pair is a world the wire has no word for.
+    size_t room_for = 0;
+    if (own > 0 || (ss.opening(0) == nullptr && ss.opening(1) == nullptr)) {
+        for (int k = 0; k < net::kMaxMouths; ++k)
+            if (k < own ? s.parked[k] : s.dyn_at[k].empty() ? !ss.away(k).leads_away() : true) ++room_for;
+    }
+    if (wanted.size() > room_for) wanted.resize(room_for);
+
+    for (int k = 0; k < net::kMaxMouths; ++k) {
+        if (s.dyn_at[k].empty()) continue;
+        bool keep = false;
+        for (const auto &w : wanted) keep = keep || w.second->name == s.dyn_at[k];
+        if (!keep) {
+            std::printf("        mouths: %d given back by %s\n", k, s.dyn_at[k].c_str());
+            release_mouth(s, k);
+        }
+    }
+
+    const auto take = [&](int k, const roomp::Item &it) {
+        for (ServerState::VirtualPortal &v : s.vportals)   // a virtual portal there gets another
+            if (v.slot == k) {
+                v.slot         = -1;
+                s.vportal_next = 0.0;
+            }
+        if (k < own) {
+            s.lent_away[k] = ss.away(k);
+            s.lent[k]      = true;
+        }
+        s.dyn_at[k] = it.name;
+        s.dyn_applied[k].clear();
+        roomp::took(room, it.name, k);
+        ss.link_portals(k, -1);
+        ss.close_opening(k);
+        ss.clear_destination(k);
+        ss.set_destination(k, "", 0, 0, it.far_room);   // a mouth from now: nothing else takes it
+    };
+    const auto hole = [&] {   // the first place past the world's own that leads nowhere
+        int k = own;
+        while (k < net::kMaxMouths && ss.away(k).leads_away()) ++k;
+        return k;
+    };
+    for (const auto &w : wanted) {
+        if (mouth_of(w.second->name) >= 0) continue;
+        int k = hole();
+        if (k >= net::kMaxMouths) {
+            k = 0;
+            while (k < own && !(s.parked[k] && !s.lent[k])) ++k;
+            if (k >= own) continue;
+        }
+        take(k, *w.second);
+        std::printf("        mouths: %d given to %s, towards room '%s'%s\n", k, w.second->name.c_str(),
+                    w.second->far_room.c_str(), k < own ? " (lent: the world's own there is parked)" : "");
+    }
+    for (;;) {
+        const int h = hole();
+        int       top = -1;
+        for (int k = net::kMaxMouths - 1; k > h && top < 0; --k)
+            if (!s.dyn_at[k].empty()) top = k;
+        const roomp::Item *it = top >= 0 ? item(s.dyn_at[top]) : nullptr;
+        if (it == nullptr) break;
+        release_mouth(s, top);
+        take(h, *it);
+    }
+
+    uint32_t exempt = 0;
+    for (int k = 0; k < net::kMaxMouths; ++k) {
+        if (s.lent[k]) exempt |= 1u << k;
+        if (s.dyn_at[k].empty()) continue;
+        const roomp::Item *it = item(s.dyn_at[k]);
+        if (it == nullptr) continue;
+        char desc[256];
+        std::snprintf(desc, sizeof(desc), "%s|%d|%.3f %.3f %.3f %d %d %.3f %.3f", it->far_room.c_str(), it->far_index,
+                      (double)it->shape.center.x, (double)it->shape.center.y, (double)it->shape.center.z,
+                      (int)it->shape.axis, it->shape.normal_sign, (double)it->shape.half_w, (double)it->shape.half_h);
+        if (s.dyn_applied[k] == desc) continue;
+        s.dyn_applied[k] = desc;
+        ss.set_destination(k, "", 0, (uint16_t)std::max(0, it->far_index), it->far_room);
+        ss.set_destination_key(k, s.own_sign);
+        if (it->far_index >= 0) {
+            ss.move_opening(k, it->shape);
+            std::printf("        mouths: %d (%s) opens onto room '%s' opening %d\n", k, it->name.c_str(),
+                        it->far_room.c_str(), it->far_index);
+        } else {
+            ss.close_opening(k);
+        }
+    }
+    // A seal a mod put on a mouth of the world's own is not on what borrowed it.
+    if (exempt != ss.seal_exempt()) {
+        const uint32_t changed = exempt ^ ss.seal_exempt();
+        ss.set_seal_exempt(exempt);
+        for (const net::PeerId peer : ss.ready_peers())
+            if (const net::Session *sess = ss.find(peer); sess && (sess->sealed & changed) != 0)
+                s.mod_seals.emplace_back(peer, sess->sealed & ~exempt);
+    }
+}
+
+// Portals between rooms (core.room_portal_*).
+int host_room_portal_set(void *ud, const char *name, float x, float y, float z, int axis, int sign, float half_w,
+                         float half_h)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (!s->sessions || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) || axis < 0 || axis > 1 ||
+        (sign != 1 && sign != -1) || !(half_w > 0.0f && half_w <= 16.0f) || !(half_h > 0.0f && half_h <= 16.0f))
+        return 0;
+    Portal p;
+    p.center      = Vec3{x, y, z};
+    p.axis        = (PortalAxis)axis;
+    p.normal_sign = sign;
+    p.half_w      = half_w;
+    p.half_h      = half_h;
+    std::string why;
+    if (!roomp::set(room_name(), name ? name : "", p, why)) {
+        const ModManifest *m = mod_host_current();
+        std::printf("[mod] %s: room_portal_set: %s\n", m ? m->name.c_str() : "?", why.c_str());
+        return 0;
+    }
+    return 1;
+}
+int host_room_portal_close(void *, const char *name) { return roomp::close(room_name(), name ? name : "") ? 1 : 0; }
+const char *host_room_portal_link(void *ud, const char *name, const char *room, const char *far)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    s->far_scratch = roomp::link(room_name(), name ? name : "", room ? room : "", far ? far : "");
+    return s->far_scratch.c_str();
+}
+const char *host_room_portal_state(void *ud, const char *name)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    s->far_scratch = roomp::state(room_name(), name ? name : "");
+    return s->far_scratch.c_str();
+}
+const char *host_room_portals(void *ud, const char *name)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    s->far_scratch = roomp::list(room_name(), name ? name : "");
+    return s->far_scratch.c_str();
+}
+
 // Sent with the placements: a seal is the player's own and not the world's,
 // so it does not wait for the openings' version to move.
 int host_portal_seal(void *ud, int player, int index, bool sealed)
@@ -1586,7 +1851,8 @@ int host_portal_seal(void *ud, int player, int index, bool sealed)
         return 0;
     const uint32_t was = sess->sealed;
     sess->sealed = sealed ? was | (1u << index) : was & ~(1u << index);
-    if (sess->sealed != was) s->mod_seals.emplace_back((net::PeerId)player, sess->sealed);
+    if (sess->sealed != was)
+        s->mod_seals.emplace_back((net::PeerId)player, sess->sealed & ~s->sessions->seal_exempt());
     return 1;
 }
 
@@ -5414,6 +5680,7 @@ admin::Hooks admin_hooks()
                 out.push_back(room + " takes tickets from " + std::to_string(r.trusted.size()) + " server(s).");
         }
         for (const std::string &l : farp::lines()) out.push_back(l);
+        for (const std::string &l : roomp::lines()) out.push_back(l);
         return out;
     };
     h.metrics = [] {
@@ -6857,6 +7124,12 @@ int serve_room(int argc, char **argv)
         host.far_portal_link  = host_far_portal_link;
         host.far_portal_state = host_far_portal_state;
         host.far_portals      = host_far_portals;
+        host.room_portal_set   = host_room_portal_set;
+        host.room_portal_close = host_room_portal_close;
+        host.room_portal_link  = host_room_portal_link;
+        host.room_portal_state = host_room_portal_state;
+        host.room_portals      = host_room_portals;
+        host.portal_park       = host_portal_park;
         host.take_item     = host_take_item;
         host.bag_count     = host_bag_count;
         host.owned_area    = host_owned_area;
@@ -7950,6 +8223,7 @@ int serve_room(int argc, char **argv)
             if (!key_err.empty()) std::printf("server: %s\n", key_err.c_str());
             sessions.set_ticket_key(issuer);
             std::memcpy(own_sign, issuer.public_key, sizeof(own_sign));
+            std::memcpy(s.own_sign, issuer.public_key, sizeof(s.own_sign));
             std::printf("server: signs tickets as %s (%s)\n",
                         net::key_fingerprint(issuer.public_key).c_str(),
                         (created ? "created, kept in " + path : "read from " + path).c_str());
@@ -9662,7 +9936,9 @@ int serve_room(int argc, char **argv)
                 for (const auto &[peer, mask] : s.mod_seals)
                     transport.send(peer, net::Channel::Event, net::Seal{mask}.encode(), true);
                 s.mod_seals.clear();
+                schedule_mouths(s);
                 sync_far_portals(s);
+                schedule_mouths(s);
                 schedule_portals(s, seconds_since(t_start));
                 sessions.settle_portals(s.now);
 
@@ -10242,6 +10518,11 @@ int main(int argc, char **argv)
     }
 
     for (const auto &r : rooms) g_router.rooms.push_back(RoomShared{r.first});
+    {
+        std::vector<std::string> names;
+        for (const auto &r : rooms) names.push_back(r.first);
+        roomp::set_rooms(names);
+    }
     // --watchdog SECONDS: a room that has not finished a tick in that long is
     // a server stuck for good; the crash handler prints where, and
     // tools/serve.sh starts it again.

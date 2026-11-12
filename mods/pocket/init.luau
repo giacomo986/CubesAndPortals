@@ -207,7 +207,10 @@ if ROOM == "pockets" then
                         local x, y, z = hall_door(n)
                         ok = core.portal_place(k, x, y, z, 0, 1, 0.5, 1.0)
                     else
-                        ok = core.portal_place(k, k * 4 + 0.5, 40, 0.5, 0, 1, 0.5, 1.0)
+                        -- No hall for it: not in use (the server may lend it),
+                        -- or out of the way where there is no parking.
+                        ok = core.portal_park(k)
+                        if ok ~= 1 then ok = core.portal_place(k, k * 4 + 0.5, 40, 0.5, 0, 1, 0.5, 1.0) end
                     end
                     if ok == 1 then
                         at[k] = n
@@ -446,7 +449,10 @@ local function place(k: number, n: number): boolean
     local d = doors[n]
     local ok
     if n < 0 then
-        ok = core.portal_place(k, spawn_x + k * 3 + 0.5, 4, spawn_z + 0.5, 1, 1, 0.5, 1.0)
+        -- At no door: not in use, and the server may lend it to a portal
+        -- between rooms (core.portal_park); under the spawn where it cannot.
+        ok = core.portal_park(k)
+        if ok ~= 1 then ok = core.portal_place(k, spawn_x + k * 3 + 0.5, 4, spawn_z + 0.5, 1, 1, 0.5, 1.0) end
     elseif d then
         local x, y, z = door_centre(d)
         ok = core.portal_place(k, x, y, z, d.axis, d.sign, 0.5, 1.0)

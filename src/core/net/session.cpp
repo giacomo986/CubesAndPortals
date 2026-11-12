@@ -1541,7 +1541,8 @@ bool ServerSessions::issue_ticket(PeerId peer, const TicketRequest &req, double 
 
     // A mouth sealed to this player (core.portal_seal): no way through it from
     // this server, whatever the client keeps to itself.
-    if ((req.scopes & kTicketEnter) != 0 && req.opening < kMaxMouths && (s->sealed >> req.opening & 1u)) {
+    if ((req.scopes & kTicketEnter) != 0 && req.opening < kMaxMouths &&
+        ((s->sealed & ~m_seal_exempt) >> req.opening & 1u)) {
         why = "that opening is sealed to you";
         return false;
     }
@@ -2068,7 +2069,7 @@ SessionAction ServerSessions::redirect_if_triggered(Session &s, const Move &move
 
     for (int i = 0; i < kMaxMouths; ++i) {
         const PortalAway &away = m_away[i];
-        if (!m_portal_set[i] || !away.leads_away() || (s.sealed >> i & 1u)) continue;
+        if (!m_portal_set[i] || !away.leads_away() || ((s.sealed & ~m_seal_exempt) >> i & 1u)) continue;
         if (!trigger_along(m_portal[i], s.portal_state[i], from_feet, feet, vel, eye_of(s), (float)dt))
             continue;
 

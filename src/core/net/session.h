@@ -1231,6 +1231,12 @@ public:
     void close_opening(int index);
     int  free_openings() const;
 
+    // Mouths, bit m, a player's seal does not hold for now: one lent to a
+    // portal between rooms while the mouth a mod sealed is parked
+    // (schedule_mouths, src/server/main.cpp).
+    void     set_seal_exempt(uint32_t mask) { m_seal_exempt = mask; }
+    uint32_t seal_exempt() const { return m_seal_exempt; }
+
     // Links two openings to each other (core.portal_link), and whatever each
     // was linked to before to nothing. `b` of -1 unlinks `a`. False for an
     // index out of range; an index with no opening may be linked, so a mod can
@@ -1585,6 +1591,7 @@ private:
     Portal   m_portal[kMaxOpenings];
     bool     m_portal_set[kMaxOpenings] = {};
     int      m_link[kMaxOpenings];   // symmetric; i ^ 1 until link_portals says otherwise
+    uint32_t m_seal_exempt = 0;      // set_seal_exempt
     uint32_t m_portals_version = 0;
     double   m_moved_at[kMaxOpenings] = {};   // when each was last moved (move_portal)
 

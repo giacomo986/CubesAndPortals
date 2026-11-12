@@ -62,6 +62,18 @@ declare core: {
     far_portal_state: (name: string) -> string,
     -- The friend servers sharing portals and what each offers this server, a line each. "S\tFRIEND\tok\tENGINE" for a friend that can be linked to, or a reason instead of ok (not heard from, no protocol in common); "P\tFRIEND\tROOM\tNAME\tSTATE\tWHY" for each of its portals, STATE free, busy (linked to another) or yours (linked to `name`), WHY empty when `name` could be linked to it.
     far_portals: (name: string?) -> string,
+    -- Sets or reshapes a portal to another room of this server, made while it runs. It leads nowhere, and is no opening at all, until core.room_portal_link links it to one in another room. Linked, it holds none of the world's mouths until a player is within 160 nodes of either end: the server gives the mouths it has to spare -- those past the world's own (--portal-to) and its own that are parked (core.portal_park) -- to the linked portals nearest a player, and takes them back from the rest. So a world holds as many as are built; what is bounded is how many are in use near players at once. Nothing is kept across a restart: the mod says its portals and their links again. Another size than it had unlinks it. Returns 1, or 0 for a bad name, a lying shape or no server.
+    room_portal_set: (name: string, x: number, y: number, z: number, axis: number, sign: number, half_w: number, half_h: number) -> number,
+    -- Closes a portal to another room: what it led to leads nowhere, and its mouth is given back. Returns 1, or 0 for no such portal.
+    room_portal_close: (name: string) -> number,
+    -- Links a portal to another room to one of that room's: each leads to the other, and whatever either led to before leads nowhere. The two holes are the same size. When the far one is not there yet -- its room's mod has not set it again after a restart -- the link waits, and is made when it comes. Returns "" when linked, waiting or unlinked, or why not.
+    room_portal_link: (name: string, room: string, far_name: string) -> string,
+    -- Where a portal to another room leads: "none", "waiting ROOM\tNAME" while the far one is not there or leads elsewhere, or "linked ROOM\tNAME\tlive" with a mouth at both ends now, "...\tidle" with nobody near or no mouth to spare.
+    room_portal_state: (name: string) -> string,
+    -- The other rooms of this server and their portals, a line each: "R\tROOM" for a room, then "P\tROOM\tNAME\tSTATE\tWHY" for each of its portals, STATE free, busy (linked to another) or yours (linked to `name`), WHY empty when `name` could be linked to it.
+    room_portals: (name: string?) -> string,
+    -- Says one of the world's own mouths is not in use now -- a second way in nobody is near, a door's mouth with no door to stand in -- instead of putting it out of sight. Its opening goes, and until core.portal_place puts it somewhere again the mouth may be lent to a portal between rooms (core.room_portal_set); placed again, whatever borrowed it gives it back at once. A seal on it (core.portal_seal) does not hold for the borrower. Returns 1, or 0 for an index that is not one of the world's own or no server.
+    portal_park: (index: number) -> number,
     -- Writes a line to the engine log, prefixed with the mod's name.
     log: (message: string) -> (),
     -- Declares a block and returns its id. Registering the same name again keeps the id, which is what makes a hot reload possible without renumbering a world.

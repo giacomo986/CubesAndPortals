@@ -371,6 +371,94 @@ local api: { Fn } = {
            .. "yours (linked to `name`), WHY empty when `name` could be linked to it.",
     },
     {
+        name = "room_portal_set",
+        host = "room_portal_set",
+        ret  = "int",
+        args = {
+            { name = "name", type = "string", doc = "What it is called in this room: 1 to 96 printable characters." },
+            { name = "x", type = "float", doc = "The centre of the hole." },
+            { name = "y", type = "float" },
+            { name = "z", type = "float" },
+            { name = "axis", type = "int", doc = "0 XY (it faces along z), 1 YZ (along x): it stands up." },
+            { name = "sign", type = "int", doc = "1 or -1: which way its front faces." },
+            { name = "half_w", type = "float", doc = "Half its width, up to 16." },
+            { name = "half_h", type = "float", doc = "Half its height, up to 16." },
+        },
+        doc = "Sets or reshapes a portal to another room of this server, made while it runs. It "
+           .. "leads nowhere, and is no opening at all, until core.room_portal_link links it to "
+           .. "one in another room. Linked, it holds none of the world's mouths until a player is "
+           .. "within 160 nodes of either end: the server gives the mouths it has to spare -- "
+           .. "those past the world's own (--portal-to) and its own that are parked "
+           .. "(core.portal_park) -- to the linked portals nearest a player, and takes them back "
+           .. "from the rest. So a world holds as many as are built; what is bounded is how many "
+           .. "are in use near players at once. Nothing is kept across a restart: the mod says "
+           .. "its portals and their links again. Another size than it had unlinks it. Returns "
+           .. "1, or 0 for a bad name, a lying shape or no server.",
+    },
+    {
+        name = "room_portal_close",
+        host = "room_portal_close",
+        ret  = "int",
+        args = {
+            { name = "name", type = "string" },
+        },
+        doc = "Closes a portal to another room: what it led to leads nowhere, and its mouth is "
+           .. "given back. Returns 1, or 0 for no such portal.",
+    },
+    {
+        name = "room_portal_link",
+        host = "room_portal_link",
+        ret  = "string",
+        args = {
+            { name = "name", type = "string", doc = "One of this room's, as room_portal_set named it." },
+            { name = "room", type = "string", doc = "The other room, as --room named it; empty unlinks." },
+            { name = "far_name", type = "string", doc = "Its portal there." },
+        },
+        doc = "Links a portal to another room to one of that room's: each leads to the other, and "
+           .. "whatever either led to before leads nowhere. The two holes are the same size. When "
+           .. "the far one is not there yet -- its room's mod has not set it again after a "
+           .. "restart -- the link waits, and is made when it comes. Returns \"\" when linked, "
+           .. "waiting or unlinked, or why not.",
+    },
+    {
+        name = "room_portal_state",
+        host = "room_portal_state",
+        ret  = "string",
+        args = {
+            { name = "name", type = "string" },
+        },
+        doc = "Where a portal to another room leads: \"none\", \"waiting ROOM\\tNAME\" while the far "
+           .. "one is not there or leads elsewhere, or \"linked ROOM\\tNAME\\tlive\" with a mouth "
+           .. "at both ends now, \"...\\tidle\" with nobody near or no mouth to spare.",
+    },
+    {
+        name = "room_portals",
+        host = "room_portals",
+        ret  = "string",
+        args = {
+            { name = "name", type = "string", default = "", doc = "This room's portal the list is for: each far one then says whether it fits it." },
+        },
+        doc = "The other rooms of this server and their portals, a line each: \"R\\tROOM\" for a "
+           .. "room, then \"P\\tROOM\\tNAME\\tSTATE\\tWHY\" for each of its portals, STATE free, busy "
+           .. "(linked to another) or yours (linked to `name`), WHY empty when `name` could be "
+           .. "linked to it.",
+    },
+    {
+        name = "portal_park",
+        host = "portal_park",
+        ret  = "int",
+        args = {
+            { name = "index", type = "int", doc = "One of the world's own mouths (--portal-to), 0 on." },
+        },
+        doc = "Says one of the world's own mouths is not in use now -- a second way in nobody is "
+           .. "near, a door's mouth with no door to stand in -- instead of putting it out of sight. "
+           .. "Its opening goes, and until core.portal_place puts it somewhere again the mouth may "
+           .. "be lent to a portal between rooms (core.room_portal_set); placed again, whatever "
+           .. "borrowed it gives it back at once. A seal on it (core.portal_seal) does not hold "
+           .. "for the borrower. Returns 1, or 0 for an index that is not one of the world's own "
+           .. "or no server.",
+    },
+    {
         name = "log",
         host = "log",
         args = {

@@ -325,10 +325,20 @@ if PLAZA then
         core.log(`gates: opening {k} to '{room}' at {hx} {y0} {hz}`)
     end
     -- The second ways in (17..23) are a survival world's: on a plaza they
-    -- wait in the rock under it.
+    -- start in the rock under it and are parked on the first tick, when a
+    -- server's openings exist -- not in use, so the server may lend their
+    -- mouths to portals between rooms built by hand (core.portal_park).
     for k = 17, 23 do
         if core.portal_room(k) ~= "" then core.set_portal(k, 60.5, 3, 30.5 + (k - 17) * 3) end
     end
+    local parked = false
+    core.event.on("core:tick", function(_)
+        if parked then return end
+        parked = true
+        for k = 17, 23 do
+            if core.portal_room(k) ~= "" then core.portal_park(k) end
+        end
+    end)
     return
 end
 

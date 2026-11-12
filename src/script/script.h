@@ -121,6 +121,15 @@ typedef struct script_host {
                                    const char *far_name);
     const char *(*far_portal_state)(void *ud, const char *name);
     const char *(*far_portals)(void *ud, const char *name);
+    // Portals between the rooms of one server (core.room_portal_*,
+    // src/server/room_portals.h), and a mouth of the world's own not in use.
+    int (*room_portal_set)(void *ud, const char *name, float x, float y, float z, int axis, int sign,
+                           float half_w, float half_h);
+    int (*room_portal_close)(void *ud, const char *name);
+    const char *(*room_portal_link)(void *ud, const char *name, const char *room, const char *far_name);
+    const char *(*room_portal_state)(void *ud, const char *name);
+    const char *(*room_portals)(void *ud, const char *name);
+    int (*portal_park)(void *ud, int index);
 
     void (*log)(void *ud, const char *message);
 

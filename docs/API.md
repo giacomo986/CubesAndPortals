@@ -318,6 +318,87 @@ The friend servers sharing portals and what each offers this server, a line each
 |---|---|---|---|
 | `name` | string | `` | This room's portal the list is for: each far one then says whether it fits it. |
 
+## `core.room_portal_set`
+
+```luau
+core.room_portal_set(name: string, x: number, y: number, z: number, axis: number, sign: number, half_w: number, half_h: number) -> number
+```
+
+Sets or reshapes a portal to another room of this server, made while it runs. It leads nowhere, and is no opening at all, until core.room_portal_link links it to one in another room. Linked, it holds none of the world's mouths until a player is within 160 nodes of either end: the server gives the mouths it has to spare -- those past the world's own (--portal-to) and its own that are parked (core.portal_park) -- to the linked portals nearest a player, and takes them back from the rest. So a world holds as many as are built; what is bounded is how many are in use near players at once. Nothing is kept across a restart: the mod says its portals and their links again. Another size than it had unlinks it. Returns 1, or 0 for a bad name, a lying shape or no server.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — | What it is called in this room: 1 to 96 printable characters. |
+| `x` | number | — | The centre of the hole. |
+| `y` | number | — |  |
+| `z` | number | — |  |
+| `axis` | number | — | 0 XY (it faces along z), 1 YZ (along x): it stands up. |
+| `sign` | number | — | 1 or -1: which way its front faces. |
+| `half_w` | number | — | Half its width, up to 16. |
+| `half_h` | number | — | Half its height, up to 16. |
+
+## `core.room_portal_close`
+
+```luau
+core.room_portal_close(name: string) -> number
+```
+
+Closes a portal to another room: what it led to leads nowhere, and its mouth is given back. Returns 1, or 0 for no such portal.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — |  |
+
+## `core.room_portal_link`
+
+```luau
+core.room_portal_link(name: string, room: string, far_name: string) -> string
+```
+
+Links a portal to another room to one of that room's: each leads to the other, and whatever either led to before leads nowhere. The two holes are the same size. When the far one is not there yet -- its room's mod has not set it again after a restart -- the link waits, and is made when it comes. Returns "" when linked, waiting or unlinked, or why not.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — | One of this room's, as room_portal_set named it. |
+| `room` | string | — | The other room, as --room named it; empty unlinks. |
+| `far_name` | string | — | Its portal there. |
+
+## `core.room_portal_state`
+
+```luau
+core.room_portal_state(name: string) -> string
+```
+
+Where a portal to another room leads: "none", "waiting ROOM\tNAME" while the far one is not there or leads elsewhere, or "linked ROOM\tNAME\tlive" with a mouth at both ends now, "...\tidle" with nobody near or no mouth to spare.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — |  |
+
+## `core.room_portals`
+
+```luau
+core.room_portals(name: string?) -> string
+```
+
+The other rooms of this server and their portals, a line each: "R\tROOM" for a room, then "P\tROOM\tNAME\tSTATE\tWHY" for each of its portals, STATE free, busy (linked to another) or yours (linked to `name`), WHY empty when `name` could be linked to it.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | `` | This room's portal the list is for: each far one then says whether it fits it. |
+
+## `core.portal_park`
+
+```luau
+core.portal_park(index: number) -> number
+```
+
+Says one of the world's own mouths is not in use now -- a second way in nobody is near, a door's mouth with no door to stand in -- instead of putting it out of sight. Its opening goes, and until core.portal_place puts it somewhere again the mouth may be lent to a portal between rooms (core.room_portal_set); placed again, whatever borrowed it gives it back at once. A seal on it (core.portal_seal) does not hold for the borrower. Returns 1, or 0 for an index that is not one of the world's own or no server.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `index` | number | — | One of the world's own mouths (--portal-to), 0 on. |
+
 ## `core.log`
 
 ```luau
