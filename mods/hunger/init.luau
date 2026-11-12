@@ -107,6 +107,11 @@ if serving then
         end
     end
 
+    -- The rule this mod reads, said to mods/rules for /rule and the World page.
+    core.event.on("core:world_ready", function()
+        pcall(core.event.emit, "rules:declare", { name = "hunger", default = "on", what = "Hunger", survival = false })
+    end)
+
     local PACE = { peaceful = 0, easy = 0.5, normal = 1, hard = 1.5 }
     core.event.on("core:tick", function(ev)
         local here: { [number]: boolean } = {}

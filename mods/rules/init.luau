@@ -7,18 +7,48 @@
 --   /page world                             all of it, and the weather, the
 --                                           hour and the season, as buttons
 --
--- The engine gives a rule no meaning: each mod reads its own with core.rule.
--- An empty value is the default written here.
+-- The engine gives a rule no meaning: each mod reads its own with core.rule,
+-- and DECLARES it here so /rule and the World page list it, in whatever world
+-- that mod is loaded and nowhere else:
+--
+--   core.event.on("core:world_ready", function()
+--       pcall(core.event.emit, "rules:declare", { name = "hunger", default = "on",
+--           what = "Hunger", survival = false })
+--   end)
+--
+-- (pcall: in a world without this mod there is no such event.) `default` is
+-- what an empty value means, "on" or "off"; `survival` true hides the rule in
+-- a world with a plaza. A rule declared twice is the later one.
 if core.side() == "client" then
     return
 end
 
-local RULES = {
-    { name = "keep_bag", default = "off", what = "Keep the bag on death (no grave)", survival = true },
+type Rule = { name: string, default: string, what: string, survival: boolean? }
+local RULES: { Rule } = {
     { name = "day_cycle", default = "on", what = "The sun moves (day and night)" },
-    { name = "weather_cycle", default = "on", what = "The weather changes by itself" },
-    { name = "hunger", default = "on", what = "Hunger" },
 }
+
+core.event.define("rules:declare", {
+    fields = { name = "string", default = "string", what = "string", survival = "boolean" },
+    cancellable = false,
+})
+core.event.on("rules:declare", function(ev)
+    if not string.match(ev.name, "^[a-z][a-z0-9_]*$") or (ev.default ~= "on" and ev.default ~= "off") then
+        core.log(`rules: '{ev.name}' not declared: a name is a-z, 0-9 and _, a default on or off`)
+        return
+    end
+    local r: Rule = { name = ev.name, default = ev.default, what = ev.what, survival = ev.survival }
+    for i, old in RULES do
+        if old.name == r.name then
+            RULES[i] = r
+            return
+        end
+    end
+    table.insert(RULES, r)
+    table.sort(RULES, function(a: Rule, b: Rule): boolean
+        return a.name < b.name
+    end)
+end)
 
 local function value(r): string
     local v = core.rule(r.name)

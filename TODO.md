@@ -294,8 +294,13 @@ survival levels.
    nobody has walked back out. Missing: the client's title screen and
    `tools/track.sh` still write their own list of the rooms they start with;
    the other rooms wait while one starts (it takes the rooms' lock for the
-   whole of its start); rules declared by each mod so the page lists them;
-   difficulty in every room; a page for all of this. Of the personal room:
+   whole of its start); difficulty and rules in the rooms that do not load
+   `mods/rules` (every themed world: each has its own `<file>.difficulty`
+   and `.rules` and no command or page to set them); new rules (PvP, who
+   may build, flight, a fixed hour); one page for all the rooms. Rules are
+   declared by the mod that reads them since 2026-11-12 (`rules:declare`:
+   hunger, weather, grave), seen by script on a server, the page not looked
+   at. Of the personal room:
    its door stands where the world put it, 3 north of the spawn, on a plaza
    in a world that has one (the player moves the other end only); a frame
    broken while its builder is inside leaves no way out but the title screen;

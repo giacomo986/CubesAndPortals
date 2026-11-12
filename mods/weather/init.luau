@@ -200,6 +200,9 @@ if serving then
     -- villagers' prices) listen too.
     core.event.on("core:world_ready", function()
         core.event.emit("farm:season", { name = SEASONS[season].name, left = DAYS - 1 - day % DAYS })
+        -- The rule this mod reads, said to mods/rules for /rule and the World page.
+        pcall(core.event.emit, "rules:declare", { name = "weather_cycle", default = "on",
+            what = "The weather changes by itself", survival = false })
     end)
 
     core.event.on("core:tick", function(ev)

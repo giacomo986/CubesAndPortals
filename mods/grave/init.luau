@@ -46,6 +46,12 @@ local function cell_at(x: number, y: number, z: number): (number, number, number
     return gx, gy, gz
 end
 
+-- The rule this mod reads, said to mods/rules for /rule and the World page.
+core.event.on("core:world_ready", function()
+    pcall(core.event.emit, "rules:declare", { name = "keep_bag", default = "off",
+        what = "Keep the bag on death (no grave)", survival = true })
+end)
+
 core.event.on("core:died", function(ev)
     if core.rule("keep_bag") == "on" then
         return   -- the rule (mods/rules): the engine's way, the bag kept
