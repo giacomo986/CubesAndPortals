@@ -153,6 +153,11 @@ local function show(p: number)
         end
         return if can then `[{label}](cmd:{cmd})` else label
     end
+    -- A world with the sandbox's mods has mods/weather, which declares its rule.
+    local sandbox = false
+    for _, r in RULES do
+        sandbox = sandbox or r.name == "weather_cycle"
+    end
     local page = { "# This world", "", "## Difficulty" }
     for _, d in DIFFICULTIES do
         table.insert(page, choice(d[2], `/difficulty {d[1]}`, core.difficulty() == d[1]))
@@ -167,17 +172,26 @@ local function show(p: number)
         end
     end
     if can then
+        -- The weather and the season are mods/weather's, which declares the
+        -- rule weather_cycle where it is loaded: a themed world has neither.
+        local weather = sandbox
         table.insert(page, "")
         table.insert(page, "## Now")
-        table.insert(page, `Weather: [clear](cmd:/weather clear) [rain](cmd:/weather rain) [storm](cmd:/weather storm)`)
+        if weather then
+            table.insert(page, `Weather: [clear](cmd:/weather clear) [rain](cmd:/weather rain) [storm](cmd:/weather storm)`)
+        end
         table.insert(page, `Time: [dawn](cmd:/time dawn) [noon](cmd:/time noon) [dusk](cmd:/time dusk) [midnight](cmd:/time midnight)`)
-        table.insert(page, `Season: [spring](cmd:/season spring) [summer](cmd:/season summer) [autumn](cmd:/season autumn) [winter](cmd:/season winter)`)
+        if weather then
+            table.insert(page, `Season: [spring](cmd:/season spring) [summer](cmd:/season summer) [autumn](cmd:/season autumn) [winter](cmd:/season winter)`)
+        end
     else
         table.insert(page, "")
         table.insert(page, "> Only an admin changes these.")
     end
-    table.insert(page, "")
-    table.insert(page, "[Goals](page:goals)")
+    if sandbox then   -- mods/goals is the sandbox's
+        table.insert(page, "")
+        table.insert(page, "[Goals](page:goals)")
+    end
     core.page_show(p, "world", table.concat(page, "\n"))
 end
 
