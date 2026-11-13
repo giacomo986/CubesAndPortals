@@ -33,8 +33,15 @@
 --
 -- Kept in the server's shared storage, so every room has the same zones:
 -- "index", the ids; "z ID", a zone's head; "z ID 1".., its palette and cells.
+--
+-- A zone may also come with the game (shipped.luau): approved, nobody's, and
+-- there on every server. One saved under the same id stands in for it on that
+-- server; deleted, the game's is back. tools/zones_ship.py writes the file.
 local T = require("./turns")
 local L = require("./layout")
+-- The zones that come with the game: id -> { head, body }, the two texts a zone
+-- is in the store. Written by tools/zones_ship.py out of a world file.
+local SHIPPED: { [string]: { string } } = require("./shipped")
 
 type Zone = L.Zone
 type Conn = L.Conn
@@ -114,9 +121,25 @@ local function touch()
     core.shared_storage_set("stamp", seen_stamp)
 end
 
-local function ids(): { string }
+-- The ids in the store alone: what "index" is written from.
+local function stored_ids(): { string }
     local text = get_long("index")
     return if text == "" then {} else string.split(text, ";")
+end
+
+local function ids(): { string }
+    local list = stored_ids()
+    local added = false
+    for id in SHIPPED do
+        if not table.find(list, id) then
+            table.insert(list, id)
+            added = true
+        end
+    end
+    if added then
+        table.sort(list)
+    end
+    return list
 end
 
 local function numbers(text: string, sep: string): { number }
@@ -157,7 +180,7 @@ local function save(z: Zone)
         i = j + 1
     end
     put_long(`c {z.id}`, table.concat(z.palette, ";") .. "\n" .. table.concat(runs, ","))
-    local list = ids()
+    local list = stored_ids()
     if not table.find(list, z.id) then
         table.insert(list, z.id)
         table.sort(list)
@@ -171,7 +194,14 @@ local function load(id: string): Zone?
     if cache[id] then
         return cache[id]
     end
-    local head = string.split(get_long(`z {id}`), "|")
+    local head_text, body = get_long(`z {id}`), ""
+    local shipped = head_text == "" and SHIPPED[id] ~= nil
+    if shipped then
+        head_text, body = SHIPPED[id][1], SHIPPED[id][2]
+    else
+        body = get_long(`c {id}`)
+    end
+    local head = string.split(head_text, "|")
     if #head ~= 8 or head[1] ~= "1" then
         return nil
     end
@@ -198,7 +228,9 @@ local function load(id: string): Zone?
                                     z = tonumber(f[4]) or 0, facing = tonumber(f[5]) or 0 })
         end
     end
-    local body = get_long(`c {id}`)
+    if shipped then
+        z.owner, z.status = "", "approved"
+    end
     local cut = string.find(body, "\n", 1, true)
     if cut == nil then
         return nil
@@ -226,7 +258,7 @@ end
 local function erase(id: string)
     put_long(`z {id}`, "")
     put_long(`c {id}`, "")
-    local list = ids()
+    local list = stored_ids()
     local at = table.find(list, id)
     if at then
         table.remove(list, at)
@@ -602,8 +634,12 @@ core.event.on("core:command", function(ev)
     elseif not mine(player, z) then
         core.chat(player, `{z.id} is somebody else's zone.`)
     elseif verb == "delete" then
+        if get_long(`z {z.id}`) == "" then
+            core.chat(player, `{z.id} comes with the game: it cannot be deleted, only saved over.`)
+            return
+        end
         erase(z.id)
-        core.chat(player, `{z.id} is gone.`)
+        core.chat(player, if SHIPPED[z.id] then `{z.id} is the game's own again.` else `{z.id} is gone.`)
         core.log(`zones: {core.player_name(player)} deleted {z.id}`)
     elseif verb == "set" then
         local what = string.lower(a[3] or "")

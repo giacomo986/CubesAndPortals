@@ -2294,6 +2294,21 @@ whether it starts a level, ends one or is a room on the way.
 levels asked for with that key as `owner` use it. An admin's `/zone approve ID` makes it `approved`,
 in every level of its world; `/zone private ID` takes that back, and so does its maker changing it.
 
+**Zones that come with the game** are in `mods/zones/shipped.luau`, which a tool writes out of a
+world file (the first room's, where the server's shared storage is), on a world no server has
+open:
+
+```
+python3 tools/zones_ship.py WORLD_FILE --list        # what is there
+python3 tools/zones_ship.py WORLD_FILE               # every approved zone, in place of the file's
+python3 tools/zones_ship.py WORLD_FILE --keep chambers.hall   # that one, added to the file's
+```
+
+`--all` takes the private ones too, `--world NAME` one world's, `-o FILE` writes elsewhere. A
+shipped zone is approved and nobody's, on every server. Saved over with `/zone save`, the server's
+own stands in for it there; `/zone delete` of that one brings the game's back, and the game's
+itself cannot be deleted.
+
 **Asking for a level**, from another mod:
 
 ```luau

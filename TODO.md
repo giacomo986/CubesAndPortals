@@ -318,8 +318,10 @@ survival levels.
    until `/zone approve`. 196608 cells saved and read back in one call, so
    OPEN-42 does not bite at 64 x 48 x 64. Missing: a level laid by a mapgen
    stage for a survival slot (it is written at run time, 4000 cells a tick);
-   zones shipped with the game as files (a mod reads none: a tool has to turn
-   the store into a `.luau`); doorway kinds other than "door"; levels on more
+   zones shipped with the game: none yet, the way is there since 2026-11-13
+   (`tools/zones_ship.py` writes `mods/zones/shipped.luau` out of a world
+   file; seen by script: a zone made by hand in a store, shipped, laid on a
+   server that never saved it); doorway kinds other than "door"; levels on more
    than one floor are only what the zones' own doorway heights give.
 6. The workshop room: an editor in the game, a "try" button, an admin's approval.
    6b. Tools made for each kind of world (chambers: panels, buttons, doors and

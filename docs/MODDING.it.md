@@ -2584,6 +2584,21 @@ solo i livelli chiesti con quella chiave come `owner`. `/zone approve ID` di un 
 `approved`, in ogni livello del suo mondo; `/zone private ID` la ritira, e la ritira anche chi l'ha
 fatta quando la cambia.
 
+**Le zone che arrivano col gioco** stanno in `mods/zones/shipped.luau`, che uno strumento scrive
+leggendo un world file (quello della prima stanza, dove sta lo storage condiviso del server), su
+un mondo che nessun server ha aperto:
+
+```
+python3 tools/zones_ship.py WORLD_FILE --list        # cosa c'è
+python3 tools/zones_ship.py WORLD_FILE               # ogni zona approvata, al posto di quelle del file
+python3 tools/zones_ship.py WORLD_FILE --keep chambers.hall   # quella, aggiunta a quelle del file
+```
+
+`--all` prende anche le private, `--world NOME` quelle di un mondo, `-o FILE` scrive altrove. Una
+zona distribuita è approvata e di nessuno, su ogni server. Salvandoci sopra con `/zone save`, su
+quel server vale la propria; `/zone delete` di quella fa tornare quella del gioco, e quella del
+gioco non si può cancellare.
+
 **Chiedere un livello**, da un altro mod:
 
 ```luau
