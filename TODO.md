@@ -290,8 +290,12 @@ survival levels.
    template. Seen with a client by script (the click sent as an event): the
    room made, the walk through the frame out of the room's door, the stop
    when left, the start again by name, a name with no world refused; the
-   title screen's world starting with its file. The menu not looked at, and
-   nobody has walked back out. Missing: the client's title screen and
+   title screen's world starting with its file. Seen with a client under
+   Xephyr 2026-11-13 (/tmp/cnp_home): the frame's menu with "my room", the
+   room started from it, the walk in, out of the room's door, back in through
+   the door and out of the frame; the menu kept saying "it opens in a moment"
+   once open (fixed). A level of zones laid in a client's world, seen only in
+   part (the test's camera cannot look down). Missing: the client's title screen and
    `tools/track.sh` still write their own list of the rooms they start with;
    the other rooms wait while one starts (it takes the rooms' lock for the
    whole of its start); new rules (PvP, who may build, flight, a fixed
