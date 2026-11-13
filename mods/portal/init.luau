@@ -953,6 +953,7 @@ end)
 -- leads to. A link made from the other room, or let go of there, is taken
 -- and kept; one still waiting for a room that has not said its frames is left.
 local polled = 0.0
+local drawn_state = ""   -- the shown frame's state when its menu was drawn
 core.event.on("core:tick", function(ev)
     polled += ev.dt
     if polled < 2.0 or not restored then
@@ -960,6 +961,10 @@ core.event.on("core:tick", function(ev)
     end
     polled = 0.0
     local changed = false
+    -- The menu says whether its frame is waiting, shut or open: drawn again
+    -- when that changes, or it said "it opens in a moment" for as long as it
+    -- stayed up (seen 2026-11-13).
+    local shown_state = if shown ~= nil and shown.away then core.room_portal_state(shown.name) else ""
     for _, f in frames do
         if f.away then
             local st = core.room_portal_state(f.name)
@@ -980,9 +985,10 @@ core.event.on("core:tick", function(ev)
     end
     if changed then
         save()
-        if shown ~= nil and viewer ~= 0 then
-            menu()
-        end
+    end
+    if shown ~= nil and viewer ~= 0 and (changed or shown_state ~= drawn_state) then
+        drawn_state = shown_state
+        menu()
     end
 end)
 
