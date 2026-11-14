@@ -444,6 +444,46 @@ local api: { Fn } = {
            .. "linked to it.",
     },
     {
+        name = "room_access",
+        host = "room_access",
+        ret  = "int",
+        args = {
+            { name = "room", type = "string", doc = "A room of this server, up or not." },
+            { name = "who", type = "string",
+              doc = "\"*\" for everybody else, \"name:NAME\" for a player by name, \"key:HEX\" for one by the start of their key (core.player_key without its colons)." },
+            { name = "look", type = "bool", doc = "May see into the room through a portal: without it the portal is a red membrane to them." },
+            { name = "enter", type = "bool", doc = "May go in: without it the portal shows the room and does not take them." },
+        },
+        doc = "Who may look into a room of this server and who may go in, kept by the server for "
+           .. "its life whether the room is up or not: a player's own room (mods/home) says it. A room "
+           .. "with no rule is open to everybody; the first call makes one, \"*\" its default "
+           .. "(look and enter until set). Whoever has the `portals` permission may always do both. "
+           .. "Checked at the portals of every room that lead there and by the room itself. "
+           .. "Returns 1, or 0 for a bad room or `who`.",
+    },
+    {
+        name = "room_access_clear",
+        host = "room_access_clear",
+        ret  = "int",
+        args = {
+            { name = "room", type = "string" },
+        },
+        doc = "Takes a room's rule away (core.room_access): open to everybody again. Returns 1, or 0 "
+           .. "when it had none.",
+    },
+    {
+        name = "room_send",
+        host = "room_send",
+        ret  = "int",
+        args = {
+            { name = "player", type = "int", doc = "An id from core.players, or from an event." },
+            { name = "room", type = "string", default = "", doc = "Another room of this server; \"\" is its first." },
+        },
+        doc = "Sends a player to another room of this server, at its spawn: the way out of a room "
+           .. "whose way in is gone. The player arrives as through a portal, on a ticket this room "
+           .. "signs. Returns 1, or 0 for no such player, a player only looking in, or no such room.",
+    },
+    {
         name = "portal_park",
         host = "portal_park",
         ret  = "int",

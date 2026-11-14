@@ -18454,7 +18454,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         s.act().sealed = conn->sealed();
         for (int m = 0; m < net::kMaxMouths && !crossing_pending; ++m) {
             const bool linked = mouth_world(s.act(), m) >= 0;
-            if (!linked || !s.act().portals || (conn->sealed() >> m & 1u)) continue;
+            if (!linked || !s.act().portals || ((conn->sealed() | conn->barred()) >> m & 1u)) continue;
 
             Mouth              &mo   = mouths[m];
             net::ClientSession *far  = net_sessions.get(mo.conn);
@@ -18566,11 +18566,14 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 }
                 const int           window  = mouths[rd_mouth].conn;
                 net::ClientSession *far_now = net_sessions.get(window);
+                // Sent to that room's spawn (net::kSpawnOpening, core.room_send):
+                // no opening to walk through, whatever window is open there.
+                const bool to_spawn = rd.portal_id == net::kSpawnOpening;
                 const bool seamless_available =
-                    far_now != nullptr && far_now->playing() &&
+                    !to_spawn && far_now != nullptr && far_now->playing() &&
                     (size_t)window < conn_spec.size() && conn_spec[(size_t)window] == rd_spec;
 
-                if (seamless_available || crossing_pending) {
+                if (seamless_available || (crossing_pending && !to_spawn)) {
                     ++redirects_ignored;
                 } else if (!fallback_pending) {
                     // The fallback. Not a different arrival: the SAME messages

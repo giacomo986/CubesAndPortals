@@ -410,8 +410,12 @@ survival levels.
    the personal room:
    its door stands where the world put it, 3 north of the spawn, on a plaza
    in a world that has one (the player moves the other end only); a frame
-   broken while its builder is inside leaves no way out but the title screen;
-   anybody walks through the frame (who may cross, 1 and 3); frames of one
+   broken while its builder is inside: `/myroom leave` (2026-11-14), out to the
+   first room's spawn (core.room_send, protocol 125); who may cross and look:
+   `/myroom` whitelist or blacklist and look yes|no (core.room_access), held at
+   every frame leading there and by the room, seen with two clients
+   (/tmp/cnp_home: red membrane, look without going in, let in once removed
+   from the list, the way out after the frame was broken); frames of one
    player in two rooms both wish for the door and the first has it; gates,
    keys and pocket load there as in the sandbox and lead nowhere; the
    template's mods are those of the client's last start.

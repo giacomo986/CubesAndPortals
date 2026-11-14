@@ -941,7 +941,10 @@ void ClientSession::handle(const std::vector<uint8_t> &data, double now, uint8_t
 
     case MsgType::Seal: {
         Seal seal;
-        if (Seal::decode(r, seal)) m_sealed = seal.mask;
+        if (Seal::decode(r, seal)) {
+            m_sealed = seal.mask;
+            m_barred = seal.barred;
+        }
         break;
     }
 

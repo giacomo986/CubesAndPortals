@@ -45,6 +45,8 @@ everything below it). `/perm` shows and changes which role a permission wants;
 | `/town [town\|city]` | anybody | Takes you to the square of the nearest village; with any word after it, of the nearest town (a bigger village, searched twice as far); with `city`, of the nearest city (`mods/villages`) |
 | `/creative TEXT` | creative (moderator) | Opens the creative catalogue narrowed to items whose name has the text (`mods/creative`) |
 | `/zone [save\|set\|delete\|approve\|private\|try] ...` | anybody; `approve`, `private` and `try` admin | Pieces of levels (`mods/zones`). Alone, lists your zones and the approved ones. `save WORLD NAME X1 Y1 Z1 X2 Y2 Z2 [start\|room\|end]` saves that box as the zone WORLD.NAME, yours: doorway blocks in its sides become its doorways, marker blocks its markers. `set ID d MIN MAX \| weight N \| mirror on\|off \| role ...` says what it is for, `delete ID` removes it. An admin's `approve ID` puts it in everybody's levels and `private ID` takes it back; `try WORLD [COUNT [SEED [D]]]` lays a level of that world's zones beside you |
+| `/myroom [whitelist\|blacklist\|add NAME\|remove NAME\|look yes\|no]` | anybody with a key | Who may come into your own room (`mods/home`): only the names on its list (whitelist) or everybody but them (blacklist, the default), and whether the others may look in through your frame. Alone, says the rule |
+| `/myroom leave` | anybody, in a player's own room | Out of the room, to the spawn of the server's first room: the way out when its frame is gone |
 
 ### In one world only
 

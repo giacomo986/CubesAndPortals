@@ -329,6 +329,40 @@ int l_room_portals(lua_State *L)
     return 1;
 }
 
+// core.room_access(room: string, who: string, look: boolean, enter: boolean) -> number
+int l_room_access(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *room = (const char *)luaL_checkstring(L, 1);
+    const char *who = (const char *)luaL_checkstring(L, 2);
+    const int look = lua_isnoneornil(L, 3) ? 0 : (lua_toboolean(L, 3) ? 1 : 0);
+    const int enter = lua_isnoneornil(L, 4) ? 0 : (lua_toboolean(L, 4) ? 1 : 0);
+    const int result = (vm && vm->host.room_access) ? vm->host.room_access(vm->host.ud, room, who, look, enter) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.room_access_clear(room: string) -> number
+int l_room_access_clear(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *room = (const char *)luaL_checkstring(L, 1);
+    const int result = (vm && vm->host.room_access_clear) ? vm->host.room_access_clear(vm->host.ud, room) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.room_send(player: number, room: string?) -> number
+int l_room_send(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int player = (int)luaL_checkinteger(L, 1);
+    const char *room = (const char *)luaL_optstring(L, 2, "");
+    const int result = (vm && vm->host.room_send) ? vm->host.room_send(vm->host.ud, player, room) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.portal_park(index: number) -> number
 int l_portal_park(lua_State *L)
 {
@@ -3521,6 +3555,12 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "room_portal_state");
     lua_pushcfunction(L, l_room_portals, "core.room_portals");
     lua_setfield(L, -2, "room_portals");
+    lua_pushcfunction(L, l_room_access, "core.room_access");
+    lua_setfield(L, -2, "room_access");
+    lua_pushcfunction(L, l_room_access_clear, "core.room_access_clear");
+    lua_setfield(L, -2, "room_access_clear");
+    lua_pushcfunction(L, l_room_send, "core.room_send");
+    lua_setfield(L, -2, "room_send");
     lua_pushcfunction(L, l_portal_park, "core.portal_park");
     lua_setfield(L, -2, "portal_park");
     lua_pushcfunction(L, l_log, "core.log");

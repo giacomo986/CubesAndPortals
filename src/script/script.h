@@ -130,6 +130,11 @@ typedef struct script_host {
     const char *(*room_portal_state)(void *ud, const char *name);
     const char *(*room_portals)(void *ud, const char *name);
     int (*portal_park)(void *ud, int index);
+    // Who may look into a room and go in, and a player sent to another
+    // room's spawn (core.room_access, core.room_send).
+    int (*room_access)(void *ud, const char *room, const char *who, bool look, bool enter);
+    int (*room_access_clear)(void *ud, const char *room);
+    int (*room_send)(void *ud, int player, const char *room);
 
     void (*log)(void *ud, const char *message);
 

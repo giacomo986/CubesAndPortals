@@ -471,6 +471,7 @@ public:
 
     // The mouths this world has shut to us (core.portal_seal), bit m.
     uint32_t sealed() const { return m_sealed; }
+    uint32_t barred() const { return m_barred; }   // looked into, not walked into (Seal::barred)
 
     // The monsters killed since the last call.
     std::vector<uint64_t> take_slain() { return std::exchange(m_slain, {}); }
@@ -904,6 +905,7 @@ private:
     bool                     m_has_vitals = false;
     Push                     m_push;
     uint32_t                 m_sealed = 0;
+    uint32_t                 m_barred = 0;
     std::vector<uint64_t>    m_slain;
     Ride                     m_ride;
     bool                     m_riding = false;

@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 124; // 124 a person's left hand (EntityState::off_item); 123 kMaxNodeShapes 2048; 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
+inline constexpr uint16_t kProtocol    = 125; // 125 kSpawnOpening, arriving at a room's spawn; 124 a person's left hand (EntityState::off_item); 123 kMaxNodeShapes 2048; 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -438,6 +438,12 @@ inline constexpr int kMaxOpenings = 40;   // a bit each in Portals::present, 64 
 // onto the room of pocket halls (mods/pocket, protocol 116); the twelve
 // openings left are what its mods' own portals share near players.
 inline constexpr int kMaxMouths = 28;
+
+// Not an opening: the world's spawn. A ticket, a Redirect and a ChangeScope may
+// name it instead of one of the kMaxOpenings, for a player a room sends to
+// another room's spawn (core.room_send: out of a player's own room whose way
+// in was broken). Protocol 125.
+inline constexpr uint32_t kSpawnOpening = 0xFFFFFFFFu;
 static_assert(kMaxMouths <= kMaxOpenings && kMaxOpenings <= 64, "Portals::present is 64 bits");
 
 enum class Channel : uint8_t {
@@ -2250,6 +2256,9 @@ struct Slain {
 
 struct Seal {
     uint32_t mask = 0;
+    // Mouths onto a room this player may look into and not go into
+    // (core.room_access): drawn, not walked into. Protocol 125.
+    uint32_t barred = 0;
 
     std::vector<uint8_t> encode() const;
     static bool decode(ByteReader &r, Seal &out);

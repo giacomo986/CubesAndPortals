@@ -339,6 +339,15 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
                                             refuse_reason_text(reason) + " (" + why + ")");
         }
 
+        // Whether this world is open to them, to look into or to be in
+        // (core.room_access): a player's own room says who.
+        if (m_scope_check) {
+            std::string why;
+            if (!m_scope_check(s, hello.scope, why))
+                return refuse_and_close(RefuseReason::Banned, why,
+                                        "refused '" + hello.player_name + "': " + why);
+        }
+
         // The ticket, if one was presented -- and it is checked whether or not
         // this world requires one, for the same reason the identity is: a
         // server that ignores a credential it was handed is a server whose log
@@ -1546,6 +1555,15 @@ bool ServerSessions::issue_ticket(PeerId peer, const TicketRequest &req, double 
         why = "that opening is sealed to you";
         return false;
     }
+    // And one onto a room that is not open to them (core.room_access).
+    if (req.opening < kMaxMouths && (s->room_shut >> req.opening & 1u)) {
+        why = "you may not look into that room";
+        return false;
+    }
+    if ((req.scopes & kTicketEnter) != 0 && req.opening < kMaxMouths && (s->room_barred >> req.opening & 1u)) {
+        why = "you may look into that room, not go in";
+        return false;
+    }
 
     if (!leads_away()) {
         why = "this world's openings lead back into itself; there is nothing to ticket for";
@@ -1599,6 +1617,36 @@ bool ServerSessions::issue_ticket(PeerId peer, const TicketRequest &req, double 
 
     ++s->tickets_issued;
     reason = RefuseReason::None;
+    return true;
+}
+
+bool ServerSessions::issue_ticket_here(PeerId peer, uint32_t portal_id, PortalTicket &out, std::string &why)
+{
+    const Session *s = find(peer);
+    if (!s || s->state != SessionState::Ready) {
+        why = "not in the world";
+        return false;
+    }
+    if (!m_has_ticket_key || !m_config.has_sign_key) {
+        why = "this world has no key to sign tickets with";
+        return false;
+    }
+    if (!s->has_identity) {
+        why = "a ticket names a player, and this session has not said which one";
+        return false;
+    }
+    // The audience is this server's own key: every room of it has the one.
+    const uint64_t unix_now = (uint64_t)std::time(nullptr);
+    out = PortalTicket{};
+    std::memcpy(out.issuer, m_ticket_key.public_key, kSignPublicBytes);
+    std::memcpy(out.subject, s->identity, kSignPublicBytes);
+    std::memcpy(out.audience, m_config.sign_public, kSignPublicBytes);
+    out.portal_id = portal_id;
+    out.scopes    = kTicketScopes;
+    out.issued    = unix_now;
+    out.expires   = unix_now + kTicketLifetime;
+    const std::vector<uint8_t> msg = ticket_challenge(out);
+    sign_message(m_ticket_key, msg.data(), msg.size(), out.signature);
     return true;
 }
 
@@ -2070,6 +2118,7 @@ SessionAction ServerSessions::redirect_if_triggered(Session &s, const Move &move
     for (int i = 0; i < kMaxMouths; ++i) {
         const PortalAway &away = m_away[i];
         if (!m_portal_set[i] || !away.leads_away() || ((s.sealed & ~m_seal_exempt) >> i & 1u)) continue;
+        if (((s.room_shut | s.room_barred) >> i & 1u) != 0) continue;   // core.room_access
         if (!trigger_along(m_portal[i], s.portal_state[i], from_feet, feet, vel, eye_of(s), (float)dt))
             continue;
 
@@ -2505,6 +2554,11 @@ bool ServerSessions::change_scope(PeerId peer, const ChangeScope &req, double no
         return false;
     }
 
+    if (m_scope_check && !m_scope_check(*s, Scope::Enter, why)) {
+        reason = RefuseReason::Banned;
+        return false;
+    }
+
     if (m_config.observers > 0) m_config.observers = (int)observer_count();
     if ((int)player_count() >= m_config.max_players) {
         reason = RefuseReason::ServerFull;
@@ -2516,6 +2570,37 @@ bool ServerSessions::change_scope(PeerId peer, const ChangeScope &req, double no
         reason = RefuseReason::NoSuchOpening;
         why    = "this server has no world to arrive in";
         return false;
+    }
+
+    // Out at the spawn, sent by another room of this server (core.room_send):
+    // only on a ticket that says so, and nothing about an opening to check.
+    if (req.portal_id == kSpawnOpening) {
+        if (!req.has_ticket) {
+            reason = RefuseReason::BadTicket;
+            why    = "the spawn is reached on a ticket from another room";
+            return false;
+        }
+        s->scope                   = Scope::Enter;
+        s->authority().x           = m_spawn.x;
+        s->authority().y           = m_spawn.y;
+        s->authority().z           = m_spawn.z;
+        s->authority().when        = now;
+        s->authority().valid       = true;
+        s->authority().grace_until = now + m_limits.portal_grace;
+        s->authority().placed      = true;
+        s->has_moved               = true;
+        s->avatar.add<ecs::Body>();
+        set_look(s->look(), 0.0f, 0.0f, -1.0f);
+        s->interest.set_position(m_spawn.x, m_spawn.y, m_spawn.z, 0.0f, 0.0f, -1.0f);
+        ++s->crossings;
+        out        = Teleport{};
+        out.x      = m_spawn.x;
+        out.y      = m_spawn.y;
+        out.z      = m_spawn.z;
+        out.look_z = -1.0f;
+        out.reason = "sent to the spawn";
+        out.epoch  = placed(*s, Vec3{m_spawn.x, m_spawn.y, m_spawn.z}, Vec3{}, 0.0f, true);
+        return true;
     }
 
     // The opening the far side's link named. Bounded by the decoder to the two

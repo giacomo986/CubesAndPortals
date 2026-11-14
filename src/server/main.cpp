@@ -258,6 +258,9 @@ struct ServerState {
 
     // Mouths sealed to one player (core.portal_seal): the mask to send them.
     std::vector<std::pair<net::PeerId, uint32_t>> mod_seals;
+    // Messages a mod's call sends one player with the tick's news: a Redirect
+    // to another room's spawn (core.room_send).
+    std::vector<std::pair<net::PeerId, std::vector<uint8_t>>> mod_sends;
 
     // The portals mods open (core.portal_open): as many as they like. A world
     // has kMaxOpenings openings on the wire, so these are VIRTUAL: every half
@@ -1385,6 +1388,7 @@ void tell_far_room(const std::string &room, int portal, const Portal &p);
 void release_mouth(ServerState &s, int k);
 int  world_mouths(ServerState &s);
 const std::string &room_name();   // the room this thread serves (below, with the router)
+std::string send_room(const std::string &name);   // a room to send a player to, "" none (below)
 void want_room(const std::string &name);   // something near a player leads to it (below)
 
 // core.portal_park: one of the world's own mouths is not in use now -- a second
@@ -1622,6 +1626,66 @@ void schedule_portals(ServerState &s, double now)
     }
 }
 
+// Who may look into a room, and who may go in (core.room_access): a player's
+// own room says it, by name or key, and a default for everybody else. Kept
+// for the server's life whether the room is up or not -- the room it is about
+// is started when somebody nears a way in, and the rule decides what they see
+// before it is -- and set again by the mod that keeps it at each start. No
+// rule for a room: everybody may do both. Under the rooms' lock, as all of it.
+struct RoomAccess {
+    bool look = true, enter = true;   // "*": everybody the rest do not name
+    std::map<std::string, std::pair<bool, bool>> who;   // "name:..." or "key:..."
+};
+std::map<std::string, RoomAccess> g_access;
+
+admin::Who admin_who(const net::Session &p, const std::string *room = nullptr);   // below the rooms
+
+// What `room`'s rule allows this player: {look, enter}. Whoever sets up the
+// server's portals may always do both.
+std::pair<bool, bool> room_access_of(const std::string &room, const net::Session &p)
+{
+    const auto it = g_access.find(room);
+    if (it == g_access.end()) return {true, true};
+    if (admin::may(admin_who(p), "portals")) return {true, true};
+    if (p.has_identity) {
+        std::string key = net::key_fingerprint(p.identity);
+        std::erase(key, ':');
+        for (const auto &[w, r] : it->second.who)
+            if (w.rfind("key:", 0) == 0 && w.size() > 4 && key.rfind(w.substr(4), 0) == 0) return r;
+    }
+    std::string name = p.name;
+    for (char &c : name) c = (char)std::tolower((unsigned char)c);
+    if (const auto n = it->second.who.find("name:" + name); n != it->second.who.end()) return n->second;
+    return {it->second.look, it->second.enter};
+}
+
+// Each player's mouths onto rooms they may not look into or go into: shut
+// (sealed, red) or barred (drawn, not crossed). Every tick, after the mouths
+// are handed out: a rule or a mouth that changed is seen on the next.
+void apply_room_access(ServerState &s)
+{
+    if (!s.sessions) return;
+    net::ServerSessions &ss = *s.sessions;
+    const uint32_t exempt = ss.seal_exempt();
+    for (const net::PeerId peer : ss.ready_peers()) {
+        net::Session *sess = ss.find_mutable(peer);
+        if (!sess || sess->scope == net::Scope::Observe) continue;
+        uint32_t shut = 0, barred = 0;
+        for (int k = 0; k < net::kMaxMouths; ++k) {
+            const net::PortalAway &a = ss.away(k);
+            if (!a.leads_away() || !a.host.empty() || a.room.empty() || !g_access.count(a.room)) continue;
+            const auto [look, enter] = room_access_of(a.room, *sess);
+            if (!look) shut |= 1u << k;
+            else if (!enter) barred |= 1u << k;
+        }
+        if (shut != sess->room_shut || barred != sess->room_barred) {
+            sess->room_shut   = shut;
+            sess->room_barred = barred;
+            s.mod_seals.emplace_back(peer, (sess->sealed & ~exempt) | shut);
+        }
+    }
+}
+
 // How many mouths are the world's own (--portal-to): the first ones, counted
 // once, before any portal made while it runs has taken one past them.
 int world_mouths(ServerState &s)
@@ -1801,7 +1865,7 @@ void schedule_mouths(ServerState &s)
         ss.set_seal_exempt(exempt);
         for (const net::PeerId peer : ss.ready_peers())
             if (const net::Session *sess = ss.find(peer); sess && (sess->sealed & changed) != 0)
-                s.mod_seals.emplace_back(peer, sess->sealed & ~exempt);
+                s.mod_seals.emplace_back(peer, (sess->sealed & ~exempt) | sess->room_shut);
     }
 }
 
@@ -1847,6 +1911,55 @@ const char *host_room_portals(void *ud, const char *name)
     return s->far_scratch.c_str();
 }
 
+// Who may look into a room and who may go in (core.room_access): `who` is "*"
+// for everybody the rule does not name, "name:NAME" or "key:HEX" (the start
+// of a player's key, core.player_key without its colons). A room no rule
+// names is open to all; core.room_access_clear takes its rule away.
+int host_room_access(void *, const char *room, const char *who, bool look, bool enter)
+{
+    const std::string r = room ? room : "", w = who ? who : "";
+    if (r.empty() || r.size() > net::kMaxRoomName || w.empty() || w.size() > 80) return 0;
+    if (w != "*" && w.rfind("name:", 0) != 0 && w.rfind("key:", 0) != 0) return 0;
+    RoomAccess &a = g_access[r];
+    if (w == "*") {
+        a.look  = look;
+        a.enter = enter;
+    } else {
+        std::string k = w;
+        for (char &c : k) c = (char)std::tolower((unsigned char)c);
+        a.who[k] = {look, enter};
+    }
+    return 1;
+}
+int host_room_access_clear(void *, const char *room)
+{
+    return g_access.erase(room ? room : "") > 0 ? 1 : 0;
+}
+
+// Sends a player to another room of this server, at its spawn (protocol 125):
+// a Redirect with a ticket this room signs, taken by the client as it takes
+// one for a crossing. "" is the server's first room. For a way out of a room
+// whose way in is gone.
+int host_room_send(void *ud, int player, const char *room)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (!s->sessions) return 0;
+    const net::Session *sess = s->sessions->find((net::PeerId)player);
+    if (!sess || sess->scope != net::Scope::Enter) return 0;
+    const std::string to = send_room(room ? room : "");
+    if (to.empty()) return 0;
+    net::Redirect r;
+    r.room      = to;
+    r.portal_id = net::kSpawnOpening;
+    r.reason    = "sent to the spawn of room '" + to + "'";
+    std::string why;
+    r.has_ticket = s->sessions->issue_ticket_here((net::PeerId)player, net::kSpawnOpening, r.ticket, why);
+    if (!r.has_ticket) std::printf("        no ticket for '%s' to room '%s': %s\n", sess->name.c_str(), to.c_str(), why.c_str());
+    s->mod_sends.emplace_back((net::PeerId)player, r.encode());
+    std::printf("        '%s' sent to the spawn of room '%s'\n", sess->name.c_str(), to.c_str());
+    return 1;
+}
+
 // Sent with the placements: a seal is the player's own and not the world's,
 // so it does not wait for the openings' version to move.
 int host_portal_seal(void *ud, int player, int index, bool sealed)
@@ -1859,7 +1972,8 @@ int host_portal_seal(void *ud, int player, int index, bool sealed)
     const uint32_t was = sess->sealed;
     sess->sealed = sealed ? was | (1u << index) : was & ~(1u << index);
     if (sess->sealed != was)
-        s->mod_seals.emplace_back((net::PeerId)player, sess->sealed & ~s->sessions->seal_exempt());
+        s->mod_seals.emplace_back((net::PeerId)player,
+                                  (sess->sealed & ~s->sessions->seal_exempt()) | sess->room_shut);
     return 1;
 }
 
@@ -2428,7 +2542,7 @@ int host_chat(void *ud, int player, const char *text)
     return 1;
 }
 
-admin::Who admin_who(const net::Session &p, const std::string *room = nullptr);   // below the rooms
+admin::Who admin_who(const net::Session &p, const std::string *room);   // below the rooms
 
 int host_command(void *ud, const char *name, const char *help, const char *perm)
 {
@@ -5590,6 +5704,14 @@ admin::Who admin_who(const net::Session &p, const std::string *room)
 // each room's by name.
 const std::string &room_name() { return g_router.rooms[(size_t)g_room].name; }
 
+// core.room_send's room: one that is up, not this one; "" the server's first.
+std::string send_room(const std::string &name)
+{
+    const std::string to = name.empty() && !g_router.rooms.empty() ? g_router.rooms[0].name : name;
+    const int i = to.empty() ? -1 : g_router.find(to);
+    return i >= 0 && i != g_room && g_hot.running[(size_t)i] ? to : "";
+}
+
 // This room's name for its mods (core.room): "" for a server of one world.
 const char *host_room(void *)
 {
@@ -7267,6 +7389,9 @@ int serve_room(int argc, char **argv)
         host.portal_scale  = host_portal_scale;
         host.portal_window = host_portal_window;
         host.portal_seal   = host_portal_seal;
+        host.room_access       = host_room_access;
+        host.room_access_clear = host_room_access_clear;
+        host.room_send         = host_room_send;
         host.portal_link   = host_portal_link;
         host.far_portal_set   = host_far_portal_set;
         host.far_portal_close = host_far_portal_close;
@@ -8262,6 +8387,16 @@ int serve_room(int argc, char **argv)
                                 name_err.c_str());
             }
             return true;
+        });
+
+        // A player's own room: who may look in and who may go in (core.room_access).
+        sessions.set_scope_check([](const net::Session &p, net::Scope scope, std::string &why) {
+            const std::string &room = g_router.rooms[(size_t)g_room].name;
+            const auto [look, enter] = room_access_of(room, p);
+            if (scope == net::Scope::Observe ? look : enter) return true;
+            why = scope == net::Scope::Observe ? "this room is not open to you"
+                                               : "you may look into this room, not go in";
+            return false;
         });
 
         // Bans and the whitelist, the same for every room (src/server/admin.h).
@@ -10082,12 +10217,19 @@ int serve_room(int argc, char **argv)
                         transport.send(peer, net::Channel::Event, net::Push{v.x, v.y, v.z}.encode(), true);
                     s.shoved[peer] = now;
                 }
-                for (const auto &[peer, mask] : s.mod_seals)
-                    transport.send(peer, net::Channel::Event, net::Seal{mask}.encode(), true);
+                for (const auto &[peer, mask] : s.mod_seals) {
+                    const net::Session *sess = s.sessions ? s.sessions->find(peer) : nullptr;
+                    transport.send(peer, net::Channel::Event,
+                                   net::Seal{mask, sess ? sess->room_barred : 0u}.encode(), true);
+                }
                 s.mod_seals.clear();
+                for (const auto &[peer, bytes] : s.mod_sends)
+                    transport.send(peer, net::Channel::Event, bytes, true);
+                s.mod_sends.clear();
                 schedule_mouths(s);
                 sync_far_portals(s);
                 schedule_mouths(s);
+                apply_room_access(s);
                 // A room started while the server runs stops when nobody is
                 // in it or looking into it and nothing near a player leads to
                 // it (schedule_mouths in the other rooms says when one does).

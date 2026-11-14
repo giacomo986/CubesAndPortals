@@ -72,6 +72,12 @@ declare core: {
     room_portal_state: (name: string) -> string,
     -- The other rooms of this server and their portals, a line each: "R\tROOM" for a room, then "P\tROOM\tNAME\tSTATE\tWHY" for each of its portals, STATE free, busy (linked to another) or yours (linked to `name`), WHY empty when `name` could be linked to it.
     room_portals: (name: string?) -> string,
+    -- Who may look into a room of this server and who may go in, kept by the server for its life whether the room is up or not: a player's own room (mods/home) says it. A room with no rule is open to everybody; the first call makes one, "*" its default (look and enter until set). Whoever has the `portals` permission may always do both. Checked at the portals of every room that lead there and by the room itself. Returns 1, or 0 for a bad room or `who`.
+    room_access: (room: string, who: string, look: boolean, enter: boolean) -> number,
+    -- Takes a room's rule away (core.room_access): open to everybody again. Returns 1, or 0 when it had none.
+    room_access_clear: (room: string) -> number,
+    -- Sends a player to another room of this server, at its spawn: the way out of a room whose way in is gone. The player arrives as through a portal, on a ticket this room signs. Returns 1, or 0 for no such player, a player only looking in, or no such room.
+    room_send: (player: number, room: string?) -> number,
     -- Says one of the world's own mouths is not in use now -- a second way in nobody is near, a door's mouth with no door to stand in -- instead of putting it out of sight. Its opening goes, and until core.portal_place puts it somewhere again the mouth may be lent to a portal between rooms (core.room_portal_set); placed again, whatever borrowed it gives it back at once. A seal on it (core.portal_seal) does not hold for the borrower. Returns 1, or 0 for an index that is not one of the world's own or no server.
     portal_park: (index: number) -> number,
     -- Writes a line to the engine log, prefixed with the mod's name.

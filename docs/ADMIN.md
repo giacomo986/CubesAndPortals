@@ -422,6 +422,19 @@ writes this template itself for a world started from its menu (`rooms.conf` in t
 folder, a world as the sandbox is, with the same mods), and `tools/track.sh` does the same. A
 server without the template gives no such rooms, and the button says so.
 
+**Who may come in** is the owner's, from any room, with `/myroom`: a **blacklist** (everybody
+but the names on it, the default, empty) or a **whitelist** (only the names on it), and whether
+the players left out may still **look in** through the frame (`/myroom look yes`) or see a red
+membrane (`look no`). A player who may look and not go in sees the room in the frame and walks
+through the hole as through an empty frame. The rule is kept in the server's shared storage and
+held by the server at every frame that leads to the room and at the room itself (a client that
+names the room when it joins is refused too); the owner, and whoever has the `portals`
+permission, always come in. Somebody inside who is no longer let in is sent out to the spawn.
+
+**The way out** of a player's room whose frame was broken, or moved, while somebody was in it:
+`/myroom leave`, said in the room, sends whoever says it to the spawn of the server's first room
+(the sandbox), as through a portal; the room tells whoever is inside when its way in is gone.
+
 ### Portals built in the world
 
 Between [friend servers](#friend-servers) that share **portals**, a portal can be built and set

@@ -387,6 +387,46 @@ The other rooms of this server and their portals, a line each: "R\tROOM" for a r
 |---|---|---|---|
 | `name` | string | `` | This room's portal the list is for: each far one then says whether it fits it. |
 
+## `core.room_access`
+
+```luau
+core.room_access(room: string, who: string, look: boolean, enter: boolean) -> number
+```
+
+Who may look into a room of this server and who may go in, kept by the server for its life whether the room is up or not: a player's own room (mods/home) says it. A room with no rule is open to everybody; the first call makes one, "*" its default (look and enter until set). Whoever has the `portals` permission may always do both. Checked at the portals of every room that lead there and by the room itself. Returns 1, or 0 for a bad room or `who`.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `room` | string | — | A room of this server, up or not. |
+| `who` | string | — | "*" for everybody else, "name:NAME" for a player by name, "key:HEX" for one by the start of their key (core.player_key without its colons). |
+| `look` | boolean | — | May see into the room through a portal: without it the portal is a red membrane to them. |
+| `enter` | boolean | — | May go in: without it the portal shows the room and does not take them. |
+
+## `core.room_access_clear`
+
+```luau
+core.room_access_clear(room: string) -> number
+```
+
+Takes a room's rule away (core.room_access): open to everybody again. Returns 1, or 0 when it had none.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `room` | string | — |  |
+
+## `core.room_send`
+
+```luau
+core.room_send(player: number, room: string?) -> number
+```
+
+Sends a player to another room of this server, at its spawn: the way out of a room whose way in is gone. The player arrives as through a portal, on a ticket this room signs. Returns 1, or 0 for no such player, a player only looking in, or no such room.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `player` | number | — | An id from core.players, or from an event. |
+| `room` | string | `` | Another room of this server; "" is its first. |
+
 ## `core.portal_park`
 
 ```luau

@@ -357,6 +357,14 @@ struct Session {
     // walked into, and no Redirect for them. Forgotten when they leave.
     uint32_t sealed = 0;
 
+    // Mouths onto a room this player may not look into (shut: a red membrane,
+    // as sealed) or may look into and not enter (barred: drawn, not crossed --
+    // no Redirect, no ticket to enter). The server works them out from the far
+    // room's rules (core.room_access) each tick; the mod's own seals are the
+    // field above. Protocol 125.
+    uint32_t room_shut   = 0;
+    uint32_t room_barred = 0;
+
     // How many crossings this player has been given. For the log and for a gate
     // to count, the same way `corrections` is.
     long crossings = 0;
@@ -940,6 +948,18 @@ public:
     // Told of each player that comes through a portal on a ticket: the server
     // that signed it, and who. For the administration's record of who sends
     // players here (src/server/admin.h).
+    // And whether this player may look into this world (scope Observe) or be in
+    // it (Enter): asked of a hello of either scope and of a window becoming a
+    // body. A room a player keeps for themselves says who (core.room_access).
+    // False with the sentence. Optional: without it, anybody let in may do both.
+    using ScopeCheck = std::function<bool(const Session &s, Scope scope, std::string &why)>;
+    void set_scope_check(ScopeCheck check) { m_scope_check = std::move(check); }
+
+    // A ticket from this world to another room of this same server, for its
+    // spawn (kSpawnOpening) or one of its openings: core.room_send. False with
+    // why when this world cannot sign one or the player has no identity.
+    bool issue_ticket_here(PeerId peer, uint32_t portal_id, PortalTicket &out, std::string &why);
+
     using CrossingSeen = std::function<void(const uint8_t *issuer, PeerId who)>;
     void set_crossing_seen(CrossingSeen seen) { m_crossing_seen = std::move(seen); }
 
@@ -1592,6 +1612,7 @@ private:
     bool     m_portal_set[kMaxOpenings] = {};
     int      m_link[kMaxOpenings];   // symmetric; i ^ 1 until link_portals says otherwise
     uint32_t m_seal_exempt = 0;      // set_seal_exempt
+    ScopeCheck m_scope_check;        // set_scope_check
     uint32_t m_portals_version = 0;
     double   m_moved_at[kMaxOpenings] = {};   // when each was last moved (move_portal)
 

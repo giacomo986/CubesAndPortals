@@ -45,6 +45,8 @@ quello sotto). `/perm` mostra e cambia quale ruolo chiede un permesso;
 | `/town [town\|city]` | chiunque | Ti porta nella piazza del villaggio più vicino; con una parola qualsiasi dopo, della cittadina più vicina (un villaggio più grande, cercata al doppio della distanza); con `city`, della città più vicina (`mods/villages`) |
 | `/creative TESTO` | creative (moderator) | Apre il catalogo creativo ristretto agli oggetti il cui nome contiene il testo (`mods/creative`) |
 | `/zone [save\|set\|delete\|approve\|private\|try] ...` | chiunque; `approve`, `private` e `try` admin | Pezzi di livello (`mods/zones`). Da solo elenca le tue zone e quelle approvate. `save MONDO NOME X1 Y1 Z1 X2 Y2 Z2 [start\|room\|end]` salva quel volume come zona MONDO.NOME, tua: i blocchi varco nei lati diventano i suoi varchi, i blocchi marcatore i suoi marcatori. `set ID d MIN MAX \| weight N \| mirror on\|off \| role ...` dice a cosa serve, `delete ID` la toglie. `approve ID` di un admin la mette nei livelli di tutti e `private ID` la ritira; `try MONDO [QUANTE [SEME [D]]]` posa accanto a te un livello fatto con le zone di quel mondo |
+| `/myroom [whitelist\|blacklist\|add NOME\|remove NOME\|look yes\|no]` | chiunque abbia una chiave | Chi può entrare nella tua stanza personale (`mods/home`): solo i nomi della lista (whitelist) o tutti tranne loro (blacklist, quella di partenza), e se gli altri possono guardare dentro dalla tua cornice. Da solo dice la regola |
+| `/myroom leave` | chiunque, nella stanza personale di qualcuno | Fuori dalla stanza, allo spawn della prima stanza del server: la via d'uscita quando la sua cornice non c'è più |
 
 ### In un solo mondo
 

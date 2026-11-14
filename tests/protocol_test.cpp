@@ -1433,6 +1433,27 @@ int main()
         ByteReader  pr4(pbuf4);
         check(!Redirect::decode(pr4, pout4), "and one to no port");
 
+        // To a room's spawn (protocol 125): no opening, and still a redirect.
+        Redirect to_spawn;
+        to_spawn.room      = "sandbox";
+        to_spawn.portal_id = kSpawnOpening;
+        to_spawn.reason    = "sent to the spawn";
+        const auto  sbuf4 = to_spawn.encode();
+        Redirect    sout4;
+        ByteReader  sr4(sbuf4);
+        check(Redirect::decode(sr4, sout4) && sout4.portal_id == kSpawnOpening && sout4.room == "sandbox",
+              "a redirect to a room's spawn survives a round trip");
+
+        // And a seal that says which mouths are looked into and not walked into.
+        Seal seal;
+        seal.mask   = 0x5u;
+        seal.barred = 0x2u;
+        const auto  sealbuf = seal.encode();
+        Seal        sealout;
+        ByteReader  sealr(sealbuf);
+        check(Seal::decode(sealr, sealout) && sealout.mask == 0x5u && sealout.barred == 0x2u,
+              "a seal carries the mouths barred to the player too");
+
         Redirect far_hole = rd;
         far_hole.portal_id = (uint32_t)kMaxOpenings;
         const auto  fbuf4 = far_hole.encode();

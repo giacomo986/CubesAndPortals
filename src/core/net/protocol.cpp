@@ -900,6 +900,8 @@ bool ChangeScope::decode(ByteReader &r, ChangeScope &out)
     // did not send would refuse every honest demotion.
     if (out.scope != (uint8_t)Scope::Enter) return true;
 
+    // Out at the spawn: no opening, and the pose it was in is not looked at.
+    if (out.portal_id == kSpawnOpening) return true;
     if (out.portal_id >= (uint32_t)kMaxOpenings) return false;
     if (!portal_desc_sane(out.from)) return false;
 
@@ -1183,8 +1185,9 @@ bool PortalTicket::decode(ByteReader &r, PortalTicket &out)
     // to guess what they meant.
     if (out.scopes == 0 || (out.scopes & ~kTicketScopes) != 0) return false;
 
-    // An opening this protocol does not have. Same bound as everywhere else.
-    if (out.portal_id >= (uint32_t)kMaxOpenings) return false;
+    // An opening this protocol does not have. Same bound as everywhere else,
+    // the spawn aside.
+    if (out.portal_id >= (uint32_t)kMaxOpenings && out.portal_id != kSpawnOpening) return false;
 
     // A window that is not one. Backwards or empty is not a short ticket, it is
     // a ticket that was built wrong or bent on the way here.
@@ -1343,7 +1346,7 @@ bool Redirect::decode(ByteReader &r, Redirect &out)
     // No host is this same server, which only a room can be.
     if (out.host.empty() != (out.port == 0)) return false;
     if (out.host.empty() && out.room.empty()) return false;
-    if (out.portal_id >= (uint32_t)kMaxOpenings) return false;
+    if (out.portal_id >= (uint32_t)kMaxOpenings && out.portal_id != kSpawnOpening) return false;
 
     return true;
 }
@@ -1912,6 +1915,7 @@ std::vector<uint8_t> Seal::encode() const
     ByteWriter w;
     w.u8((uint8_t)MsgType::Seal);
     w.u32(mask);
+    w.u32(barred);
     return w.data();
 }
 
@@ -1919,8 +1923,9 @@ bool Seal::decode(ByteReader &r, Seal &out)
 {
     out = Seal{};
     if (r.u8() != (uint8_t)MsgType::Seal) return false;
-    out.mask = r.u32();
-    return r.done() && (out.mask >> kMaxMouths) == 0;
+    out.mask   = r.u32();
+    out.barred = r.u32();
+    return r.done() && (out.mask >> kMaxMouths) == 0 && (out.barred >> kMaxMouths) == 0;
 }
 
 bool sound_name_ok(const std::string &name)

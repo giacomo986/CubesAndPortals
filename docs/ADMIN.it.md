@@ -427,6 +427,21 @@ gioco scrive da sé questo modello per un mondo avviato dal menù (`rooms.conf` 
 mondo: un mondo come il sandbox, con le stesse mod), e `tools/track.sh` fa lo stesso. Un server
 senza il modello non dà stanze personali, e il pulsante lo dice.
 
+**Chi può entrare** lo decide il padrone, da qualsiasi stanza, con `/myroom`: una **blacklist**
+(tutti tranne i nomi della lista, quella di partenza, vuota) o una **whitelist** (solo i nomi
+della lista), e se i giocatori esclusi possono comunque **guardare dentro** dalla cornice
+(`/myroom look yes`) o vedono una membrana rossa (`look no`). Chi può guardare ma non entrare vede
+la stanza nella cornice e ci passa attraverso come in una cornice vuota. La regola sta nello
+storage condiviso del server, che la fa valere a ogni cornice che porta alla stanza e nella stanza
+stessa (anche un client che entra chiedendo la stanza per nome viene rifiutato); il padrone, e chi
+ha il permesso `portals`, entrano sempre. Chi è dentro e non è più ammesso viene mandato allo
+spawn.
+
+**La via d'uscita** da una stanza personale la cui cornice è stata rotta, o spostata, mentre
+qualcuno era dentro: `/myroom leave`, detto nella stanza, manda chi lo dice allo spawn della prima
+stanza del server (il sandbox), come attraverso un portale; la stanza avvisa chi è dentro quando
+il suo ingresso non c'è più.
+
 ### Portali costruiti nel mondo
 
 Fra [server amici](#server-amici) che condividono **portals**, un portale si può costruire e
