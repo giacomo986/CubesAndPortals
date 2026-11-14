@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs: {site: "${{ steps.site.outputs.made }}"}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {submodules: recursive}
       - run: |
           sudo apt-get update
@@ -47,9 +47,9 @@ jobs:
           tools/dist/flatpak-site.sh build-dist site
           echo "made=true" >> "$GITHUB_OUTPUT"
       - if: steps.site.outputs.made == 'true'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with: {path: site}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linux
           path: |
@@ -60,23 +60,30 @@ jobs:
   windows:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {submodules: recursive}
-      - uses: mlugg/setup-zig@v2
-        with: {version: 0.16.0}
+      # Zig straight from ziglang.org, checked against its published hash:
+      # mlugg/setup-zig still runs on Node 20, which GitHub has deprecated.
+      - run: |
+          curl -sSLo zig.tar.xz https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz
+          echo "70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00  zig.tar.xz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/zig"
+          tar -xJf zig.tar.xz -C "$RUNNER_TEMP/zig" --strip-components=1
+          rm zig.tar.xz
+          echo "$RUNNER_TEMP/zig" >> "$GITHUB_PATH"
       - run: sudo apt-get install -y ninja-build
       - run: tools/dist/package-windows.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: {name: windows, path: build-win/dist/*.zip}
 
   macos:
     runs-on: macos-15   # Apple silicon
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {submodules: recursive}
       - run: brew install ninja
       - run: tools/dist/package-macos.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: {name: macos, path: build-mac/dist/*.dmg}
 
   # On a tag only: the tag must be the version the code says it is
@@ -89,14 +96,14 @@ jobs:
     runs-on: ubuntu-24.04
     permissions: {contents: write}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {submodules: recursive}
       - run: |
           v="$(sed -n 's/.*kEngineVersion = "\([^"]*\)".*/\1/p' src/core/version.h)"
           [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME, code says v$v"; exit 1; }
           awk -v h="## $v " 'index($0,h)==1{on=1;next} on&&/^## /{exit} on' CHANGELOG.md > notes.md
           [ -s notes.md ] || { echo "CHANGELOG.md has no section for $v"; exit 1; }
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: {path: packages, merge-multiple: true}
       # The release manifest (core/release.h): every package's size and hash,
       # signed with the release key (secret RELEASE_SIGN_KEY, the seed as hex,
@@ -115,7 +122,7 @@ jobs:
           build-rel/tools/cnp_release sign "$RUNNER_TEMP/release.sign.key" packages
           build-rel/tools/cnp_release check packages
           rm -f "$RUNNER_TEMP/release.sign.key"
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: packages/*
           make_latest: true
@@ -133,4 +140,4 @@ jobs:
     environment: {name: github-pages, url: "${{ steps.deploy.outputs.page_url }}"}
     steps:
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
