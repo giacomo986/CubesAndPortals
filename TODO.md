@@ -316,6 +316,30 @@ Mods:
   two servers with --addon-species. A client that cannot read an add-on's
   body or arms counts one species fewer than the server and draws the next
   add-on's players one off.
+- Guns in first person on every species (2026-11-14): in the front and the assault the species'
+  arms -- human, mole, frog, and the add-ons fox and lizard -- play the world's arms' clips made
+  again for hands (`robot_arms_hands`, tools/make_front_hands.py: hand and forearm one stiff
+  piece turned from the gun, nothing turning at the wrist) and the guns are drawn out of that
+  file (draw_arms; docs/MODDING.md). Seen in a client in the assault alone, stills of every
+  species with rifle, pistol, lmg, sniper and launcher at rest, aimed, firing and reloading and
+  the grenade at rest and thrown. Not seen: a clip in motion, the knight, a seat in a machine,
+  the front with a gun in hand (only its lobby), yafps and the lab since the file was made
+  small enough to be served. Known: the left hand is a fist under the gun, not fingers round
+  it; the shoulders are wherever the hands leave them, so an upper arm may come into the view
+  in a wide swing (a reload, the throw). The file is 938 KB of the 1 MiB a server hands out:
+  a gun or a clip more in tools/make_front_models.py may take it over, and the tool then
+  stops.
+- Fox man's arms (2026-11-14): the palms were turned in by wringing the forearm 90 degrees
+  elbow to wrist, which showed at rest (Giacomo, on the look page); now the whole arm is turned
+  about its length, its top drawn in at the shoulder. Seen in Blender at rest and on eight
+  clips; not yet in a client.
+- Fox man (Meshy image-to-3D, 2026-11-14, an add-on in `contrib/fox`, not in the game):
+  seen in Blender at rest and on eight of the robot's clips, with its styles and the six
+  accessories, and in a client in tools/track.sh's sandbox, in first person and from behind in
+  third. Its head is not Meshy's (a torn shell) but the closed solid round its points, and no ray
+  from outside meets the inside of the body at rest (a check with the back faces culled; a few do
+  where a joint folds). Not looked at in the game: its front, the look page, the styles and
+  accessories on it, the tail's wag. Giacomo has not judged it against the picture yet.
 - Dragon knight (switched off): no styles, gear not refitted, the cape passes
   through the legs.
 - Arpg: weapons are the robot's on every species; nothing shows a ring.

@@ -1950,7 +1950,34 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   (`contrib/lizard` lo dice). Corpo e braccia di una
   specie non devono portarsi le clip: una che non ne ha suona quelle del modello del giocatore (e di
   `<modello del giocatore>_arms`), con le ossa trovate per nome, così il file è la sua mesh e non un
-  megabyte di clip del robot. In un pezzo indossato un osso `wag_<n>` oscilla di lato attorno alla
+  megabyte di clip del robot. **Un mondo le cui braccia portano
+  ciò che tengono** (le `robot_arms` del fronte e dell'assalto, `tools/make_front_models.py`, e quelle di yafps e del
+  laboratorio, `tools/make_fps_models.py`: le armi
+  sono mesh su ossa `tool_<arma>` sotto un osso `gun`, l'osso della mano destra è `wrist_R` e non c'è
+  `hand_R`) lo fa tenere a ogni specie dove lo tiene il robot: le braccia di una specie -- del gioco
+  o di un add-on, con clip proprie o senza -- sono mosse da tutte le clip delle braccia di quel
+  mondo, e le armi, le fiammate e i bossoli sono disegnati dalle braccia del mondo lasciandone fuori
+  le braccia stesse (ogni osso di nome `fp_root`, `upper_arm_*`, `forearm_*`, `hand_*` o `wrist_*`).
+  Il pugno del robot è una sfera, quindi le sue clip girano il polso in qualunque modo (100 gradi e
+  più rispetto all'avambraccio, che arriva di lato): su una mano che prosegue dall'avambraccio è una
+  mano ripiegata all'indietro, e qualunque rotazione al polso strappa una pelle che non ha vertici
+  condivisi fra mano e avambraccio (l'umano, la lucertola). Perciò un mondo registra accanto alle
+  sue braccia **`<modello del giocatore>_arms_hands`**, lo stesso file con le chiavi delle ossa delle
+  braccia rifatte per mani vere da `tools/make_front_hands.py`: ogni mano orientata dall'arma -- la
+  destra lungo la canna con il suo punto di presa (4,6 cm lungo la mano, dove lo scheletro del
+  sandbox tiene un attrezzo) sull'impugnatura, la sinistra sotto l'arma a palmo in su finché il
+  pugno sinistro del robot è sull'arma -- l'avambraccio che prosegue dritto dalla mano **senza
+  nessuna rotazione al polso**, il gomito una cerniera piegata di 40 e 25 gradi fissi, la spalla
+  dove capita (fuori dalla vista); l'osso della mano destra si chiama di nuovo `hand_R` e la mesh
+  delle braccia del robot è tolta. Un file servito da un server è al massimo 1 MiB
+  (`kMaxMediaBytes`): lo strumento compatta il buffer e ne rifiuta uno più grande -- un modello
+  oltre il limite non viene servito, e il client ripiega senza dire niente a schermo (lo dice il
+  log del server). Con quel file, le clip delle specie e le armi vengono da lì; senza, dalle
+  braccia del
+  mondo con `hand_R` al posto di `wrist_R`. Il robot tiene sempre le sue. In `hand_R` allora non si
+  disegna niente (`<oggetto>_held` è per
+  i corpi visti da fuori), quindi braccia così devono portare tutto ciò che il loro mondo mette in
+  mano. A una specie non serve niente per questo: lo stesso file `_arms` sullo scheletro del sandbox. Un pezzo indossato è disegnato con la stessa luce e la stessa dissolvenza del corpo che lo porta. In un pezzo indossato un osso `wag_<n>` oscilla di lato attorno alla
   verticale, ogni anello dietro al precedente secondo il suo numero, così una catena è una coda che
   scodinzola: resta indietro in curva, e di corsa scodinzola più svelta e più stretta e si alza. La schermata del titolo trova
   gli stessi file nelle cartelle delle mod, compresa quella del giocatore `~/.cubes-and-portals/mods`.
@@ -2018,6 +2045,15 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   tagliate, e alle normali della superficie non si può chiedere. La coda è il suo pezzo indossato,
   su quattro anelli `wag_*`; gli stili (cresta, collare, spine) sono cubi posati su quelli del corpo,
   e gli accessori sono misurati sui suoi cubi.
+  `contrib/fox/make_fox.py` fa l'uomo volpe, un altro add-on, in un quarto modo, per un modello che
+  Meshy ha fatto con pochi triangoli (da un'immagine, smart topology: 12486 triangoli in sedici pezzi
+  non uniti): le sue facce restano, ogni pezzo portato sulle giunture del robot come quelli della
+  lucertola e sfoltito a 7000 triangoli, ogni faccia di un solo materiale piatto letto dalla texture
+  e tenuto a quello che il suo pezzo può avere (pelo tint_1, muso e petto tint_2, gilet tint_3).
+  Pezzi così non sono chiusi: ogni estremità aperta prende un tappo, e la testa, un guscio strappato
+  in schegge, viene rifatta come il solido chiuso attorno ai suoi punti. La coda è il suo pezzo
+  indossato su quattro anelli `wag_*`, gli stili (benda sull'occhio, faretra) sono parti sulle ossa
+  del robot, e gli accessori sono misurati sul suo corpo.
 * **Armature indossate.** Un oggetto con `wear` (`core.register_item`) va in
   uno dei quattro slot indossati della borsa (testa, petto, gambe, piedi; lo
   shift-click a borsa aperta lo mette e lo toglie). Se il mondo ha un modello

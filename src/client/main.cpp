@@ -6878,6 +6878,15 @@ WagMotion wag_motion(const Mat4 &place)
 // got (mods/armpack's arms): each one moved against its parent as the clip
 // moves it, and the parent as the wearer is posed. Its bones as drawn go to
 // `out`, for what it holds (draw_pack_tools).
+//
+// A piece is as bright and as faded as the body it is on (WornLit, set while
+// that body is drawn): a tail, a hat or a pack drawn at full light glowed on
+// a body standing in the dark. 1 and 1 with no body: the look page.
+float g_worn_light = 1.0f, g_worn_alpha = 1.0f;
+struct WornLit {
+    WornLit(float light, float alpha) { g_worn_light = light, g_worn_alpha = alpha; }
+    ~WornLit() { g_worn_light = g_worn_alpha = 1.0f; }
+};
 void draw_worn(ModelStore &models, const SkinnedModel &body, const std::vector<float> &posed,
                const std::string &name, const Mat4 &projection, const Mat4 &view,
                const Mat4 &place, uint16_t tint, const char *clip = nullptr,
@@ -6968,7 +6977,7 @@ void draw_worn(ModelStore &models, const SkinnedModel &body, const std::vector<f
                 for (int col = 0; col < 4; ++col) mine[(size_t)j * 12 + (size_t)(row * 4 + col)] = skin.at(row, col);
         }
     }
-    piece->renderer.draw(projection, view, place, mine, gfx_texture{0}, 1.0f, 1.0f,
+    piece->renderer.draw(projection, view, place, mine, gfx_texture{0}, g_worn_light, g_worn_alpha,
                          (uint32_t)tint << kTagIdBits);
     if (out != nullptr) *out = mine;
 }
@@ -7229,13 +7238,16 @@ int livery_style(uint32_t livery) { return (int)(livery >> net::kLiveryStyleShif
 // clips' keys have, as tools/make_species.py does for a file that carries
 // them: q and -q are one turn, but a blend from one to the other goes the
 // long way round.
-void borrow_clips(SkinnedModel &to, const SkinnedModel &from)
+void borrow_clips(SkinnedModel &to, const SkinnedModel &from, const char *from_joint = nullptr,
+                  const char *as_joint = nullptr)
 {
     if (!to.clips.empty() || from.clips.empty() || !to.skinned()) return;
     std::vector<int> at((size_t)from.joint_count, -1);
     for (int j = 0; j < from.joint_count; ++j)
         for (int k = 0; k < to.joint_count; ++k)
-            if (to.joint_names[(size_t)k] == from.joint_names[(size_t)j]) {
+            if (to.joint_names[(size_t)k] ==
+                (from_joint != nullptr && from.joint_names[(size_t)j] == from_joint ? std::string(as_joint)
+                                                                                   : from.joint_names[(size_t)j])) {
                 at[(size_t)j] = k;
                 const float *r = &from.joint_trs[(size_t)j * 10 + 3];
                 float       *q = &to.joint_trs[(size_t)k * 10 + 3];
@@ -7594,6 +7606,7 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
                                                            true),
                                  w.world_render.hand_light_at(place.at(0, 3), place.at(1, 3) + 0.5f, place.at(2, 3)));
     const LampTintHere lit_by(w, Vec3{place.at(0, 3), place.at(1, 3) + 0.5f, place.at(2, 3)});
+    const WornLit      worn_lit(light, b.alpha);
 
     // What is worn and held goes on whoever wears it: the rider when there is
     // one, never the vehicle -- a kart has no chest, and a pack bound to one
@@ -10040,7 +10053,41 @@ void draw_arms(Scene &s, const Mat4 &projection)
     if (player == nullptr || plain == nullptr) return;
     ModelStore::Entry *plain_arms = model_named(w, plain->name + "_arms");
     ModelStore::Entry *arms       = model_named(w, player->name + "_arms");
-    if (arms != nullptr && plain_arms != nullptr) borrow_clips(arms->model, plain_arms->model);
+    // A world's own arms may carry what they hold themselves, on a rig with a
+    // wrist_R and no hand_R (the front's and the assault's, with their guns:
+    // tools/make_front_models.py). A species' arms are then moved by those
+    // arms' clips, all of them -- its own six are the sandbox's -- and the
+    // guns are drawn out of the world's arms (below), not as what hand_R
+    // holds. The clips and the guns are "<those arms>_hands"'s when the world
+    // has it: the same arms with the clips made again for a hand that goes on
+    // from its forearm (tools/make_front_hands.py), where the robot's fist is
+    // a ball and its wrist turned any way. Without it, the robot's clips with
+    // this hand_R as their wrist_R.
+    ModelStore::Entry *carrier = nullptr;
+    if (arms != nullptr && plain_arms != nullptr && arms != plain_arms) {
+        const auto has_hand = [](const SkinnedModel &m) {
+            for (int j = 0; j < m.joint_count; ++j)
+                if (m.joint_names[(size_t)j] == "hand_R") return true;
+            return false;
+        };
+        SkinnedModel &to = arms->model;
+        if (plain_arms->model.skinned() && !plain_arms->model.clips.empty() && !has_hand(plain_arms->model)) {
+            ModelStore::Entry *hands = model_named(w, plain->name + "_arms_hands");
+            carrier = hands != nullptr && hands->model.skinned() && !hands->model.clips.empty() ? hands : plain_arms;
+            const SkinnedModel &from = carrier->model;
+            bool same = to.clips.size() == from.clips.size();
+            for (size_t c = 0; c < from.clips.size() && same; ++c) same = to.clips[c].name == from.clips[c].name;
+            if (!same) {
+                to.clips.clear();
+                s.arms.name.clear();   // what was playing is gone
+            }
+            if (has_hand(from)) borrow_clips(to, from);
+            else borrow_clips(to, from, "wrist_R", "hand_R");
+        } else {
+            borrow_clips(to, plain_arms->model);
+        }
+    }
+    const bool carried = carrier != nullptr;
     if (arms == nullptr) arms = plain_arms;
     if (arms == nullptr) return;
 
@@ -10099,8 +10146,25 @@ void draw_arms(Scene &s, const Mat4 &projection)
     arms->renderer.draw(proj, mat4_identity(), bob, posed, gfx_texture{0}, light, 1.0f,
                         livery_tag(net::g_client_livery));
 
-    draw_held_block(s.held_arms, w, arms->model, posed, s.hand, s.hand_block, proj, mat4_identity(), bob,
-                    s.held_model, s.hand_tag, light);
+    if (carried) {
+        // The world's arms with these clips, nothing of them drawn but what
+        // they carry: the arms' own joints' skinning gathered into a point
+        // (wheel_pose). The clips are in the same order in both (borrow_clips).
+        const std::vector<int8_t> theirs = tools_shown(carrier->model, s.hand);
+        static std::vector<float> carrying;
+        pose(carrier->model, clips, 2, nullptr, theirs.data(), carrying);
+        for (int j = 0; j < carrier->model.joint_count; ++j) {
+            const std::string &name = carrier->model.joint_names[(size_t)j];
+            if (name == "fp_root" || name.rfind("upper_arm_", 0) == 0 || name.rfind("forearm_", 0) == 0 ||
+                name.rfind("hand_", 0) == 0 || name.rfind("wrist_", 0) == 0)
+                std::fill(carrying.begin() + (ptrdiff_t)j * 12, carrying.begin() + (ptrdiff_t)j * 12 + 12, 0.0f);
+        }
+        carrier->renderer.draw(proj, mat4_identity(), bob, carrying, gfx_texture{0}, light, 1.0f,
+                                  livery_tag(net::g_client_livery));
+    } else {
+        draw_held_block(s.held_arms, w, arms->model, posed, s.hand, s.hand_block, proj, mat4_identity(), bob,
+                        s.held_model, s.hand_tag, light);
+    }
     if (!s.off_hand.empty())
         draw_held_block(s.held_off, w, arms->model, posed, s.off_hand, s.off_block, proj, mat4_identity(),
                         bob, "", s.off_tag, light, nullptr, true);

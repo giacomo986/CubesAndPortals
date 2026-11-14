@@ -9,7 +9,15 @@
 #                holding the front's guns, a bone tool_<gun> each: pistol,
 #                rifle, lmg and grenade. Clips idle_, raise_ and fire_<gun>;
 #                fire_grenade is the throw, the grenade gone from the fist as
-#                it leaves.
+#                it leaves. The right hand's bone is wrist_R, not hand_R:
+#                that is how the client knows these arms carry what they
+#                hold, and draws the guns for every species, whose own arms
+#                it moves with these clips made again for hands --
+#                robot_arms_hands, tools/make_front_hands.py, TO RUN AGAIN
+#                AFTER THIS (draw_arms in src/client/main.cpp;
+#                docs/MODDING.md, "A world whose arms carry what they
+#                hold"). So the arm bones' names and rest must stay the
+#                sandbox's arms' (tools/make_species.py).
 #   <gun>_held   each gun on its own about its grip, barrel +Y: in a hand seen
 #                by others. grenade_held is also the grenade in flight.
 #   soldier_red, soldier_blue

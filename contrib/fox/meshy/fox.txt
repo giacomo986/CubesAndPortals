@@ -1,0 +1,5 @@
+picture: concept.png
+model: meshy-t2.5 smart-topology
+polys: 12000
+pose: a-pose
+task: 01a1d9e7-30af-7619-a13d-802f48239a70

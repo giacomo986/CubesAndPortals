@@ -17,8 +17,8 @@
 # middle is inside a part, of the colour the texture has nearest it, following
 # the bone its height puts it on. Each bone's cubes are a closed shell of their
 # own -- a bent elbow shows a face, not a hole -- and faces of one colour side
-# by side are one face. The hands, a cube or two thin as Meshy made them, are
-# grown by HAND_GROW cubes across.
+# by side are one face. The hands, open and a cube or two thin as Meshy made
+# them, are made fists (FIST cubes) round where the robot holds a tool.
 #
 # The colours are flat materials: the skin tint_1, the belly tint_2 and the
 # harness tint_3, which the player dyes; the dark scales and the eyes stay.
@@ -58,7 +58,7 @@ NAME = "robot_lizard"
 
 CELL = 0.04   # metres a cube
 WAGS = 4   # the tail's links, wag_1 at the hips to wag_4 at the tip
-HAND_GROW = 1   # cubes the hands are grown by, across: Meshy's were a cube or two thin
+FIST = (3, 2, 3)   # cubes a fist is across, along a tool's handle and down
 
 # The lizard's own joints, read off front and side renders of the file, in
 # shares of its height: x either side of its middle, z up from its soles. Its
@@ -247,7 +247,7 @@ def cubes(tris, label, bones):
                     bone[i, j, kk] = BONE_NAMES.index(name)
         print(f"{PARTS[k]}: {int(m.sum())} triangles")
     tail = links(bone, lo)
-    grow_hands(bone)
+    fists(bone, lo)
     print(f"{int((bone >= 0).sum())} cubes of {CELL * 100:g} cm in a grid of {tuple(size)}")
     # The colour of each side of each cube that shows: what most of the five
     # triangles nearest that side's middle are.
@@ -306,18 +306,21 @@ def links(bone, lo):
     return joints
 
 
-def grow_hands(bone):
-    """Each hand grown by HAND_GROW cubes across (x and y), into what is empty."""
-    hands = [BONE_NAMES.index(b) for b in ("hand_L", "hand_R")]
-    for _ in range(HAND_GROW):
-        grown = bone.copy()
-        for h in hands:
-            mine = bone == h
-            for a in (0, 1):
-                for d in (1, -1):
-                    moved = np.roll(mine, d, axis=a)
-                    grown[moved & (grown < 0)] = h
-        bone[:] = grown
+def fists(bone, lo):
+    """Each hand made a fist round where the robot's tools are held: Meshy's
+    hang open, a cube or two thin and long under the wrist, and a handle
+    crossed them at the wrist with the fingers left dangling. A block FIST
+    cubes across, along the handle and down, the handle (4.5 cm under the
+    wrist, running fore and aft) through its middle."""
+    for name, sx in (("hand_L", -1.0), ("hand_R", 1.0)):
+        h = BONE_NAMES.index(name)
+        bone[bone == h] = -1
+        i0 = int(round(sx * R_SHOULDER[0] / CELL - 0.5 - (FIST[0] - 1) / 2)) - lo[0]
+        j0 = int(round(-FIST[1] / 2)) - lo[1]
+        k1 = int(np.ceil(R_WRIST / CELL)) - lo[2]   # from the cube the wrist is in, down
+        block = bone[i0:i0 + FIST[0], j0:j0 + FIST[1], k1 - FIST[2]:k1]
+        assert block.shape == FIST, "the fist is out of the grid"
+        block[block < 0] = h
 
 
 def shell(bone, mats, lo, only=None):

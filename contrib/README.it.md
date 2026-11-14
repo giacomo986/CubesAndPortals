@@ -10,6 +10,7 @@ caricata accanto a quelle del gioco, e giocata -- prima che qualcosa passi in `m
 | Add-on | Cos'è |
 |---|---|
 | [`lizard`](lizard) | L'uomo lucertola, una specie per il giocatore: fatto con Meshy, cubi sullo scheletro del robot, una coda che scodinzola, tre stili e gli accessori del robot fatti su misura |
+| [`fox`](fox) | L'uomo volpe, una specie per il giocatore: fatto con Meshy, facce a colore piatto sullo scheletro del robot, una coda folta che scodinzola, due stili (benda sull'occhio, faretra) e gli accessori del robot fatti su misura |
 
 ## Provarne uno
 
@@ -40,3 +41,5 @@ versione degli accessori seguono gli stessi nomi ([docs/MODDING.it.md](../docs/M
 
 Quello che l'ha fatta -- uno script di Blender, un sorgente Meshy -- può stare nella sua cartella. Un
 sorgente grande resta fuori dal repository (`.gitignore`): `lizard/meshy/lizard.glb` pesa 16,6 MB.
+Quello della volpe è piccolo (`fox/meshy/`: l'immagine da cui è fatta, 1 MB, e il modello di Meshy,
+2,7 MB) e resta.

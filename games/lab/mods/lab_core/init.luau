@@ -25,6 +25,7 @@ for _, extra in {"cap", "tophat", "headphones", "scarf", "bowtie", "medal",
                   "frog_cap", "frog_tophat", "frog_headphones", "frog_scarf", "frog_bowtie", "frog_medal"} do
     core.register_model("lab_core:robot_" .. extra, "robot_" .. extra .. ".gltf")
 end
+core.register_model("lab_core:robot_arms_hands", "robot_arms_hands.gltf")   -- for a species' arms (tools/make_front_hands.py)
 core.register_model("lab_core:robot_arms", "robot_arms.gltf")   -- yafps_core's: the guns' bones and clips
 core.eye_height(1.5)
 core.movement(4.8, 8, 0, 8, -25)

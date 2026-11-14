@@ -44,6 +44,9 @@ for _, extra in {"cap", "tophat", "headphones", "scarf", "bowtie", "medal",
 end
 core.eye_height(1.5)   -- the robot's visor
 core.register_model("yafps_core:robot_arms", "robot_arms.gltf")
+-- The same with its clips made again for arms that end in hands: what moves a
+-- species' arms and carries its guns (tools/make_front_hands.py).
+core.register_model("yafps_core:robot_arms_hands", "robot_arms_hands.gltf")
 
 -- Modern arena shooters are fast: 2.2 times the sandbox's walk, 1.6 times its jump
 -- (walk 4.8, sprint 8, jump 8), as yafps asked of the original engine.

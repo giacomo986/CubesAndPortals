@@ -10,6 +10,7 @@ own, and played -- before anything is taken into `mods/`.
 | Add-on | What it is |
 |---|---|
 | [`lizard`](lizard) | The lizard man, a species for the player: made with Meshy, cubes on the robot's skeleton, a tail that wags, three styles and the robot's accessories fitted to it |
+| [`fox`](fox) | The fox man, a species for the player: made with Meshy, flat-coloured facets on the robot's skeleton, a bushy tail that wags, two styles (eye patch, quiver) and the robot's extras made to measure |
 
 ## Trying one
 
@@ -38,4 +39,5 @@ drawn in every world; its styles, the piece it always wears and its own fit of t
 follow the same names ([docs/MODDING.md](../docs/MODDING.md), "The player's colours and accessories").
 
 What made it -- a Blender script, a Meshy source -- may live in its folder too. A large source is
-kept out of the repository (`.gitignore`): `lizard/meshy/lizard.glb` is 16.6 MB.
+kept out of the repository (`.gitignore`): `lizard/meshy/lizard.glb` is 16.6 MB. The fox's is small
+(`fox/meshy/`: the picture it was made from, 1 MB, and Meshy's model, 2.7 MB) and stays.

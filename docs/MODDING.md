@@ -1745,7 +1745,32 @@ on foot and get into a parked kart: `games/track`.
   once and needs no other mod; with `rooms = all` in its `mod.conf` every room of a server has it
   (`contrib/lizard` says so). A species' body and arms need not carry clips: one that has none plays the
   player model's (and `<player model>_arms`'s), its bones found by name, so the file is its mesh and
-  not a megabyte of the robot's clips. In a worn piece a `wag_<n>` bone swings side to side about the
+  not a megabyte of the robot's clips. **A world whose arms carry
+  what they hold** (the front's and the assault's `robot_arms`, `tools/make_front_models.py`, and yafps's and the
+  lab's, `tools/make_fps_models.py`: the guns
+  are meshes on `tool_<gun>` bones under a `gun` bone, the right hand's bone is `wrist_R` and there is
+  no `hand_R`) has every species hold it where the robot does: a species' arms -- a game's or an
+  add-on's, with clips of their own or without -- are moved by all of that world's arms' clips, and
+  the guns, their flashes and shells are drawn out of the world's arms with the arms themselves left
+  out (every bone named `fp_root`, `upper_arm_*`, `forearm_*`, `hand_*` or `wrist_*`). The robot's
+  fist is a ball, so its clips turn the wrist any way (100 degrees and more to the forearm, which
+  comes in from the side): on a hand that goes on from its forearm that is a hand folded back, and
+  any turn at a wrist shears a skin that has no vertex shared between hand and forearm (the
+  human's, the lizard's). So a world registers beside its arms **`<player model>_arms_hands`**, the
+  same file with the arm bones' keys made again for hands by `tools/make_front_hands.py`: each hand
+  turned from the gun -- the right along the barrel with its grip point (4.6 cm along the hand,
+  where the sandbox's rig holds a tool) on the gun's grip, the left under the gun with its palm up
+  while the robot's left fist is at the gun -- the forearm straight on from the hand with **no turn
+  at the wrist at all**, the elbow a hinge bent a fixed 40 and 25 degrees, the shoulder wherever
+  that leaves it (out of the view); the right hand's bone is named `hand_R` again and the robot's
+  own arms' mesh is left out. A file a server hands out is 1 MiB at most (`kMaxMediaBytes`): the
+  tool packs the buffer and refuses a bigger one -- a model over it is not served, and the client
+  falls back without a word on screen (the server's log says so). With that file, the
+  species' clips and the guns come from it; without it, from the world's arms with
+  `hand_R` as their `wrist_R`. The robot always keeps its own. Nothing is then drawn in `hand_R`
+  (`<item>_held` is for bodies seen from outside), so
+  such arms must carry everything their world puts in a hand. A species needs nothing for this: the
+  same `_arms` file on the sandbox's rig. A worn piece is drawn as bright and as faded as the body it is on. In a worn piece a `wag_<n>` bone swings side to side about the
   upright, each link behind the one before by its number, so a chain of them is a tail that wags: it trails out of a turn, and at a run it wags quicker and narrower and lifts. The title screen finds the same files in the mod folders, the player's
   `~/.cubes-and-portals/mods` included. `contrib/lizard` is one. `tools/make_species.py` makes them all: every body part (head, torso, arm,
   leg) is a single surface, primitives fused with a voxel remesh, smoothed and decimated, with weights
@@ -1795,6 +1820,14 @@ on foot and get into a parked kart: `games/track`.
   times: the parts are open where they were cut, and the surface's own normals cannot be asked.
   The tail is its worn piece, on four `wag_*` links; the styles (crest, frill, spikes) are cubes laid
   on the body's, and the accessories are measured off its cubes.
+  `contrib/fox/make_fox.py` makes the fox man, another add-on, a fourth way, for a model Meshy made
+  low (image-to-3D from a picture, smart topology: 12486 triangles in sixteen pieces that are not
+  joined): its own faces are kept, each piece brought onto the robot's joints as the lizard's are
+  and thinned to 7000 triangles, every face one flat material read off the texture and held to what
+  its piece may be painted (fur tint_1, muzzle and chest tint_2, vest tint_3). Such pieces are not
+  closed: every open end takes a lid, and the head, a shell torn into shards, is made again as the
+  closed solid round its points. The tail is its worn piece on four `wag_*` links, the styles
+  (eye patch, quiver) are parts on the robot's bones, and the accessories are measured off its body.
 * **Worn armour.** An item with `wear` (`core.register_item`) goes in one of the bag's four worn
   slots (head, chest, legs, feet; shift-click with the bag open puts it on and takes it off). If the
   world has a model with the item's name (`core.register_model("armor:iron_helmet", ...)`), the body

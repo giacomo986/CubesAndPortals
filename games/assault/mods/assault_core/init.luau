@@ -84,6 +84,9 @@ for _, extra in {"cap", "tophat", "headphones", "scarf", "bowtie", "medal",
     core.register_model("assault_core:robot_" .. extra, "robot_" .. extra .. ".gltf")
 end
 core.register_model("assault_core:robot_arms", "robot_arms.gltf")
+-- The same with its clips made again for arms that end in hands: what moves a
+-- species' arms and carries its guns (tools/make_front_hands.py).
+core.register_model("assault_core:robot_arms_hands", "robot_arms_hands.gltf")
 core.eye_height(1.5)
 
 core.movement(4.8, 8.5, 0, 8, -25)
