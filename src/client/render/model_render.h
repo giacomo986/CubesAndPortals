@@ -48,6 +48,9 @@ public:
     static inline float lamp_tint[3] = {1.0f, 1.0f, 1.0f};
 
     static inline ModelSun sun;
+    // Drawing through a mirror (a thing in the left hand, made for the right):
+    // the triangles wind the other way, so the other side is culled.
+    static inline bool mirrored = false;
 
     // What the eye's pass draws, kept for the next frame's shadow map: a
     // frame late, which a moving shadow does not show. Only within

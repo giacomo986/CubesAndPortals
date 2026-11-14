@@ -121,9 +121,15 @@ public:
     // leave them alone as they leave the worn ones.
     static constexpr int kArms = kMaxArms;
 
-    // A player's bag: the 36, the five worn squares and the two arms. A bag
-    // saved with fewer loads into it as it was, the rest empty.
-    Inventory() : m_slots((size_t)(kDefaultSlots + kWorn + kArms)), m_worn_from(kDefaultSlots) {}
+    // And last the OTHER hand, the left: one square of anything, held while
+    // the hotbar's choice is in the right (the swap key trades the two). Like
+    // the worn squares, add() and take_by_item never reach it.
+    static constexpr int kOffhand     = 1;
+    static constexpr int kOffhandSlot = kDefaultSlots + kWorn + kArms;
+
+    // A player's bag: the 36, the five worn squares, the two arms and the left
+    // hand. A bag saved with fewer loads into it as it was, the rest empty.
+    Inventory() : m_slots((size_t)(kDefaultSlots + kWorn + kArms + kOffhand)), m_worn_from(kDefaultSlots) {}
 
     // Any other inventory -- a chest, a grid -- with nothing worn in it.
     explicit Inventory(int slots);
@@ -240,7 +246,12 @@ public:
     // piece whose arms hold something does not come off -- not into the bag,
     // a chest or the ground -- until they are emptied, so nothing is left in
     // a square nobody can see.
-    bool arm(int slot) const { return m_worn_from >= 0 && slot >= m_worn_from + kWorn; }
+    bool arm(int slot) const
+    {
+        return m_worn_from >= 0 && slot >= m_worn_from + kWorn && slot < m_worn_from + kWorn + kArms;
+    }
+    // Whether it is the left hand's square (kOffhandSlot), on a player's bag.
+    bool off_hand(int slot) const { return m_worn_from >= 0 && slot == m_worn_from + kWorn + kArms; }
     int  arms_open(const ItemRegistry &items) const;
     bool pinned(const ItemRegistry &items, int slot) const;
 

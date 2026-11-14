@@ -4818,6 +4818,11 @@ std::vector<EntityState> ServerSessions::entities_for(PeerId peer, float radius)
             // Hold last named, or the one an Edit or a hit last used.
             s.item      = bag->held().item;
             s.item_tint = (uint16_t)(bag->held().tag >> kTagIdBits);
+            // And the left hand (124).
+            if (bag->size() > Inventory::kOffhandSlot && !bag->at(Inventory::kOffhandSlot).empty()) {
+                s.off_item = bag->at(Inventory::kOffhandSlot).item;
+                s.off_tint = (uint16_t)(bag->at(Inventory::kOffhandSlot).tag >> kTagIdBits);
+            }
             s.working   = e.has<ecs::Working>();
             s.crouching = e.has<ecs::Crouching>();
             if (const ecs::Posed *pose = e.try_get<ecs::Posed>()) s.clip = pose->clip;   // core.player_clip (92)

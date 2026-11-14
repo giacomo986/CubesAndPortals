@@ -246,10 +246,17 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         return;
     }
 
+    // How far the hands are over the feet, and what a ledge is to them, go
+    // with the body's size (core.body_scale): a body half as tall hangs half
+    // as far under an edge, reaches half as high for one, and steps up onto
+    // nothing a node high.
+    const float sc   = rules.scale;
+    const float tall = box_height(player, rules);
+
     // Hanging from a ledge by the hands.
     if (player.hanging) {
         const Ledge l = find_ledge(world, reg, player.pos, half, player.hang_dx, player.hang_dz,
-                                   kHangDrop - 0.3f, kHangDrop + 0.3f);
+                                   (kHangDrop - 0.3f) * sc, (kHangDrop + 0.3f) * sc);
         player.velocity = Vec3{};
         if (!l.found || input.descend) {
             // The ledge went, or the hands let go: it falls, and does not
@@ -268,7 +275,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
             to.y = l.edge;
             if (player.hang_dx != 0) to.x = l.face + (float)player.hang_dx * in;
             else                     to.z = l.face + (float)player.hang_dz * in;
-            if (!box_hits_world(world, reg, body_box(to, half))) {
+            if (!box_hits_world(world, reg, body_box(to, half, 0.0f, tall))) {
                 player.hanging     = false;
                 player.stepping    = false;
                 player.mantle      = 1e-4f;
@@ -285,10 +292,10 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
                              (float)player.hang_dx * side * kShimmy * dt};
             const MoveResult r = move_body(world, reg, player.pos, along, player.cb_shift, 0.0f, half);
             const Ledge still  = find_ledge(world, reg, r.pos, half, player.hang_dx, player.hang_dz,
-                                            kHangDrop - 0.3f, kHangDrop + 0.3f);
+                                            (kHangDrop - 0.3f) * sc, (kHangDrop + 0.3f) * sc);
             if (still.found) {
                 player.pos   = r.pos;
-                player.pos.y = still.edge - kHangDrop;
+                player.pos.y = still.edge - kHangDrop * sc;
             }
         }
         player.on_ground = false;
@@ -794,7 +801,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         const Vec3 f = player.forward();
         const int  dx = std::fabs(f.x) >= std::fabs(f.z) ? (f.x > 0 ? 1 : -1) : 0;
         const int  dz = dx == 0 ? (f.z > 0 ? 1 : -1) : 0;
-        const Ledge l = find_ledge(world, reg, player.pos, half, dx, dz, kStepHeight + 0.01f, 1.01f);
+        const Ledge l = find_ledge(world, reg, player.pos, half, dx, dz, kStepHeight * sc + 0.01f, 1.01f * sc);
         const float along = dx != 0 ? player.pos.x : player.pos.z;
         const float gap   = dx + dz > 0 ? l.face - (along + half) : (along - half) - l.face;
         if (l.found && gap < 0.1f) {
@@ -803,7 +810,7 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
             to.y = l.edge;
             if (dx != 0) to.x = l.face + (float)dx * in;
             else         to.z = l.face + (float)dz * in;
-            if (!box_hits_world(world, reg, body_box(to, half))) {
+            if (!box_hits_world(world, reg, body_box(to, half, 0.0f, tall))) {
                 player.hang_dx     = dx;
                 player.hang_dz     = dz;
                 player.stepping    = true;
@@ -826,16 +833,16 @@ void player_update(Player &player, const World &world, const NodeRegistry &reg,
         const Vec3 f = player.forward();
         const int  dx = std::fabs(f.x) >= std::fabs(f.z) ? (f.x > 0 ? 1 : -1) : 0;
         const int  dz = dx == 0 ? (f.z > 0 ? 1 : -1) : 0;
-        const Ledge l = find_ledge(world, reg, player.pos, half, dx, dz, 1.0f, kHangDrop + 0.25f);
+        const Ledge l = find_ledge(world, reg, player.pos, half, dx, dz, 1.0f * sc, (kHangDrop + 0.25f) * sc);
         const float along = dx != 0 ? player.pos.x : player.pos.z;
         const float gap   = dx + dz > 0 ? l.face - (along + half) : (along - half) - l.face;
         if (l.found && (input.move_forward > 0.3f || gap < 0.1f)) {
             Vec3 at = player.pos;
-            at.y = l.edge - kHangDrop;
+            at.y = l.edge - kHangDrop * sc;
             // Against the wall's face.
             if (dx != 0) at.x = l.face - (float)dx * (half + 0.01f);
             else         at.z = l.face - (float)dz * (half + 0.01f);
-            if (!box_hits_world(world, reg, body_box(at, half))) {
+            if (!box_hits_world(world, reg, body_box(at, half, 0.0f, tall))) {
                 player.pos      = at;
                 player.velocity = Vec3{};
                 player.hanging   = true;

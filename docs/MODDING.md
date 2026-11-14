@@ -1990,11 +1990,30 @@ said `core.engine_hud(false)`.
 (`core.cursor_ray`), the body stays still (the keys do not walk) and is not seen; `distance` 0 brings
 it back to the eye. It is `mods/chess`'s view over the board.
 
+`core.side_view(distance, yaw, fov, seconds)` is the same camera with no tilt, **from the side**, for
+a platform game: A and D walk along the picture, W jumps, S crouches, and the body is kept on the
+plane it stood on when the camera was asked for -- nothing walks into the picture. The picture
+follows as a platform game's screen does: the body moves a little either way before it scrolls,
+then it scrolls smoothly, a jump moves it less than a fall. `yaw` is the way
+the camera looks (0 puts +x on the right). `games/platformer` builds its level along that plane.
+`core.top_view(distance, yaw, fov, seconds)` is the camera **from overhead**, for an arcade shooter:
+the body goes on facing the top of the screen (`yaw`), W A S D slide it without turning it, and
+where the world flies it flies level -- the jump and crouch keys are left to the mod
+(`games/shmup` fires with the space bar). `distance` 0 brings either back to the eye.
+`core.top_view_at(x, y, z, distance, yaw, fov, seconds)` holds that camera over **a point** while
+the body moves under it: one screen that does not scroll, a cabinet's.
+
 `core:input` arrives when the player **presses** and when they **let go**, while playing:
 `mouse_left`, `mouse_right`, and the keys `key_w`, `key_a`, `key_s`, `key_d`, `key_space`,
 `key_shift`, `key_ctrl`, `key_f`, `key_r`, `key_e`, `key_q`, `key_v`, `key_c`, `key_b`, `key_f4`,
-`key_f8`, `key_i`, `key_k`, `key_1` … `key_9`; the release is the same name with `_up` (`key_w_up`,
-`mouse_left_up`). With a chest open over the bag `wheel_up` and `wheel_down` arrive too, the wheel
+`key_f8`, `key_i`, `key_k`, `key_h`, `key_1` … `key_9`; the release is the same name with `_up` (`key_w_up`,
+`mouse_left_up`). Each of those is the game's key by what it does, not by the letter on it: a player
+who moved Forward to the up arrow in Options > Controls still sends `key_w`. A mod with a key of its
+own registers it: `core.register_key("mymod:dash", "G", "Dash")` lists "Dash" on the Controls page,
+starting on G and movable there like the game's, and its presses arrive as `key_mymod:dash` and
+`key_mymod:dash_up` (`mods/torches` shows its dark spots on its own key, `games/platformer` throws
+with one). The key may be a mouse button too: `"MOUSE3"` the middle, `"MOUSE4"` and `"MOUSE5"` the
+side ones. Call it on the player's side of a `both` mod; on a server it does nothing. With a chest open over the bag `wheel_up` and `wheel_down` arrive too, the wheel
 (`mods/creative` scrolls the rows). A held key is one pressed and not yet released. A handler setting
 `ev.cancel = true` on a mouse **press** has **claimed** it: the engine does not dig, strike, place or
 use with that press, until the button comes back up. Keys are only heard: the engine walks, flies and

@@ -136,6 +136,8 @@ bool WorldRenderer::init(NodeRegistry &reg, const MediaSource &media)
     m_loc_sun_dir      = gfx_uniform_location(m_shader, "uSunDir");
     m_loc_sun_color    = gfx_uniform_location(m_shader, "uSunColor");
     m_loc_ambient      = gfx_uniform_location(m_shader, "uAmbient");
+    m_loc_hand_box     = gfx_uniform_location(m_shader, "uHandBox");
+    m_loc_hand_cells   = gfx_uniform_location(m_shader, "uHandCells");
     m_loc_shadow_vp    = gfx_uniform_location(m_shader, "uShadowVP");
     m_loc_shadow       = gfx_uniform_location(m_shader, "uShadow");
     m_loc_shadow_on    = gfx_uniform_location(m_shader, "uShadowOn");
@@ -500,8 +502,33 @@ void WorldRenderer::draw_shadows(Vec3 eye, Vec3 forward, bool casters)
     m_shadow_drawn = true;
 }
 
+void WorldRenderer::set_hand_light(const std::vector<uint8_t> &rgba, int ox, int oy, int oz)
+{
+    if (rgba.size() != (size_t)kHandTexW * kHandTexH * 4) return;
+    m_hand_px = rgba;
+    if (m_hand_tex.id == 0)
+        m_hand_tex = gfx_texture_create(m_hand_px.data(), kHandTexW, kHandTexH, GFX_PF_RGBA8, GFX_FILTER_NEAREST);
+    else
+        gfx_texture_update(m_hand_tex, m_hand_px.data(), 0, 0, kHandTexW, kHandTexH, GFX_PF_RGBA8);
+    m_hand_o[0] = ox, m_hand_o[1] = oy, m_hand_o[2] = oz;
+    m_hand_on   = true;
+}
+
+float WorldRenderer::hand_light_at(float x, float y, float z) const
+{
+    if (!m_hand_on || m_hand_px.empty()) return 0.0f;
+    const int cx = (int)std::floor(x) - m_hand_o[0], cy = (int)std::floor(y) - m_hand_o[1],
+              cz = (int)std::floor(z) - m_hand_o[2];
+    if (cx < 0 || cy < 0 || cz < 0 || cx >= kHandBox || cy >= kHandBox || cz >= kHandBox) return 0.0f;
+    const size_t px = (size_t)((cy % 8) * kHandBox + cx), py = (size_t)((cy / 8) * kHandBox + cz);
+    return (float)m_hand_px[(py * (size_t)kHandTexW + px) * 4] / 255.0f;
+}
+
 void WorldRenderer::shutdown()
 {
+    if (m_hand_tex.id) gfx_texture_destroy(m_hand_tex);
+    m_hand_tex = gfx_texture{0};
+    m_hand_on  = false;
     if (m_shadow_rt.id) gfx_rt_destroy(m_shadow_rt);
     if (m_shadow_none.id) gfx_rt_destroy(m_shadow_none);
     if (m_shadow_shader.id) gfx_shader_destroy(m_shadow_shader);
@@ -1332,6 +1359,16 @@ void WorldRenderer::bind_world(const Mat4 &projection, const Mat4 &view)
     gfx_uniform_set_f(m_loc_classic_day, m_classic_day);
     gfx_uniform_set_v4(m_loc_foliage, m_foliage, 1);
     gfx_uniform_set_f(m_loc_night, m_night_sight);
+    // The hands' light on unit 3, or the box off.
+    {
+        const float box[4] = {(float)m_hand_o[0], (float)m_hand_o[1], (float)m_hand_o[2],
+                              m_hand_on && m_hand_tex.id != 0 ? 1.0f : 0.0f};
+        if (m_loc_hand_box >= 0) gfx_uniform_set_v4(m_loc_hand_box, box, 1);
+        if (m_hand_tex.id != 0) {
+            gfx_texture_bind(m_hand_tex, 3);
+            if (m_loc_hand_cells >= 0) gfx_uniform_set_int(m_loc_hand_cells, 3);
+        }
+    }
 
     // The water first, so the unit left active is 0, the one everything
     // drawn after this binds to without saying.

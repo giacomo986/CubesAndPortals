@@ -1234,7 +1234,8 @@ local api: { Fn } = {
             { name = "scale", type = "float", default = 1.0, doc = "How big against a body at 1: 1/32 to 4." },
         },
         doc = "Makes ONE player's body small or big, at any time: its box, steps, eye, speeds, "
-           .. "jump, gravity and fall all scale together, as do the camera's near plane and its "
+           .. "jump, gravity and fall all scale together, as do the ledges its hands take and how "
+           .. "far under one it hangs, the camera's near plane and its "
            .. "reach, and everybody sees it drawn that big -- so a body at 1/16 goes through a "
            .. "world of blocks as a body at 1 would through one sixteen times bigger. Speeds a mod "
            .. "gives it later (core.body_movement) are a body at 1's and shrink with it. Returns 1, "
@@ -1585,6 +1586,103 @@ local api: { Fn } = {
            .. "core.iso_view's camera, held on the point instead of the head: the cursor is free "
            .. "(core.cursor_ray) and the body stands still, the keys walk nowhere. For a world's "
            .. "code on a player's machine; per world, as core.view.",
+    },
+    {
+        name = "register_key",
+        host = "register_key",
+        ret  = "bool",
+        args = {
+            { name = "name", type = "string",
+              doc = "What it is heard as: core:input's action is \"key_\" .. name when it goes down "
+                 .. "and \"key_\" .. name .. \"_up\" when it comes up. Lower case letters, digits, "
+                 .. "_ : and . -- best begun with the mod's name (\"mymod:dash\"), 1 to 40 of them." },
+            { name = "key", type = "string",
+              doc = "The key it starts as, by what is printed on it: \"G\", \"7\", \"F9\", \"SPACE\", "
+                 .. "\"TAB\", \"ALT\", \"KP1\", \"-\"..., or a mouse button: \"MOUSE3\" the middle, "
+                 .. "\"MOUSE4\" and \"MOUSE5\" the side ones. \"\" for none until the player picks one." },
+            { name = "label", type = "string", default = "",
+              doc = "What the Controls page calls it, translated as any text is; empty is the name." },
+        },
+        doc = "A key of the mod's own, in the player's Options > Controls beside the game's, where "
+           .. "the player can move it to another key; the choice is kept between runs. Pressed "
+           .. "and let go, it reaches the world's code on the player's machine as core:input, as "
+           .. "the game's own keys do (\"key_w\"...) -- heard only, it takes the key from nothing "
+           .. "else. Called again with the same name it changes the label and the starting key, "
+           .. "and leaves a key the player moved where it is. False for a name or a key it does "
+           .. "not take. For a world's code on a player's machine; on a server it does nothing "
+           .. "and is false.",
+    },
+    {
+        name = "side_view",
+        host = "side_view",
+        args = {
+            { name = "distance", type = "float", default = 0.0,
+              doc = "Nodes from the player's head to the camera; 0 goes back to the eye. At most 40." },
+            { name = "yaw", type = "float", default = 0.0,
+              doc = "Which way the camera looks, in degrees round from -Z as a player's yaw: 0 puts "
+                 .. "+X on the right of the picture." },
+            { name = "fov", type = "float", default = 0.0,
+              doc = "Its vertical field of view in degrees, 10 to 100; 0 is the engine's 70." },
+            { name = "seconds", type = "float", default = 0.0,
+              doc = "How long the camera takes to swing out of the eye to there, or back; 0 is a "
+                 .. "cut. At most 10." },
+        },
+        doc = "A camera level with the player and to one side of them, as in a platform game seen "
+           .. "from the side, or (distance 0) back to the eye. It is core.iso_view's camera with "
+           .. "no tilt, and other keys: A and D walk along the picture and turn the body that "
+           .. "way, W jumps as the jump key does, S crouches, and nothing walks into the picture "
+           .. "or out of it -- the body is kept on the plane across the camera's look that it "
+           .. "stood on when this was first called, and walked back to it when something pushes "
+           .. "it off. Called again while it is on, it moves the camera and keeps the plane. The "
+           .. "picture follows the body as a platform game's screen does: the body moves a little "
+           .. "either way before it scrolls, and then it scrolls smoothly; a jump moves it less than "
+           .. "a fall, and a body put far away (a pipe, a portal) is followed at once. The "
+           .. "level is the world's to build along that plane. For a world's code on a player's "
+           .. "machine; per world, as core.view.",
+    },
+    {
+        name = "top_view",
+        host = "top_view",
+        args = {
+            { name = "distance", type = "float", default = 0.0,
+              doc = "Nodes from the player's head up to the camera; 0 goes back to the eye. At most 40." },
+            { name = "yaw", type = "float", default = 0.0,
+              doc = "Which way the top of the screen is, in degrees round from -Z as a player's yaw." },
+            { name = "fov", type = "float", default = 0.0,
+              doc = "Its vertical field of view in degrees, 10 to 100; 0 is the engine's 70." },
+            { name = "seconds", type = "float", default = 0.0,
+              doc = "How long the camera takes to rise out of the eye to there, or back; 0 is a "
+                 .. "cut. At most 10." },
+        },
+        doc = "A camera straight over the player, as over the fighter of an arcade cabinet, or "
+           .. "(distance 0) back to the eye. It is core.iso_view's camera looking down, and other "
+           .. "keys: the body goes on facing the top of the screen whatever is pressed, and W A S "
+           .. "D slide it up, left, down and right without turning it. Where the world flies "
+           .. "(core.movement) the body flies while this is on, level: the jump and crouch keys "
+           .. "neither climb nor dive, so a mod hears them (core:input) for what it likes. For a "
+           .. "world's code on a player's machine; per world, as core.view.",
+    },
+    {
+        name = "top_view_at",
+        host = "top_view_at",
+        args = {
+            { name = "x", type = "float", doc = "The point the camera stays over, in the world." },
+            { name = "y", type = "float" },
+            { name = "z", type = "float" },
+            { name = "distance", type = "float", default = 0.0,
+              doc = "Nodes from the point up to the camera; 0 goes back to the eye. At most 40." },
+            { name = "yaw", type = "float", default = 0.0,
+              doc = "Which way the top of the screen is, in degrees round from -Z as a player's yaw." },
+            { name = "fov", type = "float", default = 0.0,
+              doc = "Its vertical field of view in degrees, 10 to 100; 0 is the engine's 70." },
+            { name = "seconds", type = "float", default = 0.0,
+              doc = "How long the camera takes to fly from the eye to there, or back; 0 is a cut. At most 10." },
+        },
+        doc = "core.top_view's camera held over one point instead of over the head: a whole "
+           .. "field on one screen that does not scroll, as an arcade cabinet's, the body sliding "
+           .. "about under it with the same keys. Unlike core.fixed_view the body moves and is "
+           .. "drawn. Keeping it inside the picture is the mod's (core.player_place, or walls). "
+           .. "For a world's code on a player's machine; per world, as core.view.",
     },
     {
         name = "cursor_ray",

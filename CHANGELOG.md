@@ -5,6 +5,29 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
+## 0.17.0-alpha.1 — 2026-11-14
+
+**Does not play with 0.16 servers** (protocol 124). Worlds are read as they are; a bag saved before
+gets an empty left hand.
+
+- **Torches** have a real model in the hand and go on floors, walls and ceilings. A torch, or any
+  block that gives light, held in either hand lights round you as it would put down -- round
+  corners, not through walls -- and everybody sees it.
+- **The left hand**: a second thing to hold, swapped with H, on the bag's figure and beside the
+  hotbar, seen by everybody.
+- **Options > Controls**: every key but ESC can be moved, to another key or to the middle and side
+  mouse buttons. Mods can add keys of their own there (`core.register_key`).
+- **Português**: the game and a README in Brazilian Portuguese.
+- **Two new games** behind gates on the plaza: a platform game seen from the side, with power-ups,
+  pipes and a bonus room, and an arcade shooter flown from above.
+- **Rooms**: portals between rooms of one server built from a frame's menu, rooms started and
+  stopped from a file, a room of your own for every player, difficulty and rules in every room.
+- **Portal frames** have a colour, can scale or be a window, and belong to whoever built them.
+- **Zones**: pieces of a level saved from the world, and levels laid out of them.
+- **The lizard man**, an add-on species, and add-on species kept by name on every server.
+- The medal swings from its pin; the jetpack flies at the body's size; driving in first person
+  only the rider's arms are drawn.
+
 ## 0.16.0-alpha.1 — 2026-11-10
 
 **Does not play with 0.15 servers** (protocol 123). Worlds are read as they are; lamps in columns

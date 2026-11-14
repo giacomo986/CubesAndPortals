@@ -1,6 +1,6 @@
 # Cubes and Portals
 
-*[Read in English](README.md)*
+*[Read in English](README.md) · [Leia em português](README.pt.md)*
 
 [![Un video del gioco](https://img.youtube.com/vi/WdtsBnpiZpA/hqdefault.jpg)](https://www.youtube.com/watch?v=WdtsBnpiZpA)
 
@@ -230,6 +230,10 @@ mondo che c'è dietro (`mods/gates`), portano a sette mondi, tutti stanze dello 
   [`games/backrooms/README.md`](games/backrooms/README.it.md).
 - **Il parkour** (`games/parkour`): corsa sui muri, rimbalzi, scivolate, capriole e rope gun.
   Guida in [`games/parkour/README.md`](games/parkour/README.it.md).
+
+Altri due giochi stanno nelle stanze `platformer` e `shmup`, con i loro portoni sulla piazza: un
+platform visto di lato (`games/platformer`) e uno sparatutto da sala giochi su un caccia visto
+dall'alto (`games/shmup`).
 
 **Una casa più grande dentro** (`mods/pocket`). Una porta tascabile (una porta e un rubino in un
 anello di cornici di portale) messa in un muro diventa un vano su una sala tutta tua, quindici per
@@ -608,11 +612,18 @@ tools/arpg.sh --fresh
 |---|---|
 | WASD, Spazio, F | muoversi, saltare, volare (col jetpack) |
 | Tasto sinistro / destro | rompere / piazzare (a mani vuote si usa il blocco) |
-| Rotellina o 1-9, E, C, Q | slot della hotbar, borsa, catalogo creativo, buttare |
+| Rotellina o 1-9, E, C, Q, H | slot della hotbar, borsa, catalogo creativo, buttare, scambiare le mani (la sinistra tiene quello che la destra non tiene) |
 | T, / | chat, chat con un comando (`/help`, `/list`) |
 | V, F11, ESC, F1 | terza persona, schermo intero, menù di pausa, nascondere mani e hotbar |
 | F3, F4, F8 | informazioni, confini dei territori, celle dove possono nascere i mostri |
 | F5, F6, F7, F2 | ricaricare i mod, profiler, texture pack successivo, occlusion culling spento |
+
+Ogni tasto della tabella tranne ESC si sposta in **Opzioni > Comandi**: clic su un tasto, poi si
+preme il nuovo (ESC lo lascia com'era, Backspace lascia l'azione senza tasto); vanno bene anche il
+tasto centrale e quelli laterali del mouse. Ci sono anche i tasti propri dei mod
+(`core.register_key`). Una torcia va sul pavimento, su un muro o sul soffitto, e una torcia (o
+qualsiasi blocco che fa luce) tenuta in una delle due mani illumina intorno al giocatore come
+farebbe posata -- gira gli angoli, non passa i muri -- e la vedono tutti.
 
 Le opzioni restano fra una partita e l'altra. `CNP_HITCH_MS=30 cnp_client ...` stampa ogni frame
 più lungo di 30 ms con le sezioni del profiler.
@@ -630,7 +641,7 @@ il server, poi un nome e una password per quello, da cui l'identità viene deriv
 invece di stare in un file; la chiave del server viene fissata al primo join. **Ospita un
 server** apre i propri mondi agli altri su una porta a scelta, e il menù di pausa mostra
 l'indirizzo da dare. **Personaggio** sceglie specie, stile, colori e accessori. **Opzioni** ha
-mouse, volume, lingua e controllo degli aggiornamenti; la pagina **Video** ha finestra, senza bordi o schermo intero, risoluzione del gioco (indipendente dalla grandezza della finestra, in ogni modalità; l'immagine viene scalata per riempirla), VSync, limite FPS, distanza visiva, campo visivo, luce, ombre, dettaglio dei portali, cielo in tempesta semplice (senza vortici, per i PC deboli) e luminosità per il buio.
+mouse, volume, lingua (English, Italiano, Português) e controllo degli aggiornamenti, e la pagina **Comandi** sposta i tasti; la pagina **Video** ha finestra, senza bordi o schermo intero, risoluzione del gioco (indipendente dalla grandezza della finestra, in ogni modalità; l'immagine viene scalata per riempirla), VSync, limite FPS, distanza visiva, campo visivo, luce, ombre, dettaglio dei portali, cielo in tempesta semplice (senza vortici, per i PC deboli) e luminosità per il buio.
 
 **Le traduzioni** sono `assets/lang/<codice>.txt`, una riga `testo come scritto = traduzione` con
 `{}` per le parti variabili. Valgono per tutto ciò che il client disegna: menù, pannelli e avvisi
@@ -729,7 +740,7 @@ server acceso tra riavvii e crash, con un log al giorno.
 |---|---|
 | `tools/play.sh` (`local`, `--fresh`) | Compila in Release, avvia server e client con tutti i mod e un mondo salvato in `worlds/play/` |
 | `tools/track.sh` (`--fresh`) | Un server con il sandbox e tutti i mondi come stanze, come lo avvia il menù del titolo ma con tutti i mondi sbloccati (una copia di `mods/keys` con `ALL_OPEN`; mondi e log in `worlds/track/`); `--fresh` ti fa anche suo proprietario, così il catalogo creativo (C) è aperto |
-| `tools/arpg.sh`, `tools/fps.sh`, `tools/chambers.sh` (`--fresh`) | Il sandbox e un mondo solo, per lavorare su quel mondo |
+| `tools/arpg.sh`, `tools/fps.sh`, `tools/chambers.sh`, `tools/platformer.sh`, `tools/shmup.sh` (`--fresh`) | Il sandbox e un mondo solo, per lavorare su quel mondo |
 | `tools/portallab.sh` | Una scena per controllare i portali a occhio (games/portallab): vetro visto attraverso le aperture, una a soffitto in cui saltare, due pavimenti tra cui rimbalzare, aperture che scorrono, inseguono e girano su ogni asse; `/lab wall`, `glass`, `head`, `bounce`, `view`, `slide`, `chase`, `spin`, `spiny`, `spinz`, `still`, `at <gradi>`; un'apertura grande come una porta su una alta un ottavo che ti rimpicciolisce a 1/16, `/lab tiny`, `g1`, `scale <s>` |
 | `tools/windowlab.sh` | I corpi visti da una finestra su un altro mondo (games/windowlab): due stanze, sei creature che sfilano davanti alla bocca lontana. |
 | `tools/vehiclelab.sh` | I veicoli attraverso i portali (games/vehiclelab, sopra le mod del sandbox): una linea di binari in un'apertura e fuori da un'altra girata di un quarto, un canale per la barca uguale; un portale portato da un treno in curva; `NAME=boat` o `train` parte lì, `/vlab rail`, `boat`, `train`, `watch`; un client a tempo vuole `--keep-portals` |

@@ -1179,6 +1179,8 @@ void ClientSession::handle(const std::vector<uint8_t> &data, double now, uint8_t
             it->kind = s.kind;
             it->item = s.item;
             it->item_tint = s.item_tint;
+            it->off_item  = s.off_item;
+            it->off_tint  = s.off_tint;
             it->livery    = s.livery;
             it->model = s.model;
             it->working   = s.working;

@@ -29,9 +29,10 @@ typedef enum plat_key {
     PLAT_KEY_Z, PLAT_KEY_X,       // a track piece in hand turned left, right
     PLAT_KEY_B,                   // heard by mods only (mods/backpack opens with it)
     PLAT_KEY_F4,                  // heard by mods only (mods/territory shows its edges with it)
-    PLAT_KEY_F8,                  // heard by mods only (mods/torches shows where the dark spawns)
+    PLAT_KEY_F8,                  // heard by mods only (key_f8; mods/torches has its own key now)
     PLAT_KEY_I, PLAT_KEY_K,       // heard by mods only (games/arpg's panels)
     PLAT_KEY_F11,                 // full screen
+    PLAT_KEY_H,                   // the two hands' things swapped
 
     PLAT_KEY_COUNT
 } plat_key;
@@ -55,6 +56,24 @@ void plat_set_window_size(int w, int h);
 void plat_set_vsync(bool on);
 void plat_set_fps_limit(int fps);   // 0 is none
 void plat_monitor_size(int *w, int *h);
+
+// Each of the game's keys above is a slot named after the key it starts as:
+// the Controls page puts another physical key in it. Codes are the
+// platform's; 0 is none, and a slot with none is never down.
+int  plat_key_code(plat_key key);
+int  plat_key_default(plat_key key);
+void plat_bind_key(plat_key key, int code);
+
+// A physical key by its code, for a mod's own (core.register_key): down, and
+// the next one pressed this frame (0 for none) for the Controls page to
+// catch. A key's name is what is printed on it ("W", "SPACE", "F5", "KP1");
+// "" and 0 for none. A mouse button may stand in a key's place: "MOUSE3" the
+// middle, "MOUSE4" and "MOUSE5" the side ones (the left and right stay the
+// game's own clicks, and the Controls page does not catch them).
+bool        plat_code_down(int code);
+int         plat_code_pressed(void);
+const char *plat_code_name(int code);
+int         plat_code_from_name(const char *name);
 
 bool plat_key_down(plat_key key);
 bool plat_key_pressed(plat_key key);

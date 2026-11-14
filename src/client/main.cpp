@@ -514,6 +514,41 @@ bool  g_vsync         = false;
 int   g_fps_limit     = 0;       // 0 is none
 float g_brightness    = 0.0f;    // 0..1: nothing drawn darker (the night sight's floor)
 bool  g_video_page    = false;   // the options panel is on its video page
+bool  g_controls_page = false;   // ... or on its keys
+int   g_controls_from = 0;       // the first of the keys shown there
+int   g_capture       = -1;      // the key waiting for a press to put in it; -1 none
+
+// The game's keys a player may move, in the order the Controls page lists
+// them. Each is a slot (plat_key) named after the key it starts as; what a mod
+// hears as "key_b" is the B slot, wherever it was moved.
+struct Control { plat_key key; const char *label; };
+const Control kControls[] = {
+    {PLAT_KEY_W, "Forward"}, {PLAT_KEY_S, "Back"}, {PLAT_KEY_A, "Left"}, {PLAT_KEY_D, "Right"},
+    {PLAT_KEY_SPACE, "Jump"}, {PLAT_KEY_SHIFT, "Sprint"}, {PLAT_KEY_CTRL, "Crouch / down"},
+    {PLAT_KEY_F, "Fly"}, {PLAT_KEY_E, "Bag"}, {PLAT_KEY_Q, "Drop"}, {PLAT_KEY_H, "Swap hands"},
+    {PLAT_KEY_V, "Third person"}, {PLAT_KEY_Z, "Turn piece left"}, {PLAT_KEY_X, "Turn piece right"},
+    {PLAT_KEY_R, "Back to spawn"}, {PLAT_KEY_B, "Backpack"}, {PLAT_KEY_F4, "Claim edges"},
+    {PLAT_KEY_I, "Game key I"}, {PLAT_KEY_K, "Game key K"},
+    {PLAT_KEY_F1, "Hide the HUD"}, {PLAT_KEY_F3, "Debug info"}, {PLAT_KEY_F11, "Full screen"},
+    {PLAT_KEY_1, "Hotbar 1"}, {PLAT_KEY_2, "Hotbar 2"}, {PLAT_KEY_3, "Hotbar 3"},
+    {PLAT_KEY_4, "Hotbar 4"}, {PLAT_KEY_5, "Hotbar 5"}, {PLAT_KEY_6, "Hotbar 6"},
+    {PLAT_KEY_7, "Hotbar 7"}, {PLAT_KEY_8, "Hotbar 8"}, {PLAT_KEY_9, "Hotbar 9"},
+    {PLAT_KEY_F2, "Occlusion culling"}, {PLAT_KEY_F5, "Reload mods / portal view"},
+    {PLAT_KEY_F6, "Profiler"}, {PLAT_KEY_F7, "Next texture pack"},
+};
+constexpr int kControlCount = (int)(sizeof(kControls) / sizeof(kControls[0]));
+constexpr int kControlsPerColumn = 8;
+
+// A mod's own keys (core.register_key): heard as core:input "key_<name>" and
+// "key_<name>_up", listed on the Controls page after the game's. Kept for the
+// whole run, so a world come back to finds its keys where they were moved.
+struct ModKey {
+    std::string name, label;
+    int         code = 0, def = 0;
+    bool        down = false;
+};
+std::vector<ModKey>        g_mod_keys;
+std::map<std::string, int> g_mod_key_saved;   // name -> code, from the options file
 bool  g_portal_detail_changed = false;   // ScreenTargets makes the targets again
 bool  g_update_check  = true;    // ask GitHub for a newer release on the title screen
 bool  g_no_update_flag = false;  // --no-update-check: not this run, whatever the options say
@@ -539,7 +574,17 @@ void load_options(bool &debug)
             g_addon_species = word;
             continue;
         }
-        if (key == "look_scale") g_look_scale = std::clamp(value, 0.2f, 3.0f);
+        if (key.rfind("bind.", 0) == 0) {
+            // A key moved on the Controls page: "bind.<slot> <code>", the slot by
+            // its number, or "bind.mod.<name> <code>" for a mod's.
+            if (key.rfind("bind.mod.", 0) == 0) g_mod_key_saved[key.substr(9)] = (int)value;
+            else {
+                const int slot = std::atoi(key.c_str() + 5);
+                if (slot >= 0 && slot < PLAT_KEY_COUNT && slot != PLAT_KEY_ESC)
+                    plat_bind_key((plat_key)slot, (int)value);
+            }
+        }
+        else if (key == "look_scale") g_look_scale = std::clamp(value, 0.2f, 3.0f);
         else if (key == "volume") g_volume = std::clamp(value, 0.0f, 1.0f);
         else if (key == "debug") debug = value != 0.0f;
         else if (key == "classic_light") g_classic_light = value != 0.0f;
@@ -582,8 +627,14 @@ void save_options(bool debug)
         << "\nplain_storm " << (WorldRenderer::plain_storm ? 1 : 0)
         << "\nfov " << std::lround(g_fov_base * 180.0f / kPi)
         << "\nportal_detail " << g_portal_scale << "\nupdate_check " << (g_update_check ? 1 : 0)
-        << "\nlivery " << net::g_client_livery
-        << "\nlang " << lang::current() << "\n";
+        << "\nlivery " << net::g_client_livery << "\n";
+    // Only the keys moved, each a number, before the words: an older build
+    // skips a line it does not know as long as it is "key number".
+    for (int k = 0; k < PLAT_KEY_COUNT; ++k)
+        if (plat_key_code((plat_key)k) != plat_key_default((plat_key)k))
+            out << "bind." << k << " " << plat_key_code((plat_key)k) << "\n";
+    for (const auto &[name, code] : g_mod_key_saved) out << "bind.mod." << name << " " << code << "\n";
+    out << "lang " << lang::current() << "\n";
     if (!g_addon_species.empty()) out << "addon_species " << g_addon_species << "\n";   // after lang: a word stops an older build's reading
     if (!out) std::fprintf(stderr, "could not save the options to %s\n", path.c_str());
 }
@@ -842,6 +893,26 @@ struct Session {
     // still while it is there.
     bool  iso_fixed = false;
     Vec3  iso_target{};
+    // How the keys answer under that camera. 0 is core.iso_view's: the
+    // screen's axes, the body turned to where it walks. 1 is core.side_view's,
+    // a platform game seen from the side: A and D along the picture, W jumps,
+    // S crouches, and the body is kept on the plane it stood on when the camera
+    // was asked for (iso_plane, its place along the camera's look). 2 is
+    // core.top_view's, a shooter seen from overhead: the keys slide the body
+    // along the screen's axes and it goes on facing up the screen, flying level
+    // where the world flies.
+    int   iso_keys  = 0;
+    float iso_plane = 0.0f;
+    // The camera from overhead held on iso_target while the body goes on
+    // moving under it (core.top_view_at): a whole field on one screen. Not
+    // iso_fixed, which stands the body still and leaves it out of the picture.
+    bool  iso_hold  = false;
+    // What the camera from the side looks at (core.side_view): not the head,
+    // but a point that lags it, as a platform game's screen does -- the body
+    // moves a little either way before the picture scrolls, and then it
+    // scrolls smoothly (side_follow).
+    Vec3  side_cam{};
+    bool  side_cam_set = false;
     // A walk this world's code steers (core.walk): which way across the world,
     // and how much of the walk. Off gives the body back to the keys. Per world,
     // so a walk is not carried through a portal into a world that never asked.
@@ -1605,6 +1676,10 @@ struct Scene {
     bool        hide_hud   = false;
     BlockId     hand_block = kAir;   // what it puts down, when it is a block
     uint32_t    hand_tag   = 0;      // the held stack's colours (ItemStack::tag)
+    // And the left hand's (Inventory::kOffhandSlot): what it holds, by name.
+    std::string off_hand;
+    BlockId     off_block  = kAir;
+    uint32_t    off_tag    = 0;
     uint8_t     piece_turn = 0;      // quarter turns a track piece in hand is given (Z / X)
     float       nitro      = -1.0f;  // the kart's nitro gauge, 0..1; -1 on foot
     bool        working    = false;  // the left button down on something: a dig, a hit
@@ -1674,6 +1749,8 @@ struct Scene {
     // The block in the hand, as a cube cut out of the atlas: in the arms, and
     // in the robot seen from behind (draw_held_block).
     HeldCube held_arms;
+    HeldCube held_off;   // the left hand's, in first person
+    std::unordered_map<uint64_t, HeldCube> held_off_bodies;
     // Other bodies' blocks, one cube per block and model: a single cube was
     // rebuilt (a shader compile) for every body in view holding another block.
     std::unordered_map<uint64_t, HeldCube> held_bodies;
@@ -4848,6 +4925,8 @@ void host_iso_view(void *ud, double distance, double yaw, double pitch, double f
         w.iso_on = false;   // the rest is kept: it is where the way back starts
     } else {
         w.iso_fixed    = false;
+        w.iso_hold     = false;
+        w.iso_keys     = 0;
         w.iso_distance = (float)d;
         w.iso_yaw      = (float)((std::isfinite(yaw) ? yaw : 45.0) * 3.14159265358979 / 180.0);
         w.iso_pitch    = (float)(std::clamp(std::isfinite(pitch) ? pitch : 50.0, 10.0, 89.0) *
@@ -4871,6 +4950,75 @@ void host_fixed_view(void *ud, double x, double y, double z, double distance, do
     host_iso_view(ud, distance, yaw, pitch, fov, seconds);
     if (w.iso_on) {
         w.iso_fixed  = true;
+        w.iso_target = Vec3{(float)x, (float)y, (float)z};
+    }
+}
+
+// The same camera level with the head and across the way it walks
+// (core.side_view): the plane the body is kept on is the one it stands on now,
+// unless the camera is there already.
+// A mod's own key (core.register_key): listed on the Controls page, heard as
+// core:input "key_<name>". Registered again, the label and the default change
+// and a key the player moved stays where it was put.
+bool host_register_key(void *, const char *name, const char *key, const char *label)
+{
+    const std::string n = name != nullptr ? name : "";
+    if (n.empty() || n.size() > 40) return false;
+    for (char c : n)
+        if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == ':' || c == '.'))
+            return false;
+    const int def = plat_code_from_name(key);
+    if (def == 0 && key != nullptr && key[0] != '\0') return false;
+    const std::string shown = label != nullptr && label[0] != '\0' ? label : n;
+    for (ModKey &k : g_mod_keys)
+        if (k.name == n) {
+            const bool moved = g_mod_key_saved.count(n) != 0;
+            k.label = shown, k.def = def;
+            if (!moved) k.code = def;
+            return true;
+        }
+    ModKey k;
+    k.name  = n;
+    k.label = shown;
+    k.def   = def;
+    const auto saved = g_mod_key_saved.find(n);
+    k.code = saved != g_mod_key_saved.end() ? saved->second : def;
+    g_mod_keys.push_back(std::move(k));
+    return true;
+}
+
+void host_side_view(void *ud, double distance, double yaw, double fov, double seconds)
+{
+    Scene      &s      = *static_cast<Scene *>(ud);
+    Session    &w      = s.act();
+    const bool  was    = w.iso_on && w.iso_keys == 1;
+    const float plane  = w.iso_plane;
+    host_iso_view(ud, distance, std::isfinite(yaw) ? yaw : 0.0, 10.0, fov, seconds);
+    if (!w.iso_on) return;
+    w.iso_pitch = 0.0f;
+    w.iso_keys  = 1;
+    const float fx = std::sin(w.iso_yaw), fz = -std::cos(w.iso_yaw);
+    w.iso_plane = was ? plane : s.player ? s.player->pos.x * fx + s.player->pos.z * fz : 0.0f;
+}
+
+// And from overhead, the top of the screen the way `yaw` looks (core.top_view).
+void host_top_view(void *ud, double distance, double yaw, double fov, double seconds)
+{
+    Session &w = static_cast<Scene *>(ud)->act();
+    host_iso_view(ud, distance, std::isfinite(yaw) ? yaw : 0.0, 89.0, fov, seconds);
+    if (w.iso_on) w.iso_keys = 2;
+}
+
+// Overhead and held on a point, the body free under it (core.top_view_at).
+void host_top_view_at(void *ud, double x, double y, double z, double distance, double yaw, double fov,
+                      double seconds)
+{
+    Session &w = static_cast<Scene *>(ud)->act();
+    if (std::isfinite(distance) && distance > 0.0 && !(std::isfinite(x) && std::isfinite(y) && std::isfinite(z)))
+        return;
+    host_top_view(ud, distance, yaw, fov, seconds);
+    if (w.iso_on) {
+        w.iso_hold   = true;
         w.iso_target = Vec3{(float)x, (float)y, (float)z};
     }
 }
@@ -6000,6 +6148,7 @@ bool claim_buttons(Scene &s, bool playing)
         {PLAT_KEY_6, "key_6"}, {PLAT_KEY_7, "key_7"}, {PLAT_KEY_8, "key_8"},
         {PLAT_KEY_9, "key_9"}, {PLAT_KEY_B, "key_b"}, {PLAT_KEY_F4, "key_f4"},
         {PLAT_KEY_F8, "key_f8"}, {PLAT_KEY_I, "key_i"}, {PLAT_KEY_K, "key_k"},
+        {PLAT_KEY_H, "key_h"},
     };
     s.digit_claimed = false;
     for (const auto &k : kHeard) {
@@ -6009,6 +6158,13 @@ bool claim_buttons(Scene &s, bool playing)
             s.digit_claimed = true;
         if (!down && was) emit_input(s, (std::string(k.name) + "_up").c_str());
         s.keys_down[k.key] = down;
+    }
+    // A mod's own keys, the same way (core.register_key).
+    for (ModKey &k : g_mod_keys) {
+        const bool down = plat_code_down(k.code);
+        if (down && !k.down) emit_input(s, ("key_" + k.name).c_str());
+        if (!down && k.down) emit_input(s, ("key_" + k.name + "_up").c_str());
+        k.down = down;
     }
     return right;
 }
@@ -6634,7 +6790,7 @@ void draw_held_block(HeldCube &cube, Session &w, const SkinnedModel &m,
                      const std::vector<float> &posed, const std::string &item, BlockId block,
                      const Mat4 &projection, const Mat4 &view, const Mat4 &place,
                      const std::string &model = "", uint32_t tag = 0, float light = 1.0f,
-                     const std::string *body_clip = nullptr);
+                     const std::string *body_clip = nullptr, bool off_hand = false);
 
 // The colour of the lamps at a point on every model drawn while this lasts.
 struct LampTintHere {
@@ -7431,10 +7587,12 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
 
     // The light of the cell its middle is in, the way a block-model is lit: a
     // creature in a dark cave is dark.
-    const float light = w.world_render.cell_light(w.world.get_light((int)std::floor(place.at(0, 3)),
-                                                                    (int)std::floor(place.at(1, 3) + 0.5f),
-                                                                    (int)std::floor(place.at(2, 3))),
-                                                  true);
+    // And a hand's light, when one is carried near (update_hand_light).
+    const float light = std::max(w.world_render.cell_light(w.world.get_light((int)std::floor(place.at(0, 3)),
+                                                                             (int)std::floor(place.at(1, 3) + 0.5f),
+                                                                             (int)std::floor(place.at(2, 3))),
+                                                           true),
+                                 w.world_render.hand_light_at(place.at(0, 3), place.at(1, 3) + 0.5f, place.at(2, 3)));
     const LampTintHere lit_by(w, Vec3{place.at(0, 3), place.at(1, 3) + 0.5f, place.at(2, 3)});
 
     // What is worn and held goes on whoever wears it: the rider when there is
@@ -7479,6 +7637,10 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
             draw_held_block(s.held_bodies[(uint64_t)b.hand_block * 1000003u + (uint64_t)(uintptr_t)&on.model],
                             w, on.model, posed, b.hand, b.hand_block, projection, view, place, "",
                             b.hand_tag, light, &arms);
+            if (!b.off_hand.empty())
+                draw_held_block(s.held_off_bodies[(uint64_t)b.off_block * 1000003u + (uint64_t)(uintptr_t)&on.model],
+                                w, on.model, posed, b.off_hand, b.off_block, projection, view, place, "",
+                                b.off_tag, light, &arms, true);
         }
     };
     ModelStore::Entry *r = b.rider != 0 ? w.models.entry(b.rider) : nullptr;
@@ -8670,8 +8832,49 @@ bool at_fixed_eye(const Session &w)
     return w.iso_on && w.iso_fixed && w.iso_distance < 0.1f;
 }
 
+Vec3 eye_of(const Scene &s, const Player &player);
+
+// The camera from the side (core.side_view) follows the head as a platform
+// game's screen does. Along the picture the head may be up to kSideSlack
+// either side of the middle before the picture moves, and then the middle
+// closes on it, most of the way in kSideEase; up and down there is more room
+// above than below, so a jump does not move the picture and a fall does. A
+// head farther than kSideJump away (a pipe, a portal, the next level) is
+// where the picture goes at once.
+void side_follow(Session &w, Vec3 head, float dt)
+{
+    constexpr float kSideSlack = 1.6f, kSideUp = 2.6f, kSideDown = 0.8f;
+    constexpr float kSideEase = 0.18f, kSideEaseUp = 0.3f, kSideEaseDown = 0.1f, kSideJump = 12.0f;
+    if (w.iso_keys != 1 || !iso_engaged(w)) {
+        w.side_cam_set = false;
+        return;
+    }
+    if (!w.side_cam_set || length(head - w.side_cam) > kSideJump) {
+        w.side_cam     = head;
+        w.side_cam_set = true;
+        return;
+    }
+    const float rx = std::cos(w.iso_yaw), rz = std::sin(w.iso_yaw);   // the picture's right, flat
+    const float along = (head.x - w.side_cam.x) * rx + (head.z - w.side_cam.z) * rz;
+    const float over  = along > kSideSlack ? along - kSideSlack : along < -kSideSlack ? along + kSideSlack : 0.0f;
+    const float k     = 1.0f - std::exp(-dt / kSideEase);
+    w.side_cam.x += rx * over * k;
+    w.side_cam.z += rz * over * k;
+    // Across the picture the camera's plane is the body's (it is held there).
+    const float fx = std::sin(w.iso_yaw), fz = -std::cos(w.iso_yaw);
+    const float off = (head.x - w.side_cam.x) * fx + (head.z - w.side_cam.z) * fz;
+    w.side_cam.x += fx * off;
+    w.side_cam.z += fz * off;
+    const float up    = head.y - w.side_cam.y;
+    const float overy = up > kSideUp ? up - kSideUp : up < -kSideDown ? up + kSideDown : 0.0f;
+    // Quicker after a fall than after a climb: a body falling out of the
+    // sky or down a pipe is not left below the picture.
+    w.side_cam.y += overy * (1.0f - std::exp(-dt / (overy < 0.0f ? kSideEaseDown : kSideEaseUp)));
+}
+
 void camera_follow(Scene &s, const Player &player, float dt)
 {
+    side_follow(s.act(), eye_of(s, player), dt);
     // The camera from above coming or going (core.iso_view): how far it has
     // got, the body drawn while it is out of the eye, and its field of view
     // eased from the engine's to its own -- a narrow one from far away
@@ -8789,7 +8992,8 @@ float iso_mix(const Session &w)
 // What the camera from above looks at: the head, or core.fixed_view's point.
 Vec3 iso_center(const Session &w, Vec3 head)
 {
-    return w.iso_fixed ? w.iso_target : head;
+    if (w.iso_keys == 1 && w.side_cam_set) return w.side_cam;
+    return w.iso_fixed || w.iso_hold ? w.iso_target : head;
 }
 
 Mat4 kart_turn(const Player &player);
@@ -8980,6 +9184,40 @@ void steer_input(Scene &s, Player &player, PlayerInput &in)
         in.look_dx = in.look_dy = 0.0f;
         in.move_forward = in.move_right = 0.0f;
         in.jump = in.sprint = in.descend = in.toggle_fly = false;
+        return;
+    }
+    if (iso && s.act().iso_keys == 1) {
+        // From the side (core.side_view): W is the jump and S the crouch, A
+        // and D walk along the picture and turn the body that way, and what
+        // has pushed it off its plane is walked back, without turning it.
+        const Session &v = s.act();
+        in.look_dx = in.look_dy = 0.0f;
+        player.pitch = 0.0f;
+        if (in.move_forward > 0.0f) in.jump = true;
+        if (in.move_forward < 0.0f) in.descend = true;
+        in.toggle_fly = false;
+        const float fx = std::sin(v.iso_yaw), fz = -std::cos(v.iso_yaw);   // the camera's look
+        const float rx = -fz, rz = fx;                                     // the picture's right
+        const float along = in.move_right;
+        if (along != 0.0f) player.yaw = std::atan2(rx * along, -rz * along);
+        const float off  = player.pos.x * fx + player.pos.z * fz - v.iso_plane;
+        const float back = std::fabs(off) > 0.02f ? std::clamp(-off * 4.0f, -1.0f, 1.0f) : 0.0f;
+        const float gx = rx * along + fx * back, gz = rz * along + fz * back;
+        const float bx = std::sin(player.yaw), bz = -std::cos(player.yaw);   // the body's front
+        in.move_forward = gx * bx + gz * bz;
+        in.move_right   = gx * -bz + gz * bx;
+        return;
+    }
+    if (iso && s.act().iso_keys == 2) {
+        // From overhead (core.top_view): the body faces up the screen and the
+        // keys slide it, as a fighter in an arcade cabinet; where the world
+        // flies it flies, level -- neither jump nor crouch is a key here.
+        const Session &v = s.act();
+        in.look_dx = in.look_dy = 0.0f;
+        player.pitch = 0.0f;
+        player.yaw   = v.iso_yaw;
+        in.jump = in.descend = false;
+        in.toggle_fly = v.movement.flies() && !player.flying;
         return;
     }
     if (iso) {
@@ -9690,7 +9928,8 @@ SkinnedModel held_piece_model(const NodeDef &def, int tiles, Vec3 centre, float 
 void draw_held_block(HeldCube &cube, Session &w, const SkinnedModel &m,
                      const std::vector<float> &posed, const std::string &item, BlockId block,
                      const Mat4 &projection, const Mat4 &view, const Mat4 &place,
-                     const std::string &model, uint32_t tag, float light, const std::string *body_clip)
+                     const std::string &model, uint32_t tag, float light, const std::string *body_clip,
+                     bool off_hand)
 {
     // On a body seen from outside (body_clip: what its arms play, "" for
     // nothing), an item with a "<item>_left_held" model is in the left fist: a
@@ -9700,9 +9939,12 @@ void draw_held_block(HeldCube &cube, Session &w, const SkinnedModel &m,
         if (!body_clip->empty()) left = model_named(w, item + "_left_" + *body_clip + "_held");
         if (left == nullptr) left = model_named(w, item + "_left_held");
     }
+    // The left hand's own thing (off_hand) is made for the right: held in
+    // hand_L through a mirror across the fist.
+    if (off_hand) left = nullptr;
     int hand = -1;
     for (int j = 0; j < m.joint_count; ++j)
-        if (m.joint_names[(size_t)j] == (left != nullptr ? "hand_L" : "hand_R")) hand = j;
+        if (m.joint_names[(size_t)j] == (left != nullptr || off_hand ? "hand_L" : "hand_R")) hand = j;
     if (hand < 0) return;
     const std::vector<float> bone(posed.begin() + hand * 12, posed.begin() + hand * 12 + 12);
     // Sized by the forearm (hand_R's parent), so a bigger robot holds a bigger
@@ -9722,11 +9964,13 @@ void draw_held_block(HeldCube &cube, Session &w, const SkinnedModel &m,
             for (int col = 0; col < 4; ++col) b.at(row, col) = bone[(size_t)(row * 4 + col)];
         const Vec3 grip = m.joint_rest[(size_t)hand] + Vec3{0.0f, -0.05f, -0.01f} * scale;
         const Mat4 t    = mat4_multiply(b, mat4_multiply(mat4_translate(grip),
-                                                         mat4_scale(Vec3{scale, scale, scale})));
+                                                         mat4_scale(Vec3{off_hand ? -scale : scale, scale, scale})));
         std::vector<float> rows(12);
         for (int row = 0; row < 3; ++row)
             for (int col = 0; col < 4; ++col) rows[(size_t)(row * 4 + col)] = t.at(row, col);
+        ModelRenderer::mirrored = off_hand;
         held->renderer.draw(projection, view, place, rows, gfx_texture{0}, light, 1.0f, tag);
+        ModelRenderer::mirrored = false;
         return;
     }
     if (block == kAir || w.world_render.atlas().id == 0) return;
@@ -9846,15 +10090,20 @@ void draw_arms(Scene &s, const Mat4 &projection)
     front.at(2, 3) = -0.99f;
     const Mat4 proj = mat4_multiply(front, projection);
     // The light where the eye is, so a hand in a dark cave is dark.
-    const float light = w.world_render.cell_light(
+    const float cell_lit = w.world_render.cell_light(
         w.world.get_light((int)std::floor(s.cam_eye.x), (int)std::floor(s.cam_eye.y), (int)std::floor(s.cam_eye.z)),
         true);
     const LampTintHere lit_by(w, s.cam_eye);
+    // And a light carried in a hand lights the hands that carry it.
+    const float light = std::max(cell_lit, w.world_render.hand_light_at(s.cam_eye.x, s.cam_eye.y, s.cam_eye.z));
     arms->renderer.draw(proj, mat4_identity(), bob, posed, gfx_texture{0}, light, 1.0f,
                         livery_tag(net::g_client_livery));
 
     draw_held_block(s.held_arms, w, arms->model, posed, s.hand, s.hand_block, proj, mat4_identity(), bob,
                     s.held_model, s.hand_tag, light);
+    if (!s.off_hand.empty())
+        draw_held_block(s.held_off, w, arms->model, posed, s.off_hand, s.off_block, proj, mat4_identity(),
+                        bob, "", s.off_tag, light, nullptr, true);
 
     // The back piece's own arms in first person, "<piece>_arms" (mods/armpack:
     // its claws at the top corners of the view), with what they hold -- the
@@ -9879,6 +10128,97 @@ void draw_arms(Scene &s, const Mat4 &projection)
                         (uint32_t)(s.hotbar.slots[back].tag >> kTagIdBits) << kTagIdBits);
     draw_pack_tools(w.models, pack->model, pack_posed, *arms, held, proj, mat4_identity(), bob, light,
                     livery_tag(net::g_client_livery));
+}
+
+// Light carried in hands (WorldRenderer::set_hand_light): a block that gives
+// light, in either hand of this player or of anybody whose hands are known
+// here, lights round them as it would put down -- spread a level a cell from
+// the hand, round corners, stopped by what is opaque. Worked out on the box
+// round the eye again when a hand or the box moves, and every 20 frames for
+// what was built or broken meanwhile.
+void update_hand_light(Scene &s, const Player &player)
+{
+    Session            &w   = s.act();
+    const NodeRegistry &reg = w.registry;
+    const auto glow_of = [&](BlockId b) { return b != kAir && b < reg.size() ? (int)reg.light_source(b) : 0; };
+    struct Source { int x, y, z, level; };
+    std::vector<Source> src;
+    const auto cell = [](float v) { return (int)std::floor(v); };
+    if (const int own = std::max(glow_of(s.hand_block), glow_of(s.off_block)); own > 0) {
+        const Vec3 at = player.eye() + player.forward() * 0.35f + Vec3{0.0f, -0.35f, 0.0f};
+        src.push_back({cell(at.x), cell(at.y), cell(at.z), own});
+    }
+    for (const Body &b : w.bodies) {
+        if (b.id == kOwnBody || !b.hand_known || b.dropped) continue;
+        const int g = std::max(glow_of(b.hand_block), glow_of(b.off_block));
+        if (g > 0) src.push_back({cell(b.center.x), cell(b.center.y + b.half.y * 0.4f), cell(b.center.z), g});
+    }
+    if (src.empty()) {
+        w.world_render.clear_hand_light();
+        return;
+    }
+
+    // The box, its corner on a multiple of 8 so walking does not move it each step.
+    constexpr int N = WorldRenderer::kHandBox;
+    const Vec3 eye = player.eye();
+    const auto corner = [](float v) { return (((int)std::floor(v) - N / 2) / 8) * 8; };
+    const int ox = corner(eye.x), oy = corner(eye.y), oz = corner(eye.z);
+
+    static std::vector<int> last;
+    static int              frames = 0;
+    std::vector<int>        key = {ox, oy, oz};
+    for (const Source &l : src) key.insert(key.end(), {l.x, l.y, l.z, l.level});
+    if (key == last && ++frames < 20 && w.world_render.hand_light_on()) return;
+    last   = key;
+    frames = 0;
+
+    // 0 not looked at, 1 light passes, 2 it does not.
+    std::vector<uint8_t> level((size_t)N * N * N, 0), pass((size_t)N * N * N, 0);
+    const auto at = [](int x, int y, int z) { return ((size_t)y * N + (size_t)z) * N + (size_t)x; };
+    const auto passes = [&](int x, int y, int z) {
+        uint8_t &p = pass[at(x, y, z)];
+        if (p == 0) p = reg.is_opaque(w.world.get_block(ox + x, oy + y, oz + z)) ? 2 : 1;
+        return p == 1;
+    };
+    std::vector<int> queue;
+    for (const Source &l : src) {
+        const int x = l.x - ox, y = l.y - oy, z = l.z - oz;
+        if (x < 0 || y < 0 || z < 0 || x >= N || y >= N || z >= N) continue;
+        if (level[at(x, y, z)] >= l.level) continue;
+        level[at(x, y, z)] = (uint8_t)l.level;
+        passes(x, y, z);
+        queue.clear();
+        queue.push_back((int)at(x, y, z));
+        for (size_t q = 0; q < queue.size(); ++q) {
+            const int c = queue[q];
+            const int cx = c % N, cz = (c / N) % N, cy = c / (N * N);
+            const uint8_t lv = level[(size_t)c];
+            if (lv <= 1) continue;
+            static const int kStep[6][3] = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
+            for (const auto &d : kStep) {
+                const int nx = cx + d[0], ny = cy + d[1], nz = cz + d[2];
+                if (nx < 0 || ny < 0 || nz < 0 || nx >= N || ny >= N || nz >= N) continue;
+                if (!passes(nx, ny, nz)) continue;
+                uint8_t &nl = level[at(nx, ny, nz)];
+                if (nl + 1 >= lv) continue;
+                nl = (uint8_t)(lv - 1);
+                queue.push_back((int)at(nx, ny, nz));
+            }
+        }
+    }
+
+    // As the shader reads it: layer y in tile (y % 8, y / 8), x across and z down.
+    std::vector<uint8_t> rgba((size_t)WorldRenderer::kHandTexW * WorldRenderer::kHandTexH * 4, 0);
+    for (int y = 0; y < N; ++y)
+        for (int z = 0; z < N; ++z)
+            for (int x = 0; x < N; ++x) {
+                const size_t i  = at(x, y, z);
+                const size_t px = (size_t)((y % 8) * N + x), py = (size_t)((y / 8) * N + z);
+                uint8_t *o = &rgba[(py * WorldRenderer::kHandTexW + px) * 4];
+                o[0] = (uint8_t)std::lround(light_curve((float)level[i]) * 255.0f);
+                o[1] = pass[i] == 1 ? 255 : 0;
+            }
+    w.world_render.set_hand_light(rgba, ox, oy, oz);
 }
 
 // The player's own body, for a camera that can see it. The same box the
@@ -9937,7 +10277,11 @@ void add_own_body(Scene &s, const Player &player, uint16_t model)
     b.hand       = s.hand;
     b.hand_block = s.hand_block;
     b.hand_tag   = s.hand_tag;
+    b.off_hand   = s.off_hand;
+    b.off_block  = s.off_block;
+    b.off_tag    = s.off_tag;
     b.livery     = own_livery(s.act());
+    update_hand_light(s, player);
     std::copy(std::begin(s.own_dress), std::end(s.own_dress), std::begin(b.dress));
     std::copy(std::begin(s.own_dress_tint), std::end(s.own_dress_tint), std::begin(b.dress_tint));
     // And what a mod on the server put on it (OwnPose), where world code here did not.
@@ -10117,9 +10461,90 @@ ui::Panel video_panel()
     return p;
 }
 
+int control_rows() { return kControlCount + (int)g_mod_keys.size(); }
+
+const char *control_label(int i)
+{
+    return i < kControlCount ? kControls[i].label : g_mod_keys[(size_t)(i - kControlCount)].label.c_str();
+}
+
+int control_code(int i)
+{
+    return i < kControlCount ? plat_key_code(kControls[i].key) : g_mod_keys[(size_t)(i - kControlCount)].code;
+}
+
+void control_bind(int i, int code)
+{
+    if (i < 0 || i >= control_rows()) return;
+    if (i < kControlCount) {
+        plat_bind_key(kControls[i].key, code);
+        return;
+    }
+    ModKey &k = g_mod_keys[(size_t)(i - kControlCount)];
+    k.code = code;
+    if (code == k.def) g_mod_key_saved.erase(k.name);
+    else g_mod_key_saved[k.name] = code;
+}
+
+// The keys, two columns of them: what each does, and the key it is now. A
+// click on a key waits for the next one pressed (ESC leaves it as it was,
+// BACKSPACE leaves the action without one).
+ui::Panel controls_panel()
+{
+    const int per = 2 * kControlsPerColumn, rows = control_rows();
+    ui::Panel p;
+    p.w = 12.8f;
+    p.h = 1.2f + (float)kControlsPerColumn * 1.1f + 1.3f;
+    panel_label(p, "Controls", 0.5f, 0.0f);
+    panel_button(p, "back", "Back", 8.4f, 0.0f, 3.9f);
+    for (int k = 0; k < per; ++k) {
+        const int i = g_controls_from + k;
+        if (i >= rows) break;
+        const float x = k < kControlsPerColumn ? 0.5f : 6.6f;
+        const float y = 1.2f + (float)(k % kControlsPerColumn) * 1.1f;
+        panel_label(p, control_label(i), x, y);
+        const int   code = control_code(i);
+        std::string key  = i == g_capture ? "..." : code != 0 ? plat_code_name(code) : "-";
+        if (key.empty()) key = "#" + std::to_string(code);
+        const std::string id = "bind" + std::to_string(i);
+        panel_button(p, id.c_str(), key, x + 3.7f, y, 2.0f);
+    }
+    const float y = 1.2f + (float)kControlsPerColumn * 1.1f + 0.1f;
+    panel_button(p, "bind_reset", "Default keys", 0.5f, y, 3.9f);
+    if (rows > per) {
+        const int page = g_controls_from / per + 1, pages = (rows + per - 1) / per;
+        panel_button(p, "bind_more", "Page " + std::to_string(page) + "/" + std::to_string(pages),
+                     4.6f, y, 3.9f);
+    }
+    return p;
+}
+
+// While a key on the Controls page waits for a press: takes this frame's,
+// and says the frame's keys were its. ESC leaves the key as it was.
+bool controls_capture(bool debug)
+{
+    if (g_capture < 0) return false;
+    if (!g_controls_page) {
+        g_capture = -1;
+        return false;
+    }
+    for (int code = plat_code_pressed(); code != 0; code = plat_code_pressed()) {
+        if (code == plat_key_default(PLAT_KEY_ESC)) {
+            g_capture = -1;
+            break;
+        }
+        control_bind(g_capture, code == plat_key_default(PLAT_KEY_BACKSPACE) ? 0 : code);
+        g_capture = -1;
+        save_options(debug);
+        break;
+    }
+    return true;
+}
+
 ui::Panel options_panel(bool debug, const Session *world)
 {
     if (g_video_page) return video_panel();
+    if (g_controls_page) return controls_panel();
     char sens[48];
     std::snprintf(sens, sizeof(sens), "Mouse sensitivity %d%%", (int)std::lround(g_look_scale * 100.0f));
 
@@ -10128,7 +10553,7 @@ ui::Panel options_panel(bool debug, const Session *world)
 
     ui::Panel p;
     p.w = 9.0f;
-    p.h = world ? 7.9f : 6.6f;
+    p.h = world ? 9.2f : 7.9f;
     panel_label(p, "Options", 0.5f, 0.0f);
     // Back up here, beside the title, so the panel is no taller than before
     // the updates had a button and stays clear of the game's name.
@@ -10156,6 +10581,8 @@ ui::Panel options_panel(bool debug, const Session *world)
         if (code == lang::current()) language = name;
     panel_button(p, "language", "Language: " + language, 0.5f, y, 3.9f);
     panel_button(p, "updates", g_update_check ? "Updates: on" : "Updates: off", 4.6f, y, 3.9f);
+    y += 1.3f;
+    panel_button(p, "controls", "Controls", 0.5f, y, 3.9f);
     return p;
 }
 
@@ -10510,6 +10937,20 @@ bool options_click(const std::string &id, bool &debug)
     else if (id == "lighting") g_classic_light = !g_classic_light;
     else if (id == "video") g_video_page = true;
     else if (id == "back" && g_video_page) g_video_page = false;
+    else if (id == "controls") g_controls_page = true, g_controls_from = 0, g_capture = -1;
+    else if (id == "back" && g_controls_page) g_controls_page = false, g_capture = -1;
+    else if (id.rfind("bind", 0) == 0 && id.size() > 4 && id[4] >= '0' && id[4] <= '9')
+        g_capture = std::atoi(id.c_str() + 4);
+    else if (id == "bind_reset") {
+        for (int k = 0; k < PLAT_KEY_COUNT; ++k) plat_bind_key((plat_key)k, plat_key_default((plat_key)k));
+        for (ModKey &k : g_mod_keys) k.code = k.def;
+        g_mod_key_saved.clear();
+        save_options(debug);
+    }
+    else if (id == "bind_more") {
+        g_controls_from += 2 * kControlsPerColumn;
+        if (g_controls_from >= control_rows()) g_controls_from = 0;
+    }
     else if (id == "display") g_display = (g_display + 1) % 3;
     else if (id == "resolution") {
         const auto all = video_sizes();
@@ -10605,6 +11046,7 @@ ui::Panel pause_panel(const Scene &s, bool debug)
 // still down, and the world would read the rest of that click as a dig.
 bool pause_frame(Scene &s, LookSettle &settle, bool &debug, bool esc, bool interactive)
 {
+    if (s.pause.up && controls_capture(debug)) return false;
     const auto resume = [&] {
         s.pause = {};
         plat_cursor_grab(true);
@@ -10629,6 +11071,7 @@ bool pause_frame(Scene &s, LookSettle &settle, bool &debug, bool esc, bool inter
 
     if (esc) {
         if (g_video_page) g_video_page = false;
+        else if (g_controls_page) g_controls_page = false;
         else if (s.pause.options || s.pause.look) s.pause.options = s.pause.look = false;
         else resume();
         return false;
@@ -10652,6 +11095,7 @@ bool pause_frame(Scene &s, LookSettle &settle, bool &debug, bool esc, bool inter
         s.conn->send_chat("/page world");   // the page frees the cursor as it comes
     }
     else if (id == "back" && g_video_page) g_video_page = false;
+    else if (id == "back" && g_controls_page) g_controls_page = false, g_capture = -1;
     else if (id == "back") s.pause.options = s.pause.look = false;
     else if (s.pause.look && look_click(id, world_addons(s))) {
         // Seen at once here, and by everybody else as soon as the server hears.
@@ -10728,11 +11172,12 @@ std::vector<std::string> world_mod_flags(const std::string &world_dir)
 // on and off since are the room's too, for as long as its second line is the
 // game's; whoever takes that line out keeps what they wrote. The rest of the
 // file -- rooms added with /room -- is left as it is.
-void write_home_template(const std::string &path, const std::string &dir, bool survival,
-                         const std::string &depth, const std::string &top,
-                         const std::vector<std::string> &mod_flags)
+// One section of that file the game keeps: `head` ("[room NAME]"), the line
+// that says it is the game's, and `body`. Written again in place, or added at
+// the end; left alone once its second line is no longer the game's.
+void write_room_section(const std::string &path, const std::string &head,
+                        const std::vector<std::string> &body)
 {
-    const std::string head = "[room home-*]";
     const std::string mark = "# written by the game at every start: take this line out to keep changes of yours";
     std::vector<std::string> lines;
     {
@@ -10747,11 +11192,8 @@ void write_home_template(const std::string &path, const std::string &dir, bool s
             for (to = i + 1; to < lines.size() && lines[to].rfind("[room ", 0) != 0;) ++to;
             break;
         }
-    std::vector<std::string> section{head, mark, "world-file " + dir + "/{name}.db",
-                                     "world-depth " + depth, "world-top " + top};
-    if (survival) section.push_back("survival");
-    for (size_t i = 0; i + 1 < mod_flags.size(); i += 2)
-        section.push_back(mod_flags[i].substr(2) + " " + mod_flags[i + 1]);
+    std::vector<std::string> section{head, mark};
+    section.insert(section.end(), body.begin(), body.end());
     section.push_back("");
     if (lines.empty()) {
         lines.push_back("# Rooms started when something leads to them (--rooms-file).");
@@ -10762,6 +11204,18 @@ void write_home_template(const std::string &path, const std::string &dir, bool s
     lines.insert(lines.begin() + (std::ptrdiff_t)from, section.begin(), section.end());
     std::ofstream out(path, std::ios::trunc);
     for (const std::string &l : lines) out << l << "\n";
+}
+
+void write_home_template(const std::string &path, const std::string &dir, bool survival,
+                         const std::string &depth, const std::string &top,
+                         const std::vector<std::string> &mod_flags)
+{
+    std::vector<std::string> body{"world-file " + dir + "/{name}.db", "world-depth " + depth,
+                                  "world-top " + top};
+    if (survival) body.push_back("survival");
+    for (size_t i = 0; i + 1 < mod_flags.size(); i += 2)
+        body.push_back(mod_flags[i].substr(2) + " " + mod_flags[i + 1]);
+    write_room_section(path, "[room home-*]", body);
 }
 
 // A world directory holds the server's world file, its key, its log, and
@@ -11445,7 +11899,8 @@ MenuChoice title_menu(Scene &s, TitleMenu &m, bool &debug)
         if (type_in_field(s, &p, tid, ttext)) field(tid) = ttext;
         if (s.typing.on) field(s.typing.id) = s.typing.text;
 
-        if (plat_key_pressed(PLAT_KEY_ESC)) {
+        const bool capturing = m.page == MenuPage::Options && controls_capture(debug);
+        if (!capturing && plat_key_pressed(PLAT_KEY_ESC)) {
             if (s.typing.on) stop_typing(s);
             else if (m.page == MenuPage::NewWorld || m.page == MenuPage::EditWorld)
                 m.page = MenuPage::Worlds;
@@ -11454,6 +11909,7 @@ MenuChoice title_menu(Scene &s, TitleMenu &m, bool &debug)
             else if (m.page == MenuPage::Options) {
                 save_options(debug);
                 if (g_video_page) g_video_page = false;
+                else if (g_controls_page) g_controls_page = false;
                 else m.page = MenuPage::Title;
             } else m.page = MenuPage::Title;
         }
@@ -11902,7 +12358,20 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
     // world turns off (<world>/mods.conf, `off = name, name`).
     // The pocket halls take the same: a hall is the sandbox's, indoors.
     const std::vector<std::string> mod_flags = world_mod_flags(dir);
-    if (rooms) write_home_template(rooms_file, dir, survival, depth_s, top_s, mod_flags);
+    if (rooms) {
+        write_home_template(rooms_file, dir, survival, depth_s, top_s, mod_flags);
+        // The platform game and the arcade shooter are rooms of that file too,
+        // not of the command line: each starts when somebody comes near its
+        // gate on the plaza (mods/gates, a portal between rooms) and stops a
+        // minute after the last one left. The sandbox has no mouth to spare.
+        for (const char *g : {"platformer", "shmup"}) {
+            const std::string at = games + "/" + g;
+            if (!std::filesystem::is_directory(at + "/mods", ec)) continue;
+            write_room_section(rooms_file, std::string("[room ") + g + "]",
+                               {"world-file " + dir + "/" + g + ".db", "mods " + at + "/mods",
+                                "textures " + at + "/textures"});
+        }
+    }
     for (const char *room : {"sandbox", "pockets"}) {
         auto at = std::find_if(args.begin(), args.end(),
                                [room](const char *a) { return std::strcmp(a, room) == 0; });
@@ -17018,6 +17487,12 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 body.hand       = p.item != 0 ? held.name : std::string();
                 body.hand_block = p.item != 0 ? held.places : kAir;
                 body.hand_tag   = (uint32_t)p.item_tint << kTagIdBits;
+                if (p.off_item != 0) {   // their left hand (124)
+                    const ItemDef &off = conn->items().get((ItemId)p.off_item);
+                    body.off_hand  = off.name;
+                    body.off_block = off.places;
+                    body.off_tag   = (uint32_t)p.off_tint << kTagIdBits;
+                }
                 body.livery     = p.livery;
                 for (int k = 0; k < 5; ++k) {
                     body.worn[k] = p.worn[k] != 0 ? conn->items().get(p.worn[k]).name : std::string();
@@ -17162,6 +17637,17 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 s.hand       = def.name;
                 s.hand_block = def.places;
                 s.hand_tag   = carried.slots[(size_t)held_slot].tag;
+            }
+            s.off_hand.clear();
+            s.off_block = kAir;
+            s.off_tag   = 0;
+            if (carried.slots.size() > (size_t)Inventory::kOffhandSlot &&
+                carried.slots[(size_t)Inventory::kOffhandSlot].count > 0) {
+                const auto     &off = carried.slots[(size_t)Inventory::kOffhandSlot];
+                const ItemDef  &def = conn->items().get((ItemId)off.item);
+                s.off_hand  = def.name;
+                s.off_block = def.places;
+                s.off_tag   = off.tag;
             }
         }
         s.act().player_model_id = conn->welcome().player_model;
@@ -17658,6 +18144,13 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         if (seconds <= 0.0 && !s.hotbar.open && !panel_up && !s.pause.up &&
             plat_key_pressed(PLAT_KEY_Q))
             conn->send_drop_item(held_slot, plat_key_down(PLAT_KEY_CTRL) ? 0 : 1);
+        // H: the hands trade what they hold (Inventory::kOffhandSlot), asked of
+        // the server as any move in the bag is.
+        if (seconds <= 0.0 && !s.hotbar.open && !panel_up && !s.pause.up && !s.typing.on &&
+            plat_key_pressed(PLAT_KEY_H))
+            // From the hand that holds something: a move out of an empty square is no move.
+            s.hand.empty() ? conn->send_move_item(Inventory::kOffhandSlot, held_slot)
+                           : conn->send_move_item(held_slot, Inventory::kOffhandSlot);
 
         // The wheel walks the bar, which is the other half of 1-9 and the one
         // a hand already knows. Only with the bag closed: while a panel is up
@@ -20192,6 +20685,10 @@ int run_interactive(Scene &s, double seconds)
         // rid of something.
         if (!s.hotbar.open && !s.pause.up && plat_key_pressed(PLAT_KEY_Q))
             throw_stack(bag.selected(), plat_key_down(PLAT_KEY_CTRL) ? 0 : 1);
+        if (!s.hotbar.open && !s.pause.up && !s.typing.on && plat_key_pressed(PLAT_KEY_H) &&
+            bag.size() > Inventory::kOffhandSlot)
+            bag.held().empty() ? bag.move_to(s.act().items, Inventory::kOffhandSlot, bag.selected())
+                               : bag.move_to(s.act().items, bag.selected(), Inventory::kOffhandSlot);
 
         // The wheel walks the bar, the same rule as the networked loop and the
         // same function: see ui::hotbar_scroll.
@@ -20877,6 +21374,14 @@ int run_interactive(Scene &s, double seconds)
         s.hand       = holding ? s.act().items.get(s.bag->held().item).name : std::string();
         s.hand_block = holding ? s.act().items.get(s.bag->held().item).places : kAir;
         s.hand_tag   = holding ? s.bag->held().tag : 0;
+        {
+            const ItemStack *off = s.bag != nullptr && s.bag->size() > Inventory::kOffhandSlot
+                                       ? &s.bag->at(Inventory::kOffhandSlot) : nullptr;
+            const bool some = off != nullptr && !off->empty();
+            s.off_hand  = some ? s.act().items.get(off->item).name : std::string();
+            s.off_block = some ? s.act().items.get(off->item).places : kAir;
+            s.off_tag   = some ? off->tag : 0;
+        }
         s.working    = s.dig_progress > 0.0f ||
                     (plat_cursor_grabbed() && plat_mouse_down(PLAT_MOUSE_LEFT));
         s.arms_clip  = body_arms_clip(s.act(), player);
@@ -21004,6 +21509,10 @@ script_host make_client_host(Scene &scene)
     host.view           = host_view;
     host.iso_view       = host_iso_view;
     host.fixed_view     = host_fixed_view;
+    host.side_view      = host_side_view;
+    host.register_key   = host_register_key;
+    host.top_view       = host_top_view;
+    host.top_view_at    = host_top_view_at;
     host.cursor_ray     = host_cursor_ray;
     host.walk           = host_walk;
     host.mobs_near      = host_mobs_near;

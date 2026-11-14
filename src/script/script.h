@@ -282,6 +282,17 @@ typedef struct script_host {
     // The same camera held on a point instead of the head (core.fixed_view).
     void (*fixed_view)(void *ud, double x, double y, double z, double distance, double yaw,
                        double pitch, double fov, double seconds);
+    // The same camera level and from the side, the keys a platform game's
+    // (core.side_view), and from overhead, the keys an arcade shooter's
+    // (core.top_view).
+    void (*side_view)(void *ud, double distance, double yaw, double fov, double seconds);
+    // A key of the mod's own, moved on the player's Controls page and heard
+    // as core:input "key_<name>" (core.register_key). Null on a server.
+    bool (*register_key)(void *ud, const char *name, const char *key, const char *label);
+    void (*top_view)(void *ud, double distance, double yaw, double fov, double seconds);
+    // That one held on a point while the body moves under it (core.top_view_at).
+    void (*top_view_at)(void *ud, double x, double y, double z, double distance, double yaw, double fov,
+                        double seconds);
     int (*cursor_ray)(void *ud, float *ox, float *oy, float *oz, float *dx, float *dy, float *dz);
     void (*walk)(void *ud, double dx, double dz, double speed);
     void (*engine_hud)(void *ud, int on);

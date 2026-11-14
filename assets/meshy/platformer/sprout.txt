@@ -1,0 +1,5 @@
+prompt: a single cute grumpy cartoon cactus creature for a platform video game: round green barrel body, two stubby brown feet, big angry white eyes with dark brows, a small pink flower on top, no arms, stylized low poly toy, flat bright colours, full body, standing
+model: meshy-6
+polys: 6000
+preview: 01a1d5c7-3008-72e0-a644-958b52483862
+refine: 01a1d5c8-e18f-714a-a3bc-65b2e3a0c89d

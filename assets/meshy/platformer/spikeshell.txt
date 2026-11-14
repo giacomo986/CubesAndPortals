@@ -1,0 +1,5 @@
+prompt: a single cartoon sea urchin creature enemy for a platform video game: a round dark blue ball body completely covered all over with many long sharp red cone spikes pointing outward in every direction, two small angry yellow eyes on the front, two tiny orange feet underneath, stylized low poly toy, flat bright colours, full body
+model: meshy-6
+polys: 6000
+preview: 01a1d5cc-365a-77a8-8140-8339a9090d6d
+refine: 01a1d5cd-713a-77b5-bfe0-b8988613efa6

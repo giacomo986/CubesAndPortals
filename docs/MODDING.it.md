@@ -2250,11 +2250,34 @@ lì in `secondi`, il cursore è libero (`core.cursor_ray`), il corpo sta fermo (
 tasti non camminano) e non si vede; `distanza` 0 la riporta all'occhio. È la
 vista di `mods/chess` sopra la scacchiera.
 
+`core.side_view(distanza, yaw, fov, secondi)` è la stessa camera senza
+inclinazione, **di lato**, per un gioco a piattaforme: A e D camminano lungo
+l'immagine, W salta, S si accuccia, e il corpo resta sul piano su cui stava
+quando la camera è stata chiesta -- niente cammina dentro l'immagine. L'immagine
+segue come lo schermo di un gioco a piattaforme: il corpo si sposta un poco di qua
+e di là prima che scorra, poi scorre morbida, e un salto la muove meno di una caduta. `yaw` è
+dove guarda la camera (0 mette +x a destra). `games/platformer` costruisce il
+suo livello lungo quel piano. `core.top_view(distanza, yaw, fov, secondi)` è la
+camera **dall'alto**, per uno sparatutto da sala giochi: il corpo continua a
+guardare verso l'alto dello schermo (`yaw`), W A S D lo fanno scorrere senza
+girarlo, e dove il mondo vola lui vola in piano -- i tasti di salto e di
+accucciata restano al mod (`games/shmup` spara con la barra). `distanza` 0
+riporta l'una e l'altra all'occhio. `core.top_view_at(x, y, z, distanza, yaw, fov,
+secondi)` tiene quella camera sopra **un punto** mentre il corpo si muove sotto:
+uno schermo che non scorre, da cabinato.
+
 `core:input` arriva quando il giocatore **preme** e quando **lascia**, mentre
 gioca: `mouse_left`, `mouse_right`, e i tasti `key_w`, `key_a`, `key_s`, `key_d`,
 `key_space`, `key_shift`, `key_ctrl`, `key_f`, `key_r`, `key_e`, `key_q`, `key_v`,
-`key_c`, `key_b`, `key_f4`, `key_f8`, `key_i`, `key_k`, `key_1` … `key_9`; il rilascio è lo stesso nome con `_up` (`key_w_up`,
-`mouse_left_up`). Con una chest aperta sopra la borsa arrivano anche `wheel_up` e
+`key_c`, `key_b`, `key_f4`, `key_f8`, `key_i`, `key_k`, `key_h`, `key_1` … `key_9`; il rilascio è lo stesso nome con `_up` (`key_w_up`,
+`mouse_left_up`). Ognuno è il tasto del gioco per quello che fa, non per la lettera stampata: chi ha
+spostato Avanti sulla freccia in su in Opzioni > Comandi manda ancora `key_w`. Un mod con un tasto
+suo lo registra: `core.register_key("miomod:scatto", "G", "Scatto")` mette "Scatto" nella pagina
+Comandi, su G all'inizio e spostabile lì come quelli del gioco, e le sue pressioni arrivano come
+`key_miomod:scatto` e `key_miomod:scatto_up` (`mods/torches` mostra i punti bui con un tasto suo,
+`games/platformer` ci lancia le palle di fuoco). Il tasto può essere anche un pulsante del mouse:
+`"MOUSE3"` quello centrale, `"MOUSE4"` e `"MOUSE5"` quelli laterali. Si chiama dalla metà del
+giocatore di un mod `both`; sul server non fa niente. Con una chest aperta sopra la borsa arrivano anche `wheel_up` e
 `wheel_down`, la rotella (`mods/creative` scorre le righe). Un tasto tenuto è quello premuto e non ancora lasciato. Un
 handler che mette `ev.cancel = true` su una **pressione** del mouse l'ha
 **reclamata**: il motore non scava, non colpisce, non piazza e non usa con quella

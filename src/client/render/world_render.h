@@ -357,6 +357,20 @@ public:
     // its whirls and twisters (the costliest thing the sky draws).
     static inline float view_limit  = 512.0f;
     static inline bool  plain_storm = false;
+    // Light carried in hands (a torch held, by this player or anybody near):
+    // the cells of a box round the eye, kHandBox a side, spread from each hand
+    // as a lamp's light is -- round corners and stopped by what is opaque --
+    // by whoever knows the hands (update_hand_light in the client). `rgba` is
+    // the box as the shader reads it (hand_cell): R the brightness
+    // (light_curve), G 255 where light passes; `o` its lowest corner. Each
+    // world has its own: a world seen through a portal has nobody's hands.
+    static constexpr int kHandBox  = 48;
+    static constexpr int kHandTexW = kHandBox * 8, kHandTexH = kHandBox * 6;
+    void set_hand_light(const std::vector<uint8_t> &rgba, int ox, int oy, int oz);
+    void clear_hand_light() { m_hand_on = false; }
+    bool hand_light_on() const { return m_hand_on; }
+    // Its brightness at a point, 0..1, for what another shader draws there.
+    float hand_light_at(float x, float y, float z) const;
     float view_range() const { return m_view_range; }
 
     // Chunks dropped by the range on the last draw, as opposed to by the
@@ -555,6 +569,11 @@ private:
     int         m_loc_cloud_funnel = -1, m_loc_cloud_range = -1, m_loc_cloud_overcast = -1, m_loc_cloud_part = -1,
                 m_loc_cloud_eclipse = -1;
     int         m_loc_sun_dir = -1, m_loc_sun_color = -1, m_loc_ambient = -1;
+    int         m_loc_hand_box = -1, m_loc_hand_cells = -1;
+    gfx_texture m_hand_tex{};
+    std::vector<uint8_t> m_hand_px;
+    int         m_hand_o[3] = {0, 0, 0};
+    bool        m_hand_on = false;
     int         m_loc_shadow_vp = -1, m_loc_shadow = -1, m_loc_shadow_on = -1, m_loc_shadow_texel = -1;
 
     // The sky behind the water (shaders::kWaterSkyFS): one triangle over the

@@ -1055,7 +1055,7 @@ Which side of a world this code is running on: "server"; "client", which is a wo
 core.body_scale(player: number, scale: number?) -> number
 ```
 
-Makes ONE player's body small or big, at any time: its box, steps, eye, speeds, jump, gravity and fall all scale together, as do the camera's near plane and its reach, and everybody sees it drawn that big -- so a body at 1/16 goes through a world of blocks as a body at 1 would through one sixteen times bigger. Speeds a mod gives it later (core.body_movement) are a body at 1's and shrink with it. Returns 1, or 0 when refused (a size out of range, no such player), the reason in the log.
+Makes ONE player's body small or big, at any time: its box, steps, eye, speeds, jump, gravity and fall all scale together, as do the ledges its hands take and how far under one it hangs, the camera's near plane and its reach, and everybody sees it drawn that big -- so a body at 1/16 goes through a world of blocks as a body at 1 would through one sixteen times bigger. Speeds a mod gives it later (core.body_movement) are a body at 1's and shrink with it. Returns 1, or 0 when refused (a size out of range, no such player), the reason in the log.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1344,6 +1344,68 @@ A camera that leaves the eye and looks at one point from one fixed direction -- 
 | `pitch` | number | `50` | Degrees down from level, 10 to 89. |
 | `fov` | number | `0` | Its vertical field of view in degrees, 10 to 100; 0 is the engine's 70. |
 | `seconds` | number | `0` | How long the camera takes to fly from the eye to there, or back, eased at both ends; 0 is a cut. At most 10. |
+
+## `core.register_key`
+
+```luau
+core.register_key(name: string, key: string, label: string?) -> boolean
+```
+
+A key of the mod's own, in the player's Options > Controls beside the game's, where the player can move it to another key; the choice is kept between runs. Pressed and let go, it reaches the world's code on the player's machine as core:input, as the game's own keys do ("key_w"...) -- heard only, it takes the key from nothing else. Called again with the same name it changes the label and the starting key, and leaves a key the player moved where it is. False for a name or a key it does not take. For a world's code on a player's machine; on a server it does nothing and is false.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `name` | string | — | What it is heard as: core:input's action is "key_" .. name when it goes down and "key_" .. name .. "_up" when it comes up. Lower case letters, digits, _ : and . -- best begun with the mod's name ("mymod:dash"), 1 to 40 of them. |
+| `key` | string | — | The key it starts as, by what is printed on it: "G", "7", "F9", "SPACE", "TAB", "ALT", "KP1", "-"..., or a mouse button: "MOUSE3" the middle, "MOUSE4" and "MOUSE5" the side ones. "" for none until the player picks one. |
+| `label` | string | `` | What the Controls page calls it, translated as any text is; empty is the name. |
+
+## `core.side_view`
+
+```luau
+core.side_view(distance: number?, yaw: number?, fov: number?, seconds: number?) -> ()
+```
+
+A camera level with the player and to one side of them, as in a platform game seen from the side, or (distance 0) back to the eye. It is core.iso_view's camera with no tilt, and other keys: A and D walk along the picture and turn the body that way, W jumps as the jump key does, S crouches, and nothing walks into the picture or out of it -- the body is kept on the plane across the camera's look that it stood on when this was first called, and walked back to it when something pushes it off. Called again while it is on, it moves the camera and keeps the plane. The picture follows the body as a platform game's screen does: the body moves a little either way before it scrolls, and then it scrolls smoothly; a jump moves it less than a fall, and a body put far away (a pipe, a portal) is followed at once. The level is the world's to build along that plane. For a world's code on a player's machine; per world, as core.view.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `distance` | number | `0` | Nodes from the player's head to the camera; 0 goes back to the eye. At most 40. |
+| `yaw` | number | `0` | Which way the camera looks, in degrees round from -Z as a player's yaw: 0 puts +X on the right of the picture. |
+| `fov` | number | `0` | Its vertical field of view in degrees, 10 to 100; 0 is the engine's 70. |
+| `seconds` | number | `0` | How long the camera takes to swing out of the eye to there, or back; 0 is a cut. At most 10. |
+
+## `core.top_view`
+
+```luau
+core.top_view(distance: number?, yaw: number?, fov: number?, seconds: number?) -> ()
+```
+
+A camera straight over the player, as over the fighter of an arcade cabinet, or (distance 0) back to the eye. It is core.iso_view's camera looking down, and other keys: the body goes on facing the top of the screen whatever is pressed, and W A S D slide it up, left, down and right without turning it. Where the world flies (core.movement) the body flies while this is on, level: the jump and crouch keys neither climb nor dive, so a mod hears them (core:input) for what it likes. For a world's code on a player's machine; per world, as core.view.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `distance` | number | `0` | Nodes from the player's head up to the camera; 0 goes back to the eye. At most 40. |
+| `yaw` | number | `0` | Which way the top of the screen is, in degrees round from -Z as a player's yaw. |
+| `fov` | number | `0` | Its vertical field of view in degrees, 10 to 100; 0 is the engine's 70. |
+| `seconds` | number | `0` | How long the camera takes to rise out of the eye to there, or back; 0 is a cut. At most 10. |
+
+## `core.top_view_at`
+
+```luau
+core.top_view_at(x: number, y: number, z: number, distance: number?, yaw: number?, fov: number?, seconds: number?) -> ()
+```
+
+core.top_view's camera held over one point instead of over the head: a whole field on one screen that does not scroll, as an arcade cabinet's, the body sliding about under it with the same keys. Unlike core.fixed_view the body moves and is drawn. Keeping it inside the picture is the mod's (core.player_place, or walls). For a world's code on a player's machine; per world, as core.view.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `x` | number | — | The point the camera stays over, in the world. |
+| `y` | number | — |  |
+| `z` | number | — |  |
+| `distance` | number | `0` | Nodes from the point up to the camera; 0 goes back to the eye. At most 40. |
+| `yaw` | number | `0` | Which way the top of the screen is, in degrees round from -Z as a player's yaw. |
+| `fov` | number | `0` | Its vertical field of view in degrees, 10 to 100; 0 is the engine's 70. |
+| `seconds` | number | `0` | How long the camera takes to fly from the eye to there, or back; 0 is a cut. At most 10. |
 
 ## `core.cursor_ray`
 

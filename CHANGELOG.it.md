@@ -5,6 +5,30 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
+## 0.17.0-alpha.1 — 2026-11-14
+
+**Non gioca con i server 0.16** (protocollo 124). I mondi si leggono così come sono; una borsa
+salvata prima ha la mano sinistra vuota.
+
+- **Torce** con un vero modello in mano, e si mettono su pavimenti, muri e soffitti. Una torcia, o
+  qualsiasi blocco che fa luce, tenuta in una delle due mani illumina intorno come farebbe posata --
+  gira gli angoli, non passa i muri -- e la vedono tutti.
+- **La mano sinistra**: una seconda cosa da tenere, scambiata con H, sulla figura della borsa e
+  accanto alla hotbar, vista da tutti.
+- **Opzioni > Comandi**: ogni tasto tranne ESC si sposta, su un altro tasto o sul tasto centrale e
+  su quelli laterali del mouse. I mod ci aggiungono tasti propri (`core.register_key`).
+- **Português**: il gioco e un README in portoghese brasiliano.
+- **Due giochi nuovi** dietro portoni sulla piazza: un platform visto di lato, con power-up, tubi e
+  una stanza bonus, e uno sparatutto da sala giochi su un caccia visto dall'alto.
+- **Stanze**: portali fra le stanze di un server costruiti dal menù di una cornice, stanze avviate
+  e fermate da un file, una stanza propria per ogni giocatore, difficoltà e regole in ogni stanza.
+- **Cornici dei portali** con un colore, che possono scalare o essere una finestra, e che sono di
+  chi le ha costruite.
+- **Zone**: pezzi di livello salvati dal mondo, e livelli fatti di questi pezzi.
+- **L'uomo lucertola**, una specie add-on, e le specie add-on tenute per nome su ogni server.
+- La medaglia oscilla dal suo spillo; il jetpack vola alla grandezza del corpo; guidando in prima
+  persona si vedono solo le braccia del pilota.
+
 ## 0.16.0-alpha.1 — 2026-11-10
 
 **Non gioca con i server 0.15** (protocollo 123). I mondi si leggono così come sono; le lampade nelle

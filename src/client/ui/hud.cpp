@@ -273,6 +273,14 @@ HotbarLayout draw_hotbar(const ItemStack *slots, int count, int selected,
     // What the hand is on, named above the bar. The name and not the id: an id
     // is meaningless to whoever is reading it, which is the same argument
     // core.node_name makes.
+    // The left hand's (Inventory::kOffhandSlot), a square apart left of the
+    // bar, when it holds anything.
+    if (count > Inventory::kOffhandSlot && !slots[Inventory::kOffhandSlot].empty()) {
+        const float ox = out.x - edge - side * 1.5f;
+        gfx_2d_rect(ox - edge, out.y - edge, side + edge * 2.0f, side + edge * 2.0f, kBackdrop);
+        draw_slot(ox, out.y, side, side, slots[Inventory::kOffhandSlot], items, nodes, icons, kBorder);
+    }
+
     const ItemStack &held = slots[(selected >= 0 && selected < n) ? selected : 0];
     if (!held.empty()) {
         const std::string &name = items.get(held.item).name;
@@ -304,10 +312,13 @@ void PanelLayout::slot_rect(int i, float &out_x, float &out_y, float &out_w, flo
         // Where on the figure, in slots across it and rows down the grid: head,
         // chest, legs, feet, back, then the arms -- the wearer's left on the
         // right, the figure facing out of the screen.
-        static constexpr float kAcross[] = {2.0f, 2.0f, 2.0f, 2.0f, 0.5f, 3.5f, 0.5f};
-        static constexpr int   kDown[]   = {0, 1, 2, 3, 1, 0, 0};
+        // And last the left hand, at the figure's left hand.
+        static constexpr float kAcross[] = {2.0f, 2.0f, 2.0f, 2.0f, 0.5f, 3.5f, 0.5f, 3.5f};
+        static constexpr int   kDown[]   = {0, 1, 2, 3, 1, 0, 0, 2};
         const int k = i - worn_from;
-        if (k >= (int)(sizeof kDown / sizeof kDown[0]) || (k >= Inventory::kWorn && k - Inventory::kWorn >= arms)) {
+        const bool shut_arm = k >= Inventory::kWorn && k < Inventory::kWorn + Inventory::kArms &&
+                              k - Inventory::kWorn >= arms;
+        if (k >= (int)(sizeof kDown / sizeof kDown[0]) || shut_arm) {
             out_x = out_y = out_w = out_h = 0.0f;   // shut: nothing there to hit
             return;
         }
@@ -408,7 +419,7 @@ void draw_chat(const Chat &c, double now, int screen_w, int screen_h)
     // Left of the hotbar and the bars over it, as draw_hotbar lays them out;
     // on a screen too narrow for that, over them.
     const float side  = (float)screen_h * kSlotOfHeight;
-    const float bar   = (float)Inventory::kHotbar * side * (1.0f + kPadOfSlot);
+    const float bar   = ((float)Inventory::kHotbar + 3.2f) * side * (1.0f + kPadOfSlot);   // and the left hand's
     const float room  = ((float)screen_w - bar) * 0.5f - x - pad * 3.0f;
     const float width = std::min(size * 32.0f, room >= size * 12.0f ? room : (float)screen_w - x * 2.0f);
     float       y       = (float)screen_h - size * 2.0f;   // top of the input row

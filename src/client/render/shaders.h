@@ -363,6 +363,12 @@ uniform sampler2DShadow uShadow;
 uniform float           uShadowOn;
 uniform float           uShadowTexel;   // one texel of the map, in nodes
 uniform float           uClassic;
+// Light carried in hands (WorldRenderer::set_hand_light): a box of cells,
+// 48 a side, each with the brightness of the hands' light there in R and 255
+// in G where light passes, its 48 layers in 8 x 6 tiles. uHandBox.xyz is its
+// lowest corner, w 1 when anything is lit.
+uniform vec4      uHandBox;
+uniform sampler2D uHandCells;
 
 out vec4 fragColor;
 )" CNP_WATER_GLSL R"(
@@ -379,6 +385,32 @@ const float kLightFloor = 0.02;
 
 // Fire is not white.
 const vec3 kLampTint = vec3(1.0, 0.9, 0.76);
+
+vec2 hand_cell(ivec3 c)
+{
+    if (any(lessThan(c, ivec3(0))) || any(greaterThanEqual(c, ivec3(48)))) return vec2(0.0);
+    return texelFetch(uHandCells, ivec2((c.y % 8) * 48 + c.x, (c.y / 8) * 48 + c.z), 0).rg;
+}
+
+// The hands' light at p, smoothed between the cells round it as the mesher
+// smooths a lamp's -- over the cells light passes through only, so a wall
+// does not darken the corner of the floor before it.
+float hand_light(vec3 p)
+{
+    vec3  q = p - uHandBox.xyz - 0.5;
+    ivec3 i = ivec3(floor(q));
+    vec3  f = q - floor(q);
+    float sum = 0.0, weight = 0.0;
+    for (int k = 0; k < 8; ++k) {
+        ivec3 o = ivec3(k & 1, (k >> 1) & 1, (k >> 2) & 1);
+        vec3  t = mix(1.0 - f, f, vec3(o));
+        vec2  v = hand_cell(i + o);
+        float w = t.x * t.y * t.z * v.g;
+        sum    += w * v.r;
+        weight += w;
+    }
+    return weight > 1e-4 ? sum / weight : 0.0;
+}
 
 )" CNP_SUN_GLSL R"(
 void main()
@@ -412,9 +444,13 @@ void main()
     // A lamp with no colour of its own is warm; one with a colour is that colour.
     float tinted = max(vLamp.r, max(vLamp.g, vLamp.b)) - min(vLamp.r, min(vLamp.g, vLamp.b));
     vec3  warm   = mix(kLampTint, vec3(1.0), smoothstep(0.0, 0.15, tinted));
-    vec3  lit    = max(max(sky, vLamp * warm), vec3(uNightSight * 0.55));
+    vec3  lamp   = vLamp * warm;
+    // The hands' light, read in the cell before the face as a lamp's is.
+    float hand = uHandBox.w > 0.5 ? hand_light(vWorld + n * 0.5) : 0.0;
+    lamp       = max(lamp, kLampTint * hand);
+    vec3  lit    = max(max(sky, lamp), vec3(uNightSight * 0.55));
     vec3  rgb = texel.rgb * vAo * (kLightFloor + (1.0 - kLightFloor) * min(lit, vec3(1.0)));
-    if (uClassic > 0.5) rgb = texel.rgb * max(vClassic, uNightSight * 0.55);
+    if (uClassic > 0.5) rgb = texel.rgb * max(max(vClassic, uNightSight * 0.55), hand * 0.85);
     rgb *= vWave;
 
     if (uWater.w > 0.5) {

@@ -23,7 +23,9 @@
 # (90.5 ... 76.5), il cui mondo non si salva; 17-23 una seconda entrata per
 # ognuno dei sette mondi con chiave (survival: due siti dello stesso mondo insieme); 24-27 le
 # sale tascabili (mods/pocket: alla porta tascabile più vicina a un giocatore). Il client guarda dentro solo le
-# due più vicine. La pista dell'inferno va
+# due più vicine. Il gioco a piattaforme (40.5 ... 26.5) e lo sparatutto da sala
+# giochi (56.5 ... 26.5) non hanno una bocca del mondo: sono stanze del file delle
+# stanze, dietro un portale fra stanze che prende in prestito una bocca libera. La pista dell'inferno va
 # dalla pista all'inferno e ritorno, tre bocche per stanza: la cornice A della
 # pista (apertura 1) e B dell'inferno (apertura 2) si portano l'una all'altra, e
 # così C dell'inferno (apertura 1) e D della pista (apertura 2). Mondi, chiavi e
@@ -66,7 +68,7 @@ CLI="$BUILD/src/client/cnp_client"
 mkdir -p "$HERE"
 if [ "$FRESH" = 1 ]; then
     rm -f "$HERE"/sandbox.world* "$HERE"/pista.world* "$HERE"/inferno.world* \
-          "$HERE"/arena.world* "$HERE"/arpg.world* "$HERE"/chambers.world* "$HERE"/backrooms.world* "$HERE"/parkour.world* "$HERE"/laboratorio.world* "$HERE"/front.world* \
+          "$HERE"/arena.world* "$HERE"/arpg.world* "$HERE"/chambers.world* "$HERE"/backrooms.world* "$HERE"/parkour.world* "$HERE"/laboratorio.world* "$HERE"/front.world* "$HERE"/platformer.world* "$HERE"/shmup.world* \
           "$HERE"/home-*.world* "$HERE"/rooms.conf
     echo "== mondi salvati cancellati"
     # Proprietario del server: il permesso creative (moderatore in su) apre il
@@ -116,6 +118,20 @@ if [ ! -f "$HERE/rooms.conf" ]; then
         true
     } > "$HERE/rooms.conf"
 fi
+
+# Il gioco a piattaforme e lo sparatutto da sala giochi (games/platformer,
+# games/shmup) non partono col server: stanno nel file delle stanze, e ognuno
+# si avvia quando qualcuno si avvicina al suo cancello sulla piazza (mods/gates)
+# e si ferma un minuto dopo che l'ultimo se n'è andato.
+for g in platformer shmup; do
+    grep -q "^\[room $g\]" "$HERE/rooms.conf" || {
+        echo ""
+        echo "[room $g]"
+        echo "world-file $HERE/$g.world"
+        echo "mods $ROOT/games/$g/mods"
+        echo "textures $ROOT/games/$g/textures"
+    } >> "$HERE/rooms.conf"
+done
 
 # Le mod del giocatore (~/.cubes-and-portals/mods), al sandbox e alle sale
 # tascabili come le dà il menù del titolo: una con `rooms = all` (una specie,
@@ -229,6 +245,13 @@ cat <<INFO
   arancione e nera (16.5 21 52.5), il fronte in una porta di bunker fra sacchi
   di sabbia e due bandiere (90.5 21 58.5). Si vede dentro solo i due portali
   più vicini.
+
+== E ai due giochi nuovi
+
+  Sul lato sud della piazza: il gioco a piattaforme dietro un tubo verde in un
+  muro di mattoni (40.5 21 26.5) e lo sparatutto da sala giochi dentro un
+  cabinato nero (56.5 21 26.5). Le loro stanze si avviano quando ti avvicini
+  al cancello (un secondo o due la prima volta) e si fermano da sole.
   Log: $HERE/server.log
 
 INFO

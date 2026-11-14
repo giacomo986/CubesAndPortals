@@ -1119,6 +1119,57 @@ int l_fixed_view(lua_State *L)
     return 0;
 }
 
+// core.register_key(name: string, key: string, label: string?) -> boolean
+int l_register_key(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *name = (const char *)luaL_checkstring(L, 1);
+    const char *key = (const char *)luaL_checkstring(L, 2);
+    const char *label = (const char *)luaL_optstring(L, 3, "");
+    const int result = (vm && vm->host.register_key) ? vm->host.register_key(vm->host.ud, name, key, label) : (int)0;
+    lua_pushboolean(L, result);
+    return 1;
+}
+
+// core.side_view(distance: number?, yaw: number?, fov: number?, seconds: number?) -> ()
+int l_side_view(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const float distance = (float)luaL_optnumber(L, 1, 0);
+    const float yaw = (float)luaL_optnumber(L, 2, 0);
+    const float fov = (float)luaL_optnumber(L, 3, 0);
+    const float seconds = (float)luaL_optnumber(L, 4, 0);
+    if (vm && vm->host.side_view) vm->host.side_view(vm->host.ud, distance, yaw, fov, seconds);
+    return 0;
+}
+
+// core.top_view(distance: number?, yaw: number?, fov: number?, seconds: number?) -> ()
+int l_top_view(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const float distance = (float)luaL_optnumber(L, 1, 0);
+    const float yaw = (float)luaL_optnumber(L, 2, 0);
+    const float fov = (float)luaL_optnumber(L, 3, 0);
+    const float seconds = (float)luaL_optnumber(L, 4, 0);
+    if (vm && vm->host.top_view) vm->host.top_view(vm->host.ud, distance, yaw, fov, seconds);
+    return 0;
+}
+
+// core.top_view_at(x: number, y: number, z: number, distance: number?, yaw: number?, fov: number?, seconds: number?) -> ()
+int l_top_view_at(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const float x = (float)luaL_checknumber(L, 1);
+    const float y = (float)luaL_checknumber(L, 2);
+    const float z = (float)luaL_checknumber(L, 3);
+    const float distance = (float)luaL_optnumber(L, 4, 0);
+    const float yaw = (float)luaL_optnumber(L, 5, 0);
+    const float fov = (float)luaL_optnumber(L, 6, 0);
+    const float seconds = (float)luaL_optnumber(L, 7, 0);
+    if (vm && vm->host.top_view_at) vm->host.top_view_at(vm->host.ud, x, y, z, distance, yaw, fov, seconds);
+    return 0;
+}
+
 // core.cursor_ray() -> (number?, number?, number?, number?, number?, number?)
 int l_cursor_ray(lua_State *L)
 {
@@ -3602,6 +3653,14 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "iso_view");
     lua_pushcfunction(L, l_fixed_view, "core.fixed_view");
     lua_setfield(L, -2, "fixed_view");
+    lua_pushcfunction(L, l_register_key, "core.register_key");
+    lua_setfield(L, -2, "register_key");
+    lua_pushcfunction(L, l_side_view, "core.side_view");
+    lua_setfield(L, -2, "side_view");
+    lua_pushcfunction(L, l_top_view, "core.top_view");
+    lua_setfield(L, -2, "top_view");
+    lua_pushcfunction(L, l_top_view_at, "core.top_view_at");
+    lua_setfield(L, -2, "top_view_at");
     lua_pushcfunction(L, l_cursor_ray, "core.cursor_ray");
     lua_setfield(L, -2, "cursor_ray");
     lua_pushcfunction(L, l_walk, "core.walk");

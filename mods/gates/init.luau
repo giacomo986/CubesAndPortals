@@ -7,7 +7,8 @@
 -- up its side and a bar over it for the parkour course, a dead frame of dark
 -- steel with seven pedestals for the laboratory, a sandbagged bunker door
 -- under a red and a blue flag for the front, a black basalt gate with
--- violet embers for the assault.
+-- violet embers for the assault, a green pipe in a brick wall under a prize
+-- block for the platform game, an arcade cabinet for the shooter.
 --
 -- Which world an opening leads to is the room it names (core.portal_room), so
 -- a sandbox started with the arena as its first opening gets the arena's gate
@@ -266,6 +267,46 @@ local THEMES: { [string]: (Put) -> () } = {
             end
         end
     end,
+
+    -- The platform game: a green pipe's mouth in a wall of bricks, a prize
+    -- block over it, grass before it.
+    platformer = function(put)
+        local PIPE, PRIZE = id("colors:lime_concrete"), YELLOW
+        frame(put, function() return PIPE end)
+        for v = -1, 3 do
+            for _, u in { -3, -2, 2, 3 } do
+                if v < 3 or math.abs(u) == 2 then put(u, v, 0, id("colors:orange_terracotta")) end
+            end
+        end
+        for u = -1, 1 do put(u, 3, 0, PIPE) end
+        put(0, 5, 0, PRIZE)
+        put(0, 6, 0, LAMP)
+        for w = -4, 4 do
+            for u = -3, 3 do
+                if w ~= 0 or math.abs(u) >= 2 then put(u, -1, w, if math.abs(u) == 3 then BROWN else GREEN) end
+            end
+        end
+    end,
+
+    -- The arcade shooter: a cabinet -- black sides, a light blue marquee with
+    -- a lamp in it, a yellow stripe down each side, a chequered floor.
+    shmup = function(put)
+        frame(put, function() return BLACK end)
+        for v = -1, 5 do
+            put(-2, v, 0, if v == 1 or v == 2 then YELLOW else BLACK)
+            put(2, v, 0, if v == 1 or v == 2 then YELLOW else BLACK)
+        end
+        for u = -1, 1 do
+            put(u, 3, 0, BLUE)
+            put(u, 4, 0, if u == 0 then LAMP else BLUE)
+            put(u, 5, 0, BLACK)
+        end
+        for w = -4, 4 do
+            for u = -2, 2 do
+                if w ~= 0 or math.abs(u) == 2 then put(u, -1, w, chequer(u, w)) end
+            end
+        end
+    end,
 }
 
 -- Builds a theme round the hole at (hx, y0, hz) -- its lowest cell -- with a
@@ -337,6 +378,45 @@ if PLAZA then
         parked = true
         for k = 17, 23 do
             if core.portal_room(k) ~= "" then core.portal_park(k) end
+        end
+    end)
+
+    -- The platform game and the arcade shooter are not rooms the server starts
+    -- with and have no mouth of the world's: they are in its rooms file, started
+    -- when somebody comes near their gate and stopped a minute after the last
+    -- one left. Each gate holds a portal between rooms (core.room_portal_set)
+    -- linked to that room's "door", which borrows one of the mouths parked
+    -- above while a player is near. On the first tick, when the server's rooms
+    -- can be asked for; a server with no such room gets no gate.
+    -- On the plaza's south edge, clear of the gates above and of the arches along
+    -- the north one (mods/keys).
+    local HOT = { { "platformer", 40.5, 26.5 }, { "shmup", 56.5, 26.5 } }
+    local hot = false
+    core.event.on("core:tick", function(_)
+        if hot then return end
+        hot = true
+        if core.room() ~= "sandbox" then return end   -- not the pocket halls, whose mods these are too
+        local y = core.get_portal(0, 1)
+        for _, h in HOT do
+            local room, x, z = h[1], h[2], h[3]
+            local name = `gate-{room}`
+            -- A server started with a mouth of its own onto that room (tools/platformer.sh,
+            -- tools/shmup.sh) has its way in already.
+            local own = false
+            for k = 0, 27 do
+                if core.portal_room(k) == room then own = true end
+            end
+            if own then continue end
+            if core.room_portal_set(name, x, y, z, 1, 1, 0.5, 1.0) == 1 then
+                local no = core.room_portal_link(name, room, "door")
+                if no == "" then
+                    build(THEMES[room], math.floor(x), math.floor(y) - 1, math.floor(z), false)
+                    core.log(`gates: a gate to '{room}' at {math.floor(x)} {math.floor(y) - 1} {math.floor(z)}`)
+                else
+                    core.room_portal_close(name)
+                    core.log(`gates: no gate to '{room}': {no}`)
+                end
+            end
         end
     end)
     return

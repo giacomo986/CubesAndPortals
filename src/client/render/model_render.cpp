@@ -305,7 +305,9 @@ void ModelRenderer::draw(const Mat4 &projection, const Mat4 &view, const Mat4 &m
         // surface has no inside, and culling its back faces shows the world
         // through the character.
         // And while it dissolves: through its holes its inside shows.
-        state.cull = p.double_sided || dissolve > 0.0f ? GFX_CULL_NONE : GFX_CULL_BACK;
+        state.cull = p.double_sided || dissolve > 0.0f ? GFX_CULL_NONE
+                   : mirrored                          ? GFX_CULL_FRONT
+                                                       : GFX_CULL_BACK;
         gfx_state_set(&state);
 
         gfx_texture_bind(texture.id != 0 ? texture : p.texture, 0);

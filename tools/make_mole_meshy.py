@@ -40,6 +40,7 @@ import bmesh
 import bpy
 import numpy as np
 from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from make_species import MOLE_TINTS, blurred, export, fresh, keep_tools, materials  # noqa: E402
@@ -57,8 +58,10 @@ S = 1.5   # the file is 1 tall: the mole stands 1.5, the robot's eyes
 K_SHOULDER, K_ELBOW, K_WRIST, K_TIP = (0.146, 0.692), (0.314, 0.692), (0.466, 0.692), (0.692, 0.692)
 K_HIP, K_KNEE, K_ANKLE = (0.093, 0.34), 0.20, 0.07
 K_NECK, K_TOP = 0.766, 1.0
-TRIS = int(os.environ.get("MOLE_TRIS", 7000))   # what the body is decimated to
-EYE = (0.052, 0.1, 0.885, 0.017)   # an eye: x either side, how far ahead, height, radius (K units)
+TRIS = int(os.environ.get("MOLE_TRIS", 4700))   # the most triangles the body keeps
+BORDER = float(os.environ.get("MOLE_BORDER", 3.0))   # how much longer a vertex on a colour's border is kept
+PATCH = (-0.04, 0.6, 0.05, 0.035)   # the pocket's patch: x, height, width, height of it (K units)
+EYE = (0.057, 0.903, 0.018)   # an eye: x either side, height, radius (K units); it sits on the fur there
 FACET = 22     # degrees: a fold sharper than this is an edge
 ARM_OUT = 16   # degrees the rest arm hangs out
 HAND_SQUEEZE = 0.0   # the claws lie along the arm: hanging, they point down
@@ -163,19 +166,20 @@ def label(c, n, rgb):
     v = max(r, g, b)
     sat = (v - min(r, g, b)) / max(v, 1e-6)
     x, z = abs(c.x) / S, c.z / S
-    if r > 0.25 and r > 1.8 * g and r > 1.8 * b:
+    if r > 0.2 and r > 1.5 * g and r > 1.5 * b and (r > 1.9 * g or z < K_NECK):
         # The pocket's red is on the bib; Meshy left patches of it on the seat
         # and the nape, which are the dungarees'.
         return "tint_3" if n.y > 0.3 and z > K_HIP[1] and x < 0.12 else "tint_1"
     if b > 1.12 * r and v > 0.08:
         return "tint_1"
     if v < 0.2 or (sat < 0.22 and v < 0.5):
-        return "Fur"
+        # under the arms and over the feet there is no fur: a fold's shadow
+        return "tint_1" if x < ARM_X and K_ANKLE + 0.03 < z < K_SHOULDER[1] - 0.08 else "Fur"
     if r > 1.25 * g:
         return "Pink"
     if x > K_WRIST[0] - 0.02 or z < K_ANKLE + 0.03:
         return "Claw"
-    return "tint_2" if z < K_NECK + 0.03 else "Pink"
+    return "tint_2" if z < K_NECK + 0.1 else "Pink"   # the collar stands a little over the neck
 
 
 def load():
@@ -223,31 +227,76 @@ def load():
                 for g in vface[v]:
                     count[labels[g]] = count.get(labels[g], 0) + 1
             best = max(count, key=count.get)
-            new.append(best if count[best] > 2 * count.get(labels[f.index], 0) else labels[f.index])
+            mine = labels[f.index]   # the patch is small and stays
+            new.append(best if mine != "tint_3" and count[best] > 2 * count.get(mine, 0) else mine)
         labels = new
-    order = list(dict.fromkeys(labels))
-    me.materials.clear()
-    for n in order:
-        me.materials.append(bpy.data.materials[n])
-    for f, n in zip(me.polygons, labels):
-        f.material_index = order.index(n)
+    labels = ["tint_1" if n == "tint_3" else n for n in labels]   # the patch is a plate of its own (patch)
     while me.uv_layers:
         me.uv_layers.remove(me.uv_layers[0])
-    print("MOLE faces", len(me.polygons), {n: labels.count(n) for n in order})
+    me.materials.clear()
+    print("MOLE faces", len(me.polygons), {n: labels.count(n) for n in dict.fromkeys(labels)})
+    # Fewer triangles, or with the clips the file is over a megabyte. The
+    # vertices on a border between two colours are the last to go, and each
+    # face left takes the colour Meshy's surface has where it now lies (a face
+    # that kept its own through the collapse dragged it over the border, in
+    # spikes).
+    was = BVHTree.FromPolygons([v.co.copy() for v in me.vertices], [tuple(f.vertices) for f in me.polygons])
+    edge = ob.vertex_groups.new(name="border")
+    for i, faces in enumerate(vface):
+        if len({labels[g] for g in faces}) > 1:
+            edge.add([i], 1.0, "REPLACE")
     if len(me.polygons) > TRIS:
         mod = ob.modifiers.new("dec", "DECIMATE")
         mod.ratio = TRIS / len(me.polygons)
+        mod.vertex_group, mod.invert_vertex_group, mod.vertex_group_factor = "border", True, BORDER
         bpy.context.view_layer.objects.active = ob
         bpy.ops.object.modifier_apply(modifier=mod.name)
+    ob.vertex_groups.remove(ob.vertex_groups["border"])
+    new = []
+    for f in me.polygons:
+        pts = [me.vertices[v].co for v in f.vertices]
+        m = sum(pts, Vector()) / len(pts)
+        count = {}
+        for q, share in [(m, 1.5)] + [((q + m) / 2, 1.0) for q in pts]:
+            n = labels[was.find_nearest(q)[2]]
+            count[n] = count.get(n, 0.0) + share
+        new.append(max(count, key=count.get))
+    # A triangle that juts into another colour, two of its three sides on
+    # it, takes that colour: the borders run straighter.
+    sides = {}
+    for f in me.polygons:
+        for key in f.edge_keys:
+            sides.setdefault(key, []).append(f.index)
+    for _ in range(3):
+        nxt = list(new)
+        for f in me.polygons:
+            count = {}
+            for key in f.edge_keys:
+                for g in sides[key]:
+                    if g != f.index:
+                        count[new[g]] = count.get(new[g], 0) + 1
+            best = max(count, key=count.get) if count else new[f.index]
+            if best != new[f.index] and count[best] >= 2:
+                nxt[f.index] = best
+        new = nxt
+    order = list(dict.fromkeys(new))
+    for n in order:
+        me.materials.append(bpy.data.materials[n])
+    for f, n in zip(me.polygons, new):
+        f.material_index = order.index(n)
+    print("MOLE kept", len(me.polygons), "triangles")
     return ob
 
 
-def eyes(rig):
+def eyes(rig, body):
     """Two black beads: Meshy's are black paint on black fur."""
-    x, y, z, r = EYE
+    x, z, r = EYE
     obs = []
+    bpy.context.view_layer.update()
     for sx in (-1, 1):
-        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=r * S, location=(sx * x * S, y * S, z * S))
+        hit, at, _, _ = body.ray_cast(Vector((sx * x * S, 2.0, z * S)), Vector((0, -1, 0)))
+        assert hit, "no head where the eyes are"
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=r * S, location=(at.x, at.y - 0.3 * r * S, at.z))
         ob = bpy.context.object
         ob.data.materials.append(bpy.data.materials["Eye_Dark"])
         ob.vertex_groups.new(name="head").add(range(len(ob.data.vertices)), 1.0, "REPLACE")
@@ -256,6 +305,24 @@ def eyes(rig):
         ob.modifiers.new("rig", "ARMATURE").object = rig
         obs.append(ob)
     return obs
+
+
+def patch(rig, body):
+    """The red patch on the pocket, a thin plate: Meshy's is four triangles."""
+    x, z, w, h = PATCH
+    bpy.context.view_layer.update()
+    hit, at, _, _ = body.ray_cast(Vector((x * S, 2.0, z * S)), Vector((0, -1, 0)))
+    assert hit, "no bib where the patch is"
+    bpy.ops.mesh.primitive_cube_add(size=1.0, location=(at.x, at.y, at.z), rotation=(math.radians(-8), 0, math.radians(6)))
+    ob = bpy.context.object
+    ob.scale = (w * S, 0.012, h * S)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    ob.data.materials.append(bpy.data.materials["tint_3"])
+    ob.vertex_groups.new(name="chest").add(range(len(ob.data.vertices)), 1.0, "REPLACE")
+    ob.parent = rig
+    ob.matrix_parent_inverse = rig.matrix_world.inverted()
+    ob.modifiers.new("rig", "ARMATURE").object = rig
+    return ob
 
 
 def part(p):
@@ -459,7 +526,7 @@ def main():
     ob, where, weights = body(rig)
     data = arm_part(ob, where, weights)
     path = os.path.join(OUT, NAME + ".gltf")
-    export(rig, [ob] + eyes(rig) + [mesh], path, False)
+    export(rig, [ob] + eyes(rig, ob) + [patch(rig, ob), mesh], path, False)
     finish(path, robot_path, K_HIP[1] * S / 0.73)
 
     arms_path = os.path.join(ROBOT, "robot_arms.gltf")

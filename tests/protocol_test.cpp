@@ -1091,6 +1091,18 @@ int main()
         check(Entities::decode(gr, gout) && gout.players[0].as_block == 300 && gout.players[0].dress[2] == 7,
               "a player drawn as a block arrives as that block, dressed as they were");
         prop.players[0].as_block = 0;
+        // And a person's left hand (124), with its colours.
+        prop.players[0].off_item = 41;
+        prop.players[0].off_tint = 9;
+        {
+            const auto       ob = prop.encode();
+            ByteReader       obr(ob);
+            Entities         obout;
+            check(Entities::decode(obr, obout) && obout.players[0].off_item == 41 &&
+                      obout.players[0].off_tint == 9 && obout.players[0].dress[2] == 7,
+                  "a person's left hand survives a round trip (protocol 124)");
+        }
+        prop.players[0].off_item = prop.players[0].off_tint = 0;
         check(prop.encode().size() + 2 == gbuf.size(), "and one who is not says nothing of it");
         std::vector<uint8_t> gair = gbuf;
         gair[gair.size() - 2] = gair[gair.size() - 1] = 0;

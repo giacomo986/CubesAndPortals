@@ -106,6 +106,106 @@ engines, the Inferno's ambience, the chess blast, creatures' attack and shoot.
 Missing: the assault's own sounds (it uses the front's), the yafps base, the
 poolrooms, the balloon's burner.
 
+## From a player's comment (TODO comments from youtube.md)
+
+Done and seen in Xephyr: the torch held (tools/make_torch_models.py) and on a floor, a wall or a
+ceiling (mods/torches, side = both: the face clicked found by a ray from the eye); a block that
+gives light held in either hand lights round the player (WorldRenderer::hand_light, the world
+shader); the left hand (Inventory::kOffhandSlot, H swaps, a square on the bag's figure and beside
+the hotbar, drawn in hand_L in first and third person); Options > Controls moves the game's keys
+and mods' own (core.register_key), kept in the options file as bind.<slot> / bind.mod.<name>;
+assets/lang/pt.txt, every line of it.txt and en.txt (pt_BR picks it from the environment).
+
+Then (2026-11-14): protocol 124 carries a person's left hand (EntityState::off_item), drawn on
+everybody's body; the hands' light is a box of cells round the eye (update_hand_light, 48 a
+side), spread a level a cell from every lit hand seen -- round corners, stopped by what is
+opaque -- read by the world shader smoothed between cells, by the models and the arms, and in the
+classic light; the Controls page takes the middle and side mouse buttons ("MOUSE3".."MOUSE5",
+core.register_key too), the hotbar's 1-9 and the tools' F keys; README.pt.md.
+
+Left:
+- ESC stays ESC, and the left and right buttons stay the game's clicks (not on the Controls page).
+- The hands' light is worked out in a 48-cell box round the eye: a lit hand further than ~10
+  nodes from its edge loses some of its reach.
+- pt.txt wants a Brazilian player's read; the commenter offered.
+
+## Platform game and arcade shooter (drafts)
+
+Roughed out 2026-11-13 (`games/platformer`, `games/shmup`), with three cameras
+for a world's code: `core.side_view`, `core.top_view`, `core.top_view_at`. The
+same day: a gate each on the plaza's south edge (`mods/gates`, a portal between
+rooms: the sandbox's 28 mouths are all taken), both worlds in the rooms file
+(written by the title menu and by `tools/track.sh`), pictures and sounds
+(`tools/make_platformer_assets.py`, `tools/make_shmup_assets.py`), the
+shooter's planes in liveries of their own (`tools/make_shmup_models.py`), and
+prize blocks that give a coin.
+
+Checked in Xephyr, the keys sent by xdotool: the pipe, the camera's swing,
+A D W in the level, coins, a pig's beat, two prize blocks bumped; a game
+started, the fighter slid about, shots, darts shot down to wave 2; from the
+plaza through each gate and, for the platform game, back; a world started
+from the title menu (`--play-world`) writes both rooms and builds both gates.
+
+Both:
+- Not heard: Xephyr's client opens no audio device (see Test rig).
+- Not played by two; not played through by hand to the end. Neither gives a key.
+- Both rooms start as soon as anybody is on the plaza (every gate is within
+  160 nodes of it) and so never stop while somebody is there. Two of the
+  sandbox's parked second mouths (17-23) are lent to their gates.
+- A survival world has no gate to either: `mods/gates` builds them on a plaza.
+- The cursor is free and drawn over both cameras, as over core.iso_view's.
+
+Platform game (2026-11-13: two levels, a bonus room, round pipes from
+Blender, three creatures from Meshy -- sprout, spikeshell, buzzer, 120
+credits; then into 1-1 by a scaling hole that halves the body, a pipe that is
+a real shaft into the bonus room and out of it, small/big/fire with mushroom,
+flower and fireballs, the creatures turned the right way, and a screen that
+scrolls with slack and smoothly):
+- Seen in Xephyr, keys by xdotool, some from a body put there by a test line
+  since taken out: the drop through the hole and the camera's swing; S on the
+  tall pipe, down the shaft into the bonus room and up the far one; a power-up
+  block, the mushroom out of it and taken, the growing flicker; a fireball
+  killing a sprout; a hit while big back to small with the lives kept; a
+  small jump measured at 2.0-2.4.
+- Not checked by hand: either level end to end (1-2 never walked whole); a
+  sprout or a buzzer landed on; the flower picked up from a block (only given
+  by a test line); the half-way flags; 1-2's pole and the way back to the
+  room; the bridge pipe open after 1-1; a big body in the shafts.
+- Not heard: none of the sounds (Xephyr's client opens no audio device).
+- 2026-11-13, from play: the pipes' models were half a cell off (a block's
+  model is drawn from its cell's corner, not its middle): rebuilt. A body at
+  half size hung from a ledge as a body at full size does, 1.85 under its edge
+  and taking edges 1 to 2.1 over its feet: the hands now go with
+  core.body_scale (core/physics/player.cpp), and a small body steps up onto
+  nothing a node high. Seen: the small robot hanging from the tall pipe's lip.
+  The server's check (body_at_ledge) still uses a full body's reach: wider, so
+  it lets more by, never less.
+  Also from play: a big body stuck under the bonus room's hanging pipe -- the
+  shaft was shut on its head (it waited for the feet, not the head, to be out
+  of the mouth) -- and a big body stopping short of the lying mouth, which
+  then never took it up. Both fixed and seen with a big body: down, out, up.
+- The fire state looks the same as big: only the HUD says FIRE.
+- The creatures are rigid: no walk, no death -- a puff of smoke where one was.
+  They walk a beat and neither fall into pits nor turn at walls. Landing on
+  one stops the body's run (core.player_launch sets all of its speed).
+- A pipe's model takes the bodies' light, not its cell's, and is darker than
+  the lit blocks beside it; from the room's glass the bonus room under 1-1 is
+  in plain sight.
+- Whoever joins the room directly faces the doorway, not the glass.
+- core.side_view keeps the body on its plane by walking it back: something
+  that throws it far off (a blast) is not undone at once.
+- `assets/meshy/platformer` (three .glb, 9.8 MB, with each one's prompt) is
+  not in the repository yet: in, or out as contrib/lizard's is, is Giacomo's.
+
+Arcade shooter:
+- No power-ups, no bombs, one gun. The numbers (speeds, 0.14 s a shot, the
+  bomber's 40) are guesses. Weavers, aces and the bomber not seen in play.
+- A hit is a box about the plane, not its shape; shots are checked 20 times a
+  second.
+- core.top_view flies the body while it is on and F does nothing; getting out
+  on the deck on foot is not possible.
+- The picture is 16:9's: on a narrower screen the field's sides are cut off.
+
 ## Defects
 
 Seen by players first:

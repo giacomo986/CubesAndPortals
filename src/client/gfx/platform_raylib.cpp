@@ -2,9 +2,11 @@
 
 #include <raylib.h>
 
+#include <cstring>
+
 namespace {
 
-int to_raylib_key(plat_key k)
+int default_key(plat_key k)
 {
     switch (k) {
         case PLAT_KEY_W:     return KEY_W;
@@ -50,8 +52,56 @@ int to_raylib_key(plat_key k)
         case PLAT_KEY_BACKSPACE: return KEY_BACKSPACE;
         case PLAT_KEY_UP:        return KEY_UP;
         case PLAT_KEY_DOWN:      return KEY_DOWN;
+        case PLAT_KEY_H:         return KEY_H;
         default:             return KEY_NULL;
     }
+}
+
+// Which key each of the game's keys is now: the defaults above until the
+// Controls page or the options file says otherwise. KEY_NULL is none.
+int  g_bound[PLAT_KEY_COUNT];
+bool g_bound_ready = false;
+
+int to_raylib_key(plat_key k)
+{
+    if (!g_bound_ready) {
+        for (int i = 0; i < PLAT_KEY_COUNT; ++i) g_bound[i] = default_key((plat_key)i);
+        g_bound_ready = true;
+    }
+    return k >= 0 && k < PLAT_KEY_COUNT ? g_bound[k] : KEY_NULL;
+}
+
+// The names a key goes by in the options file's neighbours, the Controls page
+// and core.register_key: what is printed on the key, short.
+struct KeyName { int code; const char *name; };
+const KeyName kNames[] = {
+    {KEY_SPACE, "SPACE"}, {KEY_ESCAPE, "ESC"}, {KEY_ENTER, "ENTER"}, {KEY_TAB, "TAB"},
+    {KEY_BACKSPACE, "BACKSPACE"}, {KEY_INSERT, "INSERT"}, {KEY_DELETE, "DELETE"},
+    {KEY_RIGHT, "RIGHT"}, {KEY_LEFT, "LEFT"}, {KEY_DOWN, "DOWN"}, {KEY_UP, "UP"},
+    {KEY_PAGE_UP, "PAGEUP"}, {KEY_PAGE_DOWN, "PAGEDOWN"}, {KEY_HOME, "HOME"}, {KEY_END, "END"},
+    {KEY_CAPS_LOCK, "CAPSLOCK"}, {KEY_LEFT_SHIFT, "SHIFT"}, {KEY_RIGHT_SHIFT, "RSHIFT"},
+    {KEY_LEFT_CONTROL, "CTRL"}, {KEY_RIGHT_CONTROL, "RCTRL"}, {KEY_LEFT_ALT, "ALT"},
+    {KEY_RIGHT_ALT, "RALT"}, {KEY_APOSTROPHE, "'"}, {KEY_COMMA, ","}, {KEY_MINUS, "-"},
+    {KEY_PERIOD, "."}, {KEY_SLASH, "/"}, {KEY_SEMICOLON, ";"}, {KEY_EQUAL, "="},
+    {KEY_LEFT_BRACKET, "["}, {KEY_BACKSLASH, "\\"}, {KEY_RIGHT_BRACKET, "]"}, {KEY_GRAVE, "`"},
+    {KEY_KP_0, "KP0"}, {KEY_KP_1, "KP1"}, {KEY_KP_2, "KP2"}, {KEY_KP_3, "KP3"}, {KEY_KP_4, "KP4"},
+    {KEY_KP_5, "KP5"}, {KEY_KP_6, "KP6"}, {KEY_KP_7, "KP7"}, {KEY_KP_8, "KP8"}, {KEY_KP_9, "KP9"},
+    {KEY_KP_DECIMAL, "KP."}, {KEY_KP_DIVIDE, "KP/"}, {KEY_KP_MULTIPLY, "KP*"},
+    {KEY_KP_SUBTRACT, "KP-"}, {KEY_KP_ADD, "KP+"}, {KEY_KP_ENTER, "KPENTER"},
+};
+
+// A mouse button in a key's place: its code is kMouseCode + the button
+// (2 the middle, 3 and 4 the side ones), past any key's.
+constexpr int kMouseCode = 1000;
+bool code_down(int code)
+{
+    if (code >= kMouseCode) return IsMouseButtonDown(code - kMouseCode);
+    return code > 0 && IsKeyDown(code);
+}
+bool code_pressed(int code)
+{
+    if (code >= kMouseCode) return IsMouseButtonPressed(code - kMouseCode);
+    return code > 0 && IsKeyPressed(code);
 }
 
 bool g_cursor_grabbed = false;
@@ -147,12 +197,83 @@ float  plat_delta_time(void) { return GetFrameTime(); }
 double plat_time(void)       { return GetTime(); }
 int    plat_fps(void)        { return GetFPS(); }
 
-bool plat_key_down(plat_key key)    { return reaches_game(key) && IsKeyDown(to_raylib_key(key)); }
-bool plat_key_pressed(plat_key key) { return reaches_game(key) && IsKeyPressed(to_raylib_key(key)); }
+bool plat_key_down(plat_key key)    { return reaches_game(key) && code_down(to_raylib_key(key)); }
+bool plat_key_pressed(plat_key key) { return reaches_game(key) && code_pressed(to_raylib_key(key)); }
 bool plat_key_repeated(plat_key key)
 {
+    const int code = to_raylib_key(key);
     return reaches_game(key) &&
-           (IsKeyPressed(to_raylib_key(key)) || IsKeyPressedRepeat(to_raylib_key(key)));
+           (code_pressed(code) || (code < kMouseCode && code > 0 && IsKeyPressedRepeat(code)));
+}
+
+int  plat_key_code(plat_key key)    { return to_raylib_key(key); }
+int  plat_key_default(plat_key key) { return default_key(key); }
+void plat_bind_key(plat_key key, int code)
+{
+    to_raylib_key(key);   // the table filled first
+    if (key >= 0 && key < PLAT_KEY_COUNT) g_bound[key] = code;
+}
+
+bool plat_code_down(int code)
+{
+    return code != KEY_NULL && !g_text_input && code_down(code);
+}
+
+int plat_code_pressed(void)
+{
+    if (const int k = GetKeyPressed(); k != 0) return k;
+    // The middle and side buttons; the left and right are the menus' clicks.
+    for (int b = 2; b <= 4; ++b)
+        if (IsMouseButtonPressed(b)) return kMouseCode + b;
+    return 0;
+}
+
+const char *plat_code_name(int code)
+{
+    static char mouse[8] = "MOUSE0";
+    if (code >= kMouseCode && code <= kMouseCode + 6) {
+        mouse[5] = (char)('1' + code - kMouseCode);
+        return mouse;
+    }
+    static char one[2];
+    if ((code >= KEY_A && code <= KEY_Z) || (code >= KEY_ZERO && code <= KEY_NINE)) {
+        one[0] = (char)code, one[1] = '\0';
+        return one;
+    }
+    static char fn[4];
+    if (code >= KEY_F1 && code <= KEY_F12) {
+        fn[0] = 'F';
+        const int n = code - KEY_F1 + 1;
+        if (n < 10) fn[1] = (char)('0' + n), fn[2] = '\0';
+        else fn[1] = '1', fn[2] = (char)('0' + n - 10), fn[3] = '\0';
+        return fn;
+    }
+    for (const KeyName &k : kNames)
+        if (k.code == code) return k.name;
+    return "";
+}
+
+int plat_code_from_name(const char *name)
+{
+    if (name == nullptr || name[0] == '\0') return KEY_NULL;
+    char up[16];
+    size_t n = 0;
+    for (; name[n] != '\0' && n + 1 < sizeof(up); ++n)
+        up[n] = (name[n] >= 'a' && name[n] <= 'z') ? (char)(name[n] - 32) : name[n];
+    up[n] = '\0';
+    if (n == 1 && ((up[0] >= 'A' && up[0] <= 'Z') || (up[0] >= '0' && up[0] <= '9'))) return up[0];
+    if (n == 6 && std::strncmp(up, "MOUSE", 5) == 0 && up[5] >= '1' && up[5] <= '7') return kMouseCode + (up[5] - '1');
+    if (up[0] == 'F' && n >= 2 && n <= 3) {
+        int k = 0;
+        for (size_t i = 1; i < n; ++i) {
+            if (up[i] < '0' || up[i] > '9') { k = -1; break; }
+            k = k * 10 + (up[i] - '0');
+        }
+        if (k >= 1 && k <= 12) return KEY_F1 + k - 1;
+    }
+    for (const KeyName &k : kNames)
+        if (std::strcmp(k.name, up) == 0) return k.code;
+    return KEY_NULL;
 }
 
 void plat_text_input(bool on) { g_text_input = on; }

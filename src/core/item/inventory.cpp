@@ -301,6 +301,7 @@ bool Inventory::fits(const ItemRegistry &items, int slot, ItemId item) const
     if (!takes(items, item)) return false;
     if (item != kNoItem && role(slot) == kRoleProduct) return false;   // only the block fills it
     if (item != kNoItem && !accepts(items, slot, item)) return false;   // not what that row takes
+    if (off_hand(slot)) return true;   // anything, as a hand holds
     if (arm(slot))
         return item == kNoItem || (items.get(item).wear == 0 && slot - m_worn_from - kWorn < arms_open(items));
     if (slot == m_worn_from + kWornBack - 1 && m_worn_from >= 0) {
@@ -330,7 +331,7 @@ int Inventory::armor(const ItemRegistry &items) const
 {
     int n = 0;
     for (int i = 0; i < size(); ++i)
-        if (worn(i) && !arm(i) && !m_slots[(size_t)i].empty())
+        if (worn(i) && !arm(i) && !off_hand(i) && !m_slots[(size_t)i].empty())
             n += items.get(m_slots[(size_t)i].item).armor +
                  enchant_level_for(m_slots[(size_t)i].ench, Enchant::Protection);   // a point a level
     return n;
@@ -340,7 +341,7 @@ bool Inventory::wear_out(const ItemRegistry &items, uint16_t amount)
 {
     bool changed = false;
     for (int i = 0; i < size(); ++i)
-        if (worn(i) && !arm(i) && wear_slot(items, i, amount)) changed = true;
+        if (worn(i) && !arm(i) && !off_hand(i) && wear_slot(items, i, amount)) changed = true;
     return changed;
 }
 

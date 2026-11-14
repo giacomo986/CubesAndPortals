@@ -72,6 +72,11 @@ struct Body {
     bool        hand_known = false;
     std::string hand;
     uint16_t    hand_block = 0;   // the block it holds, 0 (air) for none
+    // And in the left hand (Inventory::kOffhandSlot), this machine's own body
+    // only: the wire does not carry anybody else's yet.
+    std::string off_hand;
+    uint16_t    off_block = 0;
+    uint32_t    off_tag   = 0;
 
     // A stack on the ground: `hand` and `hand_block` are what lies there, drawn
     // as the thing itself about `center`, turned by `yaw` (draw_drop).

@@ -1,6 +1,6 @@
 # Cubes and Portals
 
-*[Leggi in italiano](README.it.md)*
+*[Leggi in italiano](README.it.md) · [Leia em português](README.pt.md)*
 
 [![A video of the game](https://img.youtube.com/vi/WdtsBnpiZpA/hqdefault.jpg)](https://www.youtube.com/watch?v=WdtsBnpiZpA)
 
@@ -229,6 +229,9 @@ or any world started from the title menu):
   [`games/backrooms/README.md`](games/backrooms/README.md).
 - **The parkour course** (`games/parkour`): wall runs, bounces, slides, rolls and a rope gun.
   Guide in [`games/parkour/README.md`](games/parkour/README.md).
+
+Two more games are in the rooms `platformer` and `shmup`, with gates on the plaza: a platform game
+seen from the side (`games/platformer`) and an arcade shooter flown from above (`games/shmup`).
 
 **A house bigger inside** (`mods/pocket`). A pocket door (a door and a ruby in a ring of portal
 frames) put down in a wall becomes a doorway onto a hall of your own, fifteen by fifteen and six
@@ -588,11 +591,17 @@ tools/arpg.sh --fresh
 |---|---|
 | WASD, Space, F | move, jump, fly (with a jetpack) |
 | Left / right click | break / place (with an empty hand, use the block) |
-| Wheel or 1-9, E, C, Q | hotbar slot, bag, creative catalogue, drop |
+| Wheel or 1-9, E, C, Q, H | hotbar slot, bag, creative catalogue, drop, swap hands (the left hand holds what the right does not) |
 | T, / | chat, chat with a command (`/help`, `/list`) |
 | V, F11, ESC, F1 | third person, full screen, pause menu, hide hands and hotbar |
 | F3, F4, F8 | info, territory borders, cells where monsters can spawn |
 | F5, F6, F7, F2 | reload mods, profiler, next texture pack, occlusion culling off |
+
+Every key in the table but ESC can be moved in **Options > Controls**: click a key, press the new
+one (ESC leaves it, Backspace leaves the action without one); the middle and side mouse buttons do
+too. A mod's own keys (`core.register_key`) are listed there as well. A torch goes on a floor, a
+wall or a ceiling, and a torch (or any block that gives light) held in either hand lights round
+the player as it would put down -- round corners, not through walls -- for everybody to see.
 
 Options are kept between runs. `CNP_HITCH_MS=30 cnp_client ...` prints every frame longer than
 30 ms with the profiler's sections.
@@ -609,7 +618,7 @@ if it did not answer). The account belongs to the server: you pick a server, the
 password for it, from which your identity is derived (Argon2id) instead of being kept in a file;
 the server's key is pinned at the first join. **Host a server** opens your worlds to others on a
 port of your choice, and the pause menu shows the address to give them. **Character** picks
-species, style, colours and accessories. **Options** has the mouse, the volume, the language and the update check; its **Video** page has window, borderless or full screen, the game's resolution (independent of the window's size, in every display mode; the image is scaled to fill it), VSync, FPS limit, view distance, field of view, light, shadows, portal detail, a plain storm sky (no whirls, for weak PCs) and brightness for the dark.
+species, style, colours and accessories. **Options** has the mouse, the volume, the language (English, Italiano, Português) and the update check, and its **Controls** page moves the keys; its **Video** page has window, borderless or full screen, the game's resolution (independent of the window's size, in every display mode; the image is scaled to fill it), VSync, FPS limit, view distance, field of view, light, shadows, portal detail, a plain storm sky (no whirls, for weak PCs) and brightness for the dark.
 
 **Translations** are `assets/lang/<code>.txt`, one line `text as written = translation` with `{}`
 for the parts that vary. They apply to everything the client draws: menus, mods' panels and
@@ -708,7 +717,7 @@ server running across restarts and crashes, with a log a day.
 |---|---|
 | `tools/play.sh` (`local`, `--fresh`) | Builds in Release, starts server and client with every mod and a world saved in `worlds/play/` |
 | `tools/track.sh` (`--fresh`) | A server with the sandbox and every world as rooms, as the title menu starts it but with every world unlocked (a copy of `mods/keys` with `ALL_OPEN`; worlds and logs in `worlds/track/`); `--fresh` also makes you its owner, so the creative catalogue (C) is open |
-| `tools/arpg.sh`, `tools/fps.sh`, `tools/chambers.sh` (`--fresh`) | The sandbox and one world, for working on that world |
+| `tools/arpg.sh`, `tools/fps.sh`, `tools/chambers.sh`, `tools/platformer.sh`, `tools/shmup.sh` (`--fresh`) | The sandbox and one world, for working on that world |
 | `tools/portallab.sh` | A scene for checking portals by eye (games/portallab): glass seen through openings, a ceiling one to jump into, two floors to bounce between, openings that slide, chase and turn on every axis; `/lab wall`, `glass`, `head`, `bounce`, `view`, `slide`, `chase`, `spin`, `spiny`, `spinz`, `still`, `at <degrees>`; a door-sized opening onto one an eighth high that shrinks you to 1/16, `/lab tiny`, `g1`, `scale <s>` |
 | `tools/windowlab.sh` | Bodies seen through a window onto another world (games/windowlab): two rooms, six creatures marching past the far mouth. |
 | `tools/vehiclelab.sh` | Vehicles through portals (games/vehiclelab, over the sandbox's mods): a cart line into one opening and out of another a quarter turn round, a boat channel the same; a portal carried by a train round a bend; `NAME=boat` or `train` starts there, `/vlab rail`, `boat`, `train`, `watch`; a timed client wants `--keep-portals` |

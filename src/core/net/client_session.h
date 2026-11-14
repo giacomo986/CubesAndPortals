@@ -82,6 +82,8 @@ struct RemotePlayer {
     // (protocol 48). kNoItem for anything else.
     uint16_t item = 0;
     uint16_t item_tint = 0;
+    uint16_t off_item  = 0;   // the left hand (protocol 124), and its colours
+    uint16_t off_tint  = 0;
     uint32_t livery = 0;   // a person's colours and extras (protocol 93, kLiveryColours)
 
     // And what it looks like: a position in the welcome's model table plus one,

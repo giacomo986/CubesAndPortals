@@ -1,0 +1,5 @@
+prompt: a single chubby round cartoon flying bug enemy for a platform video game: purple ball body with yellow stripes, one big angry eye, two small white wings spread out to the sides, a short stinger, stylized low poly toy, flat bright colours, full body
+model: meshy-6
+polys: 6000
+preview: 01a1d5c7-3006-7690-bd76-b37e044624fe
+refine: 01a1d5c8-fb8d-7498-865b-60697c531f0b

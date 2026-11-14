@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 123; // 123 kMaxNodeShapes 2048; 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
+inline constexpr uint16_t kProtocol    = 124; // 124 a person's left hand (EntityState::off_item); 123 kMaxNodeShapes 2048; 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -397,7 +397,9 @@ inline constexpr uint16_t kProtocol    = 123; // 123 kMaxNodeShapes 2048; 122 Sl
 // 123 lets the welcome hold 2048 blocks with a shape (kMaxNodeShapes), which a
 // 122 client refuses past 1024: the sandbox reached 1117 with mods/circuits.
 // And a world offer 8192 media (kMaxMediaItems), refused by a 122 past 4096.
-inline constexpr uint16_t kMinProtocol = 123;
+// 124 gives a person a left hand (EntityState::off_item, bit 64 of the byte
+// after their flags), which a 123 client refuses as a bit it does not know.
+inline constexpr uint16_t kMinProtocol = 124;
 
 // What a player picked to look like (protocol 93): the three colours of their
 // model's tint_1..3 materials -- primary, secondary, accent -- five bits each,
@@ -1837,6 +1839,10 @@ struct EntityState {
     uint16_t arm[2] = {0, 0};
     // And what a Player holds, its colours the same way (protocol 76, flag 128).
     uint16_t item_tint = 0;
+    // And in their left hand (Inventory::kOffhandSlot, protocol 124), with its
+    // colours: 0 for an empty hand.
+    uint16_t off_item = 0;
+    uint16_t off_tint = 0;
     // And the livery they picked (protocol 93, flag 32 on a Player).
     uint32_t livery = 0;
     // And what a mod dresses them in (protocol 102, core.player_wear): a model

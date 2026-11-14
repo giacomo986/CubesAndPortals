@@ -1567,7 +1567,8 @@ std::vector<uint8_t> Entities::encode() const
             for (const uint16_t m : e.dress) pieces += m != 0;
             w.u8((e.flying ? 1 : 0) | (pieces > 0 ? 2 : 0) |   // 97, 102
                  (e.chassis && e.boosting ? 4 : 0) | (e.chassis && e.sliding ? 8 : 0) |   // 103
-                 (e.as_block != 0 ? 16 : 0) | (e.scale != 1.0f ? 32 : 0));   // 116, 117
+                 (e.as_block != 0 ? 16 : 0) | (e.scale != 1.0f ? 32 : 0) |   // 116, 117
+                 (e.off_item != 0 ? 64 : 0));                                // 124
             if (pieces > 0) {
                 w.u8((uint8_t)pieces);
                 for (int k = 0; k < 10; ++k)
@@ -1579,6 +1580,10 @@ std::vector<uint8_t> Entities::encode() const
             }
             if (e.as_block != 0) w.u16(e.as_block);
             if (e.scale != 1.0f) w.f32(e.scale);
+            if (e.off_item != 0) {
+                w.u16(e.off_item);
+                w.u16(e.off_tint);
+            }
         }
         if (e.kind == EntityKind::Mob && e.scale != 1.0f) w.f32(e.scale);   // 118
         if (dressed)
@@ -1657,7 +1662,7 @@ bool Entities::decode(ByteReader &r, Entities &out)
         if (!r.ok()) return false;
         if (e.kind == EntityKind::Player) {   // 97
             const uint8_t more = r.u8();
-            if (!r.ok() || (more & ~31u)) return false;
+            if (!r.ok() || (more & ~127u)) return false;
             e.flying   = (more & 1) != 0;
             e.boosting = (more & 4) != 0;
             e.sliding  = (more & 8) != 0;
@@ -1679,6 +1684,11 @@ bool Entities::decode(ByteReader &r, Entities &out)
             if (more & 32) {   // a size of its own (117)
                 e.scale = r.f32();
                 if (!r.ok() || !(e.scale >= kMinBodyScale && e.scale <= kMaxBodyScale)) return false;
+            }
+            if (more & 64) {   // the left hand (124): never empty
+                e.off_item = r.u16();
+                e.off_tint = r.u16();
+                if (!r.ok() || e.off_item == 0) return false;
             }
         }
         if (e.kind == EntityKind::Mob && (flags & 32)) {   // a creature's size (118)
