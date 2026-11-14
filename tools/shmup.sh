@@ -1,17 +1,17 @@
 #!/bin/bash
 # Il sandbox (i mod di mods/) con un portale verso il mondo shmup: uno
-# sparatutto visto dall'alto su un caccia, da cabinato di sala giochi. Lo
-# schermo non scorre: W A S D muovono il caccia, spazio (tenuto) spara e fa
-# partire la partita, E torna al ponte della portaerei.
+# sparatutto visto dall'alto su un caccia, da cabinato di sala giochi. Si
+# arriva a piedi in un hangar: F accanto a un caccia lo fa decollare, W A S D
+# lo muovono, spazio (tenuto) spara, F riporta all'hangar.
 #
 #   tools/shmup.sh                 # un server con due stanze e un client nel sandbox
 #   tools/shmup.sh --fresh         # butta via i due mondi salvati
 #   tools/shmup.sh -- --shot 20    # quello dopo -- va al client
 #   tools/shmup.sh -- --room shmup # si nasce già sul ponte
 #
-# Si nasce davanti alla prima apertura del sandbox: dentro si è sul ponte di
-# una portaerei, già in volo e visti dall'alto. Mondi, chiavi e log stanno in
-# worlds/shmup/ (ignorata da git).
+# Si nasce davanti alla prima apertura del sandbox: dentro si è a piedi in un
+# hangar, davanti a quattro caccia. Mondi, chiavi e log stanno in
+# worlds/shmup/ (ignorata da git). Dopo un cambio a shmup_core: --fresh.
 set -eu
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -89,11 +89,12 @@ cat <<INFO
 
 == Il cabinato
 
-  Cammina nella prima apertura del sandbox: si arriva sul ponte di una
-  portaerei, già caccia e già visti dall'alto. Spazio fa partire la partita e,
-  tenuto, spara; W A S D muovono il caccia sullo schermo, che non scorre.
-  Tre vite, ondate sempre più fitte, un bombardiere ogni cinque. E riporta
-  sul ponte, e la porta in fondo al ponte riporta nel sandbox.
+  Cammina nella prima apertura del sandbox: si arriva a piedi in un hangar.
+  F accanto a un caccia lo fa decollare; W A S D lo muovono sullo schermo,
+  spazio (tenuto) spara, F riporta all'hangar. Tre vite, dieci ondate, i
+  power-up lasciati dagli aerei abbattuti, un bombardiere alla quinta e la
+  fortezza volante alla decima. La porta in fondo all'hangar riporta nel
+  sandbox.
   Log: $HERE/server.log
 
 INFO

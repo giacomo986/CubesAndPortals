@@ -1,16 +1,18 @@
 --!strict
 -- shmup_core: the world of the arcade shooter (games/shmup/mods/shmup has the
--- game). A sea, a carrier's deck with the doorway home on it, and the field
--- over the sea -- one screen, 82 across and 52 up, at the height bodies fly
--- at, shut in by walls nobody sees. And the body: a fighter, which flies.
--- The planes are tools/make_shmup_models.py's -- the front's plane and bomber
--- in liveries of their own -- and are here because shmup is also a player's
--- machine's code, whose files all go to players. The pictures and the sounds
--- are tools/make_shmup_assets.py's.
+-- game). A sea; an island with a hangar on it, the doorway home in its back
+-- wall, four fighters parked in it and an apron down to the water; and, out
+-- over the sea, the field -- one screen, 82 across and 62 up, at the height
+-- fighters fly at, shut in by walls nobody sees. A player arrives on foot,
+-- the sandbox's robot (mods/robot, linked here); the game makes them a
+-- fighter when they board one.
+-- The planes are tools/make_shmup_models.py's and are here because shmup is
+-- also a player's machine's code, whose files all go to players. The pictures
+-- and the sounds are tools/make_shmup_assets.py's.
 --
 -- The picture's top is +z (the game's camera, core.top_view_at with yaw
--- 180), so its right is -x. Opening 0 faces +z, up the screen: a fighter
--- that arrives is on the deck at the bottom, nose to the field.
+-- 180), so its right is -x. Opening 0 faces +z: whoever arrives looks down
+-- the hangar at the fighters and, past its open front, the sea.
 
 local SEA    = core.register_node("shmup_core:sea", 30, 96, 190)
 local FOAM   = core.register_node("shmup_core:foam", 150, 200, 235)
@@ -25,22 +27,35 @@ local LAMP   = core.register_node("shmup_core:lamp", 255, 240, 200, true, 14)
 local WALL   = core.register_node("shmup_core:wall", 255, 255, 255)
 core.node_glass(WALL, 0)
 
-core.player_model(core.register_model("shmup_core:fighter", "fighter.gltf"))
-for _, m in { "foe_dart", "foe_weaver", "foe_ace", "bomber" } do
+core.player_model(core.register_model("shmup_core:robot", "robot.gltf"))
+-- What a player may wear or be instead, as in every world (mods/robot).
+for _, extra in {"cap", "tophat", "headphones", "scarf", "bowtie", "medal",
+                  "human", "human_arms", "human_short", "human_long", "human_beard",
+                  "mole", "mole_arms", "mole_lamp", "mole_goggles", "mole_glasses",
+                  "frog", "frog_arms", "frog_spots", "frog_crown", "frog_lily",
+                  "knight", "knight_arms",
+                  "human_cap", "human_tophat", "human_headphones", "human_scarf", "human_bowtie", "human_medal",
+                  "mole_cap", "mole_tophat", "mole_headphones", "mole_scarf", "mole_bowtie", "mole_medal",
+                  "frog_cap", "frog_tophat", "frog_headphones", "frog_scarf", "frog_bowtie", "frog_medal"} do
+    core.register_model("shmup_core:robot_" .. extra, "robot_" .. extra .. ".gltf")
+end
+core.register_model("shmup_core:robot_arms", "robot_arms.gltf")
+for _, m in { "fighter", "wingman", "foe_dart", "foe_weaver", "foe_ace", "bomber", "mega", "turret", "tank" } do
     core.register_model(`shmup_core:{m}`, `{m}.gltf`)
 end
-core.eye_height(1.0)
--- walk, sprint, fly, jump, gravity. Flying is what the game is played at:
--- 24 m/s crosses the screen in three and a half seconds (sprint doubles it).
-core.movement(6, 6, 24, 0, -25)
+core.eye_height(1.5)
+-- walk, sprint, fly, jump, gravity. Nobody flies on foot: the game gives a
+-- body its flying when it boards a fighter (core.body_movement).
+core.movement(6, 9, 0, 8, -25)
 
 core.mapgen_core(false)
 
 -- As games/shmup/mods/shmup has to know them too.
-local CX, CZ = 64, 66      -- the middle of the screen
+local CX, CZ = 64, 140     -- the middle of the screen
 local FLY    = 30          -- where a fighter's feet are
 local SEA_Y  = 20
-local HALF_W, HALF_H = 41, 26
+local GROUND = SEA_Y + 1   -- the island's top blocks: feet stand at GROUND + 1
+local HALF_W, HALF_H = 41, 31
 
 local BOXES: { { number } } = {}
 local function box(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, b: number)
@@ -48,45 +63,56 @@ local function box(x0: number, y0: number, z0: number, x1: number, y1: number, z
                            math.max(x0, x1), math.max(y0, y1), math.max(z0, z1), b })
 end
 
--- The sea, wider than the picture, and a few islands on it.
-box(CX - 70, SEA_Y, CZ - 44, CX + 70, SEA_Y, CZ + 44, SEA)
-for _, i in { { -30, 12, 7 }, { 22, -8, 5 }, { 38, 20, 4 }, { -12, -14, 3 }, { -44, -6, 4 }, { 6, 22, 6 } } do
-    local x, z, r = CX + i[1], CZ + i[2], i[3]
-    box(x - r - 1, SEA_Y, z - r, x + r + 1, SEA_Y, z + r, FOAM)
-    box(x - r, SEA_Y, z - r - 1, x + r, SEA_Y, z + r + 1, FOAM)
-    box(x - r, SEA_Y + 1, z - r + 1, x + r, SEA_Y + 1, z + r - 1, SAND)
-    box(x - r + 1, SEA_Y + 1, z - r, x + r - 1, SEA_Y + 1, z + r, SAND)
-    if r > 3 then box(x - r + 2, SEA_Y + 2, z - r + 2, x + r - 2, SEA_Y + 2, z + r - 2, GREEN) end
-end
+-- The sea, wider than the picture and bare: the islands and the crests that
+-- go by under a fighter are drawn by its player's machine (the game), so that
+-- they scroll. The one island that is blocks is the base, south of the
+-- picture's bottom edge and never in it.
+box(CX - 110, SEA_Y, 0, CX + 110, SEA_Y, CZ + 80, SEA)
+box(CX - 37, SEA_Y, 5, CX + 37, SEA_Y, 80, FOAM)
+box(CX - 35, GROUND, 7, CX + 35, GROUND, 78, SAND)
+box(CX - 33, GROUND, 9, CX + 33, GROUND, 76, GREEN)
 
--- The carrier at the bottom of the picture: a deck at the height fighters
--- fly at, its hull down to the water, the doorway home at its stern.
-local DZ0, DZ1 = CZ - 34, CZ - 25      -- z 32 .. 41
-box(CX - 4, SEA_Y + 1, DZ0, CX + 4, FLY - 2, DZ1, HULL)
-box(CX - 5, FLY - 1, DZ0, CX + 5, FLY - 1, DZ1, DECK)
-box(CX, FLY - 1, DZ0 + 2, CX, FLY - 1, DZ1, LINE)
+-- The hangar: x 38..90, z 21..45, open to the north (up the screen) onto an
+-- apron that runs to the water. A lane's line from each parked fighter out.
+local HX0, HX1, HZ0, HZ1 = CX - 26, CX + 26, 21, 45
+local ROOF = GROUND + 8
+box(HX0, GROUND, HZ0, HX1, GROUND, 78, DECK)
+for i = 0, 3 do
+    local x = CX - 18 + i * 12
+    box(x, GROUND, 30, x, GROUND, 78, LINE)
+end
+box(HX0, GROUND + 1, HZ0, HX0, ROOF, HZ1, HULL)
+box(HX1, GROUND + 1, HZ0, HX1, ROOF, HZ1, HULL)
+box(HX0, GROUND + 1, HZ0, HX1, ROOF, HZ0, HULL)
+box(HX0, ROOF - 2, HZ1, HX1, ROOF, HZ1, HULL)            -- over the open front
+-- The roof is trusses with the sky between them: the daylight is what
+-- lights the floor. A band of lamps along each wall as well.
+for z = HZ0, HZ1, 3 do box(HX0, ROOF, z, HX1, ROOF, z, FRAME) end
+for x = HX0 + 2, HX1 - 2, 4 do box(x, GROUND + 4, HZ0, x, GROUND + 4, HZ0, LAMP) end
+for z = HZ0 + 2, HZ1 - 2, 4 do
+    box(HX0, GROUND + 4, z, HX0, GROUND + 4, z, LAMP)
+    box(HX1, GROUND + 4, z, HX1, GROUND + 4, z, LAMP)
+end
+-- The doorway home in the back wall.
+local DZ0 = HZ0 - 1
 for v = 0, 3 do
     for u = -2, 2 do
         local hole = u == 0 and v < 2
-        box(CX + u, FLY + v, DZ0, CX + u, FLY + v, DZ0, FRAME)
-        box(CX + u, FLY + v, DZ0 + 1, CX + u, FLY + v, DZ0 + 1, if hole then 0 elseif v == 3 and u == 0 then LAMP else FRAME)
+        box(CX + u, GROUND + 1 + v, DZ0, CX + u, GROUND + 1 + v, DZ0, FRAME)
+        box(CX + u, GROUND + 1 + v, HZ0, CX + u, GROUND + 1 + v, HZ0, if hole then 0 elseif v == 3 and u == 0 then LAMP else FRAME)
     end
 end
+-- Nobody walks out of the front: a fighter leaves by it, in the game's take-off.
+box(HX0 + 1, GROUND + 1, HZ1 + 1, HX1 - 1, ROOF - 3, HZ1 + 1, WALL)
 
--- The walls: round the field, and round the deck that leads into it.
+-- The walls round the field.
 local X0, X1 = CX - HALF_W - 1, CX + HALF_W + 1
-local Z0, Z1 = CZ - HALF_H + 1, CZ + HALF_H + 2      -- the field's bottom row is the deck's last
+local Z0, Z1 = CZ - HALF_H - 1, CZ + HALF_H + 1
 for y = FLY - 1, FLY + 3 do
     box(X0, y, Z0, X0, y, Z1, WALL)
     box(X1, y, Z0, X1, y, Z1, WALL)
     box(X0, y, Z1, X1, y, Z1, WALL)
-    box(X0, y, Z0, CX - 7, y, Z0, WALL)
-    box(CX + 7, y, Z0, X1, y, Z0, WALL)
-    if y >= FLY then
-        box(CX - 7, y, DZ0, CX - 7, y, Z0, WALL)
-        box(CX + 7, y, DZ0, CX + 7, y, Z0, WALL)
-        box(CX - 7, y, DZ0 - 1, CX + 7, y, DZ0 - 1, WALL)
-    end
+    box(X0, y, Z0, X1, y, Z0, WALL)
 end
 
 core.register_mapgen("shmup_core:field", function(ctx)
@@ -103,13 +129,13 @@ core.register_mapgen("shmup_core:field", function(ctx)
     end
 end)
 
--- Portal 0 in the doorway at the stern, facing +z: up the screen. Started
+-- Portal 0 in the doorway in the hangar's back wall, facing +z. Started
 -- with a --portal-to (tools/shmup.sh) that mouth is the way home. Started
 -- from the rooms file, as the game does it, the world has no mouth of its
 -- own: the doorway is said to the other rooms as "door"
 -- (core.room_portal_set), which the gate on the sandbox's plaza links to
 -- (mods/gates).
-core.set_portal(0, CX + 0.5, FLY + 1, DZ0 + 1.6)
+core.set_portal(0, CX + 0.5, GROUND + 2, HZ0 + 0.6)
 local door_said = false
 core.event.on("core:tick", function(_)
     if door_said then return end
@@ -118,7 +144,7 @@ core.event.on("core:tick", function(_)
         if core.portal_room(k) == "" then core.portal_park(k) end
     end
     if core.portal_room(0) == "" then
-        door_said = core.room_portal_set("door", CX + 0.5, FLY + 1, DZ0 + 1.5, 0, 1, 0.5, 1.0) == 1
+        door_said = core.room_portal_set("door", CX + 0.5, GROUND + 2, HZ0 + 0.5, 0, 1, 0.5, 1.0) == 1
     end
 end)
 

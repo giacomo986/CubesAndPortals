@@ -2249,6 +2249,10 @@ questo mondo: un mod che disegna una barra accanto a loro (`mods/hunger`,
 lì in `secondi`, il cursore è libero (`core.cursor_ray`), il corpo sta fermo (i
 tasti non camminano) e non si vede; `distanza` 0 la riporta all'occhio. È la
 vista di `mods/chess` sopra la scacchiera.
+Chiesta di nuovo con la camera già lì, va subito ai nuovi numeri: chiesta a ogni
+fotogramma è una camera che il mod muove da sé, ed è così che `games/shmup` segue
+un caccia lungo il piazzale e gli gira sopra mentre sale. Per tutte queste camere
+`distanza` è al massimo 64 (40 fino al 2026-11-14).
 
 `core.side_view(distanza, yaw, fov, secondi)` è la stessa camera senza
 inclinazione, **di lato**, per un gioco a piattaforme: A e D camminano lungo
@@ -2264,7 +2268,8 @@ girarlo, e dove il mondo vola lui vola in piano -- i tasti di salto e di
 accucciata restano al mod (`games/shmup` spara con la barra). `distanza` 0
 riporta l'una e l'altra all'occhio. `core.top_view_at(x, y, z, distanza, yaw, fov,
 secondi)` tiene quella camera sopra **un punto** mentre il corpo si muove sotto:
-uno schermo che non scorre, da cabinato.
+uno schermo che non scorre, da cabinato (`games/shmup`, dove a scorrere è il
+paesaggio che il mod disegna sotto).
 
 `core:input` arriva quando il giocatore **preme** e quando **lascia**, mentre
 gioca: `mouse_left`, `mouse_right`, e i tasti `key_w`, `key_a`, `key_s`, `key_d`,

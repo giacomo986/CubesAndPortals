@@ -155,6 +155,41 @@ Both:
 - A survival world has no gate to either: `mods/gates` builds them on a plaza.
 - The cursor is free and drawn over both cameras, as over core.iso_view's.
 
+Arcade shooter, 2026-11-14 (`games/shmup/README.md`): a hangar on an island,
+F boards a parked fighter, a take-off with the camera swinging from behind to
+overhead (core.fixed_view every frame; the cameras' distance now goes to 64,
+the field is seen from 50), islands, crests and clouds drawn scrolling by the
+client over a bare sea, planes kept to the middle 48 of 80, eight power-ups
+(speed, turbo, power, rapid fire, homing missiles, diagonal fire, laser,
+wingmen), ten waves, a flying fortress with six turrets and a shield at the
+tenth, MISSION COMPLETE.
+- Seen in Xephyr, keys by xdotool: the hangar, boarding, the whole take-off,
+  waves 4-7 with every plane dropping (TEST_DROPS), diagonal and rapid fire
+  picked up, the bomber; the fortress from TEST_WAVE 9 -- shield down and back,
+  turrets firing, laser, two wingmen, the win, back on foot in the hangar, the
+  high score kept.
+- Not seen: a missile on the screen (they flew: the fortress fell faster with
+  them); a game from wave 1 to 10 by hand; two players; the gate from the
+  plaza into the hangar (the room was started by tools' flags, born in it).
+- Same day: an islet with a tank now and then (the islet is the client's, told
+  once), planes going down into the sea (a model drawn by the client: turning,
+  smaller, smoke, a ring), and the win -- off the top of the screen, a landing
+  with the camera behind, on foot. All seen in Xephyr. The falls and the
+  landing are drawn after `if phase == "foot"`: whoever is in the hangar sees
+  none of it. Not seen since: the fighter falling with its last life only.
+- Several players, 2026-11-14: whoever boards joins the game going; per pilot
+  past the first, planes take +60%, +50% of them come, they fire +25% faster
+  (an estimate, not played). Seen with two clients in two Xephyrs: the second
+  joining at wave 3, both fighters on both screens, PILOTS 2, own lives and
+  score each. Not seen: the fortress with two; three or four pilots. Each
+  machine draws its own islands: two players do not see the same ones.
+- Not balanced: the fortress took a life every ~4 s from a fighter weaving
+  blind; with every power-up it fell in ~20 s. Power-ups last the whole game.
+- A take-off is seen only by its pilot: the others see them stand by the
+  parked fighter, then a fighter over the field.
+- Up to ~85 shot messages a second from one fully armed fighter (one a shot).
+- A saved shmup world keeps the old carrier: delete it (tools/shmup.sh --fresh).
+
 Platform game (2026-11-13: two levels, a bonus room, round pipes from
 Blender, three creatures from Meshy -- sprout, spikeshell, buzzer, 120
 credits; then into 1-1 by a scaling hole that halves the body, a pipe that is

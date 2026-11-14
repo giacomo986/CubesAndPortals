@@ -9,7 +9,9 @@ down it and its hull, the doorway's frame and lamp. Seeded.
 Sounds (games/shmup/mods/shmup/<name>.ogg), as an arcade board made them, pure
 Python to a .wav and ffmpeg to a mono .ogg as tools/make_weather_sounds.py:
 shot (the fighter's gun), foe_shot, boom (a plane down), big_boom (the
-bomber), hit (a life lost), start, wave and over.
+bomber), hit (a life lost), start, wave and over; pickup (a power-up taken),
+missile, laser (a beam, said again while it is held), engine (the take-off)
+and shield (the fortress's shield breaking).
 
     tools/make_shmup_assets.py
 """
@@ -47,15 +49,9 @@ def save(img, name):
 def textures():
     os.makedirs(TEX, exist_ok=True)
 
-    # The sea: no grid from overhead -- a few short crests, and the picture
-    # tiles on every side.
-    sea = noisy((30, 96, 190), 4)
-    d = ImageDraw.Draw(sea)
-    for _ in range(5):
-        x, y, w = rng.randint(0, N - 1), rng.randint(0, N - 1), rng.randint(3, 7)
-        for k in range(w):
-            sea.putpixel(((x + k) % N, (y + (1 if k in (0, w - 1) else 0)) % N), (70, 140, 220))
-    save(sea, "sea")
+    # The sea: nothing on it the eye can hold on to. It stands still, and the
+    # crests and islands the game draws over it are what go by.
+    save(noisy((30, 96, 190), 2), "sea")
     foam = noisy((150, 200, 235), 8)
     d = ImageDraw.Draw(foam)
     for _ in range(10):
@@ -117,6 +113,11 @@ def sounds():
     out(tone([(0.09, 392), (0.09, 523), (0.09, 659), (0.09, 784), (0.4, 1047)], vol=0.15, decay=3.5), "start")
     out(tone([(0.08, 784), (0.08, 988), (0.3, 1175)], vol=0.13, decay=5.0), "wave")
     out(tone([(0.3, 330), (0.3, 277), (0.3, 233), (0.9, 196)], vol=0.17, duty=0.35, decay=1.8), "over")
+    out(tone([(0.06, 659), (0.06, 880), (0.06, 1319), (0.2, 1760)], vol=0.14, decay=6.0), "pickup")
+    out(mix(tone([(0.3, (300, 900))], vol=0.08, duty=0.3, decay=5.0), burst(0.3, 0.25, 9.0, 0.7, seed=11)), "missile")
+    out(tone([(0.22, (2400, 1900))], vol=0.07, duty=0.12, decay=2.0), "laser")
+    out(mix(tone([(5.6, (55, 170))], vol=0.16, duty=0.5, decay=0.0), burst(5.6, 0.22, 0.1, 0.25, seed=13)), "engine")
+    out(mix(tone([(0.7, (1800, 200))], vol=0.16, duty=0.2, decay=3.0), burst(0.7, 0.4, 4.0, 0.8, seed=17)), "shield")
 
 
 if __name__ == "__main__":

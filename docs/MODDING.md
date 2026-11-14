@@ -1989,6 +1989,10 @@ said `core.engine_hud(false)`.
 **a point** instead of the head: it flies from the eye there in `seconds`, the cursor is free
 (`core.cursor_ray`), the body stays still (the keys do not walk) and is not seen; `distance` 0 brings
 it back to the eye. It is `mods/chess`'s view over the board.
+Asked again with the camera already there, it goes to the new numbers at once: asked every frame
+it is a camera the mod moves itself, which is how `games/shmup` follows a fighter down the apron
+and swings over it as it climbs. For all these cameras `distance` is at most 64 (40 until
+2026-11-14).
 
 `core.side_view(distance, yaw, fov, seconds)` is the same camera with no tilt, **from the side**, for
 a platform game: A and D walk along the picture, W jumps, S crouches, and the body is kept on the
@@ -2001,7 +2005,8 @@ the body goes on facing the top of the screen (`yaw`), W A S D slide it without 
 where the world flies it flies level -- the jump and crouch keys are left to the mod
 (`games/shmup` fires with the space bar). `distance` 0 brings either back to the eye.
 `core.top_view_at(x, y, z, distance, yaw, fov, seconds)` holds that camera over **a point** while
-the body moves under it: one screen that does not scroll, a cabinet's.
+the body moves under it: one screen that does not scroll, a cabinet's (`games/shmup`, where what
+scrolls is the scenery the mod draws under it).
 
 `core:input` arrives when the player **presses** and when they **let go**, while playing:
 `mouse_left`, `mouse_right`, and the keys `key_w`, `key_a`, `key_s`, `key_d`, `key_space`,

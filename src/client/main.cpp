@@ -4919,7 +4919,7 @@ void host_iso_view(void *ud, double distance, double yaw, double pitch, double f
 {
     Scene       &s = *static_cast<Scene *>(ud);
     Session     &w = s.act();
-    const double d = std::isfinite(distance) ? std::clamp(distance, 0.0, 40.0) : 0.0;
+    const double d = std::isfinite(distance) ? std::clamp(distance, 0.0, 64.0) : 0.0;
     w.iso_secs     = (float)(std::isfinite(seconds) ? std::clamp(seconds, 0.0, 10.0) : 0.0);
     if (d <= 0.0) {
         w.iso_on = false;   // the rest is kept: it is where the way back starts
