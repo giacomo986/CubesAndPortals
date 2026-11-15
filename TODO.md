@@ -219,7 +219,28 @@ scrolls with slack and smoothly):
   shaft was shut on its head (it waited for the feet, not the head, to be out
   of the mouth) -- and a big body stopping short of the lying mouth, which
   then never took it up. Both fixed and seen with a big body: down, out, up.
-- The fire state looks the same as big: only the HUD says FIRE.
+- 2026-11-15: the fire has an aura (a new `"aura"` kind of core.render.fx, drawn on
+  this machine's own body only: other players' fire is not shown); a hit with the
+  fire loses it and leaves the body big; the pole is walked through, the body slides
+  down it and walks by itself (core.walk, which side_view now obeys) into the castle,
+  where a portal leads to an alcove behind the next level's start; 1-3, a castle:
+  lava, embers, bars of fire, and the furnace (16 heat: a fireball 1, a landing on
+  it while its fire is out 4). The bridge pipe leads to the furthest level open.
+  Seen in Xephyr from bodies put there by test lines: the aura, both hits, pole ->
+  castle -> portal -> 1-2, a tour of 1-3, a bar burning a body down to a lost life,
+  coals, four fireballs and a landing striking the furnace, the gate opening, the
+  last castle back to the room. Not played by hand: 1-3 end to end, so its numbers
+  (embers 2.6 s, bars 2.2 and 1.6 rad/s, the furnace's pace and 16) are guesses.
+  A saved platformer world keeps the old levels' blocks: start it `--fresh`.
+  Not in a CHANGELOG entry yet: for the next alpha.
+- Other bosses thought of for 1-3, should the furnace not do (2026-11-15, none built):
+  a **bell-ringer** -- a huge bell on a chain that swings and drops to crush, struck
+  by making it bang into prize blocks; a **lava dragon** -- a head and neck rising
+  in turn out of three lava pits, landed on when it dips to bite; a **spiked king**
+  -- a giant spikeshell rolling wall to wall, tipped over by bumping the ledge it
+  crosses from below, then landed on.
+- Bodies and models are dark under a roof (1-2, 1-3): the robot and the furnace
+  read as silhouettes against the wall, though the blocks about them are lit.
 - The creatures are rigid: no walk, no death -- a puff of smoke where one was.
   They walk a beat and neither fall into pits nor turn at walls. Landing on
   one stops the body's run (core.player_launch sets all of its speed).

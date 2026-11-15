@@ -32,6 +32,7 @@ enum class FxKind : int {
     Streak,   // a shooting star: its tail at the point, its head at `to`
     Aurora,   // a curtain of light hung up from the line from the point to `to`
     Smoke,    // a puff of smoke, swelling and thinning: mixed over what is behind, not added
+    Aura,     // flames licking up round a standing body, hollow where the body is
     Count,
 };
 

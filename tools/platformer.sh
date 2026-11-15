@@ -88,7 +88,7 @@ fi
 
 cat <<INFO
 
-== Il livello 1-1
+== I livelli 1-1, 1-2, 1-3
 
   Cammina nella prima apertura del sandbox: si arriva in una stanza con una
   vetrata, e oltre il vetro c'è il livello visto di lato. La porta a sinistra

@@ -2,7 +2,7 @@
 
 *[Leggi in italiano](README.it.md)*
 
-A platform game seen from the side, in the manner of the eighties' ones: two levels, a bonus room,
+A platform game seen from the side, in the manner of the eighties' ones: three levels, a bonus room, a boss,
 power-ups, their rules and the camera. Two mods: `mods/platformer_core` (server only: the robot, how it jumps,
 the models of the pipes, the power-ups and the creatures) and `mods/platformer` (`side = both`: the room, the
 levels and the rules on the server; the camera and the count on a player's machine).
@@ -20,8 +20,9 @@ bridge with a hole in it, ringed with prize blocks, and a green pipe. **The hole
 is a portal that scales (`core.portal_scale`), two by two, onto one of one by one in the sky over the
 level's start -- looking into it from the bridge you see the level from above. Whoever drops in
 falls out of that sky at half their height, as the game wants them, and their machine swings the
-camera from behind them out to the side as they fall. The pipe, under a blue lintel, is 1-2, and
-lets in whoever has cleared 1-1 (kept by name in the world's storage).
+camera from behind them out to the side as they fall. The pipe, under a blue lintel, leads to
+the furthest level open to you: 1-2 once 1-1 is cleared, 1-3 once 1-2 is (kept by name in the
+world's storage).
 
 ## In a level
 
@@ -43,7 +44,8 @@ jump moves it less than a fall. The keys are a platform game's:
 power-up prize block gives a mushroom to a small body and a flower to a big one: the mushroom rises
 out of the block, slides along the way on and falls off edges, and touched makes you big (the body
 flickers between the sizes, then grows); the flower stays on its block and gives fireballs, two
-at a time, which bounce along the ground and kill any creature. Hit while big or fire you go back
+at a time, which bounce along the ground and kill any creature; while you have them an aura of red flame burns round the body (the engine's
+`"aura"` effect, `core.render.fx`). Hit with the fire you lose it and stay big; hit while big you go back
 to small and nothing hits you for two seconds; hit while small, a life.
 
 Three lives. A fall or a hit while small costs one and puts you back, small, at the last flag
@@ -62,11 +64,29 @@ the pipe, which goes on through the ground (its front cut away, so the camera fo
 and hangs from the ceiling of a room of blue bricks with three rows of coins. Walk into the pipe
 lying at the room's far end and you go up its other half, through the ground again, and out of
 the next pipe of the level. The pole at a
-level's end stops the clock and says time and coins: 1-1's leads on to 1-2 with the lives and coins
-as they are, 1-2's back to the room. A level is as new whenever nobody is in it.
+level's end stops the clock and says time and coins: the body slides down it and walks by itself
+(`core.walk`) into the castle, where a portal leads out of an alcove behind the next level's start,
+with the lives, the coins and the size as they are; the last castle leads back to the room. A level
+is as new whenever nobody is in it.
 
 1-2 is underground: blue bricks underfoot and overhead with lamps in the roof, a dark wall behind,
 pits with ledges in them, a low stretch, three ledges climbing, and out into the open for the pole.
+
+1-3 is a castle: grey stone, lava in the pits (touching it costs a life), and what burns -- a hit,
+like a creature's, that no fireball puts out:
+
+| | |
+|---|---|
+| ember | leaps out of the lava every 2.6 s, almost three nodes over the floor |
+| bar of fire | four or six balls in a line turning about a block: pass when it points away |
+| coal | what the boss spits: it falls where you stood |
+
+At the castle's end, past the half-way flag and a power-up block, is the hall of the **furnace**: an
+iron stove three nodes tall. It wakes when somebody comes in, walks at the nearest body and spits
+three coals; then its fire goes out for two and a half seconds (it turns grey-blue) and it stands
+still. Touching it is a hit, except landing on its head while it is out: that takes 4 of its 16
+heat, throws you clear and lights it again, a little quicker. A fireball takes 1, at any time. Put
+out, it goes up in smoke and the gate behind it opens onto the last pole.
 
 ## How it is made
 

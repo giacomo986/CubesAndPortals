@@ -161,8 +161,31 @@ def textures():
     d.rectangle([13, 8, 18, 23], fill=(190, 140, 10))
     save(coin, "coin")
 
+    # The castle of 1-3: grey stone, the dark wall behind it, lava (bright
+    # crusts on a red glow) and the bars of the gate the boss keeps.
+    save(bricks((122, 122, 134), (56, 56, 66)), "castle")
+    save(bricks((52, 50, 62), (30, 28, 38), rows=2), "castle_dark")
+    lava = noisy((232, 92, 20), 14)
+    d = ImageDraw.Draw(lava)
+    for _ in range(9):
+        x, y = rng.randint(0, N - 6), rng.randint(0, N - 3)
+        d.rectangle([x, y, x + rng.randint(2, 5), y + 1], fill=(255, 200, 70))
+    for _ in range(6):
+        x, y = rng.randint(0, N - 4), rng.randint(0, N - 3)
+        d.rectangle([x, y, x + 2, y + 1], fill=(150, 36, 10))
+    save(lava, "lava")
+    gate = Image.new("RGB", (N, N), (22, 22, 26))
+    d = ImageDraw.Draw(gate)
+    for x in range(2, N, 8):
+        d.rectangle([x, 0, x + 3, N - 1], fill=(96, 98, 108))
+        d.line([(x, 0), (x, N - 1)], fill=(150, 152, 162))
+    for y in (6, 22):
+        d.rectangle([0, y, N - 1, y + 2], fill=(70, 72, 82))
+    save(gate, "gate")
+
 
 # ----------------------------------------------------------------- sounds
+
 
 def square(f, t, duty=0.5):
     return 1.0 if (f * t) % 1.0 < duty else -1.0
@@ -217,6 +240,9 @@ def sounds():
              vol=0.16, decay=2.5), "win")
     out(tone([(0.25, 392), (0.25, 330), (0.25, 262), (0.25, 247), (0.7, 196)], vol=0.18, duty=0.35, decay=2.0),
         "over")
+    # The boss: struck (a clang), and put out (a long falling rumble).
+    out(mix(tone([(0.05, 1568), (0.25, (740, 370))], vol=0.2, duty=0.2, decay=7.0), noise(0.2, 0.3, 12.0)), "clang")
+    out(mix(tone([(0.9, (300, 40))], vol=0.22, duty=0.4, decay=1.5), noise(0.9, 0.3, 3.0, 0.8)), "boom")
 
 
 if __name__ == "__main__":

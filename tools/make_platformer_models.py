@@ -23,6 +23,11 @@
 #   flower      the one that gives fireballs: a stem, two leaves, a ring of
 #               orange petals round a yellow face
 #   fireball    a ball of flame, glowing
+#   furnace     the castle's boss: an iron stove three nodes tall on two short
+#               legs, a grate of teeth over a mouth of embers, two slit eyes,
+#               two chimneys for horns; its face to Blender's -y, as the
+#               creatures'. furnace_cold is the same with its fire out, which
+#               it wears while it gets its breath back and can be landed on
 #
 # (The level's creatures are Meshy's: tools/meshy_generate.py and
 # tools/meshy_prop.py, their sources in assets/meshy/platformer.)
@@ -112,6 +117,34 @@ def fireball(p):
     p.ball(None, "fire_in", (0, -0.06, 0.2), 0.11, (1, 1, 1), 2)
 
 
+def furnace(p, hot=True):
+    iron = "iron" if hot else "iron_cold"
+    fire = "fire_out" if hot else "ash"
+    core = "fire_in" if hot else "ash"
+    for sx in (-1, 1):
+        p.cyl(None, "iron_dark", (sx * 0.5, 0, 0.25), 0.28, 0.5, "Z", seg=12)
+        p.box(None, "iron_dark", (sx * 0.5, -0.12, 0.09), (0.7, 0.9, 0.18))
+        # arms: a stub and a fist held out to the side
+        p.cyl(None, "iron_dark", (sx * 1.1, -0.1, 1.3), 0.16, 0.5, "X", seg=10)
+        p.ball(None, iron, (sx * 1.42, -0.15, 1.25), 0.3, (1, 1, 1), 2)
+        # chimneys for horns, leaning out, their mouths lit
+        p.cyl(None, "iron_dark", (sx * 0.62, 0.05, 2.72), 0.2, 0.75, rot=(0, sx * 0.35, 0), seg=10)
+        p.cyl(None, fire, (sx * 0.75, 0.05, 3.08), 0.15, 0.06, rot=(0, sx * 0.35, 0), seg=10)
+        # slit eyes, slanted to a scowl
+        p.box(None, core, (sx * 0.4, -0.93, 1.92), (0.42, 0.12, 0.14), (0, sx * 0.4, 0))
+    p.cyl(None, iron, (0, 0, 1.3), 1.0, 1.7, "Z", seg=20)
+    p.ball(None, iron, (0, 0, 2.15), 1.0, (1, 1, 0.45), 2)
+    for z in (0.62, 1.98):
+        p.cyl(None, "iron_dark", (0, 0, z), 1.04, 0.14, "Z", seg=20)
+    # the mouth: embers behind a grate of teeth
+    p.box(None, fire, (0, -0.9, 1.15), (1.2, 0.3, 0.6))
+    p.box(None, core, (0, -0.93, 1.05), (0.9, 0.3, 0.28))
+    for k in range(5):
+        p.box(None, "iron_dark", (-0.48 + 0.24 * k, -1.04, 1.15), (0.08, 0.1, 0.66))
+    p.box(None, "iron_dark", (0, -1.02, 1.5), (1.36, 0.14, 0.12))
+    p.box(None, "iron_dark", (0, -1.02, 0.8), (1.36, 0.14, 0.12))
+
+
 if __name__ == "__main__":
     bpy.ops.wm.read_homefile(use_empty=True)
     os.makedirs(OUT, exist_ok=True)
@@ -125,9 +158,14 @@ if __name__ == "__main__":
         d.M[mname] = d.material(mname, rgb)
     d.M["fire_out"] = d.material("fire_out", (1.0, 0.38, 0.05), glow=True)
     d.M["fire_in"] = d.material("fire_in", (1.0, 0.92, 0.45), glow=True)
+    d.M["iron"] = d.material("iron", (0.30, 0.20, 0.18), metal=0.6, rough=0.5)
+    d.M["iron_cold"] = d.material("iron_cold", (0.34, 0.40, 0.50), metal=0.6, rough=0.5)
+    d.M["iron_dark"] = d.material("iron_dark", (0.07, 0.07, 0.09), metal=0.5, rough=0.6)
+    d.M["ash"] = d.material("ash", (0.16, 0.17, 0.20))
     for x, (name, make) in enumerate([("pipe_body", body), ("pipe_top", top), ("pipe_hang", hang),
                                       ("pipe_side", side), ("mushroom", mushroom), ("flower", flower),
-                                      ("fireball", fireball)]):
+                                      ("fireball", fireball), ("furnace", furnace),
+                                      ("furnace_cold", lambda p: furnace(p, False))]):
         p = d.Parts()
         make(p)
         obj = p.build(name)

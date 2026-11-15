@@ -700,7 +700,7 @@ typedef struct script_host {
                         double scale, double pitch, double roll, double dissolve);
     // And an effect of light (core.render.fx): a kind by name ("glow", "flame",
     // "ring", "frost", "bolt", "slash", "sparks", "vortex", "jet", "streak",
-    // "aurora"), where and how big, its colour, how far through its life it is
+    // "aurora", "smoke", "aura"), where and how big, its colour, how far through its life it is
     // (0..1), and for a bolt, a jet, a streak or an aurora where it ends.
     int (*render_fx)(void *ud, const char *kind, double x, double y, double z, double size, int r,
                      int g, int b, int a, double t, double x2, double y2, double z2);

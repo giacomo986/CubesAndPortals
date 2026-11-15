@@ -46,7 +46,8 @@ void main()
     } else {
         vec3 right = vec3(uView[0][0], uView[1][0], uView[2][0]);
         vec3 up    = vec3(uView[0][1], uView[1][1], uView[2][1]);
-        p = uCenter + (right * aCorner.x + up * aCorner.y) * uSize;
+        // An aura is a body's shape: taller than it is wide.
+        p = uCenter + (right * aCorner.x * (uKind == 12 ? 0.6 : 1.0) + up * aCorner.y) * uSize;
     }
     vUV = aCorner;
     for (int k = 0; k < 5; ++k)
@@ -59,6 +60,7 @@ void main()
 // hottest part of it whiter. Output alpha is the brightness: GFX_BLEND_ADD
 // adds colour times it -- but smoke's is how thick it is, and it is mixed
 // over what is behind (GFX_BLEND_ALPHA): grey smoke hides, light would not.
+// An aura is mixed too: added to a bright sky its red would be pink.
 const char *const kFxFS = R"(#version 330 core
 in vec2 vUV;
 out vec4 fragColor;
@@ -173,6 +175,13 @@ void main()
         float body  = smoothstep(swell, swell * 0.25, r + (n - 0.5) * 0.45);
         b   = body * (0.55 + 0.45 * n) * fade * 0.85;
         hot = 0.0;
+    } else if (uKind == 12) {    // aura: flames climbing a body's outline, hollow where the body is
+        float n     = fbm(vec2(uv.x * 4.0, uv.y * 3.0 - uTime * 3.2));
+        float rim   = 0.66 + 0.2 * n + 0.08 * uv.y;          // taller over the head
+        float band  = smoothstep(0.3, 0.62, r) * smoothstep(rim + 0.22, rim - 0.06, r);
+        float pulse = 0.85 + 0.15 * sin(uTime * 5.0);
+        b   = band * (0.45 + 0.75 * n) * pulse * smoothstep(1.0, 0.82, r) * fade;
+        hot = smoothstep(rim - 0.05, 0.45, r) * n;        // brighter against the body
     } else {                     // vortex: arms wound about the middle
         float arms = 0.5 + 0.5 * sin(ang * 3.0 + r * 9.0 - uTime * 6.0);
         float n    = fbm(vec2(ang * 2.0 + uTime, r * 4.0));
@@ -185,6 +194,7 @@ void main()
     if (b < 0.003) discard;
     vec3 col = mix(uColor.rgb, vec3(1.0), clamp(hot, 0.0, 1.0) * 0.8);
     if (uKind == 11) col = uColor.rgb * (0.8 + 0.3 * noise(vUV * 3.0 + uTime * 0.2));   // lit unevenly
+    if (uKind == 12) col = mix(uColor.rgb, vec3(1.0, 0.72, 0.25), clamp(hot, 0.0, 1.0) * 0.7);   // red to amber, never white
     if (uKind == 10) col = mix(uColor.rgb, vec3(0.62, 0.32, 0.88), smoothstep(0.35, 0.9, uv.y));
     fragColor = vec4(col, clamp(b, 0.0, 1.0));
 }
@@ -228,7 +238,7 @@ void main()
 int fx_kind_named(const char *name)
 {
     static const char *const kNames[] = {"glow", "flame", "ring", "frost", "bolt", "slash", "sparks", "vortex", "jet",
-                                         "streak", "aurora", "smoke"};
+                                         "streak", "aurora", "smoke", "aura"};
     for (int k = 0; k < (int)FxKind::Count; ++k)
         if (name && std::strcmp(name, kNames[k]) == 0) return k;
     return -1;
@@ -296,7 +306,7 @@ void FxRenderer::draw(FxKind kind, Vec3 at, Vec3 to, float size, const float rgb
     gfx_state state   = gfx_state_default();
     state.cull        = GFX_CULL_NONE;
     state.depth_write = false;
-    state.blend       = kind == FxKind::Smoke ? GFX_BLEND_ALPHA : GFX_BLEND_ADD;
+    state.blend       = kind == FxKind::Smoke || kind == FxKind::Aura ? GFX_BLEND_ALPHA : GFX_BLEND_ADD;
     gfx_state_set(&state);
     gfx_draw(m_mesh, 6, 0);
     state = gfx_state_default();

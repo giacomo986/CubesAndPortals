@@ -2,7 +2,7 @@
 
 *[Read in English](README.md)*
 
-Un gioco a piattaforme visto di lato, come quelli degli anni ottanta: due livelli, una stanza
+Un gioco a piattaforme visto di lato, come quelli degli anni ottanta: tre livelli, un boss, una stanza
 bonus, i power-up, le loro regole e la telecamera. Due mod: `mods/platformer_core` (solo server: il robot, come
 salta, i modelli dei tubi, dei power-up e delle creature) e `mods/platformer` (`side = both`: la stanza, i
 livelli e le regole sul server; la telecamera e il conteggio sulla macchina del giocatore).
@@ -21,8 +21,8 @@ un tubo verde. **Il buco è il livello 1-1**: è un portale che scala (`core.por
 due, su uno di uno per uno nel cielo sopra l'inizio del livello -- guardandoci dentro dal ponte si
 vede il livello dall'alto. Chi ci si butta cade da quel cielo alto la metà, come il gioco lo vuole,
 e la sua macchina sposta la telecamera da dietro di lui fino al lato mentre cade. Il tubo, sotto un
-architrave blu, è l'1-2, e fa entrare chi ha superato l'1-1 (tenuto per nome nella memoria del
-mondo).
+architrave blu, porta al livello più avanti che ti è aperto: l'1-2 superato l'1-1, l'1-3 superato
+l'1-2 (tenuto per nome nella memoria del mondo).
 
 ## In un livello
 
@@ -44,8 +44,10 @@ più grandi (`core.body_movement`, che si rimpiccioliscono con il corpo) così s
 quanto da grandi. Un blocco premio con il power-up dà un fungo a chi è piccolo e un fiore a chi è
 grande: il fungo sale dal blocco, scivola in avanti e cade dai bordi, e toccato fa diventare grandi
 (il corpo tremola fra le due misure, poi cresce); il fiore resta sul blocco e dà le palle di fuoco,
-due alla volta, che rimbalzano per terra e uccidono qualunque creatura. Colpiti da grandi o col
-fuoco si torna piccoli e per due secondi niente colpisce; colpiti da piccoli, una vita.
+due alla volta, che rimbalzano per terra e uccidono qualunque creatura; finché le hai un'aura di
+fiamma rossa brucia intorno al corpo (l'effetto `"aura"` del motore, `core.render.fx`). Colpiti col
+fuoco lo si perde e si resta grandi; colpiti da grandi si torna piccoli; per due secondi niente
+colpisce; colpiti da piccoli, una vita.
 
 Tre vite. Una caduta o un colpo da piccoli ne costano una e riportano, piccoli, all'ultima bandiera
 passata (l'inizio, o quella blu a metà); finite le vite si torna nella stanza.
@@ -62,13 +64,30 @@ nell'1-1 il tubo alto tre con un gradino davanti porta giù -- sali in cima e pr
 nella bocca e si cade giù per il tubo, che continua nel terreno (con il davanti tagliato, così la
 telecamera ti segue giù) e pende dal soffitto di una stanza di mattoni blu con tre file di monete.
 Entrando nel tubo sdraiato in fondo alla stanza si risale per l'altra metà, di nuovo nel terreno,
-e si esce dal tubo successivo del livello. Il palo alla fine di un livello ferma il tempo e dice tempo e monete: quello dell'1-1
-porta all'1-2 con le vite e le monete che hai, quello dell'1-2 riporta nella stanza. Un livello
-torna nuovo ogni volta che dentro non c'è nessuno.
+e si esce dal tubo successivo del livello. Il palo alla fine di un livello ferma il tempo e dice tempo e monete: il corpo scivola giù dal palo
+e cammina da solo (`core.walk`) dentro il castello, dove un portale fa uscire da una nicchia dietro
+la partenza del livello successivo, con le vite, le monete e la taglia che hai; l'ultimo castello
+riporta nella stanza. Un livello torna nuovo ogni volta che dentro non c'è nessuno.
 
 L'1-2 è sotterraneo: mattoni blu sotto i piedi e sopra la testa con le lampade nel soffitto, un
 muro scuro dietro, fosse con dei ripiani dentro, un tratto basso, tre ripiani a salire, e fuori
 all'aperto per il palo.
+
+L'1-3 è un castello: pietra grigia, lava nelle fosse (toccarla costa una vita), e ciò che brucia --
+un colpo, come quello di una creatura, che nessuna palla di fuoco spegne:
+
+| | |
+|---|---|
+| tizzone | salta fuori dalla lava ogni 2,6 s, quasi tre nodi sopra il pavimento |
+| barra di fuoco | quattro o sei palle in fila che girano intorno a un blocco: si passa quando punta altrove |
+| carbone | quello che sputa il boss: cade dove eri |
+
+In fondo al castello, dopo la bandiera di metà e un blocco power-up, c'è la sala della **fornace**:
+una stufa di ferro alta tre nodi. Si sveglia quando entra qualcuno, cammina verso il corpo più
+vicino e sputa tre carboni; poi il fuoco le si spegne per due secondi e mezzo (diventa grigio-blu)
+e sta ferma. Toccarla è un colpo, tranne saltarle in testa mentre è spenta: le toglie 4 dei suoi 16
+di calore, ti lancia via e la riaccende, un po' più svelta. Una palla di fuoco le toglie 1, sempre.
+Spenta, se ne va in fumo e il cancello dietro si apre sull'ultimo palo.
 
 ## Com'è fatto
 

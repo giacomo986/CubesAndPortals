@@ -1,7 +1,7 @@
 --!strict
 -- platformer: a platform game seen from the side, in the manner of the
--- eighties' ones. Two levels, a bonus room, power-ups, their rules, and the
--- camera.
+-- eighties' ones. Three levels, a bonus room, power-ups, a boss, their
+-- rules, and the camera.
 --
 -- A player arrives in a ROOM (the doorway home behind them) whose far wall
 -- is glass: through it, 21 nodes off and side on, is the first level -- a
@@ -17,8 +17,9 @@
 --
 --   small, big, fire: a player starts small; a mushroom out of a prize block
 --   makes them big, a flower (out of the same blocks, to whoever is big
---   already) gives them fireballs; hit while big or fire they go back to
---   small and nothing hits them for two seconds; hit while small, a life
+--   already) gives them fireballs and an aura of red flame; hit with the
+--   fire they lose that and stay big, hit while big they go back to small,
+--   and nothing hits them for two seconds; hit while small, a life
 --   three lives; a fall or a hit while small costs one and puts the body back,
 --   small, at the last flag passed (the start, or the one half way); none
 --   left is the room
@@ -31,8 +32,15 @@
 --   the body sinks down the pipe through the ground into a bonus room full
 --   of coins, the camera after it; the pipe lying at the room's far end goes
 --   up the same way, out of the next pipe of the level
---   the pole at a level's end stops the clock: 1-1's castle leads on to
---   1-2, with the lives, the coins and the size as they are; 1-2's to the room
+--   the pole at a level's end stops the clock: the body slides down it and
+--   walks by itself into the castle, where a portal leads to the start of
+--   the next level, with the lives, the coins and the size as they are; the
+--   last castle's way leads back to the room
+--   1-3 is a castle: lava in its pits, embers leaping out of the lava, bars
+--   of fire turning about a block, and at its end the FURNACE -- an iron
+--   stove that walks at whoever is in its hall and spits three coals, then
+--   stands with its fire out to get its breath: landed on then, or hit by a
+--   fireball at any time, it loses heat; put out, the gate behind it opens
 --
 -- Everything is measured against platformer_core's body at full size: a jump
 -- is 2.4 up and 4.4 along at a walk, 7.2 at a run. A small body (scale 0.5,
@@ -41,7 +49,7 @@
 -- z = 0.5 (the cells z -1 .. 1; prize blocks, coins and pipe shafts in the
 -- plane's own cell only), and `s` below is how far along it a thing is: x is
 -- START_X - s, so that the picture's right is the way on. 1-2 starts at
--- s = 200.
+-- s = 200, 1-3 at 400.
 --
 -- The pipes, the mushroom, the flower and the fireball are models
 -- (tools/make_platformer_models.py, Blender) and the creatures Meshy's
@@ -98,11 +106,18 @@ if serving then
     local FLOOR  = node("floor", { 112, 96, 84 })
     local FRAME  = node("frame", { 34, 34, 36 })
     local LAMP   = node("lamp", { 255, 240, 200 }, 14)
-    local POLE   = node("pole", { 230, 230, 230 }, L)
+    -- Not solid: a body goes through the pole, and on by itself to the castle.
+    local POLE   = node("pole", { 230, 230, 230 }, L, false)
+    core.node_box(POLE, 0.42, 0, 0.42, 0.58, 1, 0.58)
     local FLAG   = node("flag", { 220, 40, 40 }, 13)
     local HALF   = node("half_flag", { 60, 120, 230 }, 13)
     local CLOUD  = node("cloud", { 245, 248, 252 }, 15)
     local HILL   = node("hill", { 70, 150, 70 }, 10)
+    local CASTLE = node("castle", { 122, 122, 134 }, L)       -- 1-3
+    local CDARK  = node("castle_dark", { 52, 50, 62 }, 9)     -- the wall behind it
+    local LAVA   = node("lava", { 232, 92, 20 }, 14, false)   -- a body falls into it
+    core.node_box(LAVA, 0, 0, 0, 1, 0.9, 1)
+    local GATE   = node("gate", { 96, 98, 108 }, L)           -- shut until the boss is put out
     local GLASS  = node("glass", { 200, 230, 240 })
     core.node_glass(GLASS, 60)
     -- A coin: not solid, a thin disc standing in its cell across the way, lit.
@@ -207,15 +222,29 @@ if serving then
         table.insert(FOES, { level, kind, X(s1) + 0.5, X(s0) + 0.5, y or G })
     end
     -- The pole, its flag, and the castle behind it; a wall at the very end.
+    -- The way into the castle is in its near side, two cells in and one deep,
+    -- behind the front the camera sees: the body walks in and is gone.
     local function finish(s: number)
         lev(s, s, G, G + 9, POLE, 0, 0)
-        lev(s, s, G, G, STONE)
         lev(s + 1, s + 1, G + 8, G + 9, FLAG, 0, 0)
         lev(s + 4, s + 9, G, G + 4, BRICK)
         lev(s + 5, s + 8, G + 5, G + 6, BRICK)
         lev(s + 6, s + 7, G, G + 1, PIPEIN, -1, -1)
+        lev(s + 4, s + 5, G, G + 1, AIR, 0, 0)
         lev(s + 11, s + 11, G - 3, G + 10, BRICK)
     end
+    -- The wall behind a level's start, two thick, with the alcove the way
+    -- from the castle before lets out of.
+    local function entry(b: number)
+        lev(-4, -3, G - 3, G + 8, b)
+        lev(-3, -3, G, G + 1, AIR, 0, 0)
+    end
+    -- What burns, in 1-3: bars of fire { level, x, y of the middle of the
+    -- block they turn about, how many balls, radians a second } and embers
+    -- leaping out of the lava { level, x, y at rest, seconds between leaps,
+    -- how far into that it starts }.
+    local BARS: { { number } } = {}
+    local EMBERS: { { number } } = {}
 
     -- ------------------------------------------------------------- the room
     -- Inside x -9 .. 7, z -29 .. -22, four high. The doorway home is in the
@@ -338,12 +367,11 @@ if serving then
     -- ------------------------------------------------------------ level 1-2
     -- Underground: blue bricks underfoot and overhead, a dark wall behind.
     level, O = 2, 200
-    lev(-3, -3, G - 3, G + 8, BLUE)               -- the wall behind the start
-    lev(-3, 112, G + 7, G + 8, BLUE)              -- the roof, as far as the way out
-    lev(-3, 118, G - 3, G + 8, CAVE, 2, 2)
+    entry(BLUE)                                   -- the wall behind the start
+    lev(-4, 112, G + 7, G + 8, BLUE)              -- the roof, as far as the way out
+    lev(-4, 118, G - 3, G + 8, CAVE, 2, 2)
     for k = 2, 110, 6 do lev(k, k, G + 7, G + 7, LAMP) end   -- lamps in the roof
     ground(-2, 20, BLUE)
-    pipe(-2, 2)
     prizes(8, 8, G + 3)
     power(9, G + 3)
     prizes(10, 11, G + 3)
@@ -393,10 +421,78 @@ if serving then
         lev(c[1] + 1, c[1] + 3, G + c[2] + 1, G + c[2] + 1, CLOUD, 7, 7)
     end
 
-    -- name, where it starts, the flag half way and the pole, all as s.
-    local LEVELS = {
+    -- ------------------------------------------------------------ level 1-3
+    -- A castle: grey stone underfoot and overhead, lava in the pits (its top
+    -- one under the floor's), embers leaping out of it, bars of fire turning
+    -- about a block, and a hall at the end that the furnace keeps.
+    level, O = 3, 400
+    local function lava(s0: number, s1: number) lev(s0, s1, G - 3, G - 2, LAVA) end
+    local function ember(s: number, phase: number)
+        table.insert(EMBERS, { level, START_X + 0.5 - (O + s), G - 1.3, 2.6, phase })
+    end
+    local function bar(s: number, y: number, n: number, speed: number)
+        lev(s, s, y, y, CASTLE, 0, 0)
+        table.insert(BARS, { level, X(s) + 0.5, y + 0.5, n, speed })
+    end
+    entry(CASTLE)
+    lev(-4, 109, G + 7, G + 8, CASTLE)            -- the roof
+    lev(-4, 110, G - 3, G + 8, CDARK, 2, 2)
+    for k = 2, 106, 8 do lev(k, k, G + 5, G + 5, LAMP, 2, 2) end
+    ground(-2, 14, CASTLE)
+    prizes(5, 5, G + 3)
+    power(6, G + 3)
+    prizes(7, 7, G + 3)
+    coins(9, 12, G + 1)
+    lava(15, 17)                                  -- a pit of three, an ember in it
+    ember(16, 0)
+
+    ground(18, 40, CASTLE)
+    bar(23, G + 2, 4, 2.2)                        -- a bar of four, sweeping the floor
+    foe(SPIKE, 27, 32)
+    lev(34, 40, G + 3, G + 6, CASTLE)             -- a low stretch
+    coins(34, 40, G + 1)
+
+    lava(41, 48)                                  -- a pit of eight: two ledges, three embers
+    lev(43, 44, G - 1, G - 1, CASTLE)
+    lev(46, 47, G, G, CASTLE)
+    coins(43, 44, G + 1)
+    coins(46, 47, G + 2)
+    ember(41.5, 0.3)
+    ember(45, 1.2)
+    ember(48, 2.0)
+
+    ground(49, 75, CASTLE)
+    bar(55, G + 2, 4, -2.2)                       -- two bars turning against each other
+    bar(62, G + 3, 6, 1.6)
+    coins(57, 60, G + 1)
+    foe(SPIKE, 66, 72)
+    lava(76, 78)
+    ember(77, 0.8)
+
+    ground(79, 109, CASTLE)
+    lev(80, 80, G, G + 3, POLE, 1, 1)             -- the flag half way, at the hall's door
+    lev(81, 81, G + 3, G + 3, HALF, 1, 1)
+    power(82, G + 3)
+    lev(85, 86, G + 3, G + 6, CASTLE)             -- the door's lintel
+    -- The hall, s 87 .. 106: the furnace walks s 89 .. 104, and the gate
+    -- behind it is shut until it is put out.
+    local HALL = { door = START_X + 0.5 - (O + 86.5), near = START_X + 0.5 - (O + 89),
+                   far = START_X + 0.5 - (O + 104), home = START_X + 0.5 - (O + 100),
+                   gate = { X(108), X(107) } }
+    lev(107, 108, G, G + 6, GATE)
+    ground(110, 131)
+    finish(120)
+    for _, c in { { 111, 10 }, { 124, 12 } } do
+        lev(c[1], c[1] + 4, G + c[2], G + c[2], CLOUD, 7, 7)
+        lev(c[1] + 1, c[1] + 3, G + c[2] + 1, G + c[2] + 1, CLOUD, 7, 7)
+    end
+
+    -- name, where it starts, the flag half way and the pole, all as s; and
+    -- under what height a body is lost, where that is not the sky's.
+    local LEVELS: { { name: string, start: number, half: number, goal: number, void: number? } } = {
         { name = "1-1", start = 0, half = 62, goal = 132 },
         { name = "1-2", start = 200, half = 250, goal = 332 },
+        { name = "1-3", start = 400, half = 480, goal = 520, void = G - 0.7 },
     }
 
     core.register_mapgen("platformer:level", function(ctx)
@@ -450,6 +546,21 @@ if serving then
         hole_open = true
     end
 
+    -- A castle's way in: a portal a cell and a half into it, facing the body
+    -- that walks in, linked to one in the alcove behind the next level's
+    -- start, facing the way on. The last castle has none: it is the way out.
+    local castles_open = false
+    local function open_castles()
+        for n = 1, #LEVELS - 1 do
+            local a = core.portal_open(START_X + 0.5 - (LEVELS[n].goal + 4.9), G + 1, PLANE, 1, 1, 0, 0.5, 1.0)
+            local b = core.portal_open(START_X + 0.5 - (LEVELS[n + 1].start - 2.9), G + 1, PLANE, 1, -1, 0, 0.5, 1.0)
+            if a < 0 or b < 0 then return end
+            core.portal_link(a, b)
+            core.log(`platformer: the castle of {LEVELS[n].name} {a} -> {b}`)
+        end
+        castles_open = true
+    end
+
     core.event.on("core:pre_break", function(ev) ev.cancel = true end)
     core.event.on("core:pre_place", function(ev) ev.cancel = true end)
 
@@ -474,6 +585,8 @@ if serving then
     core.ecs.component(FOE, { "a", "b", "dir", "dead", "kind", "base", "t" })
     core.ecs.component(ITEM, { "kind", "vx", "vy", "rise", "top" })
     core.ecs.component(FIRE, { "vx", "vy", "t", "owner" })
+    local HOT = "platformer:hot"      -- a ball of a bar, an ember, a coal the furnace spat
+    core.ecs.component(HOT, { "vx", "vy" })
     local function model(name: string): number return core.model_id(`platformer_core:{name}`) end
     -- model, pace, how tall, whether landing on it kills it
     local KINDS = {
@@ -481,6 +594,7 @@ if serving then
         [SPIKE]  = { model = model("spikeshell"), pace = 1.0, tall = 1.0, soft = false },
         [BUZZER] = { model = model("buzzer"), pace = 2.2, tall = 0.9, soft = true },
     }
+    local FURNACE = { hot = model("furnace"), cold = model("furnace_cold"), hp = 16 }
     local MUSHROOM, FLOWER = 1, 2
     local ITEM_MODEL = { [MUSHROOM] = model("mushroom"), [FLOWER] = model("flower") }
 
@@ -489,7 +603,7 @@ if serving then
     -- the body goes through a pipe.
     type Run = { level: number, lives: number, coins: number, flag: number, t: number, y: number, vy: number,
                  safe: number, power: number, scale: number, scaling: { { number } }, gun: number,
-                 shaft: string?, won: number? }
+                 shaft: string?, won: number?, slide: number? }
     local runs: { [number]: Run } = {}        -- who is in a level
     local taken: { [number]: boolean } = {}   -- the coins taken, by index
     local bumped: { [string]: { number } } = {}   -- the prize blocks spent: "x,y" -> { x, y, level }
@@ -497,6 +611,15 @@ if serving then
     local items: { [number]: number } = {}    -- power-ups out: id -> level
     local fires: { [number]: number } = {}    -- fireballs: id -> who threw it
     local shown: { [number]: number } = {}    -- which way in a player on the bridge was last told of
+    -- What burns: every ball by id -> its level; which of them are a bar's
+    -- (by the bar) or an ember (by the ember), and which the furnace spat.
+    local hots: { [number]: number } = {}
+    local hot = { bars = {} :: { [number]: { number } }, embers = {} :: { [number]: number },
+                  coals = {} :: { [number]: boolean } }
+    -- The furnace, while it is alive. state: "hot" walking and spitting,
+    -- "cold" getting its breath, when it can be landed on.
+    local boss: { id: number, hp: number, state: string, t: number, next: number, shots: number,
+                  pace: number, awake: boolean }? = nil
     local clock = 0.0
     local timed = false
 
@@ -524,6 +647,37 @@ if serving then
     local function flag_at(n: number, flag: number): (number, number, number)
         local lv = LEVELS[n]
         return START_X - (if flag == 1 then lv.start else lv.half) + 0.5, G, PLANE
+    end
+
+    -- The last level that player has cleared, kept by name: 0 for none.
+    local function cleared(p: number): number
+        return tonumber(core.storage_get(`cleared:{core.player_name(p)}`)) or 0
+    end
+
+    -- To everybody in a level.
+    local function tell_level(n: number, text: string)
+        for q, other in runs do
+            if other.level == n then tell(q, text) end
+        end
+    end
+
+    local function hot_ball(n: number, x: number, y: number): number?
+        local id = core.ecs.spawn(HOT, x, y, PLANE)
+        if id == nil then return nil end
+        core.ecs.set(id, "vx", 0)
+        core.ecs.set(id, "vy", 0)
+        core.ecs.visible(id, true)
+        core.ecs.model(id, model("fireball"))
+        hots[id] = n
+        return id
+    end
+
+    local function gate(b: number)
+        for x = HALL.gate[1], HALL.gate[2] do
+            for y = G, G + 6 do
+                for z = -1, 1 do core.set_block(x, y, z, b) end
+            end
+        end
     end
 
     local function count(p: number, r: Run)
@@ -565,6 +719,40 @@ if serving then
                 items[id] = nil
             end
         end
+        for id, of in hots do
+            if of == n then
+                core.ecs.kill(id)
+                hots[id] = nil
+                hot.coals[id] = nil
+            end
+        end
+        for i, b in BARS do
+            if b[1] == n then
+                hot.bars[i] = {}
+                for k = 1, b[4] do
+                    local id = hot_ball(n, b[2], b[3])
+                    if id then table.insert(hot.bars[i], id) end
+                end
+            end
+        end
+        for i, e in EMBERS do
+            if e[1] == n then hot.embers[i] = hot_ball(n, e[2], e[3] - 1) :: number end
+        end
+        if n == 3 then
+            if boss then core.ecs.kill(boss.id) end
+            boss = nil
+            gate(GATE)
+            local id = core.ecs.spawn(HOT, HALL.home, G, PLANE)
+            if id ~= nil then
+                core.ecs.set(id, "vx", 0)
+                core.ecs.set(id, "vy", 0)
+                core.ecs.set(id, "yaw", -math.pi / 2)
+                core.ecs.visible(id, true)
+                core.ecs.model(id, FURNACE.hot)
+                core.ecs.box(id, 1.1, 3.0)
+                boss = { id = id, hp = FURNACE.hp, state = "hot", t = 0, next = 1.2, shots = 0, pace = 1.6, awake = false }
+            end
+        end
         for _, f in FOES do
             if f[1] == n then
                 local id = core.ecs.spawn(FOE, f[4], f[5], PLANE)
@@ -603,6 +791,7 @@ if serving then
         core.player_spawn(p, x, y, z, true)
         tell(p, `in {LEVELS[n].name}`)
         count(p, r)
+        if n == 3 and boss and boss.awake then tell(p, `boss {boss.hp} {FURNACE.hp}`) end
     end
 
     local function leave(p: number, why: string)
@@ -638,14 +827,15 @@ if serving then
         count(p, r)
     end
 
-    -- Hit: big or fire goes back to small, small loses a life.
+    -- Hit: fire loses the fire and stays big, big goes back to small, small
+    -- loses a life.
     local function hurt(p: number, r: Run)
         if r.power == 0 then
             lose(p, r)
             return
         end
-        r.power = 0
-        resize(r, SMALL)
+        r.power -= 1
+        if r.power == 0 then resize(r, SMALL) end
         r.safe = clock + 2.0
         local px, py, pz = core.player_pos(p)
         if px then core.play_sound("platformer:shrink", px, py + 0.5, pz) end
@@ -657,8 +847,33 @@ if serving then
     local function squash(id: number, level_of: number, x: number, y: number)
         core.ecs.set(id, "dead", clock + 0.1)
         core.play_sound("platformer:stomp", x, y, PLANE)
+        tell_level(level_of, string.format("puff %.1f %.1f", x, y))
+    end
+
+    -- The furnace struck: by a fireball 1, landed on with its fire out 4.
+    -- Put out, it is gone in smoke and the gate behind it opens.
+    local function strike(n: number)
+        local b = boss
+        if b == nil then return end
+        local x, y = core.ecs.get(b.id, "x"), core.ecs.get(b.id, "y")
+        if x == nil or y == nil then return end
+        b.hp -= n
+        tell_level(3, `boss {math.max(b.hp, 0)} {FURNACE.hp}`)
+        if b.hp > 0 then
+            core.play_sound("platformer:clang", x, y + 1.5, PLANE)
+            tell_level(3, string.format("spark %.1f %.1f", x, y + 1.6))
+            return
+        end
+        core.play_sound("platformer:boom", x, y + 1.5, PLANE)
+        for _, o in { { 0, 0.6 }, { -0.7, 1.5 }, { 0.7, 1.5 }, { 0, 2.5 } } do
+            tell_level(3, string.format("puff %.1f %.1f", x + o[1], y + o[2]))
+            tell_level(3, string.format("spark %.1f %.1f", x + o[1], y + o[2]))
+        end
+        core.ecs.kill(b.id)
+        boss = nil
+        gate(AIR)
         for q, other in runs do
-            if other.level == level_of then tell(q, string.format("puff %.1f %.1f", x, y)) end
+            if other.level == 3 then core.notice(q, "The furnace is out: the gate is open.") end
         end
     end
 
@@ -804,6 +1019,13 @@ if serving then
                     end
                 end
             end
+            if not gone and boss and runs[who] and runs[who].level == 3 then
+                local bx, by = core.ecs.get(boss.id, "x"), core.ecs.get(boss.id, "y")
+                if bx and math.abs(nx - bx) < 1.1 and ny > by and ny < by + 2.8 then
+                    strike(1)
+                    gone = true
+                end
+            end
             if gone then
                 core.ecs.kill(id)
                 fires[id] = nil
@@ -822,11 +1044,103 @@ if serving then
         end
     end
 
+    -- The bars turn, the embers leap (up four in half a second, down again,
+    -- then a wait under the lava), the furnace's coals fly and fall.
+    local function step_hot(dt: number)
+        for i, ids in hot.bars do
+            local b = BARS[i]
+            local a = clock * b[5]
+            for k, id in ids do
+                core.ecs.set(id, "x", b[2] + math.cos(a) * 0.5 * k)
+                core.ecs.set(id, "y", b[3] + math.sin(a) * 0.5 * k - 0.18)
+            end
+        end
+        for i, id in hot.embers do
+            local e = EMBERS[i]
+            local t = (clock + e[5]) % e[4]
+            core.ecs.set(id, "y", e[3] + math.max(-1, 16 * t * (1 - t)))
+        end
+        for id in hot.coals do
+            local x, y = core.ecs.get(id, "x"), core.ecs.get(id, "y")
+            if x == nil or y == nil then
+                hot.coals[id], hots[id] = nil, nil
+                continue
+            end
+            local vx, vy = core.ecs.get(id, "vx"), core.ecs.get(id, "vy") - 20 * dt
+            x += vx * dt
+            y += vy * dt
+            if solid_at(x, y + 0.1) or y < VOID_Y then
+                core.ecs.kill(id)
+                hot.coals[id], hots[id] = nil, nil
+                tell_level(3, string.format("spark %.1f %.1f", x, y + 0.3))
+            else
+                core.ecs.set(id, "x", x)
+                core.ecs.set(id, "y", y)
+                core.ecs.set(id, "vy", vy)
+            end
+        end
+    end
+
+    -- The furnace: asleep until somebody is in its hall; then it walks at
+    -- the nearest of them, hopping, and spits three coals that fall where
+    -- they stood; then it stands with its fire out for two and a half
+    -- seconds, and lights again. Landed on, it lights at once and is quicker.
+    local function step_boss(dt: number)
+        local b = boss
+        if b == nil then return end
+        local x = core.ecs.get(b.id, "x")
+        if x == nil then
+            boss = nil
+            return
+        end
+        local tx: number? = nil
+        for p, r in runs do
+            if r.level == 3 and not r.won then
+                local px = core.player_pos(p)
+                if px and px < HALL.door and (tx == nil or math.abs(px - x) < math.abs(tx - x)) then tx = px end
+            end
+        end
+        if tx == nil then return end
+        if not b.awake then
+            b.awake = true
+            tell_level(3, `boss {b.hp} {FURNACE.hp}`)
+        end
+        b.t += dt
+        local dir = if tx < x then -1 else 1
+        if b.state == "hot" then
+            x = math.clamp(x + dir * b.pace * dt, HALL.far, HALL.near)
+            core.ecs.set(b.id, "x", x)
+            core.ecs.set(b.id, "y", G + math.abs(math.sin(b.t * 5)) * 0.25)
+            core.ecs.set(b.id, "yaw", -dir * math.pi / 2)
+            if b.t >= b.next then
+                local id = hot_ball(3, x + dir * 1.0, G + 1.1)
+                if id then
+                    core.ecs.set(id, "vx", dir * math.clamp(math.abs(tx - x) / 0.9, 2, 11))
+                    core.ecs.set(id, "vy", 8)
+                    hot.coals[id] = true
+                    core.play_sound("platformer:fire", x, G + 1.5, PLANE)
+                end
+                b.shots += 1
+                b.next = b.t + 1.1
+                if b.shots >= 3 then
+                    b.state, b.t = "cold", 0
+                    core.ecs.model(b.id, FURNACE.cold)
+                    core.ecs.set(b.id, "y", G)
+                    tell_level(3, string.format("puff %.1f %.1f", x, G + 3.0))
+                end
+            end
+        elseif b.t > 2.5 then
+            b.state, b.t, b.next, b.shots = "hot", 0, 0.8, 0
+            core.ecs.model(b.id, FURNACE.hot)
+        end
+    end
+
     core.event.on("core:tick", function(ev)
         local dt = ev.dt
         clock += dt
         if not door_said then say_door() end
         if not hole_open then open_hole() end
+        if hole_open and not castles_open then open_castles() end
         if not timed then
             -- Always noon: the levels are lit by the sun, and a clock is their own.
             timed = true
@@ -837,6 +1151,8 @@ if serving then
         step_foes(dt)
         step_items(dt)
         step_fires(dt)
+        step_hot(dt)
+        step_boss(dt)
 
         local here: { [number]: boolean } = {}
         for _, p in core.players() do
@@ -849,15 +1165,16 @@ if serving then
                 -- the body small already), or into the pipe at the end of the
                 -- bridge, for whoever has cleared 1-1.
                 if z > -2 and z < 3 and y > VOID_Y then
-                    start(p, if START_X + 0.5 - x >= 190 then 2 else 1, nil, false)
+                    local at = START_X + 0.5 - x
+                    start(p, if at >= 390 then 3 elseif at >= 190 then 2 else 1, nil, false)
                     continue
                 end
                 local at = 0
                 if x > 9.5 and x < 12.5 and z > -22.5 and z < -18.5 then at = 1 end
                 if x > PIPE2[1] - 0.2 and x < PIPE2[2] + 1.2 and z > -21.5 and z < -17.5 and y < G + 2 then
                     at = 2
-                    if z > -19.7 and core.storage_get(`cleared:{core.player_name(p)}`) == "1" then
-                        start(p, 2, nil, true)
+                    if z > -19.7 and cleared(p) > 0 then
+                        start(p, math.min(cleared(p) + 1, #LEVELS), nil, true)
                         continue
                     end
                 end
@@ -865,8 +1182,8 @@ if serving then
                     if at == 1 then
                         core.notice(p, "Level 1-1: drop into the hole")
                     elseif at == 2 then
-                        core.notice(p, if core.storage_get(`cleared:{core.player_name(p)}`) == "1"
-                            then "Level 1-2" else "Level 1-2: clear 1-1 first")
+                        core.notice(p, if cleared(p) == 0 then "Level 1-2: clear 1-1 first"
+                            elseif cleared(p) == 1 then "Level 1-2" else "Level 1-3")
                     end
                 end
                 shown[p] = at
@@ -881,14 +1198,37 @@ if serving then
                 table.remove(r.scaling, 1)
             end
             local tall = 1.8 * r.scale   -- the body's height, feet to the top of the head
+            local s = START_X + 0.5 - x
             if r.won then
-                if clock >= r.won then
-                    if r.level < #LEVELS then start(p, r.level + 1, r, true) else leave(p, "") end
+                -- Down the pole, held to it as a body in a pipe is; then the
+                -- player's machine walks it into the castle, through the
+                -- portal there and out behind the next level's start. Put
+                -- there instead if that has not happened by r.won, or with
+                -- the portal not open (past where it would be).
+                local nxt = LEVELS[r.level + 1]
+                if r.slide then
+                    if y > G + 0.1 and clock < r.slide then
+                        core.player_launch(p, (START_X + 0.5 - lv.goal - x) * 6, 0, (PLANE - z) * 6, 0.5)
+                    else
+                        r.slide = nil
+                        tell(p, "walk")
+                    end
+                elseif nxt and math.abs(s - nxt.start) < 5 then
+                    start(p, r.level + 1, r, false)
+                elseif nxt == nil and s >= lv.goal + 4.4 then
+                    leave(p, "")
+                elseif clock >= r.won or (nxt and s >= lv.goal + 5.2 and s < lv.goal + 8) then
+                    if nxt then start(p, r.level + 1, r, true) else leave(p, "") end
                 end
                 continue
             end
             r.t += dt
-            local s = START_X + 0.5 - x
+            -- Back through the alcove a level starts at: put at the start again.
+            if s < lv.start - 6 then
+                local fx, fy, fz = flag_at(r.level, 1)
+                core.player_place(p, fx, fy, fz, -1, 0, 0)
+                continue
+            end
 
             -- Through a pipe: held to its middle and moved along it, the
             -- camera after the body, and the pipe whole again behind it.
@@ -1002,16 +1342,16 @@ if serving then
                 core.notice(p, "Half-way flag: you start again from here.")
             end
 
-            if s >= lv.goal - 1.0 then   -- the pole stops a body at 0.8 short of its middle
-                r.won = clock + 4
+            if s >= lv.goal - 0.3 then
+                r.won, r.slide = clock + 12, clock + 1.5
                 core.play_sound("platformer:win", x, y + 1, z)
-                core.storage_set(`cleared:{core.player_name(p)}`, "1")
+                core.storage_set(`cleared:{core.player_name(p)}`, tostring(math.max(cleared(p), r.level)))
                 tell(p, `win {math.floor(r.t * 10)} {r.coins} {lv.name}`)
                 continue
             end
 
             -- Fallen out of the level -- the bonus room is lower still, and is not.
-            if y < VOID_Y and not (r.level == 1 and s > 33 and s < 53 and y > BY - 2) then
+            if y < (lv.void or VOID_Y) and not (r.level == 1 and s > 33 and s < 53 and y > BY - 2) then
                 lose(p, r)
                 continue
             end
@@ -1033,6 +1373,35 @@ if serving then
                             hurt(p, r)
                         end
                         break
+                    end
+                end
+            end
+            -- What burns: a ball of a bar, an ember, a coal.
+            if runs[p] == r and clock >= r.safe then
+                for id, of in hots do
+                    if of ~= r.level then continue end
+                    local hx, hy = core.ecs.get(id, "x"), core.ecs.get(id, "y")
+                    if hx and math.abs(x - hx) < 0.2 + 0.3 * r.scale and hy + 0.18 > y - 0.15 and hy + 0.18 < y + tall + 0.15 then
+                        hurt(p, r)
+                        break
+                    end
+                end
+            end
+            -- The furnace: landed on with its fire out it is struck, and the
+            -- body thrown clear; touched any other way, a hit.
+            local b = boss
+            if b and r.level == 3 and runs[p] == r and clock >= r.safe then
+                local bx, by = core.ecs.get(b.id, "x"), core.ecs.get(b.id, "y")
+                if bx and math.abs(x - bx) < 1.0 + 0.3 * r.scale and y < by + 2.7 and y + tall > by then
+                    if b.state == "cold" and vy < -1 and y > by + 1.7 then
+                        core.player_launch(p, if x < bx then -6 else 6, 10, 0, 0.6)
+                        r.safe = clock + 0.6
+                        b.state, b.t, b.next, b.shots = "hot", 0, 0.6, 0
+                        b.pace += 0.5
+                        core.ecs.model(b.id, FURNACE.hot)
+                        strike(4)
+                    else
+                        hurt(p, r)
                     end
                 end
             end
@@ -1061,6 +1430,7 @@ if drawing then
     local pops: { { number } } = {}      -- a coin out of a prize block: { x, y, age }
     local puffs: { { number } } = {}     -- a creature landed on: { x, y, age }
     local last_y, last_vy = 0.0, 0.0
+    local boss_hp, boss_max = 0, 0       -- the furnace's heat, once it is awake
 
     local function camera()
         -- 16 off and narrow, so the picture is flat; looking +z, which puts
@@ -1077,8 +1447,12 @@ if drawing then
             -- From the room the camera swings out; from the level before it is there.
             if not inside then swing = 0 end
             inside, world, time, banner_left = true, w[2] or world, 0, 0
+            boss_hp, boss_max = 0, 0
+            core.walk(0, 0)
         elseif w[1] == "out" then
             inside, swing = false, nil
+            boss_hp, boss_max = 0, 0
+            core.walk(0, 0)
             core.side_view(0, 180, 0, 0.8)
             core.engine_hud(true)
         elseif w[1] == "hud" then
@@ -1091,11 +1465,17 @@ if drawing then
             table.insert(pops, { (tonumber(w[2]) or 0) + 0.5, tonumber(w[3]) or 0, 0 })
         elseif w[1] == "puff" then
             table.insert(puffs, { tonumber(w[2]) or 0, tonumber(w[3]) or 0, 0 })
+        elseif w[1] == "walk" then
+            -- Past the pole: the way on, by itself, into the castle.
+            core.walk(-1, 0, 1)
+        elseif w[1] == "boss" then
+            boss_hp, boss_max = tonumber(w[2]) or 0, tonumber(w[3]) or 0
         elseif w[1] == "win" then
             local t = (tonumber(w[2]) or 0) / 10
             -- lang: "{} CLEARED   {} s   {} COINS"
             banner = string.format("%s CLEARED   %.1f s   %d COINS", w[4] or world, t, tonumber(w[3]) or 0)
             banner_left = 4
+            boss_hp = 0
         end
     end
     if not serving then
@@ -1154,6 +1534,14 @@ if drawing then
     end)
 
     core.render.pass("platformer:pops", 100, function()
+        -- The fire: an aura of red flame round the body (the engine's "aura"
+        -- shader), on this machine's own body.
+        -- ponytail: other players' fire is not drawn; the server would have to
+        -- say who has it and where -- add when the levels are played by two.
+        if inside and power == 2 then
+            local px, py, pz = core.player_pos(1)
+            if px ~= nil then core.render.fx("aura", px, py + 0.95, pz, 1.45, 255, 48, 16, 255, 0) end
+        end
         for _, c in pops do
             local t = c[3] / 0.45
             core.render.box(c[1], c[2] + 0.5 + 1.6 * t * (2 - t), PLANE, 0.5, 0.6, 0.12, 255, 214, 40, 255)
@@ -1182,6 +1570,11 @@ if drawing then
         end
         core.hud.text(0.5, 0.95, if power == 2 then "A D walk   W jump   S down   Shift run   F fire   E leave"
                                  else "A D walk   W jump   S down   Shift run   E leave", 0.024, 1, 255, 255, 255, 200)
+        if boss_hp > 0 and boss_max > 0 then
+            core.hud.text(0.5, 0.155, "FURNACE", 0.03, 1, 255, 140, 40, 255)
+            core.hud.rect(0.5, 0.2, 0.31, 0.022, 20, 20, 26, 210)
+            core.hud.rect(0.5, 0.2, 0.3 * boss_hp / boss_max, 0.014, 255, 90, 30, 255)
+        end
         if banner_left > 0 then
             core.hud.text(0.5, 0.35, banner, 0.06, 1, 255, 240, 120, 255)
         end

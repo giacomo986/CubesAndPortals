@@ -27,7 +27,7 @@ core.register_model("platformer_core:robot_arms", "robot_arms.gltf")
 -- games/platformer/mods/platformer with the blocks that wear them: that mod
 -- is world code, whose every file goes to players as its own.
 for _, m in { "pipe_body", "pipe_top", "pipe_hang", "pipe_side", "mushroom", "flower", "fireball",
-               "sprout", "spikeshell", "buzzer" } do
+               "sprout", "spikeshell", "buzzer", "furnace", "furnace_cold" } do
     core.register_model(`platformer_core:{m}`, `{m}.gltf`)
 end
 core.eye_height(1.5)
