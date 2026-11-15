@@ -57,16 +57,22 @@ passed (the start, or the blue one half way); with none left you are back in the
 | buzzer | a purple bug flying up and down as it goes | dies, and you bounce |
 | spikeshell | a ball of red spikes, crawling | a hit: jump over it, or burn it |
 
-A prize block bumped from below with the head gives a coin, or its power-up, once; they are one
+The floating bricks (the rows beside prize blocks, the ledges -- not the walls and castles) break:
+bumped from below by a big body, or grown into when a mushroom makes a small body big under them,
+they fly off in four pieces; a small body only bumps them. A prize block bumped from below with the head gives a coin, or its power-up, once -- one power-up
+for every player in the level, out one after another, each a mushroom or a flower as its player
+would be given; one that would change nothing for you is not taken, and goes on to somebody else; they are one
 deep, in the level's own plane. Coins are counted. **The bonus room**: in 1-1 the pipe three high
 with a step before it goes down -- stand on it and press S. You sink into its mouth and fall down
 the pipe, which goes on through the ground (its front cut away, so the camera follows you down it)
 and hangs from the ceiling of a room of blue bricks with three rows of coins. Walk into the pipe
 lying at the room's far end and you go up its other half, through the ground again, and out of
 the next pipe of the level. The pole at a
-level's end stops the clock and says time and coins: the body slides down it and walks by itself
-(`core.walk`) into the castle, where a portal leads out of an alcove behind the next level's start,
-with the lives, the coins and the size as they are; the last castle leads back to the room. A level
+level's end stops the clock and says time and coins: the body hangs on it, slides down onto its base, steps off behind the base and walks by itself
+(`core.walk`) into the picture's depth, to the door of the castle standing behind the walkway. The
+door is a portal facing the camera: it lets out of a door in the wall behind the next level's start,
+from where the body walks forward onto the level's plane, with the lives, the coins and the size as
+they are; the last castle's door leads back to the room. A level
 is as new whenever nobody is in it.
 
 1-2 is underground: blue bricks underfoot and overhead with lamps in the roof, a dark wall behind,
@@ -84,7 +90,7 @@ like a creature's, that no fireball puts out:
 At the castle's end, past the half-way flag and a power-up block, is the hall of the **furnace**: an
 iron stove three nodes tall. It wakes when somebody comes in, walks at the nearest body and spits
 three coals; then its fire goes out for two and a half seconds (it turns grey-blue) and it stands
-still. Touching it is a hit, except landing on its head while it is out: that takes 4 of its 16
+still. Touching it is a hit and throws you off it, except landing on its head while it is out: that takes 4 of its 16
 heat, throws you clear and lights it again, a little quicker. A fireball takes 1, at any time. Put
 out, it goes up in smoke and the gate behind it opens onto the last pole.
 

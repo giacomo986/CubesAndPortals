@@ -9211,14 +9211,18 @@ void steer_input(Scene &s, Player &player, PlayerInput &in)
         in.toggle_fly = false;
         const float fx = std::sin(v.iso_yaw), fz = -std::cos(v.iso_yaw);   // the camera's look
         const float rx = -fz, rz = fx;                                     // the picture's right
-        float along = in.move_right;
         if (v.mod_walk) {
-            // A walk the world's code steers (core.walk: past the pole into
-            // the castle) takes the body from the keys, here: nothing a key
-            // does should stop a walk that ends the level.
-            along   = (v.mod_walk_x * rx + v.mod_walk_z * rz) * v.mod_walk_speed;
+            // A walk the world's code steers (core.walk: round the pole's
+            // base and into the castle's door) takes the body from the keys
+            // and off its plane, here: nothing a key does should stop a walk
+            // that ends the level, and its way goes into the picture's depth.
             in.jump = in.descend = in.sprint = false;
+            player.yaw      = std::atan2(v.mod_walk_x, -v.mod_walk_z);
+            in.move_forward = v.mod_walk_speed;
+            in.move_right   = 0.0f;
+            return;
         }
+        const float along = in.move_right;
         if (along != 0.0f) player.yaw = std::atan2(rx * along, -rz * along);
         const float off  = player.pos.x * fx + player.pos.z * fz - v.iso_plane;
         const float back = std::fabs(off) > 0.02f ? std::clamp(-off * 4.0f, -1.0f, 1.0f) : 0.0f;

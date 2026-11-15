@@ -182,6 +182,8 @@ def textures():
     for y in (6, 22):
         d.rectangle([0, y, N - 1, y + 2], fill=(70, 72, 82))
     save(gate, "gate")
+    # The bricks a big body breaks: as the walls' bricks, to be found by trying.
+    save(bricks((190, 92, 44), (92, 40, 20)), "bricks")
 
 
 # ----------------------------------------------------------------- sounds
@@ -243,6 +245,9 @@ def sounds():
     # The boss: struck (a clang), and put out (a long falling rumble).
     out(mix(tone([(0.05, 1568), (0.25, (740, 370))], vol=0.2, duty=0.2, decay=7.0), noise(0.2, 0.3, 12.0)), "clang")
     out(mix(tone([(0.9, (300, 40))], vol=0.22, duty=0.4, decay=1.5), noise(0.9, 0.3, 3.0, 0.8)), "boom")
+    # A brick broken: a crunch and the pieces falling.
+    out(mix(noise(0.25, 0.32, 9.0, 0.7), tone([(0.05, (260, 120)), (0.2, (180, 60))], vol=0.14, duty=0.3, decay=8.0)),
+        "break")
 
 
 if __name__ == "__main__":

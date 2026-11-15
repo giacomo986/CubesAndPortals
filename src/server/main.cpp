@@ -1774,7 +1774,14 @@ void schedule_mouths(ServerState &s)
     // A world that is a pair of openings and no mouth stays one: a mouth
     // beside a pair is a world the wire has no word for.
     size_t room_for = 0;
-    const auto pair_end = [&](int k) { return ss.opening(k) != nullptr && s.dyn_at[k].empty(); };
+    // A virtual portal's opening is not the world's pair: one that took 0 or
+    // 1 while every player was far from the mouths (the platform game's
+    // castles, 2026-11-15) kept the room's door from ever having one again.
+    const auto pair_end = [&](int k) {
+        for (const ServerState::VirtualPortal &v : s.vportals)
+            if (v.slot == k) return false;
+        return ss.opening(k) != nullptr && s.dyn_at[k].empty();
+    };
     if (own > 0 || (!pair_end(0) && !pair_end(1))) {
         for (int k = 0; k < net::kMaxMouths; ++k)
             if (k < own ? s.parked[k] : s.dyn_at[k].empty() ? !ss.away(k).leads_away() : true) ++room_for;

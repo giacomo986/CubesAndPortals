@@ -26,16 +26,21 @@
 --   a sprout (a cactus on two feet) and a buzzer (a bug that flies up and
 --   down) are killed by landing on them, which bounces; a spikeshell is not
 --   -- it is jumped over; a fireball kills any of them
+--   a brick (the level's floating bricks, not its walls) bumped from below
+--   by a big body breaks, and so does one a body grows into; a small body
+--   only bumps it
 --   a prize block bumped from below with the head gives a coin, once, or the
---   power-up it holds
+--   power-up it holds -- one for every player in the level, one after another
 --   the tall pipe of 1-1 (a step before it) goes down, with S on top of it:
 --   the body sinks down the pipe through the ground into a bonus room full
 --   of coins, the camera after it; the pipe lying at the room's far end goes
 --   up the same way, out of the next pipe of the level
---   the pole at a level's end stops the clock: the body slides down it and
---   walks by itself into the castle, where a portal leads to the start of
---   the next level, with the lives, the coins and the size as they are; the
---   last castle's way leads back to the room
+--   the pole at a level's end stops the clock: the body hangs on it, slides
+--   down onto its base, steps off behind the base and walks by itself into
+--   the picture's depth, to the door of the castle that stands behind the
+--   walkway: a portal facing the camera, which lets out of a door in the
+--   wall behind the next level's start, with the lives, the coins and the
+--   size as they are; the last castle's door leads back to the room
 --   1-3 is a castle: lava in its pits, embers leaping out of the lava, bars
 --   of fire turning about a block, and at its end the FURNACE -- an iron
 --   stove that walks at whoever is in its hall and spits three coals, then
@@ -95,6 +100,7 @@ if serving then
     local GRASS  = node("grass", { 96, 176, 64 }, L)
     local DIRT   = node("dirt", { 150, 92, 50 }, L)
     local BRICK  = node("brick", { 190, 92, 44 }, L)
+    local BRICKS = node("bricks", { 190, 92, 44 }, L)   -- the same, but a big body breaks it
     local BLUE   = node("blue_brick", { 52, 96, 170 }, L)      -- 1-2 and the bonus room
     local CAVE   = node("cave", { 40, 54, 104 }, 11)           -- the wall behind them
     local PRIZE  = node("prize", { 244, 196, 40 }, 13)
@@ -221,23 +227,27 @@ if serving then
     local function foe(kind: number, s0: number, s1: number, y: number?)
         table.insert(FOES, { level, kind, X(s1) + 0.5, X(s0) + 0.5, y or G })
     end
-    -- The pole, its flag, and the castle behind it; a wall at the very end.
-    -- The way into the castle is in its near side, two cells in and one deep,
-    -- behind the front the camera sees: the body walks in and is gone.
+    -- The pole on its base, its flag, and the castle; a wall at the very
+    -- end. The castle stands BEHIND the walkway (z 2 .. 4), its door in the
+    -- face the camera sees: the body walks into the picture's depth to it.
     local function finish(s: number)
-        lev(s, s, G, G + 9, POLE, 0, 0)
+        lev(s, s, G + 1, G + 9, POLE, 0, 0)
+        lev(s, s, G, G, STONE, 0, 0)
         lev(s + 1, s + 1, G + 8, G + 9, FLAG, 0, 0)
-        lev(s + 4, s + 9, G, G + 4, BRICK)
-        lev(s + 5, s + 8, G + 5, G + 6, BRICK)
-        lev(s + 6, s + 7, G, G + 1, PIPEIN, -1, -1)
-        lev(s + 4, s + 5, G, G + 1, AIR, 0, 0)
+        lev(s - 1, s + 9, G - 3, G - 1, BRICK, 2, 4)   -- its ground, from behind the pole
+        lev(s + 3, s + 9, G, G + 4, BRICK, 2, 4)
+        lev(s + 4, s + 8, G + 5, G + 6, BRICK, 2, 4)
+        lev(s + 6, s + 6, G, G + 1, AIR, 2, 2)
+        lev(s + 6, s + 6, G, G + 1, PIPEIN, 3, 3)
         lev(s + 11, s + 11, G - 3, G + 10, BRICK)
     end
-    -- The wall behind a level's start, two thick, with the alcove the way
-    -- from the castle before lets out of.
+    -- The wall behind a level's start, and beside it the door the way from
+    -- the castle before lets out of: in the wall behind the walkway, at
+    -- s = 0, facing the camera.
     local function entry(b: number)
-        lev(-4, -3, G - 3, G + 8, b)
-        lev(-3, -3, G, G + 1, AIR, 0, 0)
+        lev(-3, -3, G - 3, G + 8, b)
+        lev(0, 0, G, G + 1, AIR, 2, 2)
+        lev(0, 0, G, G + 1, PIPEIN, 3, 3)
     end
     -- What burns, in 1-3: bars of fire { level, x, y of the middle of the
     -- block they turn about, how many balls, radians a second } and embers
@@ -288,10 +298,12 @@ if serving then
     lev(-3, -3, G - 3, G + 10, BRICK)             -- the wall behind the start
     ground(-2, 22)
     coins(6, 8, G + 1)
-    prizes(12, 12, G + 3)                         -- a row to bump the head on,
+    lev(11, 11, G + 3, G + 3, BRICKS, 0, 0)       -- a row to bump the head on,
+    prizes(12, 12, G + 3)                         -- bricks at its ends,
     power(13, G + 3)                              -- a power-up in its middle
     prizes(14, 14, G + 3)
-    lev(16, 19, G + 1, G + 1, BRICK)              -- a ledge two up
+    lev(15, 15, G + 3, G + 3, BRICKS, 0, 0)
+    lev(16, 19, G + 1, G + 1, BRICKS)             -- a ledge two up
     coins(16, 19, G + 2)
     pipe(21, 1)
 
@@ -333,7 +345,7 @@ if serving then
     lev(62, 62, G, G + 3, POLE, 2, 2)             -- the flag half way, behind the walkway
     lev(63, 63, G + 3, G + 3, HALF, 2, 2)
     foe(SPROUT, 65, 69)
-    lev(70, 75, G + 1, G + 1, BRICK)
+    lev(70, 75, G + 1, G + 1, BRICKS)
     coins(70, 75, G + 2)
     power(72, G + 4)
     prizes(73, 73, G + 4)
@@ -367,14 +379,16 @@ if serving then
     -- ------------------------------------------------------------ level 1-2
     -- Underground: blue bricks underfoot and overhead, a dark wall behind.
     level, O = 2, 200
-    entry(BLUE)                                   -- the wall behind the start
-    lev(-4, 112, G + 7, G + 8, BLUE)              -- the roof, as far as the way out
-    lev(-4, 118, G - 3, G + 8, CAVE, 2, 2)
+    lev(-3, 112, G + 7, G + 8, BLUE)              -- the roof, as far as the way out
+    lev(-3, 118, G - 3, G + 8, CAVE, 2, 2)
+    entry(BLUE)
     for k = 2, 110, 6 do lev(k, k, G + 7, G + 7, LAMP) end   -- lamps in the roof
     ground(-2, 20, BLUE)
+    lev(7, 7, G + 3, G + 3, BRICKS, 0, 0)
     prizes(8, 8, G + 3)
     power(9, G + 3)
     prizes(10, 11, G + 3)
+    lev(12, 13, G + 3, G + 3, BRICKS, 0, 0)
     coins(8, 11, G + 1)
     foe(SPROUT, 12, 18)
 
@@ -400,9 +414,9 @@ if serving then
     lev(80, 80, G, G, BLUE)                       -- a step, and a pit of four off it
 
     ground(85, 143, BLUE)
-    lev(88, 89, G + 1, G + 1, BRICK)              -- three ledges climbing
-    lev(91, 92, G + 2, G + 2, BRICK)
-    lev(94, 96, G + 3, G + 3, BRICK)
+    lev(88, 89, G + 1, G + 1, BRICKS)             -- three ledges climbing
+    lev(91, 92, G + 2, G + 2, BRICKS)
+    lev(94, 96, G + 3, G + 3, BRICKS)
     coins(88, 89, G + 2)
     coins(91, 92, G + 3)
     coins(94, 96, G + 4)
@@ -434,14 +448,16 @@ if serving then
         lev(s, s, y, y, CASTLE, 0, 0)
         table.insert(BARS, { level, X(s) + 0.5, y + 0.5, n, speed })
     end
+    lev(-3, 109, G + 7, G + 8, CASTLE)            -- the roof
+    lev(-3, 110, G - 3, G + 8, CDARK, 2, 2)
     entry(CASTLE)
-    lev(-4, 109, G + 7, G + 8, CASTLE)            -- the roof
-    lev(-4, 110, G - 3, G + 8, CDARK, 2, 2)
     for k = 2, 106, 8 do lev(k, k, G + 5, G + 5, LAMP, 2, 2) end
     ground(-2, 14, CASTLE)
+    lev(4, 4, G + 3, G + 3, BRICKS, 0, 0)
     prizes(5, 5, G + 3)
     power(6, G + 3)
     prizes(7, 7, G + 3)
+    lev(8, 8, G + 3, G + 3, BRICKS, 0, 0)
     coins(9, 12, G + 1)
     lava(15, 17)                                  -- a pit of three, an ember in it
     ember(16, 0)
@@ -546,14 +562,14 @@ if serving then
         hole_open = true
     end
 
-    -- A castle's way in: a portal a cell and a half into it, facing the body
-    -- that walks in, linked to one in the alcove behind the next level's
-    -- start, facing the way on. The last castle has none: it is the way out.
+    -- A castle's door: a portal in it facing the camera (-z), linked to one
+    -- in the door behind the next level's start, facing the camera too. The
+    -- last castle has none: its door is the way out.
     local castles_open = false
     local function open_castles()
         for n = 1, #LEVELS - 1 do
-            local a = core.portal_open(START_X + 0.5 - (LEVELS[n].goal + 4.9), G + 1, PLANE, 1, 1, 0, 0.5, 1.0)
-            local b = core.portal_open(START_X + 0.5 - (LEVELS[n + 1].start - 2.9), G + 1, PLANE, 1, -1, 0, 0.5, 1.0)
+            local a = core.portal_open(START_X + 0.5 - (LEVELS[n].goal + 6), G + 1, 2.4, 0, -1, 0, 0.5, 1.0)
+            local b = core.portal_open(START_X + 0.5 - LEVELS[n + 1].start, G + 1, 2.4, 0, -1, 0, 0.5, 1.0)
             if a < 0 or b < 0 then return end
             core.portal_link(a, b)
             core.log(`platformer: the castle of {LEVELS[n].name} {a} -> {b}`)
@@ -607,6 +623,7 @@ if serving then
     local runs: { [number]: Run } = {}        -- who is in a level
     local taken: { [number]: boolean } = {}   -- the coins taken, by index
     local bumped: { [string]: { number } } = {}   -- the prize blocks spent: "x,y" -> { x, y, level }
+    local broken: { { number } } = {}             -- the bricks broken: { x, y, z, level }
     local foes: { [number]: number } = {}     -- the creatures alive: id -> level
     local items: { [number]: number } = {}    -- power-ups out: id -> level
     local fires: { [number]: number } = {}    -- fireballs: id -> who threw it
@@ -691,6 +708,32 @@ if serving then
         return false
     end
 
+    -- A brick broken: the whole of it across the way (a ledge is three deep),
+    -- in pieces everybody in the level sees fly.
+    local function smash(x: number, y: number, n: number)
+        for z = -1, 1 do
+            if core.get_block(x, y, z) == BRICKS then
+                core.set_block(x, y, z, AIR)
+                table.insert(broken, { x, y, z, n })
+            end
+        end
+        core.play_sound("platformer:break", x + 0.5, y + 0.5, PLANE)
+        for q, other in runs do
+            if other.level == n then tell(q, `chips {x} {y}`) end
+        end
+    end
+    -- The bricks a body's box is in: a body that grows into them breaks them.
+    local function smash_inside(p: number, r: Run)
+        local x, y = core.player_pos(p)
+        if x == nil then return end
+        local tall, half = 1.8 * r.scale, 0.3 * r.scale
+        for bx = math.floor(x - half), math.floor(x + half) do
+            for by = math.floor(y + 0.05), math.floor(y + tall - 0.05) do
+                if core.get_block(bx, by, 0) == BRICKS then smash(bx, by, r.level) end
+            end
+        end
+    end
+
     -- A level as new: every coin back, every prize block whole, every
     -- creature on its beat, no power-up out.
     local function reset_level(n: number)
@@ -705,6 +748,13 @@ if serving then
             if b[3] == n then
                 core.set_block(b[1], b[2], 0, PRIZE)
                 bumped[key] = nil
+            end
+        end
+        for i = #broken, 1, -1 do
+            local b = broken[i]
+            if b[4] == n then
+                core.set_block(b[1], b[2], b[3], BRICKS)
+                table.remove(broken, i)
             end
         end
         for id, of in foes do
@@ -957,7 +1007,8 @@ if serving then
             if rise > 0 then
                 rise = math.max(0, rise - dt)
                 core.ecs.set(id, "rise", rise)
-                core.ecs.set(id, "y", core.ecs.get(id, "top") - rise / 0.6)
+                -- Past 0.6 it waits inside its block for those before it to be out.
+                core.ecs.set(id, "y", core.ecs.get(id, "top") - math.min(rise, 0.6) / 0.6)
                 continue
             end
             if core.ecs.get(id, "kind") ~= MUSHROOM then continue end
@@ -1196,39 +1247,35 @@ if serving then
             while r.scaling[1] and clock >= r.scaling[1][1] do
                 set_scale(p, r, r.scaling[1][2])
                 table.remove(r.scaling, 1)
+                if r.scale >= 1 then smash_inside(p, r) end
             end
             local tall = 1.8 * r.scale   -- the body's height, feet to the top of the head
             local s = START_X + 0.5 - x
             if r.won then
-                -- Down the pole, held to it as a body in a pipe is; then the
-                -- player's machine walks it into the castle, through the
-                -- portal there and out behind the next level's start. Put
-                -- there instead if that has not happened by r.won, or with
-                -- the portal not open (past where it would be).
+                -- Hung on the pole, held to it as a body in a pipe is, and
+                -- sliding down it onto its base; then the player's machine
+                -- walks it off the base behind it, along the back of the
+                -- walkway and into the castle's door -- through the portal
+                -- there, out of the door behind the next level's start. Put
+                -- there instead if that has not happened by r.won, or once
+                -- it is in a door with no portal (the last one, the way out).
                 local nxt = LEVELS[r.level + 1]
+                local hold, door = START_X + 0.5 - (lv.goal - 0.3), START_X + 0.5 - (lv.goal + 6)
                 if r.slide then
-                    if y > G + 0.1 and clock < r.slide then
-                        core.player_launch(p, (START_X + 0.5 - lv.goal - x) * 6, 0, (PLANE - z) * 6, 0.5)
+                    if y > G + 1.05 and clock < r.slide then
+                        core.player_launch(p, (hold - x) * 6, 0, (PLANE - z) * 6, 0.5)
                     else
                         r.slide = nil
-                        tell(p, "walk")
+                        tell(p, string.format("walk %.2f 1.5 %.2f 1.5 %.2f 3.2", hold, door, door))
                     end
                 elseif nxt and math.abs(s - nxt.start) < 5 then
                     start(p, r.level + 1, r, false)
-                elseif nxt == nil and s >= lv.goal + 4.4 then
-                    leave(p, "")
-                elseif clock >= r.won or (nxt and s >= lv.goal + 5.2 and s < lv.goal + 8) then
+                elseif clock >= r.won or (z > 2.5 and math.abs(x - door) < 1.5) then
                     if nxt then start(p, r.level + 1, r, true) else leave(p, "") end
                 end
                 continue
             end
             r.t += dt
-            -- Back through the alcove a level starts at: put at the start again.
-            if s < lv.start - 6 then
-                local fx, fy, fz = flag_at(r.level, 1)
-                core.player_place(p, fx, fy, fz, -1, 0, 0)
-                continue
-            end
 
             -- Through a pipe: held to its middle and moved along it, the
             -- camera after the body, and the pipe whole again behind it.
@@ -1290,24 +1337,37 @@ if serving then
             local by = math.floor(head + 0.25)
             if was > 0.5 and by - head < 0.25 then
                 for _, bx in { math.floor(x - 0.29 * r.scale), math.floor(x + 0.29 * r.scale) } do
+                    if core.get_block(bx, by, 0) == BRICKS then
+                        if r.power >= 1 then smash(bx, by, r.level) else
+                            core.play_sound("platformer:bump", bx + 0.5, by, PLANE)
+                        end
+                        break
+                    end
                     if core.get_block(bx, by, 0) == PRIZE then
                         local key = `{bx},{by}`
                         core.set_block(bx, by, 0, SPENT)
                         bumped[key] = { bx, by, r.level }
                         core.play_sound("platformer:bump", bx + 0.5, by, PLANE)
                         if POWERS[key] then
-                            -- A mushroom to a small body, a flower to a big one.
-                            local kind = if r.power == 0 then MUSHROOM else FLOWER
-                            local id = core.ecs.spawn(ITEM, bx + 0.5, by, PLANE)
-                            if id ~= nil then
-                                core.ecs.set(id, "kind", kind)
-                                core.ecs.set(id, "vx", -2.5)
-                                core.ecs.set(id, "vy", 0)
-                                core.ecs.set(id, "rise", 0.6)
-                                core.ecs.set(id, "top", by + 1)
-                                core.ecs.visible(id, true)
-                                core.ecs.model(id, ITEM_MODEL[kind])
-                                items[id] = r.level
+                            -- One for everybody in the level, out one after
+                            -- another, whoever bumped it first: a mushroom for
+                            -- each who is small, a flower for each who is big.
+                            local k = 0
+                            for _, other in runs do
+                                if other.level ~= r.level then continue end
+                                local kind = if other.power == 0 then MUSHROOM else FLOWER
+                                local id = core.ecs.spawn(ITEM, bx + 0.5, by, PLANE)
+                                if id ~= nil then
+                                    core.ecs.set(id, "kind", kind)
+                                    core.ecs.set(id, "vx", -2.5)
+                                    core.ecs.set(id, "vy", 0)
+                                    core.ecs.set(id, "rise", 0.6 + 0.7 * k)
+                                    core.ecs.set(id, "top", by + 1)
+                                    core.ecs.visible(id, true)
+                                    core.ecs.model(id, ITEM_MODEL[kind])
+                                    items[id] = r.level
+                                    k += 1
+                                end
                             end
                             core.play_sound("platformer:power_up", bx + 0.5, by + 1, PLANE)
                         else
@@ -1325,8 +1385,10 @@ if serving then
             for id, of in items do
                 if of ~= r.level or core.ecs.get(id, "rise") > 0 then continue end
                 local ix, iy = core.ecs.get(id, "x"), core.ecs.get(id, "y")
+                -- One that would change nothing is left for somebody else.
+                local kind = core.ecs.get(id, "kind")
+                if r.power >= (if kind == FLOWER then 2 else 1) then continue end
                 if ix and math.abs(x - ix) < 0.4 + 0.3 * r.scale and iy > y - 0.8 and iy < y + tall then
-                    local kind = core.ecs.get(id, "kind")
                     core.ecs.kill(id)
                     items[id] = nil
                     core.play_sound("platformer:grow", x, y + 1, PLANE)
@@ -1342,8 +1404,8 @@ if serving then
                 core.notice(p, "Half-way flag: you start again from here.")
             end
 
-            if s >= lv.goal - 0.3 then
-                r.won, r.slide = clock + 12, clock + 1.5
+            if s >= lv.goal - 0.85 then   -- the base stops a body on the ground 0.8 short of the pole
+                r.won, r.slide = clock + 15, clock + 4
                 core.play_sound("platformer:win", x, y + 1, z)
                 core.storage_set(`cleared:{core.player_name(p)}`, tostring(math.max(cleared(p), r.level)))
                 tell(p, `win {math.floor(r.t * 10)} {r.coins} {lv.name}`)
@@ -1387,22 +1449,28 @@ if serving then
                     end
                 end
             end
-            -- The furnace: landed on with its fire out it is struck, and the
-            -- body thrown clear; touched any other way, a hit.
+            -- The furnace: landed on with its fire out it is struck; touched
+            -- any other way, a hit. Either way the body bounces off it, up
+            -- and away from its middle -- also while nothing can hurt it, so
+            -- it is never let stand inside the stove.
             local b = boss
-            if b and r.level == 3 and runs[p] == r and clock >= r.safe then
+            if b and r.level == 3 and runs[p] == r then
                 local bx, by = core.ecs.get(b.id, "x"), core.ecs.get(b.id, "y")
                 if bx and math.abs(x - bx) < 1.0 + 0.3 * r.scale and y < by + 2.7 and y + tall > by then
-                    if b.state == "cold" and vy < -1 and y > by + 1.7 then
-                        core.player_launch(p, if x < bx then -6 else 6, 10, 0, 0.6)
+                    local away = if x < bx then -1 else 1
+                    local stomp = b.state == "cold" and vy < -1 and y > by + 1.7
+                    if clock >= r.safe and stomp then
                         r.safe = clock + 0.6
                         b.state, b.t, b.next, b.shots = "hot", 0, 0.6, 0
                         b.pace += 0.5
                         core.ecs.model(b.id, FURNACE.hot)
                         strike(4)
-                    else
+                    elseif clock >= r.safe then
+                        local lives = r.lives
                         hurt(p, r)
+                        if r.lives < lives or runs[p] ~= r then continue end   -- a life lost: put back at the flag
                     end
+                    core.player_launch(p, away * (if stomp then 6 else 8), if stomp then 10 else 7, 0, 0.6)
                 end
             end
         end
@@ -1429,8 +1497,11 @@ if drawing then
     local banner, banner_left = "", 0.0
     local pops: { { number } } = {}      -- a coin out of a prize block: { x, y, age }
     local puffs: { { number } } = {}     -- a creature landed on: { x, y, age }
+    local chips: { { number } } = {}     -- a brick broken: { x, y, age }
     local last_y, last_vy = 0.0, 0.0
     local boss_hp, boss_max = 0, 0       -- the furnace's heat, once it is awake
+    local path: { number }? = nil        -- the walk to the castle's door: x, z of each turn
+    local turn_x, turn_z = 0.0, 0.0      -- which way the turn it is going to was, when it set off
 
     local function camera()
         -- 16 off and narrow, so the picture is flat; looking +z, which puts
@@ -1447,11 +1518,11 @@ if drawing then
             -- From the room the camera swings out; from the level before it is there.
             if not inside then swing = 0 end
             inside, world, time, banner_left = true, w[2] or world, 0, 0
-            boss_hp, boss_max = 0, 0
+            boss_hp, boss_max, path = 0, 0, nil
             core.walk(0, 0)
         elseif w[1] == "out" then
             inside, swing = false, nil
-            boss_hp, boss_max = 0, 0
+            boss_hp, boss_max, path = 0, 0, nil
             core.walk(0, 0)
             core.side_view(0, 180, 0, 0.8)
             core.engine_hud(true)
@@ -1463,11 +1534,14 @@ if drawing then
             table.insert(sparks, { tonumber(w[2]) or 0, tonumber(w[3]) or 0, 0 })
         elseif w[1] == "pop" then
             table.insert(pops, { (tonumber(w[2]) or 0) + 0.5, tonumber(w[3]) or 0, 0 })
+        elseif w[1] == "chips" then
+            table.insert(chips, { (tonumber(w[2]) or 0) + 0.5, (tonumber(w[3]) or 0) + 0.5, 0 })
         elseif w[1] == "puff" then
             table.insert(puffs, { tonumber(w[2]) or 0, tonumber(w[3]) or 0, 0 })
         elseif w[1] == "walk" then
-            -- Past the pole: the way on, by itself, into the castle.
-            core.walk(-1, 0, 1)
+            -- Off the pole: by itself to each turn of the way to the door.
+            path, turn_x, turn_z = {}, 0, 0
+            for i = 2, #w do table.insert(path, tonumber(w[i]) or 0) end
         elseif w[1] == "boss" then
             boss_hp, boss_max = tonumber(w[2]) or 0, tonumber(w[3]) or 0
         elseif w[1] == "win" then
@@ -1493,6 +1567,10 @@ if drawing then
             sparks[i][3] += ev.dt
             if sparks[i][3] > 0.3 then table.remove(sparks, i) end
         end
+        for i = #chips, 1, -1 do
+            chips[i][3] += ev.dt
+            if chips[i][3] > 0.8 then table.remove(chips, i) end
+        end
         for i = #puffs, 1, -1 do
             puffs[i][3] += ev.dt
             if puffs[i][3] > 0.4 then table.remove(puffs, i) end
@@ -1504,6 +1582,25 @@ if drawing then
             local vy = (py - last_y) / ev.dt
             if inside and vy > 6 and vy < 20 and last_vy < 2 then core.play_sound("platformer:jump", px, py + 1, pz) end
             last_y, last_vy = py, vy
+        end
+        if path and px ~= nil then
+            -- Through the door the body is far from where it was going: the
+            -- walk is over (the server says so a moment later).
+            -- A turn is taken when the body is at it or has gone past it
+            -- (a slow machine steps far in a frame), and neared slowly.
+            local dx, dz = (path[1] or px) - px, (path[2] or pz) - pz
+            local far = math.sqrt(dx * dx + dz * dz)
+            if #path < 2 or math.abs(dx) > 30 then
+                path = nil
+                core.walk(0, 0)
+            elseif #path > 2 and (far < 0.2 or dx * turn_x + dz * turn_z < 0) then
+                table.remove(path, 1)
+                table.remove(path, 1)
+                turn_x, turn_z = 0, 0
+            else
+                if turn_x == 0 and turn_z == 0 then turn_x, turn_z = dx, dz end
+                core.walk(dx, dz, math.min(1, 0.3 + far))
+            end
         end
         if swing ~= nil then
             -- The camera's plane is where the body stands when it is asked
@@ -1548,6 +1645,15 @@ if drawing then
         end
         for _, c in sparks do
             core.render.fx("sparks", c[1], c[2], PLANE - 0.6, 0.5, 255, 150, 40, 255, c[3] / 0.3)
+        end
+        -- A broken brick's four pieces: thrown up and out, tumbling down.
+        for _, c in chips do
+            local t = c[3]
+            for k, d in { { -1, 1.2 }, { 1, 1.2 }, { -1, 0.4 }, { 1, 0.4 } } do
+                local px = c[1] + d[1] * (0.25 + 2.2 * t)
+                local py = c[2] + d[2] * 0.3 + (6 + 3 * d[2]) * t - 15 * t * t
+                core.render.box(px, py, PLANE - 0.5 - 0.01 * k, 0.32, 0.32, 0.32, 170, 80, 38, 255)
+            end
         end
         for _, c in puffs do
             core.render.fx("smoke", c[1], c[2], PLANE - 0.6, 0.9, 235, 235, 235, 220, c[3] / 0.4)

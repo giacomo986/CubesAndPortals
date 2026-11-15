@@ -58,16 +58,22 @@ passata (l'inizio, o quella blu a metà); finite le vite si torna nella stanza.
 | ronzone (buzzer) | un insetto viola che vola su e giù mentre avanza | muore, e rimbalzi |
 | riccio (spikeshell) | una palla di spine rosse, che striscia | un colpo: va saltato, o bruciato |
 
-Un blocco premio colpito da sotto con la testa dà una moneta, o il suo power-up, una volta sola;
+I mattoni sospesi (le file accanto ai blocchi premio, i ripiani -- non i muri e i castelli) si
+rompono: colpiti da sotto da un corpo grande, o quando un fungo fa crescere sotto di loro un corpo
+piccolo, volano via in quattro pezzi; un corpo piccolo li fa solo sobbalzare. Un blocco premio colpito da sotto con la testa dà una moneta, o il suo power-up, una volta sola -- un
+power-up per ogni giocatore nel livello, uno dopo l'altro, fungo o fiore secondo quello che
+spetterebbe a ciascuno; quello che non ti cambierebbe nulla non lo prendi, e va avanti verso un altro;
 sono profondi un solo cubo, nel piano del livello. Le monete si contano. **La stanza bonus**:
 nell'1-1 il tubo alto tre con un gradino davanti porta giù -- sali in cima e premi S. Si affonda
 nella bocca e si cade giù per il tubo, che continua nel terreno (con il davanti tagliato, così la
 telecamera ti segue giù) e pende dal soffitto di una stanza di mattoni blu con tre file di monete.
 Entrando nel tubo sdraiato in fondo alla stanza si risale per l'altra metà, di nuovo nel terreno,
-e si esce dal tubo successivo del livello. Il palo alla fine di un livello ferma il tempo e dice tempo e monete: il corpo scivola giù dal palo
-e cammina da solo (`core.walk`) dentro il castello, dove un portale fa uscire da una nicchia dietro
-la partenza del livello successivo, con le vite, le monete e la taglia che hai; l'ultimo castello
-riporta nella stanza. Un livello torna nuovo ogni volta che dentro non c'è nessuno.
+e si esce dal tubo successivo del livello. Il palo alla fine di un livello ferma il tempo e dice tempo e monete: il corpo si appende al palo,
+scivola giù fino alla base, scende dietro la base e cammina da solo (`core.walk`) nella profondità
+dell'immagine, fino alla porta del castello che sta dietro la passerella. La porta è un portale
+rivolto alla telecamera: fa uscire da una porta nel muro dietro la partenza del livello successivo,
+da dove il corpo viene avanti fino al piano del livello, con le vite, le monete e la taglia che hai;
+la porta dell'ultimo castello riporta nella stanza. Un livello torna nuovo ogni volta che dentro non c'è nessuno.
 
 L'1-2 è sotterraneo: mattoni blu sotto i piedi e sopra la testa con le lampade nel soffitto, un
 muro scuro dietro, fosse con dei ripiani dentro, un tratto basso, tre ripiani a salire, e fuori
@@ -85,7 +91,7 @@ un colpo, come quello di una creatura, che nessuna palla di fuoco spegne:
 In fondo al castello, dopo la bandiera di metà e un blocco power-up, c'è la sala della **fornace**:
 una stufa di ferro alta tre nodi. Si sveglia quando entra qualcuno, cammina verso il corpo più
 vicino e sputa tre carboni; poi il fuoco le si spegne per due secondi e mezzo (diventa grigio-blu)
-e sta ferma. Toccarla è un colpo, tranne saltarle in testa mentre è spenta: le toglie 4 dei suoi 16
+e sta ferma. Toccarla è un colpo e ti fa rimbalzare via, tranne saltarle in testa mentre è spenta: le toglie 4 dei suoi 16
 di calore, ti lancia via e la riaccende, un po' più svelta. Una palla di fuoco le toglie 1, sempre.
 Spenta, se ne va in fumo e il cancello dietro si apre sull'ultimo palo.
 

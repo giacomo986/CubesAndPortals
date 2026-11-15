@@ -245,6 +245,35 @@ scrolls with slack and smoothly):
   They walk a beat and neither fall into pits nor turn at walls. Landing on
   one stops the body's run (core.player_launch sets all of its speed).
 - A pipe's model takes the bodies' light, not its cell's, and is darker than
+- 2026-11-15, later: the pole stands on a base again; the body hangs on it, slides
+  down onto the base (1.3 nodes a second), steps off behind it and walks into the
+  picture's depth to the castle, which now stands behind the walkway (z 2..4) with
+  its door -- the portal -- facing the camera; the way out is a door in the wall
+  behind the next level's start. core.walk under side_view now walks any way,
+  off the plane too. Seen in Xephyr: 1-1's pole to 1-2. Not seen: the last
+  castle's door back to the room (the run was cut short two nodes from it).
+- 2026-11-15: the room's door lost its way home for good after a trip far into
+  the levels (seen by Giacomo, then made again with the old server): its mouth
+  is given back when every player is 160 away, the virtual portals (the hole,
+  the castles) took openings 0 and 1 meanwhile, and schedule_mouths read those
+  as the world's own pair, leaving no room for a mouth. A virtual portal's
+  opening no longer counts as the pair (src/server/main.cpp); seen in rooms-file
+  mode: given back in 1-3, given again on return.
+- 2026-11-15: a power-up block gives one power-up per player in the level, out
+  one after another (0.7 s apart), each as its player would be given; a body
+  takes none that would change nothing for it. Seen with two clients: two
+  mushrooms, the first player took one, the second the other.
+- 2026-11-15: breakable bricks (platformer:bricks, the floating rows and ledges;
+  walls and castles are platformer:brick and stay): a big body's head breaks
+  one, so does a body grown into it by a mushroom; a small body bumps it. Back
+  when the level is new. Checked by server test lines: small bump keeps it,
+  growing under the 1-1 ledge broke the two over the head, a big bump broke
+  one, a new start put them back. The four flying pieces were not seen (the
+  screenshots missed the moment).
+- 2026-11-15: every touch of the furnace throws the body off it (8 along, 7 up;
+  a landing on it 6 and 10), also while nothing can hurt the body, so it never
+  stands inside the stove; not after a hit that cost a life. Seen from the
+  server: a big body walked into it lost the size and landed 7 nodes off.
   the lit blocks beside it; from the room's glass the bonus room under 1-1 is
   in plain sight.
 - Whoever joins the room directly faces the doorway, not the glass.
