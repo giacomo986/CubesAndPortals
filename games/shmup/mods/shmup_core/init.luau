@@ -40,7 +40,8 @@ for _, extra in {"cap", "tophat", "headphones", "scarf", "bowtie", "medal",
     core.register_model("shmup_core:robot_" .. extra, "robot_" .. extra .. ".gltf")
 end
 core.register_model("shmup_core:robot_arms", "robot_arms.gltf")
-for _, m in { "fighter", "wingman", "foe_dart", "foe_weaver", "foe_ace", "bomber", "mega", "turret", "tank" } do
+for _, m in { "fighter", "wingman", "foe_dart", "foe_weaver", "foe_ace", "bomber", "mega", "turret", "tank",
+                 "foe_diver", "foe_sweeper", "foe_plated", "foe_gunship", "carrier" } do
     core.register_model(`shmup_core:{m}`, `{m}.gltf`)
 end
 core.eye_height(1.5)

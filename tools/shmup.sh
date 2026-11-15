@@ -91,9 +91,9 @@ cat <<INFO
 
   Cammina nella prima apertura del sandbox: si arriva a piedi in un hangar.
   F accanto a un caccia lo fa decollare; W A S D lo muovono sullo schermo,
-  spazio (tenuto) spara, F riporta all'hangar. Tre vite, dieci ondate, i
-  power-up lasciati dagli aerei abbattuti, un bombardiere alla quinta e la
-  fortezza volante alla decima. La porta in fondo all'hangar riporta nel
+  spazio (tenuto) spara, F riporta all'hangar. Tre vite, due livelli di
+  dieci ondate, pochi power-up, la fortezza volante alla decima e la
+  portaerei alla ventesima. La porta in fondo all'hangar riporta nel
   sandbox.
   Log: $HERE/server.log
 

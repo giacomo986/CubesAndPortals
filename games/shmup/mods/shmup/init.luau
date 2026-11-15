@@ -1,7 +1,7 @@
 --!strict
 -- shmup: a shooter seen from overhead, in the manner of the arcade cabinets
--- of the eighties: one screen, the sea going by under it, ten waves of
--- planes, three lives, a score and a high score.
+-- of the eighties: one screen, the sea going by under it, two levels of ten
+-- waves of planes, three lives, a score and a high score.
 --
 -- Whoever arrives is on foot in a hangar (shmup_core). F beside one of the
 -- four fighters parked there boards it: it rolls out, takes off and climbs
@@ -14,6 +14,15 @@
 --   is a bomber that takes forty; wave 10, the last, is a flying fortress:
 --   six turrets and a shield that has to be shot down before anything under
 --   it can be hit, and comes back ten seconds later
+--   divers come down a little and then go for the nearest fighter; sweepers
+--   cross the screen from side to side dropping shots; gunships stop and
+--   throw four shots round and round; plated planes come five in a file
+--   along a path (below, PATHS), and the whole file shot down leaves a
+--   power-up
+--   the fortress down, a second level: waves 11 to 20, more of everything,
+--   and at the end an aircraft carrier on the sea that goes on launching
+--   planes -- down its deck, up and out by the top of the screen, and back in
+--   as any other plane -- while its four turrets and its island fire
 --   the planes keep to the middle 48 of the screen's 80: a fighter can reach
 --   every one of them
 --   a shot or a plane that touches the fighter costs a life, and two and a
@@ -88,9 +97,19 @@ if serving then
         mega   = { hp = 350, points = 20000, hw = 18.0, hl = 8.0, model = model("mega") },
         turret = { hp = 22,  points = 500,   hw = 1.8,  hl = 1.8, model = model("turret") },
         tank   = { hp = 6,   points = 300,   hw = 2.6,  hl = 3.4, model = model("tank") },
+        diver   = { hp = 2,   points = 200,   hw = 4.0, hl = 3.2,  model = model("foe_diver") },
+        sweeper = { hp = 3,   points = 250,   hw = 4.0, hl = 3.2,  model = model("foe_sweeper") },
+        plated  = { hp = 6,   points = 300,   hw = 4.0, hl = 3.2,  model = model("foe_plated") },
+        gunship = { hp = 14,  points = 800,   hw = 8.0, hl = 5.0,  model = model("foe_gunship") },
+        carrier = { hp = 500, points = 30000, hw = 6.5, hl = 23.0, model = model("carrier") },
     }
+    local HULLS  = { mega = true, carrier = true }      -- what turrets stand on: hit after them
+    local GROUND = { tank = true, carrier = true }      -- on the sea: flying over it costs nothing
+    local TURNS  = { diver = true, sweeper = true, plated = true }   -- their noses follow where they go
     -- What a player's machine draws falling into the sea when one is shot down.
-    local FALLS = { dart = "foe_dart", weaver = "foe_weaver", ace = "foe_ace", bomber = "bomber", mega = "mega" }
+    local FALLS = { dart = "foe_dart", weaver = "foe_weaver", ace = "foe_ace", bomber = "bomber", mega = "mega",
+                    diver = "foe_diver", sweeper = "foe_sweeper", plated = "foe_plated", gunship = "foe_gunship",
+                    carrier = "carrier" }
     local ISLET_Y = 21.95     -- the top of an islet's green: where a tank stands
     local SCROLL = 12         -- what the sea goes by at, and a tank with it
     -- The fortress's turrets: across, along (its nose is down the screen),
@@ -99,10 +118,29 @@ if serving then
     local TURRETS = { { -15, -1.5, 3.0, false }, { -8, -1.5, 3.0, false }, { 8, -1.5, 3.0, false },
                       { 15, -1.5, 3.0, false }, { 0, -7, 4.4, true }, { 0, 6, 4.4, true } }
     local SHIELD, SHIELD_DOWN = 70, 10
-    local LAST_WAVE = 10
+    local LAST_WAVE = 20      -- the carrier; the fortress is wave 10, the first level's last
+    -- The carrier: its bow is up the screen. Its deck's height, its turrets
+    -- (across, along: tools/make_shmup_models.py has a sponson for each),
+    -- and what it launches.
+    local DECK_Y = 24
+    local CARRIER_GUNS = { { 6.5, 10 }, { -6.5, 10 }, { 6.5, -12 }, { -6.5, -14 } }
+    local LAUNCHED = { "dart", "dart", "weaver", "weaver", "diver", "sweeper", "ace" }
+    -- What a file of plated planes flies, each half a second behind the one
+    -- before: t seconds in and which side it came from (1 or -1) -> x, z,
+    -- and whether it is over. One that is not ends under the screen.
+    local PW = FOE_W - 2
+    local PATHS: { (number, number) -> (number, number, boolean) } = {
+        function(t, s) return CX + s * PW * math.cos(0.9 * t), TOP - 10 * t, false end,                    -- swinging down
+        function(t, s)                                                                                      -- down one side, up the other
+            local a = math.pi * t / 7
+            return CX + s * PW * math.cos(a), TOP - 54 * math.sin(a), t >= 7
+        end,
+        function(t, s) return CX + s * (10 + 9 * math.cos(1.8 * t)), TOP - 11 * t + 9 * math.sin(1.8 * t), false end,   -- loops
+        function(t, s) return CX + s * PW * (1 - t / 2.75), TOP - 80 * t / 5.5, false end,                -- corner to corner
+    }
     -- For trying things: a game starts after this wave (9 is the fortress at
-    -- once, and thirty lives), and every plane leaves a power-up. 0 and false
-    -- for release.
+    -- once, 19 the carrier, and thirty lives), and every plane leaves a
+    -- power-up. 0 and false for release.
     local TEST_WAVE, TEST_DROPS = 0, false
 
     -- What a plane shot down may leave, and how often against the others.
@@ -114,7 +152,12 @@ if serving then
     local DROPS = { { "sp", 2 }, { "st", 2 }, { "fp", 3 }, { "ft", 2 }, { "hm", 2 }, { "dg", 2 }, { "lz", 2 }, { "wm", 1 } }
 
     type Foe = { kind: string, x: number, z: number, x0: number, t: number, hp: number, max: number, gun: number,
-                 ox: number, oz: number, spread: boolean }
+                 ox: number, oz: number, spread: boolean,
+                 vx: number, vz: number,          -- a diver's and a sweeper's way; a plane on the deck's speed
+                 path: number, side: number, file: number,    -- a plated plane's
+                 low: boolean,                    -- on the carrier: a turret, or a plane not yet up
+                 launch: number }                 -- the carrier's next
+    type Boss = { kind: string, x: number, z: number, shield: number, max: number, up_at: number }
     type Shot = { x: number, z: number, vx: number, vz: number, owner: number }
     type Wing = { id: number, x: number, z: number }
     type Flier = { lives: number, score: number, fire: boolean, gun: number, safe: number, out: boolean,
@@ -129,7 +172,9 @@ if serving then
     local shots: { [number]: Shot } = {}
     local missiles: { [number]: { x: number, z: number, vx: number, vz: number, owner: number, born: number } } = {}
     local pickups: { [number]: { x: number, z: number, kind: string } } = {}
-    local boss: { x: number, z: number, shield: number, max: number, up_at: number }? = nil
+    local boss: Boss? = nil
+    local files: { [number]: number } = {}    -- a file of plated planes -> how many of it are still to shoot down
+    local next_file = 0
     -- How many fly, 1 at least, and what a game is made harder by for each
     -- pilot past the first: planes take 60% more (a dart goes on taking one),
     -- half as many more come in the same time, and they fire a quarter faster.
@@ -191,6 +236,7 @@ if serving then
         for id in pickups do tell(0, `k {id}`) end
         table.clear(pickups)
         table.clear(queue)
+        table.clear(files)
         boss = nil
     end
 
@@ -204,7 +250,8 @@ if serving then
         core.ecs.visible(id, true)
         core.ecs.model(id, k.model)
         foes[id] = { kind = kind, x = x, z = z, x0 = x, t = 0, hp = hp, max = hp, gun = 1 + math.random(),
-                     ox = 0, oz = 0, spread = false }
+                     ox = 0, oz = 0, spread = false, vx = 0, vz = 0, path = 0, side = 1, file = 0,
+                     low = false, launch = 0 }
         return id
     end
 
@@ -212,13 +259,39 @@ if serving then
         local z = TOP + 14
         if spawn("mega", CX, z, FLY) == nil then return end
         local shield = math.ceil(SHIELD * more(0.6))
-        boss = { x = CX, z = z, shield = shield, max = shield, up_at = 0 }
+        boss = { kind = "mega", x = CX, z = z, shield = shield, max = shield, up_at = 0 }
         for i, t in TURRETS do
             local id = spawn("turret", CX + t[1], z + t[2], FLY + t[3])
             if id then
                 local foe = foes[id]
                 foe.ox, foe.oz, foe.spread, foe.gun = t[1], t[2], t[4], 2 + i * 0.4
             end
+        end
+    end
+
+    local function spawn_carrier()
+        local z = TOP + 26
+        local id = spawn("carrier", CX, z, 21)
+        if id == nil then return end
+        core.ecs.set(id, "yaw", math.pi)     -- bow up the screen
+        foes[id].launch, foes[id].gun = 4, 5
+        boss = { kind = "carrier", x = CX, z = z, shield = 0, max = 0, up_at = 0 }
+        for i, t in CARRIER_GUNS do
+            local tid = spawn("turret", CX + t[1], z + t[2], DECK_Y)
+            if tid then
+                local foe = foes[tid]
+                foe.ox, foe.oz, foe.low, foe.gun = t[1], t[2], true, 3 + i * 0.5
+            end
+        end
+    end
+
+    -- A file of n plated planes from `at` seconds into the wave.
+    local function file(at: number, n: number)
+        next_file += 1
+        files[next_file] = n
+        local path, s = math.random(#PATHS), if math.random() < 0.5 then -1 else 1
+        for i = 1, n do
+            table.insert(queue, { at + i * 0.5, "plated", CX, path, s, next_file })
         end
     end
 
@@ -235,23 +308,44 @@ if serving then
         wave += 1
         wave_at = clock
         table.clear(queue)
+        -- The wave in its level, 1 to 10, and the level.
+        local lw, level = (wave - 1) % 10 + 1, (wave - 1) // 10 + 1
+        local hard = level > 1
+        local function across(margin: number): number
+            return CX + (math.random() * 2 - 1) * (FOE_W - margin)
+        end
         if wave == LAST_WAVE then
+            spawn_carrier()
+        elseif lw == 10 then
             spawn_boss()
-        elseif wave % 5 == 0 then
+        elseif lw == 5 then
             table.insert(queue, { 1.5, "bomber", CX })
+            if hard then
+                file(4, 6)
+                file(12, 6)
+            end
         else
-            local n = math.floor((4 + 2 * wave) * more(0.5))
-            local gap = math.max(0.35, 1.0 - 0.06 * wave) / more(0.5)
+            local n = math.floor((4 + 2 * lw + (if hard then 4 else 0)) * more(0.5))
+            local gap = math.max(0.35, 1.0 - 0.06 * lw) / more(0.5)
             for i = 1, n do
-                local kind = if i % 3 == 0 and wave >= 2 then "weaver" else "dart"
-                table.insert(queue, { 1.5 + i * gap, kind, CX + (math.random() * 2 - 1) * (FOE_W - 3) })
+                local kind = if i % 3 == 0 and (hard or lw >= 2) then "weaver"
+                    elseif i % 4 == 0 and (hard or lw >= 6) then "diver"
+                    elseif i % 7 == 0 and (hard or lw >= 4) then "sweeper"
+                    else "dart"
+                table.insert(queue, { 1.5 + i * gap, kind, across(3) })
             end
             -- Now and then an islet goes by with a tank on it.
-            if wave >= 2 and math.random() < 0.6 then
-                table.insert(queue, { 3 + math.random() * 6, "tank", CX + (math.random() * 2 - 1) * (FOE_W - 4) })
+            if (hard or lw >= 2) and math.random() < 0.6 then
+                table.insert(queue, { 3 + math.random() * 6, "tank", across(4) })
             end
-            for i = 1, math.ceil(wave // 2 * more(0.5)) do
-                table.insert(queue, { 3 + i * 4 / more(0.5), "ace", CX + (math.random() * 2 - 1) * (FOE_W - 12) })
+            for i = 1, math.ceil(lw // 2 * more(0.5)) do
+                table.insert(queue, { 3 + i * 4 / more(0.5), "ace", across(12) })
+            end
+            for i = 1, if hard then lw // 3 + 1 elseif lw >= 7 then 1 else 0 do
+                table.insert(queue, { 5 + i * 6, "gunship", across(12) })
+            end
+            for i = 1, (if hard then 2 elseif lw >= 3 then 1 else 0) + lw // 7 do
+                file(i * 5 - 2, 4 + crew)
             end
         end
         status(0)
@@ -371,7 +465,7 @@ if serving then
             f.score += k.points
             count(by, f)
         end
-        if foe.kind == "mega" then
+        if HULLS[foe.kind] then
             for tid, t in foes do
                 if t.kind == "turret" then
                     tell(0, string.format("boom %.1f %.1f 7", t.x, t.z))
@@ -380,15 +474,28 @@ if serving then
                 end
             end
             for _ = 1, 8 do
-                tell(0, string.format("boom %.1f %.1f %d", foe.x + (math.random() * 2 - 1) * 16,
-                    foe.z + (math.random() * 2 - 1) * 8, 10 + math.random(8)))
+                tell(0, string.format("boom %.1f %.1f %d", foe.x + (math.random() * 2 - 1) * k.hw,
+                    foe.z + (math.random() * 2 - 1) * k.hl, 10 + math.random(8)))
             end
-            ended("won")
+            boss = nil
+            if wave == LAST_WAVE then
+                ended("won")
+            else
+                wave_at = clock + 3     -- the fortress down: a breath, and the second level
+            end
         elseif foe.kind ~= "turret" then
+            -- Power-ups are few: a whole file of plated planes, a gunship,
+            -- every other tank, two from a bomber, and one plane in fifteen.
             kills += 1
+            local whole = false
+            if foe.file > 0 and files[foe.file] then
+                files[foe.file] -= 1
+                whole = files[foe.file] == 0
+            end
             if foe.kind == "bomber" then
-                for i = -1, 1 do drop(foe.x + i * 7, foe.z, f) end
-            elseif foe.kind == "ace" or foe.kind == "tank" or kills % 6 == 0 or TEST_DROPS then
+                for i = -1, 1, 2 do drop(foe.x + i * 5, foe.z, f) end
+            elseif whole or foe.kind == "gunship" or (foe.kind == "tank" and math.random() < 0.5)
+                or kills % 15 == 0 or TEST_DROPS then
                 drop(foe.x, foe.z, f)
             end
         end
@@ -403,7 +510,7 @@ if serving then
         end
     end
 
-    local function shield_hit(b: { x: number, z: number, shield: number, max: number, up_at: number }, dmg: number, x: number, z: number)
+    local function shield_hit(b: Boss, dmg: number, x: number, z: number)
         b.shield -= dmg
         if dmg >= 1 then tell(0, string.format("boom %.1f %.1f 2", x, z)) end
         if b.shield <= 0 then
@@ -425,7 +532,7 @@ if serving then
         for fid, foe in foes do
             local k = KINDS[foe.kind]
             if math.abs(x - foe.x) < k.hw and math.abs(z - foe.z) < k.hl + reach then
-                if foe.kind == "mega" then
+                if HULLS[foe.kind] then
                     hull_id, hull = fid, foe
                 else
                     hurt(fid, foe, dmg, by, x, z)
@@ -607,7 +714,9 @@ if serving then
                         next_shot += 1
                     end
                 else
-                    spawn(queue[i][2], queue[i][3], TOP, FLY)
+                    local q = queue[i]
+                    local id = spawn(q[2], q[3], TOP, FLY)
+                    if id and q[4] then foes[id].path, foes[id].side, foes[id].file = q[4], q[5], q[6] end
                 end
                 table.remove(queue, i)
             end
@@ -636,7 +745,7 @@ if serving then
                 end
                 for fid, foe in foes do
                     local k = KINDS[foe.kind]
-                    if math.abs(foe.x - x) < k.hw + 0.6 and foe.z > z and foe.z - k.hl < ze then
+                    if math.abs(foe.x - x) < k.hw + 0.6 and foe.z + k.hl > z and foe.z - k.hl < ze then
                         hurt(fid, foe, dps * dt, p, x, foe.z)
                     end
                 end
@@ -684,9 +793,85 @@ if serving then
         end
 
         -- The planes.
+        local live, launch_x, launch_z = 0, nil, nil
         for id, foe in foes do
             foe.t += dt
-            if foe.kind == "dart" then
+            live += 1
+            local gone = false
+            local was_x, was_z = foe.x, foe.z
+            if foe.low and foe.kind ~= "turret" then
+                -- Launched: down the deck with the carrier, off its bow and up,
+                -- out by the top of the screen -- and in again as any plane.
+                local b = boss
+                if b and foe.t < 1 then foe.x = b.x end
+                foe.vz += 30 * dt
+                foe.z += foe.vz * dt
+                core.ecs.set(id, "y", DECK_Y + (FLY - DECK_Y) * math.clamp((foe.t - 1) / 0.8, 0, 1))
+                if foe.z > TOP + 4 then
+                    foe.low, foe.t, foe.vz, foe.gun = false, 0, 0, 1 + math.random()
+                    foe.x, foe.z = CX + (math.random() * 2 - 1) * (FOE_W - 3), TOP
+                    foe.x0, was_x, was_z = foe.x, foe.x, foe.z
+                    core.ecs.set(id, "y", FLY)
+                    core.ecs.set(id, "yaw", 0)
+                end
+            elseif foe.kind == "diver" then
+                if foe.vz == 0 then
+                    foe.z -= 9 * dt
+                    if foe.t > 1.8 then
+                        -- Now for the nearest fighter, and never back up the screen.
+                        local tx, tz = nearest(foe.x, foe.z)
+                        local a = if tx and tz then math.atan2(tx - foe.x, tz - foe.z) else math.pi
+                        foe.vx, foe.vz = math.sin(a) * 34, math.min(-12, math.cos(a) * 34)
+                    end
+                else
+                    foe.x += foe.vx * dt
+                    foe.z += foe.vz * dt
+                    gone = math.abs(foe.x - CX) > HALF_W + 6
+                end
+            elseif foe.kind == "sweeper" then
+                if foe.vx == 0 then foe.vx = if foe.x > CX then -15 else 15 end
+                foe.x += foe.vx * dt
+                foe.z -= 8 * dt
+                if math.abs(foe.x - CX) > FOE_W then
+                    foe.x = math.clamp(foe.x, CX - FOE_W, CX + FOE_W)
+                    foe.vx = -foe.vx
+                end
+                if foe.t >= foe.gun then
+                    foe.gun = foe.t + 1.1 / haste
+                    shoot(foe.x, foe.z - 3, 0, -24, 0)
+                end
+            elseif foe.kind == "plated" then
+                foe.x, foe.z, gone = PATHS[foe.path](foe.t, foe.side)
+                if foe.t >= foe.gun and foe.z < CZ + HALF_H then
+                    foe.gun = foe.t + 3.2 / haste
+                    aimed(foe.x, foe.z, 22, 0, 1)
+                end
+            elseif foe.kind == "gunship" then
+                foe.z = if foe.t < 12 then math.max(CZ + 16, foe.z - 9 * dt) else foe.z - 14 * dt
+                foe.x = math.clamp(foe.x0 + 6 * math.sin(foe.t * 0.6), CX - FOE_W, CX + FOE_W)
+                if foe.t >= foe.gun and foe.t < 12 then
+                    foe.gun = foe.t + 0.8 / haste
+                    for i = 0, 3 do
+                        local a = foe.t * 0.7 + i * math.pi / 2
+                        shoot(foe.x, foe.z, math.sin(a) * 16, math.cos(a) * 16, 0)
+                    end
+                end
+            elseif foe.kind == "carrier" then
+                local b = boss
+                foe.z = math.max(CZ + 6, foe.z - 7 * dt)
+                foe.x = CX + 8 * math.sin(foe.t * 0.25)
+                if b then b.x, b.z = foe.x, foe.z end
+                -- Half gone, it launches and fires faster.
+                local rage = foe.hp < foe.max / 2
+                if foe.t >= foe.launch and foe.z < CZ + 30 then
+                    foe.launch = foe.t + (if rage then 1.0 else 1.7) / more(0.5)
+                    launch_x, launch_z = foe.x, foe.z - 16     -- after this loop: nothing is added to `foes` inside it
+                end
+                if foe.t >= foe.gun and foe.z < CZ + 30 then
+                    foe.gun = foe.t + (if rage then 2.2 else 3.2) / haste
+                    aimed(foe.x - 5.5, foe.z + 1, 22, 0.2, if rage then 7 else 5)     -- from its island
+                end
+            elseif foe.kind == "dart" then
                 foe.z -= 16 * dt
             elseif foe.kind == "weaver" then
                 foe.z -= 10 * dt
@@ -747,23 +932,34 @@ if serving then
                     aimed(foe.x, foe.z + 3, if foe.spread then 22 else 26, 0.2, if foe.spread then 3 else 1)
                 end
             end
-            if foe.z < BOTTOM - (if foe.kind == "tank" then 12 else 0) then
+            if gone or foe.z < BOTTOM - (if foe.kind == "tank" then 12 else 0) then
                 core.ecs.kill(id)
                 foes[id] = nil
             else
                 core.ecs.set(id, "x", foe.x)
                 core.ecs.set(id, "z", foe.z)
+                if TURNS[foe.kind] and not foe.low and (foe.x ~= was_x or foe.z ~= was_z) then
+                    core.ecs.set(id, "yaw", math.atan2(foe.x - was_x, was_z - foe.z))
+                end
                 -- Flown into: a life.
                 local k = KINDS[foe.kind]
                 for p, f in fliers do
                     local at = here[p]
-                    if at and not f.out and foe.kind ~= "tank" and clock >= f.safe and math.abs(at[1] - foe.x) < k.hw and math.abs(at[3] - foe.z) < k.hl then
+                    if at and not f.out and not foe.low and not GROUND[foe.kind] and clock >= f.safe and math.abs(at[1] - foe.x) < k.hw and math.abs(at[3] - foe.z) < k.hl then
                         hit(p, f, at[1], at[3])
                     end
                 end
             end
         end
-        if mode ~= "play" then return end     -- the fortress went down in this tick
+        if mode ~= "play" then return end     -- the carrier went down in this tick
+        -- The carrier's next plane, while not too many are up.
+        if launch_x and launch_z and live < 5 + 12 * more(0.5) then
+            local lid = spawn(LAUNCHED[math.random(#LAUNCHED)], launch_x, launch_z, DECK_Y)
+            if lid then
+                foes[lid].low = true
+                core.ecs.set(lid, "yaw", math.pi)     -- nose up the screen
+            end
+        end
 
         -- The shots.
         for id, s in shots do
@@ -842,9 +1038,9 @@ if serving then
             if b then
                 local hull = 0
                 for _, foe in foes do
-                    if foe.kind == "mega" then hull = foe.hp / foe.max end
+                    if HULLS[foe.kind] then hull = foe.hp / foe.max end
                 end
-                table.insert(parts, string.format("B %.1f %.1f %d %d", b.x, b.z, math.ceil(b.shield / b.max * 100), math.ceil(hull * 100)))
+                table.insert(parts, string.format("B %.1f %.1f %d %d", b.x, b.z, if b.max > 0 then math.ceil(b.shield / b.max * 100) else 0, math.ceil(hull * 100)))
             end
             if #parts > 0 or #beams > 0 then
                 local common = table.concat(parts, "|")
@@ -979,8 +1175,9 @@ if drawing then
         elseif what == "fall" then
             local big = w[2] == "mega" or w[2] == "bomber"
             table.insert(falls, { w[2], tonumber(w[3]) :: number, tonumber(w[4]) :: number, 0,
-                                  if w[2] == "mega" then 3.0 elseif big then 1.8 else 1.2,
-                                  if math.random() < 0.5 then -1 else 1, (math.random() * 2 - 1) * 6 })
+                                  if w[2] == "carrier" then 4.0 elseif w[2] == "mega" then 3.0 elseif big then 1.8 else 1.2,
+                                  if math.random() < 0.5 then -1 else 1,
+                                  if w[2] == "carrier" then 0 else (math.random() * 2 - 1) * 6 })
         elseif what == "u" then
             ups[tonumber(w[2]) :: number] = { tonumber(w[4]) :: number, tonumber(w[5]) :: number, w[3] }
         elseif what == "k" then
@@ -1184,7 +1381,10 @@ if drawing then
             local z = CZ + 60 + k * 46 + hash(k) * 16 - scroll
             -- Gone once all of it is under the picture's bottom edge, where the base is.
             if z + r + 1 > CZ - 43 and z - r - 1 < CZ + 78 then
-                island(k, CX + (hash(k + 0.5) - 0.5) * 120, z, r)
+                -- The carrier's water is kept clear: its wave's islands go by either side of it.
+                local x = CX + (hash(k + 0.5) - 0.5) * 120
+                if wave == 20 and math.abs(x - CX) < 26 then x = CX + (if x < CX then -26 else 26) end
+                island(k, x, z, r)
             end
         end
         for k = math.max(1, math.floor((scroll * 1.4 - 130) / 31)), math.floor((scroll * 1.4 + 30) / 31) + 1 do
@@ -1209,6 +1409,15 @@ if drawing then
         -- and smoking, into the sea -- where it leaves a ring.
         for _, f in falls do
             local u = f[4] / f[5]
+            if f[1] == "carrier" then
+                -- A ship goes down where it is, by the stern, burning.
+                core.render.model(model("carrier"), f[2], 21 - 7 * u * u, f[3], math.pi, 1, -0.25 * u, f[6] * 0.2 * u)
+                for i = -1, 1 do
+                    core.render.fx("smoke", f[2], 26, f[3] + i * 14, 7, 50, 50, 55, 220, (f[4] * 2 + i * 0.3) % 1)
+                    core.render.fx("flame", f[2], 25, f[3] + i * 14, 5 * (1 - u), 255, 150, 50, 255, (f[4] * 3 + i * 0.3) % 1)
+                end
+                continue
+            end
             local y = FLY - (FLY - 21.5) * u * u
             local yaw = (if f[1] == "fighter" or f[1] == "wingman" then math.pi else 0) + f[6] * u * 1.5
             core.render.model(model(f[1]), f[2], y, f[3], yaw, 1 - 0.4 * u, -0.6 * u, f[6] * u * 5)
@@ -1300,7 +1509,8 @@ if drawing then
             core.hud.text(0.5, 0.95, "W A S D move   SPACE fire   F back to the hangar", 0.024, 1, 255, 255, 255, 200)
         elseif mode == "play" then
             core.hud.text(0.94, 0.035, `WAVE {wave}`, 0.035, 2, 120, 220, 255, 255)
-            if pilots > 1 then core.hud.text(0.94, 0.075, `PILOTS {pilots}`, 0.028, 2, 255, 220, 60, 255) end
+            core.hud.text(0.94, 0.075, `LEVEL {(wave - 1) // 10 + 1}`, 0.028, 2, 120, 220, 255, 255)
+            if pilots > 1 then core.hud.text(0.94, 0.11, `PILOTS {pilots}`, 0.028, 2, 255, 220, 60, 255) end
             core.hud.text(0.06, 0.95, `LIVES {lives}`, 0.04, 0, 255, 220, 60, 255)
             -- What the fighter carries.
             local y = 0.95
@@ -1317,7 +1527,8 @@ if drawing then
             line(`POWER {gear.pow}`, 255, 90, 50)
             line(`SPEED {gear.spd + 1}`, 60, 220, 90)
             if clock < banner_until and phase == "air" then
-                core.hud.text(0.5, 0.4, if wave == 10 then "WARNING: FLYING FORTRESS" elseif wave % 5 == 0 then "WARNING: BOMBER" else `WAVE {wave}`,
+                core.hud.text(0.5, 0.4, if wave == 20 then "WARNING: AIRCRAFT CARRIER" elseif wave == 10 then "WARNING: FLYING FORTRESS"
+                    elseif wave % 5 == 0 then "WARNING: BOMBER" elseif wave == 11 then "LEVEL 2" else `WAVE {wave}`,
                     0.07, 1, 255, 240, 120, 255)
             end
             local f = fort

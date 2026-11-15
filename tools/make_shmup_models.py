@@ -18,6 +18,13 @@
 #                ring for each of its six turrets and a glowing core
 #   turret       one of them, two barrels along its front: the game turns it
 #   tank         the front's tank in one piece, for an islet: the game turns it
+#   foe_diver    crimson, yellow wing tips
+#   foe_sweeper  teal, two white bands across each wing
+#   foe_plated   steel blue, a dark plate over each wing and along its back
+#   foe_gunship  the bomber in purple, yellow wing tips
+#   carrier      the second level's last: an aircraft carrier 46 long, bow
+#                forward, a runway down its deck, an island and a sponson
+#                for each of its four turrets
 import math
 import os
 import sys
@@ -70,6 +77,58 @@ def bomber(p, root):
     f.bomber(p, root, livery("foe_grey"))
     for sx in (-1, 1):
         p.box(root, "ace_red", (sx * 8.2, 0.6, 1.5), (1.6, 2.24, 0.2))
+
+
+def diver(p, root):
+    f.plane(p, root, livery("foe_crimson"))
+    bands(p, root, "ace_yellow", 4.4, 1.2)
+
+
+def sweeper(p, root):
+    f.plane(p, root, livery("foe_teal"))
+    bands(p, root, "foe_white", 1.8, 0.6)
+    bands(p, root, "foe_white", 3.6, 0.6)
+
+
+def plated(p, root):
+    f.plane(p, root, livery("foe_steel"))
+    for sx in (-1, 1):
+        p.box(root, "gunmetal", (sx * 2.6, 0.4, 0.66), (3.0, 1.9, 0.14))     # a plate over each wing
+    p.box(root, "gunmetal", (0, 0.3, 1.3), (0.9, 3.0, 0.14))                 # and one along its back
+    bands(p, root, "ace_yellow", 4.6, 0.5)
+
+
+def gunship(p, root):
+    f.bomber(p, root, livery("foe_purple"))
+    for sx in (-1, 1):
+        p.box(root, "ace_yellow", (sx * 8.2, 0.6, 1.5), (1.6, 2.24, 0.2))
+
+
+# Where the carrier's turrets stand (x, y forward). The game draws it bow up
+# the screen, turned half round: games/shmup/mods/shmup has (-x, y).
+CARRIER_GUNS = [(-6.5, 10), (6.5, 10), (-6.5, -12), (6.5, -14)]
+
+
+def carrier(p):
+    turned = (0, 0, math.pi / 4)
+    p.box(None, "mega_dark", (0, -3.0, 1.2), (9.0, 38.0, 2.4))                      # the hull
+    p.box(None, "mega_dark", (0, 16.0, 1.2), (6.36, 6.36, 2.4), turned)             # and its bow
+    p.box(None, "mega_dark", (0, -4.0, 2.5), (13.6, 26.0, 0.3))                     # the walks along its sides
+    p.box(None, "mega_hull", (0, -3.0, 2.7), (12.0, 40.0, 0.6))                     # the flight deck
+    p.box(None, "mega_hull", (0, 17.0, 2.7), (8.48, 8.48, 0.6), turned)             # to a point at the bow
+    p.box(None, "foe_white", (0, -0.5, 3.02), (0.3, 44.0, 0.05))                    # the runway's middle
+    for sx in (-1, 1):
+        p.box(None, "ace_yellow", (sx * 2.8, -1.5, 3.02), (0.25, 41.0, 0.05))       # and its edges
+        p.box(None, "mega_dark", (sx * 4.5, -8.0 + sx * 8.0, 3.02), (2.4, 4.0, 0.05))   # a lift each side
+    for y in range(-20, 13, 8):
+        p.box(None, "foe_white", (0, y, 3.03), (5.4, 0.3, 0.05))
+    p.box(None, "ace_red", (0, -22.4, 3.03), (11.0, 0.5, 0.05))                     # the stern's edge
+    p.box(None, "gunmetal", (5.5, -2.0, 4.8), (2.6, 8.0, 3.6))                      # the island
+    p.box(None, "window", (5.5, 0.6, 5.9), (2.7, 2.4, 0.7))                         # its bridge
+    p.cyl(None, "foe_black", (5.5, -4.2, 7.3), 0.6, 1.6, "Z", seg=12)               # its funnel
+    p.box(None, "ace_red", (5.5, -2.0, 6.62), (2.0, 0.5, 0.06))
+    for x, y in CARRIER_GUNS:
+        p.cyl(None, "gunmetal", (x, y, 2.85), 1.7, 0.3, "Z", seg=16)                # a sponson for a turret
 
 
 def wingman(p):
@@ -146,17 +205,23 @@ if __name__ == "__main__":
                        ("foe_white", (0.92, 0.92, 0.90)), ("foe_black", (0.07, 0.07, 0.09)),
                        ("foe_grey", (0.24, 0.26, 0.30)),
                        ("wing_blue", (0.45, 0.70, 0.92)), ("mega_hull", (0.30, 0.33, 0.42)),
-                       ("mega_dark", (0.16, 0.17, 0.22))]:
+                       ("mega_dark", (0.16, 0.17, 0.22)),
+                       ("foe_crimson", (0.70, 0.05, 0.20)), ("foe_teal", (0.05, 0.55, 0.55)),
+                       ("foe_steel", (0.38, 0.48, 0.62)), ("foe_purple", (0.36, 0.14, 0.52))]:
         d.M[mname] = d.material(mname, rgb)
     d.M["mega_core"] = d.material("mega_core", (0.25, 0.85, 1.0), glow=True)
     d.M["window"] = d.material("window", (0.55, 0.75, 0.85), rough=0.1, alpha=0.3)
     spin = [("spin", 0.15, f.turn("prop", "y"))]
-    for x, (name, make) in enumerate([("fighter", fighter), ("foe_dart", dart), ("foe_weaver", weaver),
-                                      ("foe_ace", ace)]):
-        f.rigged_out(name, f.PLANE_BONES, make, spin, 12.0 * x)
     props = {}
     props.update(f.turn("prop_L", "y"))
     props.update(f.turn("prop_R", "y"))
+    for x, (name, make) in enumerate([("fighter", fighter), ("foe_dart", dart), ("foe_weaver", weaver),
+                                      ("foe_ace", ace)]):
+        f.rigged_out(name, f.PLANE_BONES, make, spin, 12.0 * x)
+    for x, (name, make) in enumerate([("foe_diver", diver), ("foe_sweeper", sweeper), ("foe_plated", plated)]):
+        f.rigged_out(name, f.PLANE_BONES, make, spin, 12.0 * x - 40.0)
+    f.rigged_out("foe_gunship", f.BOMBER_BONES, gunship, [("spin", 0.15, props)], -70.0)
+    rigid_out("carrier", carrier, 160.0)
     f.rigged_out("bomber", f.BOMBER_BONES, bomber, [("spin", 0.15, props)], 60.0)
     rigid_out("wingman", wingman, 78.0, 0.5)
     rigid_out("turret", turret, 84.0)

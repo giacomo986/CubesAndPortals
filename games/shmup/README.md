@@ -3,8 +3,9 @@
 *[Leggi in italiano](README.it.md)*
 
 A shooter seen from overhead on a fighter, in the manner of the arcade cabinets of the eighties:
-one screen with the sea going by under it, ten waves of planes, power-ups, a flying fortress at
-the end, three lives, a score and a high score. Two mods: `mods/shmup_core` (server only: the sea,
+one screen with the sea going by under it, two levels of ten waves of planes, power-ups, a flying
+fortress at the end of the first and an aircraft carrier at the end of the second, three lives, a
+score and a high score. Two mods: `mods/shmup_core` (server only: the sea,
 the island with the hangar, the walls of the screen, the models, and the body -- the sandbox's
 robot, on foot) and `mods/shmup` (`side = both`: the game on the server; the take-off, the camera,
 the scenery going by, the shots and the screen's text on a player's machine).
@@ -36,17 +37,39 @@ shot now and then (150). Aces, black with red bands, stop half way and fire thre
 Wave 5 is a grey bomber that takes forty shots (3000). The planes keep to the middle 48 nodes of a
 screen 80 wide, so a fighter can reach every one of them.
 
-Now and then, from wave 2, an islet goes by with a **tank** on it (300, and always a power-up): it
+Four more kinds come in from wave 3. **Plated** planes, steel blue with dark plates (300, six
+shots each), come five in a file, half a second apart, along one of four paths: swinging down the
+screen, down one side and up the other, in loops, or corner to corner; each aims a shot now and
+then, and the whole file shot down leaves a power-up. **Sweepers**, teal (250, from wave 4), cross
+from side to side dropping shots straight down. **Divers**, crimson (200, from wave 6), come down
+a little and then go for the nearest fighter. **Gunships**, a purple bomber (800, fourteen shots,
+from wave 7), stop and throw four shots that go round.
+
+Now and then, from wave 2, an islet goes by with a **tank** on it (300, and a power-up every other time): it
 turns on the nearest fighter and fires; it is on the ground, so flying over it costs nothing.
 
 A plane shot down -- theirs, or yours and its wingmen with your last life -- goes into the sea turning over and smoking,
 and leaves a ring where it meets the water.
 
-Wave 10, the last, is the **flying fortress** (20000): 40 across, six turrets (500 each) that turn
+Wave 10 is the **flying fortress** (20000): 40 across, six turrets (500 each) that turn
 on the nearest fighter, and a shield -- the ring of lights round it. While the shield is up
 everything fired into it is spent on it; shot down (the blue bar at the top of the screen), it
 stays down ten seconds, in which the turrets and the hull (the red bar) can be hit. Half gone, the
-hull throws rings of shots as well. Down it goes and the game is won: the fighters leave by the top
+hull throws rings of shots as well. Down it goes, and five seconds later the second level starts.
+
+## The second level
+
+Waves 11 to 20, power-ups, lives and score kept: four planes more a wave than the first level's,
+every kind from the start, two files of plated planes a wave and more gunships; wave 15 is a
+bomber with two files of six.
+
+Wave 20, the last, is the **aircraft carrier** (30000): a ship 46 long on the sea, bow up the
+screen, so flying over it costs nothing. It goes on launching planes, one every 1.7 seconds while
+fewer than twelve planes are up: each runs down the deck, lifts off the bow, leaves by the top
+of the screen and comes back in as any other plane of its kind (it can be shot on the deck). Four
+turrets (500 each) turn on the nearest fighter and its island fires five at a time. It takes 500
+shots; half gone, it launches every second and fires seven. It goes down by the stern, burning, and
+the game is won: the fighters leave by the top
 of the screen faster than anything on it, come down onto the apron from the sea and roll back to
 their pads, and their pilots are on foot in the hangar again.
 
@@ -77,8 +100,8 @@ power-ups, which are for whoever reaches them.
 
 ## Power-ups
 
-Every sixth plane shot down, every ace and the bomber (three) leave one, which drifts down the
-screen: fly over it. What they give lasts the game, except the three that blink, which run out.
+They are few: one plane shot down in fifteen, a whole file of plated planes, a gunship, every
+other tank and the bomber (two) leave one, which drifts down the screen: fly over it. What they give lasts the game, except the three that blink, which run out.
 
 | colour | | |
 |---|---|---|
@@ -112,7 +135,8 @@ only then does the server make the body a fighter (`core.body_model`), give it i
 is +z, so its right is -x.
 
 For trying things, `TEST_WAVE` and `TEST_DROPS` at the top of `mods/shmup`'s server half start a
-game at the fortress with thirty lives and make every plane leave a power-up.
+game at the fortress (9) or at the carrier (19) with thirty lives and make every plane leave a
+power-up.
 
 ## Not there yet
 

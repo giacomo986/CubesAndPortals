@@ -189,6 +189,18 @@ tenth, MISSION COMPLETE.
   parked fighter, then a fighter over the field.
 - Up to ~85 shot messages a second from one fully armed fighter (one a shot).
 - A saved shmup world keeps the old carrier: delete it (tools/shmup.sh --fresh).
+- 2026-11-15, a second level and fewer power-ups: waves 11-20 after the
+  fortress, an aircraft carrier at the 20th (500 hp, four turrets, a plane
+  launched every 1.7 s, 1 s when half gone, at most 12 up); four new kinds
+  (plated planes in files of five along four paths, sweepers, divers,
+  gunships); a power-up from 1 plane in 15 (was 6), a whole file, a gunship,
+  every other tank, two from a bomber (was three), none from an ace.
+  Seen in Xephyr: the carrier launching and firing, sunk, the win and the
+  landing (TEST_WAVE 19); the fortress down into LEVEL 2 and waves 11-15
+  (TEST_WAVE 9) -- both with shots that took 40, since put back to 1.
+  Not played: either level by hand at real strength, so the new drop rate and
+  the carrier's 500 are estimates; the carrier with two pilots. `--room
+  shmup` is born facing the doorway: walk backwards (S) to the fighters.
 
 Platform game (2026-11-13: two levels, a bonus room, round pipes from
 Blender, three creatures from Meshy -- sprout, spikeshell, buzzer, 120
@@ -233,18 +245,6 @@ scrolls with slack and smoothly):
   (embers 2.6 s, bars 2.2 and 1.6 rad/s, the furnace's pace and 16) are guesses.
   A saved platformer world keeps the old levels' blocks: start it `--fresh`.
   Not in a CHANGELOG entry yet: for the next alpha.
-- Other bosses thought of for 1-3, should the furnace not do (2026-11-15, none built):
-  a **bell-ringer** -- a huge bell on a chain that swings and drops to crush, struck
-  by making it bang into prize blocks; a **lava dragon** -- a head and neck rising
-  in turn out of three lava pits, landed on when it dips to bite; a **spiked king**
-  -- a giant spikeshell rolling wall to wall, tipped over by bumping the ledge it
-  crosses from below, then landed on.
-- Bodies and models are dark under a roof (1-2, 1-3): the robot and the furnace
-  read as silhouettes against the wall, though the blocks about them are lit.
-- The creatures are rigid: no walk, no death -- a puff of smoke where one was.
-  They walk a beat and neither fall into pits nor turn at walls. Landing on
-  one stops the body's run (core.player_launch sets all of its speed).
-- A pipe's model takes the bodies' light, not its cell's, and is darker than
 - 2026-11-15, later: the pole stands on a base again; the body hangs on it, slides
   down onto the base (1.3 nodes a second), steps off behind it and walks into the
   picture's depth to the castle, which now stands behind the walkway (z 2..4) with
@@ -274,6 +274,18 @@ scrolls with slack and smoothly):
   a landing on it 6 and 10), also while nothing can hurt the body, so it never
   stands inside the stove; not after a hit that cost a life. Seen from the
   server: a big body walked into it lost the size and landed 7 nodes off.
+- Other bosses thought of for 1-3, should the furnace not do (2026-11-15, none built):
+  a **bell-ringer** -- a huge bell on a chain that swings and drops to crush, struck
+  by making it bang into prize blocks; a **lava dragon** -- a head and neck rising
+  in turn out of three lava pits, landed on when it dips to bite; a **spiked king**
+  -- a giant spikeshell rolling wall to wall, tipped over by bumping the ledge it
+  crosses from below, then landed on.
+- Bodies and models are dark under a roof (1-2, 1-3): the robot and the furnace
+  read as silhouettes against the wall, though the blocks about them are lit.
+- The creatures are rigid: no walk, no death -- a puff of smoke where one was.
+  They walk a beat and neither fall into pits nor turn at walls. Landing on
+  one stops the body's run (core.player_launch sets all of its speed).
+- A pipe's model takes the bodies' light, not its cell's, and is darker than
   the lit blocks beside it; from the room's glass the bonus room under 1-1 is
   in plain sight.
 - Whoever joins the room directly faces the doorway, not the glass.

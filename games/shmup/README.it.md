@@ -3,8 +3,8 @@
 *[Read in English](README.md)*
 
 Uno sparatutto visto dall'alto su un caccia, come nei cabinati degli anni ottanta: uno schermo con
-il mare che scorre sotto, dieci ondate di aerei, i power-up, una fortezza volante alla fine, tre
-vite, un punteggio e un record. Due mod: `mods/shmup_core` (solo server: il mare, l'isola con
+il mare che scorre sotto, due livelli di dieci ondate di aerei, i power-up, una fortezza volante
+alla fine del primo e una portaerei alla fine del secondo, tre vite, un punteggio e un record. Due mod: `mods/shmup_core` (solo server: il mare, l'isola con
 l'hangar, i muri dello schermo, i modelli, e il corpo -- il robot del sandbox, a piedi) e
 `mods/shmup` (`side = both`: la partita sul server; il decollo, la telecamera, il paesaggio che
 scorre, i colpi e le scritte sulla macchina del giocatore).
@@ -38,19 +38,42 @@ e ne sparano tre alla volta (400). L'ondata 5 è un bombardiere grigio che regge
 (3000). Gli aerei restano nei 48 nodi centrali di uno schermo largo 80: un caccia li può
 raggiungere tutti.
 
-Ogni tanto, dall'ondata 2, passa un isolotto con sopra un **carro armato** (300, e sempre un
-power-up): si gira verso il caccia più vicino e spara; è a terra, quindi passargli sopra non costa
+Dall'ondata 3 ne arrivano altri quattro tipi. I **corazzati**, blu acciaio con piastre scure (300,
+sei colpi l'uno), arrivano in fila di cinque, a mezzo secondo l'uno dall'altro, lungo una di
+quattro traiettorie: oscillando giù per lo schermo, giù da un lato e su dall'altro, ad anelli, o
+da un angolo all'altro; ognuno mira un colpo ogni tanto, e la fila abbattuta per intero lascia un
+power-up. Gli **spazzatori**, verde acqua (250, dall'ondata 4), attraversano da un lato all'altro
+lasciando cadere colpi dritti in giù. I **picchiatori**, cremisi (200, dall'ondata 6), scendono un
+poco e poi puntano sul caccia più vicino. Le **cannoniere**, un bombardiere viola (800,
+quattordici colpi, dall'ondata 7), si fermano e lanciano quattro colpi che girano.
+
+Ogni tanto, dall'ondata 2, passa un isolotto con sopra un **carro armato** (300, e una volta su
+due un power-up): si gira verso il caccia più vicino e spara; è a terra, quindi passargli sopra non costa
 niente.
 
 Un aereo abbattuto -- loro, o il tuo e i suoi gregari all'ultima vita -- finisce in mare girando su se stesso e
 fumando, e lascia un anello dove tocca l'acqua.
 
-L'ondata 10, l'ultima, è la **fortezza volante** (20000): larga 40, sei torrette (500 l'una) che
+L'ondata 10 è la **fortezza volante** (20000): larga 40, sei torrette (500 l'una) che
 si girano verso il caccia più vicino, e uno scudo -- l'anello di luci che le gira attorno. Finché
 lo scudo è su, tutto quello che gli si spara dentro si spende su di lui; abbattuto (la barra
 azzurra in cima allo schermo), resta giù dieci secondi, nei quali si possono colpire le torrette e
-lo scafo (la barra rossa). A metà, lo scafo lancia anche anelli di colpi. Abbattuta lei, la
-partita è vinta: i caccia escono dall'alto dello schermo più veloci di tutto quello che c'è sopra,
+lo scafo (la barra rossa). A metà, lo scafo lancia anche anelli di colpi. Abbattuta lei, cinque
+secondi dopo comincia il secondo livello.
+
+## Il secondo livello
+
+Ondate da 11 a 20, con i power-up, le vite e il punteggio che si hanno: quattro aerei in più a
+ondata rispetto al primo livello, tutti i tipi fin dall'inizio, due file di corazzati a ondata e
+più cannoniere; l'ondata 15 è un bombardiere con due file da sei.
+
+L'ondata 20, l'ultima, è la **portaerei** (30000): una nave lunga 46 sul mare, la prua verso
+l'alto dello schermo, quindi passarle sopra non costa niente. Lancia aerei di continuo, uno ogni
+1,7 secondi finché in volo ce ne sono meno di dodici: ognuno corre lungo il ponte, si stacca dalla
+prua, esce dall'alto dello schermo e rientra come un qualsiasi aereo del suo tipo (lo si può
+colpire sul ponte). Quattro torrette (500 l'una) si girano verso il caccia più vicino e la sua
+isola ne spara cinque alla volta. Regge 500 colpi; a metà lancia ogni secondo e ne spara sette.
+Affonda di poppa, in fiamme, e la partita è vinta: i caccia escono dall'alto dello schermo più veloci di tutto quello che c'è sopra,
 scendono sul piazzale dal mare e rullano fino alla loro piazzola, e i piloti sono di nuovo a piedi
 nell'hangar.
 
@@ -82,8 +105,8 @@ vuol dire anche più power-up, che sono di chi li raggiunge.
 
 ## I power-up
 
-Un aereo abbattuto ogni sei, ogni asso e il bombardiere (tre) ne lasciano uno, che scende lungo lo
-schermo: passaci sopra. Quello che danno dura tutta la partita, tranne i tre che lampeggiano, che
+Sono pochi: un aereo abbattuto ogni quindici, una fila intera di corazzati, una cannoniera, un
+carro su due e il bombardiere (due) ne lasciano uno, che scende lungo lo schermo: passaci sopra. Quello che danno dura tutta la partita, tranne i tre che lampeggiano, che
 finiscono.
 
 | colore | | |
@@ -119,7 +142,7 @@ caccia (`core.body_model`), gli dà il volo (`core.body_movement`, che un power-
 cambia) e lo mette sopra il campo. L'alto dell'immagine è +z, quindi la destra è -x.
 
 Per provare, `TEST_WAVE` e `TEST_DROPS` in cima alla metà server di `mods/shmup` fanno partire la
-partita dalla fortezza con trenta vite e fanno lasciare un power-up a ogni aereo.
+partita dalla fortezza (9) o dalla portaerei (19) con trenta vite e fanno lasciare un power-up a ogni aereo.
 
 ## Quello che manca
 
