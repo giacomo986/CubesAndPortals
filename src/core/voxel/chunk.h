@@ -203,7 +203,7 @@ public:
     // block that was here and is gone leaves its bit behind. Both cost a scan
     // that finds nothing, which is the cheap failure -- the expensive one would
     // be a chunk skipped that did hold the block, and nothing here can produce
-    // that. 128 bytes a chunk and one OR per write; the alternative, a list
+    // that. 512 bytes a chunk and one OR per write; the alternative, a list
     // of the distinct ids, is a scan of that list on every write and the
     // mapgen writes sixteen million of them.
     //
@@ -212,7 +212,12 @@ public:
     // read every cell of every loaded chunk twice a second without ever
     // firing: 4.9 billion cells, 17.7 s in a 27-minute session.
     struct IdMask {
-        static constexpr unsigned kWords = 16;
+        // 4096 ids, one bit each, before two share a bit. At 1024 (16 words)
+        // the game's blocks already wrapped round: with the pipes' 576 shapes the
+        // interface pipes' ids landed on the bits of terrain blocks, and the
+        // pipes' modifier read every cell of nearly every chunk (12 million a
+        // run, against 2 million). An id past 4096 still wraps, harmlessly.
+        static constexpr unsigned kWords = 64;
         uint64_t w[kWords] = {};
 
         void add(BlockId id) { w[(id >> 6) % kWords] |= 1ull << (id & 63u); }

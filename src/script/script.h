@@ -538,6 +538,13 @@ typedef struct script_host {
     int (*recipe_shapeless)(void *ud, const char *makes, int count, const char *items);
     // Things that take colours at a table, and the dyes (RecipeSet::add_dyeable).
     int (*recipe_dye)(void *ud, const char *item);
+    // Reading the recipes back, 1 to recipe_count (RecipeSet::all): what a
+    // machine that crafts needs to know it could make.
+    int (*recipe_count)(void *ud);
+    const char *(*recipe_result)(void *ud, int i);
+    int (*recipe_yield)(void *ud, int i);
+    const char *(*recipe_items)(void *ud, int i);
+    const char *(*item_leaves)(void *ud, const char *item);
     int (*item_dye)(void *ud, const char *item, int dye);
 
     // Panels, from a mod's side. DESIGN.md 8 asks for a UI driven by Lua; this
@@ -716,6 +723,13 @@ typedef struct script_host {
     int (*render_camera_drop)(void *ud, int id);
     int (*render_screen)(void *ud, int id, double x, double y, double z, double yaw, double w, double h,
                          int plain);
+    // Text in the world (core.render.text), inside a pass: its lines centred
+    // on (x, y, z), upright, facing along `yaw` as a screen does, `size` a
+    // line's height, made smaller to fit `max_w` by `max_h` when those are
+    // given (> 0). Each line is put in the player's language first, as the
+    // hud's text is.
+    int (*render_text)(void *ud, const char *text, double x, double y, double z, double yaw, double size,
+                       int r, int g, int b, int a, double max_w, double max_h);
     // A photograph that travels: the picture camera `id` last drew, 64 by 64
     // in base64 ("" for none yet; the host keeps the text until its next
     // call), and a camera made of such a picture, shown on its screens and

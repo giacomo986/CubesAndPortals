@@ -836,6 +836,29 @@ int l_render_screen(lua_State *L)
     return 1;
 }
 
+// core.render.text(text, x, y, z, yaw?, size?, r?, g?, b?, a?, max_w?, max_h?)
+int l_render_text(lua_State *L)
+{
+    VmState     *vm   = host_of(L);
+    const char  *text = luaL_checkstring(L, 1);
+    const double x    = luaL_checknumber(L, 2);
+    const double y    = luaL_checknumber(L, 3);
+    const double z    = luaL_checknumber(L, 4);
+    const double yaw  = luaL_optnumber(L, 5, 0.0);
+    const double size = luaL_optnumber(L, 6, 0.1);
+    const int    r    = (int)luaL_optinteger(L, 7, 255);
+    const int    g    = (int)luaL_optinteger(L, 8, 255);
+    const int    b    = (int)luaL_optinteger(L, 9, 255);
+    const int    a    = (int)luaL_optinteger(L, 10, 255);
+    const double mw   = luaL_optnumber(L, 11, 0.0);
+    const double mh   = luaL_optnumber(L, 12, 0.0);
+    const int ok = (vm && vm->host.render_text)
+                       ? vm->host.render_text(vm->host.ud, text, x, y, z, yaw, size, r, g, b, a, mw, mh)
+                       : 0;
+    lua_pushboolean(L, ok);
+    return 1;
+}
+
 // core.render.camera_read(id) -> string
 int l_render_camera_read(lua_State *L)
 {
@@ -1129,6 +1152,8 @@ void register_api(lua_State *L)
     lua_setfield(L, -2, "camera_drop");
     lua_pushcfunction(L, l_render_screen, "core.render.screen");
     lua_setfield(L, -2, "screen");
+    lua_pushcfunction(L, l_render_text, "core.render.text");
+    lua_setfield(L, -2, "text");
     lua_pushcfunction(L, l_render_camera_read, "core.render.camera_read");
     lua_setfield(L, -2, "camera_read");
     lua_pushcfunction(L, l_render_photo, "core.render.photo");

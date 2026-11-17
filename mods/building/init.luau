@@ -15,8 +15,10 @@
 --               where it was clicked, hinged on the wall it was put against;
 --               a right click or cinnabar opens it, and open over a ladder
 --               it is climbed
---   signs       one per wood, standing or on a wall; whoever puts one down is
---               asked what it says, and anybody looking at it reads it
+--   signs       one per wood, on a wall, standing or hanging from a ceiling --
+--               the last two facing any of eight ways, an eighth of a turn
+--               apart; whoever puts one down is asked what it says, and it is
+--               written on the board, in the world
 --   anvil       falls, hurts what it lands on, and mends: a right click with a
 --               worn tool in the hand spends an iron ingot for a quarter of it
 --   cauldron    holds a bucket of water, and gives it back
@@ -42,7 +44,25 @@ local side    = core.side()
 local serving = side ~= "client"
 local drawing = side ~= "server"
 
-local shown_sign = ""   -- the text of the sign this machine's player looks at
+-- The signs near this machine's player, as the server tells them (the signs'
+-- section, below): written on their boards by the client's render pass.
+type WorldSign = { x: number, y: number, z: number, kind: string, f: number, wood: string, text: string }
+local world_signs: { [string]: WorldSign } = {}
+local function heard_sign(msg: string)
+    local tag = string.sub(msg, 1, 2)
+    if tag == "D " then
+        world_signs[string.sub(msg, 3)] = nil
+        return
+    end
+    if tag ~= "S " then return end
+    local head, text = string.match(msg, "^S ([^\31]*)\31(.*)$")
+    if not head or not text then return end
+    local x, y, z, kind, f, wood = string.match(head, "^(-?%d+),(-?%d+),(-?%d+),(%a+),(%d+),([%w_]+)$")
+    if not x then return end
+    world_signs[`{x},{y},{z}`] = { x = tonumber(x) :: number, y = tonumber(y) :: number, z = tonumber(z) :: number,
+                                  kind = kind :: string, f = tonumber(f) :: number, wood = wood :: string,
+                                  text = text :: string }
+end
 
 if serving then
     core.net.open()
@@ -593,18 +613,46 @@ if serving then
     core.event.on("core:broken", around)
 
     -- ------------------------------------------------------------ signs
+    -- Three blocks a wood, each drawn by its Blender model
+    -- (tools/make_sign_models.py): on a wall, standing square to the cell, and
+    -- standing an eighth of a turn round -- with an upright block's four
+    -- quarter turns, a standing sign faces any of eight ways. What a sign says
+    -- is its cell's "text"; each player's machine is told the signs near it
+    -- (below) and writes them on their boards in the world (core.render.text).
 
-    local SIGNS: { [number]: boolean } = {}
+    local SIGN_KIND: { [number]: string } = {}   -- block id -> "wall", "stand", "diag"
+    local SIGN_WOOD: { [number]: string } = {}
     for _, w in WOODS do
         -- On a wall: a board against the face it was put on.
         local wall = node(`building:{w}_sign`, { 160, 130, 80 }, false, "wallmounted", 1.0, "wood")
         core.node_box(wall, 0.0625, 0.25, 0, 0.9375, 0.8125, 0.0625)
+        core.node_model(wall, core.register_model(`building:sign_{w}_wall`, `sign_{w}_wall.gltf`))
         -- Standing: a board on a post, facing whoever put it down.
         local stand = node(`building:{w}_standing_sign`, { 160, 130, 80 }, false, "upright", 1.0, "wood")
         core.node_box(stand, 0.0625, 0.5, 0.46875, 0.9375, 1.0, 0.53125)
         core.node_box(stand, 0.46875, 0, 0.46875, 0.53125, 0.5, 0.53125)
+        core.node_model(stand, core.register_model(`building:sign_{w}_stand`, `sign_{w}_stand.gltf`))
+        -- And the same, an eighth of a turn round: its front towards +X+Z at
+        -- rest. Its boxes are only what the crosshair finds, so they need not
+        -- turn with the board: the post, and the square the board sweeps.
+        local diag = node(`building:{w}_standing_sign_diag`, { 160, 130, 80 }, false, "upright", 1.0, "wood")
+        core.node_box(diag, 0.1875, 0.5, 0.1875, 0.8125, 1.0, 0.8125)
+        core.node_box(diag, 0.46875, 0, 0.46875, 0.53125, 0.5, 0.53125)
+        core.node_model(diag, core.register_model(`building:sign_{w}_diag`, `sign_{w}_diag.gltf`))
+        -- Hanging from a ceiling on two chains, square or an eighth round.
+        local hang = node(`building:{w}_hanging_sign`, { 160, 130, 80 }, false, "upright", 1.0, "wood")
+        core.node_box(hang, 0.0625, 0.375, 0.46875, 0.9375, 1.0, 0.53125)
+        core.node_model(hang, core.register_model(`building:sign_{w}_hang`, `sign_{w}_hang.gltf`))
+        local hang_diag = node(`building:{w}_hanging_sign_diag`, { 160, 130, 80 }, false, "upright", 1.0, "wood")
+        core.node_box(hang_diag, 0.1875, 0.375, 0.1875, 0.8125, 1.0, 0.8125)
+        core.node_model(hang_diag, core.register_model(`building:sign_{w}_hang_diag`, `sign_{w}_hang_diag.gltf`))
         core.node_drop(stand, wall)
-        SIGNS[wall], SIGNS[stand] = true, true
+        core.node_drop(diag, wall)
+        core.node_drop(hang, wall)
+        core.node_drop(hang_diag, wall)
+        SIGN_KIND[wall], SIGN_KIND[stand], SIGN_KIND[diag] = "wall", "stand", "diag"
+        SIGN_KIND[hang], SIGN_KIND[hang_diag] = "hang", "hangdiag"
+        SIGN_WOOD[wall], SIGN_WOOD[stand], SIGN_WOOD[diag], SIGN_WOOD[hang], SIGN_WOOD[hang_diag] = w, w, w, w, w
         core.recipe_shaped(`building:{w}_sign`, 3,
             `{planks_of(w)} {planks_of(w)} {planks_of(w)}`,
             `{planks_of(w)} {planks_of(w)} {planks_of(w)}`,
@@ -613,17 +661,63 @@ if serving then
             if ev.id ~= wall then
                 return
             end
-            -- Put down on a floor: the standing one, turned to its placer.
-            if core.get_facing(ev.x, ev.y, ev.z) == 2 then
+            -- Put down on a floor: a standing one, its front to its placer, to
+            -- the nearest eighth of a turn. Even eighths are the square sign at
+            -- a quarter turn (0 +Z, 1 +X, 2 -Z, 3 -X), odd ones the turned one.
+            -- Under a ceiling: a hanging one, the same way.
+            local f = core.get_facing(ev.x, ev.y, ev.z)
+            if f == 2 or f == 3 then
                 local lx, _, lz = core.player_look(ev.player)
-                core.set_block(ev.x, ev.y, ev.z, stand)
-                if lx ~= nil then
-                    local turn = if math.abs(lx) > math.abs(lz) then (if lx > 0 then 3 else 1)
-                                 else (if lz > 0 then 2 else 0)
-                    core.set_facing(ev.x, ev.y, ev.z, turn)
+                local eighth = 0
+                if lx ~= nil and lz ~= nil and (lx ~= 0 or lz ~= 0) then
+                    eighth = math.floor(math.atan2(-lx, -lz) / (math.pi / 4) + 0.5) % 8
                 end
+                local square, turned = if f == 2 then stand else hang, if f == 2 then diag else hang_diag
+                core.set_block(ev.x, ev.y, ev.z, if eighth % 2 == 0 then square else turned)
+                core.set_facing(ev.x, ev.y, ev.z, eighth // 2)
             end
         end)
+    end
+    local SIGNS: { [number]: boolean } = {}
+    for id in SIGN_KIND do SIGNS[id] = true end
+
+    -- Where the signs are: found as their chunks load, and as they are put down.
+    local signs: { [string]: { number } } = {}
+    local function sign_key(x: number, y: number, z: number): string return `{x},{y},{z}` end
+    core.register_lbm("building:signs", (function()
+        local names = {}
+        for _, w in WOODS do
+            table.insert(names, `building:{w}_sign`)
+            table.insert(names, `building:{w}_standing_sign`)
+            table.insert(names, `building:{w}_standing_sign_diag`)
+            table.insert(names, `building:{w}_hanging_sign`)
+            table.insert(names, `building:{w}_hanging_sign_diag`)
+        end
+        return names
+    end)(), function(cell)
+        signs[sign_key(cell.x, cell.y, cell.z)] = { cell.x, cell.y, cell.z }
+    end)
+
+    -- A player's words, in lines a board holds: at most four of about
+    -- sixteen letters, broken between words. Lines written with "\n" (a mod's
+    -- signs) are kept as they are.
+    local LINE, LINES = 16, 4
+    local function wrap(text: string): string
+        if string.find(text, "\n", 1, true) then return text end
+        local lines, cur = {}, ""
+        for word in string.gmatch(text, "%S+") do
+            if cur == "" then
+                cur = word
+            elseif #cur + 1 + #word <= LINE then
+                cur ..= " " .. word
+            else
+                table.insert(lines, cur)
+                cur = word
+            end
+        end
+        if cur ~= "" then table.insert(lines, cur) end
+        while #lines > LINES do table.remove(lines) end
+        return table.concat(lines, "\n")
     end
 
     local editing: { [number]: { number } } = {}
@@ -632,6 +726,7 @@ if serving then
     core.ui_field("building:sign", "text", 0.3, 1.2, 9.4, 1.2, "")
     core.event.on("core:placed", function(ev)
         if SIGNS[ev.id] then
+            signs[sign_key(ev.x, ev.y, ev.z)] = { ev.x, ev.y, ev.z }
             editing[ev.player] = { ev.x, ev.y, ev.z }
             core.ui_show("building:sign", true, ev.player)
         end
@@ -640,43 +735,90 @@ if serving then
         if ev.panel == "building:sign" and ev.id == "text" then
             local at = editing[ev.player]
             if at ~= nil then
-                core.meta_set(at[1], at[2], at[3], "text", string.sub(ev.text or "", 1, 90))
+                core.meta_set(at[1], at[2], at[3], "text", wrap(string.sub(ev.text or "", 1, 90)))
                 editing[ev.player] = nil
             end
             core.ui_show("building:sign", false, ev.player)
         end
     end)
 
-    -- What each player is looking at, read out to them when it is a sign.
-    local reading: { [number]: string } = {}
-    local look_clock = 0
-    core.event.on("core:tick", function(ev)
-        look_clock += ev.dt
-        if look_clock < 0.25 then
-            return
-        end
-        look_clock = 0
+    -- Each player is told the signs within NEAR of them, one message a sign
+    -- ("S x,y,z,kind,facing,wood" and its text after a \31), when it is new to
+    -- them or has changed, and "D x,y,z" when it is gone or they went away.
+    -- A message holds 512 bytes and a sign's text 256: one a sign.
+    local NEAR, A_TURN = 40, 32
+    local told: { [number]: { [string]: string } } = {}
+    local tell_clock, look_clock = 0, 4
+    -- And now and then, the signs round each player found by looking: a mod
+    -- that put one down with core.set_block (the pipes' demo) fired no
+    -- core:placed, and its chunk may have loaded before.
+    local SIGN_NAMES = {}
+    for id, _ in SIGN_KIND do table.insert(SIGN_NAMES, core.node_name(id)) end
+    local function look_round()
         for _, p in core.players() do
-            local x, y, z = core.player_pos(p)
-            local lx, ly, lz = core.player_look(p)
-            local text = ""
-            if x ~= nil and lx ~= nil then
-                local hx, hy, hz = core.raycast(x, y + 1.5, z, lx, ly, lz, 6)
-                if hx ~= nil and SIGNS[core.get_block(hx, hy, hz)] then
-                    text = core.meta_get(hx, hy, hz, "text") or ""
-                    if text == "" then
-                        text = " "
+            local px, py, pz = core.player_pos(p)
+            if px and py and pz then
+                local x, y, z = math.floor(px), math.floor(py), math.floor(pz)
+                for _, name in SIGN_NAMES do
+                    local found = core.find_nodes(x - 32, y - 10, z - 32, x + 32, y + 10, z + 32, name)
+                    for i = 1, #found, 3 do
+                        signs[sign_key(found[i], found[i + 1], found[i + 2])] = { found[i], found[i + 1], found[i + 2] }
                     end
                 end
             end
-            if reading[p] ~= text then
-                reading[p] = text
-                if drawing then
-                    shown_sign = text
-                else
-                    core.net.send(p, "sign " .. text)
+        end
+    end
+    core.event.on("core:tick", function(ev)
+        tell_clock += ev.dt
+        look_clock += ev.dt
+        if tell_clock < 0.5 then
+            return
+        end
+        tell_clock = 0
+        if look_clock >= 4 then
+            look_clock = 0
+            look_round()
+        end
+        for k, s in signs do
+            if not SIGNS[core.get_block(s[1], s[2], s[3])] then signs[k] = nil end
+        end
+        local here: { [number]: boolean } = {}
+        for _, p in core.players() do
+            here[p] = true
+            local mine = told[p] or {}
+            told[p] = mine
+            local px, py, pz = core.player_pos(p)
+            local sent = 0
+            local function say(text: string)
+                if drawing then heard_sign(text) else core.net.send(p, text) end
+                sent += 1
+            end
+            if px and py and pz then
+                for k, s in signs do
+                    if sent >= A_TURN then break end
+                    if (s[1] - px) ^ 2 + (s[2] - py) ^ 2 + (s[3] - pz) ^ 2 < NEAR * NEAR then
+                        local id = core.get_block(s[1], s[2], s[3])
+                        local what = `S {k},{SIGN_KIND[id]},{core.get_facing(s[1], s[2], s[3])},{SIGN_WOOD[id]}\31`
+                            .. core.meta_get(s[1], s[2], s[3], "text")
+                        if mine[k] ~= what then
+                            mine[k] = what
+                            say(what)
+                        end
+                    end
                 end
             end
+            for k in mine do
+                if sent >= A_TURN then break end
+                local s = signs[k]
+                if not s or not px or not py or not pz
+                    or (s[1] - px) ^ 2 + (s[2] - py) ^ 2 + (s[3] - pz) ^ 2 >= (NEAR + 4) ^ 2 then
+                    mine[k] = nil
+                    say(`D {k}`)
+                end
+            end
+        end
+        for p in told do
+            if not here[p] then told[p] = nil end
         end
     end)
 
@@ -958,19 +1100,55 @@ end
 if drawing then
     if not serving then
         core.event.on("core:net_message", function(ev)
-            if string.sub(ev.text, 1, 5) == "sign " then
-                shown_sign = string.sub(ev.text, 6)
-            end
+            heard_sign(ev.text)
         end)
     end
-    core.hud.pass("building:sign", 50, function()
-        if shown_sign ~= "" and shown_sign ~= " " then
-            local _, n = string.gsub(shown_sign, "\n", "")
-            core.hud.rect(0.5, 0.40, 0.42, 0.06 + n * 0.04, 90, 64, 36, 220)
-            local y = 0.40 - n * 0.02
-            for line in string.gmatch(shown_sign, "[^\n]+") do
-                core.hud.text(0.5, y, line, 0.03, 1, 255, 245, 220, 255)
-                y += 0.04
+    -- Every sign near, its words on its board: in front of the board's face by
+    -- a hair more than its rim stands out (tools/make_sign_models.py), inside
+    -- the rim, dark ink on a light wood and light on a dark one.
+    local FRONT = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } }   -- an upright block's front: +Z, +X, -Z, -X
+    local NORMAL = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } }
+    local OUT = 0.12 / 16 + 0.003            -- the rim's height and a hair: where the words are, off the face
+    local DARK = { spruce = true, dark_oak = true }
+    local SHOWN = 32
+    core.render.pass("building:signs", 60, function()
+        local me = core.players()[1]
+        if me == nil then return end
+        local px, py, pz = core.player_pos(me)
+        if px == nil or py == nil or pz == nil then return end
+        for _, s in world_signs do
+            if s.text ~= "" and (s.x + 0.5 - px) ^ 2 + (s.y + 0.5 - py) ^ 2 + (s.z + 0.5 - pz) ^ 2 < SHOWN * SHOWN then
+                local fx, fz, cx, cy, cz, mh = 0, 0, 0, 0, 0, 0
+                if s.kind == "wall" then
+                    -- Its front out of the face it was put on (a wallmounted
+                    -- block's facing), its back against the wall behind.
+                    local n = NORMAL[s.f + 1]
+                    if n and n[2] == 0 then
+                        fx, fz = n[1], n[3]
+                        local face = 0.5 - 1 / 16 - OUT
+                        cx, cy, cz = s.x + 0.5 - fx * face, s.y + 8.5 / 16, s.z + 0.5 - fz * face
+                        mh = 0.42
+                    end
+                else
+                    -- Standing or hanging, square to the cell or an eighth of a turn round.
+                    local turned = s.kind == "diag" or s.kind == "hangdiag"
+                    local a = (if turned then math.pi / 4 else 0) + s.f * math.pi / 2
+                    fx, fz = math.sin(a), math.cos(a)
+                    if not turned then
+                        local fr = FRONT[s.f % 4 + 1]
+                        fx, fz = fr[1], fr[2]
+                    end
+                    local face = 0.5 / 16 + OUT
+                    local up = if s.kind == "hang" or s.kind == "hangdiag" then 10 / 16 else 0.75
+                    cx, cy, cz = s.x + 0.5 + fx * face, s.y + up, s.z + 0.5 + fz * face
+                    mh = 0.36
+                end
+                -- Only from in front: its back is a plain board.
+                if (fx ~= 0 or fz ~= 0) and (px - cx) * fx + (pz - cz) * fz > 0 then
+                    local ink = if DARK[s.wood] then { 240, 230, 206 } else { 22, 14, 6 }
+                    core.render.text(s.text, cx, cy, cz, math.atan2(-fx, fz), 0.1, ink[1], ink[2], ink[3], 255,
+                                     0.72, mh)
+                end
             end
         end
     end)

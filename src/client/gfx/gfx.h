@@ -229,6 +229,18 @@ void gfx_2d_scissor(float x, float y, float w, float h);
 float gfx_2d_text(const char *text, float x, float y, float size, const float rgba[4]);
 float gfx_2d_text_width(const char *text, float size);
 
+// Text in the same font on a plane in the WORLD (core.render.text): the lines
+// of `text` (split at '\n'), each centred, the block of them centred on
+// `center`; `right` and `up` are unit vectors in the plane, and `size` is a
+// line's height in world units. Drawn with the depth test on and without
+// writing depth, so what stands in front hides it and it hides nothing; seen
+// only from its front -- the side `right` x `up` points to. `projection` and
+// `view` are the pass's. Returns the widest line's width, in world units.
+float gfx_3d_text(const char *text, const float center[3], const float right[3], const float up[3], float size,
+                  const float rgba[4], const float projection[16], const float view[16]);
+// How wide that text would be at `size` (its widest line), and how many lines it has.
+float gfx_3d_text_width(const char *text, float size, int *lines);
+
 // ------------------------------------------------------------------ shaders
 
 gfx_shader gfx_shader_create(const char *vs_source, const char *fs_source);

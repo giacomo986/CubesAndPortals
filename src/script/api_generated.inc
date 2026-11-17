@@ -2665,6 +2665,55 @@ int l_recipe_shapeless(lua_State *L)
     return 1;
 }
 
+// core.recipe_count() -> number
+int l_recipe_count(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int result = (vm && vm->host.recipe_count) ? vm->host.recipe_count(vm->host.ud) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.recipe_result(i: number) -> string
+int l_recipe_result(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int i = (int)luaL_checkinteger(L, 1);
+    const char *result = (vm && vm->host.recipe_result) ? vm->host.recipe_result(vm->host.ud, i) : nullptr;
+    lua_pushstring(L, result ? result : "");
+    return 1;
+}
+
+// core.recipe_yield(i: number) -> number
+int l_recipe_yield(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int i = (int)luaL_checkinteger(L, 1);
+    const int result = (vm && vm->host.recipe_yield) ? vm->host.recipe_yield(vm->host.ud, i) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+// core.recipe_items(i: number) -> string
+int l_recipe_items(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int i = (int)luaL_checkinteger(L, 1);
+    const char *result = (vm && vm->host.recipe_items) ? vm->host.recipe_items(vm->host.ud, i) : nullptr;
+    lua_pushstring(L, result ? result : "");
+    return 1;
+}
+
+// core.item_leaves(item: string) -> string
+int l_item_leaves(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const char *item = (const char *)luaL_checkstring(L, 1);
+    const char *result = (vm && vm->host.item_leaves) ? vm->host.item_leaves(vm->host.ud, item) : nullptr;
+    lua_pushstring(L, result ? result : "");
+    return 1;
+}
+
 // core.recipe_dye(item: string) -> number
 int l_recipe_dye(lua_State *L)
 {
@@ -3937,6 +3986,16 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "recipe_shaped");
     lua_pushcfunction(L, l_recipe_shapeless, "core.recipe_shapeless");
     lua_setfield(L, -2, "recipe_shapeless");
+    lua_pushcfunction(L, l_recipe_count, "core.recipe_count");
+    lua_setfield(L, -2, "recipe_count");
+    lua_pushcfunction(L, l_recipe_result, "core.recipe_result");
+    lua_setfield(L, -2, "recipe_result");
+    lua_pushcfunction(L, l_recipe_yield, "core.recipe_yield");
+    lua_setfield(L, -2, "recipe_yield");
+    lua_pushcfunction(L, l_recipe_items, "core.recipe_items");
+    lua_setfield(L, -2, "recipe_items");
+    lua_pushcfunction(L, l_item_leaves, "core.item_leaves");
+    lua_setfield(L, -2, "item_leaves");
     lua_pushcfunction(L, l_recipe_dye, "core.recipe_dye");
     lua_setfield(L, -2, "recipe_dye");
     lua_pushcfunction(L, l_item_dye, "core.item_dye");

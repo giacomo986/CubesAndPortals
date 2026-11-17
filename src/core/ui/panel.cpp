@@ -34,6 +34,9 @@ int PanelPlacement::button_at(const Panel &p, float px, float py) const
     for (size_t i = p.elements.size(); i-- > 0;) {
         const Element &e = p.elements[i];
         if (e.kind != ElemKind::Button && e.kind != ElemKind::Field && e.kind != ElemKind::Item) continue;
+        // An item with no id is a picture only (a mark on another): it is
+        // not clicked and does not take the pointer from what is under it.
+        if (e.kind == ElemKind::Item && e.id.empty()) continue;
 
         float ex, ey, ew, eh;
         rect_of(e, ex, ey, ew, eh);
@@ -151,7 +154,7 @@ bool PanelSet::add(const std::string &panel, const std::string &owner, const Ele
     // A button with no id answers a click with nothing, which reaches a mod as
     // an event it cannot tell from any other button's. Refused rather than
     // given a number, because a generated id is one a mod cannot write down.
-    if ((e.kind == ElemKind::Button || e.kind == ElemKind::Field || e.kind == ElemKind::Item) && e.id.empty()) {
+    if ((e.kind == ElemKind::Button || e.kind == ElemKind::Field) && e.id.empty()) {
         err = "a button on '" + panel + "' needs an id, or a click means nothing";
         return false;
     }

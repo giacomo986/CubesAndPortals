@@ -784,6 +784,8 @@ perché di ciascuno è in [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 - [`docs/MODDING.md`](docs/MODDING.it.md): scrivere un mod; [`docs/API.md`](docs/API.md): l'API
   Luau, generata da `src/script/api.luau`.
 - [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.it.md): fare un texture pack.
+- [`docs/PIPES.md`](docs/PIPES.it.md): i tubi, i chip e le reti di oggetti, per chi gioca e per
+  chi scrive mod.
 - [`docs/BUILDING.md`](docs/BUILDING.it.md): compilare, pacchetti, versioni e il repository Flatpak.
 - [`TODO.md`](TODO.md) (in inglese): cosa manca e cosa non va.
 - [`docs/archive/`](docs/archive/README.md): lo storico, milestone per milestone, con le misure.

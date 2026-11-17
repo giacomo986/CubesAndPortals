@@ -633,6 +633,7 @@ core.render.fx(kind, x, y, z, size?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- a l
 core.render.camera(id, x, y, z, yaw?, pitch?, fov?, still?)   -- a camera's picture, drawn now and then (still: once)
 core.render.camera_drop(id)                      -- and forgotten
 core.render.screen(id, x, y, z, yaw?, w?, h?, plain?)   -- a camera's picture on a rectangle, only inside a pass
+core.render.text(text, x, y, z, yaw?, size?, r?, g?, b?, a?, max_w?, max_h?)   -- words in the world, only inside a pass
 core.render.camera_read(id)                      -- its last picture, 64 x 64 in base64 ("" for none yet)
 core.render.photo(id, data)                      -- a camera made of such a picture, never drawn
 core.overcast(how_much)                          -- grey sky and clouds, 0..1: the weather (mods/weather)
@@ -857,6 +858,14 @@ of it has been shown in the last second, two pictures a frame at most and each a
 frame: a screen's picture is a little behind, and sixty-four cameras a world, still ones included, is the most. A mod's ids are
 its own. Client only, like every `core.render`; what a camera sees is not known to the server
 (`mods/cameras` works out its own seeing with rays).
+
+**Words in the world.** Inside a pass, `core.render.text(text, x, y, z, yaw, size, r, g, b, a, max_w,
+max_h)` writes `text` in the game's font on an upright plane, its lines (split at `\n`) each centred and
+the block of them centred on `x, y, z`, facing along `yaw` as a screen does (0 towards +z), `size` a
+line's height in nodes (0.1 if not said), white if no colour is said. Given `max_w` and `max_h` (> 0),
+it is made smaller -- never larger -- to fit that box. Each line is put in the player's language first
+(`assets/lang`), as the hud's text is. Walls in front hide it, it hides nothing, and it is seen only from
+the front. `mods/building` writes its signs with it.
 
 A still camera is drawn the first frame after it is made, shown on a screen or not: the moment it is
 made is the moment of the picture. **A photograph that travels:** `core.render.camera_read(id)` gives

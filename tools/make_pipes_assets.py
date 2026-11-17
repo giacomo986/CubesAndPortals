@@ -76,6 +76,8 @@ PIPES = {
     "item_pipe": ((170, 190, 200), None), "junction_pipe": ((70, 75, 80), (90, 220, 110)),
     "interface_pipe": ((70, 75, 80), (230, 190, 60)), "request_pipe": ((70, 75, 80), (80, 140, 240)),
     "firewall_pipe": ((70, 75, 80), (220, 70, 50)),
+    "latency_pipe": ((120, 90, 150), None), "valve_pipe": ((70, 75, 80), (150, 40, 40)),
+    "crafting_pipe": ((70, 75, 80), (230, 140, 40)), "extension_pipe": ((70, 75, 80), (230, 205, 120)),
 }
 # Chips: a little board with a stripe in its colour (the wiki's illumar).
 CHIPS = {
@@ -83,6 +85,7 @@ CHIPS = {
     "dynamic_responder_chip": (40, 190, 200), "overflow_chip": (90, 200, 70),
     "terminator_chip": (160, 80, 210), "extractor_chip": (40, 170, 190),
     "broadcaster_chip": (220, 80, 200), "stock_keeper_chip": (60, 90, 220),
+    "recipe_chip": (240, 200, 50),
 }
 OUTLINE = (30, 24, 20, 255)
 
@@ -113,6 +116,55 @@ def chip_icon(name, colour):
     im.save(os.path.join(ICONS, f"pipes_{name}.png"))
 
 
+def wrench_icon():
+    """The pipe wrench: a tool of its own (it turns an interface to its next
+    container, as the screwdriver does), and the small mark in the corner of
+    what the request pipe's network can craft."""
+    big = 8   # drawn eight times over and brought down, for clean diagonals
+    im = Image.new("RGBA", (32 * big, 32 * big), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+
+    def line(a, b, w, c):
+        d.line([(a[0] * big, a[1] * big), (b[0] * big, b[1] * big)], fill=c, width=int(w * big))
+
+    def disc(cx, cy, r, c):
+        d.ellipse(((cx - r) * big, (cy - r) * big, (cx + r) * big, (cy + r) * big), fill=c)
+
+    steel, light, dark = (170, 178, 188, 255), (225, 230, 236, 255), (40, 44, 52, 255)
+    # outline first, a pixel wider all round
+    line((6, 26), (19, 13), 7, dark)
+    disc(22, 10, 8, dark)
+    disc(5.5, 26.5, 4.2, dark)
+    line((6, 26), (19, 13), 5, steel)
+    disc(22, 10, 6.5, steel)
+    disc(5.5, 26.5, 2.8, steel)
+    line((6.5, 24.5), (18.5, 12.5), 1.4, light)
+    # the jaw: an open square bitten out of the head, towards the corner
+    d.polygon([(22 * big, 10 * big), (27 * big, 1 * big), (33 * big, 7 * big), (25 * big, 13 * big)],
+              fill=(0, 0, 0, 0))
+    d.polygon([(21 * big, 9 * big), (26 * big, 1 * big), (28 * big, 3 * big), (23 * big, 11 * big)],
+              fill=(0, 0, 0, 0))
+    disc(5.5, 26.5, 1.2, (0, 0, 0, 0))   # the hole to hang it by
+    im = im.resize((32, 32), Image.LANCZOS)
+    im.save(os.path.join(ICONS, "pipes_wrench.png"))
+
+
+def router_icon():
+    """The pipe router: a little handset with a screen showing a network."""
+    im = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    d.rounded_rectangle((7, 3, 24, 28), radius=3, fill=(60, 64, 72, 255), outline=OUTLINE)
+    d.rectangle((10, 6, 21, 17), fill=(30, 60, 40, 255), outline=(20, 24, 28, 255))
+    for a, b in (((12, 9), (19, 9)), ((15, 9), (15, 15)), ((12, 15), (19, 15))):
+        d.line([a, b], fill=(110, 230, 130, 255), width=1)
+    for p in ((12, 9), (19, 9), (15, 15), (12, 15), (19, 15)):
+        d.rectangle((p[0] - 1, p[1] - 1, p[0] + 1, p[1] + 1), fill=(200, 255, 200, 255))
+    for i, c in enumerate(((220, 70, 50), (90, 220, 110), (80, 140, 240))):
+        d.rectangle((10 + i * 4, 21, 12 + i * 4, 23), fill=c + (255,))
+    d.rectangle((14, 0, 16, 3), fill=(190, 190, 180, 255))
+    im.save(os.path.join(ICONS, "pipes_router.png"))
+
+
 def main():
     os.makedirs(MOD, exist_ok=True)
     for name, rgb in AURAS.items():
@@ -121,7 +173,9 @@ def main():
         pipe_icon(name, body, band)
     for name, colour in CHIPS.items():
         chip_icon(name, colour)
-    print(f"{len(AURAS)} auras in mods/pipes, {len(PIPES) + len(CHIPS)} icons in assets/textures")
+    wrench_icon()
+    router_icon()
+    print(f"{len(AURAS)} auras in mods/pipes, {len(PIPES) + len(CHIPS) + 2} icons in assets/textures")
 
 
 if __name__ == "__main__":

@@ -502,6 +502,16 @@ A cell at y -1073741824 or below is not in the world: a container there is CARRI
     recipe_shaped: (makes: string, count: number, row1: string, row2: string?, row3: string?) -> number,
     -- A recipe with no shape: those things, that many cells, anywhere in the grid. Names separated by spaces, and naming one twice means two cells of it. The same things in another order are the same recipe and are refused as one.
     recipe_shapeless: (makes: string, count: number, items: string) -> number,
+    -- How many recipes there are, every mod's: core.recipe_result, recipe_yield and recipe_items read them one by one, from 1. What a machine that crafts for a player needs to know what it could make (mods/pipes' request pipe).
+    recipe_count: () -> number,
+    -- The name of what that recipe makes, empty for no such recipe.
+    recipe_result: (i: number) -> string,
+    -- How many that recipe makes at a time, 0 for no such recipe.
+    recipe_yield: (i: number) -> number,
+    -- What that recipe spends, by name separated by spaces: one word a cell of the grid, so a thing named twice is two of it. The shape and the empty cells are left out -- what is needed, not where. Empty for no such recipe.
+    recipe_items: (i: number) -> string,
+    -- What is left of that item when a recipe spends it, by name (core.item_returns set it): a bucket of milk leaves a bucket. Empty for an item that leaves nothing. What a machine that crafts gives back (mods/pipes).
+    item_leaves: (item: string) -> string,
     -- Makes a thing take colours at a table: it and one to three dyes (core.item_dye), anywhere in the grid, make the same one again -- its tag kept, so a thing with contents keeps them -- with its first colours those dyes in reading order and the rest as they were. Three colours a thing, each one of the sixteen; its models draw them on materials named tint_1, tint_2 and tint_3, and a slot shows them as three marks. Returns 1.
     recipe_dye: (item: string) -> number,
     -- Makes an item a dye for core.recipe_dye. Returns 1, or 0 for a dye out of range.

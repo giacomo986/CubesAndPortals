@@ -8,7 +8,7 @@ Tutto sotto `core`. I tipi sono quelli che il type checker vede in
 **Quello che non e' qui.** Le chiamate che prendono tabelle o funzioni
 sono scritte a mano in `src/script/script_luau.cpp` e documentate in
 [MODDING.md](MODDING.md); il generatore rifiuta di girare se una manca da li'.
-Sono: `core.register_mapgen`, `core.register_abm`, `core.register_lbm`, `core.event.define`, `core.event.on`, `core.event.emit`, `core.ecs.component`, `core.ecs.phase`, `core.ecs.system`, `core.ecs.spawn`, `core.ecs.set`, `core.ecs.get`, `core.ecs.kill`, `core.ecs.visible`, `core.ecs.model`, `core.ecs.health`, `core.ecs.clip`, `core.ecs.box`, `core.ecs.count`, `core.craft.make`, `core.craft.keys`, `core.craft.pose`, `core.craft.push`, `core.craft.mount`, `core.craft.aim`, `core.craft.seat`, `core.net.open`, `core.net.send`, `core.render.pass`, `core.render.box`, `core.render.model`, `core.render.fx`, `core.render.camera`, `core.render.camera_drop`, `core.render.screen`, `core.render.camera_read`, `core.render.photo`, `core.hud.pass`, `core.hud.text`, `core.hud.rect`, `core.hud.aspect`, `core.hud.image`, `core.hud.item`, `core.hud.mouse`.
+Sono: `core.register_mapgen`, `core.register_abm`, `core.register_lbm`, `core.event.define`, `core.event.on`, `core.event.emit`, `core.ecs.component`, `core.ecs.phase`, `core.ecs.system`, `core.ecs.spawn`, `core.ecs.set`, `core.ecs.get`, `core.ecs.kill`, `core.ecs.visible`, `core.ecs.model`, `core.ecs.health`, `core.ecs.clip`, `core.ecs.box`, `core.ecs.count`, `core.craft.make`, `core.craft.keys`, `core.craft.pose`, `core.craft.push`, `core.craft.mount`, `core.craft.aim`, `core.craft.seat`, `core.net.open`, `core.net.send`, `core.render.pass`, `core.render.box`, `core.render.model`, `core.render.fx`, `core.render.camera`, `core.render.camera_drop`, `core.render.screen`, `core.render.text`, `core.render.camera_read`, `core.render.photo`, `core.hud.pass`, `core.hud.text`, `core.hud.rect`, `core.hud.aspect`, `core.hud.image`, `core.hud.item`, `core.hud.mouse`.
 
 ## `core.set_block`
 
@@ -2553,7 +2553,7 @@ Puts an item's picture on a panel, in a square like a slot of the bag, with its 
 | argomento | tipo | default | note |
 |---|---|---|---|
 | `panel` | string | — |  |
-| `id` | string | — | What core:ui_click carries back. One without it is refused. |
+| `id` | string | — | What core:ui_click carries back. Empty: a picture only, not clicked and with no tooltip -- a mark drawn over another item, which keeps the pointer. |
 | `x` | number | — |  |
 | `y` | number | — |  |
 | `w` | number | — |  |
@@ -3110,6 +3110,62 @@ A recipe with no shape: those things, that many cells, anywhere in the grid. Nam
 | `makes` | string | — |  |
 | `count` | number | — |  |
 | `items` | string | — |  |
+
+## `core.recipe_count`
+
+```luau
+core.recipe_count() -> number
+```
+
+How many recipes there are, every mod's: core.recipe_result, recipe_yield and recipe_items read them one by one, from 1. What a machine that crafts for a player needs to know what it could make (mods/pipes' request pipe).
+
+## `core.recipe_result`
+
+```luau
+core.recipe_result(i: number) -> string
+```
+
+The name of what that recipe makes, empty for no such recipe.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `i` | number | — | 1 to core.recipe_count(). |
+
+## `core.recipe_yield`
+
+```luau
+core.recipe_yield(i: number) -> number
+```
+
+How many that recipe makes at a time, 0 for no such recipe.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `i` | number | — | 1 to core.recipe_count(). |
+
+## `core.recipe_items`
+
+```luau
+core.recipe_items(i: number) -> string
+```
+
+What that recipe spends, by name separated by spaces: one word a cell of the grid, so a thing named twice is two of it. The shape and the empty cells are left out -- what is needed, not where. Empty for no such recipe.
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `i` | number | — | 1 to core.recipe_count(). |
+
+## `core.item_leaves`
+
+```luau
+core.item_leaves(item: string) -> string
+```
+
+What is left of that item when a recipe spends it, by name (core.item_returns set it): a bucket of milk leaves a bucket. Empty for an item that leaves nothing. What a machine that crafts gives back (mods/pipes).
+
+| argomento | tipo | default | note |
+|---|---|---|---|
+| `item` | string | — |  |
 
 ## `core.recipe_dye`
 

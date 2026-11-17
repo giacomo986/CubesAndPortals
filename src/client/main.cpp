@@ -2280,6 +2280,45 @@ int host_render_screen(void *ud, int id, double x, double y, double z, double ya
     return 1;
 }
 
+// core.render.text: words in the world, a sign's (gfx_3d_text). Each line in
+// the player's language first, as the hud's are, and the whole made smaller,
+// never larger, to fit the box the mod gives.
+int host_render_text(void *ud, const char *text, double x, double y, double z, double yaw, double size, int r,
+                     int g, int b, int a, double max_w, double max_h)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    if (!s->in_pass) {
+        std::printf("[mod] render.text: only a render pass may draw\n");
+        return 0;
+    }
+    for (const double v : {x, y, z, yaw, size, max_w, max_h})
+        if (!std::isfinite(v)) return 0;
+    if (text == nullptr || *text == 0 || !(size > 0.0 && size <= 8.0)) return 0;
+    std::string said;
+    const std::string in(text, std::min<size_t>(std::strlen(text), 1024));
+    size_t start = 0;
+    for (;;) {
+        const size_t end = in.find('\n', start);
+        said += lang::tr(in.substr(start, end == std::string::npos ? std::string::npos : end - start));
+        if (end == std::string::npos) break;
+        said += '\n';
+        start = end + 1;
+    }
+    float f     = (float)size;
+    int   lines = 1;
+    const float w1 = gfx_3d_text_width(said.c_str(), 1.0f, &lines);
+    if (max_w > 0.0 && w1 * f > (float)max_w) f = (float)max_w / w1;
+    const float h1 = 1.25f * (float)(lines - 1) + 1.0f;
+    if (max_h > 0.0 && h1 * f > (float)max_h) f = (float)max_h / h1;
+    const float center[3] = {(float)x, (float)y, (float)z};
+    const float right[3]  = {(float)std::cos(yaw), 0.0f, (float)std::sin(yaw)};
+    const float up[3]     = {0.0f, 1.0f, 0.0f};
+    const float rgba[4]   = {std::clamp(r, 0, 255) / 255.0f, std::clamp(g, 0, 255) / 255.0f,
+                             std::clamp(b, 0, 255) / 255.0f, std::clamp(a, 0, 255) / 255.0f};
+    gfx_3d_text(said.c_str(), center, right, up, f, rgba, s->pass_projection.m, s->pass_view.m);
+    return 1;
+}
+
 // A photograph's size as it travels (core.render.camera_read, core.render.photo):
 // 64 pixels a side, each red 5 bits, green 6, blue 5, two bytes, the rows top
 // down, in base64 -- 10924 characters, a picture a mod can store and send.
@@ -4329,6 +4368,44 @@ int host_recipe_shapeless(void *ud, const char *makes, int count, const char *it
     return 0;
 }
 
+// The recipes read back, 1 to recipe_count (core.recipe_result and the rest).
+// The ingredients' string lives until the next call, which is as long as the
+// generated binding needs it.
+static const Recipe *nth_recipe(const RecipeSet &set, int i)
+{
+    if (i < 1 || (size_t)i > set.all().size()) return nullptr;
+    return &set.all()[(size_t)i - 1];
+}
+static const char *recipe_items_of(const Recipe *r)
+{
+    static std::string out;
+    out.clear();
+    if (!r) return "";
+    for (const std::string &n : r->pattern) {
+        if (n == kCraftHole || n.empty()) continue;
+        if (!out.empty()) out += ' ';
+        out += n;
+    }
+    return out.c_str();
+}
+
+int host_recipe_count(void *ud) { return (int)(static_cast<Scene *>(ud)->act().recipes).all().size(); }
+const char *host_recipe_result(void *ud, int i)
+{
+    const Recipe *r = nth_recipe(static_cast<Scene *>(ud)->act().recipes, i);
+    return r ? r->result.c_str() : "";
+}
+int host_recipe_yield(void *ud, int i)
+{
+    const Recipe *r = nth_recipe(static_cast<Scene *>(ud)->act().recipes, i);
+    return r ? (int)r->count : 0;
+}
+const char *host_item_leaves(void *ud, const char *item)
+{
+    return (static_cast<Scene *>(ud)->act().recipes).returns_of(item ? item : "").c_str();
+}
+const char *host_recipe_items(void *ud, int i) { return recipe_items_of(nth_recipe(static_cast<Scene *>(ud)->act().recipes, i)); }
+
 int host_recipe_dye(void *ud, const char *item)
 {
     std::string err;
@@ -5591,6 +5668,41 @@ void define_core_events(Scene &s)
                      {"id", SCRIPT_V_NUMBER}, {"fell", SCRIPT_V_NUMBER}};
     if (!s.act().mods.events().define(landed, err))
         std::fprintf(stderr, "core event 'core:landed': %s\n", err.c_str());
+
+    // The server's own events, declared here too: a mod that listens for an
+    // event nobody declared does not load at all, and mods/animals listening
+    // for core:died kept it -- and every mod that depends on it (cane, pipes,
+    // ...) -- out of the single-process client. core:died is emitted here as on
+    // a server (the loop's respawn); the other three cannot happen in this
+    // process and are only declared.
+    {
+        EventSchema died;
+        died.name   = "core:died";
+        died.owner  = "core";
+        died.fields = {{"player", SCRIPT_V_NUMBER}, {"x", SCRIPT_V_NUMBER}, {"y", SCRIPT_V_NUMBER},
+                       {"z", SCRIPT_V_NUMBER}};
+        if (!s.act().mods.events().define(died, err))
+            std::fprintf(stderr, "core event 'core:died': %s\n", err.c_str());
+        EventSchema burst;
+        burst.name   = "core:burst";
+        burst.owner  = "core";
+        burst.fields = {{"x", SCRIPT_V_NUMBER}, {"y", SCRIPT_V_NUMBER}, {"z", SCRIPT_V_NUMBER},
+                        {"nx", SCRIPT_V_NUMBER}, {"ny", SCRIPT_V_NUMBER}, {"nz", SCRIPT_V_NUMBER}};
+        if (!s.act().mods.events().define(burst, err))
+            std::fprintf(stderr, "core event 'core:burst': %s\n", err.c_str());
+        EventSchema arrived;
+        arrived.name   = "core:arrived";
+        arrived.owner  = "core";
+        arrived.fields = {{"player", SCRIPT_V_NUMBER}, {"from", SCRIPT_V_STRING}};
+        if (!s.act().mods.events().define(arrived, err))
+            std::fprintf(stderr, "core event 'core:arrived': %s\n", err.c_str());
+        EventSchema fed;
+        fed.name   = "core:fed_message";
+        fed.owner  = "core";
+        fed.fields = {{"server", SCRIPT_V_STRING}, {"mod", SCRIPT_V_STRING}, {"text", SCRIPT_V_STRING}};
+        if (!s.act().mods.events().define(fed, err))
+            std::fprintf(stderr, "core event 'core:fed_message': %s\n", err.c_str());
+    }
 
     EventSchema input;
     input.name        = "core:input";
@@ -21008,6 +21120,7 @@ int run_interactive(Scene &s, double seconds)
         if (s.died) {
             s.died          = false;
             if (scripted_phase == 1) scripted_died = true;
+            const Vec3 fell_at = player.pos;
             player.pos      = s.has_bed ? s.bed : spawn;
             player.yaw      = spawn_yaw;
             player.velocity = Vec3{};
@@ -21016,6 +21129,16 @@ int run_interactive(Scene &s, double seconds)
             // they land at the spawn.
             fall_reset(demo_fall, player.pos.y);
             std::printf("died, and was put back at the spawn\n");
+            // As the server says it (deaths_to_serve): already back, and where it fell.
+            script_field f[4] = {
+                {"player", SCRIPT_V_NUMBER, (double)ui::kLocalPlayer, nullptr, 0},
+                {"x", SCRIPT_V_NUMBER, (double)fell_at.x, nullptr, 0},
+                {"y", SCRIPT_V_NUMBER, (double)fell_at.y, nullptr, 0},
+                {"z", SCRIPT_V_NUMBER, (double)fell_at.z, nullptr, 0},
+            };
+            bool        ignored = false;
+            std::string died_err;
+            s.act().mods.events().emit("core:died", f, 4, &ignored, died_err);
         }
 
         {
@@ -21654,6 +21777,7 @@ script_host make_client_host(Scene &scene)
     host.render_camera      = host_render_camera;
     host.render_camera_drop = host_render_camera_drop;
     host.render_screen      = host_render_screen;
+    host.render_text        = host_render_text;
     host.render_camera_read = host_render_camera_read;
     host.render_photo       = host_render_photo;
     host.render_model  = host_render_model;
@@ -21727,6 +21851,11 @@ script_host make_client_host(Scene &scene)
     host.recipe_shaped    = host_recipe_shaped;
     host.recipe_shapeless = host_recipe_shapeless;
     host.recipe_dye       = host_recipe_dye;
+    host.recipe_count     = host_recipe_count;
+    host.recipe_result    = host_recipe_result;
+    host.recipe_yield     = host_recipe_yield;
+    host.recipe_items     = host_recipe_items;
+    host.item_leaves      = host_item_leaves;
     host.item_dye         = host_item_dye;
     host.item_returns     = host_item_returns;
     host.worn_id          = host_worn_id;

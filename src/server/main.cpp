@@ -4193,6 +4193,44 @@ int host_recipe_shapeless(void *ud, const char *makes, int count, const char *it
     return 0;
 }
 
+// The recipes read back, 1 to recipe_count (core.recipe_result and the rest).
+// The ingredients' string lives until the next call, which is as long as the
+// generated binding needs it.
+static const Recipe *nth_recipe(const RecipeSet &set, int i)
+{
+    if (i < 1 || (size_t)i > set.all().size()) return nullptr;
+    return &set.all()[(size_t)i - 1];
+}
+static const char *recipe_items_of(const Recipe *r)
+{
+    static std::string out;
+    out.clear();
+    if (!r) return "";
+    for (const std::string &n : r->pattern) {
+        if (n == kCraftHole || n.empty()) continue;
+        if (!out.empty()) out += ' ';
+        out += n;
+    }
+    return out.c_str();
+}
+
+int host_recipe_count(void *ud) { return (int)(static_cast<ServerState *>(ud)->recipes).all().size(); }
+const char *host_recipe_result(void *ud, int i)
+{
+    const Recipe *r = nth_recipe(static_cast<ServerState *>(ud)->recipes, i);
+    return r ? r->result.c_str() : "";
+}
+int host_recipe_yield(void *ud, int i)
+{
+    const Recipe *r = nth_recipe(static_cast<ServerState *>(ud)->recipes, i);
+    return r ? (int)r->count : 0;
+}
+const char *host_item_leaves(void *ud, const char *item)
+{
+    return (static_cast<ServerState *>(ud)->recipes).returns_of(item ? item : "").c_str();
+}
+const char *host_recipe_items(void *ud, int i) { return recipe_items_of(nth_recipe(static_cast<ServerState *>(ud)->recipes, i)); }
+
 int host_recipe_dye(void *ud, const char *item)
 {
     std::string err;
@@ -7454,6 +7492,11 @@ int serve_room(int argc, char **argv)
         host.recipe_shaped    = host_recipe_shaped;
         host.recipe_shapeless = host_recipe_shapeless;
         host.recipe_dye       = host_recipe_dye;
+        host.recipe_count     = host_recipe_count;
+        host.recipe_result    = host_recipe_result;
+        host.recipe_yield     = host_recipe_yield;
+        host.recipe_items     = host_recipe_items;
+        host.item_leaves      = host_item_leaves;
         host.item_dye         = host_item_dye;
         host.item_returns     = host_item_returns;
         host.worn_id          = host_worn_id;

@@ -16,6 +16,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 // GL core entry points raylib does not re-export. glEnable/glDisable have been
@@ -763,6 +764,151 @@ float gfx_2d_text(const char *text, float x, float y, float size, const float rg
     const float spacing = size / 10.0f;
     DrawTextEx(font, text, Vector2{x, y}, size, spacing, c);
     return MeasureTextEx(font, text, size, spacing).x;
+}
+
+// ----------------------------------------------------------------------- 3D text
+//
+// The 2D font's glyphs, as quads in the world: the same atlas, the same
+// advance and spacing DrawTextEx uses (rtext.c), so a sign reads like the hud.
+// Through rlgl's batch with the pass's matrices loaded for the length of the
+// call, and flushed before they are put back.
+
+namespace {
+
+constexpr float kLineGap = 1.25f;   // a line's step, in line heights
+
+// Each line of `text` (at '\n'), as a view into it.
+std::vector<std::pair<const char *, int>> text_lines(const char *text)
+{
+    std::vector<std::pair<const char *, int>> out;
+    const char *start = text;
+    for (const char *c = text;; ++c) {
+        if (*c == '\n' || *c == 0) {
+            out.emplace_back(start, (int)(c - start));
+            if (*c == 0) break;
+            start = c + 1;
+        }
+    }
+    return out;
+}
+
+// One line's width at `size`, in the units of `size`, as DrawTextEx lays it.
+float line_width(const Font &font, const char *s, int n, float size)
+{
+    const float scale = size / (float)font.baseSize, spacing = size / 10.0f;
+    float       w = 0.0f;
+    int         count = 0;
+    for (int i = 0; i < n;) {
+        int       bytes = 0;
+        const int cp    = GetCodepointNext(s + i, &bytes);
+        if (bytes <= 0) break;
+        i += bytes;
+        const int g = GetGlyphIndex(font, cp);
+        const float adv = font.glyphs[g].advanceX != 0 ? (float)font.glyphs[g].advanceX : font.recs[g].width;
+        w += adv * scale + spacing;
+        ++count;
+    }
+    return count > 0 ? w - spacing : 0.0f;
+}
+
+} // namespace
+
+float gfx_3d_text_width(const char *text, float size, int *lines)
+{
+    if (text == nullptr) {
+        if (lines) *lines = 0;
+        return 0.0f;
+    }
+    const Font font = GetFontDefault();
+    const auto ls   = text_lines(text);
+    float      w    = 0.0f;
+    for (const auto &l : ls) w = std::max(w, line_width(font, l.first, l.second, size));
+    if (lines) *lines = (int)ls.size();
+    return w;
+}
+
+float gfx_3d_text(const char *text, const float center[3], const float right[3], const float up[3], float size,
+                  const float rgba[4], const float projection[16], const float view[16])
+{
+    if (text == nullptr || *text == 0 || !(size > 0.0f)) return 0.0f;
+    const Font  font  = GetFontDefault();
+    const float scale = size / (float)font.baseSize, spacing = size / 10.0f;
+    const auto  ls    = text_lines(text);
+
+    gfx_shader_bind_default();
+    rlDrawRenderBatchActive();
+    // The pass's matrices in place of rlgl's own, and theirs back after. Not
+    // through rlPushMatrix: in modelview mode that does not keep the matrix
+    // but starts a transform applied to the vertices on the CPU, on a stack
+    // the projection shares, and a second text in one pass came out nowhere.
+    const Matrix was_projection = rlGetMatrixProjection();
+    const Matrix was_view       = rlGetMatrixModelview();
+    rlSetMatrixProjection(to_raylib(projection));
+    rlSetMatrixModelview(to_raylib(view));
+    rlEnableDepthTest();
+    rlDisableDepthMask();
+    rlEnableColorBlend();
+    rlSetBlendMode(RL_BLEND_ALPHA);
+    rlEnableBackfaceCulling();
+
+    // A point of the text's plane, (px right, py down) from the block's top left.
+    const float block_h = size * (kLineGap * (float)(ls.size() - 1) + 1.0f);
+    float       widest  = 0.0f;
+    auto at = [&](float px, float py, float half_w) {
+        const float x = px - half_w, y = block_h * 0.5f - py;
+        rlVertex3f(center[0] + right[0] * x + up[0] * y, center[1] + right[1] * x + up[1] * y,
+                   center[2] + right[2] * x + up[2] * y);
+    };
+    const float tw = (float)font.texture.width, th = (float)font.texture.height;
+    const unsigned char cr = (unsigned char)(std::clamp(rgba[0], 0.0f, 1.0f) * 255.0f),
+                        cg = (unsigned char)(std::clamp(rgba[1], 0.0f, 1.0f) * 255.0f),
+                        cb = (unsigned char)(std::clamp(rgba[2], 0.0f, 1.0f) * 255.0f),
+                        ca = (unsigned char)(std::clamp(rgba[3], 0.0f, 1.0f) * 255.0f);
+    for (size_t li = 0; li < ls.size(); ++li) {
+        const char *s = ls[li].first;
+        const int   n = ls[li].second;
+        const float w = line_width(font, s, n, size);
+        widest = std::max(widest, w);
+        const float half_w = w * 0.5f, top = size * kLineGap * (float)li;
+        float       pen = 0.0f;
+        for (int i = 0; i < n;) {
+            int       bytes = 0;
+            const int cp    = GetCodepointNext(s + i, &bytes);
+            if (bytes <= 0) break;
+            i += bytes;
+            const int       g   = GetGlyphIndex(font, cp);
+            const Rectangle rec = font.recs[g];
+            const float     adv = font.glyphs[g].advanceX != 0 ? (float)font.glyphs[g].advanceX : rec.width;
+            if (cp != ' ' && cp != '\t') {
+                const float pad = (float)font.glyphPadding;
+                const float x0 = pen + ((float)font.glyphs[g].offsetX - pad) * scale;
+                const float y0 = top + ((float)font.glyphs[g].offsetY - pad) * scale;
+                const float x1 = x0 + (rec.width + 2.0f * pad) * scale;
+                const float y1 = y0 + (rec.height + 2.0f * pad) * scale;
+                const float u0 = (rec.x - pad) / tw, v0 = (rec.y - pad) / th;
+                const float u1 = (rec.x + rec.width + pad) / tw, v1 = (rec.y + rec.height + pad) / th;
+                rlCheckRenderBatchLimit(4);
+                rlSetTexture(font.texture.id);
+                rlBegin(RL_QUADS);
+                rlColor4ub(cr, cg, cb, ca);
+                // Counter-clockwise seen from the front: top left, bottom left,
+                // bottom right, top right.
+                rlTexCoord2f(u0, v0); at(x0, y0, half_w);
+                rlTexCoord2f(u0, v1); at(x0, y1, half_w);
+                rlTexCoord2f(u1, v1); at(x1, y1, half_w);
+                rlTexCoord2f(u1, v0); at(x1, y0, half_w);
+                rlEnd();
+                rlSetTexture(0);
+            }
+            pen += adv * scale + spacing;
+        }
+    }
+
+    rlDrawRenderBatchActive();
+    rlSetMatrixProjection(was_projection);
+    rlSetMatrixModelview(was_view);
+    rlEnableDepthMask();
+    return widest;
 }
 
 float gfx_2d_text_width(const char *text, float size)

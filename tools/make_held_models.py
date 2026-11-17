@@ -1292,6 +1292,9 @@ M["screen_land"] = material("ScreenLand", (0.30, 0.62, 0.30), 0.0, 0.3, glow=Tru
 BLOCK_ICONS["cameras:screen"] = block_icon([((0.0, 0.0, 0.0, 1.0, 1.0, 0.125), "screen_case"),
                                             ((0.07, 0.4, 0.125, 0.93, 0.93, 0.135), "screen_glass"),
                                             ((0.07, 0.07, 0.125, 0.93, 0.4, 0.135), "screen_land")])
+# tools/make_pipes_machines.py: the automatic crafting table and furnace, standing.
+BLOCK_ICONS["pipes:autocrafter"] = from_block("mods/pipes/autocrafter.gltf")
+BLOCK_ICONS["pipes:autofurnace"] = from_block("mods/pipes/autofurnace.gltf")
 # tools/make_piston_models.py
 BLOCK_ICONS["cinnabar:piston"] = from_block("mods/cinnabar/piston.gltf")
 BLOCK_ICONS["cinnabar:sticky_piston"] = from_block("mods/cinnabar/sticky_piston.gltf")

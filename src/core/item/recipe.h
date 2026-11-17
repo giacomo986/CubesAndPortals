@@ -112,6 +112,13 @@ public:
     // What is left of an item spent in a recipe (core.item_returns): a
     // bucket of milk leaves the bucket in its square.
     void add_returns(const std::string &item, const std::string &back) { m_returns[item] = back; }
+    // And read back (core.item_leaves): empty for an item that leaves nothing.
+    const std::string &returns_of(const std::string &item) const
+    {
+        static const std::string none;
+        const auto it = m_returns.find(item);
+        return it == m_returns.end() ? none : it->second;
+    }
 
     // What this grid makes: a thing dyed, or else what a recipe makes. The one
     // question a table asks; match and result_of are its second half.

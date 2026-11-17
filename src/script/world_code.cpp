@@ -184,6 +184,11 @@ script_host world_code_host(script_host full)
     h.player_fly      = nullptr;
     h.worn_set_id     = nullptr;
     h.recipe_dye      = nullptr;
+    h.recipe_count    = nullptr;
+    h.recipe_result   = nullptr;
+    h.recipe_yield    = nullptr;
+    h.recipe_items    = nullptr;
+    h.item_leaves     = nullptr;
     h.item_dye        = nullptr;
     h.drive           = no_drive;
     h.body_drive      = no_body_drive;

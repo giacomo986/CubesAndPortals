@@ -763,6 +763,7 @@ The documents are in Italian.
 - [`docs/MODDING.md`](docs/MODDING.md): writing a mod; [`docs/API.md`](docs/API.md): the Luau
   API, generated from `src/script/api.luau`.
 - [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.md): making a texture pack.
+- [`docs/PIPES.md`](docs/PIPES.md): pipes, chips and item networks, for players and mod writers.
 - [`docs/BUILDING.md`](docs/BUILDING.md): building, packages, versions and the Flatpak repository.
 - [`TODO.md`](TODO.md) (English): what is missing and what is broken.
 - [`docs/archive/`](docs/archive/README.md): the history, milestone by milestone, with the

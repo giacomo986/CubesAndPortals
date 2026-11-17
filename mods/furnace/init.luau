@@ -117,6 +117,18 @@ local SMELTS = {
     { "woods:dark_oak_log", "furnace:charcoal", 0.15 },
 }
 
+-- What a furnace smelts and what it burns, told to a mod that asks: the
+-- automatic furnace of mods/pipes smelts by this same table. Emitting
+-- furnace:ask {who} is answered at once with a furnace:smelt for each pair and a
+-- furnace:fuel for each fuel (how many smelts one of it is worth), by name.
+core.event.define("furnace:ask", { fields = { who = "string" }, cancellable = false })
+core.event.define("furnace:smelt", { fields = { from = "string", to = "string" }, cancellable = false })
+core.event.define("furnace:fuel", { fields = { item = "string", smelts = "number" }, cancellable = false })
+core.event.on("furnace:ask", function(_)
+    for _, s in SMELTS do core.event.emit("furnace:smelt", { from = s[1], to = s[2] }) end
+    for _, f in FUELS do core.event.emit("furnace:fuel", { item = f[1], smelts = f[2] }) end
+end)
+
 -- Each row takes only its own: the ore row what smelts, the fuel row what burns.
 do
     local raw, fuel = {}, {}

@@ -674,6 +674,7 @@ core.render.fx(tipo, x, y, z, misura?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- u
 core.render.camera(id, x, y, z, yaw?, pitch?, fov?, still?)   -- l'immagine di una telecamera, disegnata ogni tanto (still: una volta)
 core.render.camera_drop(id)                      -- e dimenticata
 core.render.screen(id, x, y, z, yaw?, w?, h?, plain?)   -- l'immagine di una telecamera su un rettangolo, solo dentro un pass
+core.render.text(text, x, y, z, yaw?, size?, r?, g?, b?, a?, max_w?, max_h?)   -- scritte nel mondo, solo dentro un pass
 core.render.camera_read(id)                      -- la sua ultima immagine, 64 x 64 in base64 ("" se non ancora)
 core.render.photo(id, dati)                      -- una telecamera fatta di quell'immagine, mai disegnata
 core.overcast(quanto)                            -- cielo e nuvole grigi, 0..1: il meteo (mods/weather)
@@ -930,6 +931,15 @@ due immagini per fotogramma e ognuna al più ogni quarto fotogramma: l'immagine 
 indietro, e sessantaquattro telecamere per mondo, ferme comprese, sono il massimo. Gli id di un mod sono suoi. Solo sul client,
 come ogni `core.render`; cosa vede una telecamera il server non lo sa (`mods/cameras` calcola da sé cosa
 vede, con dei raggi).
+
+**Scritte nel mondo.** Dentro una passata, `core.render.text(text, x, y, z, yaw, size, r, g, b, a, max_w,
+max_h)` scrive `text` con il font del gioco su un piano verticale: le righe (separate da `\n`) ognuna
+centrata e il blocco centrato su `x, y, z`, rivolto lungo `yaw` come uno schermo (0 verso +z), `size`
+l'altezza di una riga in blocchi (0,1 se non detto), bianco se non si dice un colore. Con `max_w` e
+`max_h` (> 0) viene rimpicciolito -- mai ingrandito -- per stare in quel riquadro. Ogni riga viene
+prima tradotta nella lingua del giocatore (`assets/lang`), come il testo dell'hud. I muri davanti la
+nascondono, lei non nasconde niente, e si vede solo dal davanti. `mods/building` ci scrive i suoi
+cartelli.
 
 Una telecamera ferma è disegnata nel fotogramma dopo che è stata creata, mostrata o no: il momento in
 cui nasce è il momento della foto. **Una foto che viaggia:** `core.render.camera_read(id)` dà l'ultima

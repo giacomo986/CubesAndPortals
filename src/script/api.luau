@@ -2761,7 +2761,9 @@ local api: { Fn } = {
         ret  = "int",
         args = {
             { name = "panel", type = "string" },
-            { name = "id", type = "string", doc = "What core:ui_click carries back. One without it is refused." },
+            { name = "id", type = "string", doc = "What core:ui_click carries back. Empty: a picture only, "
+                                                  .. "not clicked and with no tooltip -- a mark drawn over "
+                                                  .. "another item, which keeps the pointer." },
             { name = "x", type = "float" },
             { name = "y", type = "float" },
             { name = "w", type = "float" },
@@ -3311,6 +3313,47 @@ local api: { Fn } = {
         doc = "A recipe with no shape: those things, that many cells, anywhere in the grid. "
            .. "Names separated by spaces, and naming one twice means two cells of it. The same "
            .. "things in another order are the same recipe and are refused as one.",
+    },
+    {
+        name = "recipe_count",
+        host = "recipe_count",
+        ret  = "int",
+        args = {},
+        doc = "How many recipes there are, every mod's: core.recipe_result, recipe_yield and "
+           .. "recipe_items read them one by one, from 1. What a machine that crafts for a "
+           .. "player needs to know what it could make (mods/pipes' request pipe).",
+    },
+    {
+        name = "recipe_result",
+        host = "recipe_result",
+        ret  = "string",
+        args = { { name = "i", type = "int", doc = "1 to core.recipe_count()." } },
+        doc = "The name of what that recipe makes, empty for no such recipe.",
+    },
+    {
+        name = "recipe_yield",
+        host = "recipe_yield",
+        ret  = "int",
+        args = { { name = "i", type = "int", doc = "1 to core.recipe_count()." } },
+        doc = "How many that recipe makes at a time, 0 for no such recipe.",
+    },
+    {
+        name = "recipe_items",
+        host = "recipe_items",
+        ret  = "string",
+        args = { { name = "i", type = "int", doc = "1 to core.recipe_count()." } },
+        doc = "What that recipe spends, by name separated by spaces: one word a cell of the "
+           .. "grid, so a thing named twice is two of it. The shape and the empty cells are "
+           .. "left out -- what is needed, not where. Empty for no such recipe.",
+    },
+    {
+        name = "item_leaves",
+        host = "item_leaves",
+        ret  = "string",
+        args = { { name = "item", type = "string" } },
+        doc = "What is left of that item when a recipe spends it, by name (core.item_returns set it): "
+           .. "a bucket of milk leaves a bucket. Empty for an item that leaves nothing. What a "
+           .. "machine that crafts gives back (mods/pipes).",
     },
     {
         name = "recipe_dye",

@@ -10,6 +10,12 @@
 --   REQUESTS (z 54..58). A storage chest with a broadcaster. Right click the
 --   request pipe for what it holds: it comes to the chest beside the pipe. A
 --   stock keeper on the same network keeps a stack of sand in its chest.
+--   CRAFTING (z 60..67). A store of logs, raw iron, coal, cobblestone and sand,
+--   an automatic crafting table and an automatic furnace, each fed through an
+--   interface pipe whose recipe chip says what it makes: planks, sticks, an
+--   iron pick and a crafting table at the table; iron ingots, glass, stone
+--   and charcoal at the furnace. Ask the request pipe for an iron pick and the
+--   two make it out of a log, raw iron and coal, a step at a time.
 --
 -- Every few seconds the supplies are topped up and full chests at the far ends
 -- emptied, so it never stops. Cheap blocks only, as the chests are open to
@@ -34,6 +40,7 @@ end
 
 local y = 0
 local supply, sinks, storage, output, keeper = {}, {}, {}, {}, {}
+local store, made = {}, {}           -- the crafting demo's store and the chest beside its request pipe
 
 local function put(x: number, z: number, name: string)
     core.set_block(x, y, z, n(name))
@@ -72,10 +79,10 @@ local PLATE = { X - 1, Z + 7 }
 local function build()
     y = core.terrain_height(X, Z)
     sinks = {}
-    core.event.emit("pipes:clear", { x0 = X - 1, z0 = Z - 1, x1 = X + 11, z1 = Z + 12 })
+    core.event.emit("pipes:clear", { x0 = X - 1, z0 = Z - 1, x1 = X + 11, z1 = Z + 21 })
     -- Its own ground clear, three high.
     for x = X - 1, X + 11 do
-        for z = Z - 1, Z + 12 do
+        for z = Z - 1, Z + 21 do
             if x ~= PLATE[1] or z ~= PLATE[2] then
                 for dy = 0, 2 do core.set_block(x, y + dy, z, 0) end
             end
@@ -120,6 +127,24 @@ local function build()
     interface(X + 5, r + 1, "stock_keeper", { "core:sand" })
     keeper = chest(X + 5, r + 2)
 
+    -- CRAFTING, along Z+15: a store, a line of junctions, the two machines on
+    -- its south side each behind its interface of recipe chips, and a request
+    -- pipe at the end.
+    local c = Z + 15
+    store = chest(X, c)
+    interface(X + 1, c, "broadcaster", {})
+    line(X + 2, c, X + 8, c, "pipes:junction_pipe")
+    put(X + 9, c, "pipes:request_pipe")
+    made = chest(X + 10, c)
+    interface(X + 3, c + 1, "recipe", { "timber:planks", "timber:stick", "furnace:iron_pick", "craft:table" })
+    interface(X + 6, c + 1, "recipe", { "furnace:iron_ingot", "core:glass", "core:stone", "furnace:charcoal" })
+    for _, m in { { X + 3, "pipes:autocrafter" }, { X + 6, "pipes:autofurnace" } } do
+        put(m[1], c + 2, m[2])
+        core.set_facing(m[1], y, c + 2, 3)       -- its front to the spawn, as the signs
+        core.container_clear(m[1], y, c + 2)     -- what a reset found half made: gone
+        core.container_make(m[1], y, c + 2, 27)
+    end
+
     -- What it all is, from the spawn's side.
     sign(X - 1, Z + 1, { "Sorting with pipes", "Extractor: empties this chest", "Cobblestone: responder, blue",
                          "Dirt: terminator, purple", "Planks: overflow, orange" })
@@ -127,6 +152,10 @@ local function build()
     sign(X - 1, Z + 10, { "Requests with pipes", "Broadcaster: offers this chest", "Right click the request pipe",
                           "Stock keeper: a stack of sand" })
     sign(X - 1, Z + 6, { "Step on the plate", "to reset the demo" })
+    sign(X - 1, Z + 15, { "Crafting with machines", "A store of logs, raw iron and coal", "Right click the request pipe",
+                          "Ask for an iron pick" })
+    sign(X + 3, Z + 18, { "Automatic crafting table", "Recipe chip: planks, sticks,", "iron pick, crafting table" })
+    sign(X + 6, Z + 18, { "Automatic furnace", "Recipe chip: iron ingots, glass,", "stone, charcoal" })
     -- The plate is left as it is once there: put up again under whoever is on it,
     -- it would go down again and reset again.
     local at = core.node_name(core.get_block(PLATE[1], y, PLATE[2]))
@@ -135,8 +164,8 @@ local function build()
     end
 
     -- The shapes, now that every neighbour is there.
-    for x = X, X + 9 do
-        for z = Z, Z + 11 do
+    for x = X, X + 10 do
+        for z = Z, Z + 18 do
             local id = core.get_block(x, y, z)
             if id ~= 0 then core.event.emit("pipes:refresh", { x = x, y = y, z = z }) end
         end
@@ -164,6 +193,8 @@ local function tend()
     for _, c in sinks do empty_if_full(c, 0.02) end   -- about 35 things in a chest of 27
     empty_if_full(output, 0.5)
     empty_if_full(keeper, 0.02)   -- a full stack of sand: gone, and asked for again
+    top_up(store, { "timber:log", "ore:raw_iron", "ore:coal", "rocks:cobblestone", "core:sand" }, 32)
+    empty_if_full(made, 0.3)
 end
 
 local clock, tended, looked = 0, -REFILL, 0
