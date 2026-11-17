@@ -507,6 +507,9 @@ que faz luz) em qualquer uma das mãos ilumina em volta de quem a segura, para t
 **Máquinas.** Circuitos de cinábrio (`mods/cinnabar`): pó, alavancas, botões, tochas,
 repetidores, comparadores, lâmpadas, pistões, observadores e funis, então relógios e lógica
 funcionam. Esteiras (`mods/conveyor`) que se juntam, viram e sobem, com separadores e extratores.
+Tubos de itens (`mods/pipes`) com redes roteadas: tubos de interface cujos chips extraem, recebem,
+anunciam e mantêm estoque, tubos de pedido que pedem coisas à rede, firewalls;
+duas redes funcionando ficam a leste do spawn.
 Robôs ajudantes (`mods/helpers`) que você programa com até seis ordens: cortar árvores, plantar,
 cavar, minerar, organizar baús, cozinhar, abrir pedreiras, iluminar a terra, seguir você.
 

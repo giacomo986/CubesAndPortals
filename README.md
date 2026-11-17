@@ -474,7 +474,10 @@ trapdoors.
 
 **Machines.** Cinnabar circuits (`mods/cinnabar`): dust, levers, buttons, torches, repeaters,
 comparators, lamps, pistons, observers and hoppers, so clocks and logic work. Conveyor belts
-(`mods/conveyor`) that merge, turn and climb, with sorters and extractors. Helper robots
+(`mods/conveyor`) that merge, turn and climb, with sorters and extractors. Item pipes
+(`mods/pipes`) with routed networks: interface pipes whose chips extract, receive, broadcast and
+keep stock, request pipes that ask the network for things, firewalls; two working networks stand
+east of the spawn. Helper robots
 (`mods/helpers`) you program with up to six orders: chop trees, plant, dig, mine, sort chests,
 cook, quarry, light up the land, follow you.
 

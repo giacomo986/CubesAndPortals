@@ -489,7 +489,9 @@ e libri, porte, scale a pioli e botole.
 **Macchine.** Circuiti di cinnabar (`mods/cinnabar`): polvere, leve, pulsanti, torce, ripetitori,
 comparatori, lampade, pistoni, observer e hopper, così orologi e logica funzionano. Nastri
 trasportatori (`mods/conveyor`) che si fondono, curvano e salgono, con selezionatori ed
-estrattori. Robot aiutanti (`mods/helpers`) da programmare con fino a sei ordini: abbattere
+estrattori. Tubi per oggetti (`mods/pipes`) con reti instradate: tubi d'interfaccia i cui chip
+estraggono, ricevono, annunciano e tengono le scorte, tubi di richiesta che chiedono cose alla rete,
+firewall; due reti funzionanti stanno a est dello spawn. Robot aiutanti (`mods/helpers`) da programmare con fino a sei ordini: abbattere
 alberi, piantare, scavare, cercare minerali, ordinare le casse, cucinare, cavare, illuminare il
 terreno, seguire chi li ha messi.
 

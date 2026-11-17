@@ -605,6 +605,13 @@ Large, each wants questions first:
 - OPEN-39: a `.cnpmod` is checked against its own hash only: no index, no
   signatures, no trust decision.
 - OPEN-52: no Android or browser build (lowest). First step: clip by `discard`
-  under `#version 300 es`, tryable on the desktop.
+  under `#version 300 es`, tryable on the desktop. Assessed 2026-11-16, not
+  started: libraries all build on the NDK (not installed); 22 shaders are
+  `330 core` with 23 `gl_ClipDistance` uses, `glDrawBuffer` has no ES3 twin;
+  world servers start by fork/execv (Android forbids exec from app data: ship
+  as `libcnp_server.so` or run in a thread); 150 MB of assets/mods/games read
+  as files (extract on first run, asset pack past Play's 150 MB); mouse and
+  keyboard only (touch controls need design); likely lighter profiles on
+  mobile GPUs.
 - Before any release: `ALL_OPEN` and `FRONT_OPEN` false in `mods/keys` (both
   false today), a new `kEngineVersion`, CHANGELOG in both languages, a tag.
