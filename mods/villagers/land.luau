@@ -886,3 +886,6 @@ common.STYLES = STYLES
 common.tree_log = tree_log
 common.try_spot = try_spot
 common.wanting = wanting
+
+-- Run for what it registers; require wants a value, and nil is the engine's true.
+return nil

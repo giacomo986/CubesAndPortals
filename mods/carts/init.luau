@@ -63,7 +63,7 @@ if serving then
         core.player_clip(p, "")
         if core.give_item(p, CART, 1) < 1 then
             local x, y, z = core.player_pos(p)
-            core.drop_item(math.floor(x :: number), math.floor(y), math.floor(z), core.item_id(CART), 1)
+            if x then core.drop_item(math.floor(x), math.floor(y), math.floor(z), core.item_id(CART), 1) end
         end
     end
 
@@ -132,10 +132,11 @@ if serving then
                 continue
             end
             local x, y, z = core.player_pos(p)
-            local fx, fy, fz = math.floor(x :: number), math.floor(y), math.floor(z)
+            if x == nil then continue end
+            local fx, fy, fz = math.floor(x), math.floor(y), math.floor(z)
             if RAIL[core.get_block(fx, fy, fz)] or RAIL[core.get_block(fx, fy - 1, fz)] then
                 riding[p] = 0
-                roll(p, x :: number, y, z)
+                roll(p, x, y, z)
             elseif n + 1 >= DERAILED then
                 leave(p)
             else

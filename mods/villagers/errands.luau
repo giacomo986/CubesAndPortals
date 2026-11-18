@@ -502,3 +502,6 @@ core.event.on("core:ui_click", function(ev)
     end
 end)
 end
+
+-- Run for what it registers; require wants a value, and nil is the engine's true.
+return nil

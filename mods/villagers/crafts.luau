@@ -413,3 +413,6 @@ end
 
 -- What the files after this one use of it.
 common.GATHER = GATHER
+
+-- Run for what it registers; require wants a value, and nil is the engine's true.
+return nil

@@ -28,13 +28,13 @@
 -- Pictures and sounds: tools/make_bees_assets.py; the bee
 -- tools/make_bee_model.py; the held models tools/make_held_models.py.
 
-local common = require("./common")
+local common = require("@self/common")
 
 -- The smoker's smoke is drawn where there is drawing (smoke.luau); all the
 -- rest is the server's.
 local side = core.side()
 if side ~= "server" then
-    require("./smoke")
+    require("@self/smoke")
 end
 if side == "client" then
     return
@@ -339,7 +339,7 @@ common.players_near = players_near
 common.pollinate = pollinate
 common.smoked = smoked
 common.sting = sting
-require("./apiary")
+require("@self/apiary")
 
 -- ---------------------------------------------------------------- wild nests
 

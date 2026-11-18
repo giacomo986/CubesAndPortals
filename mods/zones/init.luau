@@ -37,11 +37,11 @@
 -- A zone may also come with the game (shipped.luau): approved, nobody's, and
 -- there on every server. One saved under the same id stands in for it on that
 -- server; deleted, the game's is back. tools/zones_ship.py writes the file.
-local T = require("./turns")
-local L = require("./layout")
+local T = require("@self/turns")
+local L = require("@self/layout")
 -- The zones that come with the game: id -> { head, body }, the two texts a zone
 -- is in the store. Written by tools/zones_ship.py out of a world file.
-local SHIPPED: { [string]: { string } } = require("./shipped")
+local SHIPPED: { [string]: { string } } = require("@self/shipped")
 
 type Zone = L.Zone
 type Conn = L.Conn

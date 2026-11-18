@@ -61,3 +61,6 @@ core.render.pass("bees:smoke", 40, function()
         end
     end
 end)
+
+-- Run for what it registers; require wants a value, and nil is the engine's true.
+return nil

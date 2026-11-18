@@ -424,3 +424,6 @@ common.stock_of = stock_of
 common.take_from = take_from
 common.TRADES = TRADES
 common.village_chests = village_chests
+
+-- Run for what it registers; require wants a value, and nil is the engine's true.
+return nil

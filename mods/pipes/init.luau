@@ -2260,7 +2260,7 @@ core.register_lbm("pipes:machines", { "pipes:autocrafter", "pipes:autocrafter_on
 end)
 
 -- Two working networks to look at, on the plaza.
-if core.plaza() ~= nil then require("./demo") end
+if core.plaza() ~= nil then require("@self/demo") end
 
 core.log("pipes: item, junction, interface, request, firewall, latency, valve, crafting and extension pipes; "
          .. "eight chips; an automatic crafting table and furnace; the wrench and the router")

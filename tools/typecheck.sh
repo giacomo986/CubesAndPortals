@@ -20,11 +20,10 @@
 # not load.
 #
 # What is left out unless ALL=1, because it is not the code's fault:
-#   - "Unknown require" and what follows from it ("Unknown type 'L.Zone'",
-#     "Cannot require module ...") for `require("./x")` in an init.luau. The
-#     engine looks for x beside the file; Luau now reads `./` in an init.luau
-#     as the folder above it (`@self` is beside it).
-#   - tests/mods/parts: a cyclic require and an undeclared global, on purpose.
+#   - tests/mods/parts: a cyclic require, an undeclared global and the old
+#     `require("./x")` from an init.luau, which the engine reads as beside the
+#     file and Luau as the folder above it -- on purpose: it is the test that
+#     the old form still loads. A mod writes `@self/x` there instead.
 #   - tools/api_gen/gen.luau: its globals (API, ROOT, read_file, write_file)
 #     are put there by cnp_api_gen, not by the game.
 #
@@ -105,7 +104,7 @@ else
     mapfile -t FILES < <(find mods games tests tools -name '*.luau' ! -name '*.d.luau' | sort)
 fi
 
-LEFTOVER='Unknown require|Unknown type .L\.|Cannot require module|^\./tests/mods/parts/|^\./tools/api_gen/'
+LEFTOVER='^\./tests/mods/parts/|^\./tools/api_gen/'
 # The checker names a file both as given and by its absolute path when another
 # file requires it: one form, then each error once.
 errors=$("$ANALYZE" --definitions=docs/api.d.luau --formatter=gnu "${FILES[@]}" 2>&1 \

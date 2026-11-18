@@ -1233,11 +1233,18 @@ bool read_text_file(const std::string &path, std::string &out)
 }
 
 // require("./part"): another file of the same mod, run once, and whatever it
-// returned. Paths are Luau's own require-by-string ones, so an editor that
-// knows Luau follows them too: "./x" and "../x" from the file asking, ".luau"
-// added, and a directory meaning its init.luau. Each file is a chunk of its
-// own -- its own 200 locals, which is what a long mod runs out of -- and they
-// share the mod's globals. Nothing outside the mod's directory is reached.
+// returned. Paths are Luau's require-by-string ones: "./x" and "../x" from the
+// file asking, ".luau" added, and a directory meaning its init.luau. Each file
+// is a chunk of its own -- its own 200 locals, which is what a long mod runs
+// out of -- and they share the mod's globals. Nothing outside the mod's
+// directory is reached.
+//
+// "@self/x" is Luau's way of saying "inside me": from an init.luau, beside it;
+// from a.luau, in the folder a/. Luau now reads "./" in an init.luau as the
+// folder ABOVE it, and this engine has always read it as beside the file --
+// so "./x" in an init.luau works here and is "Unknown require" in an editor,
+// while "@self/x" means the same in both. "./" keeps its old meaning: mods
+// written against it go on loading.
 int l_require(lua_State *L)
 {
     namespace fs = std::filesystem;
@@ -1245,16 +1252,23 @@ int l_require(lua_State *L)
     const char *spec = luaL_checkstring(L, 1);
     if (!vm || vm->root.empty()) luaL_error(L, "require(\"%s\"): this code has no directory to look in", spec);
 
-    const std::string s = spec;
-    if (s.rfind("./", 0) != 0 && s.rfind("../", 0) != 0)
-        luaL_error(L, "require(\"%s\"): a path starts with ./ or ../, from the file asking", spec);
+    std::string s = spec;
+    const bool self = s.rfind("@self/", 0) == 0;
+    if (self)
+        s = "./" + s.substr(6);
+    else if (s.rfind("./", 0) != 0 && s.rfind("../", 0) != 0)
+        luaL_error(L, "require(\"%s\"): a path starts with ./, ../ or @self/, from the file asking", spec);
 
     // The directory of the file that asked: its chunk is named by its path.
+    // For @self, an init.luau's own directory, and a.luau's folder a/.
     fs::path from = vm->root;
     lua_Debug ar;
     if (lua_getinfo(L, 1, "s", &ar) && ar.source && *ar.source) {
         const fs::path caller = ar.source;
-        if (caller.has_parent_path()) from = caller.parent_path();
+        if (self && caller.filename() != "init.luau")
+            from = fs::path(caller).replace_extension();
+        else if (caller.has_parent_path())
+            from = caller.parent_path();
     }
 
     const fs::path root = fs::path(vm->root).lexically_normal();

@@ -59,6 +59,21 @@ set_tests_properties(two_process_join persistence PROPERTIES
                      TIMEOUT 120
                      ENVIRONMENT "CNP_LOG_DIR=${CMAKE_BINARY_DIR}/test-logs")
 
+# Every mod of the sandbox and of every game loads and is not switched off by
+# an error in its first few hundred ticks.
+add_test(NAME mods_smoke
+         COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/mods_smoke.sh $<TARGET_FILE:cnp_server> ${CMAKE_SOURCE_DIR})
+set_tests_properties(mods_smoke PROPERTIES
+                     TIMEOUT 300
+                     ENVIRONMENT "CNP_LOG_DIR=${CMAKE_BINARY_DIR}/test-logs")
+
+# The hand-written part of core and its types in docs/api.d.luau name the same
+# functions.
+find_program(CNP_PYTHON3 python3)
+if(CNP_PYTHON3)
+    add_test(NAME api_types COMMAND ${CNP_PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/api_types_check.py ${CMAKE_SOURCE_DIR})
+endif()
+
 # What a portal shows matches the world seen from the other side, against a
 # viewpoint derived by hand. Needs a window.
 add_test(NAME portal_continuity COMMAND cnp_client --verify --watchdog 15)

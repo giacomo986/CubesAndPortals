@@ -34,7 +34,7 @@ git submodule update --init --recursive
 ```sh
 cmake -S . -B build -G Ninja           # RelWithDebInfo unless told otherwise
 cmake --build build -j
-ctest --test-dir build                 # 13 tests; -LE gpu skips the one that opens a window
+ctest --test-dir build                 # 15 tests; -LE gpu skips the one that opens a window
 ```
 
 Three programs come out:

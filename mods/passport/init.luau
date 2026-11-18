@@ -208,7 +208,9 @@ core.event.on("core:tick", function(ev)
                         local left = n - core.give_item(p, a, n)
                         if left > 0 then
                             local px, py, pz = core.player_pos(p)
-                            core.drop_item(math.floor(px :: number), math.floor(py), math.floor(pz), core.item_id(a), left)
+                            if px then
+                                core.drop_item(math.floor(px), math.floor(py), math.floor(pz), core.item_id(a), left)
+                            end
                         end
                         core.chat(p, `A parcel from {from} on {server}: {n} {said(a)}.`)
                     end

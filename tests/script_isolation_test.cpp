@@ -172,7 +172,7 @@ void test_isolation(const char *mods_dir)
     check(parts && parts->running && log_contains(world, "parts: loaded"),
           "a mod in several files loads, and require keeps inside it");
     if (parts && !parts->running) std::printf("  parts: %s\n", parts->error.c_str());
-    check(parts && parts->module_mtimes.size() == 6,
+    check(parts && parts->module_mtimes.size() == 8,
           "the files it required are watched for a reload");
 
     // Load order is the dependency order, not the directory order: `dependent`

@@ -411,3 +411,6 @@ core.event.on("core:broken", function(ev)
     end
     core.meta_set(x, y, z, "honey", "")
 end)
+
+-- Run for what it registers; require wants a value, and nil is the engine's true.
+return nil

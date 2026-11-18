@@ -136,7 +136,7 @@ The build makes three programs:
 | `build/tools/cnp_modpack` | packs a mod into a single `.cnpmod` file |
 
 A development build reads `mods/`, `games/` and `assets/` from the checkout, so run it from
-there. The tests run with `ctest --test-dir build` (13 tests, a few seconds).
+there. The tests run with `ctest --test-dir build` (15 tests, under a minute).
 
 The players' packages are made by the scripts in `tools/dist/` and land in
 `<build directory>/dist/`. The Windows package is cross-compiled **from Linux** with zig; the
@@ -551,7 +551,7 @@ The full plan and its decisions are in [`docs/DESIGN.md`](docs/DESIGN.md).
 After building ([above](#building-from-source)), from the checkout:
 
 ```sh
-ctest --test-dir build                       # 13 tests, ~3 s; -LE gpu skips the one that opens a window
+ctest --test-dir build                       # 15 tests, under a minute; -LE gpu skips the one that opens a window
 
 ./build/src/client/cnp_client                # the title menu
 ./build/src/client/cnp_client --quick        # quick start: a local test world, nothing saved
@@ -736,10 +736,12 @@ server running across restarts and crashes, with a log a day.
 
 ### Tests
 
-Thirteen, chosen because they guard things that break silently and cost dearly: input from the
+Fifteen, chosen because they guard things that break silently and cost dearly: input from the
 network (`protocol`, `chunk_codec`, `crypto`), saved worlds (`storage`, `migration`,
 `persistence`), portal maths and collisions (`portal_math`, `portal_traverse`, `physics_box`,
-`portal_continuity` on the GPU), the mods' sandbox (`script_isolation`), and client and server
+`portal_continuity` on the GPU), the mods' sandbox (`script_isolation`), the mods
+themselves (`mods_smoke` starts every game and fails on a mod that did not load or was switched
+off; `api_types` ties the hand-written part of `core` to its types), and client and server
 agreeing on the world (`worldgen`, `two_process_join`). The rest is checked by playing. Why each
 one exists is in [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 

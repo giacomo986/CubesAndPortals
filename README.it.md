@@ -137,7 +137,7 @@ Il build produce tre programmi:
 | `build/tools/cnp_modpack` | impacchetta un mod in un file `.cnpmod` |
 
 Un build di sviluppo legge `mods/`, `games/` e `assets/` dal checkout, quindi va avviato da lì.
-I test si lanciano con `ctest --test-dir build` (13 test, pochi secondi).
+I test si lanciano con `ctest --test-dir build` (15 test, meno di un minuto).
 
 I pacchetti per chi gioca si costruiscono con gli script di `tools/dist/` e finiscono in
 `<cartella di build>/dist/`. Il pacchetto Windows si compila **da Linux** con zig, quello macOS
@@ -571,7 +571,7 @@ Il piano completo e le sue decisioni sono in [`docs/DESIGN.md`](docs/DESIGN.it.m
 Dopo aver compilato ([sopra](#compilare-dal-sorgente)), dalla cartella del checkout:
 
 ```sh
-ctest --test-dir build                       # 13 test, ~3 s; -LE gpu salta quello che apre una finestra
+ctest --test-dir build                       # 15 test, meno di un minuto; -LE gpu salta quello che apre una finestra
 
 ./build/src/client/cnp_client                # il menù del titolo
 ./build/src/client/cnp_client --quick        # avvio rapido: un mondo locale di prova, niente salvato
@@ -758,11 +758,13 @@ server acceso tra riavvii e crash, con un log al giorno.
 
 ### Test
 
-Tredici, scelti perché proteggono cose che si rompono in silenzio e costano care: l'input dalla
+Quindici, scelti perché proteggono cose che si rompono in silenzio e costano care: l'input dalla
 rete (`protocol`, `chunk_codec`, `crypto`), i mondi salvati (`storage`, `migration`,
 `persistence`), la matematica dei portali e le collisioni (`portal_math`, `portal_traverse`,
-`physics_box`, `portal_continuity` in GPU), la sandbox dei mod (`script_isolation`), e client e
-server d'accordo sul mondo (`worldgen`, `two_process_join`). Il resto si verifica giocando. Il
+`physics_box`, `portal_continuity` in GPU), la sandbox dei mod (`script_isolation`), i mod
+stessi (`mods_smoke` avvia ogni gioco e fallisce su un mod che non si è caricato o è stato spento;
+`api_types` lega la parte di `core` scritta a mano ai suoi tipi), e client e server d'accordo sul
+mondo (`worldgen`, `two_process_join`). Il resto si verifica giocando. Il
 perché di ciascuno è in [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 
 ## Tecnologia

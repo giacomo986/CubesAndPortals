@@ -1104,3 +1104,6 @@ common.wanted = wanted
 common.watch = watch
 common.where = where
 common.WORK = WORK
+
+-- Run for what it registers; require wants a value, and nil is the engine's true.
+return nil

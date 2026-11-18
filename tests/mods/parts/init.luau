@@ -7,6 +7,9 @@ assert(a.two == 2, "a file's own require is from its own directory")
 assert(lib.name == "lib", "a directory's init.luau")
 assert(require("./lib/a") == a, "a file runs once and gives the same thing again")
 assert(shared_by_lib == 5, "files share the mod's globals")
+-- @self/ is Luau's "inside me": from an init.luau the same as ./, from a.luau the folder a/.
+assert(require("@self/lib/a") == a, "@self from an init.luau is beside it")
+assert(require("./self") == "inner", "@self from self.luau is in self/")
 
 local function refused(path: string, why: string)
     local ok, err = pcall(function() return require(path) end)
@@ -14,7 +17,7 @@ local function refused(path: string, why: string)
 end
 refused("../good/init", "outside the mod's directory")
 refused("./lib/../../good/init", "outside the mod's directory")
-refused("lib/a", "starts with ./ or ../")
+refused("lib/a", "starts with ./, ../ or @self/")
 refused("./missing", "no missing.luau")
 refused("./loop1", "a cycle")
 

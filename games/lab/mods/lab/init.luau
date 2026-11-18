@@ -1282,7 +1282,7 @@ if drawing then
 
     local function ask(what: string, player: number)
         if serving then
-            (heard_click :: any)(player, what)
+            heard_click(player, what)
         else
             core.net.send(0, what)
         end

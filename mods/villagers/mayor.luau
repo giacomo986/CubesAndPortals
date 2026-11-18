@@ -463,3 +463,6 @@ common.pay = pay
 common.queue = queue
 common.show_builder = show_builder
 common.show_mayor = show_mayor
+
+-- Run for what it registers; require wants a value, and nil is the engine's true.
+return nil

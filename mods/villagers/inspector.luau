@@ -435,3 +435,6 @@ common.muster = muster
 common.notice_theft = notice_theft
 common.rest = rest
 common.sleeps_now = sleeps_now
+
+-- Run for what it registers; require wants a value, and nil is the engine's true.
+return nil

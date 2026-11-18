@@ -249,3 +249,6 @@ core.event.on("core:tick", function(ev)
     end
     pressed = true
 end)
+
+-- Run for what it registers; require wants a value, and nil is the engine's true.
+return nil

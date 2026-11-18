@@ -141,7 +141,7 @@ local function buy(p: number, x: number, y: number, z: number): string
     local left = got - core.give_item(p, goods, got)
     if left > 0 then
         local px, py, pz = core.player_pos(p)
-        core.drop_item(math.floor(px :: number), math.floor(py), math.floor(pz), o.goods, left)
+        if px then core.drop_item(math.floor(px), math.floor(py), math.floor(pz), o.goods, left) end
     end
     core.play_sound("trade:coins", x + 0.5, y + 1, z + 0.5)
     return `Bought {got} {said(o.goods)}.`
