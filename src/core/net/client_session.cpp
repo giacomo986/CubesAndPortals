@@ -857,17 +857,17 @@ void ClientSession::handle(const std::vector<uint8_t> &data, double now, uint8_t
     case MsgType::Ride: {
         if (m_state != ClientState::Playing) break;
         ByteReader rr(data.data(), data.size());
-        Ride       r;
-        if (!Ride::decode(rr, r)) break;
+        Ride       ride;
+        if (!Ride::decode(rr, ride)) break;
 
         // Taken and left reliably; the seat moved on the entity channel, which
         // only moves a seat already taken -- one arriving after the message
         // that let go of it must not sit the body down again.
         if (channel != (uint8_t)Channel::Entity) {
-            m_ride   = r;
-            m_riding = r.host != 0;
-        } else if (m_riding && r.host == m_ride.host) {
-            m_ride = r;
+            m_ride   = ride;
+            m_riding = ride.host != 0;
+        } else if (m_riding && ride.host == m_ride.host) {
+            m_ride = ride;
         }
         break;
     }

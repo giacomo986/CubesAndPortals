@@ -1856,7 +1856,9 @@ int report(const std::string &path, int64_t since, bool json)
     // numbers either way. `j` gathers the object's members.
     std::string j  = "{\"file\":" + json_text(path) + ",\"since_seconds\":" + std::to_string(since);
     const auto  tx = [&](const char *fmt, auto... v) {
-        if (!json) std::printf(fmt, v...);
+        if (json) return;
+        if constexpr (sizeof...(v) == 0) std::fputs(fmt, stdout);
+        else std::printf(fmt, v...);
     };
     const int64_t     t = now(), from_t = since > 0 ? t - since : 0;
     const std::string from = std::to_string(from_t), to = std::to_string(t);
@@ -2512,7 +2514,7 @@ std::string sealed_line(Sock s, const FedOut &o)
     net::x25519_shared(eph.secret_key, r_eph, mix);
     const bool ok = net::seal_for(g_me, to_key, o.payload, sealed, mix);
     const std::string s_eph = net::to_hex(eph.public_key, net::kKeyBytes);
-    std::memset(&eph, 0, sizeof(eph));
+    std::memset(static_cast<void *>(&eph), 0, sizeof(eph));
     std::memset(mix, 0, sizeof(mix));
     if (!ok) return "";
     const std::string ms   = std::to_string(o.ms);
@@ -2562,7 +2564,7 @@ void fed_reader(Sock c, std::string address)
     net::x25519_shared(eph.secret_key, s_eph, mix);
     const bool opened = net::verify_message(key, body.data(), body.size(), sig) &&
                         net::open_sealed(g_me, key, sealed, payload, mix);
-    std::memset(&eph, 0, sizeof(eph));
+    std::memset(static_cast<void *>(&eph), 0, sizeof(eph));
     std::memset(mix, 0, sizeof(mix));
     if (!opened) return;
     std::lock_guard<std::mutex> hold(g_fed_m);
@@ -2724,7 +2726,7 @@ void apply_bag(const Friend &f, const std::string &kind, std::istringstream &in,
         Row           away;
         std::string   here;
         const bool    both   = !find("bagaway", key, away) && h.bag_peek && h.bag_peek(id, here);
-        const int64_t theirs = std::atoll(gen_text.c_str()), ours = bag_gen(key);
+        const int64_t theirs = std::atoll(gen_text.c_str()), mine = bag_gen(key);
         const auto keep_aside = [&](const std::string &b, const std::string &hi, const std::string &pa) {
             put("bagold", key + ":" + std::to_string(now()) + ":" + f.name, f.name,
                 net::to_hex((const uint8_t *)b.data(), b.size()) + "\n" +
@@ -2733,7 +2735,7 @@ void apply_bag(const Friend &f, const std::string &kind, std::istringstream &in,
                 "friend:" + f.name, 0);
         };
         drop("bagaway", key);
-        if (both && ours > theirs) {
+        if (both && mine > theirs) {
             keep_aside(bag, hid, packs);
             std::printf("        federation: the bag here moved more than %s's; theirs kept aside\n", f.name.c_str());
             if (h.bag_take) h.bag_take(id, here, "", "", f.name);

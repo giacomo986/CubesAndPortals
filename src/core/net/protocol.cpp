@@ -316,9 +316,9 @@ std::vector<uint8_t> Welcome::encode() const
             for (int a = 0; a < 3; ++a) w.f32(d.boxes[b].max[a]);
             w.str(d.boxes[b].part);
         }
-        const size_t ns = d.selection.size() > kMaxNodeBoxes ? kMaxNodeBoxes : d.selection.size();
-        w.u16((uint16_t)ns);
-        for (size_t b = 0; b < ns; ++b) {
+        const size_t nsel = d.selection.size() > kMaxNodeBoxes ? kMaxNodeBoxes : d.selection.size();
+        w.u16((uint16_t)nsel);
+        for (size_t b = 0; b < nsel; ++b) {
             for (int a = 0; a < 3; ++a) w.f32(d.selection[b].min[a]);
             for (int a = 0; a < 3; ++a) w.f32(d.selection[b].max[a]);
         }
@@ -533,10 +533,10 @@ bool Welcome::decode(ByteReader &r, Welcome &out)
             for (int a = 0; a < 3; ++a) d.boxes[b].max[a] = r.f32();
             if (!r.str(d.boxes[b].part, kMaxNodePartName)) return false;
         }
-        size_t ns = 0;
-        if (!r.count(ns, kMaxNodeBoxes)) return false;
-        d.selection.resize(ns);
-        for (size_t b = 0; b < ns; ++b) {
+        size_t nsel = 0;
+        if (!r.count(nsel, kMaxNodeBoxes)) return false;
+        d.selection.resize(nsel);
+        for (size_t b = 0; b < nsel; ++b) {
             for (int a = 0; a < 3; ++a) d.selection[b].min[a] = r.f32();
             for (int a = 0; a < 3; ++a) d.selection[b].max[a] = r.f32();
         }
@@ -1672,7 +1672,7 @@ bool Entities::decode(ByteReader &r, Entities &out)
             if (more & 2) {   // dressed by a mod (102): never an empty list
                 const uint8_t pieces = r.u8();
                 if (!r.ok() || pieces == 0 || pieces > 10) return false;
-                for (uint8_t i = 0; i < pieces; ++i) {
+                for (uint8_t piece = 0; piece < pieces; ++piece) {
                     const uint8_t k = r.u8();
                     if (!r.ok() || k >= 10 || e.dress[k] != 0) return false;
                     e.dress[k]      = r.u16();

@@ -848,9 +848,9 @@ void step(Vehicle &v, const World &world, const NodeRegistry &reg, const Movemen
                                 std::clamp((most - kWallFrom) / (kMaxWheelSlope - kWallFrom), 0.0f, 1.0f);
             const JPH::Vec3 n     = facing.Normalized();
             const JPH::Vec3 g     = JPH::Vec3(0.0f, rules.gravity, 0.0f);
-            const JPH::Vec3 along = g - n * g.Dot(n);
+            const JPH::Vec3 slip = g - n * g.Dot(n);
             bodies.AddForce(v.chassis,
-                            (n * (rules.gravity * kWallGrip) - along * kWallLift) * (kMass * held));
+                            (n * (rules.gravity * kWallGrip) - slip * kWallLift) * (kMass * held));
         }
         if (got == 0 || least < 0.01f) least = 0.0f;
         if (got == 0 || most < 0.01f) most = 0.0f;
@@ -878,10 +878,10 @@ void step(Vehicle &v, const World &world, const NodeRegistry &reg, const Movemen
     // it was, exactly. Springs settling moved a held kart by tenths of a
     // millimetre, which a server allowing nothing corrected 28 times a start.
     if (rules.sprint <= 0.0f && rules.walk <= 0.0f) {
-        JPH::RVec3 at = bodies.GetPosition(v.chassis);
-        at.SetX(before.GetX());
-        at.SetZ(before.GetZ());
-        bodies.SetPosition(v.chassis, at, JPH::EActivation::Activate);
+        JPH::RVec3 held_at = bodies.GetPosition(v.chassis);
+        held_at.SetX(before.GetX());
+        held_at.SetZ(before.GetZ());
+        bodies.SetPosition(v.chassis, held_at, JPH::EActivation::Activate);
         bodies.SetAngularVelocity(v.chassis, JPH::Vec3::sZero());
     }
 
@@ -920,11 +920,11 @@ void step(Vehicle &v, const World &world, const NodeRegistry &reg, const Movemen
     if (any_wheel_down(v)) {
         v.stood = pose_of(v).feet.y;
     } else if (rise >= 0.0f) {
-        JPH::RVec3  at   = bodies.GetPosition(v.chassis);
-        const float over = (float)at.GetY() - kHalfHeight - (v.stood + rise);
+        JPH::RVec3  now_at = bodies.GetPosition(v.chassis);
+        const float over   = (float)now_at.GetY() - kHalfHeight - (v.stood + rise);
         if (over > 0.0f) {
-            at.SetY(at.GetY() - over);
-            bodies.SetPosition(v.chassis, at, JPH::EActivation::Activate);
+            now_at.SetY(now_at.GetY() - over);
+            bodies.SetPosition(v.chassis, now_at, JPH::EActivation::Activate);
             if (vel.GetY() > 0.0f) vel.SetY(-kCeilingBounce * vel.GetY());
         }
     }

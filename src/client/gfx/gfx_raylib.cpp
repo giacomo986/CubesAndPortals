@@ -803,8 +803,8 @@ float line_width(const Font &font, const char *s, int n, float size)
         const int cp    = GetCodepointNext(s + i, &bytes);
         if (bytes <= 0) break;
         i += bytes;
-        const int g = GetGlyphIndex(font, cp);
-        const float adv = font.glyphs[g].advanceX != 0 ? (float)font.glyphs[g].advanceX : font.recs[g].width;
+        const int   glyph = GetGlyphIndex(font, cp);
+        const float adv = font.glyphs[glyph].advanceX != 0 ? (float)font.glyphs[glyph].advanceX : font.recs[glyph].width;
         w += adv * scale + spacing;
         ++count;
     }

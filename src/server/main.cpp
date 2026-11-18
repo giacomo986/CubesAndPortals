@@ -9608,8 +9608,8 @@ int serve_room(int argc, char **argv)
                         {"nz", SCRIPT_V_NUMBER, (double)b[5], nullptr, 0},
                     };
                     bool        ignored = false;
-                    std::string err;
-                    s.mods.events().emit("core:burst", f, 6, &ignored, err);
+                    std::string emit_err;
+                    s.mods.events().emit("core:burst", f, 6, &ignored, emit_err);
                 }
                 // And through the world's own openings: a cube thrown into a portal.
                 sessions.cross_mobs(mob_now);
@@ -9641,8 +9641,8 @@ int serve_room(int argc, char **argv)
                     {"from", SCRIPT_V_STRING, 0.0, from.c_str(), 0},
                 };
                 bool        ignored = false;
-                std::string err;
-                s.mods.events().emit("core:arrived", f, 2, &ignored, err);
+                std::string emit_err;
+                s.mods.events().emit("core:arrived", f, 2, &ignored, emit_err);
             }
             if (g_room == 0) {
                 std::vector<FedModLine> heard;
@@ -9657,8 +9657,8 @@ int serve_room(int argc, char **argv)
                         {"text", SCRIPT_V_STRING, 0.0, l.text.c_str(), 0},
                     };
                     bool        ignored = false;
-                    std::string err;
-                    s.mods.events().emit("core:fed_message", f, 3, &ignored, err, &l.mod);
+                    std::string emit_err;
+                    s.mods.events().emit("core:fed_message", f, 3, &ignored, emit_err, &l.mod);
                 }
             }
 
@@ -9672,8 +9672,8 @@ int serve_room(int argc, char **argv)
                         {"z", SCRIPT_V_NUMBER, (double)d.at[2], nullptr, 0},
                     };
                     bool        ignored = false;
-                    std::string err;
-                    s.mods.events().emit("core:died", f, 4, &ignored, err);
+                    std::string emit_err;
+                    s.mods.events().emit("core:died", f, 4, &ignored, emit_err);
                 }
                 const net::Session *who = sessions.find(d.peer);
                 if (!quiet)
@@ -9720,8 +9720,8 @@ int serve_room(int argc, char **argv)
                         {"fell", SCRIPT_V_NUMBER, (double)fell, nullptr, 0},
                     };
                     bool        ignored = false;
-                    std::string err;
-                    s.mods.events().emit("core:landed", f, 5, &ignored, err);
+                    std::string emit_err;
+                    s.mods.events().emit("core:landed", f, 5, &ignored, emit_err);
                 });
             cnp::ecs::expire_drops(sessions.ecs(), seconds_since(t_start));
             {
@@ -10579,8 +10579,8 @@ int serve_room(int argc, char **argv)
 // The server: its rooms, each one serve_room on a thread of its own, sharing
 // one socket (see Router).
 //
-//   cnp_server --listen 25301 --ticks 0 --portals \
-//       --room sandbox --mods mods --world-file sandbox.world --portal-to @pista/0 \
+//   cnp_server --listen 25301 --ticks 0 --portals
+//       --room sandbox --mods mods --world-file sandbox.world --portal-to @pista/0
 //       --room pista --mods games/track/mods --world-file pista.world --portal-to @sandbox/0
 //
 // What comes before the first --room is every room's; what follows a --room is

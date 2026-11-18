@@ -1323,10 +1323,10 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
             } else if (use_body(s, req.target, req.slot, now, why)) {
                 a.reply_channel = (uint8_t)Channel::Event;
                 a.reply         = inventory_message(peer);
-            } else if (flecs::entity t = m_ecs.entity((flecs::entity_t)req.target);
-                       t.is_alive() && t.has<ecs::Mob>() && s.scope == Scope::Enter &&
-                       t.try_get<ecs::Position>() != nullptr &&
-                       in_reach(s, t, *t.try_get<ecs::Position>(), why)) {
+            } else if (flecs::entity mob = m_ecs.entity((flecs::entity_t)req.target);
+                       mob.is_alive() && mob.has<ecs::Mob>() && s.scope == Scope::Enter &&
+                       mob.try_get<ecs::Position>() != nullptr &&
+                       in_reach(s, mob, *mob.try_get<ecs::Position>(), why)) {
                 // A creature the engine did nothing with: its mod's to answer
                 // (a cow milked, a sheep dyed), as for a worker.
                 const ItemStack &held = s.bag().at(req.slot < Inventory::kHotbar ? req.slot : 0);
@@ -4915,10 +4915,10 @@ std::vector<EntityState> ServerSessions::entities_for(PeerId peer, float radius)
             if (const ecs::Disguised *g = e.try_get<ecs::Disguised>()) s.as_block = g->block;   // 116
             if (const ecs::Scaled *z = e.try_get<ecs::Scaled>()) s.scale = z->scale;         // 117
             // (a creature's below, 118)
-            if (const ecs::Dressed *d = e.try_get<ecs::Dressed>())                     // 102
+            if (const ecs::Dressed *dressed = e.try_get<ecs::Dressed>())                     // 102
                 for (int k = 0; k < ecs::kDressSlots; ++k) {
-                    s.dress[k]      = d->model[k];
-                    s.dress_tint[k] = d->tint[k];
+                    s.dress[k]      = dressed->model[k];
+                    s.dress_tint[k] = dressed->tint[k];
                 }
             // Held facing a way (core.player_clip's dx, dz): sat on a chair.
             if (const ecs::Posed *pose = e.try_get<ecs::Posed>(); pose && pose->faced) s.yaw = pose->yaw;
@@ -4963,9 +4963,9 @@ std::vector<EntityState> ServerSessions::entities_for(PeerId peer, float radius)
                 s.base_dx    = b.body_base.x - b.pos.x;
                 s.base_dy    = b.body_base.y - b.pos.y;
                 s.base_dz    = b.body_base.z - b.pos.z;
-                const DriveLook look = vehicle_look(b);   // 103
-                s.boosting = look.boosting;
-                s.sliding  = look.sliding;
+                const DriveLook drive = vehicle_look(b);   // 103
+                s.boosting = drive.boosting;
+                s.sliding  = drive.sliding;
             }
         }
 

@@ -146,9 +146,9 @@ int main()
             Edit e;
             e.ny = 1; e.turn = 3; e.place_only = true;
             const auto bytes = e.encode();
-            ByteReader r(bytes);
+            ByteReader er(bytes);
             Edit       back;
-            check(Edit::decode(r, back) && back.turn == 3 && back.place_only,
+            check(Edit::decode(er, back) && back.turn == 3 && back.place_only,
                   "an Edit keeps its turn and its Shift beside it in one byte");
         }
 
@@ -2312,6 +2312,61 @@ int main()
                 if (Redirect::decode(r, out)) ++parsed;
                 break;
             }
+            case MsgType::Dress: {
+                Dress      out;
+                ByteReader r(buf);
+                if (Dress::decode(r, out)) ++parsed;
+                break;
+            }
+            case MsgType::Lie: {
+                Lie        out;
+                ByteReader r(buf);
+                if (Lie::decode(r, out)) ++parsed;
+                break;
+            }
+            case MsgType::OwnPose: {
+                OwnPose    out;
+                ByteReader r(buf);
+                if (OwnPose::decode(r, out)) ++parsed;
+                break;
+            }
+            case MsgType::Ride: {
+                Ride       out;
+                ByteReader r(buf);
+                if (Ride::decode(r, out)) ++parsed;
+                break;
+            }
+            case MsgType::Rope: {
+                Rope       out;
+                ByteReader r(buf);
+                if (Rope::decode(r, out)) ++parsed;
+                break;
+            }
+            case MsgType::Seal: {
+                Seal       out;
+                ByteReader r(buf);
+                if (Seal::decode(r, out)) ++parsed;
+                break;
+            }
+            case MsgType::Slain: {
+                Slain      out;
+                ByteReader r(buf);
+                if (Slain::decode(r, out)) ++parsed;
+                break;
+            }
+            case MsgType::Sound: {
+                Sound      out;
+                ByteReader r(buf);
+                if (Sound::decode(r, out)) ++parsed;
+                break;
+            }
+            case MsgType::Status: {
+                Status     out;
+                ByteReader r(buf);
+                if (Status::decode(r, out)) ++parsed;
+                break;
+            }
+            case MsgType::StatusQuery:   // a type byte and nothing after it: no parser
             case MsgType::Chunk:
             case MsgType::Move:
             case MsgType::Correct:

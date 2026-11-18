@@ -693,7 +693,7 @@ int main()
             }
             at_z += p.size * kPieceUnit;
         }
-        const auto ride = [&](float top, std::vector<DriveEvent> *log, float &roll) {
+        const auto ride = [&](float top, std::vector<DriveEvent> *events, float &roll) {
             Player k;
             k.pos = Vec3{4.0f, 9.0f, 1.0f};
             k.yaw = 3.14159265f;
@@ -711,7 +711,7 @@ int main()
                     was_r         = r;
                     if (n0.z > (float)at_z - 4.0f) break;
                 }
-                player_update(k, side, preg, rules, in, 1.0f / 60.0f, log);
+                player_update(k, side, preg, rules, in, 1.0f / 60.0f, events);
                 roll = std::max(roll, std::fabs(k.body_roll));
             }
             return k;
@@ -765,7 +765,7 @@ int main()
         put_at(loop_l, 0, 16);
         put_at(run, 8, 32);
         put_at(run, 8, 48);
-        const auto loop_ride = [&](float top, std::vector<DriveEvent> *log, float &roll) {
+        const auto loop_ride = [&](float top, std::vector<DriveEvent> *events, float &roll) {
             Player k;
             k.pos = Vec3{4.0f, 9.0f, 1.0f};
             k.yaw = 3.14159265f;
@@ -787,7 +787,7 @@ int main()
                     was_e         = e;
                     if (n0.z > 60.0f) break;
                 }
-                player_update(k, looped, preg, rules, in, 1.0f / 60.0f, log);
+                player_update(k, looped, preg, rules, in, 1.0f / 60.0f, events);
                 if (k.pos.z >= 16.0f) gone += length(k.velocity) / 60.0f;
                 roll = std::max(roll, std::fabs(k.body_roll));
             }
@@ -835,20 +835,20 @@ int main()
         NodeDef::Box half;
         half.max[1] = 0.5f;
         slab_def.parts.push_back(half);
-        const BlockId slab  = sreg.register_node(slab_def);
-        const BlockId stone = sreg.find("core:stone");
+        const BlockId slab   = sreg.register_node(slab_def);
+        const BlockId sstone = sreg.find("core:stone");
 
         World stairs;
         for (int x = 0; x < 24; ++x)
-            for (int z = 0; z < 8; ++z) stairs.set_block(x, 3, z, stone);
+            for (int z = 0; z < 8; ++z) stairs.set_block(x, 3, z, sstone);
         for (int z = 0; z < 8; ++z) {
             stairs.set_block(8, 4, z, slab);
-            stairs.set_block(9, 4, z, stone);
-            stairs.set_block(10, 4, z, stone);
+            stairs.set_block(9, 4, z, sstone);
+            stairs.set_block(10, 4, z, sstone);
             stairs.set_block(10, 5, z, slab);
             for (int x = 11; x < 24; ++x) {
-                stairs.set_block(x, 4, z, stone);
-                stairs.set_block(x, 5, z, stone);
+                stairs.set_block(x, 4, z, sstone);
+                stairs.set_block(x, 5, z, sstone);
             }
         }
 
@@ -894,7 +894,7 @@ int main()
         const BlockId stair = sreg.register_node(stair_def);
         World one;
         for (int x = 0; x < 16; ++x)
-            for (int z = 0; z < 8; ++z) one.set_block(x, 3, z, stone);
+            for (int z = 0; z < 8; ++z) one.set_block(x, 3, z, sstone);
         for (int z = 0; z < 8; ++z) one.set_block(8, 4, z, stair);
         auto walk = [&](float x, float yaw, float &top) {
             Player w;

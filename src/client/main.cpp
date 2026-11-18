@@ -7030,10 +7030,10 @@ void draw_worn(ModelStore &models, const SkinnedModel &body, const std::vector<f
             }
     // The rest, parents first whatever order the file lists them in.
     const auto rows = [](const float *r) {
-        Mat4 out = mat4_identity();
+        Mat4 mat = mat4_identity();
         for (int row = 0; row < 3; ++row)
-            for (int col = 0; col < 4; ++col) out.at(row, col) = r[row * 4 + col];
-        return out;
+            for (int col = 0; col < 4; ++col) mat.at(row, col) = r[row * 4 + col];
+        return mat;
     };
     const double t     = plat_time();
     // Out of step from one body to the next by its colours, not by where it
@@ -7284,7 +7284,7 @@ AddonSpecies addons_from(const std::set<std::string> &have, const std::string &b
                 if (plain(it->substr(pre.size()))) styles.push_back(AddonStyle{it->substr(pre.size()), *it, hat});
         }
         std::sort(styles.begin(), styles.end(),
-                  [](const AddonStyle &a, const AddonStyle &b) { return a.name < b.name; });
+                  [](const AddonStyle &x, const AddonStyle &y) { return x.name < y.name; });
         if (styles.size() > 3) styles.resize(3);   // the style's two bits
         out.styles.push_back(std::move(styles));
     }
@@ -9956,9 +9956,9 @@ void animate_body(Session &w, uint64_t key, Body &b, Vec3 feet, uint16_t rider,
             m.arms_name  = arms;
             m.arms_start = now;
         }
-        const int   c = e->model.clip(arms);
-        const float d = e->model.clips[(size_t)c].duration;
-        b.clips[2] = ClipAt{c, d > 0.0f ? std::fmod((float)(now - m.arms_start), d) : 0.0f,
+        const int   c   = e->model.clip(arms);
+        const float dur = e->model.clips[(size_t)c].duration;
+        b.clips[2] = ClipAt{c, dur > 0.0f ? std::fmod((float)(now - m.arms_start), dur) : 0.0f,
                             (float)std::min(1.0, (now - m.arms_start) / 0.1)};
     } else {
         m.arms_name.clear();
@@ -15564,12 +15564,12 @@ void apply_server_portals(Scene &s, const net::Portals &ps)
     const auto now = std::chrono::steady_clock::now();
     for (int i = 0; i < net::kMaxOpenings; ++i) {
         if (ps.partner(i) < 0 || (i < net::kMaxMouths && ps.away[i].leads_away())) continue;
-        const Portal p = portal_from_desc(ps.opening[i]);
+        const Portal opened = portal_from_desc(ps.opening[i]);
         bool linked_before = false, closed_before = false;
-        for (const Portal &q : was_linked) linked_before = linked_before || same(p, q);
-        for (const Portal &q : was_closed) closed_before = closed_before || same(p, q);
+        for (const Portal &q : was_linked) linked_before = linked_before || same(opened, q);
+        for (const Portal &q : was_closed) closed_before = closed_before || same(opened, q);
         if (closed_before || (!linked_before && s.act().portals_heard))
-            s.act().opening.push_back({p, now});
+            s.act().opening.push_back({opened, now});
     }
     s.act().portals_heard = true;
     s.act().mouths_here   = 0;
@@ -16253,8 +16253,8 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
     // has rather than making a second one to the same place.
     std::vector<std::string> conn_spec((size_t)net_sessions.count());
     {
-        const net::ClientSession *self = net_sessions.get(self_conn);
-        const std::string         room = self ? self->room() : base.room;
+        const net::ClientSession *mine = net_sessions.get(self_conn);
+        const std::string         room = mine ? mine->room() : base.room;
         conn_spec[(size_t)self_conn] =
             base.host + ":" + std::to_string((unsigned)base.port) + (room.empty() ? "" : "/" + room);
     }
@@ -17775,20 +17775,20 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         {
             World &w = s.act().world;
             const std::vector<World::Mover> before = std::exchange(w.movers, std::move(movers));
-            for (const World::Mover &now : w.movers) {
-                if (now.id != stood_on) continue;
+            for (const World::Mover &is : w.movers) {
+                if (is.id != stood_on) continue;
                 for (const World::Mover &was : before) {
-                    if (was.id != now.id) continue;
+                    if (was.id != is.id) continue;
                     // Where the feet are on it, in its own frame, put back
                     // in the world's as it is now: turned with it as well.
                     const float dx = player.pos.x - was.x, dz = player.pos.z - was.z;
                     const float lx = dx * std::cos(was.yaw) + dz * std::sin(was.yaw);
                     const float lz = dx * std::sin(was.yaw) - dz * std::cos(was.yaw);
-                    const Vec3  to{now.x + lx * std::cos(now.yaw) + lz * std::sin(now.yaw),
-                                  player.pos.y + (now.top - was.top),
-                                  now.z + lx * std::sin(now.yaw) - lz * std::cos(now.yaw)};
+                    const Vec3  to{is.x + lx * std::cos(is.yaw) + lz * std::sin(is.yaw),
+                                  player.pos.y + (is.top - was.top),
+                                  is.z + lx * std::sin(is.yaw) - lz * std::cos(is.yaw)};
                     player.pos = move_body(w, s.act().registry, player.pos, to - player.pos).pos;
-                    player.yaw += std::remainder(now.yaw - was.yaw, 6.2831853f);
+                    player.yaw += std::remainder(is.yaw - was.yaw, 6.2831853f);
                 }
             }
         }
@@ -17813,24 +17813,24 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 told_crouch  = player.crouching;
             }
 
-            const net::InventoryState &carried = conn->carried();
+            const net::InventoryState &bag_now = conn->carried();
             s.hand.clear();
             s.hand_block = kAir;
             s.hand_tag   = 0;
-            if (held_slot >= 0 && (size_t)held_slot < carried.slots.size() &&
-                carried.slots[(size_t)held_slot].count > 0) {
+            if (held_slot >= 0 && (size_t)held_slot < bag_now.slots.size() &&
+                bag_now.slots[(size_t)held_slot].count > 0) {
                 const ItemDef &def =
-                    conn->items().get((ItemId)carried.slots[(size_t)held_slot].item);
+                    conn->items().get((ItemId)bag_now.slots[(size_t)held_slot].item);
                 s.hand       = def.name;
                 s.hand_block = def.places;
-                s.hand_tag   = carried.slots[(size_t)held_slot].tag;
+                s.hand_tag   = bag_now.slots[(size_t)held_slot].tag;
             }
             s.off_hand.clear();
             s.off_block = kAir;
             s.off_tag   = 0;
-            if (carried.slots.size() > (size_t)Inventory::kOffhandSlot &&
-                carried.slots[(size_t)Inventory::kOffhandSlot].count > 0) {
-                const auto     &off = carried.slots[(size_t)Inventory::kOffhandSlot];
+            if (bag_now.slots.size() > (size_t)Inventory::kOffhandSlot &&
+                bag_now.slots[(size_t)Inventory::kOffhandSlot].count > 0) {
+                const auto     &off = bag_now.slots[(size_t)Inventory::kOffhandSlot];
                 const ItemDef  &def = conn->items().get((ItemId)off.item);
                 s.off_hand  = def.name;
                 s.off_block = def.places;
@@ -18186,26 +18186,26 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 // bag of its own, and `held_slot` is which square of it the
                 // player is on. An empty or unknown slot is a bare hand, which
                 // is the same thing the server reads for it.
-                const net::InventoryState &carried = conn->carried();
+                const net::InventoryState &bag_now = conn->carried();
                 ItemStack                  held;
-                if (held_slot >= 0 && (size_t)held_slot < carried.slots.size()) {
-                    held.item  = (ItemId)carried.slots[(size_t)held_slot].item;
-                    held.count = carried.slots[(size_t)held_slot].count;
-                    held.ench  = carried.slots[(size_t)held_slot].ench;
-                    held.tag   = carried.slots[(size_t)held_slot].tag;
+                if (held_slot >= 0 && (size_t)held_slot < bag_now.slots.size()) {
+                    held.item  = (ItemId)bag_now.slots[(size_t)held_slot].item;
+                    held.count = bag_now.slots[(size_t)held_slot].count;
+                    held.ench  = bag_now.slots[(size_t)held_slot].ench;
+                    held.tag   = bag_now.slots[(size_t)held_slot].tag;
                 }
 
-                // The SERVER's item table, which the ids in `carried` are
+                // The SERVER's item table, which the ids in `bag_now` are
                 // positions in -- the one the hotbar names things from. This
                 // process's own table is its own mods', and in it the server's
                 // pick was some other item or none: reported from play, a pick
                 // and a shovel that dug no faster than a hand.
                 // Or an arm's tool, when it digs this better (net::best_dig_slot).
                 {
-                    std::vector<ItemStack> bag(carried.slots.size());
+                    std::vector<ItemStack> bag(bag_now.slots.size());
                     for (size_t i = 0; i < bag.size(); ++i)
-                        bag[i] = ItemStack{(ItemId)carried.slots[i].item, carried.slots[i].count,
-                                           carried.slots[i].used, carried.slots[i].ench, carried.slots[i].tag};
+                        bag[i] = ItemStack{(ItemId)bag_now.slots[i].item, bag_now.slots[i].count,
+                                           bag_now.slots[i].used, bag_now.slots[i].ench, bag_now.slots[i].tag};
                     const int best = net::best_dig_slot(conn->items(), bag, held_slot,
                                                         s.act().registry.get(under).material);
                     if (best != held_slot) held = bag[(size_t)best];
@@ -19105,10 +19105,10 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             // a sandbox with a door to every world would otherwise stream them
             // all at once. Nearest to where the server put the body (a join is
             // placed by a Teleport), not to where it stood before.
-            const bool near_here = conn->teleports() > 0 && mouth_near(m, player.pos, [&](int k, Vec3 &c) {
+            const bool near_here = conn->teleports() > 0 && mouth_near(m, player.pos, [&](int k, Vec3 &at) {
                 const net::Portals &ps = conn->portals();
                 if (!ps.away[k].leads_away() || !ps.has(k)) return false;
-                c = Vec3{ps.opening[k].cx, ps.opening[k].cy, ps.opening[k].cz};
+                at = Vec3{ps.opening[k].cx, ps.opening[k].cy, ps.opening[k].cz};
                 return true;
             });
             if (near_here && mo.conn != net::ClientSessionSet::kNoSession &&
@@ -21508,10 +21508,10 @@ int run_interactive(Scene &s, double seconds)
                 }
                 if (!act->clip.empty()) work = act->clip.c_str();
             } else if (e.has<ecs::Working>()) {
-                const ModelStore::Entry *me = s.act().models.entry(b.model);
-                work = !me                                 ? nullptr
-                     : me->model.clip("attack") >= 0       ? "attack"
-                     : me->model.clip("sit") >= 0          ? "sit"   // a pet told to sit
+                const ModelStore::Entry *md = s.act().models.entry(b.model);
+                work = !md                                 ? nullptr
+                     : md->model.clip("attack") >= 0       ? "attack"
+                     : md->model.clip("sit") >= 0          ? "sit"   // a pet told to sit
                                                            : "shoot";
             }
             if (b.model != 0)

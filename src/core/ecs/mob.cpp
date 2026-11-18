@@ -1892,8 +1892,8 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
                     const float uz = along_x ? 0.0f : std::copysign(1.0f, gz);
                     const int   ax = (int)std::floor(r.pos.x + ux * reach_out);
                     const int   az = (int)std::floor(r.pos.z + uz * reach_out);
-                    const int   fy = (int)std::floor(r.pos.y + 0.5f);
-                    if (solid(world, reg, ax, fy, az) && solid(world, reg, ax, fy + 1, az)) {
+                    const int   foot_y = (int)std::floor(r.pos.y + 0.5f);
+                    if (solid(world, reg, ax, foot_y, az) && solid(world, reg, ax, foot_y + 1, az)) {
                         b.climbing   = true;
                         b.climb_x    = ux;
                         b.climb_z    = uz;
@@ -1920,11 +1920,11 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
         } else if (b.stuck_since < 0.0) {
             b.stuck_since = now;
         } else if (now - b.stuck_since > 0.5 && now >= b.detour_until) {
-            const float mx = std::floor(p.x) + 0.5f - p.x, mz = std::floor(p.z) + 0.5f - p.z;
-            const float off = std::sqrt(mx * mx + mz * mz);
+            const float to_mid_x = std::floor(p.x) + 0.5f - p.x, to_mid_z = std::floor(p.z) + 0.5f - p.z;
+            const float off = std::sqrt(to_mid_x * to_mid_x + to_mid_z * to_mid_z);
             if (off > 0.12f) {
-                b.detour_x     = mx / off;
-                b.detour_z     = mz / off;
+                b.detour_x     = to_mid_x / off;
+                b.detour_z     = to_mid_z / off;
                 b.detour_until = now + std::min(0.6, (double)off / std::max(speed, 0.5f) + 0.05);
             } else {
                 const float side = (e.id() & 1) ? 1.0f : -1.0f;
