@@ -216,9 +216,9 @@ cannot disagree about how it is set.
 A mod's entry (`init.luau`) can hand parts of itself to other files of the same mod:
 
 ```lua
-local recipes = require("./recipes")      -- recipes.luau, beside the file asking
-local ui      = require("./ui")           -- ui.luau, or ui/init.luau if ui is a directory
-local road    = require("../road")        -- from inside a directory, the file above it
+local recipes = require("@self/recipes")  -- from init.luau: recipes.luau, beside it
+local ui      = require("@self/ui")       -- ui.luau, or ui/init.luau if ui is a directory
+local road    = require("../road")        -- from a file inside ui/: the one above it
 ```
 
 Each file is **a chunk of its own**, so it has its own 200 locals: the limit Luau puts on a chunk's
@@ -226,10 +226,15 @@ main body, which a long mod reaches (`mods/villagers` did). The files share the 
 its VM -- the same quota, the same budget, the same `core`.
 
 - **Paths are Luau's own** (require-by-string): `./` and `../` from the file asking, `.luau`
-  added, a directory meaning its `init.luau`. An editor that knows Luau follows them too, except
-  from an `init.luau`: Luau now reads `./` there as the folder above it, the engine as the folder
-  it is in, so the editor says "Unknown require" for a path that works. A path without `./` or
-  `../` is refused: there is nothing else to look in.
+  added, a directory meaning its `init.luau`, and **`@self/` for "inside me"**: from an
+  `init.luau` its own folder, from `a.luau` the folder `a/`. An editor that knows Luau follows
+  them too. **From an `init.luau`, write `@self/`**: Luau now reads `./` there as the folder
+  above it, so `require("./x")` loads in the game (the engine has always read it as beside the
+  file, and still does) and is "Unknown require" in an editor. A path without `./`, `../` or
+  `@self/` is refused: there is nothing else to look in.
+- **A file run for what it does** -- it registers, it fills a shared table -- **ends with
+  `return nil`**. The engine takes nothing for `true` either way; the type checker refuses to
+  `require` a file that does not return exactly one value.
 - **Only inside the mod's directory.** A path that leaves it is refused, however it is written.
 - **A file runs once.** The second `require` of it gets what the first got: what the file
   `return`ed (`true` if it returned nothing).
@@ -2307,10 +2312,8 @@ Two passes, exit status 1 if either finds something:
 
 What it leaves out unless `ALL=1`, because it is not the mod's fault:
 
-- **`require("./x")` in an `init.luau`** ("Unknown require", and the "Unknown type 'L.Zone'" that
-  follows). The engine looks for `x` beside the file; Luau now reads `./` in an `init.luau` as the
-  folder above it. The mod is right, the checker is not.
-- **`tests/mods/parts`**: a cyclic require and an undeclared global, there on purpose.
+- **`tests/mods/parts`**: a cyclic require, an undeclared global and an old `require("./x")`
+  from an `init.luau`, there on purpose -- it is the test that they are refused, or still load.
 - **`tools/api_gen/gen.luau`**: its globals are put there by `cnp_api_gen`.
 
 **What the types promise**, where they are less obvious than a signature:
@@ -2337,11 +2340,22 @@ code does:
 | `Value of type 'X?' could be nil` after an `if v then` | `v` is an upvalue, and a check on an upvalue does not narrow it | copy it first: `local b = boss; if b then ... b.id` |
 | `Expected this to be 'number', but got 'number?'` | a value the code knows is there (an entity's field set at spawn, a sibling of a checked value) | `core.ecs.get(e, "vx") :: number` |
 | `Unknown global 'x'` | a name used **above** its `local` is a global, and a different one | move the `local` up: this is a bug, not a type |
+| `Unknown require: unsupported path` | `require("./x")` in an `init.luau` | `require("@self/x")` |
+| `Module does not return exactly 1 value` | the file required is run for what it does | `return nil` at its end |
 
 The last row is not a type at all: `backrooms_exit`'s `keys:level` handler wrote into
 `level_d` above the line that declares it, so it indexed a global that does not exist and stopped
 there, before it put the player in the level -- and the lights that go out from level 5 on never
 did. That is what a clean check is for: the typing errors hide the few that are not.
+
+**What a clean check does not see**, found the same day in code that passed it:
+
+- **0 is true.** Many calls answer 1 or 0 (`core.loaded`, `core.node_solid`...), and in Luau only
+  `nil` and `false` are false: `if core.loaded(x, y, z) then` is always taken. Write `== 1`. The
+  front's flags went up on ground that was not there yet, once, from 0.9 to 0.18.
+- **A client's text is not a number until it is checked.** `tonumber(w[i]) :: number` tells the
+  checker it is; a client that sends something else makes the handler fail, and a handler that
+  fails switches the mod off -- for everybody in that world. Check each one and drop the message.
 
 ### Survival mode: levels behind the portals
 

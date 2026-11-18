@@ -10,13 +10,31 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 - **Le backrooms**: entrare in un livello non portava da nessuna parte -- il gestore del livello si
   fermava su una variabile usata sopra la riga che la dichiara. Ora ci porta, e dal livello 5 in
   poi le luci tornano a spegnersi come dovevano.
+- **Inferno ha di nuovo i suoi robot aiutanti**: da quando sono arrivati i progetti (0.10) il mod
+  degli aiutanti ne aveva bisogno, e il mondo di inferno non li aveva, quindi lasciava fuori gli
+  aiutanti senza dire niente.
+- **Barche, carrelli, commercio e pacchi** non si fermano più su un giocatore uscito in quello
+  stesso momento: quello che sarebbe caduto ai suoi piedi non cade, invece di far fallire tutto il
+  gestore.
+- **I punti di conquista del fronte**: le bandiere e il palo si mettevano una volta, all'inizio,
+  anche su terreno non ancora caricato, e mai più -- `core.loaded` risponde 0 o 1, e in Luau 0 è
+  vero. Ora aspettano il terreno.
+- **Il fronte e l'assalto** ignorano un messaggio di mira da un client che non sia di sei numeri;
+  ne bastava uno per fermare il gioco a tutti.
 - **La zuppa di funghi** vuole i due funghi marroni e quello rosso che ha sempre elencato; si
   faceva con un solo fungo marrone.
 - **Per chi scrive mod**: `docs/api.d.luau` si carica di nuovo in un editor (una descrizione era
   uscita dal suo commento) e ora dichiara `core.ecs`, `craft`, `net`, `render`, `hud`,
   `register_abm` e `register_lbm`, tutto il `MapgenStage` e i payload degli eventi tipati. Ogni mod
-  del gioco passa il controllo dei tipi pulito, e `tools/typecheck.sh` controlla i vostri allo
-  stesso modo: [docs/MODDING.it.md](docs/MODDING.it.md#controllare-i-tipi-toolstypechecksh).
+  del gioco passa il controllo dei tipi pulito -- tutti in `--!strict` ora, anche i giochi grandi --
+  e `tools/typecheck.sh` controlla i vostri allo stesso modo:
+  [docs/MODDING.it.md](docs/MODDING.it.md#controllare-i-tipi-toolstypechecksh).
+- **Per chi scrive mod**: `require("@self/x")`, il "dentro di me" di Luau -- da un `init.luau`
+  accanto, da `a.luau` in `a/`. Scrivetelo in un `init.luau` al posto di `./x`, che si carica
+  ancora ma che un editor ora legge come la cartella sopra.
+- **Due test nuovi**: `mods_smoke` avvia la sandbox e ogni gioco e fallisce su un mod che non si è
+  caricato o è stato spento; `api_types` fallisce quando una parte di `core` scritta a mano non ha
+  un tipo.
 
 ## 0.18.0-alpha.1 — 2026-11-18
 

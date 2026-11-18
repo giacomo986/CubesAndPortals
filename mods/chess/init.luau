@@ -1,3 +1,4 @@
+--!strict
 -- chess: a chess table, one cell, and a game on it by the classical rules.
 --
 -- Right click on the table and the camera flies from the eye to above the
@@ -136,7 +137,7 @@ local function attacked(b: { string }, i: number, by: string): boolean
             return true
         end
     end
-    for _, set in { { ROOK, "R" }, { BISHOP, "B" } } do
+    for _, set in ({ { ROOK, "R" }, { BISHOP, "B" } } :: { { any } }) do
         for _, d in set[1] do
             local x, y = f + d[1], r + d[2]
             while on(x, y) do
@@ -312,7 +313,7 @@ local function pseudo(st: State, i: number, out: { number })
         local them = other(c)
         if kind == "K" and r == row and st.castle ~= "" and not attacked(b, i, them) then
             local qr, kr = rook_files(st)
-            for _, side in { { "K", kr, 6, 5 }, { "Q", qr, 2, 3 } } do
+            for _, side in ({ { "K", kr, 6, 5 }, { "Q", qr, 2, 3 } } :: { { any } }) do
                 local rf, kt, rt = side[2], side[3], side[4]
                 if not string.find(st.castle, as(side[1], c), 1, true) or b[at(rf, row)] ~= as("R", c) then
                     continue
@@ -708,7 +709,7 @@ local function apply(st: State, from: number, to: number, promo: string?): State
                     b[at(tf + d[1], tr + d[2])] = "."
                 end
             end
-            for _, right in { { "K", kr, 0 }, { "Q", qr, 0 }, { "k", kr, 7 }, { "q", qr, 7 } } do
+            for _, right in ({ { "K", kr, 0 }, { "Q", qr, 0 }, { "k", kr, 7 }, { "q", qr, 7 } } :: { { any } }) do
                 local king = if right[3] == 0 then "K" else "k"
                 if b[at(right[2], right[3])] ~= as("R", colour(right[1]) :: string) or not table.find(b, king) then
                     n.castle = string.gsub(n.castle, right[1], "")
@@ -1015,7 +1016,7 @@ if serving then
         "timber:stick  timber:planks timber:stick")
 
     -- The clocks a game can be played with: seconds each and seconds a move.
-    local CLOCKS = { { 0, 0, "No clock" }, { 180, 2, "3 minutes + 2 seconds" }, { 300, 0, "5 minutes" },
+    local CLOCKS: { { any } } = { { 0, 0, "No clock" }, { 180, 2, "3 minutes + 2 seconds" }, { 300, 0, "5 minutes" },
                      { 600, 0, "10 minutes" } }
 
     type Board = {
@@ -1550,7 +1551,7 @@ if serving then
 
     if not drawing then
         core.event.on("core:net_message", function(ev)
-            from_client(ev.player, ev.text)
+            from_client(ev.player :: number, ev.text :: string)
         end)
     end
 
@@ -1765,7 +1766,7 @@ if drawing then
 
     if not serving then
         core.event.on("core:net_message", function(ev)
-            heard(ev.text)
+            heard(ev.text :: string)
         end)
     end
 
@@ -1907,7 +1908,7 @@ if drawing then
                     mark(s, hover, 0.98, 235, 235, 225, 255)
                 end
                 if picked then
-                    mark(s, picked, 0.98, 110, 190, 90, 255)
+                    mark(s, picked :: number, 0.98, 110, 190, 90, 255)
                     for t in targets do
                         mark(s, t, if st.b[t] ~= "." then 0.9 else 0.3, 60, 120, 60, 255)
                     end
@@ -1939,7 +1940,7 @@ if drawing then
                 -- Knights look across the board at the other side.
                 local yaw = turn + (if colour(p) == "b" then math.pi else 0)
                 if here and dragging and i == picked and hover ~= nil then
-                    core.render.model(model(p), cx, cy + 0.03, cz, yaw)
+                    core.render.model(model(p), cx :: number, (cy :: number) + 0.03, cz :: number, yaw)
                 else
                     local f, r = fr(i)
                     local x, y, z = world_of(s, f, r)
@@ -1966,7 +1967,7 @@ if drawing then
                         local f, r = place(base + k)
                         local yaw = turn + (if c == "b" then math.pi else 0)
                         if here and dragging and picked == base + k and hover ~= nil then
-                            core.render.model(model(p), cx, cy + 0.03, cz, yaw)
+                            core.render.model(model(p), cx :: number, (cy :: number) + 0.03, cz :: number, yaw)
                         end
                         if not (here and dragging and picked == base + k and hover ~= nil) or n > 1 then
                             local px, py, pz = world_of(s, f, r)

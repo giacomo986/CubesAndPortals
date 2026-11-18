@@ -1,3 +1,4 @@
+--!strict
 -- arpg_game: point and click in the manner of isometric action RPGs. The camera looks down
 -- from one fixed side (core.iso_view); the left button walks to where it is
 -- pressed, strikes a creature, talks to a merchant, picks up what lies on the
@@ -66,6 +67,31 @@ end
 
 local D = {}
 
+type Item = { b: number, r: number, l: number, x: number, a: { { number } } }
+type Base = { name: string, cat: string, lvl: number, min: number, max: number?, def: number, spd: number,
+              cls: number?, imp: { [string]: number }? }
+type Affix = { pre: boolean, name: string, stat: string, lvl: number, min: number, max: number, g: string,
+               only: string? }
+type Special = { name: string, base: string, lvl: number?, s: { [string]: number } }
+type SetDef = { name: string, items: { Special }, two: { [string]: number }, three: { [string]: number } }
+type MobDef = { hp: number, xp: number, names: { string }?, boss: string?, prop: boolean? }
+type PState = { name: string, cls: number, lvl: number, xp: number, gold: number, lpot: number, mpot: number,
+                tp: number, str: number, dex: number, vit: number, ene: number, sp: number, kp: number,
+                ranks: { number }, inv: { [number]: Item }, eq: { [number]: Item }, stash: { [number]: Item },
+                wps: number, mana: number, next_blow: number, way_at: number, way_to: { number },
+                st: { [string]: any }, lreg_acc: number, ls_acc: number, ms_acc: number, evade_until: number,
+                tp_cool: number, restock: boolean, stock: { [string]: { { code: string, price: number } } },
+                zone: number, dirty: boolean, factors: string, target: number?, pending: number?, goal: any,
+                shop: string?, stash_open: boolean?, at_wp: number?, clip_until: number?, last_hit: number? }
+type MobInfo = { kind: string, lvl: number, rank: number, real: number, taken: number, name: string }
+type Proj = { id: number, kind: string, owner: number, x: number, y: number, z: number, vx: number, vz: number,
+              t: number, life: number, dmg: number, hit: { [number]: boolean }, pierce: any, burst: any }
+type EncState = { woke: boolean, ids: { [number]: { m: { any }, x: number, z: number } }, left: { { any } },
+                  done: boolean }
+type PropSt = { id: number?, broken: boolean? }
+type Region = { x0: number, x1: number, y0: number, y1: number, act: () -> (), tip: any, cls: number? }
+type Npc = { kind: string, name: string, x: number, z: number }
+
 D.REACH      = 2.4     -- a blow lands from this far, feet to feet, across
 D.BOW_RANGE  = 13      -- a bow's arrow is loosed from this far
 D.BELT       = 8       -- potions of each kind, and scrolls, a player carries
@@ -85,7 +111,7 @@ D.RARITY = {
     [2] = { "RARE", 255, 225, 80 },
     [3] = { "UNIQUE", 205, 160, 90 },
     [4] = { "SET", 70, 225, 70 },
-}
+} :: { [number]: { any } }
 
 -- What each kind of base is: where it is worn, which affixes it takes (W
 -- weapons, A armour, J jewels and orbs), the letters on its square.
@@ -106,12 +132,13 @@ D.CAT = {
     belt   = { slot = "waist", g = "A", icon = "BL" },
     ring   = { slot = "ring", g = "J", icon = "RG" },
     amulet = { slot = "neck", g = "J", icon = "AM" },
-}
+} :: { [string]: { slot: string, g: string, icon: string, bow: boolean? } }
 
 -- The bases: name, kind, level, damage (weapons) or defence, speed (seconds a
 -- blow takes, against 1), the class it is for if only one, what it always has.
 -- Appended only: an item is saved by its base's place in this list.
-local function base(name, cat, lvl, a, b, spd, cls, imp)
+local function base(name: string, cat: string, lvl: number, a: number, b: number?, spd: number?, cls: number?,
+                    imp: { [string]: number }?): Base
     return { name = name, cat = cat, lvl = lvl, min = a, max = b, def = if b == nil then a else 0,
              spd = spd or 1, cls = cls, imp = imp }
 end
@@ -159,8 +186,8 @@ D.BASES = {
     base("HEAVY BELT", "belt", 15, 7),
     base("RING", "ring", 1, 0),
     base("AMULET", "amulet", 1, 0),
-}
-D.BASE_OF = {}
+} :: { Base }
+D.BASE_OF = {} :: { [string]: number }
 for i, b in D.BASES do
     D.BASE_OF[b.name] = i
 end
@@ -168,20 +195,20 @@ end
 -- What an equipped item is drawn as on the body, for everybody (core.player_wear,
 -- slot k of the paper doll): arpg_core's "gear_<its base>", nothing for a ring;
 -- its trim gold on a unique and green on a set (dyes 5 and 6).
-D.GEAR_DYE = { [3] = 5, [4] = 6 }
-function D.wear(p: number, k: number, it)
+D.GEAR_DYE = { [3] = 5, [4] = 6 } :: { [number]: number }
+function D.wear(p: number, k: number, it: Item?)
     local model = 0
     if it and D.BASES[it.b] then
         local file = (string.gsub(string.gsub(string.lower(D.BASES[it.b].name), "'", ""), " ", "_"))
         model = core.model_id("arpg_core:gear_" .. file)
     end
-    core.player_wear(p, k, model, if model ~= 0 then D.GEAR_DYE[it.r] or 0 else 0)
+    core.player_wear(p, k, model, if model ~= 0 then D.GEAR_DYE[(it :: Item).r] or 0 else 0)
 end
 
 -- The clip a body plays for a blow, a shot or a spell (core.player_clip, the
 -- robot's), and how long it lasts.
 D.CLIP = { sword_slash = 0.8, sword_overhead = 0.87, dagger_stab = 0.42, spin_slash = 0.54, war_cry = 0.83,
-           jump = 0.6, bow_shoot = 0.71, staff_cast = 0.54, cast_nova = 0.67 }
+           jump = 0.6, bow_shoot = 0.71, staff_cast = 0.54, cast_nova = 0.67 } :: { [string]: number }
 
 -- How a stat reads on an item, and on the character sheet.
 D.STAT = {
@@ -192,7 +219,7 @@ D.STAT = {
     ms = "%d%% MANA STOLEN PER HIT", lreg = "REPLENISH %d LIFE A SECOND", mreg = "+%d%% MANA REGENERATION",
     mf = "+%d%% BETTER CHANCE OF MAGIC ITEMS", gf = "+%d%% EXTRA GOLD", dr = "DAMAGE REDUCED BY %d%%",
     sk = "+%d TO ALL SKILLS", fire = "ADDS %d FIRE DAMAGE", crit = "%d%% CHANCE OF DOUBLE DAMAGE",
-}
+} :: { [string]: string }
 -- The order an item lists them in.
 D.STAT_ORDER = { "sk", "ed", "maxd", "fire", "ias", "crit", "edef", "def", "life", "mana", "str", "dex", "vit",
                  "ene", "frw", "ls", "ms", "lreg", "mreg", "dr", "mf", "gf" }
@@ -200,7 +227,8 @@ D.STAT_ORDER = { "sk", "ed", "maxd", "fire", "ias", "crit", "edef", "def", "life
 -- The affixes: a prefix or not, its word, the stat, the level it first rolls
 -- at, its range, the kinds it goes on (W A J), and a kind it is only for.
 -- Appended only: an item is saved by an affix's place in this list.
-local function affix(pre, name, stat, lvl, a, b, g, only)
+local function affix(pre: boolean, name: string, stat: string, lvl: number, a: number, b: number, g: string,
+                     only: string?): Affix
     return { pre = pre, name = name, stat = stat, lvl = lvl, min = a, max = b, g = g, only = only }
 end
 D.AFFIX = {
@@ -257,7 +285,7 @@ D.AFFIX = {
     affix(false, "OF RUIN", "crit", 8, 3, 6, "W"),
     affix(false, "OF SLAUGHTER", "crit", 16, 7, 12, "W"),
     affix(false, "OF WARDING", "def", 1, 3, 8, "A"),
-}
+} :: { Affix }
 
 -- Two words a rare item is called by: x = first * 16 + second.
 D.RARE_A = { "GRIM", "DOOM", "BLOOD", "BONE", "STORM", "SHADOW", "GHOUL", "RUNE", "WRAITH", "HATE", "PAIN",
@@ -279,7 +307,7 @@ D.UNIQUE = {
     { name = "WALL OF AGES", base = "TOWER SHIELD", lvl = 14, s = { edef = 100, dr = 15, vit = 10 } },
     { name = "THE BUTCHER'S BILL", base = "BATTLE AXE", lvl = 10, s = { ed = 150, crit = 10, life = 20 } },
     { name = "STARFALL", base = "BATTLE STAFF", lvl = 12, s = { sk = 2, ene = 20, mreg = 50 } },
-}
+} :: { Special }
 
 -- The sets, one for each class: three pieces, and what two and three of them
 -- give besides their own. x = set * 10 + piece.
@@ -299,7 +327,7 @@ D.SET = {
         { name = "STALKER'S HIDE", base = "LEATHER ARMOR", s = { edef = 80, life = 20 } },
         { name = "STALKER'S TREADS", base = "BOOTS", s = { frw = 20, dex = 8 } } },
       two = { frw = 15 }, three = { ed = 60, ias = 20 } },
-}
+} :: { SetDef }
 
 -- The classes: what they start with, how life and mana grow, their skills.
 D.CLASS = {
@@ -353,7 +381,7 @@ D.MOB = {
     ["arpg_core:barrel"]     = { hp = 5, xp = 0, names = { "BARREL", "BARREL", "BARREL", "BARREL" }, prop = true },
     ["arpg_core:crate"]      = { hp = 6, xp = 0, names = { "CRATE", "CRATE", "CRATE", "CRATE" }, prop = true },
     ["arpg_core:urn"]        = { hp = 3, xp = 0, names = { "URN", "URN", "URN", "URN" }, prop = true },
-}
+} :: { [string]: MobDef }
 D.UNITS = 1000   -- what every one of them has in the engine (arpg_core)
 -- normal, champion, a named one, a lord
 D.RANK = { [0] = { hp = 1, xp = 1 }, [1] = { hp = 3, xp = 3 }, [2] = { hp = 5, xp = 6 }, [3] = { hp = 1, xp = 1 } }
@@ -385,7 +413,7 @@ D.NAME_B = { "GRINDER", "MAW", "FANG", "SPINE", "HOWL", "REND", "SHROUD", "WAIL"
 
 local IT = {}
 
-function IT.encode(it): string
+function IT.encode(it: Item): string
     local parts = {}
     for _, av in it.a do
         table.insert(parts, `{av[1]}={av[2]}`)
@@ -393,13 +421,13 @@ function IT.encode(it): string
     return `{it.b}.{it.r}.{it.l}.{it.x}.{table.concat(parts, ";")}`
 end
 
-function IT.decode(code: string)
+function IT.decode(code: string): Item?
     local p = string.split(code, ".")
     if #p < 4 then
         return nil
     end
-    local it = { b = tonumber(p[1]) or 0, r = tonumber(p[2]) or 0, l = tonumber(p[3]) or 1, x = tonumber(p[4]) or 0,
-                 a = {} }
+    local it: Item = { b = tonumber(p[1]) or 0, r = tonumber(p[2]) or 0, l = tonumber(p[3]) or 1,
+                       x = tonumber(p[4]) or 0, a = {} }
     if D.BASES[it.b] == nil then
         return nil
     end
@@ -416,7 +444,7 @@ function IT.decode(code: string)
 end
 
 -- The unique or set piece an item is, or nil.
-function IT.special(it)
+function IT.special(it: Item): Special?
     if it.r == 3 then
         return D.UNIQUE[it.x]
     elseif it.r == 4 then
@@ -427,8 +455,8 @@ function IT.special(it)
 end
 
 -- What it adds, by stat, besides its damage and defence.
-function IT.stats(it): {[string]: number}
-    local out = {}
+function IT.stats(it: Item): {[string]: number}
+    local out: { [string]: number } = {}
     local b = D.BASES[it.b]
     for k, v in (b.imp or {}) do
         out[k] = (out[k] or 0) + v
@@ -447,7 +475,7 @@ function IT.stats(it): {[string]: number}
 end
 
 -- Its damage or defence with what it has.
-function IT.base_numbers(it): (number, number, number)
+function IT.base_numbers(it: Item): (number, number, number)
     local b = D.BASES[it.b]
     local s = IT.stats(it)
     local ed = (s.ed or 0) / 100
@@ -457,7 +485,7 @@ function IT.base_numbers(it): (number, number, number)
     return dmin, math.max(dmin, dmax), def
 end
 
-function IT.name(it): string
+function IT.name(it: Item): string
     local b = D.BASES[it.b]
     local sp = IT.special(it)
     if sp then
@@ -479,12 +507,12 @@ function IT.name(it): string
     return b.name
 end
 
-function IT.req(it): number
+function IT.req(it: Item): number
     local b = D.BASES[it.b]
     local r = b.lvl
     local sp = IT.special(it)
     if it.r == 3 and sp then
-        r = math.max(r, sp.lvl)
+        r = math.max(r, sp.lvl :: number)
     end
     for _, av in it.a do
         r = math.max(r, D.AFFIX[av[1]].lvl - 2)
@@ -493,7 +521,7 @@ function IT.req(it): number
 end
 
 -- What a merchant asks for it; a quarter of it is what they pay.
-function IT.value(it): number
+function IT.value(it: Item): number
     local b = D.BASES[it.b]
     local v = (10 + b.lvl * 6) * ({ 1, 3, 6, 15, 12 })[it.r + 1]
     for _, av in it.a do
@@ -503,10 +531,10 @@ function IT.value(it): number
 end
 
 -- Its lines as a tooltip shows them: text and colour.
-function IT.lines(it): { { any } }
+function IT.lines(it: Item): { { any } }
     local b = D.BASES[it.b]
     local rc = D.RARITY[it.r]
-    local out = { { IT.name(it), rc[2], rc[3], rc[4] } }
+    local out: { { any } } = { { IT.name(it), rc[2], rc[3], rc[4] } }
     if it.r >= 2 then
         table.insert(out, { b.name, rc[2], rc[3], rc[4] })
     end
@@ -554,7 +582,7 @@ function IT.loose(code: string): (string?, number)
     end
     return nil, 0
 end
-D.LOOSE_NAME = { lpot = "LIFE POTION", mpot = "MANA POTION", tp = "TOWN PORTAL SCROLL" }
+D.LOOSE_NAME = { lpot = "LIFE POTION", mpot = "MANA POTION", tp = "TOWN PORTAL SCROLL" } :: { [string]: string }
 
 -- ==================================================================== layout
 -- Cells of a grid G wide round the town at OX, OZ. Each area sits in one
@@ -566,7 +594,7 @@ local L = {}
 L.OX, L.OZ, L.G = 1024, 1024, 48
 -- Where arpg_crypt draws the crypt (its DX, DZ): the ground over it is open.
 L.CRYPT_DX, L.CRYPT_DZ = 1317, 1013
-L.ZONE = { [0] = "ASHBURY", "THE GREY WASTE", "THE BARROWS", "THE CRYPT" }
+L.ZONE = { [0] = "ASHBURY", "THE GREY WASTE", "THE BARROWS", "THE CRYPT" } :: { [number]: string }
 
 L.AREAS = {
     { key = "town", i = 0, j = 0, zone = 0, level = 1, kind = "town" },
@@ -587,10 +615,10 @@ L.AREAS = {
     { key = "a10", i = 7, j = 1, zone = 2, level = 9, from = "a9", kind = "lair", boss = "arpg_core:ember_wing",
       minion = "arpg_core:imp" },
     { key = "crypt", i = 8, j = 1, zone = 3, level = 10, from = "a10", kind = "crypt", waypoint = true },
-}
-L.BY_KEY = {}
-L.RECTS = {}      -- every open rectangle: { x0, z0, x1, z1, area }
-L.BUCKET = {}     -- cell -> the rectangles that touch it
+} :: { any }
+L.BY_KEY = {} :: { [string]: number }
+L.RECTS = {} :: { { number } }      -- every open rectangle: { x0, z0, x1, z1, area }
+L.BUCKET = {} :: { [number]: { { number } } }     -- cell -> the rectangles that touch it
 
 local function cell_key(i: number, j: number): number
     return (i + 100) * 1000 + (j + 100)
@@ -715,13 +743,14 @@ L.NPCS = {
     { kind = "guard", name = "THE GATE WARDEN", x = L.TX + 17, z = L.TZ + 4 },
 }
 L.STASH = { L.TX + 5, L.TZ + 7 }
-L.TP_SPOTS = {}
+L.TP_SPOTS = {} :: { { number } }
 for k = 0, 7 do
     table.insert(L.TP_SPOTS, { L.TX - 7 + 2 * k + 0.5, GROUND, L.TZ + 12.5 })
 end
 
 -- The waypoints: the town's by its gate, and the first area of each zone's.
-L.WPS = { { name = "ASHBURY", x = L.TX + 13, z = L.TZ + 6 } }
+L.WPS = { { name = "ASHBURY", x = L.TX + 13, z = L.TZ + 6 } } ::
+    { { name: string, x: number, z: number, area: string? } }
 for _, a in L.AREAS do
     if a.waypoint then
         local f = L.AREAS[L.BY_KEY[a.from]]
@@ -737,15 +766,17 @@ end
 
 -- The encounters: packs where each area's hash put them, and in a lair its
 -- lord. Each is { area, x, z, members = { {kind, rank} }, name }.
-L.ENC = {}
-L.CHESTS = {}
-L.PROPS = {}      -- what is broken for what is inside: { x, z, area, kind }
-local KINDS = { [1] = { "zombie", "zombie", "skeleton" }, [2] = { "zombie", "skeleton", "imp", "imp" } }
+L.ENC = {} :: { any }
+L.CHESTS = {} :: { { x: number, z: number, level: number, area: number } }
+-- what is broken for what is inside: { x, z, area, kind }
+L.PROPS = {} :: { { x: number, z: number, area: number, kind: string } }
+local KINDS = { [1] = { "zombie", "zombie", "skeleton" }, [2] = { "zombie", "skeleton", "imp", "imp" } } ::
+    { [number]: { string } }
 function L.populate(n: number, a: any)
     if a.kind == "town" or a.kind == "crypt" then
         return
     end
-    local spots = {}
+    local spots: { { number } } = {}
     local function free_spot(salt: number): (number, number)
         for t = 0, 30 do
             local x = a.cx - a.hw + 4 + math.floor(hash(n, t, salt) * (2 * a.hw - 7))
@@ -775,7 +806,7 @@ function L.populate(n: number, a: any)
         local kinds = KINDS[a.zone]
         local kind = "arpg_core:" .. kinds[1 + math.floor(hash(n, g, 71) * #kinds)]
         local roll = hash(n, g, 72)
-        local e = { area = n, members = {} }
+        local e: any = { area = n, members = {} }
         e.x, e.z = free_spot(80 + g * 3)
         if (a.kind == "branch" and g == 1) or (roll < 0.15 and a.kind ~= "lair") then
             for _ = 1, 2 + a.level // 4 do
@@ -796,7 +827,7 @@ function L.populate(n: number, a: any)
         table.insert(L.ENC, e)
     end
     if a.kind == "lair" then
-        local e = { area = n, x = a.cx, z = a.cz, members = { { a.boss, 3 } }, name = D.MOB[a.boss].boss,
+        local e: any = { area = n, x = a.cx, z = a.cz, members = { { a.boss, 3 } }, name = D.MOB[a.boss].boss,
                     slot = a.slot }
         for _ = 1, 4 do
             table.insert(e.members, { a.minion, 0 })
@@ -825,7 +856,7 @@ for n, a in L.AREAS do L.populate(n, a) end
 -- one up every three areas. Shaped and filled as the lands' own areas are,
 -- so the ground is made by the same stage; the first area is where the
 -- player starts. A function of the slot, d and the seed.
-L.SLOTS = {}   -- slot -> the index in L.AREAS of its first area
+L.SLOTS = {} :: { [number]: number }   -- slot -> the index in L.AREAS of its first area
 function L.add_level(slot: number, d: number, seed: number): number
     if L.SLOTS[slot] then return L.SLOTS[slot] end
     local ox, oz = 8192 + (slot % 16) * 2048 + 1024, (slot // 16) * 2048 + 1024
@@ -961,21 +992,21 @@ if serving then
     core.set_portal(0, L.TX + 0.5, GROUND + 1, L.TZ - 21 + 0.5)
 
     local SV = {}
-    SV.players = {}   -- player id -> state
-    SV.mobs = {}      -- creature id -> what this file knows of it
-    SV.killed = {}    -- creature id -> true, struck down by a player
-    SV.npc = {}       -- creature id -> the town's person it is
-    SV.ground = {}    -- id -> { code, x, y, z }
-    SV.proj = {}      -- in flight
-    SV.portals = {}   -- player id -> their town portal
-    SV.enc = {}       -- encounter -> its state
-    SV.chest_open = {}
-    SV.props = {}     -- a breakable thing standing, by id -> its place in L.PROPS
-    SV.prop_st = {}   -- by place: { id = while it stands, broken = once it is }
+    SV.players = {} :: { [number]: PState }   -- player id -> state
+    SV.mobs = {} :: { [number]: MobInfo }      -- creature id -> what this file knows of it
+    SV.killed = {} :: { [number]: boolean }    -- creature id -> true, struck down by a player
+    SV.npc = {} :: { [number]: Npc }       -- creature id -> the town's person it is
+    SV.ground = {} :: { [number]: { code: string, x: number, y: number, z: number } }    -- id -> { code, x, y, z }
+    SV.proj = {} :: { Proj }      -- in flight
+    SV.portals = {} :: { [number]: { [string]: number } }   -- player id -> their town portal
+    SV.enc = {} :: { [number]: EncState }       -- encounter -> its state
+    SV.chest_open = {} :: { [number]: boolean }
+    SV.props = {} :: { [number]: number }     -- a breakable thing standing, by id -> its place in L.PROPS
+    SV.prop_st = {} :: { [number]: PropSt }   -- by place: { id = while it stands, broken = once it is }
     SV.next_id = 1
     SV.was_anybody = false
 
-    local B = {}      -- block ids, read once the world runs
+    local B: { [string]: number } = {}      -- block ids, read once the world runs
     local function blocks()
         if B.grass then
             return
@@ -989,9 +1020,9 @@ if serving then
     -- ------------------------------------------------------------- the ground
 
     -- Boxes of cells the mapgen writes over the floor, by grid cell.
-    local BOX = {}
-    local function box(x0, y0, z0, x1, y1, z1, b: string)
-        local r = { math.min(x0, x1), math.min(y0, y1), math.min(z0, z1), math.max(x0, x1), math.max(y0, y1),
+    local BOX: { [number]: { { any } } } = {}
+    local function box(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, b: string)
+        local r: { any } = { math.min(x0, x1), math.min(y0, y1), math.min(z0, z1), math.max(x0, x1), math.max(y0, y1),
                     math.max(z0, z1), b }
         local g = L.G
         for i = (r[1] - L.OX + g // 2) // g, (r[4] - L.OX + g // 2) // g do
@@ -1022,7 +1053,7 @@ if serving then
         -- Kept too (L.HALL_BOXES): a world made before the hall has it
         -- written in at its next start.
         local h = L.HALL
-        local function hb(x0, y0, z0, x1, y1, z1, b: string)
+        local function hb(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, b: string)
             box(x0, y0, z0, x1, y1, z1, b)
             table.insert(L.HALL_BOXES, { x0, y0, z0, x1, y1, z1, b })
         end
@@ -1207,7 +1238,7 @@ if serving then
 
     -- ------------------------------------------------------------ characters
 
-    local function new_state(p: number)
+    local function new_state(p: number): PState
         return { name = core.player_name(p), cls = 0, lvl = 1, xp = 0, gold = 0, lpot = 4, mpot = 2, tp = 2,
                  str = 0, dex = 0, vit = 0, ene = 0, sp = 0, kp = 0, ranks = { 0, 0, 0, 0 }, inv = {}, eq = {},
                  stash = {}, wps = 1, mana = 0, next_blow = 0, way_at = 0, way_to = { 0, 0, 0 }, st = {},
@@ -1239,7 +1270,7 @@ if serving then
         end
     end
 
-    function SV.save(s)
+    function SV.save(s: PState)
         local r = s.ranks
         core.storage_set(`c:{s.name}`, string.format("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d", s.cls,
             s.lvl, s.xp, s.gold, s.lpot, s.mpot, s.tp, s.str, s.dex, s.vit, s.ene, s.sp, s.kp, r[1], r[2], r[3], r[4],
@@ -1250,9 +1281,9 @@ if serving then
         s.dirty = false
     end
 
-    function SV.load(p: number)
+    function SV.load(p: number): PState
         local s = new_state(p)
-        local n = {}
+        local n: { number } = {}
         for _, v in string.split(core.storage_get(`c:{s.name}`), " ") do
             table.insert(n, tonumber(v) or 0)
         end
@@ -1271,12 +1302,12 @@ if serving then
     -- Everything a character is with what they wear: life, mana, damage,
     -- defence and the rest, told to the engine (life, how they walk and what
     -- a blow takes off) and to their machine.
-    function SV.recompute(p: number, s)
+    function SV.recompute(p: number, s: PState)
         local c = D.CLASS[s.cls]
         local t: { [string]: any } = { str = s.str, dex = s.dex, vit = s.vit, ene = s.ene }
         local def = 0
         local w = s.eq[1]
-        local sets = {}
+        local sets: { [number]: number } = {}
         for k = 1, 10 do
             local it = s.eq[k]
             if it then
@@ -1342,13 +1373,13 @@ if serving then
         tell(p, `sk {s.ranks[1]} {s.ranks[2]} {s.ranks[3]} {s.ranks[4]} {st.sk}`)
     end
 
-    function SV.stat_line(p: number, s): string
-        return string.format("st %d %d %d %d %d %d %d %d %d %d %d %d %d %d", core.health(p), s.st.life or 20,
-                             math.floor(s.mana), s.st.mana or 10, s.xp, D.next_xp(s.lvl), s.lvl, s.gold, s.lpot,
-                             s.mpot, s.tp, s.cls, s.sp, s.kp)
+    function SV.stat_line(p: number, s: PState): string
+        return string.format("st %d %d %d %d %d %d %d %d %d %d %d %d %d %d", core.health(p),
+                             (s.st.life or 20) :: number, math.floor(s.mana), (s.st.mana or 10) :: number, s.xp,
+                             D.next_xp(s.lvl), s.lvl, s.gold, s.lpot, s.mpot, s.tp, s.cls, s.sp, s.kp)
     end
 
-    function SV.send_list(p: number, what: string, list, n: number)
+    function SV.send_list(p: number, what: string, list: { [number]: Item }, n: number)
         for k = 1, n do
             tell(p, if list[k] then `{what} {k} {IT.encode(list[k])}` else `{what} {k}`)
         end
@@ -1362,8 +1393,8 @@ if serving then
 
     -- An item that dropped at `level`: its base, its rarity (better with magic
     -- find), its affixes. `only` keeps to bases of one kind group ("J" jewels).
-    function SV.roll(level: number, mf: number, only: string?, floor_rarity: number?)
-        local bases = {}
+    function SV.roll(level: number, mf: number, only: string?, floor_rarity: number?): Item
+        local bases: { number } = {}
         for i, b in D.BASES do
             if b.lvl <= level + 1 and (only == nil or string.find(only, D.CAT[b.cat].g, 1, true)) then
                 table.insert(bases, i)
@@ -1384,11 +1415,11 @@ if serving then
             r = 1
         end
         r = math.max(r, floor_rarity or 0)
-        local it = { b = bi, r = r, l = level, x = 0, a = {} }
+        local it: Item = { b = bi, r = r, l = level, x = 0, a = {} }
         if r == 3 then
-            local pool = {}
+            local pool: { number } = {}
             for k, uq in D.UNIQUE do
-                if uq.lvl <= level + 2 then
+                if (uq.lvl :: number) <= level + 2 then
                     table.insert(pool, k)
                 end
             end
@@ -1425,11 +1456,11 @@ if serving then
             it.x = math.random(0, 255)
         end
         local g = D.CAT[cat].g
-        local used = {}
+        local used: { [string]: boolean } = {}
         for _, pre in { true, false } do
             local want = if pre then want_pre else want_suf
             for _ = 1, want do
-                local pool = {}
+                local pool: { number } = {}
                 for i, a in D.AFFIX do
                     if a.pre == pre and a.lvl <= level and string.find(a.g, g, 1, true) and not used[a.stat] and
                        (a.only == nil or a.only == cat) then
@@ -1462,13 +1493,13 @@ if serving then
         tell(0, string.format("gi %d %.2f %d %.2f %s", id, x, y, z, code))
     end
 
-    function SV.drop_item(it, x, y, z)
+    function SV.drop_item(it: Item, x: number, y: number, z: number)
         SV.drop(IT.encode(it), x, y, z)
     end
 
     -- What a death leaves: experience to all near, then gold, potions,
     -- globes and items by how great it was.
-    function SV.reward(p: number, info, x: number, y: number, z: number)
+    function SV.reward(p: number, info: MobInfo, x: number, y: number, z: number)
         local mob = D.MOB[info.kind] or D.MOB["arpg_core:zombie"]
         local xp = math.floor(mob.xp * info.lvl * D.RANK[info.rank].xp * (if info.rank == 3 then 8 else 1))
         local mf, gf = 0, 0
@@ -1508,7 +1539,7 @@ if serving then
         end
     end
 
-    function SV.give_xp(p: number, s, n: number)
+    function SV.give_xp(p: number, s: PState, n: number)
         if s.lvl >= D.MAX_LEVEL then
             return
         end
@@ -1531,7 +1562,7 @@ if serving then
     -- What this file knows of a creature: its kind, level, rank, name and real
     -- life. One it did not spawn (arpg_crypt's, which says so) or never heard
     -- of is taken for a zombie of the place it stands in.
-    function SV.info(id: number)
+    function SV.info(id: number): MobInfo?
         local info = SV.mobs[id]
         if info then
             return info
@@ -1545,17 +1576,18 @@ if serving then
         return info
     end
 
-    function SV.new_info(kind: string, lvl: number, rank: number, name: string?)
+    function SV.new_info(kind: string, lvl: number, rank: number, name: string?): MobInfo
         local mob = D.MOB[kind] or D.MOB["arpg_core:zombie"]
         local real = math.max(1, math.floor(mob.hp * D.hp_mult(lvl) * D.RANK[rank].hp))
         local shown = name
         if shown == nil then
-            shown = mob.boss or mob.names[D.tier(lvl)]
+            shown = mob.boss or (mob.names :: { string })[D.tier(lvl)]
             if rank == 1 then
                 shown = "CHAMPION " .. shown
             end
         end
-        return { kind = kind, lvl = lvl, rank = if mob.boss then 3 else rank, real = real, taken = 0, name = shown }
+        return { kind = kind, lvl = lvl, rank = if mob.boss then 3 else rank, real = real, taken = 0,
+                 name = shown :: string }
     end
 
     -- arpg_crypt says what it spawns, so its dead are known by kind.
@@ -1574,7 +1606,7 @@ if serving then
 
     -- A blow of `dmg` real points from player p: the share of the creature's
     -- thousand it is, life and mana stolen, and the reward if it died.
-    function SV.deal(p: number, s, id: number, dmg: number, fx: number, fz: number, steal: boolean): boolean
+    function SV.deal(p: number, s: PState, id: number, dmg: number, fx: number, fz: number, steal: boolean): boolean
         if SV.npc[id] then
             return false
         end
@@ -1639,7 +1671,7 @@ if serving then
         return out
     end
 
-    function SV.weapon_hit(s): number
+    function SV.weapon_hit(s: PState): number
         return math.random(s.st.dmin, s.st.dmax) + s.st.fire
     end
 
@@ -1682,7 +1714,7 @@ if serving then
     -- A ray as the client sends it: six numbers after the first word, d of
     -- length 1. Nil for anything else.
     function SV.read_ray(w: {string}, from: number): ({number}?, {number}?)
-        local n = {}
+        local n: { number } = {}
         for i = from, from + 5 do
             n[#n + 1] = tonumber(w[i])
             if n[#n] == nil or n[#n] ~= n[#n] then
@@ -1708,21 +1740,21 @@ if serving then
     -- An arrow or a fireball: from the chest, flat, `speed` along x z, until
     -- it meets a wall, a creature (a piercing one goes on) or its time.
     function SV.shoot(p: number, kind: string, x: number, y: number, z: number, dx: number, dz: number,
-                      speed: number, life: number, dmg: number, opts)
+                      speed: number, life: number, dmg: number, opts: { [string]: any }?)
         local l = math.sqrt(dx * dx + dz * dz)
         if l < 0.01 then
             return
         end
         local id = SV.next_id
         SV.next_id += 1
-        local b = { id = id, kind = kind, owner = p, x = x + dx / l * 0.6, y = y, z = z + dz / l * 0.6,
+        local b: Proj = { id = id, kind = kind, owner = p, x = x + dx / l * 0.6, y = y, z = z + dz / l * 0.6,
                     vx = dx / l * speed, vz = dz / l * speed, t = 0, life = life, dmg = dmg, hit = {},
                     pierce = opts and opts.pierce, burst = opts and opts.burst }
         table.insert(SV.proj, b)
         tell(0, string.format("pj %d %s %.2f %.2f %.2f %.2f %.2f", id, kind, b.x, b.y, b.z, b.vx, b.vz))
     end
 
-    function SV.burst(p: number, s, x: number, y: number, z: number, r: number, dmg: number)
+    function SV.burst(p: number, s: PState, x: number, y: number, z: number, r: number, dmg: number)
         for _, id in SV.around(x, y - CHEST, z, r) do
             SV.deal(p, s, id, dmg, x, z, false)
         end
@@ -1745,7 +1777,7 @@ if serving then
                     if not b.hit[id] then
                         b.hit[id] = true
                         if b.burst == nil then
-                            SV.deal(b.owner, s, id, b.dmg, b.x, b.z, b.kind == "arrow")
+                            SV.deal(b.owner, s :: PState, id, b.dmg, b.x, b.z, b.kind == "arrow")
                         end
                         if not b.pierce then
                             done = true
@@ -1770,24 +1802,24 @@ if serving then
 
     -- ---------------------------------------------------------------- skills
 
-    local function rank_of(s, n: number): number
+    local function rank_of(s: PState, n: number): number
         return if s.ranks[n] > 0 then s.ranks[n] + s.st.sk else 0
     end
 
-    local function spell_mult(s, n: number, per: number): number
+    local function spell_mult(s: PState, n: number, per: number): number
         return (1 + per * (rank_of(s, n) - 1)) * (1 + 0.03 * s.lvl)
     end
 
     -- A clip for everybody to see the body play, and for its own machine, until
     -- it has played once (D.CLIP); then the walk and the idle again.
-    function SV.anim(p: number, s, clip: string)
+    function SV.anim(p: number, s: PState, clip: string)
         core.player_clip(p, clip)
         s.clip_until = clock + D.CLIP[clip]
         tell(p, `anim {clip} {D.CLIP[clip]}`)
     end
 
     -- A melee skill or the plain blow, on the creature in reach.
-    function SV.strike(p: number, s, id: number, n: number?)
+    function SV.strike(p: number, s: PState, id: number, n: number?)
         local px, _, pz = core.player_pos(p)
         local x, y, z = core.mob_pos(id)
         if px == nil or x == nil then
@@ -1815,7 +1847,7 @@ if serving then
     end
 
     -- An arrow at a point, as the plain shot or a hunter's skill.
-    function SV.loose(p: number, s, at: {number}, n: number?)
+    function SV.loose(p: number, s: PState, at: {number}, n: number?)
         local px, py, pz = core.player_pos(p)
         if px == nil then
             return false
@@ -1843,7 +1875,7 @@ if serving then
     end
 
     -- Where a leap, a teleport or an evade lands: the point, or nil.
-    local function landing(s, at: {number}, px: number, py: number, pz: number, far: number): {number}?
+    local function landing(s: PState, at: {number}, px: number, py: number, pz: number, far: number): {number}?
         local x, z = math.floor(at[1]), math.floor(at[3])
         local y = math.floor(at[2] + 0.5)
         if (x + 0.5 - px) ^ 2 + (z + 0.5 - pz) ^ 2 > far * far or not SV.standable(x, y, z) then
@@ -1852,7 +1884,7 @@ if serving then
         return { x + 0.5, y, z + 0.5 }
     end
 
-    function SV.cast(p: number, s, n: number, o: {number}, d: {number})
+    function SV.cast(p: number, s: PState, n: number, o: {number}, d: {number})
         local c = D.CLASS[s.cls]
         local px, py, pz = core.player_pos(p)
         if c == nil or px == nil or c.skills[n] == nil then
@@ -2010,7 +2042,7 @@ if serving then
 
     -- ------------------------------------------------------------ the bag
 
-    local function free_slot(list, n: number): number?
+    local function free_slot(list: { [number]: Item }, n: number): number?
         for k = 1, n do
             if list[k] == nil then
                 return k
@@ -2020,7 +2052,7 @@ if serving then
     end
 
     -- Whether a character can wear it, and the reason when not.
-    function SV.can_wear(s, it): string?
+    function SV.can_wear(s: PState, it: Item): string?
         local b = D.BASES[it.b]
         if IT.req(it) > s.lvl then
             return `NEEDS LEVEL {IT.req(it)}`
@@ -2031,7 +2063,7 @@ if serving then
         return nil
     end
 
-    function SV.equip(p: number, s, k: number)
+    function SV.equip(p: number, s: PState, k: number)
         local it = s.inv[k]
         if it == nil then
             return
@@ -2058,7 +2090,7 @@ if serving then
         s.dirty = true
     end
 
-    function SV.unequip(p: number, s, e: number)
+    function SV.unequip(p: number, s: PState, e: number)
         if s.eq[e] == nil then
             return
         end
@@ -2075,17 +2107,17 @@ if serving then
     end
 
     -- Into the bag, or the belt for what goes there; false when full.
-    function SV.take(p: number, s, code: string): boolean
+    function SV.take(p: number, s: PState, code: string): boolean
         local what, n = IT.loose(code)
         if what == "gold" then
             s.gold += n
             tell(p, `got gold {n}`)
             return true
         elseif what == "lpot" or what == "mpot" or what == "tp" then
-            if s[what] >= D.BELT then
+            if (s :: any)[what] >= D.BELT then
                 return false
             end
-            s[what] += 1
+            (s :: any)[what] += 1
             tell(p, `got {what}`)
             return true
         elseif what == "life" then
@@ -2109,7 +2141,7 @@ if serving then
         return true
     end
 
-    function SV.pick(p: number, s, id: number)
+    function SV.pick(p: number, s: PState, id: number)
         local g = SV.ground[id]
         if g and SV.take(p, s, g.code) then
             SV.ground[id] = nil
@@ -2124,7 +2156,7 @@ if serving then
     -- What each one has for this player, made again each time they come back
     -- to town: the smith's arms and armour, the jeweller's rings, amulets and
     -- orbs, the alchemist's potions, scrolls and staves.
-    function SV.restock(s)
+    function SV.restock(s: PState)
         local lvl = s.lvl + 2
         s.stock = { smith = {}, jeweler = {}, alchemist = { { code = "!l", price = 25 }, { code = "!m", price = 25 },
                                                             { code = "!t", price = 40 } } }
@@ -2157,7 +2189,7 @@ if serving then
         s.restock = false
     end
 
-    function SV.open_shop(p: number, s, kind: string)
+    function SV.open_shop(p: number, s: PState, kind: string)
         if kind == "guard" then
             SV.msg(p, "THE WAY EAST IS NOT SAFE. MIND THE DEAD.")
             return
@@ -2177,7 +2209,7 @@ if serving then
         end
     end
 
-    function SV.buy(p: number, s, k: number)
+    function SV.buy(p: number, s: PState, k: number)
         local w = s.shop and s.stock[s.shop][k]
         if w == nil then
             return
@@ -2188,11 +2220,11 @@ if serving then
         end
         local what = IT.loose(w.code)
         if what then
-            if s[what] >= D.BELT then
+            if (s :: any)[what] >= D.BELT then
                 SV.msg(p, "THE BELT IS FULL")
                 return
             end
-            s[what] += 1
+            (s :: any)[what] += 1
         else
             local slot = free_slot(s.inv, D.BAG)
             if slot == nil then
@@ -2201,9 +2233,9 @@ if serving then
             end
             s.inv[slot] = IT.decode(w.code)
             tell(p, `iv {slot} {w.code}`)
-            table.remove(s.stock[s.shop], k)
+            table.remove(s.stock[s.shop :: string], k)
             tell(p, `shop {s.shop}`)
-            for j, v in s.stock[s.shop] do
+            for j, v in s.stock[s.shop :: string] do
                 tell(p, `sp {j} {v.price} {v.code}`)
             end
         end
@@ -2212,7 +2244,7 @@ if serving then
         tell(p, SV.stat_line(p, s))
     end
 
-    function SV.sell(p: number, s, k: number)
+    function SV.sell(p: number, s: PState, k: number)
         local it = s.inv[k]
         if it == nil or s.shop == nil then
             return
@@ -2249,7 +2281,7 @@ if serving then
 
     -- ------------------------------------------------------------ portals
 
-    function SV.open_portal(p: number, s)
+    function SV.open_portal(p: number, s: PState)
         if s.zone == 0 then
             SV.msg(p, "YOU ARE IN TOWN")
             return
@@ -2329,7 +2361,7 @@ if serving then
 
     -- Somewhere to walk to and do a thing at: a merchant, the stash, a
     -- waypoint, a chest, an item on the ground.
-    function SV.go(p: number, s, goal, x: number, y: number, z: number)
+    function SV.go(p: number, s: PState, goal: any, x: number, y: number, z: number)
         s.goal, s.target = goal, nil
         local px, py, pz = core.player_pos(p)
         if px then
@@ -2341,7 +2373,7 @@ if serving then
     function SV.thing_near(at: {number}): (any, number, number, number)
         local best, bd = nil, 2.2
         local bx, by, bz = 0, 0, 0
-        local function consider(goal, x, y, z)
+        local function consider(goal: any, x: number, y: number, z: number)
             local d = math.sqrt((at[1] - x) ^ 2 + (at[3] - z) ^ 2)
             if d < bd and math.abs(at[2] - y) < 3 then
                 best, bd, bx, by, bz = goal, d, x, y, z
@@ -2409,7 +2441,8 @@ if serving then
                 s.pending = nil
             end
             if id and SV.npc[id] then
-                SV.go(p, s, { kind = "npc", id = id }, mob[1], mob[2], mob[3])
+                local m = mob :: { number }
+                SV.go(p, s, { kind = "npc", id = id }, m[1], m[2], m[3])
                 return
             end
             s.goal = nil
@@ -2455,7 +2488,7 @@ if serving then
             local k = ({ "str", "dex", "vit", "ene" })[tonumber(w[2]) or 0]
             if k and s.sp > 0 then
                 s.sp -= 1
-                s[k] += 1
+                (s :: any)[k] += 1
                 SV.recompute(p, s)
                 s.dirty = true
             end
@@ -2515,14 +2548,14 @@ if serving then
     end
 
     core.event.on("core:net_message", function(ev)
-        asked(ev.player, ev.text)
+        asked(ev.player :: number, ev.text :: string)
     end)
 
     -- ---------------------------------------------------------------- the tick
 
     -- The creature being gone for: struck while in reach, or shot at from a
     -- bow's range. A pending melee skill is the blow when it lands.
-    function SV.step_target(p: number, s, px: number, py: number, pz: number)
+    function SV.step_target(p: number, s: PState, px: number, py: number, pz: number)
         if s.target == nil then
             return
         end
@@ -2562,7 +2595,7 @@ if serving then
     end
 
     -- A goal reached: what it was for.
-    function SV.step_goal(p: number, s, px: number, py: number, pz: number)
+    function SV.step_goal(p: number, s: PState, px: number, py: number, pz: number)
         local g = s.goal
         if g == nil then
             return
@@ -2593,7 +2626,7 @@ if serving then
             s.goal = nil
             return
         end
-        if (x - px) ^ 2 + (z - pz) ^ 2 > reach * reach then
+        if (x - px) ^ 2 + ((z :: number) - pz) ^ 2 > reach * reach then
             return
         end
         s.goal = nil
@@ -2734,7 +2767,7 @@ if serving then
         for k, pr in L.PROPS do
             local st = SV.prop_st[k]
             if st == nil then
-                st = {}
+                st = {} :: PropSt
                 SV.prop_st[k] = st
             end
             if st.broken then
@@ -2778,7 +2811,7 @@ if serving then
 
     -- What the zone a player stands in does: its level scales what a blow
     -- takes off them, their defence and damage reduction take some back.
-    function SV.step_player(p: number, s, dt: number, px: number, py: number, pz: number)
+    function SV.step_player(p: number, s: PState, dt: number, px: number, py: number, pz: number)
         if s.clip_until and clock >= s.clip_until then
             s.clip_until = nil
             core.player_clip(p, "")
@@ -2865,7 +2898,7 @@ if serving then
 
     -- Every quarter second: the champions, named ones and lords near each
     -- player, for their machine to ring, and the creature they last went for.
-    function SV.tell_elites(p: number, s, px: number, py: number, pz: number)
+    function SV.tell_elites(p: number, s: PState, px: number, py: number, pz: number)
         local parts = { "els" }
         for _, id in core.mob_ids(px, py, pz, 40) do
             local info = SV.mobs[id]
@@ -3013,47 +3046,50 @@ if drawing then
     C.again = 0
     C.rheld = false
     C.ragain = 0
-    C.dest = nil
-    C.chase = nil
+    C.dest = nil :: { number }?
+    C.chase = nil :: { number }?
     C.chase_left = 0
     C.chase_stop = D.REACH - 0.6
-    C.path = {}
-    C.marks = {}
-    C.fx = {}
-    C.proj = {}
-    C.ground = {}       -- id -> { code, x, y, z, it }
-    C.npcs = {}         -- id -> { kind, x, y, z }
-    C.portals = {}      -- owner -> { fx, fy, fz, tx, ty, tz }
-    C.elites = {}
-    C.inv, C.eq, C.stash, C.stock = {}, {}, {}, {}
+    C.path = {} :: { number }
+    C.marks = {} :: { { x: number, y: number, z: number, left: number } }
+    C.fx = {} :: { any }
+    C.proj = {} :: { [number]: { kind: string, x: number, y: number, z: number, vx: number, vz: number } }
+    C.ground = {} :: { [number]: { code: string, x: number, y: number, z: number, it: Item? } } -- id -> { code, x, y, z, it }
+    C.npcs = {} :: { [number]: { kind: string, x: number, y: number, z: number } }         -- id -> { kind, x, y, z }
+    C.portals = {} :: { [number]: { [string]: number } }      -- owner -> { fx, fy, fz, tx, ty, tz }
+    C.elites = {} :: { { number } }
+    C.inv, C.eq, C.stash = {} :: { [number]: Item? }, {} :: { [number]: Item? }, {} :: { [number]: Item? }
+    C.stock = {} :: { [number]: { price: number, code: string, it: Item? } }
     C.stat = { hp = 20, max_hp = 20, mana = 10, max_mana = 10, xp = 0, next = 80, level = 1, gold = 0, lpot = 0,
                mpot = 0, tp = 0, cls = 0, sp = 0, kp = 0 }
-    C.sheet = {}
+    C.sheet = {} :: { [string]: number }
     C.ranks = { 0, 0, 0, 0, 0 }
-    C.panel = nil       -- "char", "skills" on the left, or nil
+    C.panel = nil :: string?       -- "char", "skills" on the left, or nil
     C.bag_open = false
-    C.shop = nil
+    C.shop = nil :: string?
     C.stash_open = false
     C.wp_open = false
     C.wps = 1
     C.picking = false
-    C.target = nil      -- { frac, rank, name }
+    C.target = nil :: { any }?      -- { frac, rank, name }
     C.banner, C.banner_left = "", 0
     C.notice, C.notice_left = "", 0
     C.nomana_left = 0
     C.zone = -1
     C.ctrl = false
-    C.regions = {}      -- what the last frame drew that a click can hit
-    C.hover = nil       -- the region under the mouse
+    C.regions = {} :: { Region }      -- what the last frame drew that a click can hit
+    C.hover = nil :: Region?       -- the region under the mouse
+    C.anim_left = nil :: number?
+    C.hall = nil :: boolean?
 
-    local function decoded(code: string?)
+    local function decoded(code: string?): Item?
         return code and IT.decode(code)
     end
 
     heard = function(text: string)
         local w = words(text)
         local what = w[1]
-        local n = {}
+        local n: { number } = {}
         for i = 2, #w do
             n[i - 1] = tonumber(w[i]) or 0
         end
@@ -3157,7 +3193,7 @@ if drawing then
             end
         elseif what == "fx" then
             local kind = w[2]
-            local v = {}
+            local v: { number } = {}
             for i = 3, #w do
                 v[i - 2] = tonumber(w[i]) or 0
             end
@@ -3187,7 +3223,7 @@ if drawing then
 
     if not serving then
         core.event.on("core:net_message", function(ev)
-            heard(ev.text)
+            heard(ev.text :: string)
         end)
     end
 
@@ -3214,7 +3250,7 @@ if drawing then
     -- cursor's ray starts, and it looks down the way core.iso_view set.
     local YAW, PITCH, FOV = math.rad(135), math.rad(55), math.rad(40)
     local FWD = { math.cos(PITCH) * math.sin(YAW), -math.sin(PITCH), -math.cos(PITCH) * math.cos(YAW) }
-    local RIGHT, UP
+    local RIGHT: { number }, UP: { number }
     do
         -- right = forward x world up, up = right x forward
         local rx, rz = -FWD[3], FWD[1]
@@ -3223,17 +3259,17 @@ if drawing then
         UP = { RIGHT[2] * FWD[3] - RIGHT[3] * FWD[2], RIGHT[3] * FWD[1] - RIGHT[1] * FWD[3],
                RIGHT[1] * FWD[2] - RIGHT[2] * FWD[1] }
     end
-    local eye = nil
+    local eye: { number }? = nil
     local aspect = 1.78
 
-    local function project(x: number, y: number, z: number): (number?, number?)
+    local function project(x: number, y: number, z: number): (number?, number)
         if eye == nil then
-            return nil, nil
+            return nil, nil :: any
         end
         local vx, vy, vz = x - eye[1], y - eye[2], z - eye[3]
         local d = vx * FWD[1] + vy * FWD[2] + vz * FWD[3]
         if d < 0.5 then
-            return nil, nil
+            return nil, nil :: any
         end
         local t = math.tan(FOV / 2)
         local sx = (vx * RIGHT[1] + vy * RIGHT[2] + vz * RIGHT[3]) / (d * t * aspect)
@@ -3243,12 +3279,12 @@ if drawing then
 
     -- A box on the screen, middle and size in the height's fractions (as
     -- core.hud.rect takes them), x in the width's; what a click on it does.
-    local function region(cx: number, cy: number, w: number, h: number, act, tip)
+    local function region(cx: number, cy: number, w: number, h: number, act: () -> (), tip: any)
         table.insert(C.regions, { x0 = cx - w / 2 / aspect, x1 = cx + w / 2 / aspect, y0 = cy - h / 2,
                                   y1 = cy + h / 2, act = act, tip = tip })
     end
 
-    local function region_at(mx: number, my: number)
+    local function region_at(mx: number, my: number): Region?
         for i = #C.regions, 1, -1 do
             local r = C.regions[i]
             if mx >= r.x0 and mx <= r.x1 and my >= r.y0 and my <= r.y1 then
@@ -3258,13 +3294,13 @@ if drawing then
         return nil
     end
 
-    local function rarity_colour(it): (number, number, number)
+    local function rarity_colour(it: Item): (number, number, number)
         local rc = D.RARITY[it.r]
         return rc[2], rc[3], rc[4]
     end
 
     -- An item's square: its rarity's border, its kind's letters.
-    local function item_square(it, cx: number, cy: number, size: number, dim: boolean)
+    local function item_square(it: Item, cx: number, cy: number, size: number, dim: boolean)
         local r, g, b = rarity_colour(it)
         core.hud.rect(cx, cy, size, size, r // 3, g // 3, b // 3, 255)
         core.hud.rect(cx, cy, size * 0.86, size * 0.86, 30, 26, 22, 255)
@@ -3282,7 +3318,8 @@ if drawing then
     end
 
     -- A grid of squares of `list`, `cols` wide; a click does `act(k)`.
-    local function item_grid(list, n: number, cols: number, x0: number, y0: number, cell: number, act, price)
+    local function item_grid(list: { [number]: any }, n: number, cols: number, x0: number, y0: number, cell: number,
+                             act: (number) -> (), price: boolean?)
         for k = 1, n do
             local col, row = (k - 1) % cols, (k - 1) // cols
             local cx = x0 + (col + 0.5) * cell / aspect
@@ -3305,13 +3342,13 @@ if drawing then
         end
     end
 
-    local function lines_of(tip): { { any } }
-        local out = {}
+    local function lines_of(tip: any): { { any } }
+        local out: { { any } } = {}
         if tip.item then
             out = IT.lines(tip.item)
         elseif tip.code then
             local what = IT.loose(tip.code)
-            out = { { D.LOOSE_NAME[what] or "?", 230, 230, 230 } }
+            out = { { D.LOOSE_NAME[what :: string] or "?", 230, 230, 230 } }
         elseif tip.text then
             for _, t in tip.text do
                 table.insert(out, { t, 230, 230, 230 })
@@ -3325,7 +3362,7 @@ if drawing then
         return out
     end
 
-    local function tooltip(tip, mx: number, my: number)
+    local function tooltip(tip: any, mx: number, my: number)
         local lines = lines_of(tip)
         if #lines == 0 then
             return
@@ -3497,7 +3534,7 @@ if drawing then
         for i, c in D.CLASS do
             local cx = 0.5 + (i - 2) * 0.36 / aspect * 1.1
             local cy = 0.5
-            local hover = C.hover and C.hover.cls == i
+            local hover = C.hover and (C.hover :: Region).cls == i
             core.hud.rect(cx, cy, 0.34, 0.4, if hover then 70 else 40, if hover then 55 else 32, 30, 245)
             core.hud.text(cx, cy - 0.15, c.name, 0.032, 1, 235, 200, 120, 255)
             core.hud.text(cx, cy - 0.09, `STR {c.str}  DEX {c.dex}`, 0.016, 1, 220, 210, 190, 255)
@@ -3597,7 +3634,7 @@ if drawing then
     FX.gold = { 255, 200, 90 }
     FX.blade = { 255, 225, 180 }
     FX.arcane = { 180, 100, 255 }
-    function FX.fx(kind: string, x: number, y: number, z: number, size: number, c, t: number, a: number?)
+    function FX.fx(kind: string, x: number, y: number, z: number, size: number, c: { number }, t: number, a: number?)
         core.render.fx(kind, x, y, z, size, c[1], c[2], c[3], a or 255, t)
     end
     core.render.pass("arpg_game:fx", 110, function()
@@ -3689,8 +3726,9 @@ if drawing then
 
     -- A name over something in the world; one that would cover another goes
     -- below it, so a heap of drops reads as a list.
-    local placed = {}
-    local function label(x: number, y: number, text: string, size: number, r: number, g: number, b: number, act, tip)
+    local placed: { { number } } = {}
+    local function label(x: number, y: number, text: string, size: number, r: number, g: number, b: number,
+                         act: (() -> ())?, tip: any)
         local w = #text * size * 0.62 + 0.012
         local h = size * 1.5
         local moved = true
@@ -3893,9 +3931,9 @@ if drawing then
         if C.picking and not C.hall then
             draw_picker()
         end
-        C.hover = if mx then region_at(mx, my) else nil
+        C.hover = if mx then region_at(mx, my :: number) else nil
         if C.hover and C.hover.tip and mx then
-            tooltip(C.hover.tip, mx, my)
+            tooltip(C.hover.tip, mx, my :: number)
         end
     end)
 
@@ -3909,12 +3947,16 @@ if drawing then
             return
         end
         local ox, oy, oz, dx, dy, dz = core.cursor_ray()
+        if ox == nil then
+            return
+        end
         local _, _, _, dist = core.raycast(ox, oy, oz, dx, dy, dz, 120)
         if dist ~= nil then
-            C.dest = { ox + dx * dist, oy + dy * dist, oz + dz * dist }
+            local dest = { ox + dx * dist, oy + dy * dist, oz + dz * dist }
+            C.dest = dest
             C.chase, C.path = nil, {}
             if fresh then
-                table.insert(C.marks, { x = C.dest[1], y = C.dest[2], z = C.dest[3], left = 0.5 })
+                table.insert(C.marks, { x = dest[1], y = dest[2], z = dest[3], left = 0.5 })
             end
         end
         ask(`move {ray}`)
@@ -3922,7 +3964,7 @@ if drawing then
 
     local function over_ui(): any
         local mx, my = core.hud.mouse()
-        return mx and region_at(mx, my)
+        return mx and region_at(mx, my :: number)
     end
 
     core.event.on("core:input", function(ev)

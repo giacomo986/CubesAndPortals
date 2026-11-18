@@ -236,9 +236,9 @@ come è messo.
 Il file d'ingresso di un mod (`init.luau`) può affidare parti di sé ad altri file dello stesso mod:
 
 ```lua
-local ricette = require("./ricette")      -- ricette.luau, accanto al file che chiede
-local ui      = require("./ui")           -- ui.luau, o ui/init.luau se ui è una cartella
-local strada  = require("../strada")      -- da dentro una cartella, il file sopra
+local ricette = require("@self/ricette")  -- da init.luau: ricette.luau, accanto
+local ui      = require("@self/ui")       -- ui.luau, o ui/init.luau se ui è una cartella
+local strada  = require("../strada")      -- da un file dentro ui/: quello sopra
 ```
 
 Ogni file è **un chunk a sé**, quindi ha le sue 200 variabili locali: il limite che Luau mette al
@@ -247,10 +247,15 @@ condividono le variabili globali del mod e la sua VM: la stessa quota, lo stesso
 `core`.
 
 - **I percorsi sono quelli di Luau** (require-by-string): `./` e `../` dal file che chiede, `.luau`
-  aggiunto, una cartella vuol dire il suo `init.luau`. Un editor che conosce Luau li segue anche lui,
-  tranne da un `init.luau`: Luau ora legge `./` lì come la cartella sopra, il motore come quella in
-  cui sta, quindi l'editor dice "Unknown require" per un percorso che funziona. Un percorso senza
-  `./` o `../` è rifiutato: non c'è altro posto dove cercare.
+  aggiunto, una cartella vuol dire il suo `init.luau`, e **`@self/` per "dentro di me"**: da un
+  `init.luau` la sua cartella, da `a.luau` la cartella `a/`. Un editor che conosce Luau li segue
+  anche lui. **Da un `init.luau` scrivete `@self/`**: Luau ora legge `./` lì come la cartella sopra,
+  quindi `require("./x")` nel gioco si carica (il motore l'ha sempre letto come accanto al file, e
+  continua a farlo) e in un editor è "Unknown require". Un percorso senza `./`, `../` o `@self/` è
+  rifiutato: non c'è altro posto dove cercare.
+- **Un file eseguito per quello che fa** -- registra, riempie una tabella condivisa -- **finisce con
+  `return nil`**. Il motore prende il niente per `true` in ogni caso; il type checker si rifiuta di
+  fare `require` di un file che non restituisce esattamente un valore.
 - **Solo dentro la cartella del mod.** Un percorso che ne esce è rifiutato, comunque sia scritto.
 - **Un file gira una volta sola.** Il secondo `require` riceve quello che ha ricevuto il primo: quello
   che il file ha restituito con `return` (`true` se non ha restituito niente).
@@ -2602,10 +2607,9 @@ Due passate, stato d'uscita 1 se una delle due trova qualcosa:
 
 Cosa lascia fuori se non c'è `ALL=1`, perché non è colpa del mod:
 
-- **`require("./x")` in un `init.luau`** ("Unknown require", e il "Unknown type 'L.Zone'" che ne
-  segue). Il motore cerca `x` accanto al file; Luau ora legge `./` in un `init.luau` come la
-  cartella sopra. Il mod ha ragione, il checker no.
-- **`tests/mods/parts`**: un require ciclico e una globale non dichiarata, messi apposta.
+- **`tests/mods/parts`**: un require ciclico, una globale non dichiarata e un vecchio
+  `require("./x")` da un `init.luau`, messi apposta -- è il test che vengano rifiutati, o che si
+  carichino ancora.
 - **`tools/api_gen/gen.luau`**: le sue globali le mette `cnp_api_gen`.
 
 **Cosa promettono i tipi**, dove è meno ovvio di una firma:
@@ -2632,12 +2636,24 @@ che il codice fa:
 | `Value of type 'X?' could be nil` dopo un `if v then` | `v` è un upvalue, e un controllo su un upvalue non lo restringe | copiatelo prima: `local b = boss; if b then ... b.id` |
 | `Expected this to be 'number', but got 'number?'` | un valore che il codice sa che c'è (un campo di un'entità dato allo spawn, il fratello di un valore controllato) | `core.ecs.get(e, "vx") :: number` |
 | `Unknown global 'x'` | un nome usato **sopra** il suo `local` è una globale, e un'altra | spostate il `local` in su: è un bug, non un tipo |
+| `Unknown require: unsupported path` | `require("./x")` in un `init.luau` | `require("@self/x")` |
+| `Module does not return exactly 1 value` | il file richiesto si esegue per quello che fa | `return nil` in fondo |
 
 L'ultima riga non è un tipo: il gestore di `keys:level` di `backrooms_exit` scriveva in `level_d`
 sopra la riga che la dichiara, quindi indicizzava una globale che non esiste e si fermava lì, prima
 di mettere il giocatore nel livello -- e le luci che dal livello 5 in poi si spengono non si sono
 mai spente. È a questo che serve un controllo pulito: gli errori di tipo nascondono i pochi che non
 lo sono.
+
+**Cosa un controllo pulito non vede**, trovato lo stesso giorno in codice che lo passava:
+
+- **0 è vero.** Molte chiamate rispondono 1 o 0 (`core.loaded`, `core.node_solid`...), e in Luau
+  sono falsi solo `nil` e `false`: `if core.loaded(x, y, z) then` si prende sempre. Scrivete
+  `== 1`. Le bandiere del fronte si alzavano su terreno che non c'era ancora, una volta, dalla 0.9 alla 0.18.
+- **Il testo di un client non è un numero finché non lo si controlla.** `tonumber(w[i]) :: number`
+  dice al checker che lo è; un client che manda altro fa fallire il gestore, e un gestore che
+  fallisce spegne il mod -- per tutti in quel mondo. Controllateli uno per uno e scartate il
+  messaggio.
 
 ### La modalità survival: livelli dietro i portali
 

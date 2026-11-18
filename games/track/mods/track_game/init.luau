@@ -1,3 +1,4 @@
+--!strict
 -- track_game: a timed lap of track_core's loop. The start line and three
 -- checkpoints -- painted by a stage here, so where they are is written once --
 -- the server timing every player across them, and the HUD on the player's
@@ -31,7 +32,10 @@ local GROUND = 20
 -- track_core puts them), and the Inferno track. A player
 -- laps whichever track's start line they crossed last, and each track keeps its
 -- own best laps and board -- the loop's under the keys it always had.
-local TRACKS = {
+type Gate = { axis: string, at: number, dir: number, from: number, to: number, inferno: boolean?, y: number? }
+type Track = { key: string, gates: { Gate }, paint: boolean?, custom: boolean?, level: number?, length: number?,
+               sx: number?, sz: number? }
+local TRACKS: { Track } = {
     { key = "", gates = {
         { axis = "x", at = 40, dir = 1,  from = 17,  to = 23 },    -- south straight, running +x
         { axis = "z", at = 64, dir = 1,  from = 105, to = 111 },   -- east, +z
@@ -119,7 +123,7 @@ end
 local INFERNO = core.node_id("track_core:road") == 0
 -- The power-ups' sounds: track_core's, or inferno_track's copies in the Inferno's room.
 local SND = if INFERNO then "inferno_track:" else "track_core:"
-local function here(g): boolean
+local function here(g: Gate): boolean
     return (g.inferno == true) == INFERNO
 end
 
@@ -215,7 +219,7 @@ if serving then
 
     -- Where along a step from (x0, z0) to (x1, z1) a gate was crossed the way
     -- it counts, as a fraction of the step, or nil.
-    local function crossed(g, x0: number, z0: number, x1: number, z1: number): number?
+    local function crossed(g: Gate, x0: number, z0: number, x1: number, z1: number): number?
         local a0 = if g.axis == "x" then x0 else z0
         local a1 = if g.axis == "x" then x1 else z1
         local line = g.at + 0.5
@@ -253,8 +257,8 @@ if serving then
     -- What a kart counts as the track under it: the road and its painted
     -- lines, a parked kart, which is standing on the road, and the track
     -- pieces with the cells under them (track_core's core.node_piece).
-    local ROAD = {}
-    local PIECE = {}   -- a track piece's blocks, road too
+    local ROAD: { [number]: boolean } = {}
+    local PIECE: { [number]: boolean } = {}   -- a track piece's blocks, road too
     -- The paddock and its ways to the tracks are ground and not road, and
     -- allowed on a lap all the same: a track may run through them.
     for _, name in { "track_core:road", "track_core:start", "track_core:mark", "track_core:kart",
@@ -266,7 +270,7 @@ if serving then
     end
     -- And every other block of track_core's but its base, walls and lights:
     -- the track pieces and the cells under them, whatever pieces it grows.
-    local NOT_PIECE = { base = true, wall = true, light = true, road = true, start = true,
+    local NOT_PIECE: { [string]: boolean } = { base = true, wall = true, light = true, road = true, start = true,
                         mark = true, kart = true, inferno_road = true, paddock = true, scoria = true,
                         lava = true, glowrock = true, obsidian = true }
     for id = 1, 4095 do
@@ -288,7 +292,8 @@ if serving then
     -- a kart on a lap may drive whatever it drives on -- grass, sand, a hill
     -- -- so a track may leave the road and come back to it. { x0, z0, x1, z1, y },
     -- y the height its corner posts stand at.
-    local AREAS = {}
+    type Area = { x0: number, z0: number, x1: number, z1: number, y: number }
+    local AREAS: { Area } = {}
 
     local function over_road(x: number, y: number, z: number): boolean
         local bx, bz = math.floor(x), math.floor(z)
@@ -331,7 +336,7 @@ if serving then
     -- cells are about as full as a road's base (a quarter, just under) with
     -- air over them. How
     -- high to put it, or nil. The middle of that cell, or nil past 48 nodes.
-    local LOOP_ROAD = {}
+    local LOOP_ROAD: { [number]: boolean } = {}
     for _, name in { "track_core:road", "track_core:start", "track_core:mark",
                      "track_core:inferno_road" } do
         -- Not one a room lacks: its id is 0, air, and in the Inferno's room
@@ -364,7 +369,7 @@ if serving then
     local function road_near(x: number, y: number, z: number): (number?, number?, number?)
         local cx, cz, cy = math.floor(x), math.floor(z), math.floor(y)
         for r = 0, 48 do
-            local bx, bz, by, bd = nil, nil, nil, math.huge
+            local bx: number?, bz: number?, by: number?, bd = nil, nil, nil, math.huge
             for dx = -r, r do
                 local step = if math.abs(dx) == r then 1 else 2 * r
                 for dz = -r, r, math.max(step, 1) do
@@ -412,16 +417,17 @@ if serving then
     }
     local PAINTS = { "Bodywork", "Trim", "Rims" }
     -- The sixteen dyes, in the engine's order (kDyeColours).
-    local DYES = {
+    local DYES: { { any } } = {
         { "white", 234, 236, 236 }, { "orange", 240, 118, 20 }, { "magenta", 190, 68, 180 },
         { "light blue", 58, 176, 218 }, { "yellow", 248, 198, 40 }, { "lime", 112, 186, 26 },
         { "pink", 238, 142, 172 }, { "gray", 62, 68, 72 }, { "light gray", 142, 142, 136 },
         { "cyan", 22, 138, 146 }, { "purple", 122, 42, 172 }, { "blue", 52, 56, 158 },
         { "brown", 114, 72, 40 }, { "green", 84, 110, 28 }, { "red", 160, 38, 34 }, { "black", 20, 20, 24 },
     }
-    local garage = {}   -- name -> { paint = { 3 }, part = { 5 } }
+    type Garage = { paint: { number }, part: { number } }
+    local garage: { [string]: Garage } = {}   -- name -> { paint = { 3 }, part = { 5 } }
 
-    local function kart_of(name: string)
+    local function kart_of(name: string): Garage
         local g = garage[name]
         if g == nil then
             -- Every room's, since the Inferno's is on the way of a lap. What
@@ -446,7 +452,7 @@ if serving then
 
     -- A garage's kart as worn: its tint, and its parts' models (0 for the
     -- kart's own).
-    local function kart_look(g): (number, { number })
+    local function kart_look(g: Garage): (number, { number })
         local parts = {}
         for i, part in PARTS do
             local v = g.part[i]
@@ -457,7 +463,12 @@ if serving then
 
     -- Puts a driver's kart on them, or takes it off a body on foot: for
     -- everybody else here, and for their own machine ("dress", the half below).
-    local function dress_kart(p: number, s)
+    type Item = { what: string, uses: number, ready: number }
+    type Racer = { x: number, y: number, z: number, track: number?, next: number, lapping: boolean,
+                   started: number, name: string, held: number, driving: boolean, off: number, skip: number,
+                   items: { Item }, boost: number, star: number, spin: number, slow: number, speeds: string?,
+                   yaw: number?, alt: { track: number, started: number }? }
+    local function dress_kart(p: number, s: Racer)
         local tint, parts = kart_look(kart_of(s.name))
         local worn = {}
         for i, m in parts do
@@ -474,7 +485,7 @@ if serving then
         return `track_game:garage{p}`
     end
 
-    local function show_garage(p: number, s)
+    local function show_garage(p: number, s: Racer)
         local g = kart_of(s.name)
         local panel = garage_panel(p)
         if core.ui_define(panel, 13.4, 6.9) == 0 then
@@ -527,7 +538,7 @@ if serving then
     -- the kart was drawn and faces where it pointed: a player who walked up
     -- from its nose drove off into the bay's back wall before, and the kart
     -- jumped two nodes to where they had stood.
-    local function mount(p: number, s, x: number, y: number, z: number)
+    local function mount(p: number, s: Racer, x: number, y: number, z: number)
         local f = core.get_facing(x, y, z) % 4
         core.set_block(x, y, z, 0)
         core.body_drive(p, KART.accel, KART.brake, KART.turn, KART.drag, KART.width, KART.length)
@@ -586,7 +597,7 @@ if serving then
 
     -- And getting out: a body on foot again, the size of one and drawn as one,
     -- with its kart standing beside it for whoever clicks it next.
-    local function dismount(p: number, s)
+    local function dismount(p: number, s: Racer)
         local x, y, z = core.player_pos(p)
         local lx, _, lz = core.player_look(p)
         core.body_drive(p, 0, 0, 0, 0, FOOT.width, 0)
@@ -603,10 +614,10 @@ if serving then
         dress_kart(p, s)
     end
 
-    local players = {}   -- player id -> { x, y, z, track, next, lapping, started, name, held, driving, off, skip,
+    local players: { [number]: Racer } = {}   -- player id -> { x, y, z, track, next, lapping, started, name, held, driving, off, skip,
                          --   and the power-ups below: items, boost, star, spin, slow, speeds }
     local rows_dirty = true   -- the item boxes to be put down again: a track's lines changed
-    local bests   = {}   -- track -> name -> best lap in seconds, of the board and of everyone seen
+    local bests: { [number]: { [string]: number } } = {}   -- track -> name -> best lap in seconds, of the board and of everyone seen
     for i = 1, #TRACKS do
         bests[i] = {}
     end
@@ -623,7 +634,7 @@ if serving then
     local level_of: { [number]: { slot: number, d: number, under: number } } = {}
     local function arrive(p: number, slot: number)
         local tr = TRACKS[LEVEL_AT[slot]]
-        local sx, sz = tr.sx, tr.sz
+        local sx, sz = tr.sx :: number, tr.sz :: number
         local WALL_ID, BASE_ID = core.node_id("track_core:wall"), core.node_id("track_core:base")
         -- The pad: level, cleared, west of the start line.
         for x = sx - 16, sx - 1 do
@@ -647,7 +658,7 @@ if serving then
         core.event.emit("keys:start", { player = p, slot = slot, ex = sx - 12, ey = 20, ez = sz + 3 })
         local lv = level_of[p]
         core.notice(p, string.format("Il circuito di questo portale: tre giri di fila sotto %.1f s. Il kart e' qui accanto.",
-                                     tr.length / (9 + (if lv then lv.d else 1))))
+                                     tr.length :: number / (9 + (if lv then lv.d else 1))))
     end
     local waiting: { [number]: { number } } = {}   -- slot -> players waiting for its circuit
     core.event.on("keys:level", function(ev)
@@ -664,10 +675,10 @@ if serving then
     end)
     -- Only in the track's own room: the Inferno's has no track_core to answer.
     if not INFERNO then core.event.on("track_core:laid", function(ev)
-        local gates = {}
+        local gates: { Gate } = {}
         for axis, at, dir, from, to in string.gmatch(ev.gates, "(%a) (-?%d+) (-?%d+) (-?%d+) (-?%d+)") do
-            table.insert(gates, { axis = axis, at = tonumber(at), dir = tonumber(dir), from = tonumber(from),
-                                  to = tonumber(to) })
+            table.insert(gates, { axis = axis, at = tonumber(at) :: number, dir = tonumber(dir) :: number,
+                                  from = tonumber(from) :: number, to = tonumber(to) :: number })
         end
         table.insert(TRACKS, { key = `level{ev.slot}`, gates = gates, level = ev.slot, length = ev.length,
                                sx = ev.x, sz = ev.z })
@@ -680,7 +691,7 @@ if serving then
     local function level_lap(p: number, ti: number, lap: number)
         local tr, lv = TRACKS[ti], level_of[p]
         if lv == nil or lv.slot ~= tr.level then return end
-        local target = tr.length / (9 + lv.d)
+        local target = tr.length :: number / (9 + lv.d)
         lv.under = if lap < target then lv.under + 1 else 0
         if lv.under >= 3 then
             lv.under = 0
@@ -701,11 +712,12 @@ if serving then
     -- The fastest few of a track, as "name time name time ...". A name has no
     -- spaces in it (the handshake refuses one that does).
     local function fastest(i: number): string
-        local rows = {}
+        type Row = { name: string, t: number }
+        local rows: { Row } = {}
         for name, t in bests[i] do
             table.insert(rows, { name = name, t = t })
         end
-        table.sort(rows, function(a, b) return a.t < b.t end)
+        table.sort(rows, function(a: Row, b: Row) return a.t < b.t end)
         local out = {}
         for i = 1, math.min(BOARD, #rows) do
             table.insert(out, string.format("%s %.3f", rows[i].name, rows[i].t))
@@ -733,16 +745,17 @@ if serving then
         for _, line in string.split(core.storage_get("areas"), ";") do
             local w = string.split(line, " ")
             if #w == 5 then
-                table.insert(AREAS, { x0 = tonumber(w[1]), z0 = tonumber(w[2]), x1 = tonumber(w[3]),
-                                      z1 = tonumber(w[4]), y = tonumber(w[5]) })
+                table.insert(AREAS, { x0 = tonumber(w[1]) :: number, z0 = tonumber(w[2]) :: number,
+                                      x1 = tonumber(w[3]) :: number, z1 = tonumber(w[4]) :: number,
+                                      y = tonumber(w[5]) :: number })
             end
         end
         for _, line in string.split(core.storage_get("custom_gates"), ";") do
             local w = string.split(line, " ")
             if #w == 6 then
-                table.insert(TRACKS[CUSTOM].gates, { axis = w[1], at = tonumber(w[2]), dir = tonumber(w[3]),
-                                                     from = tonumber(w[4]), to = tonumber(w[5]),
-                                                     y = tonumber(w[6]) })
+                table.insert(TRACKS[CUSTOM].gates, { axis = w[1], at = tonumber(w[2]) :: number,
+                                                     dir = tonumber(w[3]) :: number, from = tonumber(w[4]) :: number,
+                                                     to = tonumber(w[5]) :: number, y = tonumber(w[6]) })
             end
         end
 
@@ -835,23 +848,24 @@ if serving then
         return false
     end
 
-    local function beam(g, id: number, on: boolean)
+    local function beam(g: Gate, id: number, on: boolean)
+        local gy = g.y :: number
         for w = g.from, g.to do
             local x = if g.axis == "x" then g.at else w
             local z = if g.axis == "x" then w else g.at
-            local now = core.get_block(x, g.y + 5, z)
+            local now = core.get_block(x, gy + 5, z)
             if on and now == 0 then
-                core.set_block(x, g.y + 5, z, id)
+                core.set_block(x, gy + 5, z, id)
             elseif not on and now == id then
-                core.set_block(x, g.y + 5, z, 0)
+                core.set_block(x, gy + 5, z, 0)
             end
         end
     end
 
-    local function gate_from(p: number, x: number, y: number, z: number)
+    local function gate_from(p: number, x: number, y: number, z: number): Gate
         local px, _, pz = core.player_pos(p)
         local dx, dz = x + 0.5 - (px or x), z + 0.5 - (pz or z)
-        local g = if math.abs(dx) >= math.abs(dz)
+        local g: Gate = if math.abs(dx) >= math.abs(dz)
             then { axis = "x", at = x, dir = if dx >= 0 then 1 else -1, from = z, to = z, y = y + 1 }
             else { axis = "z", at = z, dir = if dz >= 0 then 1 else -1, from = x, to = x, y = y + 1 }
         local function on(w: number): boolean
@@ -955,9 +969,9 @@ if serving then
     -- corner waiting, takes that area away.
     local AREA_POST = core.node_id("track_core:light")
     local MAX_AREA  = 256
-    local corner    = {}   -- player -> { x, z } of the first corner
+    local corner: { [number]: { x: number, z: number } } = {}   -- player -> { x, z } of the first corner
 
-    local function posts(a, on: boolean)
+    local function posts(a: Area, on: boolean)
         for _, c in { { a.x0, a.z0 }, { a.x1, a.z0 }, { a.x0, a.z1 }, { a.x1, a.z1 } } do
             for y = a.y, a.y + 1 do
                 local now = core.get_block(c[1], y, c[2])
@@ -1026,7 +1040,7 @@ if serving then
     -- nodes past it, in the middle of the road, standing and facing the way
     -- the lap runs, with the clock still going; before the first lap has
     -- started, three nodes short of the start line, so it is still crossed.
-    local function respawn_at(s): (number, number, number, number)
+    local function respawn_at(s: Racer): (number, number, number, number, number)
         local gates = TRACKS[s.track or 1].gates
         local g = gates[1]
         local past = -3
@@ -1088,7 +1102,7 @@ if serving then
     -- In the Inferno's room too: inferno_track registers the same models
     -- (linked from track_core) and its side of the Inferno track has its rows.
     local BOX_MODEL = core.model_id("track_core:item_box")
-    local MODELS = { banana = core.model_id("track_core:banana"), shell = core.model_id("track_core:shell_green"),
+    local MODELS: { [string]: number } = { banana = core.model_id("track_core:banana"), shell = core.model_id("track_core:shell_green"),
                      homing = core.model_id("track_core:shell_red") }
     local ITEMS_HERE = BOX_MODEL ~= 0
     local BOX, THING = "track_game:box", "track_game:thing"
@@ -1098,14 +1112,14 @@ if serving then
     -- What a box gives, and how often: the more a power-up does, the rarer.
     -- ponytail: the same odds for everybody; kart racers give the last ones
     -- the strong ones, which wants a race order this game has no laps for.
-    local ROLL = { { "boost", 20 }, { "boost3", 9 }, { "banana", 20 }, { "shell", 18 },
+    local ROLL: { { any } } = { { "boost", 20 }, { "boost3", 9 }, { "banana", 20 }, { "shell", 18 },
                    { "homing", 12 }, { "ink", 10 }, { "star", 6 }, { "bolt", 5 } }
-    local USES = { boost3 = 3 }
+    local USES: { [string]: number } = { boost3 = 3 }
     local HOLD = 2   -- power-ups a kart carries: the first is used, the second waits
 
     -- What a player holds, told whole: "items" and then "<what>:<uses>:<roulette
     -- seconds left>" for each, the one used next first.
-    local function tell_items(p: number, s)
+    local function tell_items(p: number, s: Racer)
         local out = { "items" }
         for _, it in s.items do
             table.insert(out, string.format("%s:%d:%.2f", it.what, it.uses, math.max(0, it.ready - clock)))
@@ -1125,9 +1139,11 @@ if serving then
     local HIT        = 1.3     -- how near a kart's middle a banana or shell hits
     local BANANAS    = 24      -- the most on the road at once; the oldest goes
 
-    local boxes  = {}   -- { x, z, gy, y, id, back } a box; y nil until its road is found, false for none
-    local things = {}   -- entity id -> { kind, vx, vz, t, owner, target, bounces }
-    local peels  = {}   -- the bananas' ids, oldest first
+    type Box = { x: number, z: number, gy: number?, y: (number | false)?, id: number?, back: number, placed: boolean? }
+    type Thing = { kind: string, vx: number, vz: number, t: number, owner: number, bounces: number, target: number? }
+    local boxes: { Box } = {}   -- { x, z, gy, y, id, back } a box; y nil until its road is found, false for none
+    local things: { [number]: Thing } = {}   -- entity id -> { kind, vx, vz, t, owner, target, bounces }
+    local peels: { number } = {}   -- the bananas' ids, oldest first
 
     -- How high the road is at (x, z), within three of `gy`: its top, or nil
     -- where there is something else there, or nothing yet.
@@ -1186,7 +1202,7 @@ if serving then
         for _, line in string.split(core.storage_get("item_boxes"), ";") do
             local w = string.split(line, " ")
             if #w == 3 then
-                table.insert(boxes, { x = tonumber(w[1]), y = tonumber(w[2]), z = tonumber(w[3]),
+                table.insert(boxes, { x = tonumber(w[1]) :: number, y = tonumber(w[2]) :: number, z = tonumber(w[3]) :: number,
                                       back = 0, placed = true })
             end
         end
@@ -1204,7 +1220,7 @@ if serving then
         local out = {}
         for _, b in boxes do
             if b.placed then
-                table.insert(out, string.format("%.1f %.2f %.1f", b.x, b.y, b.z))
+                table.insert(out, string.format("%.1f %.2f %.1f", b.x, b.y :: number, b.z))
             end
         end
         core.storage_set("item_boxes", table.concat(out, ";"))
@@ -1220,7 +1236,7 @@ if serving then
         end
         local x, z = ev.x + 0.5, ev.z + 0.5
         for i, b in boxes do
-            if b.placed and math.abs(b.x - x) < 1 and math.abs(b.z - z) < 1 and math.abs(b.y - ev.y) < 4 then
+            if b.placed and math.abs(b.x - x) < 1 and math.abs(b.z - z) < 1 and math.abs(b.y :: number - ev.y) < 4 then
                 if b.id then core.ecs.kill(b.id) end
                 table.remove(boxes, i)
                 save_boxes()
@@ -1251,15 +1267,16 @@ if serving then
             core.log(`track_game: {down} of {#boxes} item boxes down`)
         end
         for _, b in boxes do
-            if b.y == nil and core.loaded(math.floor(b.x), b.gy, math.floor(b.z)) == 1 then
-                local top = road_top(math.floor(b.x), math.floor(b.z), b.gy)
+            if b.y == nil and core.loaded(math.floor(b.x), b.gy :: number, math.floor(b.z)) == 1 then
+                local top = road_top(math.floor(b.x), math.floor(b.z), b.gy :: number)
                 b.y = top or false
             end
             if b.y and b.id == nil then
-                b.id = core.ecs.spawn(BOX, b.x, b.y, b.z)
-                if b.id then
-                    core.ecs.visible(b.id, true)
-                    core.ecs.model(b.id, BOX_MODEL)
+                local id = core.ecs.spawn(BOX, b.x, b.y, b.z)
+                b.id = id
+                if id then
+                    core.ecs.visible(id, true)
+                    core.ecs.model(id, BOX_MODEL)
                 end
             end
         end
@@ -1267,7 +1284,7 @@ if serving then
 
     -- How fast a kart may go now, from what is on it: put on the body only
     -- when it changes, since new numbers build the chassis again.
-    local function speeds(p: number, s)
+    local function speeds(p: number, s: Racer)
         if not s.driving or s.held > 0 then
             return
         end
@@ -1293,7 +1310,7 @@ if serving then
 
     -- Hit by a banana, a shell, a star or the lightning: the kart stops and
     -- spins round once where it is. A star is hit by nothing.
-    local function hit(p: number, s, why: string)
+    local function hit(p: number, s: Racer, why: string)
         if s.star > 0 or s.spin > 0 or not s.driving or s.held > 0 then
             return
         end
@@ -1305,7 +1322,7 @@ if serving then
         core.log(`track_game: {s.name} hit by {why}`)
     end
 
-    local function drivers(): { [number]: any }
+    local function drivers(): { [number]: Racer }
         local out = {}
         for p, s in players do
             if s.driving and s.held <= 0 then
@@ -1403,7 +1420,7 @@ if serving then
             local sx, sz = x + lx * 2.0 * d, z + lz * 2.0 * d
             local id = spawn_thing(item, sx, ground(sx, y + 0.5, sz) or y, sz, p)
             if id then
-                local t = things[id]
+                local t = things[id] :: Thing
                 t.vx, t.vz = lx * SHELL * d, lz * SHELL * d
                 if item == "homing" and not back then
                     local best = 100 * 100
@@ -1455,7 +1472,7 @@ if serving then
                 if b.back > 0 then
                     b.back -= dt
                     if b.back <= 0 then
-                        core.ecs.set(b.id, "y", b.y)
+                        core.ecs.set(b.id, "y", b.y :: number)
                     end
                 end
                 core.ecs.set(b.id, "yaw", yaw)
@@ -1476,7 +1493,7 @@ if serving then
                 -- Round once on the spot, a quarter of a turn more each
                 -- fraction of SPIN, and facing the way it was at the end.
                 s.spin = math.max(0, s.spin - dt)
-                local a = s.yaw + 2 * math.pi * (1 - s.spin / SPIN)
+                local a = s.yaw :: number + 2 * math.pi * (1 - s.spin / SPIN)
                 core.player_place(p, x, y, z, math.sin(a), 0, math.cos(a))
                 s.skip = math.max(s.skip, 2)
             end
@@ -1485,9 +1502,9 @@ if serving then
             -- Through a box: a power-up, if the kart has none.
             for _, b in boxes do
                 if b.id and b.back <= 0 and (b.x - x) ^ 2 + (b.z - z) ^ 2 < BOX_REACH ^ 2
-                        and math.abs(b.y - y) < 2.5 then
+                        and math.abs(b.y :: number - y) < 2.5 then
                     b.back = BOX_BACK
-                    core.ecs.set(b.id, "y", b.y - 40)   -- out of sight at once; hidden would take seconds
+                    core.ecs.set(b.id, "y", b.y :: number - 40)   -- out of sight at once; hidden would take seconds
                     if #s.items < HOLD then
                         local what = roll()
                         -- Ready once the roulette has turned on the player's screen.
@@ -1513,7 +1530,7 @@ if serving then
         -- Shells fly, and bananas wait. Either hits the first kart it meets,
         -- and a shell takes a banana with it.
         for id, t in things do
-            local x, y, z = core.ecs.get(id, "x"), core.ecs.get(id, "y"), core.ecs.get(id, "z")
+            local x, y, z = core.ecs.get(id, "x"), core.ecs.get(id, "y") :: number, core.ecs.get(id, "z") :: number
             if x == nil then
                 things[id] = nil
                 continue
@@ -1574,7 +1591,7 @@ if serving then
             if not gone and t.kind ~= "banana" then
                 for other, u in things do
                     if other ~= id and u.kind == "banana" then
-                        local ox, oz = core.ecs.get(other, "x"), core.ecs.get(other, "z")
+                        local ox, oz = core.ecs.get(other, "x"), core.ecs.get(other, "z") :: number
                         if ox ~= nil and (ox - x) ^ 2 + (oz - z) ^ 2 < 1 then
                             remove(other)
                             gone = true
@@ -1591,11 +1608,11 @@ if serving then
 
     core.event.on("core:net_message", function(ev)
         if ev.text == "off" then
-            get_out(ev.player)
+            get_out(ev.player :: number)
         elseif ev.text == "respawn" then
-            respawn(ev.player)
+            respawn(ev.player :: number)
         elseif ev.text == "use" or ev.text == "use back" then
-            use_item(ev.player, ev.text == "use back")
+            use_item(ev.player :: number, ev.text == "use back")
         elseif string.sub(ev.text, 1, 5) == "pick " then
             pcall(core.event.emit, "track_core:pick", { player = ev.player, what = string.sub(ev.text, 6) })
         end
@@ -1623,11 +1640,11 @@ if serving then
         local g = kart_of(s.name)
         local what, i, way = string.match(ev.id, "^([cp])(%d)([%+%-])$")
         local list, n = if what == "c" then g.paint else g.part, tonumber(i)
-        if what == nil or list[n] == nil then
+        if what == nil or list[n :: number] == nil then
             return
         end
-        local count = if what == "c" then #DYES else #PARTS[n].variants
-        list[n] = (list[n] + (if way == "+" then 1 else count)) % (count + 1)
+        local count = if what == "c" then #DYES else #PARTS[n :: number].variants
+        list[n :: number] = (list[n :: number] + (if way == "+" then 1 else count)) % (count + 1)
         core.shared_storage_set(`kart:{s.name}`, `{table.concat(g.paint, " ")} {table.concat(g.part, " ")}`)
         dress_kart(p, s)
         show_garage(p, s)
@@ -1636,9 +1653,9 @@ if serving then
     -- The track editor picking from afar (track_core): where the camera is
     -- held and what the HUD says, to the player's machine. The Inferno runs
     -- this mod without track_core, and there the event was never declared.
-    pcall(core.event.on, "track_core:pick_view", function(ev)
+    pcall(core.event.on, "track_core:pick_view", function(ev: EventPayload)
         tell(ev.player, `pick {ev.text}`)
-    end)
+    end, nil)
 
     function server_step(dt: number)
         local present = {}
@@ -1668,7 +1685,7 @@ if serving then
                 local c = string.split(core.player_carried(p), " ")
                 local ti = tonumber(c[2]) or 0
                 if c[1] == "kart" then
-                    local s = players[p]
+                    local s = players[p] :: Racer
                     s.driving, s.skip = true, 3
                     for what, uses in string.gmatch(c[6] or "", "(%w+):(%d+)") do
                         if #s.items < HOLD then
@@ -1795,7 +1812,7 @@ if serving then
                 -- next gate: the other track it is, timed from its line.
                 local a = s.alt
                 local g2 = a and TRACKS[a.track].gates[2]
-                if moved < 20 and g2 ~= nil and here(g2) and crossed(g2, s.x, s.z, x, z) ~= nil then
+                if moved < 20 and a and g2 ~= nil and here(g2) and crossed(g2, s.x, s.z, x, z) ~= nil then
                     local ag = TRACKS[a.track].gates
                     s.track, s.started, s.alt = a.track, a.started, nil
                     s.next = if #ag >= 3 then 3 else 1
@@ -1880,7 +1897,7 @@ if drawing then
     local flash   = ""
     local flash_left = 0
     local count   = -1     -- the countdown's number, -1 when there is none
-    local board   = {}     -- { name, t } rows, fastest first
+    local board: { { name: string, t: number } } = {}     -- { name, t } rows, fastest first
     local driving = false  -- in a kart, told by the server
     local picking = ""     -- the piece on trial while the track editor picks from afar
     -- And the grid of every piece drawn instead of the hotbar meanwhile: the
@@ -1908,7 +1925,7 @@ if drawing then
         local aspect = math.max(core.hud.aspect(), 0.1)
         for n = 1, #pieces do
             local x, y = grid_at(n)
-            if math.abs(mx - x) * aspect <= GRID_SIDE / 2 and math.abs(my - y) <= GRID_SIDE / 2 then
+            if math.abs(mx - x) * aspect <= GRID_SIDE / 2 and math.abs(my :: number - y) <= GRID_SIDE / 2 then
                 return n
             end
         end
@@ -1917,13 +1934,14 @@ if drawing then
 
     -- The power-up held (server's "item"), and what is on this kart or on
     -- this screen ("fx"), counted down here.
-    local slots = {}       -- { what, uses, rolling }, the one used next first
-    local fx = { boost = 0, star = 0, spin = 0, slow = 0, ink = 0, bolt = 0 }
-    local blots = {}       -- the ink: { x, y, s } on the screen
+    type Slot = { what: string, uses: number, rolling: number }
+    local slots: { Slot } = {}       -- { what, uses, rolling }, the one used next first
+    local fx: { [string]: number } = { boost = 0, star = 0, spin = 0, slow = 0, ink = 0, bolt = 0 }
+    local blots: { { x: number, y: number, s: number } } = {}       -- the ink: { x, y, s } on the screen
     local back_held = false
-    local NAMES = { boost = "BOOST", boost3 = "TRIPLE BOOST", banana = "BANANA", shell = "SHELL",
+    local NAMES: { [string]: string } = { boost = "BOOST", boost3 = "TRIPLE BOOST", banana = "BANANA", shell = "SHELL",
                     homing = "HOMING SHELL", ink = "INK", star = "STAR", bolt = "LIGHTNING" }
-    local COLOURS = { boost = { 255, 120, 60 }, boost3 = { 255, 120, 60 }, banana = { 250, 215, 50 },
+    local COLOURS: { [string]: { number } } = { boost = { 255, 120, 60 }, boost3 = { 255, 120, 60 }, banana = { 250, 215, 50 },
                       shell = { 60, 200, 80 }, homing = { 230, 50, 40 }, ink = { 120, 110, 200 },
                       star = { 255, 230, 80 }, bolt = { 120, 200, 255 } }
     local ORDER = { "boost", "banana", "shell", "homing", "ink", "star", "bolt", "boost3" }
@@ -2046,7 +2064,7 @@ if drawing then
 
     if not serving then
         core.event.on("core:net_message", function(ev)
-            heard(ev.text)
+            heard(ev.text :: string)
         end)
     end
 
@@ -2061,7 +2079,7 @@ if drawing then
     -- nothing anywhere else: a click that kept whatever was on trial put
     -- pieces down nobody wanted), W keeps it, S takes the last back, F closes
     -- the circuit.
-    local PICK_KEYS = { key_a = "prev", key_d = "next", key_w = "put", key_s = "undo", key_f = "close" }
+    local PICK_KEYS: { [string]: string } = { key_a = "prev", key_d = "next", key_w = "put", key_s = "undo", key_f = "close" }
     local function pick(player: number, what: string)
         if serving then
             pcall(core.event.emit, "track_core:pick", { player = player, what = what })
@@ -2089,7 +2107,7 @@ if drawing then
         elseif ev.action == "key_f" and driving then
             ev.cancel = true
             if serving then
-                get_out(ev.player)
+                get_out(ev.player :: number)
             else
                 core.net.send(0, "off")
             end
@@ -2099,7 +2117,7 @@ if drawing then
             ev.cancel = true
             if slots[1] ~= nil and slots[1].rolling <= 0 then
                 if serving then
-                    use_item(ev.player, back_held)
+                    use_item(ev.player :: number, back_held)
                 else
                     core.net.send(0, if back_held then "use back" else "use")
                 end
@@ -2109,7 +2127,7 @@ if drawing then
         elseif ev.action == "key_r" and driving then
             ev.cancel = true
             if serving then
-                respawn(ev.player)
+                respawn(ev.player :: number)
             else
                 core.net.send(0, "respawn")
             end
@@ -2191,7 +2209,7 @@ if drawing then
         -- The power-ups: two slots on the left, the one used next below and
         -- bigger, the roulette turning in a slot for a second after a box.
         if driving then
-            local function slot(y: number, size: number, it)
+            local function slot(y: number, size: number, it: Slot?): string?
                 core.hud.rect(0.08, y, size, size, 20, 20, 30, 170)
                 core.hud.rect(0.08, y, size * 0.88, size * 0.88, 50, 50, 70, 200)
                 if it == nil then

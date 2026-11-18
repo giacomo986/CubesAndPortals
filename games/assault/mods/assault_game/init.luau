@@ -1,3 +1,4 @@
+--!strict
 -- assault_game: the assault on Basoalth's dimension (assault_core's valley),
 -- played together against his legion. Phases, one after another:
 --
@@ -48,7 +49,9 @@ local TEAM_NAME = { "ALLEATI", "LEGIONE" }
 -- how far off a round goes from the hip, `ads` aimed down the sights (the
 -- right button, which also slows the body to AIM_WALK); `zoom` the view
 -- then, the sniper's through its scope.
-local GUNS = {
+type Gun = { every: number, damage: number, spread: number, ads: number, zoom: number, range: number,
+             mag: number, reserve: number, reload: number, auto: boolean, scope: boolean?, rocket: boolean? }
+local GUNS: { [string]: Gun } = {
     pistol = { every = 0.2, damage = 5, spread = 0.035, ads = 0.006, zoom = 0.85, range = 90, mag = 12, reserve = 60, reload = 1.2, auto = false },
     rifle  = { every = 0.1, damage = 4, spread = 0.045, ads = 0.005, zoom = 0.75, range = 160, mag = 30, reserve = 180, reload = 2.0, auto = true },
     lmg    = { every = 0.075, damage = 4, spread = 0.07, ads = 0.015, zoom = 0.8, range = 160, mag = 100, reserve = 200, reload = 4.0, auto = true },
@@ -114,7 +117,8 @@ end
 
 -- The same against a box turned by `yaw` about its base (a machine): x to
 -- its right, up, and z to its front, `h` high.
-local function ray_obb(o: {number}, d: {number}, b, far: number): number?
+type Obb = { x: number, y: number, z: number, yaw: number, hw: number, hl: number, h: number }
+local function ray_obb(o: {number}, d: {number}, b: Obb, far: number): number?
     local sy, cy = math.sin(b.yaw), math.cos(b.yaw)
     local rx, ry, rz = o[1] - b.x, o[2] - b.y, o[3] - b.z
     local lo = { rx * cy + rz * sy, ry, rx * sy - rz * cy }
@@ -152,7 +156,7 @@ if serving then
     core.register_item("assault_game:grenade", 1, "", 0, 1.0, "")
     local NADE_MODEL = core.register_model("assault_game:grenade_held", "grenade_held.gltf")
 
-    local TOUGH = {}
+    local TOUGH: { [number]: boolean } = {}
     for _, n in { "bedrock", "ridge", "keep", "seal", "hall", "magma", "frame" } do
         TOUGH[core.node_id(`assault_core:{n}`)] = true
     end
@@ -173,17 +177,37 @@ if serving then
                   { "demon", "demon", 18, 4.4 }, { "cyborg", "cyborg", 26, 3.4 },
                   { "builder", "builder", 50, 3.4 } } do   -- the allies' builders: tough, unarmed
         --                 name                  model                                              hp    speed fight  dmg reach every drop n shot doors hover fire  spawn_on
-        core.register_mob(`assault_game:{k[1]}`, core.register_model(`assault_game:{k[2]}`, `{k[2]}.gltf`), k[3], k[4],
+        core.register_mob(`assault_game:{k[1]}`, core.register_model(`assault_game:{k[2]}`, `{k[2]}.gltf`), k[3] :: number, k[4] :: number,
                           "worker", 0, 1.6, 1.0, "", 1, 0, true, 0, false, "assault_game:never")
     end
 
-    local players = {}   -- player id -> state, below
-    local bots    = {}   -- mob id -> { team, n, ... }
+    -- A player's state; its guns' mag and res are set by refill.
+    type Player = { team: number, kills: number, held: boolean, next_fire: number, dry: boolean, keys: {number},
+                    throw_at: number, reload_at: number, reloading: string, supply_at: number,
+                    mag: { [string]: number }, res: { [string]: number }, nades: number,
+                    home: {number}?, died: boolean?, ray: {number}?, aim: {number}?, held2: boolean?,
+                    at: {number}?, aiming: boolean?, clip: string?, throwing_until: number?, firing_until: number? }
+    -- A bot, a machine: more fields than are worth a type, set where they are used.
+    type Bot = { enemy: Spotted?, ride: any, last: any, [string]: any }
+    type Machine = { pose: CraftPose?, goal_x: any, goal_z: any, stuck: any, [string]: any }
+    -- What a shot or a blast may hit (enemies).
+    type Target = { player: number?, bot: number?, machine: number?, thing: any, team: number, feet: number,
+                    lo: {number}, hi: {number}, obb: Obb?, empty: boolean?, big: boolean?, self: boolean? }
+    -- What hurt takes: a target, or only who it is.
+    type Hit = { read player: number?, read bot: number?, read machine: number?, read thing: any, read team: number? }
+    -- A trap on the escape's road (A.build_traps).
+    type Trap = { s: number, kind: string, cells: { {number} }, used: boolean, open_at: number?, thing: any, at: any }
+    -- A bonus ground (A.ZONES).
+    type Zone = { x: number, z: number, fort: number, owner: number, progress: number }
+    -- The enemy a bot has picked out (spotted).
+    type Spotted = { t: Target?, x: number, y: number, z: number, d: number, key: number }
+    local players: { [number]: Player } = {}   -- player id -> state, below
+    local bots: { [number]: Bot } = {}   -- mob id -> { team, n, ... }
     -- The machines (below, "machines"): one table, so its helpers are fields
     -- and not more of this chunk's 200 locals.
-    local M = { list = {}, seat_of = {}, wrecks = {}, respawn = {}, shots = {}, spawned = false,
+    local M: { [string]: any } = { list = {}, seat_of = {}, wrecks = {}, respawn = {}, shots = {}, spawned = false,
                 seen = { {}, {} } }   -- each team's: what its bots see, by who it is
-    local nades   = {}   -- entity id -> true
+    local nades: { [number]: boolean } = {}   -- entity id -> true
     -- The assault itself (below, "the assault"): the phase, the purse, what
     -- has been bought, the hall's and the escape's things. One table, as M.
     --   stage   "fort" (fort = 1..4, the one being fought for), "hall",
@@ -192,7 +216,7 @@ if serving then
     --   things  what a shot may hit besides bodies and machines: the pylons,
     --           the core, the orbs, the giant's head; each { x, y, z, hw, h,
     --           hit = fn(dmg, by, weapon) -> killed }
-    local A = { stage = "fort", fort = 1, base = { CAMP[1], CAMP[2] }, credits = 0, allies = 4,
+    local A: { [string]: any } = { stage = "fort", fort = 1, base = { CAMP[1], CAMP[2] }, credits = 0, allies = 4,
                 bought = {}, things = {}, progress = 0, garrison = {}, empty_at = nil, punch = 1 }
 
     -- Where each player comes back after dying (core.player_spawn), kept to
@@ -211,11 +235,11 @@ if serving then
         return x, A.feet_at(math.floor(x), math.floor(z)), z
     end
 
-    local function ammo_line(s): string
+    local function ammo_line(s: Player): string
         return `ammo {s.mag.pistol} {s.res.pistol} {s.mag.rifle} {s.res.rifle} {s.mag.lmg} {s.res.lmg} {s.nades} {s.kills} {s.mag.launcher} {s.res.launcher} {s.mag.sniper} {s.res.sniper}`
     end
 
-    local function refill(s)
+    local function refill(s: Player)
         s.mag, s.res = {}, {}
         for name, g in GUNS do
             s.mag[name], s.res[name] = g.mag, g.reserve
@@ -228,16 +252,16 @@ if serving then
     -- not there: a body that has only just come in has no place yet, and the
     -- engine then puts it at the world's spawn after this has placed it
     -- (step_players asks again while s.home is set).
-    local function to_base(p: number, s)
+    local function to_base(p: number, s: Player)
         local x, y, z = base_spot(s.team)
         A.spawn_at(p, x, y, z)
         core.player_place(p, x, y, z, 0, 0, 1)
         s.home = { x, y, z, clock + 4 }
     end
 
-    local function still_going_home(p: number, s)
+    local function still_going_home(p: number, s: Player)
         local px, _, pz = core.player_pos(p)
-        local h = s.home
+        local h = s.home :: {number}
         if px ~= nil and (px - h[1]) ^ 2 + (pz - h[3]) ^ 2 < 4 then
             if clock > h[4] then s.home = nil end
         else
@@ -277,7 +301,7 @@ if serving then
     end
 
     -- Takes `dmg` off whatever `target` is; true when that killed it.
-    local function hurt(by: number, target, dmg: number, weapon: string, ox: number, oz: number): boolean
+    local function hurt(by: number, target: Hit, dmg: number, weapon: string, ox: number, oz: number): boolean
         if target.thing then
             return target.thing.hit(dmg, by, weapon)
         end
@@ -296,7 +320,7 @@ if serving then
             if left == 0 then
                 local v = players[target.player]
                 if v then v.died = true end
-                killed(by, core.player_name(target.player), target.team, weapon)
+                killed(by, core.player_name(target.player), target.team :: number, weapon)
                 return true
             end
         elseif target.bot then
@@ -304,7 +328,7 @@ if serving then
             if b then b.alert = { ox, oz, clock } end   -- it turns to where that came from
             if b and core.mob_hurt(target.bot, dmg, ox, oz) == 2 then
                 local name = who(-target.bot)
-                killed(by, name, target.team, weapon)
+                killed(by, name, target.team :: number, weapon)
                 b.dead = true
                 return true
             end
@@ -314,8 +338,8 @@ if serving then
 
     -- Every body of the other team a shot or a blast may find: { player or
     -- bot, team, box }. Both are 0.7 wide and 1.85 high from the feet.
-    local function enemies(team: number)
-        local out = {}
+    local function enemies(team: number): { Target }
+        local out: { Target } = {}
         for p, s in players do
             if s.team ~= team and core.health(p) > 0 then
                 local x, y, z = core.player_pos(p)
@@ -398,7 +422,7 @@ if serving then
     M.HEAR_SHOT, M.HEAR_SNIPER, M.HEAR_BLAST = 45, 70, 80
     M.SEARCH = 6   -- seconds a bot goes on looking round once it has heard or been hit
     M.SEARCH_LEASH = 8   -- the furthest from its post it steps while looking
-    local noises = {}
+    local noises: { { team: number, x: number, z: number, r: number, t: number } } = {}
     local function noise(team: number, x: number, z: number, r: number)
         table.insert(noises, { team = team, x = x, z = z, r = r, t = clock })
         if #noises > 16 then table.remove(noises, 1) end
@@ -459,7 +483,7 @@ if serving then
         nades[id] = true
     end
 
-    local function throw(p: number, s)
+    local function throw(p: number, s: Player)
         local x, y, z = core.player_pos(p)
         local dx, dy, dz = core.player_look(p)
         if x == nil or dx == nil then return end
@@ -472,12 +496,12 @@ if serving then
     -- fall and some of its run, off a wall the run across it.
     local function step_nades(dt: number)
         for id in nades do
-            local x, y, z = core.ecs.get(id, "x"), core.ecs.get(id, "y"), core.ecs.get(id, "z")
+            local x, y, z = core.ecs.get(id, "x"), core.ecs.get(id, "y") :: number, core.ecs.get(id, "z") :: number
             if x == nil then
                 nades[id] = nil
                 continue
             end
-            local t = core.ecs.get(id, "t") + dt
+            local t = core.ecs.get(id, "t") :: number + dt
             core.ecs.set(id, "t", t)
             if t >= NADE_FUSE then
                 nades[id] = nil
@@ -486,7 +510,7 @@ if serving then
                 explode(x, y + 0.2, z, NADE_R, NADE_REACH, NADE_DMG, owner, team, "grenade")
                 continue
             end
-            local vx, vy, vz = core.ecs.get(id, "vx"), core.ecs.get(id, "vy") - 22 * dt, core.ecs.get(id, "vz")
+            local vx, vy, vz = core.ecs.get(id, "vx") :: number, core.ecs.get(id, "vy") :: number - 22 * dt, core.ecs.get(id, "vz") :: number
             local speed = math.sqrt(vx * vx + vy * vy + vz * vz)
             if speed > 0.05 then
                 local step = speed * dt
@@ -526,7 +550,7 @@ if serving then
 
     -- One round from o along d: the wall it stops at, the nearest enemy
     -- before it, and the tracer everybody sees.
-    local function bullet(p: number, s, o: {number}, d: {number}, g, gun: string, ignore: number?)
+    local function bullet(p: number, s: Player, o: {number}, d: {number}, g: { range: number, damage: number }, gun: string, ignore: number?)
         local far = g.range
         local _, _, _, wall = core.raycast(o[1], o[2], o[3], d[1], d[2], d[3], far)
         if wall ~= nil then far = wall end
@@ -551,7 +575,7 @@ if serving then
                               e[1], e[2], e[3], if best then 1 else 0))
     end
 
-    local function fire(p: number, s)
+    local function fire(p: number, s: Player)
         -- At the wheel or at a machine's gun, that; on any other seat, the
         -- gun in the hand, fired from the seat.
         local cur = M.seat_of[p]
@@ -608,7 +632,7 @@ if serving then
     -- What everybody else sees this player's arms do with what they hold
     -- (tools/make_front_poses.py: clips of the arms alone, over the walk):
     -- the throw, a reload, a burst, the sights, or the gun held ready.
-    function M.pose(p: number, s)
+    function M.pose(p: number, s: Player)
         local cur = M.seat_of[p]
         local m = cur and M.list[cur.id]
         local seat = m and m.k.seats[cur.seat]
@@ -634,7 +658,7 @@ if serving then
     end
 
     -- Aiming down the sights: precise, and slow.
-    function M.sights(p: number, s, on: boolean)
+    function M.sights(p: number, s: Player, on: boolean)
         if s.aiming == on then return end
         s.aiming = on
         if on then
@@ -654,9 +678,15 @@ if serving then
         elseif string.sub(what, 1, 4) == "aim " then
             -- The camera's ray through the crosshair: from, and which way.
             local w = string.split(what, " ")
-            local r = {}
-            for i = 2, 7 do r[i - 1] = tonumber(w[i]) end
-            local l = if r[6] then math.sqrt(r[4] ^ 2 + r[5] ^ 2 + r[6] ^ 2) else 0
+            -- Six numbers or nothing: a client's text is not trusted, and an
+            -- error here would switch the whole game off for everybody.
+            local r: { number } = {}
+            for i = 2, 7 do
+                local n = tonumber(w[i])
+                if n == nil then return end
+                r[i - 1] = n
+            end
+            local l = math.sqrt(r[4] ^ 2 + r[5] ^ 2 + r[6] ^ 2)
             if l > 1e-6 then
                 s.ray = { r[1], r[2], r[3], r[4] / l, r[5] / l, r[6] / l, clock }
                 s.aim = nil
@@ -694,7 +724,7 @@ if serving then
     end
 
     core.event.on("core:net_message", function(ev)
-        asked(ev.player, ev.text)
+        asked(ev.player :: number, ev.text :: string)
     end)
 
     -- For trying things out: /vehicle jeep puts one six nodes in front, of the
@@ -775,7 +805,7 @@ if serving then
     end
 
     -- Turned to look at x, z, and that remembered: what it sees is in front.
-    function M.face(id: number, b, x: number, z: number)
+    function M.face(id: number, b: Bot, x: number, z: number)
         local bx, _, bz = core.mob_pos(id)
         if bx == nil then return end
         core.mob_face(id, x, z)
@@ -785,7 +815,7 @@ if serving then
     -- What it is seen doing, and the gun in its hands (its model has none of
     -- its own: tools/make_front_models.py); `bare` for hands on a wheel or a
     -- machine's gun.
-    function M.bot_clip(id: number, b, clip: string, bare: boolean?)
+    function M.bot_clip(id: number, b: Bot, clip: string, bare: boolean?)
         local item = if bare then "" else `assault_game:{b.gun}`
         if b.clip ~= clip or b.item ~= item then
             b.clip, b.item = clip, item
@@ -796,7 +826,7 @@ if serving then
     -- The nearest enemy it can see from its eyes, within sight: in the cone
     -- in front of it, or close enough to hear, or the one it is already
     -- watching. From a machine's seat, all round.
-    local function spotted(id: number, b)
+    local function spotted(id: number, b: Bot): Spotted?
         local x, y, z = core.mob_pos(id)
         if x == nil then return nil end
         local best, at = nil, (M.BOTGUN[b.gun] and M.BOTGUN[b.gun].sight) or BOT_SIGHT
@@ -823,7 +853,7 @@ if serving then
                     -- A trap's own blocks (the wheel, the rocks, the tank) lie
                     -- inside its box: they are not in the way of it.
                     if wall == nil or (trap and wall > d - (t.hi[1] - t.lo[1])) then
-                        best, at = { t = t, x = tx, y = ty, z = tz, d = d, key = key }, rank
+                        best, at = { t = t, x = tx, y = ty, z = tz, d = d, key = key } :: Spotted, rank
                     end
                 end
             end
@@ -840,7 +870,7 @@ if serving then
 
     -- Where it is going: one of the legion to its post, an ally to the
     -- stronghold being fought for, then the hall, then the garage.
-    local function goal_of(_id: number, b): { number }
+    local function goal_of(_id: number, b: Bot): { number }
         if b.post then return b.post end
         -- One ally in three goes for a bonus ground not yet held, if any.
         if A.stage == "fort" and b.team == 1 and b.n % 3 == 0 then
@@ -873,7 +903,7 @@ if serving then
 
     -- The cover's round: behind cover, out to where it saw them for a burst,
     -- back. While it remembers somebody (6 s); false when it does not.
-    function M.cover(id: number, b, x: number, y: number, z: number): boolean
+    function M.cover(id: number, b: Bot, x: number, y: number, z: number): boolean
         local e = b.enemy or (if b.mem and clock - b.mem.t < 6 then b.mem else nil)
         if e == nil then
             b.phase, b.hold_fire = nil, false
@@ -905,7 +935,7 @@ if serving then
         return true
     end
 
-    local function think(id: number, b)
+    local function think(id: number, b: Bot)
         local x, y, z = core.mob_pos(id)
         if x == nil then return end
         if b.builder then
@@ -1050,7 +1080,7 @@ if serving then
         end
     end
 
-    local function bot_shoot(id: number, b)
+    local function bot_shoot(id: number, b: Bot)
         local e = b.enemy
         local x, y, z = core.mob_pos(id)
         if x == nil or e == nil then return end
@@ -1118,7 +1148,7 @@ if serving then
         bot_shoot(id, b)
     end
 
-    local function bot_throw(id: number, b)
+    local function bot_throw(id: number, b: Bot)
         local e = b.enemy
         local x, y, z = core.mob_pos(id)
         if x == nil or e == nil then return end
@@ -1317,11 +1347,11 @@ if serving then
         return bx + c * x + s * z, by_ + y, bz + s * x - c * z
     end
 
-    function M.spawn(kind: string, x: number, z: number, yaw: number, team: number)
+    function M.spawn(kind: string, x: number, z: number, yaw: number, team: number): number?
         local k = M.KINDS[kind]
         local y = feet_at(math.floor(x), math.floor(z))
         local id = core.ecs.spawn(M.THING, x, y, z)
-        if id == nil then return end
+        if id == nil then return nil end
         core.ecs.visible(id, true)
         core.ecs.model(id, M.MODEL[k.model])
         core.ecs.set(id, "yaw", yaw)
@@ -1391,7 +1421,7 @@ if serving then
         -- which one, and what it is made of.
         local k = m.k
         local spec = if i == 1 and k.craft
-            then string.format(" %.0f %s %g %g %g %g %g %g %g", id, k.craft, k.mass, k.hw, k.hh, k.hl, k.accel, k.top, k.turn)
+            then string.format(" %.0f %s %g %g %g %g %g %g %g", id :: any, k.craft, k.mass, k.hw, k.hh, k.hl, k.accel, k.top, k.turn)
             else ""
         tell(p, `seat {m.kind} {i} {if i == 1 and k.craft then "drive" else "ride"} {seat.gun or "-"} {k.view} {#k.seats} {if seat.stand then "stand" elseif k.wheel and i == 1 then "wheel" else "sit"}{spec}`)
         return true
@@ -1446,12 +1476,12 @@ if serving then
         end
         if best == nil then return end
         local m = M.list[best]
-        local order = {}
+        local order: { { number } } = {}
         for i in m.k.seats do
             local sx, _, sz = M.seat_pos(best, m, i)
             table.insert(order, { i, (sx - px) ^ 2 + (sz - pz) ^ 2 })
         end
-        table.sort(order, function(a, b) return a[2] < b[2] end)
+        table.sort(order, function(a: {number}, b: {number}) return a[2] < b[2] end)
         for _, o in order do
             if M.enter(p, best, o[1]) then return end
         end
@@ -1534,14 +1564,14 @@ if serving then
     end
 
     -- In the air: a helicopter or a plane more than 3 over the ground.
-    function M.flying(m): boolean
+    function M.flying(m: Machine): boolean
         return m ~= nil and not m.dead and m.pose ~= nil and (m.k.craft == "rotor" or m.k.craft == "wing")
             and m.pose.y - GROUND > 3
     end
 
     function M.step_shots(dt: number)
         for id, sh in M.shots do
-            local x, y, z = core.ecs.get(id, "x"), core.ecs.get(id, "y"), core.ecs.get(id, "z")
+            local x, y, z = core.ecs.get(id, "x"), core.ecs.get(id, "y") :: number, core.ecs.get(id, "z") :: number
             if x == nil then
                 M.shots[id] = nil
                 continue
@@ -1668,7 +1698,7 @@ if serving then
         return x + dx * t, y + EYE + dy * t, z + dz * t
     end
 
-    function M.fire(p: number, s, second: boolean)
+    function M.fire(p: number, s: Player, second: boolean)
         local cur = M.seat_of[p]
         local m = cur and M.list[cur.id]
         if m == nil then return end
@@ -1681,7 +1711,7 @@ if serving then
         if gun == "mg" then
             m.next[cur.seat] = clock + 0.08
             local pid = m.parts[seat.part]
-            local px, py, pz = core.ecs.get(pid, "x"), core.ecs.get(pid, "y"), core.ecs.get(pid, "z")
+            local px, py, pz = core.ecs.get(pid, "x"), core.ecs.get(pid, "y") :: number, core.ecs.get(pid, "z") :: number
             if px == nil then return end
             local yaw, pitch = M.want(p, { px, py, pz })
             local cp = math.cos(pitch)
@@ -1737,15 +1767,15 @@ if serving then
     end
 
     -- Where a bomb let go now would come down (22 down, the machine's speed on).
-    function M.impact(m): (number, number, number)
-        local pose = m.pose
+    function M.impact(m: Machine): (number, number, number)
+        local pose = m.pose :: CraftPose
         local alt = math.max(0, pose.y - GROUND)
         local t = (pose.vy + math.sqrt(math.max(0, pose.vy * pose.vy + 44 * alt))) / 22
         return pose.x + pose.vx * t, GROUND, pose.z + pose.vz * t
     end
 
     -- The bomb bay: one of the stick every 0.22 s, out of the middle.
-    function M.drop_stick(id: number, m)
+    function M.drop_stick(id: number, m: Machine)
         local st = m.stick
         while st and st.left > 0 and clock >= st.at and m.pose do
             st.left -= 1
@@ -1757,9 +1787,9 @@ if serving then
     end
 
     -- Where the anti-air's tubes point.
-    function M.aa_dir(id: number, m): ({number}?, {number}?)
+    function M.aa_dir(id: number, m: Machine): ({number}?, {number}?)
         local pid = m.parts[1]
-        local px, py, pz = core.ecs.get(pid, "x"), core.ecs.get(pid, "y"), core.ecs.get(pid, "z")
+        local px, py, pz = core.ecs.get(pid, "x"), core.ecs.get(pid, "y") :: number, core.ecs.get(pid, "z") :: number
         if px == nil then return nil, nil end
         local a = m.aim[1]
         local yaw = (core.ecs.get(id, "yaw") or 0) + a.yaw
@@ -1769,7 +1799,7 @@ if serving then
 
     -- Holding a lock: the enemy machine in the air nearest the tubes' line,
     -- within AA_CONE, in sight; the time it has been the same one.
-    function M.aa_lock(id: number, m, dt: number)
+    function M.aa_lock(id: number, m: Machine, dt: number)
         local o, f = M.aa_dir(id, m)
         if o == nil then return end
         local best, score = nil, M.AA_CONE
@@ -1793,10 +1823,11 @@ if serving then
         local p = m.riders[1]
         if p and clock >= (m.lock_said or 0) then
             m.lock_said = clock + 0.1
-            local tm = best and M.list[best]
+            local tm: Machine? = best and M.list[best]
             if tm then
+                local tp = tm.pose :: CraftPose
                 tell(p, string.format("lock %d %.2f %.1f %.1f %.1f", if m.lock_t >= M.AA_LOCK then 1 else 0,
-                                      math.min(1, m.lock_t / M.AA_LOCK), tm.pose.x, tm.pose.y + 1, tm.pose.z))
+                                      math.min(1, m.lock_t / M.AA_LOCK), tp.x, tp.y + 1, tp.z))
             else
                 tell(p, "lock none")
             end
@@ -1805,7 +1836,7 @@ if serving then
 
     -- A missile out of the next tube, after what is locked: four, 1.2 s
     -- apart, then 8 s to load again.
-    function M.aa_fire(id: number, m, by: number, team: number)
+    function M.aa_fire(id: number, m: Machine, by: number, team: number)
         if clock < (m.next[1] or 0) or m.lock_on == nil then return end
         local o, f = M.aa_dir(id, m)
         if o == nil then return end
@@ -1818,10 +1849,10 @@ if serving then
     end
 
     -- A shell from seat i's lobbing gun onto tx, ty, tz.
-    function M.lob(id: number, m, i: number, tx: number, ty: number, tz: number, by: number, team: number): boolean
+    function M.lob(id: number, m: Machine, i: number, tx: number, ty: number, tz: number, by: number, team: number): boolean
         local seat = m.k.seats[i]
         local pid = m.parts[seat.part]
-        local ox, oy, oz = core.ecs.get(pid, "x"), core.ecs.get(pid, "y"), core.ecs.get(pid, "z")
+        local ox, oy, oz = core.ecs.get(pid, "x"), core.ecs.get(pid, "y") :: number, core.ecs.get(pid, "z") :: number
         if ox == nil then return false end
         oy += 1.0
         -- At the gun's angle the speed that comes down on the target:
@@ -1841,13 +1872,13 @@ if serving then
     end
 
     -- The tank's gun, along where its turret and barrel point.
-    function M.cannon(id: number, m, by: number, team: number)
+    function M.cannon(id: number, m: Machine, by: number, team: number)
         local a, b = m.aim[1], m.aim[2]
         local yaw = (m.pose and m.pose.yaw or 0) + a.yaw
         local pitch = b.pitch + (m.pose and m.pose.pitch or 0)
         local d = { math.sin(yaw) * math.cos(pitch), math.sin(pitch), -math.cos(yaw) * math.cos(pitch) }
         local pid = m.parts[2]
-        local px, py, pz = core.ecs.get(pid, "x"), core.ecs.get(pid, "y"), core.ecs.get(pid, "z")
+        local px, py, pz = core.ecs.get(pid, "x"), core.ecs.get(pid, "y") :: number, core.ecs.get(pid, "z") :: number
         if px == nil then return end
         M.shoot("cannon", { px + d[1] * 3.8, py + d[2] * 3.8, pz + d[3] * 3.8 }, { d[1] * 70, d[2] * 70, d[3] * 70 },
                 by, team, id)
@@ -1857,7 +1888,7 @@ if serving then
     -- The driver's keys to the machine: on the ground as they are; in the air
     -- the mouse steers -- a helicopter turns to the look, a plane banks and
     -- pitches towards it, W and S its throttle.
-    function M.drive(id: number, m, p: number)
+    function M.drive(id: number, m: Machine, p: number)
         local s = players[p]
         local k = s and s.keys or { 0, 0, 0 }
         local craft, pose = m.k.craft, m.pose
@@ -1882,7 +1913,7 @@ if serving then
     -- Each aiming part follows its gunner's look, within what it can do: a
     -- turret turns at its own pace, a barrel only rises and dips, a lobbing
     -- gun keeps its angle and turns to the target.
-    function M.aim(id: number, m, dt: number)
+    function M.aim(id: number, m: Machine, dt: number)
         local hull_yaw = if m.pose then m.pose.yaw else (core.ecs.get(id, "yaw") or 0)
         for i, part in m.k.parts do
             local p = m.riders[part.by]
@@ -1892,7 +1923,7 @@ if serving then
             local tp = if b == nil then nil elseif part.lob then b.lob
                 elseif b.enemy then { b.enemy.x, b.enemy.y, b.enemy.z } else nil
             if (p == nil and tp == nil) or pid == nil then continue end
-            local px, py, pz = core.ecs.get(pid, "x"), core.ecs.get(pid, "y"), core.ecs.get(pid, "z")
+            local px, py, pz = core.ecs.get(pid, "x"), core.ecs.get(pid, "y") :: number, core.ecs.get(pid, "z") :: number
             if px == nil then continue end
             local want_yaw, want_pitch, dist
             if p then
@@ -1900,8 +1931,8 @@ if serving then
             else
                 -- A bot's hand is not steady: off by a little, new after each shell.
                 want_yaw, want_pitch, dist = M.want_at(tp, { px, py, pz })
-                want_yaw += b.err_yaw or 0
-                want_pitch += b.err_pitch or 0
+                want_yaw += (b :: Bot).err_yaw or 0
+                want_pitch += (b :: Bot).err_pitch or 0
             end
             local carrier = hull_yaw + (if part.on then m.aim[part.on].yaw else 0)
             local a = m.aim[i]
@@ -1935,8 +1966,8 @@ if serving then
     -- front: one block high it climbs (the hop, core/physics/craft.cpp); two
     -- high it knocks the top one off and climbs the other; three or more it
     -- goes through, ground to roof, and what stood on that comes down.
-    function M.breach(m, id: number)
-        local pose = m.pose
+    function M.breach(m: Machine, id: number)
+        local pose = m.pose :: CraftPose
         local hits = 0
         local across = math.ceil(m.k.hw + 0.4)
         for a = -across, across do
@@ -1968,8 +1999,8 @@ if serving then
     end
 
     -- Moving fast through the other team: struck as by its weight.
-    function M.run_over(id: number, m)
-        local pose = m.pose
+    function M.run_over(id: number, m: Machine)
+        local pose = m.pose :: CraftPose
         local speed = math.abs(pose.speed)
         if speed < 4 then return end
         m.ran = m.ran or {}
@@ -2001,7 +2032,7 @@ if serving then
                     local id = M.spawn(r.kind, r.home[1], r.home[2], r.home[3], r.home[4])
                     if id then
                         M.list[id].again = r.again
-                        if r.then_ then r.then_(id) end
+                        if r.then_ then (r.then_ :: (number) -> ())(id) end
                     end
                 else
                     core.keep_loaded(x, z, 8)
@@ -2027,7 +2058,7 @@ if serving then
         end
         local hud = clock >= (M.hud_at or 0)
         if hud then M.hud_at = clock + 0.25 end
-        for id, m in M.list do
+        for id, m: Machine in M.list do
             if m.dead then continue end
             if m.k.craft then
                 m.pose = core.craft.pose(id)
@@ -2133,7 +2164,7 @@ if serving then
     -- player's too -- and get off when nobody drives it.
 
     -- Where seat i is now: on the hull, or on its part (a turret) as it turns.
-    function M.seat_pos(id: number, m, i: number): (number, number, number)
+    function M.seat_pos(id: number, m: Machine, i: number): (number, number, number)
         local seat = m.k.seats[i]
         local pid = seat.on and m.parts[seat.on]
         local px = pid and core.ecs.get(pid, "x")
@@ -2150,7 +2181,7 @@ if serving then
     M.BOT_DRIVES = { jeep = true, tank = true, heli = true, plane = true, bomber = true }
     M.BOT_GUNS = { mg = true, cannon = true, mortar = true, howitzer = true, rockets = true, plane = true,
                    bomber = true, aa = true }
-    function M.bot_seat_ok(m, i: number): boolean
+    function M.bot_seat_ok(m: Machine, i: number): boolean
         local seat = m.k.seats[i]
         if seat == nil or m.riders[i] or m.bots[i] then return false end
         if i == 1 and m.k.craft then return M.BOT_DRIVES[m.kind] == true end
@@ -2158,15 +2189,16 @@ if serving then
     end
 
     -- A player of `team` within r of the machine: it is left to them.
-    function M.player_near(m, team: number, r: number): boolean
+    function M.player_near(m: Machine, team: number, r: number): boolean
         for p, s in players do
             local x, _, z = core.player_pos(p)
-            if s.team == team and x and (x - m.pose.x) ^ 2 + (z - m.pose.z) ^ 2 < r * r then return true end
+            local pose = m.pose :: CraftPose
+            if s.team == team and x and (x - pose.x) ^ 2 + (z - pose.z) ^ 2 < r * r then return true end
         end
         return false
     end
 
-    function M.bot_board(bid: number, b, id: number, i: number): boolean
+    function M.bot_board(bid: number, b: Bot, id: number, i: number): boolean
         local m = M.list[id]
         if m == nil or m.dead or not M.bot_seat_ok(m, i) then return false end
         m.bots[i] = bid
@@ -2178,7 +2210,7 @@ if serving then
         return true
     end
 
-    function M.bot_leave(bid: number, b)
+    function M.bot_leave(bid: number, b: Bot)
         local cur = b.ride
         if cur == nil then return end
         b.ride = nil
@@ -2199,7 +2231,7 @@ if serving then
     -- On foot and nothing in sight: a seat in a machine of its team that
     -- somebody drives and that has stopped near, or -- its point far off -- a
     -- jeep or a tank of its team with nobody at the wheel. Walks to it, and in.
-    function M.bot_hop(bid: number, b, x: number, z: number): boolean
+    function M.bot_hop(bid: number, b: Bot, x: number, z: number): boolean
         if clock < (b.off_until or 0) then return false end
         local p = goal_of(bid, b)
         local far = (p[1] - x) ^ 2 + (p[2] - z) ^ 2 > 60 * 60
@@ -2245,7 +2277,7 @@ if serving then
         return true
     end
 
-    function M.bot_ride_think(bid: number, b)
+    function M.bot_ride_think(bid: number, b: Bot)
         local cur = b.ride
         local m = M.list[cur.id]
         if m == nil or m.dead or (m.k.craft and m.pose == nil) then
@@ -2296,18 +2328,19 @@ if serving then
     end
 
     -- At the anti-air: the nearest enemy machine in the air it can see.
-    function M.aa_pick(bid: number, b)
+    function M.aa_pick(bid: number, b: Bot): Spotted?
         local x, y, z = core.mob_pos(bid)
         if x == nil then return nil end
         local best, at = nil, M.AA_RANGE
-        for id, m in M.list do
+        for id, m: Machine in M.list do
             if m.team == b.team or m.team == 0 or not M.flying(m) then continue end
-            local dx, dy, dz = m.pose.x - x, m.pose.y + 1 - (y + EYE), m.pose.z - z
+            local pose = m.pose :: CraftPose
+            local dx, dy, dz = pose.x - x, pose.y + 1 - (y + EYE), pose.z - z
             local d = math.sqrt(dx * dx + dy * dy + dz * dz)
             if d < at then
                 local _, _, _, wall = core.raycast(x, y + EYE, z, dx, dy, dz, d - 2)
                 if wall == nil then
-                    best, at = { x = m.pose.x, y = m.pose.y + 1, z = m.pose.z, d = d, key = 100000 + id }, d
+                    best, at = { x = pose.x, y = pose.y + 1, z = pose.z, d = d, key = 100000 + id } :: Spotted, d
                 end
             end
         end
@@ -2316,7 +2349,7 @@ if serving then
 
     -- What the team has seen in the last 3 s that a lobbing gun at the bot
     -- reaches (20 nodes on), a few nodes off; nil when nothing.
-    function M.lob_target(bid: number, b, range: number): {number}?
+    function M.lob_target(bid: number, b: Bot, range: number): {number}?
         local x, _, z = core.mob_pos(bid)
         if x == nil then return nil end
         local best, at = nil, range * range
@@ -2332,8 +2365,8 @@ if serving then
     -- A bot at the wheel: towards its point, turning as it goes; backing off a
     -- moment when it has not moved for a while; the tank stops to fight what
     -- it sees within 70.
-    function M.bot_drive(id: number, m)
-        local pose, b = m.pose, bots[m.bots[1]]
+    function M.bot_drive(id: number, m: Machine)
+        local pose, b = m.pose :: CraftPose, bots[m.bots[1]]
         m.bot_fwd = 0
         if b == nil or m.goal_x == nil or clock < (m.wait_until or 0) then
             core.craft.keys(id, 0, 0, 0, 0)
@@ -2368,7 +2401,7 @@ if serving then
             m.steer = wrap(pose.yaw + math.pi * 0.5)
         end
         local turn = wrap(m.steer - pose.yaw)
-        fwd, right = if math.abs(turn) > 1.2 then 0.4 elseif math.abs(turn) > 0.5 then 0.7 else 1, math.clamp(turn * 2, -1, 1)
+        fwd, right = if math.abs(turn) > 1.2 then 0.4 elseif math.abs(turn) > 0.5 then 0.7 else 1, math.clamp(turn * 2, -1, 1) :: number
         if clock < (m.back_until or 0) then fwd, right = -1, -right end
         m.bot_fwd = fwd
         m.want = fwd
@@ -2380,7 +2413,7 @@ if serving then
     -- step one high is climbed, two high (a trunk, a wall) stops it, as does
     -- anything over the ground where its body passes (a low branch) and, with
     -- `holes`, ground that falls away three or more. Out to `far`.
-    function M.reach(m, pose, yaw: number, far: number, holes: boolean): number
+    function M.reach(m: Machine, pose: CraftPose, yaw: number, far: number, holes: boolean): number
         local fx, fz = math.sin(yaw), -math.cos(yaw)
         local y0 = math.floor(pose.y + 0.3)
         local w = math.ceil(m.k.hw or 1)
@@ -2419,7 +2452,7 @@ if serving then
     -- The way to steer for `want`: itself if free for a while, else the
     -- nearest way to it either side that is; nil when nothing is free near.
     M.FEEL = { 0, 0.3, -0.3, 0.6, -0.6, 0.9, -0.9, 1.25, -1.25, 1.6, -1.6, 2.1, -2.1 }
-    function M.feel(m, pose, want: number, holes: boolean): number?
+    function M.feel(m: Machine, pose: CraftPose, want: number, holes: boolean): number?
         local far = if m.kind == "tank" then 12 else 10
         local best, at = nil, 3
         for _, off in M.FEEL do
@@ -2437,8 +2470,8 @@ if serving then
     -- down. Both drop or fire on
     -- their own; the plane's bombs go when where they would land is within
     -- 8 of something the team has seen.
-    function M.bot_fly(id: number, m)
-        local pose, b = m.pose, bots[m.bots[1]]
+    function M.bot_fly(id: number, m: Machine)
+        local pose, b = m.pose :: CraftPose, bots[m.bots[1]]
         if b == nil or m.goal_x == nil or clock < (m.wait_until or 0) then
             core.craft.keys(id, 0, 0, if m.k.craft == "wing" then -1 else 0, 0)
             return
@@ -2519,7 +2552,7 @@ if serving then
     -- Every tick: the bots at their seats, and the guns they hold fired at
     -- what they see -- the machine gun in bursts, the cannon once the turret
     -- is round to it.
-    function M.carry(id: number, m)
+    function M.carry(id: number, m: Machine)
         for i, bid in m.bots do
             local b = bots[bid]
             if b == nil or b.dead or b.ride == nil or b.ride.id ~= id then
@@ -2574,7 +2607,7 @@ if serving then
             if e == nil or clock < (b.react_at or 0) then continue end
             if seat.gun == "mg" then
                 local pid = m.parts[seat.part]
-                local px, py, pz = core.ecs.get(pid, "x"), core.ecs.get(pid, "y"), core.ecs.get(pid, "z")
+                local px, py, pz = core.ecs.get(pid, "x"), core.ecs.get(pid, "y") :: number, core.ecs.get(pid, "z") :: number
                 if px == nil then continue end
                 b.burst -= 1
                 if b.burst <= 0 then
@@ -2620,7 +2653,7 @@ if serving then
                 end
             elseif seat.gun == "cannon" and m.pose then
                 local pid = m.parts[2]
-                local px, pz = core.ecs.get(pid, "x"), core.ecs.get(pid, "z")
+                local px, pz = core.ecs.get(pid, "x"), core.ecs.get(pid, "z") :: number
                 if px == nil then continue end
                 local off = wrap(math.atan2(e.x - px, -(e.z - pz)) - m.pose.yaw - m.aim[1].yaw)
                 if math.abs(off) < 0.08 then
@@ -2685,7 +2718,7 @@ if serving then
     end
 
     -- Machine id taken away and put down again at the park's n-th place.
-    function A.repark(id: number, m, n: number)
+    function A.repark(id: number, m: Machine, n: number)
         for _, bid in m.bots do
             if bots[bid] then M.bot_leave(bid, bots[bid]) end
         end
@@ -2726,7 +2759,7 @@ if serving then
 
     -- The ground an ally sent for one goes to: the nearest not held, of the
     -- strongholds reached so far.
-    function A.zone_for(b): any
+    function A.zone_for(b: Bot): any
         local best, at = nil, 1e9
         for _, zn in A.ZONES do
             if zn.owner ~= 1 and zn.fort <= A.fort then
@@ -2737,7 +2770,7 @@ if serving then
         return best
     end
 
-    function A.zone_cloth(zn)
+    function A.zone_cloth(zn: Zone)
         local cloth = if zn.owner == 1 then A.ALLY_CLOTH else A.FOE_CLOTH
         for x = zn.x - 1, zn.x + 1 do
             for y = GROUND + 4, GROUND + 5 do core.set_block(x, y, zn.z, cloth) end
@@ -2878,7 +2911,7 @@ if serving then
                 local nx, nz = dx / math.max(d, 0.1), dz / math.max(d, 0.1)
                 local vx, vy, vz
                 -- Thrown: left to fly for a moment, or the pull would hold it down.
-                local key = b.player or (if b.bot then -b.bot else 100000 + b.machine)
+                local key = b.player or (if b.bot then -b.bot else 100000 + b.machine :: number)
                 if (t.hit[key] or 0) - clock > 0.5 then continue end
                 if d < A.TW_CORE then
                     -- Its middle: up and out, once every couple of seconds.
@@ -2974,7 +3007,7 @@ if serving then
     end
     -- An ally to the top of the nearest, between its posts, and on it.
     A.riders = {}   -- mob id -> { x, when it got on }
-    function A.zip_down(id: number, b, x: number, z: number): boolean
+    function A.zip_down(id: number, b: Bot, x: number, z: number): boolean
         local best, at = nil, 1e9
         for _, zx in A.zips do
             if math.abs(zx - x) < at then best, at = zx, math.abs(zx - x) end
@@ -3109,7 +3142,7 @@ if serving then
         core.log(`assault_game: a builder put up a {job.kind} at {job.x} {job.z}`)
     end
 
-    function A.build_think(id: number, b, x: number, y: number, z: number)
+    function A.build_think(id: number, b: Bot, x: number, y: number, z: number)
         -- Not a node further in three seconds on the way: a step aside, as
         -- a soldier takes (think).
         if core.mob_going(id) == 1 and b.last and (x - b.last[1]) ^ 2 + (z - b.last[2]) ^ 2 < 1 then
@@ -3221,7 +3254,7 @@ if serving then
     -- at a time goes up to it and, from 7 nodes or less, a grenade goes off
     -- in it every few seconds. One that has not managed in 15 s (a crater, a wall in
     -- the way) leaves it to another for a while.
-    function A.blow_gate(id: number, b, x: number, y: number, z: number): boolean
+    function A.blow_gate(id: number, b: Bot, x: number, y: number, z: number): boolean
         if b.team ~= 1 or A.stage ~= "fort" or A.fort ~= 4 or b.throwing > 0 then return false end
         if clock < (b.sap_skip or 0) then return false end
         local s = A.sapper and bots[A.sapper]
@@ -3314,7 +3347,7 @@ if serving then
     end
 
     -- A thing a shot may hit (A.things): an entity of `model` at x, y, z.
-    function A.thing(model: string, x: number, y: number, z: number, hw: number, h: number, hit): any
+    function A.thing(model: string, x: number, y: number, z: number, hw: number, h: number, hit: (number, number, string) -> boolean): any
         local id = core.ecs.spawn(M.THING, x, y, z)
         if id == nil then return nil end
         core.ecs.visible(id, true)
@@ -3324,7 +3357,7 @@ if serving then
         return t
     end
 
-    function A.drop_thing(t)
+    function A.drop_thing(t: any)
         if t == nil then return end
         for i, o in A.things do
             if o == t then
@@ -3827,7 +3860,7 @@ if serving then
             local side = if n % 2 == 0 then 1 else -1
             local x, z, dx, dz, fy = A.at(s)
             local lx, lz = -dz * side, dx * side     -- across, to that side
-            local t = { s = s, kind = kind, cells = {}, used = false, open_at = nil }
+            local t: Trap = { s = s, kind = kind, cells = {}, used = false, open_at = nil }
             local function cell(off: number, up: number, along: number, block: number)
                 local cx = math.floor(x + lx * off + dx * along)
                 local cz = math.floor(z + lz * off + dz * along)
@@ -3883,7 +3916,7 @@ if serving then
     -- there till he comes), the valve once he is close enough to reach its
     -- 25 s of lava even slowed (about 7 m/s), the tank with him near enough
     -- that its 50 hp, at about 4 a hit, give out inside its 40.
-    function A.trap_ripe(t): boolean
+    function A.trap_ripe(t: Trap): boolean
         if A.stage ~= "escape" or clock < (A.go_at or math.huge) then return false end
         local behind = t.s - (A.f - 10)
         if t.kind == "valve" then return behind < 150 end
@@ -3892,7 +3925,7 @@ if serving then
     end
 
     -- Shot: what each does at once.
-    function A.spring(t)
+    function A.spring(t: Trap)
         t.open_at = clock
         A.drop_thing(t.thing)
         core.log(string.format("assault_game: %s at %d shot, Basoalth %.0f from it", t.kind, t.s, t.s - (A.f - 10)))
@@ -4346,8 +4379,9 @@ if serving then
     -- Where a bot at a jeep's wheel heads: 16 on along the road, on the side
     -- away from the next block in the way (z from, z to, nodes east of the
     -- middle) or a hole ahead.
-    function A.crew_goal(m)
-        local s = A.along(m.pose.x, m.pose.z)
+    function A.crew_goal(m: Machine)
+        local pose = m.pose :: CraftPose
+        local s = A.along(pose.x, pose.z)
         local ahead = s + 16
         local off = 0
         -- A hole on one side, from before it is ahead until it is passed.
@@ -4630,7 +4664,7 @@ if serving then
             if s == nil then
                 if core.player_pos(p) == nil then continue end   -- not placed yet
                 s = { team = 1, kills = 0, held = false, next_fire = 0, dry = false, keys = { 0, 0, 0 },
-                      throw_at = 0, reload_at = 0, reloading = "", supply_at = 0 }
+                      throw_at = 0, reload_at = 0, reloading = "", supply_at = 0 } :: Player
                 refill(s)
                 players[p] = s
                 A.kit(p)
@@ -4755,16 +4789,19 @@ end
 -- ===================================================== the player's machine
 
 if drawing then
-    local tracers = {}   -- { o, e, left, hit }
-    local booms   = {}   -- { x, y, z, r, left }
-    local feed    = {}   -- { text, team, left }
-    local tags    = {}   -- { x, y, z, team }
+    local tracers: { any } = {}   -- { o, e, left, hit }
+    local booms: { any } = {}     -- { x, y, z, r, left }
+    local feed: { { killer: string, kt: number, victim: string, vt: number, weapon: string, left: number } } = {}
+    local tags: { { x: number, y: number, z: number, team: number } } = {}
     local ammo    = { pistol = { 0, 0 }, rifle = { 0, 0 }, lmg = { 0, 0 }, launcher = { 0, 0 }, sniper = { 0, 0 } }
     local nades, kills = 0, 0
     local team    = 0
     -- What the assault says: the objective, a bar or two, the purse, the
     -- giant's fists to come, and the credits at the end.
-    local G = { obj = "", bar = nil, bar2 = nil, credits = 0, warns = {}, roll = -1 }
+    type Bar = { k: number, text: string }
+    type Warn = { x: number, y: number, z: number, r: number, left: number }
+    local G: { obj: string, bar: Bar?, bar2: Bar?, credits: number, warns: { Warn }, roll: number, zones: { {number} }? } =
+        { obj = "", bar = nil, bar2 = nil, credits = 0, warns = {}, roll = -1 }
     local banner, banner_left = "", 0
     local marker, marker_left = 0, 0
     local reload_left, dry_left = 0, 0
@@ -4772,8 +4809,18 @@ if drawing then
     local COLOUR = { { 60, 120, 240 }, { 170, 60, 230 } }   -- the allies, the legion
     -- In a machine: which, which seat, what it fires; the keys held; what the
     -- server last said of it; where a lobbing gun would land.
+    type Seat = { kind: string, n: number, role: string, gun: string, seats: number, pose: string? }
+    type Mach = { hp: number, max: number, speed: number, alt: number, throttle: number, wait: number }
+    type Lock = { on: boolean, k: number, x: number, y: number, z: number, left: number }
+    type Pred = { id: number, craft: string, n: {number}, on: boolean }
+    type Torn = { x: number, y: number, z: number, tx: number, ty: number, tz: number }
+    type View = { seat: Seat?, keys: {number}, held: { [string]: boolean }, mach: Mach?, mark: {number}?, mark_left: number,
+                  burns: { { x: number, y: number, z: number, left: number } }, torn: { Torn }, torn_spin: number,
+                  jets: { { x: number, y: number, z: number, dx: number, dz: number, left: number } }, pred: Pred?, lock: Lock?,
+                  aimed: string?, view_before: number?, clip: string?, aim: {number}?, aim_at: number?, aim_sent: number?,
+                  aiming: boolean?, reloading: string?, me: number?, wheel: boolean?, own_gun: () -> boolean }
     local V = { seat = nil, keys = { 0, 0, 0 }, held = {}, mach = nil, mark = nil, mark_left = 0, burns = {},
-                torn = {}, torn_spin = 0, jets = {} }
+                torn = {}, torn_spin = 0, jets = {} } :: View
 
     heard = function(text: string)
         local w = string.split(text, " ")
@@ -4788,7 +4835,7 @@ if drawing then
             -- The twisters: each where the server says, drawn gliding there.
             local n = (#w - 1) // 3
             for i = 1, n do
-                local x, y, z = tonumber(w[3 * i - 1]), tonumber(w[3 * i]), tonumber(w[3 * i + 1])
+                local x, y, z = tonumber(w[3 * i - 1]) :: number, tonumber(w[3 * i]) :: number, tonumber(w[3 * i + 1]) :: number
                 local t = V.torn[i]
                 if t == nil then
                     V.torn[i] = { x = x, y = y, z = z, tx = x, ty = y, tz = z }
@@ -4832,7 +4879,7 @@ if drawing then
             G.zones = {}
             for i = 2, #w do
                 local f = string.split(w[i], ",")
-                table.insert(G.zones, { tonumber(f[1]) or 0, tonumber(f[2]) or 0, tonumber(f[3]) or 2 })
+                table.insert(G.zones :: { {number} }, { tonumber(f[1]) or 0, tonumber(f[2]) or 0, tonumber(f[3]) or 2 })
             end
         elseif what == "warn" then
             table.insert(G.warns, { x = tonumber(w[2]) or 0, y = tonumber(w[3]) or 0, z = tonumber(w[4]) or 0,
@@ -4871,7 +4918,7 @@ if drawing then
                 V.seat = { kind = w[2], n = tonumber(w[3]) or 1, role = w[4], gun = w[5], seats = tonumber(w[7]) or 1 }
                 core.view(tonumber(w[6]) or 0)
                 V.wheel = w[8] == "wheel"
-                V.seat.pose = w[8]
+                (V.seat :: Seat).pose = w[8]
                 if w[4] == "drive" and w[9] then
                     local n = {}
                     for j = 11, 17 do n[j - 10] = tonumber(w[j]) or 1 end
@@ -4897,7 +4944,7 @@ if drawing then
 
     if not serving then
         core.event.on("core:net_message", function(ev)
-            heard(ev.text)
+            heard(ev.text :: string)
         end)
     end
 
@@ -4914,7 +4961,7 @@ if drawing then
     local DRIVE_KEYS = { key_w = { 1, 1 }, key_s = { 1, -1 }, key_d = { 2, 1 }, key_a = { 2, -1 },
                          key_space = { 3, 1 }, key_shift = { 3, -1 } }
 
-    local GUN_NAME = { mg = "MACHINE GUN", cannon = "CANNON", rockets = "ROCKETS", plane = "GUNS / BOMBS",
+    local GUN_NAME: { [string]: string } = { mg = "MACHINE GUN", cannon = "CANNON", rockets = "ROCKETS", plane = "GUNS / BOMBS",
                        mortar = "MORTAR", howitzer = "HOWITZER", bomber = "BOMB BAY", aa = "AA MISSILES" }
 
     -- In a seat with no gun of the machine's: the gun in the hands.
@@ -5208,7 +5255,7 @@ if drawing then
         -- Tickets: red left, blue right, ours first in bright.
         -- The objective, its bars, the purse.
         core.hud.text(0.5, 0.035, G.obj, 0.028, 1, 235, 225, 245, 255)
-        for i, b in { G.bar or false, G.bar2 or false } do
+        for i, b in { G.bar or false, G.bar2 or false } :: { Bar | false } do
             if b then
                 local y = 0.075 + (i - 1) * 0.045
                 local k = math.clamp(b.k, 0, 1)

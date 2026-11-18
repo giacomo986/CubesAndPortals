@@ -1,3 +1,4 @@
+--!strict
 -- yafps_game: a base in the manner of modern arena shooters. Five guns -- a pistol,
 -- a pump shotgun, the super shotgun, a chaingun and the plasma cannon -- and waves of
 -- demons that come through the gates in the floors of yafps_core's rooms:
@@ -24,14 +25,15 @@ local CENTRE = 64.5   -- the middle of the arena, in the middle of its cell
 -- The guns. `every` seconds between shots while the trigger is held; each shot
 -- is `pellets` bullets of `damage`, spread by up to `spread` either way, and
 -- spends `cost` of `ammo` (none for the pistol, as in modern arena shooters).
-local GUNS = {
+type Gun = { every: number, pellets: number, damage: number, spread: number, ammo: string?, cost: number, range: number }
+local GUNS: { [string]: Gun } = {
     pistol   = { every = 0.28, pellets = 1, damage = 6, spread = 0.008, ammo = nil, cost = 0, range = 80 },
     shotgun  = { every = 0.85, pellets = 9, damage = 4, spread = 0.07, ammo = "shells", cost = 1, range = 40 },
     ssg      = { every = 1.4, pellets = 20, damage = 4, spread = 0.13, ammo = "shells", cost = 2, range = 30 },
     chaingun = { every = 1 / 12, pellets = 1, damage = 4, spread = 0.03, ammo = "bullets", cost = 1, range = 80 },
     plasma      = { every = 2.2, pellets = 0, damage = 0, spread = 0, ammo = "cells", cost = 40, range = 0 },
 }
-local MAX_AMMO = { bullets = 300, shells = 50, cells = 300 }
+local MAX_AMMO: { [string]: number } = { bullets = 300, shells = 50, cells = 300 }
 
 -- The PLASMA: the ball leaves 0.6 s after the trigger (the gun's charge clip),
 -- flies at BALL_SPEED, bursts on the first wall or demon it meets, and then,
@@ -90,13 +92,13 @@ if serving then
     -- elite (a gazer and a pinky more).
     local twists = false
     local TWIST = { "THE SWARM", "THE HEAVIES", "THE ELITE" }
-    local HP = { ghoul = 14, imp = 26, pinky = 70, gazer = 130, guardian = 700 }
+    local HP: { [string]: number } = { ghoul = 14, imp = 26, pinky = 70, gazer = 130, guardian = 700 }
     for name in GUNS do
         core.register_item(`yafps_game:{name}`, 1, "", 0, 1.0, "")
         core.register_model(`yafps_game:{name}_held`, `{name}_held.gltf`)
     end
 
-    local model = {}
+    local model: { [string]: number } = {}
     for _, n in { "imp", "pinky", "gazer", "ghoul", "fireball", "caco_ball", "bullet",
                   "plasma_ball", "ammo_bullets", "ammo_shells", "ammo_cells", "medkit", "health_orb" } do
         model[n] = core.register_model(`yafps_game:{n}`, `{n}.gltf`)
@@ -124,7 +126,7 @@ if serving then
     -- relative to its middle and floor (y up from the floor; the ledges and
     -- catwalks are 5 up, the reactor's stair 10 at the top).
     local GATES = { {10, 3}, {-6, 3}, {0, 32}, {34, 7}, {22, -7}, {-24, 6}, {-31, -6} }
-    local PADS = {
+    local PADS: { { what: string, x: number, y: number?, z: number } } = {
         { what = "ammo_bullets", x = 10, z = -10 },        { what = "ammo_shells", x = -8, z = -10 },
         { what = "medkit", x = 0, y = 5, z = 13 },          { what = "ammo_cells", x = -13, y = 5, z = 0 },
         { what = "ammo_bullets", x = -22, z = -8 },        { what = "ammo_shells", x = -22, z = 8 },
@@ -141,7 +143,7 @@ if serving then
         { gun = "chaingun", wave = 2, x = 0, y = 2, z = 0 },
         { gun = "plasma", wave = 4, x = 25, y = 10, z = 3 },
     }
-    local GIVES = {
+    local GIVES: { [string]: { ammo: string?, n: number?, heal: number? } } = {
         ammo_bullets = { ammo = "bullets", n = 60 }, ammo_shells = { ammo = "shells", n = 12 },
         ammo_cells = { ammo = "cells", n = 80 }, medkit = { heal = 8 }, health_orb = { heal = 2 },
     }
@@ -153,10 +155,12 @@ if serving then
     core.ecs.component(PICKUP, { "pad" })
     core.ecs.component(BALL, { "vx", "vy", "vz", "owner", "t" })
 
-    local pickups = {}   -- id -> { what = name, pad = index or nil, gun = name or nil }
-    local balls   = {}   -- id -> true
-    local players = {}   -- player id -> state, below
-    local armed   = {}   -- player name -> true once given the guns
+    type Shooter = { ammo: { [string]: number }, kills: number, held: boolean,
+                     next_fire: number, plasma_at: number, dry: boolean }
+    local pickups: { [number]: { what: string, pad: number?, gun: string? } } = {}   -- id -> { what = name, pad = index or nil, gun = name or nil }
+    local balls: { [number]: boolean } = {}   -- id -> true
+    local players: { [number]: Shooter } = {}   -- player id -> state, below
+    local armed: { [string]: boolean } = {}   -- player name -> true once given the guns
 
     local function spawn_pickup(what: string, x: number, y: number, z: number, pad: number?, gun: string?): boolean
         local id = core.ecs.spawn(PICKUP, x, y, z)
@@ -169,11 +173,11 @@ if serving then
         return true
     end
 
-    local function ammo_line(s): string
+    local function ammo_line(s: Shooter): string
         return `ammo {s.ammo.bullets} {s.ammo.shells} {s.ammo.cells} {s.kills}`
     end
 
-    local function add_ammo(s, kind: string, n: number)
+    local function add_ammo(s: Shooter, kind: string, n: number)
         s.ammo[kind] = math.min(MAX_AMMO[kind], s.ammo[kind] + n)
     end
 
@@ -182,10 +186,10 @@ if serving then
     local wave      = 0
     local state     = "rest"     -- rest: counting down to a wave; fight: a wave is on
     local next_at   = 0          -- when the wave starts, or the next of it comes through
-    local to_spawn  = {}         -- kinds still to come through this wave
+    local to_spawn: { string } = {}       -- kinds still to come through this wave
     local left_said = -1
-    local gun_out   = { ssg = false, chaingun = false, plasma = false }
-    local TITLE     = { ssg = "THE SUPER SHOTGUN", chaingun = "THE CHAINGUN", plasma = "THE plasma cannon" }
+    local gun_out: { [string]: boolean } = { ssg = false, chaingun = false, plasma = false }
+    local TITLE: { [string]: string } = { ssg = "THE SUPER SHOTGUN", chaingun = "THE CHAINGUN", plasma = "THE plasma cannon" }
 
     local function alive(): number
         return core.monsters_near(CENTRE, GROUND, CENTRE, 70)
@@ -294,7 +298,7 @@ if serving then
         end
         if #to_spawn > 0 then
             if clock >= next_at then
-                local kind = table.remove(to_spawn)
+                local kind = table.remove(to_spawn) :: string
                 local g = GATES[math.random(1, #GATES)]
                 local m = core.spawn_mob(`yafps_game:{kind}`, CENTRE + g[1], GROUND, CENTRE + g[2])
                 if m ~= 0 and sturdier > 1 then core.mob_health(m, math.floor(HP[kind] * sturdier)) end
@@ -424,13 +428,13 @@ if serving then
 
     local function step_balls(dt: number)
         for id in balls do
-            local x, y, z = core.ecs.get(id, "x"), core.ecs.get(id, "y"), core.ecs.get(id, "z")
+            local x, y, z = core.ecs.get(id, "x"), core.ecs.get(id, "y") :: number, core.ecs.get(id, "z") :: number
             if x == nil then
                 balls[id] = nil
                 continue
             end
-            local vx, vy, vz = core.ecs.get(id, "vx"), core.ecs.get(id, "vy"), core.ecs.get(id, "vz")
-            local t = core.ecs.get(id, "t") + dt
+            local vx, vy, vz = core.ecs.get(id, "vx") :: number, core.ecs.get(id, "vy") :: number, core.ecs.get(id, "vz") :: number
+            local t = core.ecs.get(id, "t") :: number + dt
             core.ecs.set(id, "t", t)
             local cy = y + 0.4   -- the middle of the ball; its feet are at y
             local step = BALL_SPEED * dt
@@ -448,7 +452,7 @@ if serving then
         end
     end
 
-    local function fire(p: number, s)
+    local function fire(p: number, s: Shooter)
         local gun = short(core.held_item(p))
         local g = GUNS[gun]
         if g == nil then
@@ -494,9 +498,9 @@ if serving then
 
     core.event.on("core:net_message", function(ev)
         if ev.text == "fire1" then
-            trigger(ev.player, true)
+            trigger(ev.player :: number, true)
         elseif ev.text == "fire0" then
-            trigger(ev.player, false)
+            trigger(ev.player :: number, false)
         end
     end)
 
@@ -504,7 +508,7 @@ if serving then
 
     local function step_pickups()
         for id, p in pickups do
-            local tx, ty, tz = core.ecs.get(id, "x"), core.ecs.get(id, "y"), core.ecs.get(id, "z")
+            local tx, ty, tz = core.ecs.get(id, "x"), core.ecs.get(id, "y") :: number, core.ecs.get(id, "z") :: number
             if tx == nil then
                 pickups[id] = nil
                 continue
@@ -515,7 +519,7 @@ if serving then
                     local took = false
                     if p.gun then
                         core.give_item(pl, `yafps_game:{p.gun}`, 1)
-                        add_ammo(s, GUNS[p.gun].ammo, if p.gun == "plasma" then 80 elseif p.gun == "ssg" then 12 else 100)
+                        add_ammo(s, GUNS[p.gun].ammo :: string, if p.gun == "plasma" then 80 elseif p.gun == "ssg" then 12 else 100)
                         gun_out[p.gun] = false
                         took = true
                     else
@@ -526,8 +530,8 @@ if serving then
                                 core.heal(pl, give.heal)
                                 took = true
                             end
-                        elseif s.ammo[give.ammo] < MAX_AMMO[give.ammo] then
-                            add_ammo(s, give.ammo, give.n)
+                        elseif s.ammo[give.ammo :: string] < MAX_AMMO[give.ammo :: string] then
+                            add_ammo(s, give.ammo :: string, give.n :: number)
                             took = true
                         end
                     end
@@ -590,8 +594,9 @@ end
 -- ===================================================== the player's machine
 
 if drawing then
-    local tracers = {}   -- { o, e, left, r, g, b, size }
-    local bursts  = {}   -- { x, y, z, left }
+    local tracers: { { o: { number }, e: { number }, left: number, r: number, g: number, b: number,
+                       size: number, hit: boolean } } = {}   -- { o, e, left, r, g, b, size }
+    local bursts: { { x: number, y: number, z: number, left: number, red: boolean? } } = {}   -- { x, y, z, left }
     local ammo    = { bullets = 0, shells = 0, cells = 0 }
     local kills   = 0
     local wave    = 0
@@ -611,17 +616,17 @@ if drawing then
         if (what == "shot" or what == "pellet" or what == "ray") and #w == 8 then
             local green = what == "ray"
             table.insert(tracers, {
-                o = { tonumber(w[2]), tonumber(w[3]), tonumber(w[4]) },
-                e = { tonumber(w[5]), tonumber(w[6]), tonumber(w[7]) },
+                o = { tonumber(w[2]) :: number, tonumber(w[3]) :: number, tonumber(w[4]) :: number },
+                e = { tonumber(w[5]) :: number, tonumber(w[6]) :: number, tonumber(w[7]) :: number },
                 left = if green then 0.35 else 0.06,
                 r = if green then 90 else 255, g = if green then 255 else 225, b = if green then 80 else 140,
                 size = if green then 0.12 else 0.05,
                 hit = w[8] == "1",
             })
         elseif what == "boom" then
-            table.insert(bursts, { x = tonumber(w[2]), y = tonumber(w[3]), z = tonumber(w[4]), left = 0.6 })
+            table.insert(bursts, { x = tonumber(w[2]) :: number, y = tonumber(w[3]) :: number, z = tonumber(w[4]) :: number, left = 0.6 })
         elseif what == "gate" then
-            table.insert(bursts, { x = tonumber(w[2]), y = tonumber(w[3]), z = tonumber(w[4]), left = 0.5, red = true })
+            table.insert(bursts, { x = tonumber(w[2]) :: number, y = tonumber(w[3]) :: number, z = tonumber(w[4]) :: number, left = 0.5, red = true })
         elseif what == "fired" then
             core.arms_clip(`fire_{w[2]}`)
         elseif what == "ammo" then
@@ -653,7 +658,7 @@ if drawing then
 
     if not serving then
         core.event.on("core:net_message", function(ev)
-            heard(ev.text)
+            heard(ev.text :: string)
         end)
     end
 

@@ -1,3 +1,4 @@
+--!strict
 -- cards: a card table, one cell, and the Neapolitan deck of forty on it:
 -- briscola for two, three or four, cinquiglio for five, scopa and tresette
 -- for two or four.
@@ -78,7 +79,7 @@ end
 
 local SUIT_NAME = { [0] = "coins", "cups", "swords", "clubs" }
 local VALUE_NAME = { "ace", "two", "three", "four", "five", "six", "seven", "jack", "knight", "king" }
-local GAME_NAME = { briscola = "Briscola", scopa = "Scopa", tresette = "Tresette", cinquiglio = "Cinquiglio" }
+local GAME_NAME: { [string]: string } = { briscola = "Briscola", scopa = "Scopa", tresette = "Tresette", cinquiglio = "Cinquiglio" }
 local COUNT_NAME = { [2] = "two", [3] = "three", [4] = "four", [5] = "five" }
 
 local function name_of(c: number): string
@@ -1371,7 +1372,7 @@ if serving then
     end
 
     -- Two to a row in the menu.
-    local CHOICES = { { "briscola", 2, "Briscola for two" }, { "briscola", 3, "Briscola for three" },
+    local CHOICES: { { any } } = { { "briscola", 2, "Briscola for two" }, { "briscola", 3, "Briscola for three" },
                       { "briscola", 4, "Briscola for 4, in pairs" }, { "cinquiglio", 5, "Cinquiglio, for five" },
                       { "scopa", 2, "Scopa for two" }, { "scopa", 4, "Scopa for 4, in pairs" },
                       { "tresette", 2, "Tresette for two" }, { "tresette", 4, "Tresette for 4, in pairs" } }
@@ -1542,7 +1543,7 @@ if serving then
 
     if not drawing then
         core.event.on("core:net_message", function(ev)
-            from_client(ev.player, ev.text)
+            from_client(ev.player :: number, ev.text :: string)
         end)
     end
 
@@ -1920,7 +1921,7 @@ if drawing then
 
     if not serving then
         core.event.on("core:net_message", function(ev)
-            heard(ev.text)
+            heard(ev.text :: string)
         end)
     end
 
@@ -2373,7 +2374,7 @@ if drawing then
             local ok = playable(s.game, s.hand, s.trick)
             local pu, pv = pile_at(s)
             -- the cards drawn by the others, on their way; not in their hands yet
-            local coming = {}
+            local coming: { [number]: number } = {}
             for _, g in s.incoming do
                 if clock - g.t0 < FLY_TIME then
                     coming[g.q] = (coming[g.q] or 0) + 1

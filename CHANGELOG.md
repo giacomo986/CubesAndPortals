@@ -10,13 +10,28 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 - **The backrooms**: going into a level put you nowhere -- the level's handler stopped on a
   variable used above where it is declared. It now takes you in, and from level 5 on the lights go
   out again as they were meant to.
+- **Inferno has its helper robots again**: since the blueprints came (0.10) the helpers mod
+  needed them, and inferno's world did not have them, so it left the helpers out without a word.
+- **Boats, carts, trade and parcels** no longer stop on a player who left in the same moment:
+  what would have been dropped at their feet is not dropped, instead of the whole handler failing.
+- **The front's capture points**: their flags and the pole were put up once, at the start, even
+  on ground not loaded yet, and never again -- `core.loaded` answers 0 or 1, and 0 is true in Luau.
+  They now wait for the ground.
+- **The front and the assault** ignore an aim message from a client that is not six numbers; one
+  was enough to stop the game for everybody.
 - **Mushroom stew** takes the two brown mushrooms and the red one it always listed; it was being
   made from a single brown mushroom.
 - **For modders**: `docs/api.d.luau` loads again in an editor (one description had broken out of
   its comment) and now declares `core.ecs`, `craft`, `net`, `render`, `hud`, `register_abm` and
   `register_lbm`, the whole `MapgenStage` and typed event payloads. Every mod in the game
-  type-checks clean, and `tools/typecheck.sh` checks yours the same way:
+  type-checks clean -- all of them `--!strict` now, the big games included -- and
+  `tools/typecheck.sh` checks yours the same way:
   [docs/MODDING.md](docs/MODDING.md#checking-types-toolstypechecksh).
+- **For modders**: `require("@self/x")`, Luau's "inside me" -- from an `init.luau` beside it, from
+  `a.luau` in `a/`. Write it in an `init.luau` instead of `./x`, which still loads but which an
+  editor now reads as the folder above.
+- **Two new tests**: `mods_smoke` starts the sandbox and every game and fails on a mod that did not
+  load or was switched off; `api_types` fails when a hand-written part of `core` has no type.
 
 ## 0.18.0-alpha.1 — 2026-11-18
 

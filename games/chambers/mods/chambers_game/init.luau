@@ -1,3 +1,4 @@
+--!strict
 -- chambers_game: the test chambers, built and working, in the manner of
 -- classic portal puzzle games. A lobby a player arrives in from the sandbox, six chambers in a row
 -- and a last room whose portal leads home:
@@ -61,6 +62,7 @@ local EYE = 1.5   -- chambers_core's eye height
 local clock = 0.0
 
 local heard: (string) -> () = function(_) end
+local heard_click: (number, string) -> () = function(_, _) end
 local function tell(player: number, text: string)
     if drawing then
         heard(text)
@@ -152,7 +154,7 @@ if serving then
 
     -- Inside a mapgen stage only the column being made is written (`making`),
     -- so the chambers are lit with it; outside one, a door, anywhere.
-    local making: any = nil
+    local making: MapgenStage? = nil
     -- Along x, where build() writes: 0 for the chambers, a site's copy's
     -- start for its copy (CH0 + slot * CHW, below).
     local OFF = 0
@@ -202,8 +204,10 @@ if serving then
         x0, x1 = x0 + OFF, x1 + OFF
         local m = making
         if m ~= nil then
-            x0, x1 = math.max(x0, m.min_x), math.min(x1, m.max_x)
-            z0, z1 = math.max(z0, m.min_z), math.min(z1, m.max_z)
+            x0 = math.max(x0, m.min_x)
+            x1 = math.min(x1, m.max_x)
+            z0 = math.max(z0, m.min_z)
+            z1 = math.min(z1, m.max_z)
         end
         for x = x0, x1 do
             for y = y0, y1 do
@@ -242,7 +246,7 @@ if serving then
     end
 
     -- The doors: cells, open or shut. A shut door is its block, an open one air.
-    type Door = { x: number, open: boolean, want: boolean }
+    type Door = { x: number, open: boolean, want: boolean, frame: number, next: number }
     local doors: { [number]: Door } = {}   -- by the room it lets out of
     -- A door's four cells, shut or open: the lower one at DZ0 wears the
     -- model, turned so its two cells run along +Z (upright 3).
@@ -685,7 +689,9 @@ if serving then
 
     -- ---------------------------------------------------------- players
 
-    type Shot = { x: number, y: number, z: number, idx: number, at: any }
+    type Aim = { x: number, y: number, z: number, axis: number, sign: number, rot: number?, hw: number, hh: number,
+                 cells: { { number } }, face: number }
+    type Shot = { x: number, y: number, z: number, idx: number, at: Aim }
     type P = { blue: Shot?, orange: Shot?, carry: number, room: number, plate_at: number, level: number,
                name: string, low: number, px: number?, py: number?, pz: number?, said: number }
     local players: { [number]: P } = {}
@@ -752,7 +758,7 @@ if serving then
     end
 
     -- Where a portal shot from player p's eye lands, or nil and why not.
-    local function aim(p: number): ({ x: number, y: number, z: number, axis: number, sign: number, hw: number, hh: number }?, string?)
+    local function aim(p: number): (Aim?, string?)
         local x, y, z = core.player_pos(p)
         local dx, dy, dz = core.player_look(p)
         if x == nil or dx == nil then
@@ -870,7 +876,7 @@ if serving then
 
     -- Every player's portals are rimmed in their colour on every screen:
     -- "rim <player> <colour> x y z axis sign hw hh", or "-" when it closes.
-    local function rim_told(p: number, colour: string, at: any?)
+    local function rim_told(p: number, colour: string, at: Aim?)
         if at == nil then
             tell(0, `rim {p} {colour} -`)
         else
@@ -1201,6 +1207,7 @@ if serving then
                 continue
             end
             local tx, ty, tz = core.mob_pos(t.id)
+            if tx == nil then continue end
             core.mob_face(t.id, wx, wz)
             if t.seen == 0 then
                 core.play_sound("chambers_game:turret_spot", tx, ty + 0.8, tz)
@@ -1774,7 +1781,7 @@ if serving then
                     s.carry = 0
                     tell(p, "hold -")
                 else
-                    core.mob_place(s.carry, x, y, z)
+                    core.mob_place(s.carry, x, y :: number, z :: number)
                 end
             end
         end
@@ -1891,14 +1898,14 @@ if drawing then
 
     if not serving then
         core.event.on("core:net_message", function(ev)
-            heard(ev.text)
+            heard(ev.text :: string)
         end)
     end
 
     -- Both buttons are this world's: never a dig, a blow, a block put down.
     local function ask(what: string, player: number)
         if serving then
-            (heard_click :: any)(player, what)
+            heard_click(player, what)
         else
             core.net.send(0, what)
         end
