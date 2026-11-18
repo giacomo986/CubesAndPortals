@@ -141,7 +141,7 @@ if serving then
     -- water. Nil where the column is not loaded.
     local function built(x: number, z: number, h: number, w: number): number?
         local top = math.max(h, w) + 24
-        if core.loaded(x, top, z) ~= 1 then
+        if not core.loaded(x, top, z) then
             return nil
         end
         for y = top, math.max(h, w) - 12, -1 do
@@ -184,9 +184,9 @@ if serving then
         if w > h then
             return if w - h >= 8 then 1 elseif w - h >= 3 then 2 else 3
         end
-        local b = table.find(CLIMATES, core.biome(x, z)) or #CLIMATES + 1
+        local climate = table.find(CLIMATES, core.biome(x, z)) or #CLIMATES + 1
         local band = if h < 24 then 0 elseif h < 40 then 1 else 2
-        return 4 + (b - 1) * 3 + band
+        return 4 + (climate - 1) * 3 + band
     end
     local function encode(codes: { number }): string
         local out = table.create(TILE * TILE)

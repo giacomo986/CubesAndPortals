@@ -66,7 +66,7 @@ core.event.on("core:used", function(ev)
         return
     end
 
-    if core.craft_show(ev.x, ev.y, ev.z, ev.player) == 0 then
+    if not core.craft_show(ev.x, ev.y, ev.z, ev.player) then
         return
     end
 

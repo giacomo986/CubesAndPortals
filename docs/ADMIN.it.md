@@ -304,6 +304,11 @@ finita. Un crash lascia aperte le visite; l'avvio successivo le chiude e lo scri
 sporco. Ogni azione di amministrazione va nel log di amministrazione con chi l'ha fatta, a chi, e i
 dettagli.
 
+**Un mod spento da un errore** -- un gestore, uno step o un sistema che fallisce ferma il suo mod
+per tutti in quel mondo -- viene detto nella chat di ogni giocatore lì che ha il permesso `logs`
+(gli admin, di default): `[mod] keys switched off: handler for 'keys:level': ...`. La stessa riga
+va sullo stderr del server, e `/page mods` elenca il mod come fermo, con il motivo.
+
 `cnp_server --report worlds/main.world --since 7d` stampa, senza fermare il server: giocatori e il
 loro tempo, il massimo contemporaneo, ingressi per ora, stanze, chi è stato respinto e perché,
 azioni dello staff, riavvii e crash, e arrivi attraverso portali da altri server. Con `--json` gli

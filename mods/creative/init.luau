@@ -100,7 +100,7 @@ if serving then
     open_for = function(player: number)
         -- The server's to say: a survival world shuts it to everybody (its
         -- "creative" is "nobody" until /perm says otherwise).
-        if core.has_perm(player, "creative") == 0 then
+        if not core.has_perm(player, "creative") then
             core.notice(player, "Il catalogo non e' aperto a te in questo mondo.")
             return
         end
@@ -202,7 +202,7 @@ if serving then
         end
         local arg = string.lower(string.match(ev.args, "^%s*(.-)%s*$") or "")
         if arg == "on" or arg == "off" then
-            if core.has_perm(ev.player, "admin") == 0 then
+            if not core.has_perm(ev.player, "admin") then
                 core.chat(ev.player, "Creative mode is for admins on this server.")
                 return
             end
@@ -228,7 +228,7 @@ if serving then
         local name = string.match(ev.args, "^%s*(%S*)") or ""
         local who = ev.player
         if name ~= "" and name ~= core.player_name(ev.player) then
-            if core.has_perm(ev.player, "moderator") == 0 then
+            if not core.has_perm(ev.player, "moderator") then
                 core.chat(ev.player, "Only a moderator may /kill somebody else.")
                 return
             end

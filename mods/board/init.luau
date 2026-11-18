@@ -24,7 +24,7 @@ local function plain(s: string): string
 end
 
 local function show(player: number)
-    local staff = core.has_perm(player, "moderator") == 1
+    local staff = core.has_perm(player, "moderator")
     local list  = notes()
     local page  = { "[All pages](page:pages)", "" }
     if #list == 0 then
@@ -48,7 +48,7 @@ core.event.on("core:page_open", function(ev)
 end)
 
 core.event.on("core:page_action", function(ev)
-    if core.has_perm(ev.player, "moderator") ~= 1 then
+    if not core.has_perm(ev.player, "moderator") then
         return
     end
     local list = notes()

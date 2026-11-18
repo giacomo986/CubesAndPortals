@@ -180,7 +180,7 @@ if serving then
             local b = core.biome(x, z)
             if SNOWS[b] or (winter() and b ~= "core:desert") then
                 local gy, id = ground(x, math.floor(py), z, 24, 16)
-                if gy and id ~= LAYER and core.node_solid(id) == 1 then
+                if gy and id ~= LAYER and core.node_solid(id) then
                     core.set_block(x, gy + 1, z, LAYER)
                 end
             end

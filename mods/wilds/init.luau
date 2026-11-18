@@ -153,7 +153,7 @@ core.register_mapgen("wilds:lands", function(ctx)
                         -- this ground (they go first): a tree stands on mud.
                         -- A tuft or a flower over it goes, or it would float.
                         local above = core.get_block(x, g, z)
-                        if hollow(x, z, g, ctx.seed) and core.node_solid(above) == 0 then
+                        if hollow(x, z, g, ctx.seed) and not core.node_solid(above) then
                             if above ~= 0 then
                                 core.set_block(x, g, z, 0)
                             end

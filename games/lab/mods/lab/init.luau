@@ -242,8 +242,8 @@ if serving then
         if how == "r" or how == "l" then
             for a = 0, n - 1 do
                 for b = 0, n - 1 do
-                    local side = if how == "r" then a - (n - 2) else a
-                    table.insert(road_squares, { gx + f[1] * b - r[1] * side, gz + f[2] * b - r[2] * side, ry })
+                    local off = if how == "r" then a - (n - 2) else a
+                    table.insert(road_squares, { gx + f[1] * b - r[1] * off, gz + f[2] * b - r[2] * off, ry })
                 end
             end
             table.insert(pieces_left, { gx * 8, ry, gz * 8, piece, (t + 2) % 4 })
@@ -290,7 +290,7 @@ if serving then
     local function place_pieces()
         local still = {}
         for _, q in pieces_left do
-            if core.get_block(q[1], q[2], q[3]) ~= q[4] and core.place_piece(q[1], q[2], q[3], q[4], q[5]) ~= 1 then
+            if core.get_block(q[1], q[2], q[3]) ~= q[4] and not core.place_piece(q[1], q[2], q[3], q[4], q[5]) then
                 table.insert(still, q)
             end
         end
@@ -343,7 +343,7 @@ if serving then
     -- per player. ponytail: a copy of chambers_game's wall shot; no floors,
     -- no cubes. One mod for both wants the gun split out of the chambers.
     local function solid(x: number, y: number, z: number): boolean
-        return core.node_solid(core.get_block(x, y, z)) == 1
+        return core.node_solid(core.get_block(x, y, z))
     end
     local function face_of(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, t: number,
                            cx: number, cy: number, cz: number): (number, number, number)

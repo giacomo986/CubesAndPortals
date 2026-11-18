@@ -152,7 +152,7 @@ core.event.on("core:tick", function(_)
     -- A world made while mods/infernoportal still framed this world's second
     -- opening has a 3x4 of its obsidian floating in C's hole: out of it, once
     -- C's cells are loaded.
-    if not swept and core.loaded(FRAME_C[1], GROUND, FRAME_C[2]) ~= 0 then
+    if not swept and core.loaded(FRAME_C[1], GROUND, FRAME_C[2]) then
         swept = true
         local STRAY = core.node_id("infernoportal:obsidian")
         local n = 0
@@ -169,7 +169,7 @@ core.event.on("core:tick", function(_)
     if frames_open then
         return
     end
-    if core.portal_place(1, FRAME_C[1] + 0.5, GROUND + 4, FRAME_C[2] + 4, 1, -1, 4, 4) == 0 then
+    if not core.portal_place(1, FRAME_C[1] + 0.5, GROUND + 4, FRAME_C[2] + 4, 1, -1, 4, 4) then
         return
     end
     frames_open = true

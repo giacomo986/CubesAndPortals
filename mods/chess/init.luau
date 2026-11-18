@@ -1215,7 +1215,7 @@ if serving then
             return
         end
         local x0, y, z0 = math.floor(sx) + 3, math.floor(sy), math.floor(sz) + 3
-        if core.loaded(x0, y, z0) == 0 then
+        if not core.loaded(x0, y, z0) then
             return   -- the spawn's columns are not there yet
         end
         laid = true
@@ -1296,7 +1296,7 @@ if serving then
         local key, bd = board_at(ev.x, ev.y, ev.z)
         local p = ev.player
         local c = if bd.white == p then "w" elseif bd.black == p then "b" else nil
-        if c == nil and core.is_muted(p) == 1 then   -- /mute: no sitting down with anybody new
+        if c == nil and core.is_muted(p) then   -- /mute: no sitting down with anybody new
             core.notice(p, "You are muted: you cannot join a game")
             return
         end

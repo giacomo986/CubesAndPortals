@@ -8,7 +8,7 @@
 //
 // usage: cnp_join_probe --join <host> <port> [name] [extent]
 //                       [--wrong-table] [--no-adopt] [--no-encryption]
-//                       [--server-key <hex>] [--stay <seconds>]
+//                       [--server-key <hex>] [--stay <seconds>] [--walk <blocks>] [--play]
 //
 // Exit codes: 0 joined and agreed, 1 failed, 2 refused by the server, 3 this
 // client refused what the server sent.
@@ -42,6 +42,8 @@ std::vector<std::string> g_say;   // --say TEXT: chat lines (a /command too), be
 bool  g_far    = false;   // --far X Y Z: say at the end whether that chunk arrived
 float g_far_at[3] = {0.0f, 0.0f, 0.0f};
 float g_stay   = 0.0f;    // --stay: seconds to stand at the spawn, saying the sound loops heard
+bool  g_play   = false;   // --play: start from where the server puts the player, not the middle
+float g_walk   = 0.0f;    // --walk: blocks to walk along +x on the ground, after --stay
 bool  g_flown  = true;    // --walked-down: come down without saying it is flying
 
 double now_seconds()
@@ -62,6 +64,14 @@ uint64_t generate_and_hash(uint32_t seed, int extent)
 }
 
 const char *g_identity = nullptr;
+
+// One pump of the session, and every chat line the server sent since the last,
+// on stdout as "chat: <line>" -- for a test that wants to see what it was told.
+void pump(ClientSession &client, int timeout_ms)
+{
+    client.pump(now_seconds(), timeout_ms);
+    for (const std::string &line : client.take_chat()) std::printf("chat: %s\n", line.c_str());
+}
 
 int join_mode(const char *host, uint16_t port, const char *name, int extent,
               bool claim_wrong_table, bool adopt, const char *pin_hex, bool encrypt)
@@ -106,7 +116,7 @@ int join_mode(const char *host, uint16_t port, const char *name, int extent,
     }
     std::printf("connecting to %s:%u as '%s'\n", host, (unsigned)port, name);
 
-    while (!client_join_settled(client.state())) client.pump(now_seconds(), 10);
+    while (!client_join_settled(client.state())) pump(client, 10);
 
     switch (client.state()) {
     case ClientState::Failed:
@@ -134,37 +144,71 @@ int join_mode(const char *host, uint16_t port, const char *name, int extent,
     std::printf("        generated the same world locally: %s\n", same ? "yes" : "NO");
 
     // Say where we are, and wait for the ground to arrive.
-    const float start_x = (float)extent * 0.5f;
-    const float start_z = (float)extent * 0.5f;
-    client.send_move(start_x, (float)kGroundTop + 2.0f, start_z, 1.0f, 0.0f, 0.0f,
-                     now_seconds());
+    float start_x = (float)extent * 0.5f;
+    float start_y = (float)kGroundTop + 2.0f;
+    float start_z = (float)extent * 0.5f;
+    client.send_move(start_x, start_y, start_z, 1.0f, 0.0f, 0.0f, now_seconds());
 
-    const double deadline    = now_seconds() + 3.0;
+    // --play: a game's world is not the default terrain and its spawn is not
+    // the middle of it -- the server moves the player there. Go where it says,
+    // wait for the ground round that, and play from there.
+    const double deadline    = now_seconds() + (g_play ? 10.0 : 3.0);
     int          quiet_ticks = 0;
     int          last_count  = 0;
+    bool         moved       = false;
     while (now_seconds() < deadline) {
-        client.pump(now_seconds(), 10);
+        pump(client, 10);
+        if (g_play) {
+            Teleport tp;
+            Correct  c;
+            if (client.take_teleport(tp)) {
+                const bool again = moved && tp.x == start_x && tp.y == start_y && tp.z == start_z;
+                start_x = tp.x, start_y = tp.y, start_z = tp.z;
+                moved = true, quiet_ticks = 0;
+                if (!again) std::printf("        put at %.1f %.1f %.1f by the server\n", (double)tp.x, (double)tp.y, (double)tp.z);
+            }
+            if (client.take_correction(c)) {
+                start_x = c.x, start_y = c.y, start_z = c.z;
+                moved = true, quiet_ticks = 0;
+            }
+            // Standing there, said: a placement the client never answers is
+            // one the server goes on waiting for.
+            static double said = 0.0;
+            if (now_seconds() - said >= 0.1) {
+                client.send_move(start_x, start_y, start_z, 1.0f, 0.0f, 0.0f, now_seconds());
+                said = now_seconds();
+            }
+        }
         if (client.chunks_received() == last_count) {
-            if (++quiet_ticks > 60) break;
+            // --play: with nothing arrived yet, the move to the spawn may still be coming.
+            if (++quiet_ticks > 60 && (!g_play || (moved && last_count > 0))) break;
         } else {
             quiet_ticks = 0;
             last_count  = client.chunks_received();
         }
     }
 
-    const bool ground =
-        client.world().get_block((int)start_x, kGroundTop - 1, (int)start_z) != kAir;
+    // Under --play, ground is anything solid below the feet, however far down.
+    bool ground = client.world().get_block((int)start_x, kGroundTop - 1, (int)start_z) != kAir;
+    if (g_play) {
+        ground = false;
+        for (int gy = (int)start_y; gy >= 0 && !ground; --gy)
+            ground = client.world().get_block((int)start_x, gy, (int)start_z) != kAir;
+    }
     std::printf("        received %d chunks, ground under the player: %s\n",
                 client.chunks_received(), ground ? "solid" : "MISSING");
 
-    const bool streamed_ok = client.chunks_received() > 0 && client.chunk_error().empty() && ground;
+    // --play asks for a world, not for ground at a particular spot: a game may
+    // put the player over a drop it means to be there.
+    const bool streamed_ok =
+        client.chunks_received() > 0 && client.chunk_error().empty() && (ground || g_play);
 
     // --pack: three seconds for something to be given, then square 1 onto the
     // back (the fifth worn square) and /packfill, a scratch mod's command that
     // numbers it and fills its container -- a backpack between friend servers.
     if (g_pack && streamed_ok) {
         const auto pump_for = [&](double s) {
-            for (const double until = now_seconds() + s; now_seconds() < until;) client.pump(now_seconds(), 10);
+            for (const double until = now_seconds() + s; now_seconds() < until;) pump(client, 10);
         };
         pump_for(3.0);
         client.send_move_item(0, Inventory::kDefaultSlots + 4);
@@ -177,7 +221,7 @@ int join_mode(const char *host, uint16_t port, const char *name, int extent,
     for (const std::string &line : g_say) {
         if (!streamed_ok) break;
         client.send_chat(line);
-        for (const double until = now_seconds() + 0.7; now_seconds() < until;) client.pump(now_seconds(), 10);
+        for (const double until = now_seconds() + 0.7; now_seconds() < until;) pump(client, 10);
         std::printf("        said '%s'\n", line.c_str());
     }
 
@@ -186,11 +230,12 @@ int join_mode(const char *host, uint16_t port, const char *name, int extent,
     // first swing and its seconds) -- something for /inspect and /rollback.
     for (int i = 0; i < g_dig && streamed_ok; ++i) {
         const int gx = (int)start_x + i, gz = (int)start_z;
-        int       gy = kWorldHeight - 1;
+        // --play: under a roof, the floor at the feet and not the roof.
+        int       gy = g_play ? (int)start_y : kWorldHeight - 1;
         while (gy > 0 && client.world().get_block(gx, gy, gz) == kAir) --gy;
-        for (int swing = 0; swing < 20 && client.world().get_block(gx, gy, gz) != kAir; ++swing) {
+        for (int swing = 0; swing < (g_play ? 6 : 20) && client.world().get_block(gx, gy, gz) != kAir; ++swing) {
             client.send_edit(gx, gy, gz, 0, 1, 0, true, 0);
-            for (const double until = now_seconds() + 0.5; now_seconds() < until;) client.pump(now_seconds(), 10);
+            for (const double until = now_seconds() + 0.5; now_seconds() < until;) pump(client, 10);
         }
         std::printf("        broke %d %d %d%s%s\n", gx, gy, gz, client.edit_refusal().empty() ? "" : ": ",
                     client.edit_refusal().c_str());
@@ -199,12 +244,12 @@ int join_mode(const char *host, uint16_t port, const char *name, int extent,
     // --stay N: stand where we came down for N seconds, saying each time the
     // sounds going round (core.sound_loop) change which loops are in it.
     if (g_stay > 0.0f && streamed_ok) {
-        const float  y     = (float)kGroundTop + 2.0f;
+        const float  y     = start_y;
         const double until = now_seconds() + g_stay;
         double       sent  = 0.0;
         std::string  heard = "-";
         while (now_seconds() < until) {
-            client.pump(now_seconds(), 10);
+            pump(client, 10);
             const double now = now_seconds();
             if (now - sent >= 0.05) {
                 client.send_move(start_x, y, start_z, 1.0f, 0.0f, 0.0f, now);
@@ -222,6 +267,43 @@ int join_mode(const char *host, uint16_t port, const char *name, int extent,
                             (double)all[0].gain, (double)start_x, (double)start_z);
             std::printf("\n");
         }
+    }
+
+    // --walk N: N blocks along +x at a walking pace, on top of whatever ground
+    // this client holds, never claiming to fly -- what a body that cannot fly
+    // does, for the mods that watch a player move. Takes the server's
+    // corrections and teleports and goes on from there; gives up after a
+    // while rather than walking into a wall for ever.
+    if (g_walk > 0.0f && streamed_ok) {
+        constexpr float kPace = 4.0f;
+        float           x = start_x, z = start_z, walked = 0.0f;
+        float           y = start_y;
+        int             corrections = 0;
+        double          t_prev = now_seconds();
+        const double    give_up = t_prev + g_walk / kPace + 5.0;
+        while (walked < g_walk && now_seconds() < give_up) {
+            pump(client, 5);
+            const double now = now_seconds();
+            if (now - t_prev < 0.05) continue;
+            const float step = std::min(g_walk - walked, kPace * (float)(now - t_prev));
+            t_prev           = now;
+            x += step;
+            walked += step;
+            int gy = kWorldHeight - 1;
+            while (gy > 0 && client.world().get_block((int)x, gy, (int)z) == kAir) --gy;
+            // Up a step no higher than a jump, down any; never through a wall.
+            if ((float)(gy + 1) <= y + 1.0f) y = (float)(gy + 1);
+            Correct c;
+            if (client.take_correction(c)) {
+                ++corrections;
+                x = c.x; y = c.y; z = c.z;
+            }
+            Teleport tp;
+            if (client.take_teleport(tp)) { x = tp.x; y = tp.y; z = tp.z; }
+            client.send_move(x, y, z, 1.0f, 0.0f, 0.0f, now);
+        }
+        std::printf("        walked %.0f blocks to %.1f %.1f %.1f, %d correction(s)\n",
+                    (double)walked, (double)x, (double)y, (double)z, corrections);
     }
 
     // --travel N: climb, fly N blocks along +x, hover for --hold seconds, then
@@ -255,7 +337,7 @@ int join_mode(const char *host, uint16_t port, const char *name, int extent,
         };
 
         for (;;) {
-            client.pump(now_seconds(), 5);
+            pump(client, 5);
             const double now = now_seconds();
             if (now - t_prev < 0.05) continue;
             const float dt = (float)(now - t_prev);
@@ -334,6 +416,7 @@ int join_mode(const char *host, uint16_t port, const char *name, int extent,
         }
     }
 
+    pump(client, 0);   // the chat lines of the last moment
     client.close();
     return (same && streamed_ok) ? 0 : 1;
 }
@@ -358,6 +441,8 @@ int main(int argc, char **argv)
         if (arg == "--no-encryption") encrypt = false;
         if (arg == "--server-key" && i + 1 < argc) pin = argv[++i];
         if (arg == "--identity" && i + 1 < argc) g_identity = argv[++i];
+        if (arg == "--play") g_play = true;
+        if (arg == "--walk" && i + 1 < argc) g_walk = (float)std::atof(argv[++i]);
         if (arg == "--travel" && i + 1 < argc) g_travel = (float)std::atof(argv[++i]);
         if (arg == "--hold" && i + 1 < argc) g_hold = (float)std::atof(argv[++i]);
         if (arg == "--dig" && i + 1 < argc) g_dig = std::atoi(argv[++i]);

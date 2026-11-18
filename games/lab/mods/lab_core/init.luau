@@ -86,7 +86,7 @@ for _, p: { any } in { { "straight2",  1, 2, 0, 0, 0, 0, 0 }, { "straight3",  1,
               { "tilt_in_l",  1, 3, 0, 0, 0, 0, -8 }, { "tilt_out_l", 1, 3, 0, 0, 0, -8, 0 },
               { "bank_l",     5, 3, 0, 0, 0, -8, -8 } } do
     local id = core.register_node(`lab:piece_{p[1]}`, 168, 172, 182, true, 0, "upright", 0, 0.2)   -- light: it is seen in the dark
-    if core.node_piece(id, PFILL, p[2], p[3], p[4], p[5], p[6], p[7], p[8], true, false, 2) ~= 1 then
+    if not core.node_piece(id, PFILL, p[2], p[3], p[4], p[5], p[6], p[7], p[8], true, false, 2) then
         core.log(`lab_core: piece {p[1]} refused`)
     end
 end

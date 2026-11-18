@@ -23,7 +23,8 @@ export type Arg = {
 export type Fn = {
     name: string,          -- as seen from Lua: core.<name>
     host: string,          -- the script_host field it calls
-    ret: string?,          -- nil = returns nothing
+    ret: string?,          -- nil = returns nothing; "flag" = a yes or no
+                           -- (the host answers 1 or 0; Lua sees true/false from api 2)
     args: { Arg },
     doc: string,
 }
@@ -134,7 +135,7 @@ local api: { Fn } = {
     {
         name = "portal_place",
         host = "portal_place",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "index", type = "int", doc = "0 to 7: one of the world's openings that lead to other worlds (--portal-to); 2 to 7 only when they do." },
             { name = "x", type = "float", doc = "The centre of the opening." },
@@ -188,7 +189,7 @@ local api: { Fn } = {
     {
         name = "portal_link",
         host = "portal_link",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "a", type = "int", doc = "A portal, as portal_open returned it." },
             { name = "b", type = "int", doc = "The portal it leads to, or -1 for none." },
@@ -202,7 +203,7 @@ local api: { Fn } = {
     {
         name = "portal_move",
         host = "portal_move",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "A portal, as portal_open returned it." },
             { name = "x", type = "float", doc = "Its new centre." },
@@ -232,7 +233,7 @@ local api: { Fn } = {
     {
         name = "portal_scale",
         host = "portal_scale",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "A portal, as portal_open returned it." },
             { name = "on", type = "bool", default = true, doc = "false: a hole of its own size again." },
@@ -248,7 +249,7 @@ local api: { Fn } = {
     {
         name = "portal_window",
         host = "portal_window",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "a", type = "int", doc = "The portal to look through, as portal_open returned it." },
             { name = "b", type = "int", doc = "The portal it looks out of." },
@@ -276,7 +277,7 @@ local api: { Fn } = {
     {
         name = "portal_seal",
         host = "portal_seal",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "An id from core.players, or from an event." },
             { name = "index", type = "int", doc = "A mouth onto another room (--portal-to), 0..15." },
@@ -292,7 +293,7 @@ local api: { Fn } = {
     {
         name = "far_portal_set",
         host = "far_portal_set",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "What friends see it called: 1 to 96 printable characters, one per room." },
             { name = "x", type = "float", doc = "The centre of the hole." },
@@ -319,7 +320,7 @@ local api: { Fn } = {
     {
         name = "far_portal_close",
         host = "far_portal_close",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string" },
         },
@@ -373,7 +374,7 @@ local api: { Fn } = {
     {
         name = "room_portal_set",
         host = "room_portal_set",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "What it is called in this room: 1 to 96 printable characters." },
             { name = "x", type = "float", doc = "The centre of the hole." },
@@ -398,7 +399,7 @@ local api: { Fn } = {
     {
         name = "room_portal_close",
         host = "room_portal_close",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string" },
         },
@@ -446,7 +447,7 @@ local api: { Fn } = {
     {
         name = "room_access",
         host = "room_access",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "room", type = "string", doc = "A room of this server, up or not." },
             { name = "who", type = "string",
@@ -464,7 +465,7 @@ local api: { Fn } = {
     {
         name = "room_access_clear",
         host = "room_access_clear",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "room", type = "string" },
         },
@@ -474,7 +475,7 @@ local api: { Fn } = {
     {
         name = "room_send",
         host = "room_send",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "An id from core.players, or from an event." },
             { name = "room", type = "string", default = "", doc = "Another room of this server; \"\" is its first." },
@@ -486,7 +487,7 @@ local api: { Fn } = {
     {
         name = "portal_park",
         host = "portal_park",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "index", type = "int", doc = "One of the world's own mouths (--portal-to), 0 on." },
         },
@@ -577,7 +578,7 @@ local api: { Fn } = {
     {
         name = "node_drop",
         host = "node_drop",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "The block, by the id register_node returned." },
             { name = "as", type = "int",
@@ -591,7 +592,7 @@ local api: { Fn } = {
     {
         name = "node_drop_item",
         host = "node_drop_item",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "The block, by the id register_node returned." },
             { name = "item", type = "string", doc = "The item breaking it gives, by name." },
@@ -603,7 +604,7 @@ local api: { Fn } = {
     {
         name = "watch_cell",
         host = "watch_cell",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "x", type = "int" }, { name = "y", type = "int" }, { name = "z", type = "int" },
             { name = "on", type = "bool", default = true },
@@ -617,7 +618,7 @@ local api: { Fn } = {
     {
         name = "node_solid",
         host = "node_solid",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "A block id." },
         },
@@ -626,7 +627,7 @@ local api: { Fn } = {
     {
         name = "ride",
         host = "ride",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "Who sits." },
             { name = "host", type = "int", doc = "Whose body they sit on, a player id; 0 gets off." },
@@ -645,7 +646,7 @@ local api: { Fn } = {
     {
         name = "loaded",
         host = "loaded",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "x", type = "int" }, { name = "y", type = "int" }, { name = "z", type = "int" },
         },
@@ -716,7 +717,7 @@ local api: { Fn } = {
     {
         name = "node_alias",
         host = "node_alias",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "old", type = "string", doc = "The name a saved world may still hold." },
             { name = "name", type = "string", doc = "The block that stands for it now." },
@@ -728,7 +729,7 @@ local api: { Fn } = {
     {
         name = "item_alias",
         host = "item_alias",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "old", type = "string", doc = "The name a saved bag or chest may still hold." },
             { name = "name", type = "string", doc = "The item that stands for it now." },
@@ -739,7 +740,7 @@ local api: { Fn } = {
     {
         name = "player_regen",
         host = "player_regen",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
             { name = "on", type = "bool", doc = "false: health no longer comes back on its own." },
@@ -750,7 +751,7 @@ local api: { Fn } = {
     {
         name = "player_max_health",
         host = "player_max_health",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
             { name = "max", type = "int", doc = "Points of a full body, 1 to 1000; the engine's own is 20." },
@@ -770,7 +771,7 @@ local api: { Fn } = {
     {
         name = "set_time",
         host = "set_time",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "t", type = "float", doc = "0 to 1, as time_of_day reads it; wrapped." },
         },
@@ -780,7 +781,7 @@ local api: { Fn } = {
     {
         name = "player_spawn",
         host = "player_spawn",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
             { name = "x", type = "float", doc = "Where their feet go when they die." },
@@ -796,7 +797,7 @@ local api: { Fn } = {
     {
         name = "node_climbable",
         host = "node_climbable",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "The block, by the id register_node returned." },
             { name = "on", type = "bool", default = true },
@@ -811,7 +812,7 @@ local api: { Fn } = {
     {
         name = "node_conveyor",
         host = "node_conveyor",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "The block, by the id register_node returned: an \"upright\" one." },
             { name = "speed", type = "float", default = 1.0, doc = "m/s. 0 makes it no belt again." },
@@ -840,7 +841,7 @@ local api: { Fn } = {
     {
         name = "node_door",
         host = "node_door",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "shut", type = "int", doc = "The door shut, by the id register_node returned." },
             { name = "open", type = "int", doc = "The same door open." },
@@ -857,7 +858,7 @@ local api: { Fn } = {
     {
         name = "node_piece",
         host = "node_piece",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "The block that is the piece, by the id register_node returned." },
             { name = "fill", type = "int",
@@ -903,7 +904,7 @@ local api: { Fn } = {
     {
         name = "place_piece",
         host = "place_piece",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "x", type = "int", doc = "Any cell of the grid square the piece is entered by." },
             { name = "y", type = "int" },
@@ -1061,7 +1062,7 @@ local api: { Fn } = {
     {
         name = "node_falls",
         host = "node_falls",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "The block, by the id register_node returned." },
             { name = "on", type = "bool", default = true },
@@ -1074,7 +1075,7 @@ local api: { Fn } = {
     {
         name = "node_glass",
         host = "node_glass",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "The block, by the id register_node returned." },
             { name = "opacity", type = "int", default = 160,
@@ -1087,7 +1088,7 @@ local api: { Fn } = {
     {
         name = "node_liquid",
         host = "node_liquid",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int" },
             { name = "opacity", type = "int", default = 150,
@@ -1113,7 +1114,7 @@ local api: { Fn } = {
     {
         name = "movement",
         host = "movement",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "walk", type = "float", default = 4.8, doc = "m/s on the ground." },
             { name = "sprint", type = "float", default = 8.0,
@@ -1146,7 +1147,7 @@ local api: { Fn } = {
     {
         name = "drive",
         host = "drive",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "accel", type = "float", default = 0.0,
               doc = "m/s^2 with the throttle down. 0 is a body on foot." },
@@ -1182,7 +1183,7 @@ local api: { Fn } = {
     {
         name = "body_width",
         host = "body_width",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "width", type = "float", default = 0.6,
               doc = "Nodes: the side of the square box a body on foot collides with, and the "
@@ -1212,7 +1213,7 @@ local api: { Fn } = {
     {
         name = "eye_height",
         host = "eye_height",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "height", type = "float",
               doc = "Nodes over the feet. The engine's is 1.62, in a body 1.8 tall." },
@@ -1227,7 +1228,7 @@ local api: { Fn } = {
     {
         name = "parkour",
         host = "parkour",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "on", type = "bool", default = true },
         },
@@ -1246,7 +1247,7 @@ local api: { Fn } = {
     {
         name = "ledges",
         host = "ledges",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "on", type = "bool", default = true },
         },
@@ -1268,7 +1269,7 @@ local api: { Fn } = {
     {
         name = "body_scale",
         host = "body_scale",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
             { name = "scale", type = "float", default = 1.0, doc = "How big against a body at 1: 1/32 to 4." },
@@ -1294,7 +1295,7 @@ local api: { Fn } = {
     {
         name = "body_movement",
         host = "body_movement",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
             { name = "walk", type = "float", default = 4.8, doc = "m/s on the ground." },
@@ -1322,7 +1323,7 @@ local api: { Fn } = {
     {
         name = "body_drive",
         host = "body_drive",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
             { name = "accel", type = "float", default = 0.0,
@@ -1352,7 +1353,7 @@ local api: { Fn } = {
     {
         name = "body_boat",
         host = "body_boat",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
             { name = "on", type = "bool", default = true, doc = "false puts them back to swimming." },
@@ -1368,7 +1369,7 @@ local api: { Fn } = {
     {
         name = "body_cart",
         host = "body_cart",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
             { name = "on", type = "bool", default = true, doc = "false and rails are nothing to them." },
@@ -1381,7 +1382,7 @@ local api: { Fn } = {
     {
         name = "body_mount",
         host = "body_mount",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
             { name = "on", type = "bool", default = true, doc = "false puts them back on their feet." },
@@ -1396,7 +1397,7 @@ local api: { Fn } = {
     {
         name = "body_glide",
         host = "body_glide",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
             { name = "on", type = "bool", default = true, doc = "false and a fall is a fall." },
@@ -1410,7 +1411,7 @@ local api: { Fn } = {
     {
         name = "fed_send",
         host = "fed_send",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "server", type = "string", doc = "A friend server, as /friend named it." },
             { name = "text", type = "string", doc = "Up to 4000 bytes." },
@@ -1425,7 +1426,7 @@ local api: { Fn } = {
     {
         name = "body_rope",
         host = "body_rope",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
             { name = "on", type = "bool", default = true, doc = "false and core.rope does nothing for them." },
@@ -1439,7 +1440,7 @@ local api: { Fn } = {
     {
         name = "body_balloon",
         host = "body_balloon",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
             { name = "on", type = "bool", default = true, doc = "false puts them back on their feet." },
@@ -1536,7 +1537,7 @@ local api: { Fn } = {
     {
         name = "body_model",
         host = "body_model",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
             { name = "model", type = "int", default = 0, doc = "An id from core.register_model. 0 is a box." },
@@ -1551,7 +1552,7 @@ local api: { Fn } = {
     {
         name = "body_block",
         host = "body_block",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
             { name = "block", type = "int", default = 0, doc = "A block's id (core.node_id); 0, air, draws their model again." },
@@ -1858,7 +1859,7 @@ local api: { Fn } = {
     {
         name = "ghost_cell",
         host = "ghost_cell",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "x", type = "int" }, { name = "y", type = "int" }, { name = "z", type = "int" },
             { name = "colour", type = "int",
@@ -1922,7 +1923,7 @@ local api: { Fn } = {
     {
         name = "node_foliage",
         host = "node_foliage",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "The block, by its id (core.node_id)." },
             { name = "on", type = "bool", default = true },
@@ -2027,7 +2028,7 @@ local api: { Fn } = {
     {
         name = "mob_tame",
         host = "mob_tame",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "A kind from register_mob, fight \"pet\"." },
             { name = "item", type = "string", doc = "The item, by name, that tames it." },
@@ -2046,7 +2047,7 @@ local api: { Fn } = {
     {
         name = "mob_shear",
         host = "mob_shear",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "A kind from register_mob." },
             { name = "item", type = "string", doc = "What shears it, by name. Not spent: a shearing uses one of its durability, if it has any." },
@@ -2066,7 +2067,7 @@ local api: { Fn } = {
     {
         name = "mob_lays",
         host = "mob_lays",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "A kind from register_mob." },
             { name = "item", type = "string", doc = "What it lays, by name." },
@@ -2080,7 +2081,7 @@ local api: { Fn } = {
     {
         name = "mob_drop",
         host = "mob_drop",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "A kind from register_mob." },
             { name = "item", type = "string", doc = "What else it leaves, by name." },
@@ -2093,7 +2094,7 @@ local api: { Fn } = {
     {
         name = "mob_sight",
         host = "mob_sight",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "A kind from register_mob." },
             { name = "nodes", type = "float", doc = "How far, 1 to 128. 16 when never said." },
@@ -2123,7 +2124,7 @@ local api: { Fn } = {
     {
         name = "mob_say_every",
         host = "mob_say_every",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "A kind from register_mob." },
             { name = "factor", type = "float", doc = "1 as usual (one sound every 6 to 20 seconds), 5 five times as seldom. 0.1 to 100." },
@@ -2134,7 +2135,7 @@ local api: { Fn } = {
     {
         name = "mob_climbs",
         host = "mob_climbs",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "A kind from register_mob." },
             { name = "nodes", type = "float", doc = "The highest wall it goes up, 0 to 32. 0 when never said: it climbs none." },
@@ -2147,7 +2148,7 @@ local api: { Fn } = {
     {
         name = "mob_share",
         host = "mob_share",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "A kind from register_mob." },
             { name = "share", type = "float", doc = "Of those that come out in the dark, 0 to 1. 0 when never said: an even chance with the others." },
@@ -2159,7 +2160,7 @@ local api: { Fn } = {
     {
         name = "mob_lunge",
         host = "mob_lunge",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "A kind from register_mob." },
             { name = "nodes", type = "float", doc = "From how far it dives, 3 to 16. 0 when never said: it does not." },
@@ -2206,7 +2207,7 @@ local api: { Fn } = {
     {
         name = "fall",
         host = "fall",
-        ret  = "int",
+        ret  = "flag",
         args = { { name = "x", type = "int" }, { name = "y", type = "int" }, { name = "z", type = "int" } },
         doc = "The block in that cell lets go and falls, as the classic block game's sand does: the cell is air at "
            .. "once, and the block drops through air, water and anything else a body walks "
@@ -2227,7 +2228,7 @@ local api: { Fn } = {
     {
         name = "shoot_arrow",
         host = "shoot_arrow",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int" },
             { name = "speed", type = "float", doc = "m/s as it leaves the string, at most 100. The classic block game's full draw is 60." },
@@ -2319,7 +2320,7 @@ local api: { Fn } = {
     {
         name = "mob_goto",
         host = "mob_goto",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "A worker, from core.spawn_mob." },
             { name = "x", type = "int" }, { name = "y", type = "int", doc = "The cell its feet go in." },
@@ -2334,7 +2335,7 @@ local api: { Fn } = {
     {
         name = "mob_going",
         host = "mob_going",
-        ret  = "int",
+        ret  = "flag",
         args = { { name = "id", type = "int" } },
         doc = "1 while a worker is still on its way to where core.mob_goto sent it; 0 once "
            .. "it is there, and for one that is gone.",
@@ -2342,7 +2343,7 @@ local api: { Fn } = {
     {
         name = "mob_act",
         host = "mob_act",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "A worker, from core.spawn_mob." },
             { name = "clip", type = "string", doc = "A clip of its model, by name; \"\" walks and stands as usual." },
@@ -2356,7 +2357,7 @@ local api: { Fn } = {
     {
         name = "mob_ride",
         host = "mob_ride",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "A worker, from core.spawn_mob." },
             { name = "thing", type = "float", doc = "A mod's thing (core.ecs.spawn): a machine, or a part mounted on one. 0 lets the worker go." },
@@ -2374,7 +2375,7 @@ local api: { Fn } = {
     {
         name = "mob_place",
         host = "mob_place",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "A worker, from core.spawn_mob." },
             { name = "x", type = "float" }, { name = "y", type = "float", doc = "Where its feet go." },
@@ -2388,7 +2389,7 @@ local api: { Fn } = {
     {
         name = "mob_velocity",
         host = "mob_velocity",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "A worker, from core.spawn_mob." },
             { name = "vx", type = "float" }, { name = "vy", type = "float", doc = "m/s, up positive." },
@@ -2402,7 +2403,7 @@ local api: { Fn } = {
     {
         name = "mob_tumble",
         host = "mob_tumble",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "A worker, from core.spawn_mob." },
             { name = "on", type = "bool", default = true, doc = "false stands it upright again, a creature as before." },
@@ -2422,7 +2423,7 @@ local api: { Fn } = {
     {
         name = "mob_unseen",
         host = "mob_unseen",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "A worker, from core.spawn_mob." },
             { name = "player", type = "int", doc = "The player whose client is not sent it; 0 sends it to everybody again." },
@@ -2486,7 +2487,7 @@ local api: { Fn } = {
     {
         name = "set_rule",
         host = "set_rule",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "1 to 32 of a-z, 0-9 and _." },
             { name = "value", type = "string", doc = "At most 64 characters, one line; empty forgets it." },
@@ -2507,7 +2508,7 @@ local api: { Fn } = {
     {
         name = "set_day_cycle",
         host = "set_day_cycle",
-        ret  = "int",
+        ret  = "flag",
         args = { { name = "on", type = "bool", default = true } },
         doc = "Stops the clock where it is, or starts it again at the world's day length "
            .. "(--day-length): every client sees the sky stand still, as it mirrors the server's "
@@ -2530,7 +2531,7 @@ local api: { Fn } = {
     {
         name = "mob_remove",
         host = "mob_remove",
-        ret  = "int",
+        ret  = "flag",
         args = { { name = "id", type = "int" } },
         doc = "Takes a creature out of the world at once, leaving nothing and playing no death: "
            .. "its mod taking it back, a mount taken up. Returns 1, or 0 for one that is gone or "
@@ -2564,7 +2565,7 @@ local api: { Fn } = {
     {
         name = "mob_love",
         host = "mob_love",
-        ret  = "int",
+        ret  = "flag",
         args = { { name = "id", type = "int" } },
         doc = "Puts a creature in love as if a player had fed it its food (core.mob_breed): "
            .. "only a grown one, not in love already and not within five minutes of its last "
@@ -2573,7 +2574,7 @@ local api: { Fn } = {
     {
         name = "mob_keep",
         host = "mob_keep",
-        ret  = "int",
+        ret  = "flag",
         args = { { name = "id", type = "int" }, { name = "on", type = "bool", default = true } },
         doc = "Keeps a wild animal (a \"pet\" kind nobody owns): it is not sent away when no "
            .. "player is near, and it is saved with the world as a tamed pet is -- a stable's. "
@@ -2594,7 +2595,7 @@ local api: { Fn } = {
     {
         name = "mob_become",
         host = "mob_become",
-        ret  = "int",
+        ret  = "flag",
         args = { { name = "id", type = "int" }, { name = "kind", type = "string", doc = "A kind from register_mob." } },
         doc = "Turns a creature into another kind where it stands, keeping its health, its "
            .. "age, how long until its fleece is back and whether a stable keeps it: a sheep "
@@ -2604,7 +2605,7 @@ local api: { Fn } = {
     {
         name = "mob_voice",
         host = "mob_voice",
-        ret  = "int",
+        ret  = "flag",
         args = { { name = "name", type = "string", doc = "A kind from register_mob." },
                  { name = "voice", type = "string", doc = "Another kind, whose sound files it uses." } },
         doc = "Whose sounds a kind makes: \"herding:sheep_red\" with the voice "
@@ -2614,7 +2615,7 @@ local api: { Fn } = {
     {
         name = "item_returns",
         host = "item_returns",
-        ret  = "int",
+        ret  = "flag",
         args = { { name = "item", type = "string" }, { name = "back", type = "string" } },
         doc = "What is left of `item` when a recipe spends it: `back`, in the square it was in, "
            .. "when it was the last of it there. A bucket of milk in a cake leaves the bucket. "
@@ -2623,7 +2624,7 @@ local api: { Fn } = {
     {
         name = "mob_health",
         host = "mob_health",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "From core.spawn_mob or core.mob_ids." },
             { name = "hp", type = "int", doc = "1 to 60000: what it has now, and its whole." },
@@ -2650,7 +2651,7 @@ local api: { Fn } = {
     {
         name = "mob_face",
         host = "mob_face",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int" },
             { name = "x", type = "float" }, { name = "z", type = "float" },
@@ -2660,7 +2661,7 @@ local api: { Fn } = {
     {
         name = "mob_hunt",
         host = "mob_hunt",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "A worker, from core.spawn_mob." },
             { name = "player", type = "int", doc = "Who it goes for; 0 calls it off." },
@@ -2674,7 +2675,7 @@ local api: { Fn } = {
     {
         name = "mob_blow_every",
         host = "mob_blow_every",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "A creature, from core.spawn_mob or core.mob_ids." },
             { name = "factor", type = "float", doc = "Of its kind's time between blows, 0.25 to 4: 2 strikes half as often." },
@@ -2699,7 +2700,7 @@ local api: { Fn } = {
     {
         name = "mob_breed",
         host = "mob_breed",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "A kind from register_mob, fight \"pet\"." },
             { name = "item", type = "string", doc = "What it is fed to breed, by name. One is spent." },
@@ -2735,7 +2736,7 @@ local api: { Fn } = {
     {
         name = "ui_define",
         host = "ui_define",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "Namespaced, like a block: 'mymod:menu'." },
             { name = "w", type = "float", doc = "Width in cells. A cell is a hotbar slot; a panel is at most 30 across." },
@@ -2746,7 +2747,7 @@ local api: { Fn } = {
     {
         name = "ui_label",
         host = "ui_label",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "panel", type = "string" },
             { name = "x", type = "float", doc = "Cells from the panel's left edge." },
@@ -2758,7 +2759,7 @@ local api: { Fn } = {
     {
         name = "ui_item",
         host = "ui_item",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "panel", type = "string" },
             { name = "id", type = "string", doc = "What core:ui_click carries back. Empty: a picture only, "
@@ -2777,7 +2778,7 @@ local api: { Fn } = {
     {
         name = "ui_model",
         host = "ui_model",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "panel", type = "string" },
             { name = "x", type = "float" },
@@ -2798,7 +2799,7 @@ local api: { Fn } = {
     {
         name = "ui_button",
         host = "ui_button",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "panel", type = "string" },
             { name = "id", type = "string", doc = "What core:ui_click carries back. A button without one is refused." },
@@ -2813,7 +2814,7 @@ local api: { Fn } = {
     {
         name = "ui_field",
         host = "ui_field",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "panel", type = "string" },
             { name = "id", type = "string", doc = "What core:ui_click carries back. A field without one is refused." },
@@ -2828,7 +2829,7 @@ local api: { Fn } = {
     {
         name = "ui_box",
         host = "ui_box",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "panel", type = "string" },
             { name = "x", type = "float" },
@@ -2844,7 +2845,7 @@ local api: { Fn } = {
     {
         name = "ui_show",
         host = "ui_show",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string" },
             { name = "open", type = "bool", default = true },
@@ -2855,7 +2856,7 @@ local api: { Fn } = {
     {
         name = "container_make",
         host = "container_make",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "x", type = "int" },
             { name = "y", type = "int" },
@@ -2893,7 +2894,7 @@ local api: { Fn } = {
     {
         name = "container_roles",
         host = "container_roles",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "The block, by the id register_node returned." },
             { name = "roles", type = "string",
@@ -2916,7 +2917,7 @@ local api: { Fn } = {
     {
         name = "container_accepts",
         host = "container_accepts",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "The block, by the id register_node returned." },
             { name = "role", type = "string", doc = "\"store\", \"raw\", \"fuel\" or \"product\"." },
@@ -2931,7 +2932,7 @@ local api: { Fn } = {
     {
         name = "container_progress",
         host = "container_progress",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "x", type = "int" },
             { name = "y", type = "int" },
@@ -2945,7 +2946,7 @@ local api: { Fn } = {
     {
         name = "container_scroll",
         host = "container_scroll",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "x", type = "int" },
             { name = "y", type = "int" },
@@ -2960,7 +2961,7 @@ local api: { Fn } = {
     {
         name = "container_search",
         host = "container_search",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "x", type = "int" },
             { name = "y", type = "int" },
@@ -2975,7 +2976,7 @@ local api: { Fn } = {
     {
         name = "node_keeps_drops",
         host = "node_keeps_drops",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "The block, by the id register_node returned." },
             { name = "on", type = "bool", default = true },
@@ -2988,7 +2989,7 @@ local api: { Fn } = {
     {
         name = "container_show",
         host = "container_show",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "x", type = "int" },
             { name = "y", type = "int" },
@@ -3009,7 +3010,7 @@ local api: { Fn } = {
     {
         name = "container_close",
         host = "container_close",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int" },
         },
@@ -3175,7 +3176,7 @@ local api: { Fn } = {
     {
         name = "drop_item",
         host = "drop_item",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "x", type = "int" },
             { name = "y", type = "int" },
@@ -3191,7 +3192,7 @@ local api: { Fn } = {
     {
         name = "show_item",
         host = "show_item",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "x", type = "int" },
             { name = "y", type = "int" },
@@ -3207,7 +3208,7 @@ local api: { Fn } = {
     {
         name = "craft_show",
         host = "craft_show",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "x", type = "int" },
             { name = "y", type = "int" },
@@ -3225,7 +3226,7 @@ local api: { Fn } = {
     {
         name = "craft_close",
         host = "craft_close",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int" },
         },
@@ -3273,7 +3274,7 @@ local api: { Fn } = {
     {
         name = "container_clear",
         host = "container_clear",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "x", type = "int" },
             { name = "y", type = "int" },
@@ -3286,7 +3287,7 @@ local api: { Fn } = {
     {
         name = "recipe_shaped",
         host = "recipe_shaped",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "makes", type = "string" },
             { name = "count", type = "int" },
@@ -3304,7 +3305,7 @@ local api: { Fn } = {
     {
         name = "recipe_shapeless",
         host = "recipe_shapeless",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "makes", type = "string" },
             { name = "count", type = "int" },
@@ -3358,7 +3359,7 @@ local api: { Fn } = {
     {
         name = "recipe_dye",
         host = "recipe_dye",
-        ret  = "int",
+        ret  = "flag",
         args = { { name = "item", type = "string" } },
         doc = "Makes a thing take colours at a table: it and one to three dyes (core.item_dye), "
            .. "anywhere in the grid, make the same one again -- its tag kept, so a thing with "
@@ -3370,7 +3371,7 @@ local api: { Fn } = {
     {
         name = "item_dye",
         host = "item_dye",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "item", type = "string" },
             { name = "dye", type = "int",
@@ -3522,7 +3523,7 @@ local api: { Fn } = {
     {
         name = "player_carry",
         host = "player_carry",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "An id from core.players, or from an event." },
             { name = "text", type = "string", doc = "At most 256 bytes; empty forgets it." },
@@ -3547,7 +3548,7 @@ local api: { Fn } = {
     {
         name = "body_taken",
         host = "body_taken",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "An id from core.players, or from an event." },
         },
@@ -3573,7 +3574,7 @@ local api: { Fn } = {
     {
         name = "player_launch",
         host = "player_launch",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int" },
             { name = "vx", type = "float" }, { name = "vy", type = "float", doc = "m/s, up positive; at most 16 on any axis." },
@@ -3589,7 +3590,7 @@ local api: { Fn } = {
     {
         name = "player_place",
         host = "player_place",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "An id from core.players, or from an event." },
             { name = "x", type = "float", doc = "Where the feet go." },
@@ -3612,7 +3613,7 @@ local api: { Fn } = {
     {
         name = "player_lie",
         host = "player_lie",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "An id from core.players, or from an event." },
             { name = "on", type = "bool", doc = "true lays them down; false gets them up where they are." },
@@ -3634,7 +3635,7 @@ local api: { Fn } = {
     {
         name = "player_clip",
         host = "player_clip",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "An id from core.players, or from an event." },
             { name = "clip", type = "string", default = "",
@@ -3654,7 +3655,7 @@ local api: { Fn } = {
     {
         name = "player_wear",
         host = "player_wear",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "An id from core.players, or from an event." },
             { name = "slot", type = "int", doc = "1 to 10: which of the pieces a mod dresses them in." },
@@ -3675,7 +3676,7 @@ local api: { Fn } = {
     {
         name = "play_sound",
         host = "play_sound",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string",
               doc = "\"mymod:bell\": lower case, digits and _, one colon." },
@@ -3714,7 +3715,7 @@ local api: { Fn } = {
     {
         name = "sound_loop_move",
         host = "sound_loop_move",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "From core.sound_loop." },
             { name = "x", type = "float" },
@@ -3727,7 +3728,7 @@ local api: { Fn } = {
     {
         name = "sound_loop_stop",
         host = "sound_loop_stop",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "From core.sound_loop." },
         },
@@ -3789,7 +3790,7 @@ local api: { Fn } = {
     {
         name = "held_set_id",
         host = "held_set_id",
-        ret  = "int",
+        ret  = "flag",
         args = { { name = "player", type = "int" }, { name = "id", type = "int", doc = "1 to 131071; 0 none." } },
         doc = "Numbers the stack in a player's hand (all of it). Returns 1, or 0 for an empty "
            .. "hand, a number out of range or somebody not here.",
@@ -3810,7 +3811,7 @@ local api: { Fn } = {
     {
         name = "worn_set_id",
         host = "worn_set_id",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int" },
             { name = "square", type = "string" },
@@ -3822,7 +3823,7 @@ local api: { Fn } = {
     {
         name = "player_fly",
         host = "player_fly",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int" },
             { name = "allowed", type = "bool", default = true },
@@ -3837,7 +3838,7 @@ local api: { Fn } = {
     {
         name = "mob_attack",
         host = "mob_attack",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "id", type = "int", doc = "A worker, from core.spawn_mob." },
             { name = "mob", type = "int", doc = "The creature it goes for, from core.mob_ids; 0 calls it off." },
@@ -3850,7 +3851,7 @@ local api: { Fn } = {
     {
         name = "mob_pierce",
         host = "mob_pierce",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "A kind, as register_mob named it." },
             { name = "part", type = "float", doc = "0 to 1." },
@@ -3862,7 +3863,7 @@ local api: { Fn } = {
     {
         name = "owned_area",
         host = "owned_area",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "x1", type = "int" }, { name = "z1", type = "int" },
             { name = "x2", type = "int" }, { name = "z2", type = "int" },
@@ -3878,7 +3879,7 @@ local api: { Fn } = {
     {
         name = "owned_cell",
         host = "owned_cell",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "x", type = "int" }, { name = "z", type = "int" },
             { name = "tag", type = "int", doc = "1 to 131071; 0 takes the column away." },
@@ -3898,7 +3899,7 @@ local api: { Fn } = {
     {
         name = "owned_member",
         host = "owned_member",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int" },
             { name = "tag", type = "int", doc = "1 to 131071." },
@@ -3911,7 +3912,7 @@ local api: { Fn } = {
     {
         name = "player_factors",
         host = "player_factors",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int" },
             { name = "walk", type = "float", doc = "Walking and sprinting, 0.25 to 4." },
@@ -4016,7 +4017,7 @@ local api: { Fn } = {
     {
         name = "wear_held",
         host = "wear_held",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field." },
             { name = "amount", type = "int", default = 1, doc = "How many uses it spends." },
@@ -4076,7 +4077,7 @@ local api: { Fn } = {
     {
         name = "meta_set",
         host = "meta_set",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "x", type = "int" },
             { name = "y", type = "int" },
@@ -4116,7 +4117,7 @@ local api: { Fn } = {
     {
         name = "notice",
         host = "notice",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field; 0 is everybody in this world." },
             { name = "text", type = "string", doc = "At most 512 bytes." },
@@ -4130,7 +4131,7 @@ local api: { Fn } = {
     {
         name = "chat",
         host = "chat",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int", doc = "The id every event carries in its `player` field; 0 is everybody in this world." },
             { name = "text", type = "string", doc = "At most 512 bytes, one line." },
@@ -4142,7 +4143,7 @@ local api: { Fn } = {
     {
         name = "command",
         host = "command",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "1 to 32 of a-z, 0-9, _ and -, without the slash." },
             { name = "help", type = "string", doc = "One line for /help; may be empty." },
@@ -4161,7 +4162,7 @@ local api: { Fn } = {
     {
         name = "has_perm",
         host = "has_perm",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int" },
             { name = "perm", type = "string", doc = "A permission or a role, as for core.command." },
@@ -4183,7 +4184,7 @@ local api: { Fn } = {
     {
         name = "page_register",
         host = "page_register",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "name", type = "string", doc = "1 to 32 of a-z, 0-9, _ and -: what /page NAME and page:NAME links open." },
             { name = "title", type = "string", doc = "The page's title bar, and its line in /page." },
@@ -4199,7 +4200,7 @@ local api: { Fn } = {
     {
         name = "page_show",
         host = "page_show",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int" },
             { name = "name", type = "string", doc = "The page's name: a registered one shows its title." },
@@ -4221,7 +4222,7 @@ local api: { Fn } = {
     {
         name = "is_muted",
         host = "is_muted",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "player", type = "int" },
         },
@@ -4232,7 +4233,7 @@ local api: { Fn } = {
     {
         name = "storage_set",
         host = "storage_set",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "key", type = "string", doc = "1 to 64 bytes." },
             { name = "value", type = "string",
@@ -4259,7 +4260,7 @@ local api: { Fn } = {
     {
         name = "shared_storage_set",
         host = "shared_storage_set",
-        ret  = "int",
+        ret  = "flag",
         args = {
             { name = "key", type = "string" },
             { name = "value", type = "string" },

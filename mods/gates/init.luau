@@ -407,7 +407,7 @@ if PLAZA then
                 if core.portal_room(k) == room then own = true end
             end
             if own then continue end
-            if core.room_portal_set(name, x, y, z, 1, 1, 0.5, 1.0) == 1 then
+            if core.room_portal_set(name, x, y, z, 1, 1, 0.5, 1.0) then
                 local no = core.room_portal_link(name, room, "door")
                 if no == "" then
                     build(THEMES[room], math.floor(x), math.floor(y) - 1, math.floor(z), false)
@@ -725,7 +725,7 @@ local since = 0.0
 -- Mouth k to site s; the world's arch with it when it is the world's nearest.
 local function place(k: number, room: string, s: Site, arch: boolean)
     if room == "laboratorio" then return end
-    if core.portal_place(k, s.x + 0.5, s.y + 1, s.z + 0.5, 1, 1, 0.5, 1.0) == 1 then
+    if core.portal_place(k, s.x + 0.5, s.y + 1, s.z + 0.5, 1, 1, 0.5, 1.0) then
         at_site[k] = s
     end
     local a = ARCH[room]
@@ -752,7 +752,7 @@ core.event.on("core:tick", function(ev)
     end
     for _, p in core.players() do
         now[p] = true
-        local x, y, z = core.player_pos(p)
+        local x, _, z = core.player_pos(p)
         if x == nil then continue end
         local me = who(p)
         if who_is[p] == nil then

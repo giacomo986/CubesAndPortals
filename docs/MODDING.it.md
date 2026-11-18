@@ -87,12 +87,21 @@ Dire il primo quando la verità è il secondo è un pomeriggio perso.
 ### `api`, cioè per quale motore è scritto il mod
 
 `api` è **un numero intero**, non una versione. Dice per quale versione della API
-mod il mod è stato scritto. Questa build ne serve una sola — `api = 1` — e
+mod il mod è stato scritto. Questa build ne serve due, `api = 1` e `api = 2`, e
 rifiuta qualsiasi altra:
 
 ```
-mod 'futuro' not loaded: written for mod API 2, and this build serves 1 to 1
+mod 'futuro' not loaded: written for mod API 3, and this build serves 1 to 2
 ```
+
+| `api` | cosa cambia |
+|---|---|
+| 1 | una chiamata che risponde sì o no risponde **1 o 0** -- e in Luau 0 è vero, quindi va confrontata: `core.loaded(x, y, z) == 1` |
+| 2 | le stesse chiamate rispondono **true o false**: `if core.loaded(x, y, z) then`. `docs/api.d.luau` le tipizza così (`flag` in `src/script/api.luau`, una nota sotto ciascuna in [API.md](API.md)) |
+
+Un mod scritto per la 1 continua a caricarsi e a ricevere numeri. Portarlo alla 2 è la riga `api` e
+ogni confronto con 1 o 0 di quelle chiamate -- il type checker li elenca tutti, come "Cannot compare
+unrelated types 'boolean' and 'number'".
 
 Un mod che non lo dichiara viene preso per la **più vecchia** che questa build
 serve. È l'unica assunzione che non possa promuovere di nascosto un mod vecchio
@@ -103,7 +112,7 @@ riga 40.
 La riga di log lo dice, e dice anche quando non gliel'ha detto nessuno:
 
 ```
-mod 'cave' 0.1.0 (api 1) loaded, capabilities: none
+mod 'cave' 0.1.0 (api 2) loaded, capabilities: none
 mod 'vecchio' 0.1.0 (api 1, assumed) loaded, capabilities: none
 ```
 
@@ -589,7 +598,10 @@ segfault al primo emit dopo un reload; verificato).
 ## L'API disponibile oggi
 
 **Riferimento completo: [API.md](API.md)** — generato, con firme, tipi e default.
-Per il type checker dell'editor: [api.d.luau](api.d.luau).
+Per il type checker dell'editor: [api.d.luau](api.d.luau). Il repository è già impostato:
+`.luaurc` rende ogni file `--!strict`, e `.vscode/settings.json` punta l'estensione Luau Language
+Server (luau-lsp) a `docs/api.d.luau` -- aprite la cartella e l'editor mostra quello che riporta
+`tools/typecheck.sh`. Un altro editor con luau-lsp prende lo stesso file come file di definizioni.
 
 ```lua
 core.set_block(x, y, z, id)
@@ -599,25 +611,25 @@ core.node_id(nome) -> id            -- 0 se non esiste
 core.node_name(id) -> nome
 core.set_facing(x, y, z, giro)      -- 0 .. core.node_turns(id) - 1
 core.node_turns(id) -> n            -- 1, 4, 6 o 24: quanti giri ha quel blocco
-core.loaded(x, y, z) -> 1 | 0       -- 0: colonna non in memoria, get_block legge aria
+core.loaded(x, y, z) -> bool       -- 0: colonna non in memoria, get_block legge aria
 core.light(x, y, z) -> 0..15        -- luce ora: dei blocchi, o del cielo per l'ora
 core.get_facing(x, y, z) -> giro
 core.set_portal(indice, x, y, z)    -- sul server: le aperture del mondo, solo mentre i mod caricano
 core.portal_open(x, y, z, asse, verso, giro, mezza_l, mezza_a, colore?) -> id|-1  -- sul server, quando ascolta: -1 prima, riprovare; quanti se ne vuole: le 40 aperture vanno ai più vicini ai giocatori
                                     -- colore: com'è chiusa finché non porta da nessuna parte: 0 verde (fissa, default), 1 blu, 2 arancione (portal gun)
 core.portal_close(x, y, z) -> 0..15|-1                             -- per centro, non per indice
-core.portal_move(id, x, y, z, asse?, verso?, giro?) -> 1|0         -- a ogni tick: si muove (disegnata fluida, attraversata relativa a lei); nuovo piano/giro o salto > 4 la mette lì
+core.portal_move(id, x, y, z, asse?, verso?, giro?) -> bool         -- a ogni tick: si muove (disegnata fluida, attraversata relativa a lei); nuovo piano/giro o salto > 4 la mette lì
 core.portal_move(id, x, y, z, -1, 0, -1, nx, ny, nz, ux?, uy?, uz?)   -- girata liberamente: fronte n, alto u, in ogni verso; può girare a ogni tick
-core.portal_scale(id, on?) -> 1|0   -- le due estremità di una coppia di taglie diverse: chi passa esce scalato di alta/bassa (un giocatore che porterebbe oltre 1/32..4 non passa)
+core.portal_scale(id, on?) -> bool   -- le due estremità di una coppia di taglie diverse: chi passa esce scalato di alta/bassa (un giocatore che porterebbe oltre 1/32..4 non passa)
                                      --   (giocatori, creature e scatole che rotolano, sempre tra 1/32 e 4 della loro specie)
-core.body_scale(player, s?) -> 1|0  -- un corpo grande 1/32..4: riquadro, gradini, occhio, velocità, gravità, portata, disegnato così
+core.body_scale(player, s?) -> bool  -- un corpo grande 1/32..4: riquadro, gradini, occhio, velocità, gravità, portata, disegnato così
 core.body_size(player) -> s         -- quanto è grande ora (body_scale, un portale che scala); 0 per nessuno
-core.portal_link(a, b) -> 1|0       -- a e b portano l'una all'altra; b = -1 scollega a
-core.portal_window(a, b) -> 1|0     -- una finestra, a senso unico e solo per gli occhi: a mostra ciò che b guarda, b non si disegna da nessuna parte, non si attraversa nessuna delle due (con portal_scale su entrambe: una miniatura)
+core.portal_link(a, b) -> bool       -- a e b portano l'una all'altra; b = -1 scollega a
+core.portal_window(a, b) -> bool     -- una finestra, a senso unico e solo per gli occhi: a mostra ciò che b guarda, b non si disegna da nessuna parte, non si attraversa nessuna delle due (con portal_scale su entrambe: una miniatura)
 core.log(messaggio)
-core.play_sound("mod:cosa", x, y, z) -> 1|0  -- a tutti nel mondo; file mods/<mod>/<cosa>.ogg sul client
+core.play_sound("mod:cosa", x, y, z) -> bool  -- a tutti nel mondo; file mods/<mod>/<cosa>.ogg sul client
 core.sound_loop("mod:cosa", x, y, z, range?, gain?) -> id|0  -- in loop finché non lo si ferma; lo sente anche chi entra dopo
-core.sound_loop_move(id, x, y, z) -> 1|0      core.sound_loop_stop(id) -> 1|0
+core.sound_loop_move(id, x, y, z) -> bool      core.sound_loop_stop(id) -> bool
 
 core.take_item(player, nome, quanti?) -> presi   -- fino a `quanti`, dice quanti
 core.give_item(player, nome, quanti?) -> entrati -- quello che non entra resta al mod
@@ -626,25 +638,25 @@ core.players() -> { id }                         -- chi ha un corpo in questo mo
 core.player_pos(id) -> (x, y, z) | nil           -- i PIEDI, o niente se non c'e'
 core.player_name(id) -> nome                     -- "" se non c'e'; resta uguale a un rientro, l'id no
 core.player_look(id) -> (dx, dy, dz) | nil       -- dove guarda, lunghezza 1
-core.player_place(id, x, y, z, dx?, dy?, dz?) -> 1 | 0  -- sposta e gira un corpo, come un portale
-core.ride(id, host, x?, y?, z?) -> 1 | 0         -- seduto sul corpo di host; host 0 = scende
+core.player_place(id, x, y, z, dx?, dy?, dz?) -> bool  -- sposta e gira un corpo, come un portale
+core.ride(id, host, x?, y?, z?) -> bool         -- seduto sul corpo di host; host 0 = scende
 core.monsters_near(x, y, z, r) -> n              -- creature che combattono entro r
 core.raycast(x, y, z, dx, dy, dz, max?) -> (bx, by, bz, distanza) | nil
 
-core.meta_set(x, y, z, chiave, valore) -> 1 | 0   -- valore vuoto = cancella
+core.meta_set(x, y, z, chiave, valore) -> bool   -- valore vuoto = cancella
 core.meta_get(x, y, z, chiave) -> stringa        -- "" se non c'è niente
-core.storage_set(chiave, valore) -> 1 | 0         -- del mod, nel world file; vuoto = cancella
+core.storage_set(chiave, valore) -> bool         -- del mod, nel world file; vuoto = cancella
 core.storage_get(chiave) -> stringa              -- "" se non c'è niente
-core.shared_storage_set(chiave, valore) -> 1 | 0  -- lo stesso, uno per tutte le stanze
+core.shared_storage_set(chiave, valore) -> bool  -- lo stesso, uno per tutte le stanze
 core.shared_storage_get(chiave) -> stringa
-core.notice(player, testo) -> 1 | 0              -- una frase sullo schermo; 0 = tutti
-core.chat(player, testo) -> 1 | 0                -- una riga nella chat (T); 0 = tutti
-core.command(nome, aiuto, perm?) -> 1 | 0       -- dichiara /nome; arriva come core:command
-core.has_perm(player, perm) -> 1 | 0            -- il ruolo del giocatore arriva a perm?
+core.notice(player, testo) -> bool              -- una frase sullo schermo; 0 = tutti
+core.chat(player, testo) -> bool                -- una riga nella chat (T); 0 = tutti
+core.command(nome, aiuto, perm?) -> bool       -- dichiara /nome; arriva come core:command
+core.has_perm(player, perm) -> bool            -- il ruolo del giocatore arriva a perm?
 core.role(player) -> stringa                     -- guest, player, helper, moderator, admin, owner
-core.is_muted(player) -> 1 | 0                   -- la sua chat è bloccata (/mute)?
-core.page_register(nome, titolo, perm?) -> 1 | 0 -- una pagina che /page NOME apre
-core.page_show(player, nome, markup) -> 1 | 0    -- mostra una pagina a un giocatore
+core.is_muted(player) -> bool                   -- la sua chat è bloccata (/mute)?
+core.page_register(nome, titolo, perm?) -> bool -- una pagina che /page NOME apre
+core.page_show(player, nome, markup) -> bool    -- mostra una pagina a un giocatore
 
 core.find_nodes(x1,y1,z1, x2,y2,z2, nome) -> { x,y,z, x,y,z, ... }
 
@@ -656,7 +668,7 @@ core.biome(x, z) -> nome                         -- il clima della colonna, seco
                                                  -- core:plains/desert/tundra/peaks, o dove il suolo sta
                                                  -- rispetto al mare: core:ocean/sea/river/lake/beach,
                                                  -- o core:gorge
-core.node_liquid(id, opacità?) -> 1 | 0          -- ci si nuota dentro, e ci passa la luce
+core.node_liquid(id, opacità?) -> bool          -- ci si nuota dentro, e ci passa la luce
 
 core.container_take(x, y, z, item, quanti?) -> presi  -- da un contenitore, dal primo slot
 
@@ -1418,7 +1430,7 @@ l'id) e lo guida lui. Il motore lo fa camminare e mostra cosa fa:
 ```lua
 local id = core.spawn_mob("mymod:contadino", x + 0.5, y, z + 0.5)
 core.mob_goto(id, cx, cy, cz)          -- a quella cella, per la strada di core.find_path
-if core.mob_going(id) == 0 then        -- arrivato (o fermo dove non c'è strada)
+if not core.mob_going(id) then        -- arrivato (o fermo dove non c'è strada)
     core.mob_face(id, wx, wz)
     core.mob_act(id, "gather", "farm:hoe")  -- clip in loop e oggetto in mano, a tutti (protocollo 81)
 end
@@ -2443,8 +2455,8 @@ core.event.on("core:watched", function(ev) --[[ la cella è cambiata ]] end)
 piedi in quella cella; un giocatore si sposta con `core.player_place` (il
 pistone lo fa scivolare in quattro tick da 0,25).
 
-**Blocchi.** `core.node_solid(id)` risponde 1 o 0 — confrontatelo con 1, perché
-in Luau anche 0 è vero. Un blocco `wallmounted` guarda fuori dalla faccia contro
+**Blocchi.** `core.node_solid(id)` risponde true o false (1 o 0 con `api = 1`, dove va
+confrontato con 1: in Luau anche 0 è vero). Un blocco `wallmounted` guarda fuori dalla faccia contro
 cui è stato messo, in sei direzioni: è così che pistoni, observer e hopper
 puntano anche in su e in giù (+X, -X, +Y, -Y, +Z, -Z per le facce 0..5, e i box
 si scrivono col davanti verso +Z). **L'immagine di un box si legge con la prima
@@ -2647,9 +2659,11 @@ lo sono.
 
 **Cosa un controllo pulito non vede**, trovato lo stesso giorno in codice che lo passava:
 
-- **0 è vero.** Molte chiamate rispondono 1 o 0 (`core.loaded`, `core.node_solid`...), e in Luau
-  sono falsi solo `nil` e `false`: `if core.loaded(x, y, z) then` si prende sempre. Scrivete
-  `== 1`. Le bandiere del fronte si alzavano su terreno che non c'era ancora, una volta, dalla 0.9 alla 0.18.
+- **0 è vero.** Con `api = 1` le chiamate che rispondono sì o no (`core.loaded`,
+  `core.node_solid`...) rispondono 1 o 0, e in Luau sono falsi solo `nil` e `false`:
+  `if core.loaded(x, y, z) then` si prende sempre. Le bandiere del fronte si alzavano su terreno che
+  non c'era ancora, una volta, dalla 0.9 alla 0.18 -- ed è per questo che `api = 2` risponde true o
+  false.
 - **Il testo di un client non è un numero finché non lo si controlla.** `tonumber(w[i]) :: number`
   dice al checker che lo è; un client che manda altro fa fallire il gestore, e un gestore che
   fallisce spegne il mod -- per tutti in quel mondo. Controllateli uno per uno e scartate il

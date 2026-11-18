@@ -67,6 +67,16 @@ set_tests_properties(mods_smoke PROPERTIES
                      TIMEOUT 300
                      ENVIRONMENT "CNP_LOG_DIR=${CMAKE_BINARY_DIR}/test-logs")
 
+# The same, with a player in each world: a probe joins, chats, asks for /help,
+# breaks two blocks, stands and walks, and leaves -- the handlers that only
+# run for a player are reached too.
+add_test(NAME mods_play
+         COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/mods_play.sh $<TARGET_FILE:cnp_server>
+                 $<TARGET_FILE:cnp_join_probe> ${CMAKE_SOURCE_DIR})
+set_tests_properties(mods_play PROPERTIES
+                     TIMEOUT 600
+                     ENVIRONMENT "CNP_LOG_DIR=${CMAKE_BINARY_DIR}/test-logs")
+
 # The hand-written part of core and its types in docs/api.d.luau name the same
 # functions.
 find_program(CNP_PYTHON3 python3)

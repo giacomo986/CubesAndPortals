@@ -67,7 +67,7 @@ local DIFFICULTIES = {
 }
 
 local function admin(p: number): boolean
-    return core.has_perm(p, "admin") == 1
+    return core.has_perm(p, "admin")
 end
 
 -- What a rule changing does at once, besides being kept.

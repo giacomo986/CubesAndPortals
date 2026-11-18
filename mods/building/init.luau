@@ -580,7 +580,7 @@ if serving then
     end)
 
     local function joins_to(id: number): boolean
-        return id ~= 0 and (JOINS[id] == true or (core.node_solid(id) == 1 and JOINED[id] == nil))
+        return id ~= 0 and (JOINS[id] == true or (core.node_solid(id) and JOINED[id] == nil))
     end
 
     -- A fence, pane or bars cell takes the variant its neighbours call for.
@@ -995,8 +995,7 @@ if serving then
     -- kind, joins the line; only plain ones and slopes change shape. So a line
     -- laid up or down a step of the ground climbs it by itself; a slope broken
     -- gives a plain rail back.
-    local RUN = { { 0, -1 }, { -1, 0 }, { 0, 1 }, { 1, 0 } }
-    local PLAIN = { [RAIL] = true, [CORNER_R] = true, [CORNER_L] = true, [RAIL_UP] = true, [RAIL_DOWN] = true }
+    local RAIL_PLAIN = { [RAIL] = true, [CORNER_R] = true, [CORNER_L] = true, [RAIL_UP] = true, [RAIL_DOWN] = true }
     core.node_drop(RAIL_UP, RAIL)
     core.node_drop(RAIL_DOWN, RAIL)
     local ANY = { [RAIL] = true, [CORNER_R] = true, [CORNER_L] = true, [PRAIL] = true, [PRAIL_ON] = true,
@@ -1008,7 +1007,7 @@ if serving then
         return RUN[core.get_facing(x, y, z) % 4 + 1]
     end
     local function shape(x: number, y: number, z: number)
-        if not PLAIN[core.get_block(x, y, z)] then
+        if not RAIL_PLAIN[core.get_block(x, y, z)] then
             return
         end
         local f = core.get_facing(x, y, z)

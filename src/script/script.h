@@ -872,6 +872,12 @@ typedef struct script_desc {
     // The mod's directory: `require("./part")` finds files in it and never
     // outside it. Null or empty, and `require` answers with an error.
     const char *root_dir;
+
+    // The mod API the code was written for (mod.conf `api`). What a call that
+    // answers yes or no gives back depends on it: 1 or 0 under api 1, true or
+    // false from api 2 on -- 0 is true in Luau, and `if core.loaded(...) then`
+    // was taken for every cell. 0 here means 1.
+    unsigned api;
 } script_desc;
 
 script_vm *script_create(const script_desc *desc);

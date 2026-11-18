@@ -444,7 +444,7 @@ if not HUB and #EXITS > 0 then
             end
         end
         local key = `{want[1]},{want[2]},{want[3]}`
-        if key ~= out_at and core.portal_place(k, want[1], want[2], want[3], 1, 1, 0.5, 1.0) == 1 then
+        if key ~= out_at and core.portal_place(k, want[1], want[2], want[3], 1, 1, 0.5, 1.0) then
             out_at = key
         end
         for _, p in core.players() do
@@ -452,17 +452,17 @@ if not HUB and #EXITS > 0 then
             if x == nil then continue end
             local lv = level_of[p]
             local won = if lv then cleared(lv.site, p) else next(passed(p)) ~= nil
-            for _, k in EXITS do core.portal_seal(p, k, not (won or ALL_OPEN)) end
+            for _, portal in EXITS do core.portal_seal(p, portal, not (won or ALL_OPEN)) end
             -- The altar, one forward and two to the side of each way out (all
             -- face +x), put back while anybody is near: a world's own stages
             -- write over what is set before its columns are made.
             local by = false
-            for i, k in EXITS do
+            for i, portal in EXITS do
                 -- Where the way out stands for the world's own trial, even
                 -- while the first one is at a level's niche.
-                local hx = if i == 1 and home then home[1] else core.get_portal(k, 0)
-                local hy = if i == 1 and home then home[2] else core.get_portal(k, 1)
-                local hz = if i == 1 and home then home[3] else core.get_portal(k, 2)
+                local hx = if i == 1 and home then home[1] else core.get_portal(portal, 0)
+                local hy = if i == 1 and home then home[2] else core.get_portal(portal, 1)
+                local hz = if i == 1 and home then home[3] else core.get_portal(portal, 2)
                 local ax = math.floor(hx) + 1
                 local ay = math.floor(hy) - 1
                 local az = math.floor(hz) + 2
@@ -482,12 +482,12 @@ if not HUB and #EXITS > 0 then
                 if core.bag_count(p, item_of(w)) == 0 then waiting = core.item_id(item_of(w)) end
             end
         end
-        for i, k in EXITS do
+        for i, portal in EXITS do
             if on_altar[i] ~= waiting then
-                local hx = if i == 1 and home then home[1] else core.get_portal(k, 0)
-                local hy = if i == 1 and home then home[2] else core.get_portal(k, 1)
-                local hz = if i == 1 and home then home[3] else core.get_portal(k, 2)
-                if core.show_item(math.floor(hx) + 1, math.floor(hy), math.floor(hz) + 2, waiting) == 1 then
+                local hx = if i == 1 and home then home[1] else core.get_portal(portal, 0)
+                local hy = if i == 1 and home then home[2] else core.get_portal(portal, 1)
+                local hz = if i == 1 and home then home[3] else core.get_portal(portal, 2)
+                if core.show_item(math.floor(hx) + 1, math.floor(hy), math.floor(hz) + 2, waiting) then
                     on_altar[i] = waiting
                 end
             end
@@ -567,7 +567,7 @@ if HUB then
         placed = 0
         for _, a in ARCHES do
             local x, y, z = core.get_portal(a.k, 0), core.get_portal(a.k, 1), core.get_portal(a.k, 2)
-            placed += core.portal_place(a.k, x, y, z, 0, -1, 0.5, 1.0)
+            if core.portal_place(a.k, x, y, z, 0, -1, 0.5, 1.0) then placed += 1 end
         end
     end)
 end

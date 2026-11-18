@@ -37,7 +37,7 @@ if serving then
     local FACE_OUT = { ["1,0,0"] = 1, ["-1,0,0"] = 0, ["0,0,1"] = 5, ["0,0,-1"] = 4 }
 
     local function solid(x: number, y: number, z: number): boolean
-        return core.node_solid(core.get_block(x, y, z)) == 1
+        return core.node_solid(core.get_block(x, y, z))
     end
 
     -- Which block the player put it against: the first solid one along their look,
@@ -131,9 +131,9 @@ if core.side() ~= "server" then
         for x = bx - R, bx + R do
             for z = bz - R, bz + R do
                 for y = by - DOWN, by + UP do
-                    if core.node_solid(core.get_block(x, y - 1, z)) == 1
-                        and core.node_solid(core.get_block(x, y, z)) ~= 1
-                        and core.node_solid(core.get_block(x, y + 1, z)) ~= 1
+                    if core.node_solid(core.get_block(x, y - 1, z))
+                        and not core.node_solid(core.get_block(x, y, z))
+                        and not core.node_solid(core.get_block(x, y + 1, z))
                         and core.block_light(x, y, z) <= 7 then
                         table.insert(tiles, { x + 0.5, y + 0.02, z + 0.5, if core.light(x, y, z) <= 7 then 1 else 0 })
                     end

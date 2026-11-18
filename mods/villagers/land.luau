@@ -30,7 +30,6 @@ local lots = common.lots
 local LOT = 8
 local FLOOR_PRICE, GARDEN_PRICE = 12, 6   -- a second storey, a garden, on a house bought
 local GUARD_DAY = 6   -- a guard of the village hired for a player's territory (mods/territory)
-local W = 7
 local ROAD_BLOCKS = { "gravel:gravel", "rocks:cobblestone", "rocks:smooth_stone", "rocks:coarse_dirt",
                       "steps:gravel_stair", "steps:cobblestone_stair", "steps:smooth_stone_stair",
                       "steps:coarse_dirt_stair" }
@@ -122,7 +121,7 @@ local function tree_log(x: number, y: number, z: number): boolean
         for _, d in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
             local b = core.get_block(x + d[1], ty, z + d[2])
             local name = core.node_name(b)
-            if name == "timber:rungs" or name:sub(1, 6) == "doors:" or (b ~= AIR and core.node_solid(b) == 1
+            if name == "timber:rungs" or name:sub(1, 6) == "doors:" or (b ~= AIR and core.node_solid(b)
                 and not (is_in("logs", LOG_NAMES, b) or is_in("leaves", LEAF_NAMES, b) or is_in("natural", NATURAL, b))) then
                 return false
             end
@@ -130,7 +129,7 @@ local function tree_log(x: number, y: number, z: number): boolean
     end
     for dy = 1, 4 do
         local over = core.get_block(x, top + dy, z)
-        if core.node_solid(over) == 1 and not is_in("leaves", LEAF_NAMES, over) then
+        if core.node_solid(over) and not is_in("leaves", LEAF_NAMES, over) then
             return false
         end
     end
@@ -151,7 +150,7 @@ end
 local function ground_at(x: number, y: number, z: number): (number?, number)
     for gy = y + 12, y - 16, -1 do
         local b = core.get_block(x, gy, z)
-        if core.node_solid(b) == 1 and not is_in("logs", LOG_NAMES, b) and not is_in("leaves", LEAF_NAMES, b) then
+        if core.node_solid(b) and not is_in("logs", LOG_NAMES, b) and not is_in("leaves", LEAF_NAMES, b) then
             return gy, b
         elseif core.node_name(b):sub(1, 6) == "lakes:" then
             return nil, b
@@ -369,12 +368,12 @@ local function plan_of(o: Order): { { any } }
             -- An old hall, or the watch's barracks (as mods/villages builds
             -- them): three beds on the ground and six on each floor, no
             -- table, and the bell or the banner that says whose they are.
-            for k = 0, storeys - 1 do
-                local y = F + 4 * k
+            for floor = 0, storeys - 1 do
+                local y = F + 4 * floor
                 for _, lx in { 1, 3, 5 } do
                     hput(lx, y, d - 3, "bed:bed", 2)
                     hput(lx, y, d - 2, "bed:bed_head", 2)
-                    if k > 0 then
+                    if floor > 0 then
                         hput(lx, y, 2, "bed:bed", 0)
                         hput(lx, y, 1, "bed:bed_head", 0)
                     end
@@ -585,7 +584,7 @@ local function road_of(o: Order): { { number } }
     for _, name in ROAD_BLOCKS do
         local f = core.find_nodes(sx - 40, o.floor - 8, sz - 40, sx + 40, o.floor + 6, sz + 40, name)
         for i = 1, #f, 3 do
-            if core.node_solid(core.get_block(f[i], f[i + 1] + 1, f[i + 2])) ~= 1 then
+            if not core.node_solid(core.get_block(f[i], f[i + 1] + 1, f[i + 2])) then
                 street[`{f[i]},{f[i + 2]}`] = true
             end
         end
@@ -608,7 +607,7 @@ local function road_of(o: Order): { { number } }
                 c = gy
                 for y = gy + 1, gy + 3 do
                     local b = core.get_block(cx, y, cz)
-                    if b ~= AIR and core.node_solid(b) == 1 and not is_in("natural", NATURAL, b)
+                    if b ~= AIR and core.node_solid(b) and not is_in("natural", NATURAL, b)
                         and not tree_log(cx, y, cz) and not is_in("leaves", LEAF_NAMES, b) then
                         c = false   -- a wall, a fence, somebody's house
                         break

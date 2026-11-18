@@ -1,0 +1,9 @@
+{
+    // luau-lsp (the "Luau Language Server" extension): the same types
+    // tools/typecheck.sh checks against, outside Roblox.
+    "luau-lsp.platform.type": "standard",
+    "luau-lsp.sourcemap.enabled": false,
+    "luau-lsp.types.definitionFiles": ["docs/api.d.luau"],
+    "luau-lsp.types.roblox": false,
+    "files.associations": { "*.luau": "luau" }
+}

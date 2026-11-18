@@ -597,9 +597,9 @@ if serving then
                         -- same centre is the same portal, so a second time
                         -- opens nothing new.
                         local t, b = plan.top, plan.back
-                        local a = core.portal_open(t[1] + 0.5, t[2] + 1, t[3] + 0.5, 1, 1, 0, 0.5, 1.0)
-                        local z = core.portal_open(b[1] + 0.5, b[2] + 1, b[3] + 0.5, 1, 1, 0, 0.5, 1.0)
-                        if a >= 0 and z >= 0 then core.portal_link(a, z) end
+                        local t_portal = core.portal_open(t[1] + 0.5, t[2] + 1, t[3] + 0.5, 1, 1, 0, 0.5, 1.0)
+                        local b_portal = core.portal_open(b[1] + 0.5, b[2] + 1, b[3] + 0.5, 1, 1, 0, 0.5, 1.0)
+                        if t_portal >= 0 and b_portal >= 0 then core.portal_link(t_portal, b_portal) end
                         reached[p] = 1
                     elseif i == #pads then
                         -- The summit: the trial passed, its key on the altar (mods/keys).

@@ -12823,22 +12823,56 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
         }
     }
 
-    // The pairs of a world with mouths (Session::local_links): the nearest
-    // two in sight, each lent one of more_rt, with this world inside them.
+    // The pairs of a world with mouths (Session::local_links): the kMoreShown
+    // that cover most of the screen, each lent one of more_rt, with this world
+    // inside them. An opening counts by its box on screen; one seen THROUGH
+    // another -- the next room's door at the end of a doorway -- by its box
+    // in that one's picture, cut to that one's. Nearest-in-sight was the rule
+    // before, and it left that far door out: its hole showed the sky behind
+    // the room (portallab /lab loop3, 2026-11-18).
     s.local_shown_count = 0;
     if (!s.act().local_links.empty()) {
         diag::ProfScope _("portals");
         make_more_rt(s);
         const Mat4 vp = mat4_multiply(projection, view);
-        std::vector<const PortalLink *> seen;
-        for (const PortalLink &l : s.act().local_links)
-            if (PortalRenderer::opening_in_view(l.src, vp)) seen.push_back(&l);
-        std::sort(seen.begin(), seen.end(), [&](const PortalLink *a, const PortalLink *b) {
-            return length_sq(a->src.center - eye) < length_sq(b->src.center - eye);
-        });
+        const std::vector<PortalLink> &all = s.act().local_links;
+        const float whole_lo[2] = {-1.0f, -1.0f}, whole_hi[2] = {1.0f, 1.0f};
+        auto area = [](const PortalSurface &o, const Mat4 &m, const float clo[2], const float chi[2]) {
+            if (!PortalRenderer::opening_in_view(o, m)) return 0.0f;
+            float lo[2], hi[2];
+            if (!PortalRenderer::opening_ndc(o, m, lo, hi)) return 4.0f;   // at the eye: all of it
+            float a = 1.0f;
+            for (int k = 0; k < 2; ++k)
+                a *= std::max(0.0f, std::min(hi[k], chi[k]) - std::max(lo[k], clo[k]));
+            return a;
+        };
+        std::vector<float> score(all.size(), 0.0f);
+        for (size_t i = 0; i < all.size(); ++i) score[i] = area(all[i].src, vp, whole_lo, whole_hi);
+        for (size_t i = 0; i < all.size(); ++i) {
+            if (score[i] <= 0.0f) continue;
+            const PortalLink &l = all[i];
+            float plo[2], phi[2];
+            if (!PortalRenderer::opening_ndc(l.src, vp, plo, phi)) {
+                plo[0] = plo[1] = -1.0f;
+                phi[0] = phi[1] = 1.0f;
+            }
+            const VirtualCamera vc = portal_virtual_camera(l.src, l.dst, eye, forward, up);
+            const Mat4 vp2 = mat4_multiply(projection, mat4_look_to(vc.pos, vc.forward, vc.up));
+            for (size_t j = 0; j < all.size(); ++j) {
+                const PortalSurface &o = all[j].src;
+                if (j == i || dot(vc.pos - o.center, o.normal) < 0.0f ||
+                    dot(o.center - l.dst.center, l.dst.normal) <= 0.0f)
+                    continue;   // seen from behind, or behind the far end's wall
+                score[j] = std::max(score[j], area(o, vp2, plo, phi));
+            }
+        }
+        std::vector<size_t> seen;
+        for (size_t i = 0; i < all.size(); ++i)
+            if (score[i] > 0.0f) seen.push_back(i);
+        std::sort(seen.begin(), seen.end(), [&](size_t a, size_t b) { return score[a] > score[b]; });
         const int count = std::min((int)seen.size(), Scene::kMoreShown);
         for (int k = 0; k < count; ++k) {
-            s.local_shown[k]    = *seen[(size_t)k];
+            s.local_shown[k]    = all[seen[(size_t)k]];
             s.local_shown[k].rt = s.more_rt[k];
         }
         s.local_shown_count = count;

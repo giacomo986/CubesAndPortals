@@ -488,7 +488,7 @@ local function conducts(id: number): boolean
     if id == 0 or (PART[id] and id ~= LAMP and id ~= LAMP_ON) or id == BLOCK then
         return false
     end
-    return core.node_solid(id) == 1
+    return core.node_solid(id)
 end
 
 type Cell = { x: number, y: number, z: number }
@@ -885,7 +885,7 @@ end
 -- What is in the way and not a block to push: a crop, a torch, dust, water.
 -- Broken, as what it drops.
 local function crushable(id: number): boolean
-    return id ~= 0 and not IMMOVABLE[id] and core.node_solid(id) == 0
+    return id ~= 0 and not IMMOVABLE[id] and not core.node_solid(id)
 end
 
 local function drop_as_item(x: number, y: number, z: number, id: number)
@@ -1017,7 +1017,7 @@ local function retract(p: Cell, kind: PistonKind)
         local r = kind.reach + 1
         local x, y, z = p.x + dx * r, p.y + dy * r, p.z + dz * r
         local id = core.get_block(x, y, z)
-        if movable(x, y, z, id) and core.node_solid(id) == 1 and not PISTONS[id]
+        if movable(x, y, z, id) and core.node_solid(id) and not PISTONS[id]
             and core.get_block(p.x + dx, p.y + dy, p.z + dz) == 0 then
             move_block(x, y, z, p.x + dx, p.y + dy, p.z + dz)
         end

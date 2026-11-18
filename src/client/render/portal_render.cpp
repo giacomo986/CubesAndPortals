@@ -417,18 +417,15 @@ bool PortalRenderer::opening_in_view(const PortalSurface &s, const Mat4 &view_pr
         .intersects_aabb(s.center - half, s.center + half);
 }
 
-// The pixels of a target an opening can sample: its box (the hole's sides
-// included, as opening_in_view) projected with the camera that looks at it,
-// two pixels wider. False when a corner is at or behind the eye, where the
-// box's projection says nothing and the whole target is drawn.
-static bool opening_rect(const PortalSurface &s, const Mat4 &view_projection, int w, int h,
-                         int &x0, int &y0, int &x1, int &y1)
+bool PortalRenderer::opening_ndc(const PortalSurface &s, const Mat4 &view_projection, float lo[2],
+                                 float hi[2])
 {
     const Vec3 r = s.right(), u = s.up, n = s.normal;
     const Vec3 half{std::fabs(r.x) * s.half_w + std::fabs(u.x) * s.half_h + std::fabs(n.x),
                     std::fabs(r.y) * s.half_w + std::fabs(u.y) * s.half_h + std::fabs(n.y),
                     std::fabs(r.z) * s.half_w + std::fabs(u.z) * s.half_h + std::fabs(n.z)};
-    float lo[2] = {1.0f, 1.0f}, hi[2] = {-1.0f, -1.0f};
+    lo[0] = lo[1] = 1.0f;
+    hi[0] = hi[1] = -1.0f;
     for (int c = 0; c < 8; ++c) {
         const Vec3 p{s.center.x + ((c & 1) ? half.x : -half.x),
                      s.center.y + ((c & 2) ? half.y : -half.y),
@@ -441,6 +438,18 @@ static bool opening_rect(const PortalSurface &s, const Mat4 &view_projection, in
             hi[a] = std::max(hi[a], ndc[a]);
         }
     }
+    return true;
+}
+
+// The pixels of a target an opening can sample: its box (the hole's sides
+// included, as opening_in_view) projected with the camera that looks at it,
+// two pixels wider. False when a corner is at or behind the eye, where the
+// box's projection says nothing and the whole target is drawn.
+static bool opening_rect(const PortalSurface &s, const Mat4 &view_projection, int w, int h,
+                         int &x0, int &y0, int &x1, int &y1)
+{
+    float lo[2], hi[2];
+    if (!PortalRenderer::opening_ndc(s, view_projection, lo, hi)) return false;
     x0 = std::max(0, (int)std::floor((lo[0] * 0.5f + 0.5f) * (float)w) - 2);
     y0 = std::max(0, (int)std::floor((lo[1] * 0.5f + 0.5f) * (float)h) - 2);
     x1 = std::min(w, (int)std::ceil((hi[0] * 0.5f + 0.5f) * (float)w) + 2);

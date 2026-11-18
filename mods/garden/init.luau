@@ -300,7 +300,7 @@ core.event.on("core:tick", function(ev)
     for i = #MOUNT.tame, 1, -1 do
         local t = MOUNT.tame[i]
         if t.id == 0 then
-            if core.loaded(math.floor(t.x), math.floor(t.y), math.floor(t.z)) == 1 then
+            if core.loaded(math.floor(t.x), math.floor(t.y), math.floor(t.z)) then
                 t.id = core.spawn_mob(if t.small then MOUNT.SMALL else MOUNT.BIG, t.x, t.y, t.z) or 0
             end
         elseif core.mob_pos(t.id) == nil then
@@ -430,7 +430,7 @@ end
 
 local function walker(b: Bug, dt: number)
     if b.kind == "garden:ant" then return ant(b, dt) end
-    if core.mob_going(b.id) == 1 then return end
+    if core.mob_going(b.id) then return end
     b.wait -= dt
     if b.wait > 0 then return end
     b.wait = 1 + rand() * 3

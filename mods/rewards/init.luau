@@ -104,7 +104,7 @@ if serving then
 
     -- ------------------------------------------------------------- portals
     local function solid(x: number, y: number, z: number): boolean
-        return core.node_solid(core.get_block(x, y, z)) == 1
+        return core.node_solid(core.get_block(x, y, z))
     end
     local function face_of(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, t: number,
                            cx: number, cy: number, cz: number): (number, number, number)

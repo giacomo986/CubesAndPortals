@@ -660,7 +660,7 @@ local function build(g: Gate)
         local id = core.get_block(x, y, z)
         if want == "frame" then core.set_block(x, y, z, OBSIDIAN)
         elseif want == "air" then core.set_block(x, y, z, 0)
-        elseif core.node_solid(id) == 0 then core.set_block(x, y, z, OBSIDIAN) end
+        elseif not core.node_solid(id) then core.set_block(x, y, z, OBSIDIAN) end
     end)
 end
 
@@ -717,7 +717,7 @@ end)
 
 local function ground_made(g: Gate): boolean
     for _, c in { { -2, -2 }, { g.w + 1, -2 }, { -2, g.w + 1 }, { g.w + 1, g.w + 1 } } do
-        if core.loaded(g.x + c[1], g.y, g.z + c[2]) == 0 then return false end
+        if not core.loaded(g.x + c[1], g.y, g.z + c[2]) then return false end
     end
     return true
 end

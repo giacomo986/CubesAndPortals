@@ -49,6 +49,8 @@ struct VmState {
     std::vector<std::string> modules;
     std::vector<std::string> loading;
     int                      modules_ref = -1;   // path -> what the file returned
+
+    unsigned api = 1;   // script_desc::api: how a yes-or-no answer is given back
 };
 
 // Allocator that enforces the quota. Returning null makes Lua raise a normal
@@ -1332,6 +1334,7 @@ script_vm *script_create(const script_desc *desc)
     vm->host             = desc->host;
     vm->memory_limit     = desc->memory_limit_bytes;
     vm->interrupt_budget = desc->interrupt_budget;
+    vm->api              = desc->api ? desc->api : 1;
 
     vm->L = lua_newstate(vm_alloc, vm);
     if (!vm->L) {

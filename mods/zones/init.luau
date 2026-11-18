@@ -517,7 +517,7 @@ local function clean(word: string): string
 end
 
 local function admin(player: number): boolean
-    return core.has_perm(player, "admin") == 1
+    return core.has_perm(player, "admin")
 end
 
 local function mine(player: number, z: Zone): boolean

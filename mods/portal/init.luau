@@ -302,7 +302,7 @@ end
 -- Whether that player sets f up: its builder, whoever the server lets set
 -- portals up, and anybody at all for a frame that is nobody's.
 local function may_edit(player: number, f: Frame): boolean
-    return f.owner == "" or f.owner == core.player_key(player) or core.has_perm(player, "portals") == 1
+    return f.owner == "" or f.owner == core.player_key(player) or core.has_perm(player, "portals")
 end
 
 -- f leads to g, and g to f; whatever either led to before leads nowhere. g nil
@@ -396,7 +396,7 @@ local function menu()
     end)
     -- To other rooms: for whoever sets the server's portals up, on a server
     -- that has rooms, and a frame that stands.
-    local admin = viewer ~= 0 and core.has_perm(viewer, "portals") == 1
+    local admin = viewer ~= 0 and core.has_perm(viewer, "portals")
     local rooms = admin and core.room() ~= "" and f.axis ~= 2
     -- To the viewer's own room: for a frame they built, on a server of rooms,
     -- from any room but one of those. Whoever sets the server's portals up
@@ -408,7 +408,7 @@ local function menu()
     local offers = if listed then far_offers(f) else {}
     local rows = if listed then #offers elseif f.away then 0 else math.ceil(#others / 2)
     local extra = (if rooms or (f.away and not homeward) then 1.1 else 0) + (if mine ~= "" then 1.1 else 0)
-    if core.ui_define(PANEL, 13.0, 7.8 + rows + extra) == 0 then
+    if not core.ui_define(PANEL, 13.0, 7.8 + rows + extra) then
         return
     end
 
@@ -803,7 +803,7 @@ core.event.on("core:ui_click", function(ev)
         menu()
         return
     elseif ev.id == "rooms" then
-        if core.has_perm(ev.player, "portals") == 0 then
+        if not core.has_perm(ev.player, "portals") then
             return
         end
         if f.away then
@@ -825,7 +825,7 @@ core.event.on("core:ui_click", function(ev)
         menu()
         return
     elseif string.sub(ev.id, 1, 4) == "far:" then
-        if core.has_perm(ev.player, "portals") == 0 or not f.away then
+        if not core.has_perm(ev.player, "portals") or not f.away then
             return
         end
         local to = string.split(string.sub(ev.id, 5), "\t")
@@ -1053,7 +1053,7 @@ local function far_set(f: Frame): boolean
     local cx, cy, cz = centre(f)
     local w, h = size(f)
     return core.far_portal_set(f.name, cx, cy, cz, f.axis, f.sign, w / 2, h / 2,
-        table.concat(offered[f] or {}, ","), table.concat(ignored[f] or {}, ",")) == 1
+        table.concat(offered[f] or {}, ","), table.concat(ignored[f] or {}, ","))
 end
 
 local function save_servers()
@@ -1129,7 +1129,7 @@ local function server_menu()
     local skipped = ignored[f] or {}
     local ctop = 4.0 + frows
     local top = ctop + 0.6 + #CHECKS * 0.9 + #skipped * 0.6 + 0.4
-    if core.ui_define(SPANEL, 18.0, top + 1.2 + math.max(1, #choices) * 0.9) == 0 then
+    if not core.ui_define(SPANEL, 18.0, top + 1.2 + math.max(1, #choices) * 0.9) then
         return
     end
     local w, h = size(f)
@@ -1294,7 +1294,7 @@ core.event.on("core:used", function(ev)
     if f == nil then
         return
     end
-    if core.has_perm(ev.player, "admin") == 0 then
+    if not core.has_perm(ev.player, "admin") then
         local st, far = far_state(f)
         core.notice(ev.player, if st == "linked" and far then `{f.name} leads to {far.name} on {far.server}`
             else `{f.name} leads nowhere yet: an admin sets it up`)
@@ -1310,7 +1310,7 @@ core.event.on("core:ui_click", function(ev)
         return
     end
     local f = sshown
-    if ev.id == "close" or f == nil or core.has_perm(ev.player, "admin") == 0 then
+    if ev.id == "close" or f == nil or not core.has_perm(ev.player, "admin") then
         core.ui_show(SPANEL, false, ev.player)
         if sviewer == ev.player then
             sviewer = 0

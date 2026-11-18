@@ -287,7 +287,7 @@ local function bed_keepers(rk: string): { [string]: boolean }
             local v = watch[`{rk} {kind} {i}`]
             if v ~= nil then
                 local bd = v.bed
-                if bd ~= nil and core.loaded(bd[1], bd[2], bd[3]) == 1
+                if bd ~= nil and core.loaded(bd[1], bd[2], bd[3])
                     and core.get_block(bd[1], bd[2], bd[3]) ~= id("bed:bed") then
                     v.bed, bd = nil, nil
                 end

@@ -11,7 +11,7 @@ core.event.on("core:command", function(ev)
     local me = core.player_name(ev.player)
 
     -- A held chat (/mute) is held here too, or /msg is the way round it.
-    if core.is_muted(ev.player) == 1 then
+    if core.is_muted(ev.player) then
         core.chat(ev.player, "You are muted.")
         return
     end

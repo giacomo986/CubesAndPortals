@@ -38,7 +38,7 @@ local viewer = 0
 local function say()
     -- Six cells wide, five tall. A cell is a hotbar slot, so this is about a
     -- third of the screen either way, whatever the screen is.
-    if core.ui_define(PANEL, 8.0, 6.5) == 0 then
+    if not core.ui_define(PANEL, 8.0, 6.5) then
         return
     end
 

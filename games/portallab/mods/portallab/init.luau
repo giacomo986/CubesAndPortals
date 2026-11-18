@@ -139,7 +139,103 @@ local function open_all(): boolean
     return true
 end
 
+-- The demo rooms, ideas taken from optozorax's Portal Explorer, all made of
+-- plain flat pairs, far east of the lab (x 400 on) so their openings are
+-- budgeted apart from its own:
+--
+--   ROOM   a room whose north door leads into its own south door: a
+--          corridor of the same room for ever (as deep as --recursion).
+--   LOOP3  three rooms, each east door onto the next one's north door:
+--          turning right every time, you are back after three rooms, not
+--          four -- a corner with three rooms round it.
+--   LOOP5  the same with five: a corner with five rooms round it.
+--   BOOTH  a booth one node wide outside, a hall 23 wide inside; the hall
+--          stands 300 nodes off, out of sight of the booth.
+local TINTS = {
+    core.register_node("portallab:floor_red", 200, 90, 90, true, 0, "", 0, 1.0, "stone"),
+    core.register_node("portallab:floor_green", 90, 190, 100, true, 0, "", 0, 1.0, "stone"),
+    core.register_node("portallab:floor_blue", 90, 120, 210, true, 0, "", 0, 1.0, "stone"),
+    core.register_node("portallab:floor_yellow", 220, 200, 80, true, 0, "", 0, 1.0, "stone"),
+    core.register_node("portallab:floor_violet", 170, 100, 200, true, 0, "", 0, 1.0, "stone"),
+}
+
+-- A closed room 7x7 inside, x ox+1..ox+7 and z oz+1..oz+7, four high, roofed
+-- with glass for the sun; door holes two high in the middle of the walls `doors` names:
+-- n (z oz), e (x ox+8), s (z oz+8).
+local function room(ox: number, oz: number, floor: number, doors: string)
+    fill(ox, ox + 8, Y, Y, oz, oz + 8, floor)
+    fill(ox, ox + 8, Y + 1, Y + 4, oz, oz + 8, WALL)
+    fill(ox + 1, ox + 7, Y + 1, Y + 4, oz + 1, oz + 7, 0)
+    fill(ox, ox + 8, Y + 5, Y + 5, oz, oz + 8, GLASS)
+    if string.find(doors, "n") then fill(ox + 4, ox + 4, Y + 1, Y + 2, oz, oz, 0) end
+    if string.find(doors, "e") then fill(ox + 8, ox + 8, Y + 1, Y + 2, oz + 4, oz + 4, 0) end
+    if string.find(doors, "s") then fill(ox + 4, ox + 4, Y + 1, Y + 2, oz + 8, oz + 8, 0) end
+end
+local function north(ox: number, oz: number): number
+    return core.portal_open(ox + 4.5, Y + 2.0, oz + 0.5, 0, 1, 0, 0.5, 1.0)
+end
+local function east(ox: number, oz: number): number
+    return core.portal_open(ox + 8.5, Y + 2.0, oz + 4.5, 1, -1, 0, 0.5, 1.0)
+end
+local function south(ox: number, oz: number): number
+    return core.portal_open(ox + 4.5, Y + 2.0, oz + 8.5, 0, -1, 0, 0.5, 1.0)
+end
+
+local LOOPS = { { 420, 60, 3 }, { 420, 90, 5 } }   -- first room's corner, rooms
+
+local function build_demo()
+    room(400, 60, FLOOR, "ns")
+    for _, l in LOOPS do
+        for k = 0, l[3] - 1 do room(l[1] + 20 * k, l[2], TINTS[k + 1], "ne") end
+    end
+    -- BOOTH: x 400..402, z 120..122 outside, door at x 401 in z 120, on a
+    -- landing before it; the hall x 700..724, z 120..144, ten high, glass roofed.
+    fill(394, 408, Y, Y, 112, 124, FLOOR)
+    fill(400, 402, Y + 1, Y + 3, 120, 122, WALL)
+    fill(401, 401, Y + 1, Y + 2, 121, 121, 0)
+    fill(401, 401, Y + 1, Y + 2, 120, 120, 0)
+    fill(700, 724, Y, Y, 120, 144, FLOOR)
+    fill(700, 724, Y + 1, Y + 10, 120, 144, WALL)
+    fill(701, 723, Y + 1, Y + 10, 121, 143, 0)
+    fill(700, 724, Y + 11, Y + 11, 120, 144, GLASS)
+    fill(712, 712, Y + 1, Y + 2, 120, 120, 0)
+end
+core.event.on("core:world_ready", build_demo)
+
+local demo_open = false
+local function open_demo(): boolean
+    local ids: { number } = {}
+    local function op(i: number): number
+        table.insert(ids, i)
+        return i
+    end
+    local n, s = op(north(400, 60)), op(south(400, 60))
+    local pairs_: { { number } } = { { n, s } }
+    for _, l in LOOPS do
+        local es, ns = {}, {}
+        for k = 0, l[3] - 1 do
+            es[k] = op(east(l[1] + 20 * k, l[2]))
+            ns[k] = op(north(l[1] + 20 * k, l[2]))
+        end
+        for k = 0, l[3] - 1 do table.insert(pairs_, { es[k], ns[(k + 1) % l[3]] }) end
+    end
+    local booth = op(core.portal_open(401.5, Y + 2.0, 120.5, 0, -1, 0, 0.5, 1.0))
+    local hall = op(core.portal_open(712.5, Y + 2.0, 120.5, 0, 1, 0, 0.5, 1.0))
+    table.insert(pairs_, { booth, hall })
+    for _, i in ids do
+        if i < 0 then return false end
+    end
+    for _, p in pairs_ do core.portal_link(p[1], p[2]) end
+    core.log(`portallab: demo rooms, {#ids} openings`)
+    return true
+end
+
 local STATIONS: { [string]: { any } } = {
+    room = { 404.5, Y + 1, 66.5, 0, -0.05, -1, "ROOM: walk north -- the same room, again and again (--recursion 4 to see deeper)" },
+    loop3 = { 421.5, Y + 1, 64.5, 1, -0.05, 0, "LOOP3: out of the east door each time -- back in red after three rooms" },
+    loop3x = { 425.5, Y + 1, 67.3, 0.7, -0.05, -0.7, "LOOP3: through red's east door, green's east door must show blue -- not the sky" },
+    loop5 = { 421.5, Y + 1, 94.5, 1, -0.05, 0, "LOOP5: out of the east door each time -- back in red after five rooms" },
+    booth = { 401.5, Y + 1, 115.5, 0, -0.05, 1, "BOOTH: walk round it, then in" },
     wall = { 66.5, Y + 1, 59.5, 0, -0.05, -1, "WALL: the glass wall must be there, through the opening" },
     glass = { 66.5, Y + 1, 64.8, 0, -0.8, -0.6, "GLASS: look down into the hole -- the glass wall must be there" },
     head = { 77.5, Y + 1, 65.8, 0, 0.2, -1, "HEAD: step under the opening in the roof and jump" },
@@ -160,12 +256,12 @@ local function put(p: number, which: string)
     core.notice(p, s[7])
 end
 
-core.command("lab", "wall|glass|head|bounce|view|slide|chase|spin|spiny|spinz|tiny|g1|still|at <degrees>|scale <s> -- go to a station of the portal lab")
+core.command("lab", "wall|glass|head|bounce|view|slide|chase|spin|spiny|spinz|tiny|g1|room|loop3|loop3x|loop5|booth|still|at <degrees>|scale <s> -- go to a station of the portal lab")
 core.event.on("core:command", function(ev)
     local k = if ev.name == "lab" then tonumber(string.match(ev.args, "^scale ([%d%.]+)$")) else nil
     if k then
         -- /lab scale <s>: this body that big (core.body_scale).
-        core.notice(ev.player, if core.body_scale(ev.player, k) == 1 then `SCALE {k}` else "SCALE: refused")
+        core.notice(ev.player, if core.body_scale(ev.player, k) then `SCALE {k}` else "SCALE: refused")
         return
     end
     local deg = if ev.name == "lab" then tonumber(string.match(ev.args, "^at (%-?%d+)$")) else nil
@@ -188,6 +284,9 @@ local seen: { [number]: number } = {}
 core.event.on("core:tick", function(ev)
     if not opened then
         opened = open_all()
+    end
+    if not demo_open then
+        demo_open = open_demo()
     end
     if slide >= 0 then
         if not still then slide_t += ev.dt or 0.05 end

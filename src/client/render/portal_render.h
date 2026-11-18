@@ -104,6 +104,11 @@ public:
     // no pixel -- with more than a pair, most of the frame.
     static bool opening_in_view(const PortalSurface &s, const Mat4 &view_projection);
 
+    // The box opening_in_view tests, projected: its bounds in normalised device
+    // coordinates. False when a corner is at or behind the eye.
+    static bool opening_ndc(const PortalSurface &s, const Mat4 &view_projection, float lo[2],
+                            float hi[2]);
+
     // Renders every link's target, deepest first. Deepest first is the whole
     // trick: the openings a pass draws have to contain an image already, and a
     // render target cannot be bound while another one is.

@@ -128,7 +128,6 @@ local function here(g: Gate): boolean
 end
 
 local GATES = TRACKS[1].gates
-local CHECKPOINTS = #GATES - 1
 
 -- How long a player is held after getting in, before they may drive, in
 -- seconds.
@@ -488,7 +487,7 @@ if serving then
     local function show_garage(p: number, s: Racer)
         local g = kart_of(s.name)
         local panel = garage_panel(p)
-        if core.ui_define(panel, 13.4, 6.9) == 0 then
+        if not core.ui_define(panel, 13.4, 6.9) then
             return
         end
         core.ui_box(panel, 0.2, 0.2, 13.0, 0.7, 40, 44, 56)
@@ -1267,7 +1266,7 @@ if serving then
             core.log(`track_game: {down} of {#boxes} item boxes down`)
         end
         for _, b in boxes do
-            if b.y == nil and core.loaded(math.floor(b.x), b.gy :: number, math.floor(b.z)) == 1 then
+            if b.y == nil and core.loaded(math.floor(b.x), b.gy :: number, math.floor(b.z)) then
                 local top = road_top(math.floor(b.x), math.floor(b.z), b.gy :: number)
                 b.y = top or false
             end
@@ -1541,7 +1540,7 @@ if serving then
                     remove(id)
                     continue
                 end
-                local target = t.target and on[t.target] and t.target
+                local target = if t.target and on[t.target] then t.target else nil
                 if target then
                     -- Turned towards it, five radians a second at most.
                     local qx, _, qz = core.player_pos(target)
@@ -1685,27 +1684,27 @@ if serving then
                 local c = string.split(core.player_carried(p), " ")
                 local ti = tonumber(c[2]) or 0
                 if c[1] == "kart" then
-                    local s = players[p] :: Racer
-                    s.driving, s.skip = true, 3
+                    local racer = players[p] :: Racer
+                    racer.driving, racer.skip = true, 3
                     for what, uses in string.gmatch(c[6] or "", "(%w+):(%d+)") do
-                        if #s.items < HOLD then
-                            table.insert(s.items, { what = what, uses = tonumber(uses) :: number, ready = clock })
+                        if #racer.items < HOLD then
+                            table.insert(racer.items, { what = what, uses = tonumber(uses) :: number, ready = clock })
                         end
                     end
-                    if #s.items > 0 then tell_items(p, s) end
+                    if #racer.items > 0 then tell_items(p, racer) end
                     tell(p, "kart 1")
-                    garage[s.name] = nil   -- it may have changed in the room they came from
-                    dress_kart(p, s)
+                    garage[racer.name] = nil   -- it may have changed in the room they came from
+                    dress_kart(p, racer)
                     if TRACKS[ti] ~= nil then
                         local gates = TRACKS[ti].gates
-                        s.track = ti
-                        s.next = math.clamp(tonumber(c[3]) or 1, 1, #gates)
-                        s.lapping = c[4] == "1"
-                        s.started = clock - (tonumber(c[5]) or 0)
+                        racer.track = ti
+                        racer.next = math.clamp(tonumber(c[3]) or 1, 1, #gates)
+                        racer.lapping = c[4] == "1"
+                        racer.started = clock - (tonumber(c[5]) or 0)
                         tell_track(p, ti, name)
-                        if s.lapping then
-                            local passed = if s.next == 1 then #gates - 1 else s.next - 2
-                            tell(p, string.format("run %.3f %d", clock - s.started, passed))
+                        if racer.lapping then
+                            local passed = if racer.next == 1 then #gates - 1 else racer.next - 2
+                            tell(p, string.format("run %.3f %d", clock - racer.started, passed))
                         end
                         core.log(`track_game: {name} drives in, lapping {TRACKS[ti].key}`)
                     else
@@ -1871,7 +1870,7 @@ if serving then
         -- another room that takes it (core.body_taken).
         for p, s in players do
             if not present[p] then
-                if s.driving and core.body_taken(p) == 0 then
+                if s.driving and not core.body_taken(p) then
                     park(s.x, s.y, s.z, 0, 1)
                     core.log(string.format("track_game: %s gone, their kart parked at %.1f %.1f",
                                            s.name, s.x, s.z))

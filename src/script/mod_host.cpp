@@ -180,13 +180,17 @@ void ModHost::forget_vm(script_vm *vm)
 
 void ModHost::disable_vm(script_vm *vm, const std::string &why)
 {
+    std::string name;
     for (Mod &m : m_mods) {
         if (m.vm != vm) continue;
+        const bool was = m.running;
         m.running = false;
         m.error   = why;
         std::fprintf(stderr, "mod '%s' disabled: %s\n", m.manifest.name.c_str(), why.c_str());
+        if (was) name = m.manifest.name;
     }
     forget_vm(vm);
+    if (!name.empty() && m_on_disabled) m_on_disabled(name, why);
 }
 
 std::string ModVersion::str() const
@@ -665,6 +669,7 @@ bool ModHost::start_mod(ModManifest manifest)
     sd.strip_globals      = strip.data();
     sd.strip_count        = (int)strip.size();
     sd.root_dir           = mod.manifest.dir.c_str();
+    sd.api                = mod.manifest.api;
 
     mod.vm = script_create(&sd);
     if (!mod.vm) return refuse("could not create a VM");
@@ -1010,6 +1015,7 @@ bool ModHost::reload(const std::string &name, std::string &error)
     sd.strip_globals      = strip.data();
     sd.strip_count        = (int)strip.size();
     sd.root_dir           = manifest.dir.c_str();
+    sd.api                = manifest.api;
 
     script_vm *fresh = script_create(&sd);
     if (!fresh) {

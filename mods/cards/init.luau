@@ -460,7 +460,7 @@ if serving then
                 saved[k] = v
             end
         end
-        if core.storage_set("t" .. key, enc(saved)) == 0 then
+        if not core.storage_set("t" .. key, enc(saved)) then
             core.log(`cards: the table at {key} could not be kept`)
         end
     end
@@ -1192,7 +1192,7 @@ if serving then
             return
         end
         local x0, y, z0 = math.floor(sx) - 3, math.floor(sy), math.floor(sz) + 3
-        if core.loaded(x0, y, z0) == 0 then
+        if not core.loaded(x0, y, z0) then
             return
         end
         laid = true
@@ -1274,7 +1274,7 @@ if serving then
         local key, T = table_at(ev.x, ev.y, ev.z)
         local p = ev.player
         local s = seat_of(T, p)
-        if s < 0 and core.is_muted(p) == 1 then   -- /mute: no sitting down with anybody new
+        if s < 0 and core.is_muted(p) then   -- /mute: no sitting down with anybody new
             core.notice(p, "You are muted: you cannot join a table")
             return
         end

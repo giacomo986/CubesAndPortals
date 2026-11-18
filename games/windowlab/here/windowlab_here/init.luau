@@ -20,7 +20,7 @@ end)
 local since, placed = 0.0, false
 core.event.on("core:tick", function(ev)
     since += ev.dt
-    if not placed then placed = core.portal_place(0, 32.5, Y + 3, 40.5, 0, 1, 3, 2) == 1 end
+    if not placed then placed = core.portal_place(0, 32.5, Y + 3, 40.5, 0, 1, 3, 2) end
     if since < 1 then return end
     since = 0
     for _, p in core.players() do

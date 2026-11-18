@@ -119,10 +119,12 @@ The name of the room this world is on a server of several (--room NAME), or an e
 ## `core.portal_place`
 
 ```luau
-core.portal_place(index: number, x: number, y: number, z: number, axis: number, sign: number, half_w: number?, half_h: number?) -> number
+core.portal_place(index: number, x: number, y: number, z: number, axis: number, sign: number, half_w: number?, half_h: number?) -> boolean
 ```
 
 Moves one of the world's two openings while the world runs, on a server: a frame a player built and lit becomes the way to the world that opening leads to, and the old place is a frame with nothing in it. Every player is sent the change, and a crossing from the far world comes out here. Returns 1, or 0 on a world that is not running yet, in a single-process client, or for an index or a shape out of range.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -158,10 +160,12 @@ Opens a portal while the world runs, on a server, and returns its id: the lowest
 ## `core.portal_link`
 
 ```luau
-core.portal_link(a: number, b: number) -> number
+core.portal_link(a: number, b: number) -> boolean
 ```
 
 Makes two openings lead to each other, on a server: what is seen in one is seen from the other, and a body walking into one comes out of the other. Whatever either led to before leads nowhere now. An id with no portal yet may be linked, so a mod can link before it opens. Returns 1, or 0 for an index out of range or no server.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -171,10 +175,12 @@ Makes two openings lead to each other, on a server: what is seen in one is seen 
 ## `core.portal_move`
 
 ```luau
-core.portal_move(id: number, x: number, y: number, z: number, axis: number?, sign: number?, rot: number?, nx: number?, ny: number?, nz: number?, ux: number?, uy: number?, uz: number?) -> number
+core.portal_move(id: number, x: number, y: number, z: number, axis: number?, sign: number?, rot: number?, nx: number?, ny: number?, nz: number?, ux: number?, uy: number?, uz: number?) -> boolean
 ```
 
 Moves an open portal while the world runs, on a server: a door sliding along a rail, a portal carried by a cart. Called every tick it MOVES -- the same opening, going at the speed of the last two moves, drawn going smoothly on every client, and a body crossing it is handed over relative to it: what goes in at rest comes out at the far end's speed. A move stopped for a fifth of a second stands it still. A new plane, front or turn, or a jump of more than four nodes, puts it there instead, as a portal opened anew. Given a front (nx, ny, nz) it is turned freely, any way at all, and may turn on every tick and stay the same opening; it is crossed by a floor's rules when it faces nearer up or down than sideways. Close it later by its new centre. Returns 1, or 0 for no such portal or no server.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -195,10 +201,12 @@ Moves an open portal while the world runs, on a server: a door sliding along a r
 ## `core.portal_scale`
 
 ```luau
-core.portal_scale(id: number, on: boolean?) -> number
+core.portal_scale(id: number, on: boolean?) -> boolean
 ```
 
 Makes an open portal one that SCALES, on a server. Linked to another that scales and is of another size, what crosses comes out as big against the far end as it was against this one -- walked into a door-sized opening on a table, out of one an inch high as a body an inch high (core.body_scale), and back -- and what is seen through it is seen at that scale. Proportions are the far end's half height over this one's; give both the same shape. One that scales stands in the air, as one turned freely. Returns 1, or 0 for no such portal or no server.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -208,10 +216,12 @@ Makes an open portal one that SCALES, on a server. Linked to another that scales
 ## `core.portal_window`
 
 ```luau
-core.portal_window(a: number, b: number) -> number
+core.portal_window(a: number, b: number) -> boolean
 ```
 
 Links a to b as a WINDOW, on a server: a shows what b faces, and b is drawn from nowhere, so whoever is over there sees nothing; nothing crosses either, and a window lets solid blocks stand in front of it. The player near a is sent all of what b is as wide as (chunks and bodies), and core.portal_scale on both makes it a miniature. Returns 1, or 0 for no such portals or no server.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -235,10 +245,12 @@ Closes the opening with that centre, on a server: nothing is drawn in it or cros
 ## `core.portal_seal`
 
 ```luau
-core.portal_seal(player: number, index: number, sealed: boolean) -> number
+core.portal_seal(player: number, index: number, sealed: boolean) -> boolean
 ```
 
 Shuts one mouth to one player, or opens it again, on a server: sealed, that player sees a red membrane across it and does not walk through; opened, the membrane parts onto the world behind it. Everybody else is not touched -- a way out that opens for whoever passed the trial behind it. Forgotten when the player leaves this world: seal again on arrival. Returns 1, or 0 for no such player or an index that is not a mouth.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -249,10 +261,12 @@ Shuts one mouth to one player, or opens it again, on a server: sealed, that play
 ## `core.far_portal_set`
 
 ```luau
-core.far_portal_set(name: string, x: number, y: number, z: number, axis: number, sign: number, half_w: number, half_h: number, offered: string, ignore: string?) -> number
+core.far_portal_set(name: string, x: number, y: number, z: number, axis: number, sign: number, half_w: number, half_h: number, offered: string, ignore: string?) -> boolean
 ```
 
 Opens or reshapes a portal to another server, on a server with --federation: it is offered to those friend servers (the ones sharing portals), whose portals offered to this server core.far_portals lists, and leads nowhere -- no opening at all -- until core.far_portal_link links it to one of them and that server takes the link. Then it is one of the world's mouths: an opening onto the other server, crossed on a ticket this server signs, and the far server's key is checked by the client. A link made is kept in the world file and outlives either server being off; it comes undone when either side unlinks, closes, stops offering or resizes its portal, or when either server's signing key changes. Returns 1, or 0 for a bad name, a lying shape or no server.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -270,10 +284,12 @@ Opens or reshapes a portal to another server, on a server with --federation: it 
 ## `core.far_portal_close`
 
 ```luau
-core.far_portal_close(name: string) -> number
+core.far_portal_close(name: string) -> boolean
 ```
 
 Closes a portal to another server: its link goes, on both servers, and its mouth is given back. Returns 1, or 0 for no such portal.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -321,10 +337,12 @@ The friend servers sharing portals and what each offers this server, a line each
 ## `core.room_portal_set`
 
 ```luau
-core.room_portal_set(name: string, x: number, y: number, z: number, axis: number, sign: number, half_w: number, half_h: number) -> number
+core.room_portal_set(name: string, x: number, y: number, z: number, axis: number, sign: number, half_w: number, half_h: number) -> boolean
 ```
 
 Sets or reshapes a portal to another room of this server, made while it runs. It leads nowhere, and is no opening at all, until core.room_portal_link links it to one in another room. Linked, it holds none of the world's mouths until a player is within 160 nodes of either end: the server gives the mouths it has to spare -- those past the world's own (--portal-to) and its own that are parked (core.portal_park) -- to the linked portals nearest a player, and takes them back from the rest. So a world holds as many as are built; what is bounded is how many are in use near players at once. Nothing is kept across a restart: the mod says its portals and their links again. Another size than it had unlinks it. Returns 1, or 0 for a bad name, a lying shape or no server.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -340,10 +358,12 @@ Sets or reshapes a portal to another room of this server, made while it runs. It
 ## `core.room_portal_close`
 
 ```luau
-core.room_portal_close(name: string) -> number
+core.room_portal_close(name: string) -> boolean
 ```
 
 Closes a portal to another room: what it led to leads nowhere, and its mouth is given back. Returns 1, or 0 for no such portal.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -390,10 +410,12 @@ The other rooms of this server and their portals, a line each: "R\tROOM" for a r
 ## `core.room_access`
 
 ```luau
-core.room_access(room: string, who: string, look: boolean, enter: boolean) -> number
+core.room_access(room: string, who: string, look: boolean, enter: boolean) -> boolean
 ```
 
 Who may look into a room of this server and who may go in, kept by the server for its life whether the room is up or not: a player's own room (mods/home) says it. A room with no rule is open to everybody; the first call makes one, "*" its default (look and enter until set). Whoever has the `portals` permission may always do both. Checked at the portals of every room that lead there and by the room itself. Returns 1, or 0 for a bad room or `who`.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -405,10 +427,12 @@ Who may look into a room of this server and who may go in, kept by the server fo
 ## `core.room_access_clear`
 
 ```luau
-core.room_access_clear(room: string) -> number
+core.room_access_clear(room: string) -> boolean
 ```
 
 Takes a room's rule away (core.room_access): open to everybody again. Returns 1, or 0 when it had none.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -417,10 +441,12 @@ Takes a room's rule away (core.room_access): open to everybody again. Returns 1,
 ## `core.room_send`
 
 ```luau
-core.room_send(player: number, room: string?) -> number
+core.room_send(player: number, room: string?) -> boolean
 ```
 
 Sends a player to another room of this server, at its spawn: the way out of a room whose way in is gone. The player arrives as through a portal, on a ticket this room signs. Returns 1, or 0 for no such player, a player only looking in, or no such room.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -430,10 +456,12 @@ Sends a player to another room of this server, at its spawn: the way out of a ro
 ## `core.portal_park`
 
 ```luau
-core.portal_park(index: number) -> number
+core.portal_park(index: number) -> boolean
 ```
 
 Says one of the world's own mouths is not in use now -- a second way in nobody is near, a door's mouth with no door to stand in -- instead of putting it out of sight. Its opening goes, and until core.portal_place puts it somewhere again the mouth may be lent to a portal between rooms (core.room_portal_set); placed again, whatever borrowed it gives it back at once. A seal on it (core.portal_seal) does not hold for the borrower. Returns 1, or 0 for an index that is not one of the world's own or no server.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -492,10 +520,12 @@ It is turned about the middle of its cell by the cell's facing byte, like a box 
 ## `core.node_drop`
 
 ```luau
-core.node_drop(id: number, as: number) -> number
+core.node_drop(id: number, as: number) -> boolean
 ```
 
 What breaking a block gives, when that is another block's item: half of a double chest gives a chest, a lit furnace gives a furnace. A block that drops as another has no item of its own -- nobody can hold one, and the creative page does not list it. Returns 1, or 0 for an id that is not a block.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -505,10 +535,12 @@ What breaking a block gives, when that is another block's item: half of a double
 ## `core.node_drop_item`
 
 ```luau
-core.node_drop_item(id: number, item: string) -> number
+core.node_drop_item(id: number, item: string) -> boolean
 ```
 
 What breaking a block gives, when that is an item and not a block: diamond ore gives a diamond. Like node_drop, the block then has no item of its own. Returns 1, or 0 for an id that is not a block.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -518,10 +550,12 @@ What breaking a block gives, when that is an item and not a block: diamond ore g
 ## `core.watch_cell`
 
 ```luau
-core.watch_cell(x: number, y: number, z: number, on: boolean?) -> number
+core.watch_cell(x: number, y: number, z: number, on: boolean?) -> boolean
 ```
 
 Asks to hear when anything writes that cell: a mod (water running into it, wheat growing in it), a player placing or breaking, the engine (a door a creature opens). Heard as core:watched {x, y, z}, once per cell per tick, at the start of the next core:tick. Watches are this process's and not saved: ask again when the chunk loads (an LBM). Returns 1.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -533,10 +567,12 @@ Asks to hear when anything writes that cell: a mod (water running into it, wheat
 ## `core.node_solid`
 
 ```luau
-core.node_solid(id: number) -> number
+core.node_solid(id: number) -> boolean
 ```
 
 1 if that block stops bodies and light (register_node's solid), 0 if not or no block.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -545,10 +581,12 @@ core.node_solid(id: number) -> number
 ## `core.ride`
 
 ```luau
-core.ride(player: number, host: number, x: number?, y: number?, z: number?) -> number
+core.ride(player: number, host: number, x: number?, y: number?, z: number?) -> boolean
 ```
 
 A seat: puts `player` on `host`'s body and keeps them there, turning with it -- a passenger in a kart, one player on another's shoulders. While seated their keys move nothing; they look about, dig, build and use as ever. 0 for the host lets them off where they are, walking. Let off by itself when the host leaves or gets a seat of their own. Returns 1, or 0 refused: no such player, one on themselves, a host who is seated, a seat too far out. On a server; a world with one player has nobody to carry.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -561,10 +599,12 @@ A seat: puts `player` on `host`'s body and keeps them there, turning with it -- 
 ## `core.loaded`
 
 ```luau
-core.loaded(x: number, y: number, z: number) -> number
+core.loaded(x: number, y: number, z: number) -> boolean
 ```
 
 1 if the blocks of that cell are in memory, 0 if not: its column has not been made or read yet, or was let go. core.get_block reads such a cell as air, and this is how a mod tells that air from a real one.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -641,10 +681,12 @@ The light the light blocks give that cell, 0 to 15, the sky left out: what it ha
 ## `core.node_alias`
 
 ```luau
-core.node_alias(old: string, name: string) -> number
+core.node_alias(old: string, name: string) -> boolean
 ```
 
 A block renamed: cells a world file saved under the old name load as this block instead of a magenta placeholder. Only a saved world's table reads it. Returns 1.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -654,10 +696,12 @@ A block renamed: cells a world file saved under the old name load as this block 
 ## `core.item_alias`
 
 ```luau
-core.item_alias(old: string, name: string) -> number
+core.item_alias(old: string, name: string) -> boolean
 ```
 
 An item renamed, or gone: stacks a world file saved under the old name load as this item instead of one nothing can use. Only saved stacks read it. Returns 1.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -667,10 +711,12 @@ An item renamed, or gone: stacks a world file saved under the old name load as t
 ## `core.player_regen`
 
 ```luau
-core.player_regen(player: number, on: boolean) -> number
+core.player_regen(player: number, on: boolean) -> boolean
 ```
 
 Whether this player's health comes back on its own, as it does unless a mod says otherwise -- a hunger that has to be fed first. Returns 1, or 0 for nobody.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -680,10 +726,12 @@ Whether this player's health comes back on its own, as it does unless a mod says
 ## `core.player_max_health`
 
 ```luau
-core.player_max_health(player: number, max: number) -> number
+core.player_max_health(player: number, max: number) -> boolean
 ```
 
 How much health a full body of this player has: a world whose characters grow sturdier as they rise. What they have now is kept, and cut to the new maximum if it is over it; a death brings them back with all of it. In memory only, for as long as they are in this world. Returns 1, or 0 for nobody or a number out of range.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -701,10 +749,12 @@ The world's clock, 0 to 1: 0 midnight, 0.25 dawn, 0.5 noon, 0.75 dusk.
 ## `core.set_time`
 
 ```luau
-core.set_time(t: number) -> number
+core.set_time(t: number) -> boolean
 ```
 
 Sets the world's clock, and every client hears it at once: a bed that ends the night. Returns 1.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -713,10 +763,12 @@ Sets the world's clock, and every client hears it at once: a bed that ends the n
 ## `core.player_spawn`
 
 ```luau
-core.player_spawn(player: number, x: number, y: number, z: number, on: boolean?) -> number
+core.player_spawn(player: number, x: number, y: number, z: number, on: boolean?) -> boolean
 ```
 
 Where this player comes back after dying, instead of the world's spawn -- a bed. Kept while they are connected; a mod that wants it across a restart stores it and sets it again. Returns 1, or 0 for nobody.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -729,10 +781,12 @@ Where this player comes back after dying, instead of the world's spawn -- a bed.
 ## `core.node_climbable`
 
 ```luau
-core.node_climbable(id: number, on: boolean?) -> number
+core.node_climbable(id: number, on: boolean?) -> boolean
 ```
 
 A body in a cell of this block climbs: no gravity, up while jump is held or while it walks into the ladder or its wall, still while crouching, sliding slowly down otherwise -- a ladder. Give it a thin core.node_box against the wall so a body can stand in its cell. Falling off one counts from where it let go. Creatures climb it too, and a way through the world (core.find_path) goes up and down it.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -742,10 +796,12 @@ A body in a cell of this block climbs: no gravity, up while jump is held or whil
 ## `core.node_conveyor`
 
 ```luau
-core.node_conveyor(id: number, speed: number?, height: number?, rise: number?, rail: boolean?) -> number
+core.node_conveyor(id: number, speed: number?, height: number?, rise: number?, rail: boolean?) -> boolean
 ```
 
 A conveyor belt: a stack, a player or a creature standing on a cell of this block is carried the way the cell runs -- away from whoever put it down, which is facing 0 heading -z, 1 -x, 2 +z, 3 +x. A stack is also drawn to the middle of the belt across, so it follows a belt that turns a corner, and held on its top, so it goes up and down a ramp; something solid ahead stops it, off the end it falls. A ramp's top may stand out of its cell (height + rise over 1): give it core.node_box steps a body can walk up. A ramp down at 3 m/s or more is a slide: a player is not carried but rides it, sat on its line -- straight, or round a quarter circle where the slide a cell up comes into its side -- gathering speed up to `speed`, and flies off its end; make it not solid, so its boxes are not in the way. Returns 1, or 0 for an id that is not a block.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -758,10 +814,12 @@ A conveyor belt: a stack, a player or a creature standing on a cell of this bloc
 ## `core.node_door`
 
 ```luau
-core.node_door(shut: number, open: number) -> number
+core.node_door(shut: number, open: number) -> boolean
 ```
 
 Two blocks that are one door, shut and open: opening one is putting the other in its cell. A way through the world (core.find_path) goes through an open door and treats a shut one as a wall, unless the body can open doors -- then it goes through for a little more, and a creature that opens doors (register_mob) opens it when it gets there, and shuts it behind it once it has gone through and nobody stands in it. A body a door's box is shut on is let out of it. Each half of a door two cells tall is its own pair. Returns 1, or 0 for ids that are not two different blocks.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -771,10 +829,12 @@ Two blocks that are one door, shut and open: opening one is putting the other in
 ## `core.node_piece`
 
 ```luau
-core.node_piece(id: number, fill: number, plan: number, size: number, climb: number?, grade0: number?, grade1: number?, bank0: number?, bank1: number?, curbs: boolean?, wall: boolean?, width: number?) -> number
+core.node_piece(id: number, fill: number, plan: number, size: number, climb: number?, grade0: number?, grade1: number?, bank0: number?, bank1: number?, curbs: boolean?, wall: boolean?, width: number?) -> boolean
 ```
 
 Makes a block a piece of a track, as stunt racers build them: a smooth road on a grid of 8 nodes that a kart drives on, joined to the next piece where their ends meet. A player puts one down like any block -- it snaps to the grid and runs away from them, or turned a quarter for each Z (left) or X (right) they pressed with it in hand, and never over a body -- and breaking any of its cells takes the whole piece. A slope down is a slope up put down the other way round. Returns 1, or 0 for a shape that is no piece (it would leave the 18 cells above its corner, or dip under it).
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -794,10 +854,12 @@ Makes a block a piece of a track, as stunt racers build them: a smooth road on a
 ## `core.place_piece`
 
 ```luau
-core.place_piece(x: number, y: number, z: number, id: number, facing: number) -> number
+core.place_piece(x: number, y: number, z: number, id: number, facing: number) -> boolean
 ```
 
 Puts a track piece down the way a player does: entered by the grid square holding (x, z), at height y, running the way `facing` says. It takes the place of whatever is in its cells, ground or blocks, and empties the 3 cells over its road. Returns 1, or 0 when another track piece is in the way.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -944,10 +1006,12 @@ Like core.terrain_height, a function of the seed and the column and not of the w
 ## `core.node_falls`
 
 ```luau
-core.node_falls(id: number, on: boolean?) -> number
+core.node_falls(id: number, on: boolean?) -> boolean
 ```
 
 Makes a block fall, as the classic block game's sand and gravel do: whenever its cell or the cell under it is written -- a dig, a placing, a mod, a piston -- and nothing solid is under it, it lets go (core.fall), and a column of them goes together. Not while the world is generated. Returns 1, or 0 for an id that is not a block.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -957,10 +1021,12 @@ Makes a block fall, as the classic block game's sand and gravel do: whenever its
 ## `core.node_glass`
 
 ```luau
-core.node_glass(id: number, opacity: number?) -> number
+core.node_glass(id: number, opacity: number?) -> boolean
 ```
 
 Lets light through a block and shows what is behind it: ice, a pane, a cobweb. It still stops a body if it is solid. Returns 1, or 0 for an id that is not a block.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -970,7 +1036,7 @@ Lets light through a block and shows what is behind it: ice, a pane, a cobweb. I
 ## `core.node_liquid`
 
 ```luau
-core.node_liquid(id: number, opacity: number?, fill: number?) -> number
+core.node_liquid(id: number, opacity: number?, fill: number?) -> boolean
 ```
 
 Makes a registered block a liquid: a body goes through it and swims in it -- it sinks slowly, rises while jump is held, and moves at half its pace -- light passes through it, it is drawn see-through, and nothing digs it out. Returns 1, or 0 for an id nobody registered.
@@ -978,6 +1044,8 @@ Makes a registered block a liquid: a body goes through it and swims in it -- it 
 Its surface ripples a little and its faces sway, a full column's too. Seen through, what lies behind it fades with how much of it is in the way: water to a blue murk, a liquid that gives light (lava) to its own colour and much sooner -- a node of it lets most through, eight hide all. Far from the eye a glowing one is drawn opaque.
 
 The server tells every client that joins what each block does to a body, so a client without the mod swims in the lake too.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -988,7 +1056,7 @@ The server tells every client that joins what each block does to a body, so a cl
 ## `core.movement`
 
 ```luau
-core.movement(walk: number?, sprint: number?, fly: number?, jump: number?, gravity: number?) -> number
+core.movement(walk: number?, sprint: number?, fly: number?, jump: number?, gravity: number?) -> boolean
 ```
 
 Says how a body moves in THIS world: how fast it walks, sprints, flies and jumps, and how hard it falls. Returns 1 when the numbers were taken and 0 when they were refused, with the reason in the log.
@@ -998,6 +1066,8 @@ Per world and not per player. Every client that joins is told these numbers in t
 Call it while the mod loads. The numbers go out in the handshake, so a call once the mod directory has loaded -- from a tick, say -- is refused rather than applied to some players and not others. Two mods that both call it: the one loaded last wins, and the log names the one it replaced.
 
 Refused: a speed that is negative, not a number, or over 256 m/s; a gravity that is not a number or points up. The terminal fall speed, 60 m/s, is the engine's and is not declared here: it is what bounds a fall however strong the gravity. Also refused, with the log saying so, in the code a connected world sends its clients: there the welcome's numbers are the ones, and so for core.drive, core.body_movement and core.body_drive.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1010,7 +1080,7 @@ Refused: a speed that is negative, not a number, or over 256 m/s; a gravity that
 ## `core.drive`
 
 ```luau
-core.drive(accel: number?, brake: number?, turn: number?, drag: number?) -> number
+core.drive(accel: number?, brake: number?, turn: number?, drag: number?) -> boolean
 ```
 
 Makes every body in THIS world drive: a kart on four wheels with springs, simulated as a rigid body (core.body_width says how wide and long). The keys stop setting a velocity: W is the throttle up to core.movement's sprint, S brakes and then reverses up to its walk, A and D turn the wheel -- not at all standing still, and less and less past half the top speed. The tyres decide how much of the turn the kart takes: driven into a bend too fast it slides wide and loses speed, and it pitches under braking and leans in the bend. Walls stop it, the drag fades the speed with nothing pressed, and nobody flies.
@@ -1020,6 +1090,8 @@ A chassis is kept within 26 degrees of upright and its wheels take nothing steep
 Checked by the server: a body is allowed its top speed and no flight, and it may rest against what it has driven into -- only its middle being inside a block is refused (core.body_width). NOT checked: how fast the speed grows, and the turn -- the server sees when a claim arrives and not when it was sent, and a check built on that let an instant 0 to 24 m/s through while correcting honest drivers on a jittery link (TODO.md OPEN-47).
 
 Call it while the mod loads, like core.movement, and it goes out in the same welcome. Refused: a number that is negative or not a number, an accel or a brake over 256, a turn over 12.57 (two turns a second), a drag over 20.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1031,7 +1103,7 @@ Call it while the mod loads, like core.movement, and it goes out in the same wel
 ## `core.body_width`
 
 ```luau
-core.body_width(width: number?, length: number?) -> number
+core.body_width(width: number?, length: number?) -> boolean
 ```
 
 Says how big a body is in THIS world. On foot, the side of the square box it collides with, whichever way it faces; the height stays the engine's 1.8. A body that drives is a chassis `width` by `length` on four wheels, which turns with it: a kart 1.4 wide and 2.6 long is core.body_width(1.4, 2.6).
@@ -1039,6 +1111,8 @@ Says how big a body is in THIS world. On foot, the side of the square box it col
 The server checks positions with a square box: `width` on foot, and for a body that drives the square that fits inside the chassis however it is turned, `width` / 1.41. Being INSIDE a block is the one question it asks differently: a body on foot is refused by that box, a body that drives by its middle alone. A chassis turns, tips and carries its wheels outside its box, so the two ends disagree about touching, and a refusal that puts a kart back where the server's box is clear leaves the chassis inside the wall it was scraping -- which the server then refuses again, every claim (TODO.md). A kart may rest against a wall; one whose middle is inside it is still put back.
 
 An arrival out of a portal is pushed clear of the wall beside it by the width. Call it while the mod loads, like core.movement: it goes out in the same welcome. core.movement and core.body_movement keep it. Refused: a width under 0.2 or over 4, a length that is not 0 and under 0.2 or over 8, or not a number.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1048,10 +1122,12 @@ An arrival out of a portal is pushed clear of the wall beside it by the width. C
 ## `core.eye_height`
 
 ```luau
-core.eye_height(height: number) -> number
+core.eye_height(height: number) -> boolean
 ```
 
 Says how high a body's eye is in THIS world: where the camera is in first person, and what reach and every ray a hand casts are measured from, on the client and on the server alike -- so it goes out in the welcome and has to be said while the mod loads, like core.movement. A world whose player model is not 1.8 tall says where that model's eyes are. The body's box stays 1.8 tall. Refused: under 0.2, over 1.8, or not a number.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1060,10 +1136,12 @@ Says how high a body's eye is in THIS world: where the camera is in first person
 ## `core.parkour`
 
 ```luau
-core.parkour(on: boolean?) -> number
+core.parkour(on: boolean?) -> boolean
 ```
 
 Says that bodies in THIS world do parkour: in the air, forward held fast along a wall beside them, they run along it level for up to 5 nodes, and a run stopped by a wall across its way (an inside corner) turns onto that wall at a jump within 0.4 s of meeting it, or pressed up to 1.5 nodes before it, running on along it away from the first; jump against a wall in the air kicks off it, away and up, so two walls are climbed by kicking from one to the other; crouch pressed at a run slides on the back, under a block; jump with back held is a backflip, onto a block two high behind; and core.rope hangs a body on a rope. Bodies there always run at core.movement's sprint, and hands grab ledges as anywhere else. The server allows what those do. It goes out in the welcome, so it is said while the mod loads, like core.movement. Returns 1, or 0 too late.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1072,10 +1150,12 @@ Says that bodies in THIS world do parkour: in the air, forward held fast along a
 ## `core.ledges`
 
 ```luau
-core.ledges(on: boolean?) -> number
+core.ledges(on: boolean?) -> boolean
 ```
 
 Whether hands grab a ledge in THIS world: in the air against a wall whose top they reach, a body hangs from it and pulls itself up. On unless a world says false -- one seen from above, where a body hanging off a wall is stuck halfway up it. In the welcome, so said while the mod loads. Returns 1, or 0 too late.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1092,10 +1172,12 @@ Which side of a world this code is running on: "server"; "client", which is a wo
 ## `core.body_scale`
 
 ```luau
-core.body_scale(player: number, scale: number?) -> number
+core.body_scale(player: number, scale: number?) -> boolean
 ```
 
 Makes ONE player's body small or big, at any time: its box, steps, eye, speeds, jump, gravity and fall all scale together, as do the ledges its hands take and how far under one it hangs, the camera's near plane and its reach, and everybody sees it drawn that big -- so a body at 1/16 goes through a world of blocks as a body at 1 would through one sixteen times bigger. Speeds a mod gives it later (core.body_movement) are a body at 1's and shrink with it. Returns 1, or 0 when refused (a size out of range, no such player), the reason in the log.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1117,7 +1199,7 @@ How big ONE player's body is now against a body at 1, as core.body_scale or a sc
 ## `core.body_movement`
 
 ```luau
-core.body_movement(player: number, walk: number?, sprint: number?, fly: number?, jump: number?, gravity: number?, rise: number?) -> number
+core.body_movement(player: number, walk: number?, sprint: number?, fly: number?, jump: number?, gravity: number?, rise: number?) -> boolean
 ```
 
 Gives ONE player's body numbers of its own -- a runner, a power-up, a slowed prisoner -- and returns 1, or 0 when refused with the reason in the log. Unlike core.movement this may be called at any time: it is one body, and that player is sent the numbers in a message of their own.
@@ -1125,6 +1207,8 @@ Gives ONE player's body numbers of its own -- a runner, a power-up, a slowed pri
 The server checks that body against the new numbers at once, and for a second against whichever of the old and the new are faster, because the player's client goes on moving by the old ones until the message arrives: slowing somebody down does not correct the steps they had already taken.
 
 The defaults are the engine's own numbers, not the world's: to put a body back to what the world declared, pass those. Refused: the numbers core.movement refuses, a player who is not in this world, and somebody only watching.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1139,7 +1223,7 @@ The defaults are the engine's own numbers, not the world's: to put a body back t
 ## `core.body_drive`
 
 ```luau
-core.body_drive(player: number, accel: number?, brake: number?, turn: number?, drag: number?, width: number?, length: number?) -> number
+core.body_drive(player: number, accel: number?, brake: number?, turn: number?, drag: number?, width: number?, length: number?) -> boolean
 ```
 
 Puts ONE player in a kart, or back on foot: core.drive and core.body_width for a single body, and like core.body_movement it may be called at any time. Returns 1, or 0 when refused with the reason in the log.
@@ -1147,6 +1231,8 @@ Puts ONE player in a kart, or back on foot: core.drive and core.body_width for a
 The body keeps its speeds -- core.movement's sprint is still its top speed and its walk still the top speed in reverse -- and changes what it IS: four wheels and a chassis `width` by `length` while `accel` is above zero, a body on foot at 0. The player is sent the same message core.body_movement sends, and the server checks them by the new numbers from then on.
 
 A world where everybody drives says core.drive instead, once, and one where you walk up to a kart and get in says this. Refused: the numbers core.drive and core.body_width refuse, and a player who is not in this world.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1161,10 +1247,12 @@ A world where everybody drives says core.drive instead, once, and one where you 
 ## `core.body_boat`
 
 ```luau
-core.body_boat(player: number, on: boolean?) -> number
+core.body_boat(player: number, on: boolean?) -> boolean
 ```
 
 Puts ONE player in a boat, or out of it, at any time like core.body_movement. On a liquid the body then floats with its feet a third of a node under the top: W and S row it along its heading, ahead up to its sprint and astern at half its walk, A and D steer it (the view turns with it) and the keel takes off a sideways drift; jump does nothing. Off a liquid it walks as ever: getting out, and what the boat looks like (core.player_wear, core.player_clip), are the mod's. Returns 1, or 0 for a player who is not in this world.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1174,10 +1262,12 @@ Puts ONE player in a boat, or out of it, at any time like core.body_movement. On
 ## `core.body_cart`
 
 ```luau
-core.body_cart(player: number, on: boolean?) -> number
+core.body_cart(player: number, on: boolean?) -> boolean
 ```
 
 Puts ONE player in a cart, or out of it, at any time like core.body_movement: on a rail (core.node_conveyor's `rail`) the body rides it, sat on its line. Jump gets off it; off its end the body flies on. Getting out, and what the cart looks like, are the mod's. Returns 1, or 0 for a player who is not in this world.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1187,10 +1277,12 @@ Puts ONE player in a cart, or out of it, at any time like core.body_movement: on
 ## `core.body_mount`
 
 ```luau
-core.body_mount(player: number, on: boolean?) -> number
+core.body_mount(player: number, on: boolean?) -> boolean
 ```
 
 Puts ONE player astride a mount, or off it, at any time like core.body_movement: the body is steered, not strafed -- it goes where the rider looks, A and D turn it (the view turns with it), backwards at under half its walk -- and gathers and loses pace slowly, with the weight of an animal under it. How fast it goes and how high it jumps are core.body_movement's; what it looks like (core.player_wear, core.player_clip) and getting off are the mod's. Returns 1, or 0 for a player who is not in this world.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1200,10 +1292,12 @@ Puts ONE player astride a mount, or off it, at any time like core.body_movement:
 ## `core.body_glide`
 
 ```luau
-core.body_glide(player: number, on: boolean?) -> number
+core.body_glide(player: number, on: boolean?) -> boolean
 ```
 
 Puts a glider over ONE player, or takes it off, at any time like core.body_movement. Falling faster than 2 m/s, the wing takes the body: it is carried where it looks at 9 m/s sinking 1.6, diving up to 18 m/s and 6.6 down looking straight down, slowed towards 4 looking up; crouch folds it and it falls, the ground ends it. What the glider looks like is the mod's. Returns 1, or 0 for a player who is not in this world.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1213,10 +1307,12 @@ Puts a glider over ONE player, or takes it off, at any time like core.body_movem
 ## `core.fed_send`
 
 ```luau
-core.fed_send(server: string, text: string) -> number
+core.fed_send(server: string, text: string) -> boolean
 ```
 
 Sends a line to the mod of the same name on a friend server (--federation, /friend), which hears it as core:fed_message in its first room. Only to a friend that shares "mods" (new friends do; one added before is added again to). Sealed and signed as every line between friends, but not kept: a friend that is down never hears it. Returns 1 if it went, 0 for no such friend, no mods shared, a line too long, or a player's machine.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1226,10 +1322,12 @@ Sends a line to the mod of the same name on a friend server (--federation, /frie
 ## `core.body_rope`
 
 ```luau
-core.body_rope(player: number, on: boolean?) -> number
+core.body_rope(player: number, on: boolean?) -> boolean
 ```
 
 Lets ONE player hang on a rope (core.rope) in a world that does not do parkour, at any time like core.body_movement: a rope gun. Only the rope: no running along walls, no slides or flips. Jump lets go, crouch lets the rope out and sprint takes it in, and the server allows the swing (faster than a sprint, any height). Returns 1, or 0 for a player who is not in this world.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1239,10 +1337,12 @@ Lets ONE player hang on a rope (core.rope) in a world that does not do parkour, 
 ## `core.body_balloon`
 
 ```luau
-core.body_balloon(player: number, on: boolean?) -> number
+core.body_balloon(player: number, on: boolean?) -> boolean
 ```
 
 Puts ONE player in a balloon's basket, or out of it, at any time like core.body_movement. Jump held lifts it at 2.5 m/s, crouch lets it down at 3, and otherwise it sinks at 0.25; the keys push it along at 2.5 and the wind carries it 0.8 m/s towards +x. Any height. On the ground it walks. What the balloon looks like and getting out are the mod's. Returns 1, or 0 for a player who is not in this world.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1311,12 +1411,14 @@ What a player's body looks like in this world. One model for everybody: there is
 ## `core.body_model`
 
 ```luau
-core.body_model(player: number, model: number?) -> number
+core.body_model(player: number, model: number?) -> boolean
 ```
 
 What ONE player's body looks like, at any time: core.player_model for a single body, and what a world where you walk up to a kart and get in draws the difference with. Returns 1, or 0 when there is no such player here.
 
 Everybody else sees it at once. What the PLAYER sees of their own body, when the camera is behind it (core.view), is still core.player_model's: the one model the welcome carries.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1326,10 +1428,12 @@ Everybody else sees it at once. What the PLAYER sees of their own body, when the
 ## `core.body_block`
 
 ```luau
-core.body_block(player: number, block: number?) -> number
+core.body_block(player: number, block: number?) -> boolean
 ```
 
 Draws ONE player's body as a block instead of their model, for everybody else: a whole cube of that block's tiles, its bottom at their feet and turned as they face (core.player_clip's dx, dz holds it square), aimed at as a cube of a node. What a hider in a prop hunt is (mods/arena). Their box stays the engine's, so they walk and are stopped as ever, and what they hold and wear is not drawn. On a player's machine only their own id, which their own drawing of the body (core.view) wears. Protocol 116. Returns 1, or 0 for a player who is not here or no such block.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1584,10 +1688,12 @@ Draws a twister in this world's sky: a funnel of the clouds' colour coming down 
 ## `core.ghost_cell`
 
 ```luau
-core.ghost_cell(x: number, y: number, z: number, colour: number) -> number
+core.ghost_cell(x: number, y: number, z: number, colour: number) -> boolean
 ```
 
 A block drawn seen through, in a colour, where it would go: a blueprint laid out before it is built. Only drawn, nothing is there. At most 32768 cells. Returns 1, or 0 when refused. For a world's code on a player's machine.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1655,10 +1761,12 @@ An eclipse over this world, by this much: the sun's disc goes black inside a pal
 ## `core.node_foliage`
 
 ```luau
-core.node_foliage(id: number, on: boolean?) -> number
+core.node_foliage(id: number, on: boolean?) -> boolean
 ```
 
 Marks a block as foliage: it takes the colour core.foliage gives -- leaves that turn in autumn. Only drawn; the world around is drawn again with it. Returns 1, or 0 for an id that is not a block. For a world's code on a player's machine.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1745,10 +1853,12 @@ A kind of creature. Creatures of every registered kind come out in the dark (lig
 ## `core.mob_tame`
 
 ```luau
-core.mob_tame(name: string, item: string, tamed_model: number?) -> number
+core.mob_tame(name: string, item: string, tamed_model: number?) -> boolean
 ```
 
 What tames a pet. A pet (register_mob with fight "pet") comes out by day on sunlit ground (spawn_on, if given), up to six near each player, strolls and fights nobody. A player who right clicks it holding this item spends one and it is theirs: it follows them, is put beside them when they get more than 14 away, never goes, is kept in the world file across restarts, and sits (its "sit" clip) or stands up again at their right click. Returns 1, or 0 for a kind nobody registered or one that is not a pet.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1759,10 +1869,12 @@ What tames a pet. A pet (register_mob with fight "pet") comes out by day on sunl
 ## `core.mob_shear`
 
 ```luau
-core.mob_shear(name: string, item: string, drop: string, count: number?, shorn_model: number?, regrow: number?) -> number
+core.mob_shear(name: string, item: string, drop: string, count: number?, shorn_model: number?, regrow: number?) -> boolean
 ```
 
 What shears a creature. A player who right clicks it holding this item leaves `drop` on the ground where it stands; it wears its shorn model and cannot be shorn again for `regrow` seconds, and a wild pet panics -- runs from them for a few seconds, as it does from a blow. Returns 1, or 0 for a kind nobody registered.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1776,10 +1888,12 @@ What shears a creature. A player who right clicks it holding this item leaves `d
 ## `core.mob_lays`
 
 ```luau
-core.mob_lays(name: string, item: string, min_s: number, max_s: number) -> number
+core.mob_lays(name: string, item: string, min_s: number, max_s: number) -> boolean
 ```
 
 What a creature lays: one on the ground where it stands every min_s to max_s seconds, and one more among its drops when it dies. Returns 1, or 0 for a kind nobody registered.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1791,10 +1905,12 @@ What a creature lays: one on the ground where it stands every min_s to max_s sec
 ## `core.mob_drop`
 
 ```luau
-core.mob_drop(name: string, item: string, max: number) -> number
+core.mob_drop(name: string, item: string, max: number) -> boolean
 ```
 
 One more thing a creature leaves when it dies, beside register_mob's drop: 0 to max of it -- a cow's leather. A young one leaves nothing. Returns 1, or 0 for a kind nobody registered.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1805,10 +1921,12 @@ One more thing a creature leaves when it dies, beside register_mob's drop: 0 to 
 ## `core.mob_sight`
 
 ```luau
-core.mob_sight(name: string, nodes: number) -> number
+core.mob_sight(name: string, nodes: number) -> boolean
 ```
 
 How far off a creature of that kind notices a player and goes for them. An arena's demons that hunt the whole floor say 64. Returns 1, or 0 for a kind nobody registered.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1836,10 +1954,12 @@ Adds a box to what the crosshair finds on this block and outlines, apart from th
 ## `core.mob_say_every`
 
 ```luau
-core.mob_say_every(name: string, factor: number) -> number
+core.mob_say_every(name: string, factor: number) -> boolean
 ```
 
 How seldom a kind makes a sound of its own, for creatures that live in crowds. Blows and deaths are heard as ever. Returns 1, or 0 for a kind nobody registered.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1849,10 +1969,12 @@ How seldom a kind makes a sound of its own, for creatures that live in crowds. B
 ## `core.mob_climbs`
 
 ```luau
-core.mob_climbs(name: string, nodes: number) -> number
+core.mob_climbs(name: string, nodes: number) -> boolean
 ```
 
 Lets a creature of that kind go up a sheer wall after whoever it is hunting, when they stand higher and it has no way round or they are close. It plays its "climb" clip, and lets go at that height or under a ceiling. Returns 1, or 0 for a kind nobody registered.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1862,10 +1984,12 @@ Lets a creature of that kind go up a sheer wall after whoever it is hunting, whe
 ## `core.mob_share`
 
 ```luau
-core.mob_share(name: string, share: number) -> number
+core.mob_share(name: string, share: number) -> boolean
 ```
 
 How many of the creatures that come out in the dark are of that kind: 0.1 is about one in ten, however many other kinds there are. Returns 1, or 0 for a kind nobody registered.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1875,10 +1999,12 @@ How many of the creatures that come out in the dark are of that kind: 0.1 is abo
 ## `core.mob_lunge`
 
 ```luau
-core.mob_lunge(name: string, nodes: number) -> number
+core.mob_lunge(name: string, nodes: number) -> boolean
 ```
 
 Lets a melee creature of that kind dive at whoever it hunts: from the ground, with them in sight, every few seconds, flying flat at them and striking half as hard again if it reaches them. A model with a "lunge" clip plays it in the air. Returns 1, or 0 for a kind nobody registered.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1927,10 +2053,12 @@ Every cell of `from` in the box (corners included) becomes `to`, as core.set_blo
 ## `core.fall`
 
 ```luau
-core.fall(x: number, y: number, z: number) -> number
+core.fall(x: number, y: number, z: number) -> boolean
 ```
 
 The block in that cell lets go and falls, as the classic block game's sand does: the cell is air at once, and the block drops through air, water and anything else a body walks through, drawn whole on the way, until something solid stops it. It is put back there, turned as it was, or left as its item when that cell is taken; then core:landed says where and how many nodes it fell. Returns 1, or 0 for air, the floor of the world, or a cell not taking writes. On a server.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -1954,10 +2082,12 @@ Gives back up to `points` of the durability the item in a player's hand has spen
 ## `core.shoot_arrow`
 
 ```luau
-core.shoot_arrow(player: number, speed: number, damage: number, model: number?, item: string?) -> number
+core.shoot_arrow(player: number, speed: number, damage: number, model: number?, item: string?) -> boolean
 ```
 
 Looses an arrow from a player's eye the way they are looking, as the classic block game's: it falls and slows, strikes the first creature or other player in its way -- never whoever loosed it -- and stays a minute where it lands, for anybody who walks up to it to pick up as `item`. The item in their hand spends one of its durability, as a bow does. Returns 1, or 0 for somebody who is not in this world. Taking the arrow out of the bag is the mod's (core.take_item).
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2061,10 +2191,12 @@ Where that creature's feet are, or NOTHING once it is dead or gone.
 ## `core.mob_goto`
 
 ```luau
-core.mob_goto(id: number, x: number, y: number, z: number) -> number
+core.mob_goto(id: number, x: number, y: number, z: number) -> boolean
 ```
 
 Sends a worker (register_mob with fight "worker") to that cell, along a way core.find_path finds, opening doors if its kind does; it stops in the middle of it. Where there is no way it walks as near as it can and keeps trying: core.mob_going says when it is there. Returns 1, or 0 for one that is gone or not a worker.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2076,10 +2208,12 @@ Sends a worker (register_mob with fight "worker") to that cell, along a way core
 ## `core.mob_going`
 
 ```luau
-core.mob_going(id: number) -> number
+core.mob_going(id: number) -> boolean
 ```
 
 1 while a worker is still on its way to where core.mob_goto sent it; 0 once it is there, and for one that is gone.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2088,10 +2222,12 @@ core.mob_going(id: number) -> number
 ## `core.mob_act`
 
 ```luau
-core.mob_act(id: number, clip: string, item: string?) -> number
+core.mob_act(id: number, clip: string, item: string?) -> boolean
 ```
 
 What a worker is seen doing: its model plays that clip, looping, in place of idle and walk until it is told "", and the item is drawn in its hand as a player's is. Every client near it sees it (protocol 81). Returns 1, or 0 for one that is gone or not a worker.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2102,10 +2238,12 @@ What a worker is seen doing: its model plays that clip, looping, in place of idl
 ## `core.mob_ride`
 
 ```luau
-core.mob_ride(id: number, thing: number, x: number?, y: number?, z: number?) -> number
+core.mob_ride(id: number, thing: number, x: number?, y: number?, z: number?) -> boolean
 ```
 
 Carries a worker on a thing, at that place in the thing's frame, put there by the engine every tick right after the machines move (core.craft): a soldier seated in a jeep goes with it in the same tick, where a core.mob_place from the mod comes a tick behind. Its own walking is undone each tick; it still turns (core.mob_face) and acts (core.mob_act). Ends when the thing or the worker is gone. Returns 1, or 0 for no such thing.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2118,10 +2256,12 @@ Carries a worker on a thing, at that place in the thing's frame, put there by th
 ## `core.mob_place`
 
 ```luau
-core.mob_place(id: number, x: number, y: number, z: number) -> number
+core.mob_place(id: number, x: number, y: number, z: number) -> boolean
 ```
 
 Puts a worker there at once, stopped and off any errand: what climbs a shaft a step at a time, or brings one back from where its mod lost it. Nothing is checked: the cell is the mod's to have made room in. Returns 1, or 0 for one that is gone or not a worker.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2133,10 +2273,12 @@ Puts a worker there at once, stopped and off any errand: what climbs a shaft a s
 ## `core.mob_velocity`
 
 ```luau
-core.mob_velocity(id: number, vx: number, vy: number, vz: number) -> number
+core.mob_velocity(id: number, vx: number, vy: number, vz: number) -> boolean
 ```
 
 Sets a worker going at that speed: a thrown thing, flying on and falling as a knock does, and spent on the ground. Off any errand. Through one of the world's own openings it comes out of the other with its speed turned. Returns 1, or 0 for one that is gone or not a worker.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2148,10 +2290,12 @@ Sets a worker going at that speed: a thrown thing, flying on and falling as a kn
 ## `core.mob_tumble`
 
 ```luau
-core.mob_tumble(id: number, on: boolean?, mass: number?) -> number
+core.mob_tumble(id: number, on: boolean?, mass: number?) -> boolean
 ```
 
 Makes a worker a rigid box the size of its kind's body, which the server moves with Jolt (protocol 114): it falls, slides, tips over an edge, rolls and bounces, and lies the way it lands -- a storage cube. All of a world's meet each other and stack. Thrown or knocked (core.mob_velocity, a blow), the push is given over its middle, so it turns over as it goes. Players stand on it and are kept out of it as out of a machine's hull, and one going at a player knocks them and bounces off. core.mob_place and a portal put it as they put any creature, a portal turning it and its spin with it. Its feet (core.mob_pos) are its middle less half its height, and every client draws it turned as it lies. Returns 1, or 0 for one that is gone or not a worker, or on a client.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2162,10 +2306,12 @@ Makes a worker a rigid box the size of its kind's body, which the server moves w
 ## `core.mob_unseen`
 
 ```luau
-core.mob_unseen(id: number, player: number) -> number
+core.mob_unseen(id: number, player: number) -> boolean
 ```
 
 Leaves a worker out of one player's world: everybody else sees it, that player's client is told it is held and draws nothing for it (protocol 91) -- a thing they carry, which the world's code on their machine draws where their eye is, so it does not trail behind their view; held and not gone, so no death plays where it was picked up. Returns 1, or 0 for one that is gone or not a worker.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2227,10 +2373,12 @@ One of this world's rules, as core.set_rule left it, or an empty string for one 
 ## `core.set_rule`
 
 ```luau
-core.set_rule(name: string, value: string) -> number
+core.set_rule(name: string, value: string) -> boolean
 ```
 
 Sets one of this world's rules, at once and across restarts (the world file's <file>.rules, `name = value` a line, which the title screen reads too). The engine gives a rule no meaning: the mod that reads it does. Returns 1, or 0 for a bad name or value.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2248,10 +2396,12 @@ Whether the world's clock goes: false once core.set_day_cycle(false) stopped it.
 ## `core.set_day_cycle`
 
 ```luau
-core.set_day_cycle(on: boolean?) -> number
+core.set_day_cycle(on: boolean?) -> boolean
 ```
 
 Stops the clock where it is, or starts it again at the world's day length (--day-length): every client sees the sky stand still, as it mirrors the server's hour. Not kept by the engine across restarts: a mod that wants it so sets it at its first core:tick (before, there is no clock yet). Returns 1, 0 off a server.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2275,10 +2425,12 @@ Puts down at x, y, z what one creature of that kind leaves when it dies -- its d
 ## `core.mob_remove`
 
 ```luau
-core.mob_remove(id: number) -> number
+core.mob_remove(id: number) -> boolean
 ```
 
 Takes a creature out of the world at once, leaving nothing and playing no death: its mod taking it back, a mount taken up. Returns 1, or 0 for one that is gone or no creature.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2323,10 +2475,12 @@ What kind a creature is, by the name it was registered under (register_mob), or 
 ## `core.mob_love`
 
 ```luau
-core.mob_love(id: number) -> number
+core.mob_love(id: number) -> boolean
 ```
 
 Puts a creature in love as if a player had fed it its food (core.mob_breed): only a grown one, not in love already and not within five minutes of its last young. A trough, a robot tending a pen. Returns 1 if it is in love now.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2335,10 +2489,12 @@ Puts a creature in love as if a player had fed it its food (core.mob_breed): onl
 ## `core.mob_keep`
 
 ```luau
-core.mob_keep(id: number, on: boolean?) -> number
+core.mob_keep(id: number, on: boolean?) -> boolean
 ```
 
 Keeps a wild animal (a "pet" kind nobody owns): it is not sent away when no player is near, and it is saved with the world as a tamed pet is -- a stable's. Its young are kept too. false lets it go wild again. Returns 1, or 0 for one that is not a wild pet.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2361,10 +2517,12 @@ Shears a creature as its shears would (core.mob_shear): its fleece on the ground
 ## `core.mob_become`
 
 ```luau
-core.mob_become(id: number, kind: string) -> number
+core.mob_become(id: number, kind: string) -> boolean
 ```
 
 Turns a creature into another kind where it stands, keeping its health, its age, how long until its fleece is back and whether a stable keeps it: a sheep dyed. What it leaves, how it is shorn and bred and what it wears become the new kind's. Only between kinds that fight alike. Returns 1, or 0 when refused.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2374,10 +2532,12 @@ Turns a creature into another kind where it stands, keeping its health, its age,
 ## `core.mob_voice`
 
 ```luau
-core.mob_voice(name: string, voice: string) -> number
+core.mob_voice(name: string, voice: string) -> boolean
 ```
 
 Whose sounds a kind makes: "herding:sheep_red" with the voice "animals:sheep" plays mods/animals/sheep_say.ogg and the rest. Returns 1, or 0 for a kind nobody registered.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2387,10 +2547,12 @@ Whose sounds a kind makes: "herding:sheep_red" with the voice "animals:sheep" pl
 ## `core.item_returns`
 
 ```luau
-core.item_returns(item: string, back: string) -> number
+core.item_returns(item: string, back: string) -> boolean
 ```
 
 What is left of `item` when a recipe spends it: `back`, in the square it was in, when it was the last of it there. A bucket of milk in a cake leaves the bucket. Returns 1.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2400,10 +2562,12 @@ What is left of `item` when a recipe spends it: `back`, in the square it was in,
 ## `core.mob_health`
 
 ```luau
-core.mob_health(id: number, hp: number) -> number
+core.mob_health(id: number, hp: number) -> boolean
 ```
 
 Sets one living creature's health and its whole to hp: one of a kind made sturdier than core.register_mob made it, as a harder level's guardian. Returns 1, or 0 for one that is gone or dead. On a server.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2428,10 +2592,12 @@ One creature, by id, loses `damage` as core.shoot would take it off and is knock
 ## `core.mob_face`
 
 ```luau
-core.mob_face(id: number, x: number, z: number) -> number
+core.mob_face(id: number, x: number, z: number) -> boolean
 ```
 
 Turns a worker to look at x, z: the water it fishes, the furnace it cooks at.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2442,10 +2608,12 @@ Turns a worker to look at x, z: the water it fishes, the furnace it cooks at.
 ## `core.mob_hunt`
 
 ```luau
-core.mob_hunt(id: number, player: number) -> number
+core.mob_hunt(id: number, player: number) -> boolean
 ```
 
 Sends a worker after a player, fighting as its kind was registered: it walks up and strikes with its damage, reach and every -- or, for a kind given a shot_model, keeps its distance and shoots. It forgets any errand (core.mob_goto) while it hunts, and stands where it is once called off or once that player is not in this world. A village's guards. Returns 1, or 0 for one that is gone or not a worker.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2455,10 +2623,12 @@ Sends a worker after a player, fighting as its kind was registered: it walks up 
 ## `core.mob_blow_every`
 
 ```luau
-core.mob_blow_every(id: number, factor: number) -> number
+core.mob_blow_every(id: number, factor: number) -> boolean
 ```
 
 How often this one creature strikes or shoots, against the rest of its kind: the weak of a world's first places. For as long as it lives. Returns 1, or 0 for one that is gone. On a server.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2485,10 +2655,12 @@ The creatures that fight within r walk and strike at `factor` of their pace for 
 ## `core.mob_breed`
 
 ```luau
-core.mob_breed(name: string, item: string, baby_model: number?, grow: number?, hearts_model: number?) -> number
+core.mob_breed(name: string, item: string, baby_model: number?, grow: number?, hearts_model: number?) -> boolean
 ```
 
 What breeds a wild pet. A player who right clicks a grown one holding this item spends one and it is in love for 30 s: it goes to another of its kind in love within 8 nodes, and where they meet a young one comes out. Neither is in love again for 300 s. A young one is half the size, keeps near the one that came to it first, leaves nothing when it dies, is not shorn and lays nothing until it grows up. Returns 1, or 0 for a kind nobody registered.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2516,10 +2688,12 @@ One creature of that kind, standing there. Returns its id -- the same number cor
 ## `core.ui_define`
 
 ```luau
-core.ui_define(name: string, w: number, h: number) -> number
+core.ui_define(name: string, w: number, h: number) -> boolean
 ```
 
 Declares a panel, empty. Declaring the same name again starts it empty again, which is what a reload wants. Returns 1, or 0 with the reason in the log. A panel belongs to the mod that declared it and no other mod may touch it.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2530,10 +2704,12 @@ Declares a panel, empty. Declaring the same name again starts it empty again, wh
 ## `core.ui_label`
 
 ```luau
-core.ui_label(panel: string, x: number, y: number, text: string) -> number
+core.ui_label(panel: string, x: number, y: number, text: string) -> boolean
 ```
 
 Puts text on a panel. A label is not clickable: a caption that answered clicks would send this mod events for something it never made clickable.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2545,10 +2721,12 @@ Puts text on a panel. A label is not clickable: a caption that answered clicks w
 ## `core.ui_item`
 
 ```luau
-core.ui_item(panel: string, id: string, x: number, y: number, w: number, h: number, item: string) -> number
+core.ui_item(panel: string, id: string, x: number, y: number, w: number, h: number, item: string) -> boolean
 ```
 
 Puts an item's picture on a panel, in a square like a slot of the bag, with its name as a tooltip under the pointer. Clicking it emits core:ui_click with this id, as a button does.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2563,10 +2741,12 @@ Puts an item's picture on a panel, in a square like a slot of the bag, with its 
 ## `core.ui_model`
 
 ```luau
-core.ui_model(panel: string, x: number, y: number, w: number, h: number, model: number, tint: number?, pieces: string?) -> number
+core.ui_model(panel: string, x: number, y: number, w: number, h: number, model: number, tint: number?, pieces: string?) -> boolean
 ```
 
 Puts a model on a panel, turning slowly in a box of its own, lit and dressed as everybody would see it: a preview of what a panel changes (track_game's garage). Not clickable.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2582,10 +2762,12 @@ Puts a model on a panel, turning slowly in a box of its own, lit and dressed as 
 ## `core.ui_button`
 
 ```luau
-core.ui_button(panel: string, id: string, x: number, y: number, w: number, h: number, text: string) -> number
+core.ui_button(panel: string, id: string, x: number, y: number, w: number, h: number, text: string) -> boolean
 ```
 
 Puts a button on a panel. Clicking it emits core:ui_click with the panel's name and this id.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2600,10 +2782,12 @@ Puts a button on a panel. Clicking it emits core:ui_click with the panel's name 
 ## `core.ui_field`
 
 ```luau
-core.ui_field(panel: string, id: string, x: number, y: number, w: number, h: number, text: string) -> number
+core.ui_field(panel: string, id: string, x: number, y: number, w: number, h: number, text: string) -> boolean
 ```
 
 Puts a line of text the player may edit on a panel. A click puts the keyboard in it -- the game's keys stop answering until Enter, Esc or a click elsewhere -- and Enter emits core:ui_click with this id and what it holds in `text`. Whatever a player sends is theirs: a mod reading it reads untrusted text, up to 128 bytes.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2618,10 +2802,12 @@ Puts a line of text the player may edit on a panel. A click puts the keyboard in
 ## `core.ui_box`
 
 ```luau
-core.ui_box(panel: string, x: number, y: number, w: number, h: number, r: number?, g: number?, b: number?) -> number
+core.ui_box(panel: string, x: number, y: number, w: number, h: number, r: number?, g: number?, b: number?) -> boolean
 ```
 
 A rectangle of colour, for grouping. Not clickable, for the same reason a label is not.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2637,10 +2823,12 @@ A rectangle of colour, for grouping. Not clickable, for the same reason a label 
 ## `core.ui_show`
 
 ```luau
-core.ui_show(name: string, open: boolean?, player: number?) -> number
+core.ui_show(name: string, open: boolean?, player: number?) -> boolean
 ```
 
 Puts a panel on one player's screen, or takes it off. `player` is the id the events carry -- 0 means every player in the world, which is a server notice and not somebody's chest. One panel is drawn at a time PER PLAYER: the one shown to them most recently. Only its own mod may open or close it.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2651,10 +2839,12 @@ Puts a panel on one player's screen, or takes it off. `player` is the id the eve
 ## `core.container_make`
 
 ```luau
-core.container_make(x: number, y: number, z: number, slots: number) -> number
+core.container_make(x: number, y: number, z: number, slots: number) -> boolean
 ```
 
 The container at that cell exists, made with that many slots if it was not there. Nobody is shown anything. Making a chest and looking into one are two acts and this is the first: a loot chest filled before the world is opened, or a dispenser stocked by the mod that placed it, has no player to show it to. An existing container is never made smaller; asking for more slots than it has grows it, every stack staying in its slot -- how a chest becomes half of a double chest.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2683,10 +2873,12 @@ Puts items into the container at that cell, filling partial stacks of the same i
 ## `core.container_roles`
 
 ```luau
-core.container_roles(id: number, roles: string) -> number
+core.container_roles(id: number, roles: string) -> boolean
 ```
 
 What each square of a container in a cell of this block is for. "raw" (materia prima) what it works on, "fuel" (materiale di consumo) what it burns doing it, "product" (prodotto finito) what it made, "store" (magazzino) anything. "source" a catalogue's square: a player takes a copy and it keeps its own, and what is put into it is gone; "trash" a bin: what is put into it is gone. A carried container (y at or below -1073741824) takes the roles of the block whose id is its z. Machinery goes by it: things are taken out of only store and product squares (core.container_drop, core.container_move's source, a mod's extractor) and put into any but product ones (container_add with no role, container_move's target, collect_drops, a player's shift-click); and nobody puts anything into a product square by hand. A player sees each square tinted by its role. Returns 1, or 0 for an id that is not a block or a word that is not a role.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2696,10 +2888,12 @@ What each square of a container in a cell of this block is for. "raw" (materia p
 ## `core.container_accepts`
 
 ```luau
-core.container_accepts(id: number, role: string, items: string) -> number
+core.container_accepts(id: number, role: string, items: string) -> boolean
 ```
 
 What the squares of that role in a container of this block take: a furnace's ore row only what smelts, its coal row only what burns. Nothing else goes in -- not by a player's hand, a shift-click, a hopper or core.container_add. What is already there stays. Returns 1, or 0 for an id that is not a block or a role that is not one.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2710,10 +2904,12 @@ What the squares of that role in a container of this block take: a furnace's ore
 ## `core.container_progress`
 
 ```luau
-core.container_progress(x: number, y: number, z: number, seconds: number) -> number
+core.container_progress(x: number, y: number, z: number, seconds: number) -> boolean
 ```
 
 Something going on in the container at that cell -- a furnace smelting -- that takes that long from now: whoever has it open sees a bar under its squares fill over those seconds, full at the end. Returns 1, or 0 for a cell with no container.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2725,10 +2921,12 @@ Something going on in the container at that cell -- a furnace smelting -- that t
 ## `core.container_scroll`
 
 ```luau
-core.container_scroll(x: number, y: number, z: number, pos: number, size: number) -> number
+core.container_scroll(x: number, y: number, z: number, pos: number, size: number) -> boolean
 ```
 
 A scrollbar beside the container at that cell, for a catalogue longer than its squares (mods/creative): whoever has it open sees where in the list they are. Returns 1, or 0 for a cell with no container.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2741,10 +2939,12 @@ A scrollbar beside the container at that cell, for a catalogue longer than its s
 ## `core.container_search`
 
 ```luau
-core.container_search(x: number, y: number, z: number, text: string) -> number
+core.container_search(x: number, y: number, z: number, text: string) -> boolean
 ```
 
 A search box beside the container at that cell (mods/creative). What a player types in it comes back on every key as core:ui_click with panel "core:chest", id "search" and the text. Gone with the container (core.container_clear). Returns 1, or 0 for a cell with no container.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2756,10 +2956,12 @@ A search box beside the container at that cell (mods/creative). What a player ty
 ## `core.node_keeps_drops`
 
 ```luau
-core.node_keeps_drops(id: number, on: boolean?) -> number
+core.node_keeps_drops(id: number, on: boolean?) -> boolean
 ```
 
 A stack lying on this block does not grow older, and is not gone after five minutes as one on the ground is -- a sorter, where things wait their turn. One on a belt (core.node_conveyor) never grows older anyway. Returns 1, or 0 for an id that is not a block.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2769,12 +2971,14 @@ A stack lying on this block does not grow older, and is not gone after five minu
 ## `core.container_show`
 
 ```luau
-core.container_show(x: number, y: number, z: number, slots: number, player: number) -> number
+core.container_show(x: number, y: number, z: number, slots: number, player: number) -> boolean
 ```
 
 Opens the container at that cell on one player's screen, making it if there is not one. An existing container is never made smaller, and grows when asked for more (see container_make). The chest is at the CELL and not in the player: two people can have it open at once and both reach into it. `player` is the id the events carry, and 0 is nobody -- there is no chest for the world.
 
 A cell at y -1073741824 or below is not in the world: a container there is CARRIED and never closes for being out of reach -- how mods/backpack keeps one per player.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2787,10 +2991,12 @@ A cell at y -1073741824 or below is not in the world: a container there is CARRI
 ## `core.container_close`
 
 ```luau
-core.container_close(player: number) -> number
+core.container_close(player: number) -> boolean
 ```
 
 Takes whatever container that player has open off their screen. What is in it stays where it is, and anybody else looking at it goes on looking at it.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2974,10 +3180,12 @@ Everything in the container at that cell, on the ground where the cell is. Retur
 ## `core.drop_item`
 
 ```luau
-core.drop_item(x: number, y: number, z: number, item: number, count: number) -> number
+core.drop_item(x: number, y: number, z: number, item: number, count: number) -> boolean
 ```
 
 One stack, on the ground at the middle of that cell, falling from there. Nobody may pick it up for a second and it is gone in five minutes. Returns 1 if it was dropped. This is what a dispenser is made of, and what a mod uses to put the contents of something it is destroying where a player can get them back.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -2990,10 +3198,12 @@ One stack, on the ground at the middle of that cell, falling from there. Nobody 
 ## `core.show_item`
 
 ```luau
-core.show_item(x: number, y: number, z: number, item: number) -> number
+core.show_item(x: number, y: number, z: number, item: number) -> boolean
 ```
 
 Shows an item hanging in the middle of that cell, twice the size of a stack on the ground, bobbing and turning -- what a pedestal holds, put in the cell over it. Nobody picks it up and it never goes; one per cell, so showing another replaces it. Kept while the world runs, not saved: a mod shows it again when it starts. Protocol 112. Returns 1, or 0 for no item by that id.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3005,10 +3215,12 @@ Shows an item hanging in the middle of that cell, twice the size of a stack on t
 ## `core.craft_show`
 
 ```luau
-core.craft_show(x: number, y: number, z: number, player: number) -> number
+core.craft_show(x: number, y: number, z: number, player: number) -> boolean
 ```
 
 Makes that player's craft grid a three-by-three, at that cell -- a crafting table. Their own grid is two-by-two and always there, in the corner of their bag; this is what standing at a table changes it to, and walking out of reach changes it back. The grid is EMPTIED both ways: the same nine squares are read as a 2x2 or a 3x3, so anything left in one would come out of the resize somewhere else. What was in it goes back in the bag, and what will not fit falls on the ground.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3020,10 +3232,12 @@ Makes that player's craft grid a three-by-three, at that cell -- a crafting tabl
 ## `core.craft_close`
 
 ```luau
-core.craft_close(player: number) -> number
+core.craft_close(player: number) -> boolean
 ```
 
 Back to the two-by-two in that player's own bag, emptying it the same way. What a player does by pressing escape; a mod does it when whatever it was they were standing at stops being a table.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3070,10 +3284,12 @@ What that player has left, without changing it. Zero for somebody who is not her
 ## `core.container_clear`
 
 ```luau
-core.container_clear(x: number, y: number, z: number) -> number
+core.container_clear(x: number, y: number, z: number) -> boolean
 ```
 
 The container at that cell, gone, and what was in it with it. For a block that stopped being a chest. What was inside is NOT dropped: a mod that wants it on the ground takes it out first.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3084,10 +3300,12 @@ The container at that cell, gone, and what was in it with it. For a block that s
 ## `core.recipe_shaped`
 
 ```luau
-core.recipe_shaped(makes: string, count: number, row1: string, row2: string?, row3: string?) -> number
+core.recipe_shaped(makes: string, count: number, row1: string, row2: string?, row3: string?) -> boolean
 ```
 
 A recipe with a shape. Each row is item names separated by spaces, and `-` is a cell that must be EMPTY -- a hole in the middle of a pattern is part of the shape. The pattern matches ANYWHERE in the grid, so it is written where it is convenient rather than in a corner; its mirror is a different shape. A row left short is padded with holes. Registering the same shape twice is refused, unless it is your own recipe coming back through a reload.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3100,10 +3318,12 @@ A recipe with a shape. Each row is item names separated by spaces, and `-` is a 
 ## `core.recipe_shapeless`
 
 ```luau
-core.recipe_shapeless(makes: string, count: number, items: string) -> number
+core.recipe_shapeless(makes: string, count: number, items: string) -> boolean
 ```
 
 A recipe with no shape: those things, that many cells, anywhere in the grid. Names separated by spaces, and naming one twice means two cells of it. The same things in another order are the same recipe and are refused as one.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3170,10 +3390,12 @@ What is left of that item when a recipe spends it, by name (core.item_returns se
 ## `core.recipe_dye`
 
 ```luau
-core.recipe_dye(item: string) -> number
+core.recipe_dye(item: string) -> boolean
 ```
 
 Makes a thing take colours at a table: it and one to three dyes (core.item_dye), anywhere in the grid, make the same one again -- its tag kept, so a thing with contents keeps them -- with its first colours those dyes in reading order and the rest as they were. Three colours a thing, each one of the sixteen; its models draw them on materials named tint_1, tint_2 and tint_3, and a slot shows them as three marks. Returns 1.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3182,10 +3404,12 @@ Makes a thing take colours at a table: it and one to three dyes (core.item_dye),
 ## `core.item_dye`
 
 ```luau
-core.item_dye(item: string, dye: number) -> number
+core.item_dye(item: string, dye: number) -> boolean
 ```
 
 Makes an item a dye for core.recipe_dye. Returns 1, or 0 for a dye out of range.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3315,10 +3539,12 @@ The name that player joined with, or an empty string for somebody who is not in 
 ## `core.player_carry`
 
 ```luau
-core.player_carry(player: number, text: string) -> number
+core.player_carry(player: number, text: string) -> boolean
 ```
 
 A line this world keeps about a player's body, on a server of several rooms: when the player walks into an opening that leads to another room of the same server, the line goes with them and that room reads it with core.player_carried -- a lap in progress, or by which way out they left. A body that drives goes too, still driving, at its speed, into a room that knows the model it wears. In memory only. Returns 0 for a player with no body here, or a line too long.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3340,10 +3566,12 @@ The line core.player_carry keeps about that player's body -- here, or brought al
 ## `core.body_taken`
 
 ```luau
-core.body_taken(player: number) -> number
+core.body_taken(player: number) -> boolean
 ```
 
 1 when that player's body left this world with them: it drove into another room of this server, which took it (see core.player_carry), and what is left here is a window onto this world. 0 for a player who walked out on foot, left the server or is still here. For a mod that puts a kart back where a driver disappeared: not when the kart went too.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3366,10 +3594,12 @@ Returns NOTHING for a player who is not in this world or has not moved yet.
 ## `core.player_launch`
 
 ```luau
-core.player_launch(player: number, vx: number, vy: number, vz: number, seconds: number?) -> number
+core.player_launch(player: number, vx: number, vy: number, vz: number, seconds: number?) -> boolean
 ```
 
 Throws a player: their body's speed becomes that, whatever it was (protocol 84), and for `seconds` the server lets them move as fast and as high as a crossing's grace does -- an launch plate. Returns 1, or 0 for a player with no body here or a speed out of range.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3382,12 +3612,14 @@ Throws a player: their body's speed becomes that, whatever it was (protocol 84),
 ## `core.player_place`
 
 ```luau
-core.player_place(player: number, x: number, y: number, z: number, look_x: number?, look_y: number?, look_z: number?) -> number
+core.player_place(player: number, x: number, y: number, z: number, look_x: number?, look_y: number?, look_z: number?) -> boolean
 ```
 
 Moves a player's body and turns it, the way a portal does: the server puts them there and gives them a second in which their movement is not checked, for the frames before their client knows. Getting into a parked kart is this call -- the body goes where the kart stood, facing the way it faced. Returns 1, or 0 for a player who is not in this world or somebody only watching.
 
 On a server the move goes out at the end of the tick, after the blocks the mods changed in it: a body put where a block was just taken away arrives to find it gone. Nothing checks the place is clear: put a body where it fits.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3402,10 +3634,12 @@ On a server the move goes out at the end of the tick, after the blocks the mods 
 ## `core.player_lie`
 
 ```luau
-core.player_lie(player: number, on: boolean, x: number?, y: number?, z: number?, head_x: number?, head_z: number?) -> number
+core.player_lie(player: number, on: boolean, x: number?, y: number?, z: number?, head_x: number?, head_z: number?) -> boolean
 ```
 
 Lays a player on their back, as in a bed: the body is put there as core.player_place puts it, drawn lying with its head the way (head_x, head_z) says -- to them and to everybody -- and their eye goes down to the pillow. They look about as they like. Walking off gets them up on their own screen; the mod says so to everybody else with on = false, which is also how a mod gets them up. Returns 1, or 0 for a player who is not in this world, is carried (core.ride), or somebody only watching.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3420,10 +3654,12 @@ Lays a player on their back, as in a bed: the body is put there as core.player_p
 ## `core.player_clip`
 
 ```luau
-core.player_clip(player: number, clip: string?, dx: number?, dz: number?) -> number
+core.player_clip(player: number, clip: string?, dx: number?, dz: number?) -> boolean
 ```
 
 Has a body play a clip until told otherwise, "" to stop: holding cards at a table. On a server everybody else sees the body play it, over the walk and the idle; on a player's machine (only their own id) the arms seen in first person play the clip of the same name in the player model's _arms, and go on holding it while the camera is on a point at the eye (core.fixed_view with a distance under 0.1). Returns 1, or 0 for a player who is not here.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3435,10 +3671,12 @@ Has a body play a clip until told otherwise, "" to stop: holding cards at a tabl
 ## `core.player_wear`
 
 ```luau
-core.player_wear(player: number, slot: number, model: number?, tint: number?) -> number
+core.player_wear(player: number, slot: number, model: number?, tint: number?) -> boolean
 ```
 
 Dresses a body in a model of a mod's own, drawn on their skeleton bone by bone as a worn piece is, for everybody to see (protocol 102): a sword bound whole to hand_R, a helm to head. Up to ten, apart from what the engine's bag has them wear; they stay until taken off or the player leaves. On a server everybody else sees them; on a player's machine (only their own id) its own drawing of the body wears them. A body of another species wears the world's "<model>_<species>" (human, mole, frog) when there is one, refitted to it. Returns 1, or 0 for a player who is not here, a slot out of range or a model nobody registered.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3450,10 +3688,12 @@ Dresses a body in a model of a mod's own, drawn on their skeleton bone by bone a
 ## `core.play_sound`
 
 ```luau
-core.play_sound(name: string, x: number, y: number, z: number) -> number
+core.play_sound(name: string, x: number, y: number, z: number) -> boolean
 ```
 
 Plays a sound at a place, for everybody in this world, quieter with distance and heard through a portal the way round. Each client turns the name into a file of its own: mods/<mod>/<thing>.ogg (or .wav) beside the mod's init.luau, then assets/sounds/<mod>_<thing>.ogg. A client without the file hears nothing. Returns 1, or 0 for a name that is not "mod:thing".
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3482,10 +3722,12 @@ Keeps a sound going round at a place for everybody in this world until core.soun
 ## `core.sound_loop_move`
 
 ```luau
-core.sound_loop_move(id: number, x: number, y: number, z: number) -> number
+core.sound_loop_move(id: number, x: number, y: number, z: number) -> boolean
 ```
 
 Moves a loop, as an engine goes with its kart. Said every tick it is fine: players hear where it is ten times a second. Returns 1, or 0 for an id not going round.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3497,10 +3739,12 @@ Moves a loop, as an engine goes with its kart. Said every tick it is fine: playe
 ## `core.sound_loop_stop`
 
 ```luau
-core.sound_loop_stop(id: number) -> number
+core.sound_loop_stop(id: number) -> boolean
 ```
 
 Stops a loop for everybody. Returns 1, or 0 for an id not going round.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3568,10 +3812,12 @@ Which one the thing in a player's hand is: the number a mod gave it with held_se
 ## `core.held_set_id`
 
 ```luau
-core.held_set_id(player: number, id: number) -> number
+core.held_set_id(player: number, id: number) -> boolean
 ```
 
 Numbers the stack in a player's hand (all of it). Returns 1, or 0 for an empty hand, a number out of range or somebody not here.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3594,10 +3840,12 @@ Which one a worn thing is: the number a mod gave it with worn_set_id, 0 for one 
 ## `core.worn_set_id`
 
 ```luau
-core.worn_set_id(player: number, square: string, id: number) -> number
+core.worn_set_id(player: number, square: string, id: number) -> boolean
 ```
 
 Numbers a worn thing, its colours kept. Returns 1, or 0 for an empty square, somebody not here, or a number out of range.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3608,10 +3856,12 @@ Numbers a worn thing, its colours kept. Returns 1, or 0 for an empty square, som
 ## `core.player_fly`
 
 ```luau
-core.player_fly(player: number, allowed: boolean?) -> number
+core.player_fly(player: number, allowed: boolean?) -> boolean
 ```
 
 Whether one player may fly. Not allowed, their flying speed is kept aside and they are sent a speed of 0: F does nothing and a player in the air falls. Allowed again, the speed they had comes back. It holds across core.body_movement: while a player may not fly, the flying speed a mod gives them is the one kept aside. In memory only, like body_movement. Returns 1, or 0 for somebody with no body here.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3621,10 +3871,12 @@ Whether one player may fly. Not allowed, their flying speed is kept aside and th
 ## `core.mob_attack`
 
 ```luau
-core.mob_attack(id: number, mob: number) -> number
+core.mob_attack(id: number, mob: number) -> boolean
 ```
 
 Sends a worker after another creature, fighting as core.mob_hunt does: blows, or for a kind given a shot_model arrows that strike creatures. A player it is hunting comes first; it lets go once the creature is dead. The watch of a village against what comes out of the dark. Returns 1, or 0 for one that is gone or not a worker.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3634,10 +3886,12 @@ Sends a worker after another creature, fighting as core.mob_hunt does: blows, or
 ## `core.mob_pierce`
 
 ```luau
-core.mob_pierce(name: string, part: number) -> number
+core.mob_pierce(name: string, part: number) -> boolean
 ```
 
 How much of a kind's blows and arrows armour does not take: 0.6 of a guard's sword goes through a diamond chestplate as if it were not there. Call it after register_mob, which forgets it. Returns 1, or 0 for a kind nobody registered.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3647,10 +3901,12 @@ How much of a kind's blows and arrows armour does not take: 0.6 of a guard's swo
 ## `core.owned_area`
 
 ```luau
-core.owned_area(x1: number, z1: number, x2: number, z2: number, tag: number) -> number
+core.owned_area(x1: number, z1: number, x2: number, z2: number, tag: number) -> boolean
 ```
 
 Ground that belongs to somebody, every height of it: what a player takes from a container there, what they break there and what a container broken there spills comes out with this number as its tag (core.worn_id's), and so does not stack with the same thing come by honestly. A village's goods, marked stolen. In memory only: a mod says it again after the world loads. The same corners again change the number. Returns 1, or 0 for a number out of range.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3663,10 +3919,12 @@ Ground that belongs to somebody, every height of it: what a player takes from a 
 ## `core.owned_cell`
 
 ```luau
-core.owned_cell(x: number, z: number, tag: number) -> number
+core.owned_cell(x: number, z: number, tag: number) -> boolean
 ```
 
 One column that belongs to somebody, as core.owned_area's ground, and before any area: a player's territory grown a cell at a time, or their lot inside a village. In memory only. Returns 1, or 0 for a number out of range.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3690,10 +3948,12 @@ Whose a column is: the number core.owned_cell or core.owned_area gave it, a cell
 ## `core.owned_member`
 
 ```luau
-core.owned_member(player: number, tag: number, on: boolean) -> number
+core.owned_member(player: number, tag: number, on: boolean) -> boolean
 ```
 
 Makes a player one of the owners of the ground with that number: what they take, break or open there is not marked. Until they leave; a mod says it again when they come back. Returns 1, or 0 for nobody.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3704,10 +3964,12 @@ Makes a player one of the owners of the ground with that number: what they take,
 ## `core.player_factors`
 
 ```luau
-core.player_factors(player: number, walk: number, dig: number, hurt: number, regen: number, source: string?) -> number
+core.player_factors(player: number, walk: number, dig: number, hurt: number, regen: number, source: string?) -> boolean
 ```
 
 How this player moves, digs, takes blows and heals against everybody else, 1 for as they are: on top of core.body_movement, core.player_regen and their tools, so a mod that slows them for a moment does not undo it. Their client is told walk and dig. The product of the sources is held to the same ranges. In memory only. Returns 1, or 0 for nobody or a number out of range.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3810,10 +4072,12 @@ The player is told: their bag is sent again on the next tick, so what a mod took
 ## `core.wear_held`
 
 ```luau
-core.wear_held(player: number, amount: number?) -> number
+core.wear_held(player: number, amount: number?) -> boolean
 ```
 
 Spends uses of what the player is holding, as a dig or a blow does, and it is gone when its durability runs out (Unbreaking spares some, as it does there). For a tool whose use is a mod's -- a hoe tilling. Returns 1 if the hand held something that wears, 0 otherwise.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3864,7 +4128,7 @@ Puts that many of that item in a player's bag and returns how many FIT. An parti
 ## `core.meta_set`
 
 ```luau
-core.meta_set(x: number, y: number, z: number, key: string, value: string) -> number
+core.meta_set(x: number, y: number, z: number, key: string, value: string) -> boolean
 ```
 
 What a cell remembers, written down. Survives the world being closed and opened, and is thrown away when the cell becomes air -- breaking a block takes its state with it, so the next block placed there does not inherit it.
@@ -3872,6 +4136,8 @@ What a cell remembers, written down. Survives the world being closed and opened,
 Strings, and only strings, on purpose: a pedestal that stores item id 41 is storing whatever 41 means the next time the world is opened, because ids are handed out in registration order. A NAME survives a mod being added. A mod that wants a number writes tostring and reads tonumber, which is a conversion it can see.
 
 Returns 0 when the write is refused -- a field name or value too long, more than 16 fields on one cell, or a world already remembering 65536 cells -- and says which in the log.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3899,10 +4165,12 @@ What that cell remembers under that name, or an empty string if it remembers not
 ## `core.notice`
 
 ```luau
-core.notice(player: number, text: string) -> number
+core.notice(player: number, text: string) -> boolean
 ```
 
 Puts a sentence on a player's screen for a few seconds, where the reason for a refused edit goes. For a mod that changed what somebody did -- a block placed that came out as another one -- and wants them to know why, which cancelling says by itself and substituting does not. Returns 0 for nobody to tell or a sentence too long.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3912,10 +4180,12 @@ Puts a sentence on a player's screen for a few seconds, where the reason for a r
 ## `core.chat`
 
 ```luau
-core.chat(player: number, text: string) -> number
+core.chat(player: number, text: string) -> boolean
 ```
 
 Puts a line in a player's chat, the one T opens, as it is: the engine adds no name in front. For an answer to a /command, or news everybody in the world should be able to read back. Returns 0 for nobody to tell or a line too long.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3925,10 +4195,12 @@ Puts a line in a player's chat, the one T opens, as it is: the engine adds no na
 ## `core.command`
 
 ```luau
-core.command(name: string, help: string, perm: string?) -> number
+core.command(name: string, help: string, perm: string?) -> boolean
 ```
 
 Declares a chat command, /name, for this mod. When a player types it, this mod and only this mod hears core:command with the player, the name and the rest of the line; the mod answers with core.chat. A player below `perm` is told no and the mod hears nothing. Returns 0 for a bad name, one the engine keeps (help, list, the admin commands), one another mod already declared, or a `perm` nobody has heard of. The single-process client ignores `perm`: its one player owns the world.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3939,10 +4211,12 @@ Declares a chat command, /name, for this mod. When a player types it, this mod a
 ## `core.has_perm`
 
 ```luau
-core.has_perm(player: number, perm: string) -> number
+core.has_perm(player: number, perm: string) -> boolean
 ```
 
 1 when this player's role on this server reaches `perm`, else 0. Roles go guest (no identity), player, helper, moderator, admin, owner, and are given with /role. In the single-process client its one player owns the world: always 1.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3964,10 +4238,12 @@ This player's role on this server: guest, player, helper, moderator, admin or ow
 ## `core.page_register`
 
 ```luau
-core.page_register(name: string, title: string, perm: string?) -> number
+core.page_register(name: string, title: string, perm: string?) -> boolean
 ```
 
 Offers a page, the in-game web page: /page lists it and a page:NAME link opens it. When a player opens it this mod alone hears core:page_open with the player and the name, and answers with core.page_show. Returns 0 for a bad name, one the engine keeps (pages, admin, bans, whitelist, roles, perms, server, mods, here), one another mod registered, or a `perm` nobody has heard of.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3978,10 +4254,12 @@ Offers a page, the in-game web page: /page lists it and a page:NAME link opens i
 ## `core.page_show`
 
 ```luau
-core.page_show(player: number, name: string, markup: string) -> number
+core.page_show(player: number, name: string, markup: string) -> boolean
 ```
 
 Puts a page on one player's screen, laid out by the engine: wrapped text, buttons, tables, fields, and back/next when it runs past one screen. A link's target says what a click does: `page:NAME` opens another page, `cmd:/line` runs a chat command as that player (their role decides, as if they had typed it), and `act:ID` tells this mod core:page_action. A field's target has `{text}` replaced by what was typed, on Enter. After a cmd: link the page is opened again, so it shows what the command changed. ESC or x closes it. Returns 0 for nobody to show it to or markup too long. In the single-process client the page is shown the same way; in a connected world's code, always 0: its pages are the server's.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -3992,10 +4270,12 @@ Puts a page on one player's screen, laid out by the engine: wrapped text, button
 ## `core.is_muted`
 
 ```luau
-core.is_muted(player: number) -> number
+core.is_muted(player: number) -> boolean
 ```
 
 1 when this player's chat is held (/mute). The engine already holds what a muted player's command makes a mod core.chat to anybody else; this is for an answer that says why, as /msg gives. 0 in the single-process client.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -4004,12 +4284,14 @@ core.is_muted(player: number) -> number
 ## `core.storage_set`
 
 ```luau
-core.storage_set(key: string, value: string) -> number
+core.storage_set(key: string, value: string) -> boolean
 ```
 
 What this mod keeps across a restart: a string under a name, the mod's own -- another mod cannot read or write it. Saved in the world file with the chunks, only the keys that changed; a server with no world file, and the single-process client, keep it until they stop.
 
 The file is read after the mods load, so a mod reads what it kept from core:world_ready on, not while it loads. Returns 0 when refused -- a key or value too long, or more than 4 MiB of keys and values -- and says which in the log; and in a world's code on a player's machine, which keeps nothing.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|
@@ -4031,10 +4313,12 @@ What this mod kept under that name, or an empty string if nothing.
 ## `core.shared_storage_set`
 
 ```luau
-core.shared_storage_set(key: string, value: string) -> number
+core.shared_storage_set(key: string, value: string) -> boolean
 ```
 
 storage_set, kept once for every room of the server instead of once per world: in the first room's file (--room order; the sandbox's), which every room reads and writes. For what belongs to a player wherever they are -- hunger, experience, a counter that numbers things carried between worlds -- and not for what belongs to a place, which stays in storage_set. On a server of one world it is the same store. Same limits and return as storage_set.
+
+Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 
 | argomento | tipo | default | note |
 |---|---|---|---|

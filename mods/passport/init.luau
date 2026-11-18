@@ -134,7 +134,7 @@ core.event.on("core:page_action", function(ev)
         show_box(p, "Too far from the letterbox.")
         return
     end
-    if core.is_muted(p) == 1 then   -- /mute holds the post as it holds /msg
+    if core.is_muted(p) then   -- /mute holds the post as it holds /msg
         show_box(p, "You are muted: nothing can be sent.")
         return
     end
@@ -155,7 +155,7 @@ core.event.on("core:page_action", function(ev)
         if n <= 0 then
             return
         end
-        if core.fed_send(server, `parcel\t{to}\t{from}\t{held}\t{n}`) == 1 then
+        if core.fed_send(server, `parcel\t{to}\t{from}\t{held}\t{n}`) then
             show_box(p, `Sent {n} {said(held)} to {to} on {server}.`)
         else
             core.give_item(p, held, n)
@@ -164,7 +164,7 @@ core.event.on("core:page_action", function(ev)
     elseif kind == "letter" then
         if words == "" then
             show_box(p, "A letter needs something in it: name@server and then the words.")
-        elseif core.fed_send(server, `letter\t{to}\t{from}\t{string.sub(words :: string, 1, 600)}`) == 1 then
+        elseif core.fed_send(server, `letter\t{to}\t{from}\t{string.sub(words :: string, 1, 600)}`) then
             show_box(p, `Your letter to {to} on {server} is on its way.`)
         else
             show_box(p, `No friend server called {server} takes post from here.`)

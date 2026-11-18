@@ -388,7 +388,7 @@ local PIECE: { [string]: number } = {}
 for _, p in PIECES do
     local id = core.register_node(`track_core:{p[1]}`, 64, 66, 76, true, 0, "upright", 0, 0.2)
     if core.node_piece(id, FILL, p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10] == true,
-                       p[11] or 1) == 1 then
+                       p[11] or 1) then
         PIECE[p[1]] = id
     end
 end
@@ -436,7 +436,7 @@ local pieces_tries = 0
 local function place_pieces(say: boolean)
     local still = {}
     for _, q in pieces_left do
-        if core.place_piece(q[1], q[2], q[3], q[4], q[5]) ~= 1 then
+        if not core.place_piece(q[1], q[2], q[3], q[4], q[5]) then
             table.insert(still, q)
         end
     end
@@ -758,7 +758,7 @@ core.event.on("track_core:level", function(ev)
         if k == 1 then table.insert(sd, 1, { "straight" }) end
         for _, st in sd do table.insert(steps, st) end
         table.insert(steps, { turn, "r" })
-        if k == 3 then table.insert(steps, #steps, { "straight" }) end
+        if k == 3 then table.insert(steps, (#steps), { "straight" }) end
     end
     -- k == 1 and k == 3 each got one straight more, so the long sides match.
     local ox, oz = 8192 + (ev.slot % 16) * 2048 + 1024, (ev.slot // 16) * 2048 + 1024
@@ -897,7 +897,7 @@ core.event.on("core:tick", function(_)
     if frames_open then
         return
     end
-    if core.portal_place(1, FRAME_A[1] + 0.5, GROUND + 4, FRAME_A[2] + 4, 1, 1, 4, 4) == 0 then
+    if not core.portal_place(1, FRAME_A[1] + 0.5, GROUND + 4, FRAME_A[2] + 4, 1, 1, 4, 4) then
         return
     end
     frames_open = true
@@ -1104,7 +1104,7 @@ local function show(p: number)
     local list = fitting(e)
     local rows = math.max(1, (#list + COLS - 1) // COLS)
     local panel = panel_of(p)
-    if core.ui_define(panel, PANEL_W, 3.2 + rows * STEP_UI) == 0 then
+    if not core.ui_define(panel, PANEL_W, 3.2 + rows * STEP_UI) then
         return
     end
     core.ui_box(panel, 0.2, 0.2, PANEL_W - 0.4, 0.9, 40, 44, 56)
@@ -1186,7 +1186,7 @@ end
 local function extend(p: number, e: Edit, name: string, back: boolean): boolean
     local put, after, rows = step(e.at, name, back)
     local kept = ground_of(e.at, rows, put[2])
-    if core.place_piece(put[1] * 8, put[2], put[3] * 8, PIECE[name], put[4] % 4) ~= 1 then
+    if not core.place_piece(put[1] * 8, put[2], put[3] * 8, PIECE[name], put[4] % 4) then
         return false
     end
     table.insert(e.put, { put[1] * 8, put[2], put[3] * 8, e.at, e.out, kept })

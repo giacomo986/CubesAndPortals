@@ -272,7 +272,7 @@ core.event.on("core:tick", function(ev)
     for key in troughs do
         local x, y, z = string.match(key, "^(%-?%d+),(%-?%d+),(%-?%d+)$")
         local tx, ty, tz = tonumber(x) :: number, tonumber(y) :: number, tonumber(z) :: number
-        if core.loaded(tx, ty, tz) == 1 then
+        if core.loaded(tx, ty, tz) then
             local id = core.get_block(tx, ty, tz)
             if id ~= TROUGH and id ~= FILLED then
                 troughs[key] = nil
@@ -293,7 +293,7 @@ core.event.on("core:tick", function(ev)
                     if have >= 2 and food_of(kind) == food and #ids < 8 then
                         local loved = 0
                         for _, m in ids do
-                            if loved < 2 and core.mob_love(m) == 1 then
+                            if loved < 2 and core.mob_love(m) then
                                 loved += 1
                             end
                         end

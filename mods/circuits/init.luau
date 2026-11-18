@@ -584,7 +584,7 @@ end)
 
 core.event.on("core:placed", function(ev)
     local w = WIRE[ev.id]
-    if w and not w.riser and core.node_solid(core.get_block(ev.x, ev.y - 1, ev.z)) == 0 then
+    if w and not w.riser and not core.node_solid(core.get_block(ev.x, ev.y - 1, ev.z)) then
         core.set_block(ev.x, ev.y, ev.z, 0)
         core.drop_item(ev.x, ev.y, ev.z, core.item_id(core.node_name(w.pair[1].off)), 1)
         return

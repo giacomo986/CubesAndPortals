@@ -289,7 +289,7 @@ end
 -- The giver's panel: its errands to take, and the player's to hand in.
 E.show = function(p: number, rk: string, giver: string)
     local who = core.player_name(p)
-    local mine, mine_rk = E.mine(who)
+    local _, mine_rk = E.mine(who)
     local rows = {}
     for _, e in E.load(rk) do
         if e.giver == giver and (e.taker == "" or e.taker == who) then

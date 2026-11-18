@@ -314,7 +314,7 @@ end
 local shown: { [string]: boolean } = {}
 local function show_shard(x: number, y: number, z: number)
     local k = `{x},{y},{z}`
-    if not shown[k] and core.show_item(x, y + 1, z, core.item_id("relics:shard")) == 1 then shown[k] = true end
+    if not shown[k] and core.show_item(x, y + 1, z, core.item_id("relics:shard")) then shown[k] = true end
 end
 local since = 0
 local pinned: { [string]: { [number]: boolean } } = {}   -- whose map has which, this run

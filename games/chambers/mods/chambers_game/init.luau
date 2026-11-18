@@ -738,7 +738,7 @@ if serving then
     -- --------------------------------------------------------- the portals
 
     local function solid(x: number, y: number, z: number): boolean
-        return core.node_solid(core.get_block(x, y, z)) == 1
+        return core.node_solid(core.get_block(x, y, z))
     end
 
     -- Which face of cell (cx, cy, cz) a ray from o along d (of length 1) met
@@ -1664,7 +1664,7 @@ if serving then
     -- start, and a cube that falls in comes again out of its vent.
     local function step_zones(dt: number)
         for p, s in players do
-            local x, y, z = core.player_pos(p)
+            local x, y, _ = core.player_pos(p)
             if x == nil then
                 continue
             end
@@ -1733,7 +1733,7 @@ if serving then
             for _, s in players do
                 if s.level < pd.level then want = core.item_id(pd.gives) end
             end
-            if shown_on[i] ~= want and core.show_item(pd.x, FL + 1, pd.z, want) == 1 then
+            if shown_on[i] ~= want and core.show_item(pd.x, FL + 1, pd.z, want) then
                 shown_on[i] = want
             end
         end

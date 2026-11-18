@@ -91,10 +91,10 @@ end
 -- A cell a body stands in: two cells it can be in over one it stands on.
 local function free(x: number, y: number, z: number): boolean
     local a = core.get_block(x, y, z)
-    return core.node_solid(a) ~= 1 and core.node_name(a):sub(1, 6) ~= "lakes:"
+    return not core.node_solid(a) and core.node_name(a):sub(1, 6) ~= "lakes:"
 end
 local function standable(x: number, y: number, z: number): boolean
-    return core.node_solid(core.get_block(x, y - 1, z)) == 1 and free(x, y, z) and free(x, y + 1, z)
+    return core.node_solid(core.get_block(x, y - 1, z)) and free(x, y, z) and free(x, y + 1, z)
 end
 
 -- Beside a cell, where a body stands to work on it: the nearest of the four
@@ -226,7 +226,7 @@ end
 local function walk(v: V, x: number, y: number, z: number, limit: number?): boolean
     -- Never into a block (a chest, a table, a wall): to the free cell beside
     -- it nearest where it stands.
-    if core.node_solid(core.get_block(x, y, z)) == 1 then
+    if core.node_solid(core.get_block(x, y, z)) then
         local qx, _, qz = core.mob_pos(v.id)
         local sx, sy, sz = beside(x, y, z, qx or x, qz or z)
         if sx == nil or sy == nil or sz == nil then
@@ -240,7 +240,7 @@ local function walk(v: V, x: number, y: number, z: number, limit: number?): bool
     end
     core.mob_act(v.id, "", HOLDS[v.kind] or "")
     local ax, ay, az = core.mob_pos(v.id)
-    if core.mob_goto(v.id, x, y, z) == 0 then
+    if not core.mob_goto(v.id, x, y, z) then
         return false
     end
     v.tx, v.ty, v.tz = x, y, z
@@ -326,7 +326,7 @@ local function reach(v: V, x: number, y: number, z: number): boolean
     if failed(v, x, y, z) then
         return false
     end
-    if core.node_solid(core.get_block(x, y, z)) ~= 1 and standable(x, y, z) then
+    if not core.node_solid(core.get_block(x, y, z)) and standable(x, y, z) then
         return walk(v, x, y, z)
     end
     local px, _, pz = core.mob_pos(v.id)
@@ -454,8 +454,6 @@ local function stroll(v: V)
 end
 
 -- ---------------------------------------------------------------- the works
-
-local WHEAT = { "farm:wheat_0", "farm:wheat_1", "farm:wheat_2", "farm:wheat_3" }
 
 local function farm(v: V)
     -- Ripe wheat first: reaped, a sheaf and a seed or two, and sown again.
@@ -930,12 +928,12 @@ local function survey()
         end
         local corners = `{b.x1},{b.z1},{b.x2},{b.z2}`
         -- Refused (0) before the server takes players: said again next time.
-        if owned[rk] ~= corners and core.owned_area(b.x1, b.z1, b.x2, b.z2, tag_of(rk)) == 1 then
+        if owned[rk] ~= corners and core.owned_area(b.x1, b.z1, b.x2, b.z2, tag_of(rk)) then
             local old = owned[rk]
             if old ~= nil then
-                local a, c, d, e = string.match(old, "^(-?%d+),(-?%d+),(-?%d+),(-?%d+)$")
-                core.owned_area(tonumber(a) :: number, tonumber(c) :: number, tonumber(d) :: number,
-                    tonumber(e) :: number, 0)
+                local ox1, oz1, ox2, oz2 = string.match(old, "^(-?%d+),(-?%d+),(-?%d+),(-?%d+)$")
+                core.owned_area(tonumber(ox1) :: number, tonumber(oz1) :: number, tonumber(ox2) :: number,
+                    tonumber(oz2) :: number, 0)
             end
             owned[rk] = corners
         end

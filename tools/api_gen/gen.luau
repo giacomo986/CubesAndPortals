@@ -17,6 +17,8 @@
 -- Three kinds of return, and the last two arrived with M8:
 --
 --   fn.ret  = "int" | "float" | "string" | "bool"   one value
+--   fn.ret  = "flag"                                a yes or no: true/false from
+--                                                   api 2 on, 1/0 under api 1
 --   fn.ret  = "int[]"                               a list, as a Lua array
 --   fn.rets = { "float", "float", "float" }         several values
 --
@@ -58,6 +60,10 @@ local lua_type_of = {
     float = "number",
     string = "string",
     bool = "boolean",
+    -- A return only: a yes or no. The host answers 1 or 0 as ever; a mod
+    -- written for api 2 gets true or false, one for api 1 the number it always
+    -- had -- 0 is true in Luau, which is what made a 1/0 answer a trap.
+    flag = "boolean",
 }
 
 local check_of = {
@@ -77,6 +83,7 @@ local c_type_of = {
     float = "float",
     string = "const char *",
     bool = "int",
+    flag = "int",
 }
 
 local function cpp_default(arg): string
@@ -233,6 +240,9 @@ local function gen_cpp(): string
                 w("    lua_pushstring(L, result ? result : \"\");")
             elseif fn.ret == "bool" then
                 w("    lua_pushboolean(L, result);")
+            elseif fn.ret == "flag" then
+                w("    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);")
+                w("    else lua_pushinteger(L, result);")
             end
             w("    return 1;")
         else
@@ -424,6 +434,10 @@ local function gen_docs(): string
         w("")
         w(fn.doc)
         w("")
+        if fn.ret == "flag" then
+            w("Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.")
+            w("")
+        end
 
         if #fn.args > 0 then
             w("| argomento | tipo | default | note |")

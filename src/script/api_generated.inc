@@ -94,7 +94,7 @@ int l_room(lua_State *L)
     return 1;
 }
 
-// core.portal_place(index: number, x: number, y: number, z: number, axis: number, sign: number, half_w: number?, half_h: number?) -> number
+// core.portal_place(index: number, x: number, y: number, z: number, axis: number, sign: number, half_w: number?, half_h: number?) -> boolean
 int l_portal_place(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -107,7 +107,8 @@ int l_portal_place(lua_State *L)
     const float half_w = (float)luaL_optnumber(L, 7, 0.5);
     const float half_h = (float)luaL_optnumber(L, 8, 1);
     const int result = (vm && vm->host.portal_place) ? vm->host.portal_place(vm->host.ud, index, x, y, z, axis, sign, half_w, half_h) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -129,18 +130,19 @@ int l_portal_open(lua_State *L)
     return 1;
 }
 
-// core.portal_link(a: number, b: number) -> number
+// core.portal_link(a: number, b: number) -> boolean
 int l_portal_link(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int a = (int)luaL_checkinteger(L, 1);
     const int b = (int)luaL_checkinteger(L, 2);
     const int result = (vm && vm->host.portal_link) ? vm->host.portal_link(vm->host.ud, a, b) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.portal_move(id: number, x: number, y: number, z: number, axis: number?, sign: number?, rot: number?, nx: number?, ny: number?, nz: number?, ux: number?, uy: number?, uz: number?) -> number
+// core.portal_move(id: number, x: number, y: number, z: number, axis: number?, sign: number?, rot: number?, nx: number?, ny: number?, nz: number?, ux: number?, uy: number?, uz: number?) -> boolean
 int l_portal_move(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -158,29 +160,32 @@ int l_portal_move(lua_State *L)
     const float uy = (float)luaL_optnumber(L, 12, 0);
     const float uz = (float)luaL_optnumber(L, 13, 0);
     const int result = (vm && vm->host.portal_move) ? vm->host.portal_move(vm->host.ud, id, x, y, z, axis, sign, rot, nx, ny, nz, ux, uy, uz) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.portal_scale(id: number, on: boolean?) -> number
+// core.portal_scale(id: number, on: boolean?) -> boolean
 int l_portal_scale(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
     const int result = (vm && vm->host.portal_scale) ? vm->host.portal_scale(vm->host.ud, id, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.portal_window(a: number, b: number) -> number
+// core.portal_window(a: number, b: number) -> boolean
 int l_portal_window(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int a = (int)luaL_checkinteger(L, 1);
     const int b = (int)luaL_checkinteger(L, 2);
     const int result = (vm && vm->host.portal_window) ? vm->host.portal_window(vm->host.ud, a, b) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -196,7 +201,7 @@ int l_portal_close(lua_State *L)
     return 1;
 }
 
-// core.portal_seal(player: number, index: number, sealed: boolean) -> number
+// core.portal_seal(player: number, index: number, sealed: boolean) -> boolean
 int l_portal_seal(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -204,11 +209,12 @@ int l_portal_seal(lua_State *L)
     const int index = (int)luaL_checkinteger(L, 2);
     const int sealed = lua_isnoneornil(L, 3) ? 0 : (lua_toboolean(L, 3) ? 1 : 0);
     const int result = (vm && vm->host.portal_seal) ? vm->host.portal_seal(vm->host.ud, player, index, sealed) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.far_portal_set(name: string, x: number, y: number, z: number, axis: number, sign: number, half_w: number, half_h: number, offered: string, ignore: string?) -> number
+// core.far_portal_set(name: string, x: number, y: number, z: number, axis: number, sign: number, half_w: number, half_h: number, offered: string, ignore: string?) -> boolean
 int l_far_portal_set(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -223,17 +229,19 @@ int l_far_portal_set(lua_State *L)
     const char *offered = (const char *)luaL_checkstring(L, 9);
     const char *ignore = (const char *)luaL_optstring(L, 10, "");
     const int result = (vm && vm->host.far_portal_set) ? vm->host.far_portal_set(vm->host.ud, name, x, y, z, axis, sign, half_w, half_h, offered, ignore) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.far_portal_close(name: string) -> number
+// core.far_portal_close(name: string) -> boolean
 int l_far_portal_close(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *name = (const char *)luaL_checkstring(L, 1);
     const int result = (vm && vm->host.far_portal_close) ? vm->host.far_portal_close(vm->host.ud, name) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -270,7 +278,7 @@ int l_far_portals(lua_State *L)
     return 1;
 }
 
-// core.room_portal_set(name: string, x: number, y: number, z: number, axis: number, sign: number, half_w: number, half_h: number) -> number
+// core.room_portal_set(name: string, x: number, y: number, z: number, axis: number, sign: number, half_w: number, half_h: number) -> boolean
 int l_room_portal_set(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -283,17 +291,19 @@ int l_room_portal_set(lua_State *L)
     const float half_w = (float)luaL_checknumber(L, 7);
     const float half_h = (float)luaL_checknumber(L, 8);
     const int result = (vm && vm->host.room_portal_set) ? vm->host.room_portal_set(vm->host.ud, name, x, y, z, axis, sign, half_w, half_h) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.room_portal_close(name: string) -> number
+// core.room_portal_close(name: string) -> boolean
 int l_room_portal_close(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *name = (const char *)luaL_checkstring(L, 1);
     const int result = (vm && vm->host.room_portal_close) ? vm->host.room_portal_close(vm->host.ud, name) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -329,7 +339,7 @@ int l_room_portals(lua_State *L)
     return 1;
 }
 
-// core.room_access(room: string, who: string, look: boolean, enter: boolean) -> number
+// core.room_access(room: string, who: string, look: boolean, enter: boolean) -> boolean
 int l_room_access(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -338,38 +348,42 @@ int l_room_access(lua_State *L)
     const int look = lua_isnoneornil(L, 3) ? 0 : (lua_toboolean(L, 3) ? 1 : 0);
     const int enter = lua_isnoneornil(L, 4) ? 0 : (lua_toboolean(L, 4) ? 1 : 0);
     const int result = (vm && vm->host.room_access) ? vm->host.room_access(vm->host.ud, room, who, look, enter) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.room_access_clear(room: string) -> number
+// core.room_access_clear(room: string) -> boolean
 int l_room_access_clear(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *room = (const char *)luaL_checkstring(L, 1);
     const int result = (vm && vm->host.room_access_clear) ? vm->host.room_access_clear(vm->host.ud, room) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.room_send(player: number, room: string?) -> number
+// core.room_send(player: number, room: string?) -> boolean
 int l_room_send(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const char *room = (const char *)luaL_optstring(L, 2, "");
     const int result = (vm && vm->host.room_send) ? vm->host.room_send(vm->host.ud, player, room) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.portal_park(index: number) -> number
+// core.portal_park(index: number) -> boolean
 int l_portal_park(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int index = (int)luaL_checkinteger(L, 1);
     const int result = (vm && vm->host.portal_park) ? vm->host.portal_park(vm->host.ud, index) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -412,29 +426,31 @@ int l_node_model(lua_State *L)
     return 1;
 }
 
-// core.node_drop(id: number, as: number) -> number
+// core.node_drop(id: number, as: number) -> boolean
 int l_node_drop(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int as = (int)luaL_checkinteger(L, 2);
     const int result = (vm && vm->host.node_drop) ? vm->host.node_drop(vm->host.ud, id, as) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.node_drop_item(id: number, item: string) -> number
+// core.node_drop_item(id: number, item: string) -> boolean
 int l_node_drop_item(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const char *item = (const char *)luaL_checkstring(L, 2);
     const int result = (vm && vm->host.node_drop_item) ? vm->host.node_drop_item(vm->host.ud, id, item) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.watch_cell(x: number, y: number, z: number, on: boolean?) -> number
+// core.watch_cell(x: number, y: number, z: number, on: boolean?) -> boolean
 int l_watch_cell(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -443,21 +459,23 @@ int l_watch_cell(lua_State *L)
     const int z = (int)luaL_checkinteger(L, 3);
     const int on = lua_isnoneornil(L, 4) ? 1 : (lua_toboolean(L, 4) ? 1 : 0);
     const int result = (vm && vm->host.watch_cell) ? vm->host.watch_cell(vm->host.ud, x, y, z, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.node_solid(id: number) -> number
+// core.node_solid(id: number) -> boolean
 int l_node_solid(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int result = (vm && vm->host.node_solid) ? vm->host.node_solid(vm->host.ud, id) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.ride(player: number, host: number, x: number?, y: number?, z: number?) -> number
+// core.ride(player: number, host: number, x: number?, y: number?, z: number?) -> boolean
 int l_ride(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -467,11 +485,12 @@ int l_ride(lua_State *L)
     const float y = (float)luaL_optnumber(L, 4, 0);
     const float z = (float)luaL_optnumber(L, 5, 0);
     const int result = (vm && vm->host.ride) ? vm->host.ride(vm->host.ud, player, host, x, y, z) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.loaded(x: number, y: number, z: number) -> number
+// core.loaded(x: number, y: number, z: number) -> boolean
 int l_loaded(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -479,7 +498,8 @@ int l_loaded(lua_State *L)
     const int y = (int)luaL_checkinteger(L, 2);
     const int z = (int)luaL_checkinteger(L, 3);
     const int result = (vm && vm->host.loaded) ? vm->host.loaded(vm->host.ud, x, y, z) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -539,47 +559,51 @@ int l_block_light(lua_State *L)
     return 1;
 }
 
-// core.node_alias(old: string, name: string) -> number
+// core.node_alias(old: string, name: string) -> boolean
 int l_node_alias(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *old = (const char *)luaL_checkstring(L, 1);
     const char *name = (const char *)luaL_checkstring(L, 2);
     const int result = (vm && vm->host.node_alias) ? vm->host.node_alias(vm->host.ud, old, name) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.item_alias(old: string, name: string) -> number
+// core.item_alias(old: string, name: string) -> boolean
 int l_item_alias(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *old = (const char *)luaL_checkstring(L, 1);
     const char *name = (const char *)luaL_checkstring(L, 2);
     const int result = (vm && vm->host.item_alias) ? vm->host.item_alias(vm->host.ud, old, name) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.player_regen(player: number, on: boolean) -> number
+// core.player_regen(player: number, on: boolean) -> boolean
 int l_player_regen(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int on = lua_isnoneornil(L, 2) ? 0 : (lua_toboolean(L, 2) ? 1 : 0);
     const int result = (vm && vm->host.player_regen) ? vm->host.player_regen(vm->host.ud, player, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.player_max_health(player: number, max: number) -> number
+// core.player_max_health(player: number, max: number) -> boolean
 int l_player_max_health(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int max = (int)luaL_checkinteger(L, 2);
     const int result = (vm && vm->host.player_max_health) ? vm->host.player_max_health(vm->host.ud, player, max) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -592,17 +616,18 @@ int l_time_of_day(lua_State *L)
     return 1;
 }
 
-// core.set_time(t: number) -> number
+// core.set_time(t: number) -> boolean
 int l_set_time(lua_State *L)
 {
     VmState *vm = host_of(L);
     const float t = (float)luaL_checknumber(L, 1);
     const int result = (vm && vm->host.set_time) ? vm->host.set_time(vm->host.ud, t) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.player_spawn(player: number, x: number, y: number, z: number, on: boolean?) -> number
+// core.player_spawn(player: number, x: number, y: number, z: number, on: boolean?) -> boolean
 int l_player_spawn(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -612,22 +637,24 @@ int l_player_spawn(lua_State *L)
     const float z = (float)luaL_checknumber(L, 4);
     const int on = lua_isnoneornil(L, 5) ? 1 : (lua_toboolean(L, 5) ? 1 : 0);
     const int result = (vm && vm->host.player_spawn) ? vm->host.player_spawn(vm->host.ud, player, x, y, z, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.node_climbable(id: number, on: boolean?) -> number
+// core.node_climbable(id: number, on: boolean?) -> boolean
 int l_node_climbable(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
     const int result = (vm && vm->host.node_climbable) ? vm->host.node_climbable(vm->host.ud, id, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.node_conveyor(id: number, speed: number?, height: number?, rise: number?, rail: boolean?) -> number
+// core.node_conveyor(id: number, speed: number?, height: number?, rise: number?, rail: boolean?) -> boolean
 int l_node_conveyor(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -637,22 +664,24 @@ int l_node_conveyor(lua_State *L)
     const float rise = (float)luaL_optnumber(L, 4, 0);
     const int rail = lua_isnoneornil(L, 5) ? 0 : (lua_toboolean(L, 5) ? 1 : 0);
     const int result = (vm && vm->host.node_conveyor) ? vm->host.node_conveyor(vm->host.ud, id, speed, height, rise, rail) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.node_door(shut: number, open: number) -> number
+// core.node_door(shut: number, open: number) -> boolean
 int l_node_door(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int shut = (int)luaL_checkinteger(L, 1);
     const int open = (int)luaL_checkinteger(L, 2);
     const int result = (vm && vm->host.node_door) ? vm->host.node_door(vm->host.ud, shut, open) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.node_piece(id: number, fill: number, plan: number, size: number, climb: number?, grade0: number?, grade1: number?, bank0: number?, bank1: number?, curbs: boolean?, wall: boolean?, width: number?) -> number
+// core.node_piece(id: number, fill: number, plan: number, size: number, climb: number?, grade0: number?, grade1: number?, bank0: number?, bank1: number?, curbs: boolean?, wall: boolean?, width: number?) -> boolean
 int l_node_piece(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -669,11 +698,12 @@ int l_node_piece(lua_State *L)
     const int wall = lua_isnoneornil(L, 11) ? 0 : (lua_toboolean(L, 11) ? 1 : 0);
     const int width = (int)luaL_optinteger(L, 12, 1);
     const int result = (vm && vm->host.node_piece) ? vm->host.node_piece(vm->host.ud, id, fill, plan, size, climb, grade0, grade1, bank0, bank1, curbs, wall, width) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.place_piece(x: number, y: number, z: number, id: number, facing: number) -> number
+// core.place_piece(x: number, y: number, z: number, id: number, facing: number) -> boolean
 int l_place_piece(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -683,7 +713,8 @@ int l_place_piece(lua_State *L)
     const int id = (int)luaL_checkinteger(L, 4);
     const int facing = (int)luaL_checkinteger(L, 5);
     const int result = (vm && vm->host.place_piece) ? vm->host.place_piece(vm->host.ud, x, y, z, id, facing) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -801,29 +832,31 @@ int l_biome(lua_State *L)
     return 1;
 }
 
-// core.node_falls(id: number, on: boolean?) -> number
+// core.node_falls(id: number, on: boolean?) -> boolean
 int l_node_falls(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
     const int result = (vm && vm->host.node_falls) ? vm->host.node_falls(vm->host.ud, id, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.node_glass(id: number, opacity: number?) -> number
+// core.node_glass(id: number, opacity: number?) -> boolean
 int l_node_glass(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int opacity = (int)luaL_optinteger(L, 2, 160);
     const int result = (vm && vm->host.node_glass) ? vm->host.node_glass(vm->host.ud, id, opacity) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.node_liquid(id: number, opacity: number?, fill: number?) -> number
+// core.node_liquid(id: number, opacity: number?, fill: number?) -> boolean
 int l_node_liquid(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -831,11 +864,12 @@ int l_node_liquid(lua_State *L)
     const int opacity = (int)luaL_optinteger(L, 2, 150);
     const int fill = (int)luaL_optinteger(L, 3, 8);
     const int result = (vm && vm->host.node_liquid) ? vm->host.node_liquid(vm->host.ud, id, opacity, fill) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.movement(walk: number?, sprint: number?, fly: number?, jump: number?, gravity: number?) -> number
+// core.movement(walk: number?, sprint: number?, fly: number?, jump: number?, gravity: number?) -> boolean
 int l_movement(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -845,11 +879,12 @@ int l_movement(lua_State *L)
     const float jump = (float)luaL_optnumber(L, 4, 8);
     const float gravity = (float)luaL_optnumber(L, 5, -25);
     const int result = (vm && vm->host.movement) ? vm->host.movement(vm->host.ud, walk, sprint, fly, jump, gravity) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.drive(accel: number?, brake: number?, turn: number?, drag: number?) -> number
+// core.drive(accel: number?, brake: number?, turn: number?, drag: number?) -> boolean
 int l_drive(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -858,48 +893,53 @@ int l_drive(lua_State *L)
     const float turn = (float)luaL_optnumber(L, 3, 0);
     const float drag = (float)luaL_optnumber(L, 4, 0);
     const int result = (vm && vm->host.drive) ? vm->host.drive(vm->host.ud, accel, brake, turn, drag) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.body_width(width: number?, length: number?) -> number
+// core.body_width(width: number?, length: number?) -> boolean
 int l_body_width(lua_State *L)
 {
     VmState *vm = host_of(L);
     const float width = (float)luaL_optnumber(L, 1, 0.6);
     const float length = (float)luaL_optnumber(L, 2, 0);
     const int result = (vm && vm->host.body_width) ? vm->host.body_width(vm->host.ud, width, length) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.eye_height(height: number) -> number
+// core.eye_height(height: number) -> boolean
 int l_eye_height(lua_State *L)
 {
     VmState *vm = host_of(L);
     const float height = (float)luaL_checknumber(L, 1);
     const int result = (vm && vm->host.eye_height) ? vm->host.eye_height(vm->host.ud, height) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.parkour(on: boolean?) -> number
+// core.parkour(on: boolean?) -> boolean
 int l_parkour(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int on = lua_isnoneornil(L, 1) ? 1 : (lua_toboolean(L, 1) ? 1 : 0);
     const int result = (vm && vm->host.parkour) ? vm->host.parkour(vm->host.ud, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.ledges(on: boolean?) -> number
+// core.ledges(on: boolean?) -> boolean
 int l_ledges(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int on = lua_isnoneornil(L, 1) ? 1 : (lua_toboolean(L, 1) ? 1 : 0);
     const int result = (vm && vm->host.ledges) ? vm->host.ledges(vm->host.ud, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -912,14 +952,15 @@ int l_side(lua_State *L)
     return 1;
 }
 
-// core.body_scale(player: number, scale: number?) -> number
+// core.body_scale(player: number, scale: number?) -> boolean
 int l_body_scale(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const float scale = (float)luaL_optnumber(L, 2, 1);
     const int result = (vm && vm->host.body_scale) ? vm->host.body_scale(vm->host.ud, player, scale) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -933,7 +974,7 @@ int l_body_size(lua_State *L)
     return 1;
 }
 
-// core.body_movement(player: number, walk: number?, sprint: number?, fly: number?, jump: number?, gravity: number?, rise: number?) -> number
+// core.body_movement(player: number, walk: number?, sprint: number?, fly: number?, jump: number?, gravity: number?, rise: number?) -> boolean
 int l_body_movement(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -945,11 +986,12 @@ int l_body_movement(lua_State *L)
     const float gravity = (float)luaL_optnumber(L, 6, -25);
     const float rise = (float)luaL_optnumber(L, 7, -1);
     const int result = (vm && vm->host.body_movement) ? vm->host.body_movement(vm->host.ud, player, walk, sprint, fly, jump, gravity, rise) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.body_drive(player: number, accel: number?, brake: number?, turn: number?, drag: number?, width: number?, length: number?) -> number
+// core.body_drive(player: number, accel: number?, brake: number?, turn: number?, drag: number?, width: number?, length: number?) -> boolean
 int l_body_drive(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -961,84 +1003,92 @@ int l_body_drive(lua_State *L)
     const float width = (float)luaL_optnumber(L, 6, 0.6);
     const float length = (float)luaL_optnumber(L, 7, 0);
     const int result = (vm && vm->host.body_drive) ? vm->host.body_drive(vm->host.ud, player, accel, brake, turn, drag, width, length) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.body_boat(player: number, on: boolean?) -> number
+// core.body_boat(player: number, on: boolean?) -> boolean
 int l_body_boat(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
     const int result = (vm && vm->host.body_boat) ? vm->host.body_boat(vm->host.ud, player, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.body_cart(player: number, on: boolean?) -> number
+// core.body_cart(player: number, on: boolean?) -> boolean
 int l_body_cart(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
     const int result = (vm && vm->host.body_cart) ? vm->host.body_cart(vm->host.ud, player, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.body_mount(player: number, on: boolean?) -> number
+// core.body_mount(player: number, on: boolean?) -> boolean
 int l_body_mount(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
     const int result = (vm && vm->host.body_mount) ? vm->host.body_mount(vm->host.ud, player, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.body_glide(player: number, on: boolean?) -> number
+// core.body_glide(player: number, on: boolean?) -> boolean
 int l_body_glide(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
     const int result = (vm && vm->host.body_glide) ? vm->host.body_glide(vm->host.ud, player, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.fed_send(server: string, text: string) -> number
+// core.fed_send(server: string, text: string) -> boolean
 int l_fed_send(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *server = (const char *)luaL_checkstring(L, 1);
     const char *text = (const char *)luaL_checkstring(L, 2);
     const int result = (vm && vm->host.fed_send) ? vm->host.fed_send(vm->host.ud, server, text) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.body_rope(player: number, on: boolean?) -> number
+// core.body_rope(player: number, on: boolean?) -> boolean
 int l_body_rope(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
     const int result = (vm && vm->host.body_rope) ? vm->host.body_rope(vm->host.ud, player, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.body_balloon(player: number, on: boolean?) -> number
+// core.body_balloon(player: number, on: boolean?) -> boolean
 int l_body_balloon(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
     const int result = (vm && vm->host.body_balloon) ? vm->host.body_balloon(vm->host.ud, player, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -1092,25 +1142,27 @@ int l_player_model(lua_State *L)
     return 0;
 }
 
-// core.body_model(player: number, model: number?) -> number
+// core.body_model(player: number, model: number?) -> boolean
 int l_body_model(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int model = (int)luaL_optinteger(L, 2, 0);
     const int result = (vm && vm->host.body_model) ? vm->host.body_model(vm->host.ud, player, model) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.body_block(player: number, block: number?) -> number
+// core.body_block(player: number, block: number?) -> boolean
 int l_body_block(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int block = (int)luaL_optinteger(L, 2, 0);
     const int result = (vm && vm->host.body_block) ? vm->host.body_block(vm->host.ud, player, block) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -1326,7 +1378,7 @@ int l_storm_funnel(lua_State *L)
     return 0;
 }
 
-// core.ghost_cell(x: number, y: number, z: number, colour: number) -> number
+// core.ghost_cell(x: number, y: number, z: number, colour: number) -> boolean
 int l_ghost_cell(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1335,7 +1387,8 @@ int l_ghost_cell(lua_State *L)
     const int z = (int)luaL_checkinteger(L, 3);
     const int colour = (int)luaL_checkinteger(L, 4);
     const int result = (vm && vm->host.ghost_cell) ? vm->host.ghost_cell(vm->host.ud, x, y, z, colour) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -1383,14 +1436,15 @@ int l_sky_eclipse(lua_State *L)
     return 0;
 }
 
-// core.node_foliage(id: number, on: boolean?) -> number
+// core.node_foliage(id: number, on: boolean?) -> boolean
 int l_node_foliage(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
     const int result = (vm && vm->host.node_foliage) ? vm->host.node_foliage(vm->host.ud, id, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -1457,7 +1511,7 @@ int l_register_mob(lua_State *L)
     return 1;
 }
 
-// core.mob_tame(name: string, item: string, tamed_model: number?) -> number
+// core.mob_tame(name: string, item: string, tamed_model: number?) -> boolean
 int l_mob_tame(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1465,11 +1519,12 @@ int l_mob_tame(lua_State *L)
     const char *item = (const char *)luaL_checkstring(L, 2);
     const int tamed_model = (int)luaL_optinteger(L, 3, 0);
     const int result = (vm && vm->host.mob_tame) ? vm->host.mob_tame(vm->host.ud, name, item, tamed_model) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_shear(name: string, item: string, drop: string, count: number?, shorn_model: number?, regrow: number?) -> number
+// core.mob_shear(name: string, item: string, drop: string, count: number?, shorn_model: number?, regrow: number?) -> boolean
 int l_mob_shear(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1480,11 +1535,12 @@ int l_mob_shear(lua_State *L)
     const int shorn_model = (int)luaL_optinteger(L, 5, 0);
     const float regrow = (float)luaL_optnumber(L, 6, 300);
     const int result = (vm && vm->host.mob_shear) ? vm->host.mob_shear(vm->host.ud, name, item, drop, count, shorn_model, regrow) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_lays(name: string, item: string, min_s: number, max_s: number) -> number
+// core.mob_lays(name: string, item: string, min_s: number, max_s: number) -> boolean
 int l_mob_lays(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1493,11 +1549,12 @@ int l_mob_lays(lua_State *L)
     const float min_s = (float)luaL_checknumber(L, 3);
     const float max_s = (float)luaL_checknumber(L, 4);
     const int result = (vm && vm->host.mob_lays) ? vm->host.mob_lays(vm->host.ud, name, item, min_s, max_s) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_drop(name: string, item: string, max: number) -> number
+// core.mob_drop(name: string, item: string, max: number) -> boolean
 int l_mob_drop(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1505,18 +1562,20 @@ int l_mob_drop(lua_State *L)
     const char *item = (const char *)luaL_checkstring(L, 2);
     const int max = (int)luaL_checkinteger(L, 3);
     const int result = (vm && vm->host.mob_drop) ? vm->host.mob_drop(vm->host.ud, name, item, max) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_sight(name: string, nodes: number) -> number
+// core.mob_sight(name: string, nodes: number) -> boolean
 int l_mob_sight(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *name = (const char *)luaL_checkstring(L, 1);
     const float nodes = (float)luaL_checknumber(L, 2);
     const int result = (vm && vm->host.mob_sight) ? vm->host.mob_sight(vm->host.ud, name, nodes) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -1536,47 +1595,51 @@ int l_node_selection_box(lua_State *L)
     return 1;
 }
 
-// core.mob_say_every(name: string, factor: number) -> number
+// core.mob_say_every(name: string, factor: number) -> boolean
 int l_mob_say_every(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *name = (const char *)luaL_checkstring(L, 1);
     const float factor = (float)luaL_checknumber(L, 2);
     const int result = (vm && vm->host.mob_say_every) ? vm->host.mob_say_every(vm->host.ud, name, factor) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_climbs(name: string, nodes: number) -> number
+// core.mob_climbs(name: string, nodes: number) -> boolean
 int l_mob_climbs(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *name = (const char *)luaL_checkstring(L, 1);
     const float nodes = (float)luaL_checknumber(L, 2);
     const int result = (vm && vm->host.mob_climbs) ? vm->host.mob_climbs(vm->host.ud, name, nodes) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_share(name: string, share: number) -> number
+// core.mob_share(name: string, share: number) -> boolean
 int l_mob_share(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *name = (const char *)luaL_checkstring(L, 1);
     const float share = (float)luaL_checknumber(L, 2);
     const int result = (vm && vm->host.mob_share) ? vm->host.mob_share(vm->host.ud, name, share) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_lunge(name: string, nodes: number) -> number
+// core.mob_lunge(name: string, nodes: number) -> boolean
 int l_mob_lunge(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *name = (const char *)luaL_checkstring(L, 1);
     const float nodes = (float)luaL_checknumber(L, 2);
     const int result = (vm && vm->host.mob_lunge) ? vm->host.mob_lunge(vm->host.ud, name, nodes) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -1619,7 +1682,7 @@ int l_replace_nodes(lua_State *L)
     return 1;
 }
 
-// core.fall(x: number, y: number, z: number) -> number
+// core.fall(x: number, y: number, z: number) -> boolean
 int l_fall(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1627,7 +1690,8 @@ int l_fall(lua_State *L)
     const int y = (int)luaL_checkinteger(L, 2);
     const int z = (int)luaL_checkinteger(L, 3);
     const int result = (vm && vm->host.fall) ? vm->host.fall(vm->host.ud, x, y, z) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -1642,7 +1706,7 @@ int l_repair_held(lua_State *L)
     return 1;
 }
 
-// core.shoot_arrow(player: number, speed: number, damage: number, model: number?, item: string?) -> number
+// core.shoot_arrow(player: number, speed: number, damage: number, model: number?, item: string?) -> boolean
 int l_shoot_arrow(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1652,7 +1716,8 @@ int l_shoot_arrow(lua_State *L)
     const int model = (int)luaL_optinteger(L, 4, 0);
     const char *item = (const char *)luaL_optstring(L, 5, "");
     const int result = (vm && vm->host.shoot_arrow) ? vm->host.shoot_arrow(vm->host.ud, player, speed, damage, model, item) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -1753,7 +1818,7 @@ int l_mob_pos(lua_State *L)
     return 3;
 }
 
-// core.mob_goto(id: number, x: number, y: number, z: number) -> number
+// core.mob_goto(id: number, x: number, y: number, z: number) -> boolean
 int l_mob_goto(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1762,21 +1827,23 @@ int l_mob_goto(lua_State *L)
     const int y = (int)luaL_checkinteger(L, 3);
     const int z = (int)luaL_checkinteger(L, 4);
     const int result = (vm && vm->host.mob_goto) ? vm->host.mob_goto(vm->host.ud, id, x, y, z) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_going(id: number) -> number
+// core.mob_going(id: number) -> boolean
 int l_mob_going(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int result = (vm && vm->host.mob_going) ? vm->host.mob_going(vm->host.ud, id) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_act(id: number, clip: string, item: string?) -> number
+// core.mob_act(id: number, clip: string, item: string?) -> boolean
 int l_mob_act(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1784,11 +1851,12 @@ int l_mob_act(lua_State *L)
     const char *clip = (const char *)luaL_checkstring(L, 2);
     const char *item = (const char *)luaL_optstring(L, 3, "");
     const int result = (vm && vm->host.mob_act) ? vm->host.mob_act(vm->host.ud, id, clip, item) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_ride(id: number, thing: number, x: number?, y: number?, z: number?) -> number
+// core.mob_ride(id: number, thing: number, x: number?, y: number?, z: number?) -> boolean
 int l_mob_ride(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1798,11 +1866,12 @@ int l_mob_ride(lua_State *L)
     const float y = (float)luaL_optnumber(L, 4, 0);
     const float z = (float)luaL_optnumber(L, 5, 0);
     const int result = (vm && vm->host.mob_ride) ? vm->host.mob_ride(vm->host.ud, id, thing, x, y, z) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_place(id: number, x: number, y: number, z: number) -> number
+// core.mob_place(id: number, x: number, y: number, z: number) -> boolean
 int l_mob_place(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1811,11 +1880,12 @@ int l_mob_place(lua_State *L)
     const float y = (float)luaL_checknumber(L, 3);
     const float z = (float)luaL_checknumber(L, 4);
     const int result = (vm && vm->host.mob_place) ? vm->host.mob_place(vm->host.ud, id, x, y, z) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_velocity(id: number, vx: number, vy: number, vz: number) -> number
+// core.mob_velocity(id: number, vx: number, vy: number, vz: number) -> boolean
 int l_mob_velocity(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1824,11 +1894,12 @@ int l_mob_velocity(lua_State *L)
     const float vy = (float)luaL_checknumber(L, 3);
     const float vz = (float)luaL_checknumber(L, 4);
     const int result = (vm && vm->host.mob_velocity) ? vm->host.mob_velocity(vm->host.ud, id, vx, vy, vz) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_tumble(id: number, on: boolean?, mass: number?) -> number
+// core.mob_tumble(id: number, on: boolean?, mass: number?) -> boolean
 int l_mob_tumble(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1836,18 +1907,20 @@ int l_mob_tumble(lua_State *L)
     const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
     const float mass = (float)luaL_optnumber(L, 3, 25);
     const int result = (vm && vm->host.mob_tumble) ? vm->host.mob_tumble(vm->host.ud, id, on, mass) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_unseen(id: number, player: number) -> number
+// core.mob_unseen(id: number, player: number) -> boolean
 int l_mob_unseen(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int player = (int)luaL_checkinteger(L, 2);
     const int result = (vm && vm->host.mob_unseen) ? vm->host.mob_unseen(vm->host.ud, id, player) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -1899,14 +1972,15 @@ int l_rule(lua_State *L)
     return 1;
 }
 
-// core.set_rule(name: string, value: string) -> number
+// core.set_rule(name: string, value: string) -> boolean
 int l_set_rule(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *name = (const char *)luaL_checkstring(L, 1);
     const char *value = (const char *)luaL_checkstring(L, 2);
     const int result = (vm && vm->host.set_rule) ? vm->host.set_rule(vm->host.ud, name, value) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -1919,13 +1993,14 @@ int l_day_cycle(lua_State *L)
     return 1;
 }
 
-// core.set_day_cycle(on: boolean?) -> number
+// core.set_day_cycle(on: boolean?) -> boolean
 int l_set_day_cycle(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int on = lua_isnoneornil(L, 1) ? 1 : (lua_toboolean(L, 1) ? 1 : 0);
     const int result = (vm && vm->host.set_day_cycle) ? vm->host.set_day_cycle(vm->host.ud, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -1942,13 +2017,14 @@ int l_mob_leave(lua_State *L)
     return 1;
 }
 
-// core.mob_remove(id: number) -> number
+// core.mob_remove(id: number) -> boolean
 int l_mob_remove(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int result = (vm && vm->host.mob_remove) ? vm->host.mob_remove(vm->host.ud, id) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -1982,24 +2058,26 @@ int l_mob_kind(lua_State *L)
     return 1;
 }
 
-// core.mob_love(id: number) -> number
+// core.mob_love(id: number) -> boolean
 int l_mob_love(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int result = (vm && vm->host.mob_love) ? vm->host.mob_love(vm->host.ud, id) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_keep(id: number, on: boolean?) -> number
+// core.mob_keep(id: number, on: boolean?) -> boolean
 int l_mob_keep(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
     const int result = (vm && vm->host.mob_keep) ? vm->host.mob_keep(vm->host.ud, id, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -2014,47 +2092,51 @@ int l_mob_shear_now(lua_State *L)
     return 1;
 }
 
-// core.mob_become(id: number, kind: string) -> number
+// core.mob_become(id: number, kind: string) -> boolean
 int l_mob_become(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const char *kind = (const char *)luaL_checkstring(L, 2);
     const int result = (vm && vm->host.mob_become) ? vm->host.mob_become(vm->host.ud, id, kind) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_voice(name: string, voice: string) -> number
+// core.mob_voice(name: string, voice: string) -> boolean
 int l_mob_voice(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *name = (const char *)luaL_checkstring(L, 1);
     const char *voice = (const char *)luaL_checkstring(L, 2);
     const int result = (vm && vm->host.mob_voice) ? vm->host.mob_voice(vm->host.ud, name, voice) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.item_returns(item: string, back: string) -> number
+// core.item_returns(item: string, back: string) -> boolean
 int l_item_returns(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *item = (const char *)luaL_checkstring(L, 1);
     const char *back = (const char *)luaL_checkstring(L, 2);
     const int result = (vm && vm->host.item_returns) ? vm->host.item_returns(vm->host.ud, item, back) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_health(id: number, hp: number) -> number
+// core.mob_health(id: number, hp: number) -> boolean
 int l_mob_health(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int hp = (int)luaL_checkinteger(L, 2);
     const int result = (vm && vm->host.mob_health) ? vm->host.mob_health(vm->host.ud, id, hp) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -2071,7 +2153,7 @@ int l_mob_hurt(lua_State *L)
     return 1;
 }
 
-// core.mob_face(id: number, x: number, z: number) -> number
+// core.mob_face(id: number, x: number, z: number) -> boolean
 int l_mob_face(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2079,29 +2161,32 @@ int l_mob_face(lua_State *L)
     const float x = (float)luaL_checknumber(L, 2);
     const float z = (float)luaL_checknumber(L, 3);
     const int result = (vm && vm->host.mob_face) ? vm->host.mob_face(vm->host.ud, id, x, z) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_hunt(id: number, player: number) -> number
+// core.mob_hunt(id: number, player: number) -> boolean
 int l_mob_hunt(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int player = (int)luaL_checkinteger(L, 2);
     const int result = (vm && vm->host.mob_hunt) ? vm->host.mob_hunt(vm->host.ud, id, player) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_blow_every(id: number, factor: number) -> number
+// core.mob_blow_every(id: number, factor: number) -> boolean
 int l_mob_blow_every(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const float factor = (float)luaL_checknumber(L, 2);
     const int result = (vm && vm->host.mob_blow_every) ? vm->host.mob_blow_every(vm->host.ud, id, factor) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -2120,7 +2205,7 @@ int l_slow_mobs(lua_State *L)
     return 1;
 }
 
-// core.mob_breed(name: string, item: string, baby_model: number?, grow: number?, hearts_model: number?) -> number
+// core.mob_breed(name: string, item: string, baby_model: number?, grow: number?, hearts_model: number?) -> boolean
 int l_mob_breed(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2130,7 +2215,8 @@ int l_mob_breed(lua_State *L)
     const float grow = (float)luaL_optnumber(L, 4, 1200);
     const int hearts_model = (int)luaL_optinteger(L, 5, 0);
     const int result = (vm && vm->host.mob_breed) ? vm->host.mob_breed(vm->host.ud, name, item, baby_model, grow, hearts_model) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -2147,7 +2233,7 @@ int l_spawn_mob(lua_State *L)
     return 1;
 }
 
-// core.ui_define(name: string, w: number, h: number) -> number
+// core.ui_define(name: string, w: number, h: number) -> boolean
 int l_ui_define(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2155,11 +2241,12 @@ int l_ui_define(lua_State *L)
     const float w = (float)luaL_checknumber(L, 2);
     const float h = (float)luaL_checknumber(L, 3);
     const int result = (vm && vm->host.ui_define) ? vm->host.ui_define(vm->host.ud, name, w, h) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.ui_label(panel: string, x: number, y: number, text: string) -> number
+// core.ui_label(panel: string, x: number, y: number, text: string) -> boolean
 int l_ui_label(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2168,11 +2255,12 @@ int l_ui_label(lua_State *L)
     const float y = (float)luaL_checknumber(L, 3);
     const char *text = (const char *)luaL_checkstring(L, 4);
     const int result = (vm && vm->host.ui_label) ? vm->host.ui_label(vm->host.ud, panel, x, y, text) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.ui_item(panel: string, id: string, x: number, y: number, w: number, h: number, item: string) -> number
+// core.ui_item(panel: string, id: string, x: number, y: number, w: number, h: number, item: string) -> boolean
 int l_ui_item(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2184,11 +2272,12 @@ int l_ui_item(lua_State *L)
     const float h = (float)luaL_checknumber(L, 6);
     const char *item = (const char *)luaL_checkstring(L, 7);
     const int result = (vm && vm->host.ui_item) ? vm->host.ui_item(vm->host.ud, panel, id, x, y, w, h, item) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.ui_model(panel: string, x: number, y: number, w: number, h: number, model: number, tint: number?, pieces: string?) -> number
+// core.ui_model(panel: string, x: number, y: number, w: number, h: number, model: number, tint: number?, pieces: string?) -> boolean
 int l_ui_model(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2201,11 +2290,12 @@ int l_ui_model(lua_State *L)
     const int tint = (int)luaL_optinteger(L, 7, 0);
     const char *pieces = (const char *)luaL_optstring(L, 8, "");
     const int result = (vm && vm->host.ui_model) ? vm->host.ui_model(vm->host.ud, panel, x, y, w, h, model, tint, pieces) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.ui_button(panel: string, id: string, x: number, y: number, w: number, h: number, text: string) -> number
+// core.ui_button(panel: string, id: string, x: number, y: number, w: number, h: number, text: string) -> boolean
 int l_ui_button(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2217,11 +2307,12 @@ int l_ui_button(lua_State *L)
     const float h = (float)luaL_checknumber(L, 6);
     const char *text = (const char *)luaL_checkstring(L, 7);
     const int result = (vm && vm->host.ui_button) ? vm->host.ui_button(vm->host.ud, panel, id, x, y, w, h, text) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.ui_field(panel: string, id: string, x: number, y: number, w: number, h: number, text: string) -> number
+// core.ui_field(panel: string, id: string, x: number, y: number, w: number, h: number, text: string) -> boolean
 int l_ui_field(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2233,11 +2324,12 @@ int l_ui_field(lua_State *L)
     const float h = (float)luaL_checknumber(L, 6);
     const char *text = (const char *)luaL_checkstring(L, 7);
     const int result = (vm && vm->host.ui_field) ? vm->host.ui_field(vm->host.ud, panel, id, x, y, w, h, text) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.ui_box(panel: string, x: number, y: number, w: number, h: number, r: number?, g: number?, b: number?) -> number
+// core.ui_box(panel: string, x: number, y: number, w: number, h: number, r: number?, g: number?, b: number?) -> boolean
 int l_ui_box(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2250,11 +2342,12 @@ int l_ui_box(lua_State *L)
     const int g = (int)luaL_optinteger(L, 7, 62);
     const int b = (int)luaL_optinteger(L, 8, 70);
     const int result = (vm && vm->host.ui_box) ? vm->host.ui_box(vm->host.ud, panel, x, y, w, h, r, g, b) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.ui_show(name: string, open: boolean?, player: number?) -> number
+// core.ui_show(name: string, open: boolean?, player: number?) -> boolean
 int l_ui_show(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2262,11 +2355,12 @@ int l_ui_show(lua_State *L)
     const int open = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
     const int player = (int)luaL_optinteger(L, 3, 0);
     const int result = (vm && vm->host.ui_show) ? vm->host.ui_show(vm->host.ud, name, open, player) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.container_make(x: number, y: number, z: number, slots: number) -> number
+// core.container_make(x: number, y: number, z: number, slots: number) -> boolean
 int l_container_make(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2275,7 +2369,8 @@ int l_container_make(lua_State *L)
     const int z = (int)luaL_checkinteger(L, 3);
     const int slots = (int)luaL_checkinteger(L, 4);
     const int result = (vm && vm->host.container_make) ? vm->host.container_make(vm->host.ud, x, y, z, slots) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -2294,18 +2389,19 @@ int l_container_add(lua_State *L)
     return 1;
 }
 
-// core.container_roles(id: number, roles: string) -> number
+// core.container_roles(id: number, roles: string) -> boolean
 int l_container_roles(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const char *roles = (const char *)luaL_checkstring(L, 2);
     const int result = (vm && vm->host.container_roles) ? vm->host.container_roles(vm->host.ud, id, roles) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.container_accepts(id: number, role: string, items: string) -> number
+// core.container_accepts(id: number, role: string, items: string) -> boolean
 int l_container_accepts(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2313,11 +2409,12 @@ int l_container_accepts(lua_State *L)
     const char *role = (const char *)luaL_checkstring(L, 2);
     const char *items = (const char *)luaL_checkstring(L, 3);
     const int result = (vm && vm->host.container_accepts) ? vm->host.container_accepts(vm->host.ud, id, role, items) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.container_progress(x: number, y: number, z: number, seconds: number) -> number
+// core.container_progress(x: number, y: number, z: number, seconds: number) -> boolean
 int l_container_progress(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2326,11 +2423,12 @@ int l_container_progress(lua_State *L)
     const int z = (int)luaL_checkinteger(L, 3);
     const float seconds = (float)luaL_checknumber(L, 4);
     const int result = (vm && vm->host.container_progress) ? vm->host.container_progress(vm->host.ud, x, y, z, seconds) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.container_scroll(x: number, y: number, z: number, pos: number, size: number) -> number
+// core.container_scroll(x: number, y: number, z: number, pos: number, size: number) -> boolean
 int l_container_scroll(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2340,11 +2438,12 @@ int l_container_scroll(lua_State *L)
     const float pos = (float)luaL_checknumber(L, 4);
     const float size = (float)luaL_checknumber(L, 5);
     const int result = (vm && vm->host.container_scroll) ? vm->host.container_scroll(vm->host.ud, x, y, z, pos, size) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.container_search(x: number, y: number, z: number, text: string) -> number
+// core.container_search(x: number, y: number, z: number, text: string) -> boolean
 int l_container_search(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2353,22 +2452,24 @@ int l_container_search(lua_State *L)
     const int z = (int)luaL_checkinteger(L, 3);
     const char *text = (const char *)luaL_checkstring(L, 4);
     const int result = (vm && vm->host.container_search) ? vm->host.container_search(vm->host.ud, x, y, z, text) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.node_keeps_drops(id: number, on: boolean?) -> number
+// core.node_keeps_drops(id: number, on: boolean?) -> boolean
 int l_node_keeps_drops(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int on = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
     const int result = (vm && vm->host.node_keeps_drops) ? vm->host.node_keeps_drops(vm->host.ud, id, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.container_show(x: number, y: number, z: number, slots: number, player: number) -> number
+// core.container_show(x: number, y: number, z: number, slots: number, player: number) -> boolean
 int l_container_show(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2378,17 +2479,19 @@ int l_container_show(lua_State *L)
     const int slots = (int)luaL_checkinteger(L, 4);
     const int player = (int)luaL_checkinteger(L, 5);
     const int result = (vm && vm->host.container_show) ? vm->host.container_show(vm->host.ud, x, y, z, slots, player) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.container_close(player: number) -> number
+// core.container_close(player: number) -> boolean
 int l_container_close(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int result = (vm && vm->host.container_close) ? vm->host.container_close(vm->host.ud, player) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -2545,7 +2648,7 @@ int l_container_spill(lua_State *L)
     return 1;
 }
 
-// core.drop_item(x: number, y: number, z: number, item: number, count: number) -> number
+// core.drop_item(x: number, y: number, z: number, item: number, count: number) -> boolean
 int l_drop_item(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2555,11 +2658,12 @@ int l_drop_item(lua_State *L)
     const int item = (int)luaL_checkinteger(L, 4);
     const int count = (int)luaL_checkinteger(L, 5);
     const int result = (vm && vm->host.drop_item) ? vm->host.drop_item(vm->host.ud, x, y, z, item, count) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.show_item(x: number, y: number, z: number, item: number) -> number
+// core.show_item(x: number, y: number, z: number, item: number) -> boolean
 int l_show_item(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2568,11 +2672,12 @@ int l_show_item(lua_State *L)
     const int z = (int)luaL_checkinteger(L, 3);
     const int item = (int)luaL_checkinteger(L, 4);
     const int result = (vm && vm->host.show_item) ? vm->host.show_item(vm->host.ud, x, y, z, item) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.craft_show(x: number, y: number, z: number, player: number) -> number
+// core.craft_show(x: number, y: number, z: number, player: number) -> boolean
 int l_craft_show(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2581,17 +2686,19 @@ int l_craft_show(lua_State *L)
     const int z = (int)luaL_checkinteger(L, 3);
     const int player = (int)luaL_checkinteger(L, 4);
     const int result = (vm && vm->host.craft_show) ? vm->host.craft_show(vm->host.ud, x, y, z, player) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.craft_close(player: number) -> number
+// core.craft_close(player: number) -> boolean
 int l_craft_close(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int result = (vm && vm->host.craft_close) ? vm->host.craft_close(vm->host.ud, player) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -2627,7 +2734,7 @@ int l_health(lua_State *L)
     return 1;
 }
 
-// core.container_clear(x: number, y: number, z: number) -> number
+// core.container_clear(x: number, y: number, z: number) -> boolean
 int l_container_clear(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2635,11 +2742,12 @@ int l_container_clear(lua_State *L)
     const int y = (int)luaL_checkinteger(L, 2);
     const int z = (int)luaL_checkinteger(L, 3);
     const int result = (vm && vm->host.container_clear) ? vm->host.container_clear(vm->host.ud, x, y, z) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.recipe_shaped(makes: string, count: number, row1: string, row2: string?, row3: string?) -> number
+// core.recipe_shaped(makes: string, count: number, row1: string, row2: string?, row3: string?) -> boolean
 int l_recipe_shaped(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2649,11 +2757,12 @@ int l_recipe_shaped(lua_State *L)
     const char *row2 = (const char *)luaL_optstring(L, 4, "");
     const char *row3 = (const char *)luaL_optstring(L, 5, "");
     const int result = (vm && vm->host.recipe_shaped) ? vm->host.recipe_shaped(vm->host.ud, makes, count, row1, row2, row3) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.recipe_shapeless(makes: string, count: number, items: string) -> number
+// core.recipe_shapeless(makes: string, count: number, items: string) -> boolean
 int l_recipe_shapeless(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2661,7 +2770,8 @@ int l_recipe_shapeless(lua_State *L)
     const int count = (int)luaL_checkinteger(L, 2);
     const char *items = (const char *)luaL_checkstring(L, 3);
     const int result = (vm && vm->host.recipe_shapeless) ? vm->host.recipe_shapeless(vm->host.ud, makes, count, items) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -2714,24 +2824,26 @@ int l_item_leaves(lua_State *L)
     return 1;
 }
 
-// core.recipe_dye(item: string) -> number
+// core.recipe_dye(item: string) -> boolean
 int l_recipe_dye(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *item = (const char *)luaL_checkstring(L, 1);
     const int result = (vm && vm->host.recipe_dye) ? vm->host.recipe_dye(vm->host.ud, item) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.item_dye(item: string, dye: number) -> number
+// core.item_dye(item: string, dye: number) -> boolean
 int l_item_dye(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *item = (const char *)luaL_checkstring(L, 1);
     const int dye = (int)luaL_checkinteger(L, 2);
     const int result = (vm && vm->host.item_dye) ? vm->host.item_dye(vm->host.ud, item, dye) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -2873,14 +2985,15 @@ int l_player_name(lua_State *L)
     return 1;
 }
 
-// core.player_carry(player: number, text: string) -> number
+// core.player_carry(player: number, text: string) -> boolean
 int l_player_carry(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const char *text = (const char *)luaL_checkstring(L, 2);
     const int result = (vm && vm->host.player_carry) ? vm->host.player_carry(vm->host.ud, player, text) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -2894,13 +3007,14 @@ int l_player_carried(lua_State *L)
     return 1;
 }
 
-// core.body_taken(player: number) -> number
+// core.body_taken(player: number) -> boolean
 int l_body_taken(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int result = (vm && vm->host.body_taken) ? vm->host.body_taken(vm->host.ud, player) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -2920,7 +3034,7 @@ int l_player_look(lua_State *L)
     return 3;
 }
 
-// core.player_launch(player: number, vx: number, vy: number, vz: number, seconds: number?) -> number
+// core.player_launch(player: number, vx: number, vy: number, vz: number, seconds: number?) -> boolean
 int l_player_launch(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2930,11 +3044,12 @@ int l_player_launch(lua_State *L)
     const float vz = (float)luaL_checknumber(L, 4);
     const float seconds = (float)luaL_optnumber(L, 5, 2);
     const int result = (vm && vm->host.player_launch) ? vm->host.player_launch(vm->host.ud, player, vx, vy, vz, seconds) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.player_place(player: number, x: number, y: number, z: number, look_x: number?, look_y: number?, look_z: number?) -> number
+// core.player_place(player: number, x: number, y: number, z: number, look_x: number?, look_y: number?, look_z: number?) -> boolean
 int l_player_place(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2946,11 +3061,12 @@ int l_player_place(lua_State *L)
     const float look_y = (float)luaL_optnumber(L, 6, 0);
     const float look_z = (float)luaL_optnumber(L, 7, 0);
     const int result = (vm && vm->host.player_place) ? vm->host.player_place(vm->host.ud, player, x, y, z, look_x, look_y, look_z) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.player_lie(player: number, on: boolean, x: number?, y: number?, z: number?, head_x: number?, head_z: number?) -> number
+// core.player_lie(player: number, on: boolean, x: number?, y: number?, z: number?, head_x: number?, head_z: number?) -> boolean
 int l_player_lie(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2962,11 +3078,12 @@ int l_player_lie(lua_State *L)
     const float head_x = (float)luaL_optnumber(L, 6, 0);
     const float head_z = (float)luaL_optnumber(L, 7, 0);
     const int result = (vm && vm->host.player_lie) ? vm->host.player_lie(vm->host.ud, player, on, x, y, z, head_x, head_z) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.player_clip(player: number, clip: string?, dx: number?, dz: number?) -> number
+// core.player_clip(player: number, clip: string?, dx: number?, dz: number?) -> boolean
 int l_player_clip(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2975,11 +3092,12 @@ int l_player_clip(lua_State *L)
     const float dx = (float)luaL_optnumber(L, 3, 0);
     const float dz = (float)luaL_optnumber(L, 4, 0);
     const int result = (vm && vm->host.player_clip) ? vm->host.player_clip(vm->host.ud, player, clip, dx, dz) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.player_wear(player: number, slot: number, model: number?, tint: number?) -> number
+// core.player_wear(player: number, slot: number, model: number?, tint: number?) -> boolean
 int l_player_wear(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2988,11 +3106,12 @@ int l_player_wear(lua_State *L)
     const int model = (int)luaL_optinteger(L, 3, 0);
     const int tint = (int)luaL_optinteger(L, 4, 0);
     const int result = (vm && vm->host.player_wear) ? vm->host.player_wear(vm->host.ud, player, slot, model, tint) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.play_sound(name: string, x: number, y: number, z: number) -> number
+// core.play_sound(name: string, x: number, y: number, z: number) -> boolean
 int l_play_sound(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -3001,7 +3120,8 @@ int l_play_sound(lua_State *L)
     const float y = (float)luaL_checknumber(L, 3);
     const float z = (float)luaL_checknumber(L, 4);
     const int result = (vm && vm->host.play_sound) ? vm->host.play_sound(vm->host.ud, name, x, y, z) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -3020,7 +3140,7 @@ int l_sound_loop(lua_State *L)
     return 1;
 }
 
-// core.sound_loop_move(id: number, x: number, y: number, z: number) -> number
+// core.sound_loop_move(id: number, x: number, y: number, z: number) -> boolean
 int l_sound_loop_move(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -3029,17 +3149,19 @@ int l_sound_loop_move(lua_State *L)
     const float y = (float)luaL_checknumber(L, 3);
     const float z = (float)luaL_checknumber(L, 4);
     const int result = (vm && vm->host.sound_loop_move) ? vm->host.sound_loop_move(vm->host.ud, id, x, y, z) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.sound_loop_stop(id: number) -> number
+// core.sound_loop_stop(id: number) -> boolean
 int l_sound_loop_stop(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int result = (vm && vm->host.sound_loop_stop) ? vm->host.sound_loop_stop(vm->host.ud, id) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -3098,14 +3220,15 @@ int l_held_id(lua_State *L)
     return 1;
 }
 
-// core.held_set_id(player: number, id: number) -> number
+// core.held_set_id(player: number, id: number) -> boolean
 int l_held_set_id(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int id = (int)luaL_checkinteger(L, 2);
     const int result = (vm && vm->host.held_set_id) ? vm->host.held_set_id(vm->host.ud, player, id) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -3120,7 +3243,7 @@ int l_worn_id(lua_State *L)
     return 1;
 }
 
-// core.worn_set_id(player: number, square: string, id: number) -> number
+// core.worn_set_id(player: number, square: string, id: number) -> boolean
 int l_worn_set_id(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -3128,44 +3251,48 @@ int l_worn_set_id(lua_State *L)
     const char *square = (const char *)luaL_checkstring(L, 2);
     const int id = (int)luaL_checkinteger(L, 3);
     const int result = (vm && vm->host.worn_set_id) ? vm->host.worn_set_id(vm->host.ud, player, square, id) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.player_fly(player: number, allowed: boolean?) -> number
+// core.player_fly(player: number, allowed: boolean?) -> boolean
 int l_player_fly(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int allowed = lua_isnoneornil(L, 2) ? 1 : (lua_toboolean(L, 2) ? 1 : 0);
     const int result = (vm && vm->host.player_fly) ? vm->host.player_fly(vm->host.ud, player, allowed) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_attack(id: number, mob: number) -> number
+// core.mob_attack(id: number, mob: number) -> boolean
 int l_mob_attack(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int mob = (int)luaL_checkinteger(L, 2);
     const int result = (vm && vm->host.mob_attack) ? vm->host.mob_attack(vm->host.ud, id, mob) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.mob_pierce(name: string, part: number) -> number
+// core.mob_pierce(name: string, part: number) -> boolean
 int l_mob_pierce(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *name = (const char *)luaL_checkstring(L, 1);
     const float part = (float)luaL_checknumber(L, 2);
     const int result = (vm && vm->host.mob_pierce) ? vm->host.mob_pierce(vm->host.ud, name, part) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.owned_area(x1: number, z1: number, x2: number, z2: number, tag: number) -> number
+// core.owned_area(x1: number, z1: number, x2: number, z2: number, tag: number) -> boolean
 int l_owned_area(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -3175,11 +3302,12 @@ int l_owned_area(lua_State *L)
     const int z2 = (int)luaL_checkinteger(L, 4);
     const int tag = (int)luaL_checkinteger(L, 5);
     const int result = (vm && vm->host.owned_area) ? vm->host.owned_area(vm->host.ud, x1, z1, x2, z2, tag) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.owned_cell(x: number, z: number, tag: number) -> number
+// core.owned_cell(x: number, z: number, tag: number) -> boolean
 int l_owned_cell(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -3187,7 +3315,8 @@ int l_owned_cell(lua_State *L)
     const int z = (int)luaL_checkinteger(L, 2);
     const int tag = (int)luaL_checkinteger(L, 3);
     const int result = (vm && vm->host.owned_cell) ? vm->host.owned_cell(vm->host.ud, x, z, tag) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -3202,7 +3331,7 @@ int l_owned_at(lua_State *L)
     return 1;
 }
 
-// core.owned_member(player: number, tag: number, on: boolean) -> number
+// core.owned_member(player: number, tag: number, on: boolean) -> boolean
 int l_owned_member(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -3210,11 +3339,12 @@ int l_owned_member(lua_State *L)
     const int tag = (int)luaL_checkinteger(L, 2);
     const int on = lua_isnoneornil(L, 3) ? 0 : (lua_toboolean(L, 3) ? 1 : 0);
     const int result = (vm && vm->host.owned_member) ? vm->host.owned_member(vm->host.ud, player, tag, on) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.player_factors(player: number, walk: number, dig: number, hurt: number, regen: number, source: string?) -> number
+// core.player_factors(player: number, walk: number, dig: number, hurt: number, regen: number, source: string?) -> boolean
 int l_player_factors(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -3225,7 +3355,8 @@ int l_player_factors(lua_State *L)
     const float regen = (float)luaL_checknumber(L, 5);
     const char *source = (const char *)luaL_optstring(L, 6, "");
     const int result = (vm && vm->host.player_factors) ? vm->host.player_factors(vm->host.ud, player, walk, dig, hurt, regen, source) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -3306,14 +3437,15 @@ int l_take_item(lua_State *L)
     return 1;
 }
 
-// core.wear_held(player: number, amount: number?) -> number
+// core.wear_held(player: number, amount: number?) -> boolean
 int l_wear_held(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int amount = (int)luaL_optinteger(L, 2, 1);
     const int result = (vm && vm->host.wear_held) ? vm->host.wear_held(vm->host.ud, player, amount) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -3352,7 +3484,7 @@ int l_give_item(lua_State *L)
     return 1;
 }
 
-// core.meta_set(x: number, y: number, z: number, key: string, value: string) -> number
+// core.meta_set(x: number, y: number, z: number, key: string, value: string) -> boolean
 int l_meta_set(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -3362,7 +3494,8 @@ int l_meta_set(lua_State *L)
     const char *key = (const char *)luaL_checkstring(L, 4);
     const char *value = (const char *)luaL_checkstring(L, 5);
     const int result = (vm && vm->host.meta_set) ? vm->host.meta_set(vm->host.ud, x, y, z, key, value) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -3379,29 +3512,31 @@ int l_meta_get(lua_State *L)
     return 1;
 }
 
-// core.notice(player: number, text: string) -> number
+// core.notice(player: number, text: string) -> boolean
 int l_notice(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const char *text = (const char *)luaL_checkstring(L, 2);
     const int result = (vm && vm->host.notice) ? vm->host.notice(vm->host.ud, player, text) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.chat(player: number, text: string) -> number
+// core.chat(player: number, text: string) -> boolean
 int l_chat(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const char *text = (const char *)luaL_checkstring(L, 2);
     const int result = (vm && vm->host.chat) ? vm->host.chat(vm->host.ud, player, text) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.command(name: string, help: string, perm: string?) -> number
+// core.command(name: string, help: string, perm: string?) -> boolean
 int l_command(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -3409,18 +3544,20 @@ int l_command(lua_State *L)
     const char *help = (const char *)luaL_checkstring(L, 2);
     const char *perm = (const char *)luaL_optstring(L, 3, "");
     const int result = (vm && vm->host.command) ? vm->host.command(vm->host.ud, name, help, perm) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.has_perm(player: number, perm: string) -> number
+// core.has_perm(player: number, perm: string) -> boolean
 int l_has_perm(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const char *perm = (const char *)luaL_checkstring(L, 2);
     const int result = (vm && vm->host.has_perm) ? vm->host.has_perm(vm->host.ud, player, perm) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -3434,7 +3571,7 @@ int l_role(lua_State *L)
     return 1;
 }
 
-// core.page_register(name: string, title: string, perm: string?) -> number
+// core.page_register(name: string, title: string, perm: string?) -> boolean
 int l_page_register(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -3442,11 +3579,12 @@ int l_page_register(lua_State *L)
     const char *title = (const char *)luaL_checkstring(L, 2);
     const char *perm = (const char *)luaL_optstring(L, 3, "");
     const int result = (vm && vm->host.page_register) ? vm->host.page_register(vm->host.ud, name, title, perm) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.page_show(player: number, name: string, markup: string) -> number
+// core.page_show(player: number, name: string, markup: string) -> boolean
 int l_page_show(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -3454,28 +3592,31 @@ int l_page_show(lua_State *L)
     const char *name = (const char *)luaL_checkstring(L, 2);
     const char *markup = (const char *)luaL_checkstring(L, 3);
     const int result = (vm && vm->host.page_show) ? vm->host.page_show(vm->host.ud, player, name, markup) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.is_muted(player: number) -> number
+// core.is_muted(player: number) -> boolean
 int l_is_muted(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int player = (int)luaL_checkinteger(L, 1);
     const int result = (vm && vm->host.is_muted) ? vm->host.is_muted(vm->host.ud, player) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
-// core.storage_set(key: string, value: string) -> number
+// core.storage_set(key: string, value: string) -> boolean
 int l_storage_set(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *key = (const char *)luaL_checkstring(L, 1);
     const char *value = (const char *)luaL_checkstring(L, 2);
     const int result = (vm && vm->host.storage_set) ? vm->host.storage_set(vm->host.ud, key, value) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 
@@ -3489,14 +3630,15 @@ int l_storage_get(lua_State *L)
     return 1;
 }
 
-// core.shared_storage_set(key: string, value: string) -> number
+// core.shared_storage_set(key: string, value: string) -> boolean
 int l_shared_storage_set(lua_State *L)
 {
     VmState *vm = host_of(L);
     const char *key = (const char *)luaL_checkstring(L, 1);
     const char *value = (const char *)luaL_checkstring(L, 2);
     const int result = (vm && vm->host.shared_storage_set) ? vm->host.shared_storage_set(vm->host.ud, key, value) : (int)0;
-    lua_pushinteger(L, result);
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
     return 1;
 }
 

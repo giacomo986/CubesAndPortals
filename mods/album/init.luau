@@ -318,12 +318,12 @@ if serving then
         end
         local g = tonumber(string.match(text, "^G (%d+)$"))
         if g then
-            local data = pixels_of(g)
-            if data == nil then
+            local pix = pixels_of(g)
+            if pix == nil then
                 to_machine(p, `N {g}`)
                 return
             end
-            local parts = pieces(data, PIECE)
+            local parts = pieces(pix, PIECE)
             for kk, part in parts do
                 to_machine(p, `Q {g} {kk} {#parts} {part}`)
             end

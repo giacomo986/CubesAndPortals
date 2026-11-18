@@ -24,7 +24,7 @@ end)
 local walkers: { { id: number, z: number, east: boolean } } = {}
 local placed, since = false, 0.0
 core.event.on("core:tick", function(ev)
-    if not placed then placed = core.portal_place(0, 32.5, Y + 3, 40.5, 0, 1, 3, 2) == 1 end
+    if not placed then placed = core.portal_place(0, 32.5, Y + 3, 40.5, 0, 1, 3, 2) end
     since += ev.dt
     if since < 2 then return end
     since = 0
@@ -37,7 +37,7 @@ core.event.on("core:tick", function(ev)
         core.log(`windowlab: {#walkers} walkers`)
     end
     for _, w in walkers do
-        if core.mob_going(w.id) == 0 then
+        if not core.mob_going(w.id) then
             w.east = not w.east
             core.mob_goto(w.id, if w.east then 38 else 27, Y + 1, w.z)
         end

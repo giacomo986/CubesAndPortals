@@ -145,7 +145,7 @@ core.event.on("core:tick", function(_)
         if core.portal_room(k) == "" then core.portal_park(k) end
     end
     if core.portal_room(0) == "" then
-        door_said = core.room_portal_set("door", CX + 0.5, GROUND + 2, HZ0 + 0.5, 0, 1, 0.5, 1.0) == 1
+        door_said = core.room_portal_set("door", CX + 0.5, GROUND + 2, HZ0 + 0.5, 0, 1, 0.5, 1.0)
     end
 end)
 

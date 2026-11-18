@@ -7603,6 +7603,16 @@ int serve_room(int argc, char **argv)
             for (ServerState::LuaStage &st : s.mapgen_stages)
                 if (st.vm == vm) st.vm = nullptr;
         });
+        // A mod an error switched off, told to whoever here may read the logs:
+        // the line on stderr is read by nobody while the world is played, and
+        // a level that does not open was found weeks after it stopped opening.
+        s.mods.set_disabled([&s](const std::string &mod, const std::string &why) {
+            if (!s.sessions) return;
+            const std::string line = "[mod] " + mod + " switched off: " + why;
+            for (const net::PeerId peer : s.sessions->ready_peers())
+                if (const net::Session *p = s.sessions->find(peer); p && admin::may(admin_who(*p), "logs"))
+                    say_to(s, peer, line);
+        });
 
         // The engine's own events, declared before the mods load or the first
         // mod to listen for one would be told it does not exist.

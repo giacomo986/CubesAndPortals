@@ -153,7 +153,7 @@ if serving then
     -- What a creature, a power-up or a fireball stands on.
     local function solid_at(x: number, y: number): boolean
         local b = core.get_block(math.floor(x), math.floor(y), 0)
-        return b ~= AIR and b ~= COIN and b ~= HIDDEN_OPEN and core.node_solid(b) == 1
+        return b ~= AIR and b ~= COIN and b ~= HIDDEN_OPEN and core.node_solid(b)
     end
 
     -- Nothing of the engine's terrain: the room and the levels hang in the sky.
@@ -544,7 +544,7 @@ if serving then
             if core.portal_room(k) == "" then core.portal_park(k) end
         end
         if core.portal_room(0) == "" then
-            door_said = core.room_portal_set("door", 0.5, G + 1, -28.5, 0, 1, 0.5, 1.0) == 1
+            door_said = core.room_portal_set("door", 0.5, G + 1, -28.5, 0, 1, 0.5, 1.0)
         end
     end
     -- The hole: a floor two by two facing up, linked to a ceiling one by one
@@ -1384,7 +1384,9 @@ if serving then
 
             -- A power-up touched.
             for id, of in items do
-                if of ~= r.level or (core.ecs.get(id, "rise") :: number) > 0 then continue end
+                if of ~= r.level then continue end
+                local rise = core.ecs.get(id, "rise")
+                if rise == nil or rise > 0 then continue end
                 local ix, iy = core.ecs.get(id, "x"), core.ecs.get(id, "y") :: number
                 -- One that would change nothing is left for somebody else.
                 local kind = core.ecs.get(id, "kind")
@@ -1456,10 +1458,10 @@ if serving then
             -- it is never let stand inside the stove.
             local b = boss
             if b and r.level == 3 and runs[p] == r then
-                local bx, by = core.ecs.get(b.id, "x"), core.ecs.get(b.id, "y") :: number
-                if bx and math.abs(x - bx) < 1.0 + 0.3 * r.scale and y < by + 2.7 and y + tall > by then
-                    local away = if x < bx then -1 else 1
-                    local stomp = b.state == "cold" and vy < -1 and y > by + 1.7
+                local boss_x, boss_y = core.ecs.get(b.id, "x"), core.ecs.get(b.id, "y") :: number
+                if boss_x and math.abs(x - boss_x) < 1.0 + 0.3 * r.scale and y < boss_y + 2.7 and y + tall > boss_y then
+                    local away = if x < boss_x then -1 else 1
+                    local stomp = b.state == "cold" and vy < -1 and y > boss_y + 1.7
                     if clock >= r.safe and stomp then
                         r.safe = clock + 0.6
                         b.state, b.t, b.next, b.shots = "hot", 0, 0.6, 0

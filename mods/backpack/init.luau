@@ -53,7 +53,7 @@ if serving then
             return id
         end
         id = ((tonumber(core.shared_storage_get("next")) or 0) :: number) + 1
-        if core.worn_set_id(player, "back", id) == 0 then
+        if not core.worn_set_id(player, "back", id) then
             return 0
         end
         core.shared_storage_set("next", tostring(id))

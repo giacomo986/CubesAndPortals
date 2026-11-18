@@ -978,14 +978,14 @@ local function path_between(a: Village, b: Village, seed: number): Path?
                 return true
             end
             local pulled = { pts[1] }
-            local i = 1
-            while i < #pts do
-                local j = math.min(#pts, i + 6)
-                while j > i + 1 and not clear(pts[i], pts[j]) do
+            local at = 1
+            while at < #pts do
+                local j = math.min(#pts, at + 6)
+                while j > at + 1 and not clear(pts[at], pts[j]) do
                     j -= 1
                 end
                 table.insert(pulled, pts[j])
-                i = j
+                at = j
             end
             for _ = 1, 2 do
                 local round = { pulled[1] }
@@ -1261,8 +1261,8 @@ local function crossing(p: Path, q: Path): { any }?
                     nearest, along = d, l[3]
                 end
             end
-            for _, way in { { r.a, along }, { r.b, r.len - along } } do
-                local v, n = way[1] :: Village, way[2] :: number
+            for _, dest in { { r.a, along }, { r.b, r.len - along } } do
+                local v, n = dest[1] :: Village, dest[2] :: number
                 if not said[v] then
                     said[v] = true
                     -- A path stops at the edge of the streets; the place is further on.
@@ -1513,7 +1513,7 @@ core.event.on("core:tick", function(ev)
     for k, t in SIGNS_DUE do
         local x, y, z = string.match(k, "^(-?%d+),(-?%d+),(-?%d+)$")
         local cx, cy, cz = tonumber(x) :: number, tonumber(y) :: number, tonumber(z) :: number
-        if core.loaded(cx, cy, cz) == 1 then
+        if core.loaded(cx, cy, cz) then
             if core.get_block(cx, cy, cz) == sign and core.meta_get(cx, cy, cz, "text") == "" then
                 core.meta_set(cx, cy, cz, "text", t)
             end

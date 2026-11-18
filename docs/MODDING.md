@@ -84,11 +84,20 @@ the truth is the second is an afternoon lost.
 ### `api`, that is which engine the mod is written for
 
 `api` is **a whole number**, not a version. It says which version of the mod API the mod was
-written for. This build serves only one -- `api = 1` -- and refuses any other:
+written for. This build serves two, `api = 1` and `api = 2`, and refuses any other:
 
 ```
-mod 'futuro' not loaded: written for mod API 2, and this build serves 1 to 1
+mod 'futuro' not loaded: written for mod API 3, and this build serves 1 to 2
 ```
+
+| `api` | what changes |
+|---|---|
+| 1 | a call that answers yes or no answers **1 or 0** -- and in Luau 0 is true, so it has to be compared: `core.loaded(x, y, z) == 1` |
+| 2 | the same calls answer **true or false**: `if core.loaded(x, y, z) then`. `docs/api.d.luau` types them so (`flag` in `src/script/api.luau`, a note under each in [API.md](API.md)) |
+
+A mod written for 1 goes on loading and getting numbers. Moving it to 2 is the `api` line and every
+comparison with 1 or 0 of those calls -- the type checker lists them all, as "Cannot compare
+unrelated types 'boolean' and 'number'".
 
 A mod that does not declare it is taken for the **oldest** this build serves. It is the only
 assumption that cannot quietly promote an old mod onto a new API: the day the oldest served goes
@@ -97,7 +106,7 @@ up, that mod is refused and told to declare what it wants, instead of failing at
 The log line says it, and says too when nobody told it:
 
 ```
-mod 'cave' 0.1.0 (api 1) loaded, capabilities: none
+mod 'cave' 0.1.0 (api 2) loaded, capabilities: none
 mod 'vecchio' 0.1.0 (api 1, assumed) loaded, capabilities: none
 ```
 
@@ -543,7 +552,11 @@ process segfaults at the first emit after a reload; checked).
 ## The API available today
 
 **Complete reference: [API.md](API.md)** -- generated, with signatures, types and defaults. For
-the editor's type checker: [api.d.luau](api.d.luau).
+the editor's type checker: [api.d.luau](api.d.luau). The repository is set up for it: `.luaurc`
+makes every file `--!strict`, and `.vscode/settings.json` points the Luau Language Server
+extension (luau-lsp) at `docs/api.d.luau` -- open the folder and the editor shows what
+`tools/typecheck.sh` reports. Another editor with luau-lsp takes the same file as a definitions
+file.
 
 ```lua
 core.set_block(x, y, z, id)
@@ -553,25 +566,25 @@ core.node_id(name) -> id            -- 0 if it does not exist
 core.node_name(id) -> name
 core.set_facing(x, y, z, turn)      -- 0 .. core.node_turns(id) - 1
 core.node_turns(id) -> n            -- 1, 4, 6 or 24: how many turns that block has
-core.loaded(x, y, z) -> 1 | 0       -- 0: column not in memory, get_block reads air
+core.loaded(x, y, z) -> bool       -- 0: column not in memory, get_block reads air
 core.light(x, y, z) -> 0..15        -- light now: the blocks', or the sky's for the hour
 core.get_facing(x, y, z) -> turn
 core.set_portal(index, x, y, z)     -- on the server: the world's openings, only while mods load
 core.portal_open(x, y, z, axis, sign, turn, half_w, half_h, colour?) -> id|-1  -- on the server, when it listens: -1 before, try again; as many as you like: the 40 openings go to those nearest the players
                                     -- colour: how it looks shut while it leads nowhere: 0 green (fixed, default), 1 blue, 2 orange (portal gun)
 core.portal_close(x, y, z) -> 0..15|-1                             -- by centre, not by index
-core.portal_move(id, x, y, z, axis?, sign?, turn?) -> 1|0          -- every tick: it moves (drawn smooth, crossed relative to it); a new plane/turn or a jump > 4 puts it there
+core.portal_move(id, x, y, z, axis?, sign?, turn?) -> bool          -- every tick: it moves (drawn smooth, crossed relative to it); a new plane/turn or a jump > 4 puts it there
 core.portal_move(id, x, y, z, -1, 0, -1, nx, ny, nz, ux?, uy?, uz?)   -- turned freely: front n, up u, any way; may turn every tick
-core.portal_scale(id, on?) -> 1|0   -- both ends of a pair of two sizes: what crosses comes out scaled by far/near height (a player it would take past 1/32..4 does not cross)
+core.portal_scale(id, on?) -> bool   -- both ends of a pair of two sizes: what crosses comes out scaled by far/near height (a player it would take past 1/32..4 does not cross)
                                      --   (players, creatures and tumbling boxes, kept within 1/32..4 of their kind)
-core.body_scale(player, s?) -> 1|0  -- a body 1/32..4 as big: box, steps, eye, speeds, gravity, reach, drawn so
+core.body_scale(player, s?) -> bool  -- a body 1/32..4 as big: box, steps, eye, speeds, gravity, reach, drawn so
 core.body_size(player) -> s         -- how big it is now (body_scale, a scaling portal); 0 for nobody
-core.portal_link(a, b) -> 1|0       -- a and b lead to each other; b = -1 unlinks a
-core.portal_window(a, b) -> 1|0     -- a window, one way, for the eyes: a shows what b faces, b is drawn from nowhere, nothing crosses either (with portal_scale on both: a miniature)
+core.portal_link(a, b) -> bool       -- a and b lead to each other; b = -1 unlinks a
+core.portal_window(a, b) -> bool     -- a window, one way, for the eyes: a shows what b faces, b is drawn from nowhere, nothing crosses either (with portal_scale on both: a miniature)
 core.log(message)
-core.play_sound("mod:thing", x, y, z) -> 1|0  -- to everybody in the world; file mods/<mod>/<thing>.ogg on the client
+core.play_sound("mod:thing", x, y, z) -> bool  -- to everybody in the world; file mods/<mod>/<thing>.ogg on the client
 core.sound_loop("mod:thing", x, y, z, range?, gain?) -> id|0  -- going round until stopped; late joiners hear it too
-core.sound_loop_move(id, x, y, z) -> 1|0      core.sound_loop_stop(id) -> 1|0
+core.sound_loop_move(id, x, y, z) -> bool      core.sound_loop_stop(id) -> bool
 
 core.take_item(player, name, count?) -> taken    -- up to `count`, says how many
 core.give_item(player, name, count?) -> fitted   -- what does not fit stays the mod's
@@ -581,26 +594,26 @@ core.players() -> { id }                         -- who has a body in this world
 core.player_pos(id) -> (x, y, z) | nil           -- the FEET, or nothing if not there
 core.player_name(id) -> name                     -- "" if not there; stays the same on coming back, the id does not
 core.player_look(id) -> (dx, dy, dz) | nil       -- where they look, length 1
-core.player_place(id, x, y, z, dx?, dy?, dz?) -> 1 | 0  -- moves and turns a body, like a portal
-core.ride(id, host, x?, y?, z?) -> 1 | 0         -- seated on host's body; host 0 = gets off
+core.player_place(id, x, y, z, dx?, dy?, dz?) -> bool  -- moves and turns a body, like a portal
+core.ride(id, host, x?, y?, z?) -> bool         -- seated on host's body; host 0 = gets off
 core.monsters_near(x, y, z, r) -> n              -- fighting creatures within r
-core.mob_health(id, hp) -> 1 | 0                 -- a creature's health and its whole
+core.mob_health(id, hp) -> bool                 -- a creature's health and its whole
 core.raycast(x, y, z, dx, dy, dz, max?) -> (bx, by, bz, distance) | nil
 
-core.meta_set(x, y, z, key, value) -> 1 | 0      -- empty value = delete
+core.meta_set(x, y, z, key, value) -> bool      -- empty value = delete
 core.meta_get(x, y, z, key) -> string            -- "" if there is nothing
-core.storage_set(key, value) -> 1 | 0            -- the mod's, in the world file; empty = delete
+core.storage_set(key, value) -> bool            -- the mod's, in the world file; empty = delete
 core.storage_get(key) -> string                  -- "" if there is nothing
-core.shared_storage_set(key, value) -> 1 | 0     -- the same, one for every room (still the mod's own)
+core.shared_storage_set(key, value) -> bool     -- the same, one for every room (still the mod's own)
 core.shared_storage_get(key) -> string
-core.notice(player, text) -> 1 | 0               -- a sentence on the screen; 0 = everybody
-core.chat(player, text) -> 1 | 0                 -- a line in the chat (T); 0 = everybody
-core.command(name, help, perm?) -> 1 | 0        -- declares /name; arrives as core:command
-core.has_perm(player, perm) -> 1 | 0            -- does the player's role reach perm?
+core.notice(player, text) -> bool               -- a sentence on the screen; 0 = everybody
+core.chat(player, text) -> bool                 -- a line in the chat (T); 0 = everybody
+core.command(name, help, perm?) -> bool        -- declares /name; arrives as core:command
+core.has_perm(player, perm) -> bool            -- does the player's role reach perm?
 core.role(player) -> string                      -- guest, player, helper, moderator, admin, owner
-core.is_muted(player) -> 1 | 0                   -- is their chat held (/mute)?
-core.page_register(name, title, perm?) -> 1 | 0  -- a page that /page NAME opens
-core.page_show(player, name, markup) -> 1 | 0    -- shows a page to a player
+core.is_muted(player) -> bool                   -- is their chat held (/mute)?
+core.page_register(name, title, perm?) -> bool  -- a page that /page NAME opens
+core.page_show(player, name, markup) -> bool    -- shows a page to a player
 
 core.find_nodes(x1,y1,z1, x2,y2,z2, name) -> { x,y,z, x,y,z, ... }
 
@@ -615,7 +628,7 @@ core.biome(x, z) -> name                         -- the column's climate, accord
 core.seed() -> n                                 -- the world's seed (its low 31 bits), anywhere
 core.plaza() -> lo, hi | nil                     -- the plaza's bounds, nil in a world without one
 core.world_spawn() -> x, y, z | nil              -- where a player arrives
-core.node_liquid(id, opacity?) -> 1 | 0          -- you swim in it, and light goes through it
+core.node_liquid(id, opacity?) -> bool          -- you swim in it, and light goes through it
 
 core.container_take(x, y, z, item, count?) -> taken  -- from a container, from the first slot
 
@@ -1295,7 +1308,7 @@ it and shows what it does:
 ```lua
 local id = core.spawn_mob("mymod:farmer", x + 0.5, y, z + 0.5)
 core.mob_goto(id, cx, cy, cz)          -- to that cell, by core.find_path's road
-if core.mob_going(id) == 0 then        -- arrived (or stuck where there is no road)
+if not core.mob_going(id) then        -- arrived (or stuck where there is no road)
     core.mob_face(id, wx, wz)
     core.mob_act(id, "gather", "farm:hoe")  -- looping clip and item in hand, to everybody (protocol 81)
 end
@@ -2163,8 +2176,8 @@ core.event.on("core:watched", function(ev) --[[ the cell changed ]] end)
 **Moving bodies.** `core.push_mobs(x, y, z, dx, dy, dz)` moves creatures with their feet in that
 cell; a player is moved with `core.player_place` (the piston slides them in four ticks of 0.25).
 
-**Blocks.** `core.node_solid(id)` answers 1 or 0 -- compare it with 1, because in Luau 0 is true too.
-A `wallmounted` block looks out of the face it was placed against, in six directions: that is how
+**Blocks.** `core.node_solid(id)` answers true or false (1 or 0 under `api = 1`, where it has to
+be compared with 1: in Luau 0 is true too). A `wallmounted` block looks out of the face it was placed against, in six directions: that is how
 pistons, observers and hoppers point up and down too (+X, -X, +Y, -Y, +Z, -Z for faces 0..5, and
 boxes are written with the front towards +Z). **A box's picture is read with the first row at the
 bottom**: a torch drawn with its head in the first rows comes out upside down.
@@ -2350,9 +2363,10 @@ did. That is what a clean check is for: the typing errors hide the few that are 
 
 **What a clean check does not see**, found the same day in code that passed it:
 
-- **0 is true.** Many calls answer 1 or 0 (`core.loaded`, `core.node_solid`...), and in Luau only
-  `nil` and `false` are false: `if core.loaded(x, y, z) then` is always taken. Write `== 1`. The
-  front's flags went up on ground that was not there yet, once, from 0.9 to 0.18.
+- **0 is true.** Under `api = 1` the calls that answer yes or no (`core.loaded`,
+  `core.node_solid`...) answer 1 or 0, and in Luau only `nil` and `false` are false:
+  `if core.loaded(x, y, z) then` is always taken. The front's flags went up on ground that was not
+  there yet, once, from 0.9 to 0.18 -- which is why `api = 2` answers true or false.
 - **A client's text is not a number until it is checked.** `tonumber(w[i]) :: number` tells the
   checker it is; a client that sends something else makes the handler fail, and a handler that
   fails switches the mod off -- for everybody in that world. Check each one and drop the message.

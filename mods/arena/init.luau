@@ -330,7 +330,7 @@ if serving then
             else
                 local px, py, pz = core.player_pos(p)
                 local under = core.get_block(math.floor(px :: number), math.floor((py :: number) - 0.5), math.floor(pz :: number))
-                disguise(h, p, if core.node_solid(under) == 1 and under ~= GONG then under else STONE)
+                disguise(h, p, if core.node_solid(under) and under ~= GONG then under else STONE)
                 core.notice(p, `You hide: {HIDE} s before they look. Right-click a block to become one like it; stand still.`)
             end
         end
@@ -383,7 +383,7 @@ if serving then
         local h = hunt_of(ev.player)
         if h and h.hiders[ev.player] and ev.id ~= GONG then
             ev.cancel = true
-            if core.node_solid(ev.id) ~= 1 then
+            if not core.node_solid(ev.id) then
                 core.notice(ev.player, "Only a solid block: that one is not a shape a body can take.")
                 return
             end
@@ -545,7 +545,7 @@ if serving then
                 if core.player_name(p) == "" then
                     h.everyone[p], h.hiders[p], h.seekers[p], h.still[p] = nil, nil, nil, nil
                 elseif not in_field(p, h) then
-                    local x, y, z = core.player_pos(p)
+                    local x, _, z = core.player_pos(p)
                     if x and h.hiders[p] then
                         -- Back on the ring's edge, the nearest point of it.
                         local dx, dz = x - h.x - 0.5, z - h.z - 0.5
@@ -555,7 +555,7 @@ if serving then
                         for dy = UP, -UP, -1 do
                             local cx, cz = math.floor(bx), math.floor(bz)
                             if core.get_block(cx, h.y + dy, cz) == 0 and core.get_block(cx, h.y + dy + 1, cz) == 0
-                                and core.node_solid(core.get_block(cx, h.y + dy - 1, cz)) == 1 then
+                                and core.node_solid(core.get_block(cx, h.y + dy - 1, cz)) then
                                 by = h.y + dy
                                 break
                             end
@@ -593,7 +593,7 @@ if serving then
             local px, _, pz = core.player_pos(p)
             local line = ""
             for key in gongs do
-                local gx, gy, gz = string.match(key, "^(%-?%d+),(%-?%d+),(%-?%d+)$")
+                local gx, _, gz = string.match(key, "^(%-?%d+),(%-?%d+),(%-?%d+)$")
                 local x, z = tonumber(gx) :: number, tonumber(gz) :: number
                 if px and (px - x) ^ 2 + (pz - z) ^ 2 < 48 * 48 then
                     local r = rounds[key]
@@ -659,7 +659,7 @@ if serving then
             return
         end
         local x0, y, z0 = math.floor(sx) - 4, math.floor(sy), math.floor(sz) - 4
-        if core.loaded(x0, y, z0) == 0 then
+        if not core.loaded(x0, y, z0) then
             return
         end
         laid = true
@@ -739,7 +739,7 @@ if drawing then
             local y = g[2]
             for dy = 3, -3, -1 do
                 local bx, bz = math.floor(x), math.floor(z)
-                if core.get_block(bx, g[2] + dy, bz) == 0 and core.node_solid(core.get_block(bx, g[2] + dy - 1, bz)) == 1 then
+                if core.get_block(bx, g[2] + dy, bz) == 0 and core.node_solid(core.get_block(bx, g[2] + dy - 1, bz)) then
                     y = g[2] + dy
                     break
                 end

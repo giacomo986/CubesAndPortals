@@ -207,7 +207,7 @@ core.event.on("core:tick", function(ev)
             local x, y, z = spot(core.storage_get(key(p)))
             if x and y and z then
                 -- A column not loaded yet may well hold the bed.
-                if core.loaded(x, y, z) == 0 or core.get_block(x, y, z) == BED then
+                if not core.loaded(x, y, z) or core.get_block(x, y, z) == BED then
                     core.player_spawn(p, x + 0.5, y + 1, z + 0.5)
                     core.event.emit("bed:home", { player = p, x = x, y = y, z = z, on = true })
                 else

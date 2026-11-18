@@ -126,7 +126,7 @@ end
 -- towards the stone, come out of walking away from it. Its centre, its plane
 -- (core.portal_open's axis) and which way it faces; nil with no room.
 local function gate(s: Stone): { number }?
-    if core.loaded(s.x, s.y, s.z) == 0 then
+    if not core.loaded(s.x, s.y, s.z) then
         return s.gate   -- nobody there to look: what was found last time
     end
     for _, d in { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } } do
@@ -134,7 +134,7 @@ local function gate(s: Stone): { number }?
         for dy = 0, -1, -1 do
             local y = s.y + dy
             if core.get_block(x, y, z) == 0 and core.get_block(x, y + 1, z) == 0
-                and core.node_solid(core.get_block(x, y - 1, z)) == 1 then
+                and core.node_solid(core.get_block(x, y - 1, z)) then
                 return { x + 0.5, y + 1, z + 0.5, if d[1] ~= 0 then 1 else 0, d[1] + d[2] }
             end
         end
@@ -144,7 +144,7 @@ end
 
 -- Looks again while its ground is loaded, and keeps what it found.
 local function regate(s: Stone)
-    if core.loaded(s.x, s.y, s.z) == 1 then
+    if core.loaded(s.x, s.y, s.z) then
         local g = gate(s)
         local was = s.gate
         s.gate = g

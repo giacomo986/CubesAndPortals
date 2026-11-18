@@ -993,7 +993,7 @@ if serving then
         if d > 24 then
             gx, gz = x + dx / d * 24, z + dz / d * 24
         end
-        if core.mob_going(id) == 0 or d > 24 then
+        if not core.mob_going(id) or d > 24 then
             gx, gz = math.floor(gx), math.floor(gz)
             core.mob_goto(id, gx, feet_at(gx, gz), gz)
         end
@@ -1959,7 +1959,7 @@ if serving then
             local r = M.respawn[i]
             if clock >= r.at then
                 local x, z = math.floor(r.home[1]), math.floor(r.home[2])
-                if core.loaded(x, GROUND, z) == 1 then
+                if core.loaded(x, GROUND, z) then
                     table.remove(M.respawn, i)
                     M.spawn(r.kind, r.home[1], r.home[2], r.home[3], r.home[4])
                 else
@@ -2411,8 +2411,8 @@ if serving then
             end
             if e == nil or clock < (b.react_at or 0) then continue end
             if seat.gun == "mg" then
-                local pid = m.parts[seat.part :: number]
-                local px, py, pz = core.ecs.get(pid, "x"), core.ecs.get(pid, "y") :: number, core.ecs.get(pid, "z") :: number
+                local gun_pid = m.parts[seat.part :: number]
+                local px, py, pz = core.ecs.get(gun_pid, "x"), core.ecs.get(gun_pid, "y") :: number, core.ecs.get(gun_pid, "z") :: number
                 if px == nil then continue end
                 b.burst -= 1
                 if b.burst <= 0 then
@@ -2436,10 +2436,10 @@ if serving then
                     m.salvo -= 1
                     m.next[i] = clock + (if m.salvo <= 0 then 6 else 0.35)
                     if m.salvo <= 0 then m.salvo = 8 end
-                    local x, y, z = M.point(id, if m.salvo % 2 == 0 then 1.15 else -1.15, 0.75, 1.8)
+                    local rx, ry, rz = M.point(id, if m.salvo % 2 == 0 then 1.15 else -1.15, 0.75, 1.8)
                     local d = jitter({ dx / l, dy / l, dz / l }, 0.03)
-                    M.shoot("heli", { x, y, z }, { d[1] * 55, d[2] * 55, d[3] * 55 }, -bid, b.team, id)
-                    core.play_sound("front_game:rocket", x, y, z)
+                    M.shoot("heli", { rx, ry, rz }, { d[1] * 55, d[2] * 55, d[3] * 55 }, -bid, b.team, id)
+                    core.play_sound("front_game:rocket", rx, ry, rz)
                 end
             elseif seat.gun == "plane" and m.pose then
                 -- The wing guns, along the nose, when it points at them.
@@ -2451,14 +2451,14 @@ if serving then
                 if l < 130 and (dx * d[1] + dy * d[2] + dz * d[3]) / l > 0.985 then
                     m.next[i] = clock + 0.09
                     m.side = -(m.side or 1)
-                    local x, y, z = M.point(id, 2.2 * (m.side :: number), 0.5, 3.5)
-                    bullet(-bid, b, { x + d[1] * pose.speed * 0.1, y + d[2] * pose.speed * 0.1, z + d[3] * pose.speed * 0.1 },
+                    local wx, wy, wz = M.point(id, 2.2 * (m.side :: number), 0.5, 3.5)
+                    bullet(-bid, b, { wx + d[1] * pose.speed * 0.1, wy + d[2] * pose.speed * 0.1, wz + d[3] * pose.speed * 0.1 },
                            jitter(d, 0.015), { range = 180, damage = 3 }, "plane", id)
-                    core.play_sound("front_game:mg", x, y, z)
+                    core.play_sound("front_game:mg", wx, wy, wz)
                 end
             elseif seat.gun == "cannon" and m.pose then
-                local pid = m.parts[2]
-                local px, pz = core.ecs.get(pid, "x"), core.ecs.get(pid, "z") :: number
+                local turret_pid = m.parts[2]
+                local px, pz = core.ecs.get(turret_pid, "x"), core.ecs.get(turret_pid, "z") :: number
                 if px == nil then continue end
                 local off = wrap(math.atan2(e.x - px, -(e.z - pz)) - (m.pose :: CraftPose).yaw - m.aim[1].yaw)
                 if math.abs(off) < 0.08 then
@@ -2511,9 +2511,9 @@ if serving then
         end
         if not pole_built then
             for i = 1, 3 do
-                if core.loaded(POINTS[i][1], GROUND, POINTS[i][2]) == 1 then flag(i) end
+                if core.loaded(POINTS[i][1], GROUND, POINTS[i][2]) then flag(i) end
             end
-            pole_built = core.loaded(POINTS[1][1], GROUND, POINTS[1][2]) == 1 and core.loaded(POINTS[3][1], GROUND, POINTS[3][2]) == 1
+            pole_built = core.loaded(POINTS[1][1], GROUND, POINTS[1][2]) and core.loaded(POINTS[3][1], GROUND, POINTS[3][2])
         end
         local near = {}
         for i = 1, 3 do near[i] = { 0, 0 } end
@@ -3075,9 +3075,9 @@ if drawing then
 
         local line, ok = weapon_line()
         if line ~= "" then
-            local r, g, b = 230, 240, 230
-            if not ok or dry_left > 0 then r, g, b = 255, 80, 60 end
-            core.hud.text(0.97, 0.9, line, 0.042, 2, r, g, b, 255)
+            local tr, tg, tb = 230, 240, 230
+            if not ok or dry_left > 0 then tr, tg, tb = 255, 80, 60 end
+            core.hud.text(0.97, 0.9, line, 0.042, 2, tr, tg, tb, 255)
         end
         core.hud.text(0.97, 0.95, `GRENADES {nades}   KILLS {kills}`, 0.026, 2, 190, 200, 190, 220)
 
@@ -3086,8 +3086,8 @@ if drawing then
             local L = V.lock
             local text = if L == nil or L.left <= 0 then "NO TARGET" elseif L.on then "LOCKED -- FIRE"
                 else string.format("LOCKING %d%%", math.floor(L.k * 100))
-            local c = if L and L.left > 0 and L.on then { 255, 60, 40 } else { 255, 220, 60 }
-            core.hud.text(0.5, 0.58, text, 0.028, 1, c[1], c[2], c[3], 255)
+            local lc = if L and L.left > 0 and L.on then { 255, 60, 40 } else { 255, 220, 60 }
+            core.hud.text(0.5, 0.58, text, 0.028, 1, lc[1], lc[2], lc[3], 255)
         end
         if V.seat then
             local m = V.mach

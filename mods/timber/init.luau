@@ -38,7 +38,7 @@ local SIDES = { 0, 1, 4, 5 }
 
 local function holds(x: number, y: number, z: number): boolean
     local b = core.get_block(x, y, z)
-    return b ~= RUNGS and core.node_solid(b) == 1
+    return b ~= RUNGS and core.node_solid(b)
 end
 
 local function hung(x: number, y: number, z: number, f: number): boolean

@@ -300,6 +300,11 @@ Each visit is a row: who, from which address, in which room, from when to when, 
 ended. A crash leaves visits open; the next start closes them and logs it as an unclean stop.
 Every admin action goes to the admin log with who did it, to whom, and the details.
 
+**A mod an error switches off** -- a handler, a step or a system that fails stops its mod for
+everybody in that world -- is said in the chat of every player there who has the `logs`
+permission (admins, by default): `[mod] keys switched off: handler for 'keys:level': ...`. The same
+line goes to the server's stderr, and `/page mods` lists the mod as stopped, with the reason.
+
 `cnp_server --report worlds/main.world --since 7d` prints, without stopping the server:
 players and their time, most at once, joins by hour, rooms, who was turned away and why,
 staff actions, restarts and crashes, and arrivals through portals from other servers.

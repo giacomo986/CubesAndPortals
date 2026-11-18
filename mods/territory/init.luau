@@ -383,7 +383,7 @@ if serving then
             core.ui_show(ev.panel, false, ev.player)
             return
         end
-        if ev.id == "add" and core.is_muted(ev.player) == 1 then   -- /mute: no inviting either
+        if ev.id == "add" and core.is_muted(ev.player) then   -- /mute: no inviting either
             core.notice(ev.player, "You are muted: you cannot add owners")
         elseif ev.id == "add" then
             local fx, fy, fz = core.player_pos(ev.player)
@@ -575,8 +575,8 @@ if serving then
 
     local function ground_near(x: number, y: number, z: number): number?
         for gy = y + 6, y - 8, -1 do
-            if core.node_solid(core.get_block(x, gy - 1, z)) == 1 and core.node_solid(core.get_block(x, gy, z)) ~= 1
-                and core.node_solid(core.get_block(x, gy + 1, z)) ~= 1 then
+            if core.node_solid(core.get_block(x, gy - 1, z)) and not core.node_solid(core.get_block(x, gy, z))
+                and not core.node_solid(core.get_block(x, gy + 1, z)) then
                 return gy
             end
         end
@@ -609,7 +609,7 @@ if serving then
                         near = true
                     end
                 end
-                if near and clock >= gd.back_at and core.loaded(t.x, t.y, t.z) == 1 then
+                if near and clock >= gd.back_at and core.loaded(t.x, t.y, t.z) then
                     local gy = ground_near(t.x + 1, t.y, t.z) or t.y + 1
                     gd.id = core.spawn_mob("villagers:guard", t.x + 1.5, gy, t.z + 0.5)
                     if gd.id ~= 0 then
@@ -807,7 +807,7 @@ if drawing then
 
     local function ground(x: number, y: number, z: number): number?
         for gy = y + 6, y - 8, -1 do
-            if core.node_solid(core.get_block(x, gy - 1, z)) == 1 and core.node_solid(core.get_block(x, gy, z)) ~= 1 then
+            if core.node_solid(core.get_block(x, gy - 1, z)) and not core.node_solid(core.get_block(x, gy, z)) then
                 return gy
             end
         end

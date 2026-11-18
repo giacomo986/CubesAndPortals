@@ -33,7 +33,7 @@ local function aloft(p: number): boolean
     local fx, fz = math.floor(x), math.floor(z)
     for dy = 0, 1 do
         local id = core.get_block(fx, math.floor(y - 0.1) - dy, fz)
-        if id ~= 0 and core.node_solid(id) == 1 then
+        if id ~= 0 and core.node_solid(id) then
             return false
         end
     end

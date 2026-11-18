@@ -1,0 +1,29 @@
+# The checks a change has to pass, on every push and pull request: the build
+# with warnings as errors, the tests that need no screen, every mod's types,
+# and the translations. release.yml makes the packages; this says whether the
+# code they would be made from is sound.
+name: check
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with: {submodules: recursive}
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libx11-dev libxrandr-dev libxinerama-dev \
+              libxcursor-dev libxi-dev libgl-dev
+      - run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCNP_WERROR=ON
+      - run: cmake --build build
+      # -LE gpu: portal_continuity opens a window, and a runner has none.
+      - run: ctest --test-dir build -LE gpu --output-on-failure
+      # Its own Luau build, in build-typecheck/: a few minutes the first time.
+      - run: tools/typecheck.sh
+      - run: python3 tools/lang_check.py --count

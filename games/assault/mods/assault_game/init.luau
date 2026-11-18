@@ -1074,7 +1074,7 @@ if serving then
         if d > 24 then
             gx, gz = x + dx / d * 24, z + dz / d * 24
         end
-        if core.mob_going(id) == 0 or d > 24 then
+        if not core.mob_going(id) or d > 24 then
             gx, gz = math.floor(gx), math.floor(gz)
             core.mob_goto(id, gx, feet_at(gx, gz), gz)
         end
@@ -2027,7 +2027,7 @@ if serving then
             local r = M.respawn[i]
             if clock >= r.at then
                 local x, z = math.floor(r.home[1]), math.floor(r.home[2])
-                if core.loaded(x, GROUND, z) == 1 then
+                if core.loaded(x, GROUND, z) then
                     table.remove(M.respawn, i)
                     local id = M.spawn(r.kind, r.home[1], r.home[2], r.home[3], r.home[4])
                     if id then
@@ -2577,7 +2577,7 @@ if serving then
             if b.carried ~= id then
                 b.carried = id
                 local carrier = if seat.on then m.parts[seat.on] else id
-                if core.mob_ride(bid, carrier, seat[1], seat[2], seat[3] - (if seat.stand then 0 else 0.27)) == 0 then
+                if not core.mob_ride(bid, carrier, seat[1], seat[2], seat[3] - (if seat.stand then 0 else 0.27)) then
                     core.mob_place(bid, x, y, z)   -- not carried: placed each tick, a tick behind
                     b.carried = nil
                 end
@@ -2606,8 +2606,8 @@ if serving then
             end
             if e == nil or clock < (b.react_at or 0) then continue end
             if seat.gun == "mg" then
-                local pid = m.parts[seat.part]
-                local px, py, pz = core.ecs.get(pid, "x"), core.ecs.get(pid, "y") :: number, core.ecs.get(pid, "z") :: number
+                local gun_pid = m.parts[seat.part]
+                local px, py, pz = core.ecs.get(gun_pid, "x"), core.ecs.get(gun_pid, "y") :: number, core.ecs.get(gun_pid, "z") :: number
                 if px == nil then continue end
                 b.burst -= 1
                 if b.burst <= 0 then
@@ -2631,10 +2631,10 @@ if serving then
                     m.salvo -= 1
                     m.next[i] = clock + (if m.salvo <= 0 then 6 else 0.35)
                     if m.salvo <= 0 then m.salvo = 8 end
-                    local x, y, z = M.point(id, if m.salvo % 2 == 0 then 1.15 else -1.15, 0.75, 1.8)
+                    local rx, ry, rz = M.point(id, if m.salvo % 2 == 0 then 1.15 else -1.15, 0.75, 1.8)
                     local d = jitter({ dx / l, dy / l, dz / l }, 0.03)
-                    M.shoot("heli", { x, y, z }, { d[1] * 55, d[2] * 55, d[3] * 55 }, -bid, b.team, id)
-                    core.play_sound("assault_game:rocket", x, y, z)
+                    M.shoot("heli", { rx, ry, rz }, { d[1] * 55, d[2] * 55, d[3] * 55 }, -bid, b.team, id)
+                    core.play_sound("assault_game:rocket", rx, ry, rz)
                 end
             elseif seat.gun == "plane" and m.pose then
                 -- The wing guns, along the nose, when it points at them.
@@ -2646,14 +2646,14 @@ if serving then
                 if l < 130 and (dx * d[1] + dy * d[2] + dz * d[3]) / l > 0.985 then
                     m.next[i] = clock + 0.09
                     m.side = -(m.side or 1)
-                    local x, y, z = M.point(id, 2.2 * m.side, 0.5, 3.5)
-                    bullet(-bid, b, { x + d[1] * pose.speed * 0.1, y + d[2] * pose.speed * 0.1, z + d[3] * pose.speed * 0.1 },
+                    local wx, wy, wz = M.point(id, 2.2 * m.side, 0.5, 3.5)
+                    bullet(-bid, b, { wx + d[1] * pose.speed * 0.1, wy + d[2] * pose.speed * 0.1, wz + d[3] * pose.speed * 0.1 },
                            jitter(d, 0.015), { range = 180, damage = 3 }, "plane", id)
-                    core.play_sound("assault_game:mg", x, y, z)
+                    core.play_sound("assault_game:mg", wx, wy, wz)
                 end
             elseif seat.gun == "cannon" and m.pose then
-                local pid = m.parts[2]
-                local px, pz = core.ecs.get(pid, "x"), core.ecs.get(pid, "z") :: number
+                local turret_pid = m.parts[2]
+                local px, pz = core.ecs.get(turret_pid, "x"), core.ecs.get(turret_pid, "z") :: number
                 if px == nil then continue end
                 local off = wrap(math.atan2(e.x - px, -(e.z - pz)) - m.pose.yaw - m.aim[1].yaw)
                 if math.abs(off) < 0.08 then
@@ -3014,7 +3014,7 @@ if serving then
         end
         if best == nil then
             local wx, wz = MID + (b.n % 7 - 3) * 2, A.ZIP_Z0 - 6
-            if (wx + 0.5 - x) ^ 2 + (wz + 0.5 - z) ^ 2 > 4 and core.mob_going(id) == 0 then
+            if (wx + 0.5 - x) ^ 2 + (wz + 0.5 - z) ^ 2 > 4 and not core.mob_going(id) then
                 core.mob_goto(id, wx, GROUND, wz)
             end
             return true
@@ -3024,7 +3024,7 @@ if serving then
             A.riders[id] = { best, clock }
             return true
         end
-        if core.mob_going(id) == 0 or b.zip_to ~= best then
+        if not core.mob_going(id) or b.zip_to ~= best then
             b.zip_to = best
             core.mob_goto(id, best, GROUND, A.ZIP_Z0 - 1)
         end
@@ -3052,7 +3052,7 @@ if serving then
 
     function A.clear_zips()
         for _, c in A.zip_cells do
-            if core.loaded(c[1], c[2], c[3]) == 1 then core.set_block(c[1], c[2], c[3], 0) end
+            if core.loaded(c[1], c[2], c[3]) then core.set_block(c[1], c[2], c[3], 0) end
         end
         A.zips, A.zip_cells, A.riders = {}, {}, {}
     end
@@ -3086,7 +3086,7 @@ if serving then
             return list
         end
         local f, ar = FORTS[k], A.AREA[k]
-        if core.loaded(f[1], GROUND, ar[3] - 12) ~= 1 or core.loaded(f[1], GROUND, f[2]) ~= 1 then return {} end
+        if not core.loaded(f[1], GROUND, ar[3] - 12) or not core.loaded(f[1], GROUND, f[2]) then return {} end
         local function solid(x: number, y: number, z: number): boolean return core.get_block(x, y, z) ~= 0 end
         local list = {}
         for _, dx in { -12, 12, -22, 22 } do
@@ -3145,7 +3145,7 @@ if serving then
     function A.build_think(id: number, b: Bot, x: number, y: number, z: number)
         -- Not a node further in three seconds on the way: a step aside, as
         -- a soldier takes (think).
-        if core.mob_going(id) == 1 and b.last and (x - b.last[1]) ^ 2 + (z - b.last[2]) ^ 2 < 1 then
+        if core.mob_going(id) and b.last and (x - b.last[1]) ^ 2 + (z - b.last[2]) ^ 2 < 1 then
             if clock - b.last[3] > 3 then
                 local a = math.random() * 2 * math.pi
                 local sx, sz = math.floor(x + math.cos(a) * 6), math.floor(z + math.sin(a) * 6)
@@ -3179,7 +3179,7 @@ if serving then
             if best == nil then
                 -- Nothing to do: by the base.
                 local bx, bz = A.base[1] + 0.5 + (b.n % 5 - 2) * 2, A.base[2] - 3.5
-                if (x - bx) ^ 2 + (z - bz) ^ 2 > 16 and core.mob_going(id) == 0 then
+                if (x - bx) ^ 2 + (z - bz) ^ 2 > 16 and not core.mob_going(id) then
                     core.mob_goto(id, math.floor(bx), A.feet_at(math.floor(bx), math.floor(bz)), math.floor(bz))
                 end
                 core.mob_act(id, "", "assault_game:wrench")
@@ -3202,7 +3202,7 @@ if serving then
             far = l > job.r + 2.5
         end
         if far then
-            if core.mob_going(id) == 0 then core.mob_goto(id, tx, A.feet_at(tx, tz), tz) end
+            if not core.mob_going(id) then core.mob_goto(id, tx, A.feet_at(tx, tz), tz) end
             core.mob_act(id, "", "assault_game:wrench")
             -- Not getting there: left for a while, to it or another.
             b.trying = b.trying or clock
@@ -3279,7 +3279,7 @@ if serving then
         local d = math.sqrt(dx * dx + dz * dz)
         if d > 7 then
             local tx, tz = MID, lz - 4
-            if core.mob_going(id) == 0 then core.mob_goto(id, tx, feet_at(tx, tz), tz) end
+            if not core.mob_going(id) then core.mob_goto(id, tx, feet_at(tx, tz), tz) end
             M.bot_clip(id, b, "")
             return true
         end
@@ -3395,7 +3395,7 @@ if serving then
         for _ = 1, 2 do
             local q = A.pending[1]
             if q == nil then return end
-            if core.loaded(math.floor(q[1]), GROUND, math.floor(q[2])) == 1 then
+            if core.loaded(math.floor(q[1]), GROUND, math.floor(q[2])) then
                 table.remove(A.pending, 1)
                 local id = A.spawn_bot(2, q[1], q[2], q[3])
                 if id then bots[id].fort = q[4] end
@@ -4411,11 +4411,11 @@ if serving then
         core.ui_label(name, 0.4, 0.4, `Crediti {A.credits}   soldati {A.allies}/{A.MAX_ALLIES}   costruttori {A.builders}/{A.MAX_BUILDERS}`)
         for i, item in A.SHOP do
             local col, row = (i - 1) // rows, (i - 1) % rows
-            local x, y = 0.4 + col * 10.9, 1.4 + row * 1.15
+            local bx, by = 0.4 + col * 10.9, 1.4 + row * 1.15
             local lvl = A.level[item.id] or 0
             local sold = (item.once and A.bought[item.id]) or (item.max and lvl >= item.max)
-            core.ui_label(name, x, y + 0.22, if item.max then `{item.name}  liv. {lvl}/{item.max}` else item.name)
-            core.ui_button(name, item.id, x + 7.4, y, 3.0, 0.95, if sold then (if item.max then "Max" else "Preso") else `{A.cost(item)}`)
+            core.ui_label(name, bx, by + 0.22, if item.max then `{item.name}  liv. {lvl}/{item.max}` else item.name)
+            core.ui_button(name, item.id, bx + 7.4, by, 3.0, 0.95, if sold then (if item.max then "Max" else "Preso") else `{A.cost(item)}`)
         end
         core.ui_button(name, "close", 8.5, 1.6 + rows * 1.15 + 0.2, 5, 1.1, "Chiudi")
         core.ui_show(name, true, p)
@@ -4532,14 +4532,14 @@ if serving then
         A.started, A.dirty, A.bare = false, false, false
         for _, zn in A.ZONES do
             zn.owner, zn.progress = 2, 0
-            if core.loaded(zn.x, GROUND, zn.z) == 1 then A.zone_cloth(zn) end
+            if core.loaded(zn.x, GROUND, zn.z) then A.zone_cloth(zn) end
         end
         A.damage, A.level, A.hull, A.blast, A.builders = {}, {}, 1, 1, 2
         A.counter_at, A.builder_at, A.sapper, A.gate_at = nil, 0, nil, nil
         A.TWISTERS, A.tw_at = {}, nil
         A.income_at, A.reinforce_at, A.reinforcing = nil, 0, false
         local SEAL, KEEP = core.node_id("assault_core:seal"), core.node_id("assault_core:keep")
-        if core.loaded(MID, HALL_Y, 941) == 1 then
+        if core.loaded(MID, HALL_Y, 941) then
             for x = MID - 4, MID + 4 do
                 for y = HALL_Y, HALL_Y + 5 do
                     for z = 941, 942 do core.set_block(x, y, z, SEAL) end
@@ -4547,7 +4547,7 @@ if serving then
             end
         end
         A.clear_zips()
-        if core.loaded(MID, GROUND, 1011) == 1 then
+        if core.loaded(MID, GROUND, 1011) then
             for x = MID - 6, MID + 6 do
                 for y = GROUND, GROUND + 6 do
                     for z = 1010, 1012 do core.set_block(x, y, z, KEEP) end
@@ -4555,7 +4555,7 @@ if serving then
             end
         end
         for k = 1, 4 do
-            if core.loaded(A.POLE[k][1], GROUND, A.POLE[k][2]) == 1 then A.flag(k, A.FOE_CLOTH) end
+            if core.loaded(A.POLE[k][1], GROUND, A.POLE[k][2]) then A.flag(k, A.FOE_CLOTH) end
         end
         core.event.emit("assault:track", {})
         core.event.emit("assault:barracks", { k = 0 })
@@ -4795,7 +4795,7 @@ if drawing then
     local tags: { { x: number, y: number, z: number, team: number } } = {}
     local ammo    = { pistol = { 0, 0 }, rifle = { 0, 0 }, lmg = { 0, 0 }, launcher = { 0, 0 }, sniper = { 0, 0 } }
     local nades, kills = 0, 0
-    local team    = 0
+    local _team   = 0   -- told by the server; nothing shows it yet (front_game draws it under the tickets)
     -- What the assault says: the objective, a bar or two, the purse, the
     -- giant's fists to come, and the credits at the end.
     type Bar = { k: number, text: string }
@@ -4867,7 +4867,7 @@ if drawing then
             kills = tonumber(w[9]) or kills
             reload_left = 0
         elseif what == "team" then
-            team = tonumber(w[2]) or 0
+            _team = tonumber(w[2]) or 0
         elseif what == "obj" then
             G.obj = table.concat(w, " ", 2)
         elseif what == "bar" or what == "bar2" then
@@ -5217,9 +5217,9 @@ if drawing then
 
         local line, ok = weapon_line()
         if line ~= "" then
-            local r, g, b = 230, 240, 230
-            if not ok or dry_left > 0 then r, g, b = 255, 80, 60 end
-            core.hud.text(0.97, 0.9, line, 0.042, 2, r, g, b, 255)
+            local tr, tg, tb = 230, 240, 230
+            if not ok or dry_left > 0 then tr, tg, tb = 255, 80, 60 end
+            core.hud.text(0.97, 0.9, line, 0.042, 2, tr, tg, tb, 255)
         end
         core.hud.text(0.97, 0.95, `GRENADES {nades}   KILLS {kills}`, 0.026, 2, 190, 200, 190, 220)
 
@@ -5228,8 +5228,8 @@ if drawing then
             local L = V.lock
             local text = if L == nil or L.left <= 0 then "NO TARGET" elseif L.on then "LOCKED -- FIRE"
                 else string.format("LOCKING %d%%", math.floor(L.k * 100))
-            local c = if L and L.left > 0 and L.on then { 255, 60, 40 } else { 255, 220, 60 }
-            core.hud.text(0.5, 0.58, text, 0.028, 1, c[1], c[2], c[3], 255)
+            local lc = if L and L.left > 0 and L.on then { 255, 60, 40 } else { 255, 220, 60 }
+            core.hud.text(0.5, 0.58, text, 0.028, 1, lc[1], lc[2], lc[3], 255)
         end
         if V.seat then
             local m = V.mach
@@ -5272,9 +5272,9 @@ if drawing then
             local ROLL = { "BASOALTH E' CADUTO", "", "La sua dimensione si spegne alle vostre spalle.",
                            "La legione non esiste piu'.", "", "Il portale sulla roccia vi riporta a casa.",
                            "", "CUBES AND PORTALS", "Un gioco di Giacomo Perin" }
-            for i, line in ROLL do
+            for i, roll_line in ROLL do
                 local y = 1.05 + i * 0.06 - G.roll * 0.05
-                if y > -0.05 and y < 1.05 then core.hud.text(0.5, y, line, if i == 1 then 0.06 else 0.034, 1) end
+                if y > -0.05 and y < 1.05 then core.hud.text(0.5, y, roll_line, if i == 1 then 0.06 else 0.034, 1) end
             end
         end
 

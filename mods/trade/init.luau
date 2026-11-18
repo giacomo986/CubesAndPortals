@@ -29,7 +29,7 @@ local function owner_of(x: number, y: number, z: number): string
     return core.meta_get(x, y, z, "owner")
 end
 local function may(p: number, x: number, y: number, z: number): boolean
-    return owner_of(x, y, z) == core.player_name(p) or core.has_perm(p, "admin") == 1
+    return owner_of(x, y, z) == core.player_name(p) or core.has_perm(p, "admin")
 end
 
 core.event.on("core:placed", function(ev)
@@ -160,7 +160,7 @@ core.event.on("core:page_action", function(ev)
         return
     end
     local x, y, z = at[1], at[2], at[3]
-    if core.is_muted(ev.player) == 1 then   -- /mute holds dealings with other players too
+    if core.is_muted(ev.player) then   -- /mute holds dealings with other players too
         core.notice(ev.player, "You are muted: no trading")
         return
     end

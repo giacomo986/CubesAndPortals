@@ -786,7 +786,7 @@ core.event.on("core:tick", function(ev)
     if #moving == 0 then return end
     local keep = {}
     for _, s in moving do
-        if core.loaded(s.b[1], s.b[2], s.b[3]) == 0 then
+        if not core.loaded(s.b[1], s.b[2], s.b[3]) then
             -- The cell ahead is not in memory (a chunk let go, or not read
             -- back yet after a restart): it waits at the edge rather than
             -- taking that air for the end of the pipe and falling out.
@@ -1661,7 +1661,7 @@ local function draw_request(player: number)
     local P = panel_of(v.slot)
     local gy = 0.8                                  -- the grid's top
     local cy = gy + (LINES - 1) * STEP + SIDE + 0.3 -- the controls' top
-    if core.ui_define(P, PW, cy + 2 * ROW_STEP + BH + 0.15) == 0 then return end
+    if not core.ui_define(P, PW, cy + 2 * ROW_STEP + BH + 0.15) then return end
     core.ui_label(P, 0.4, 0.2, if sources == 0 then "No broadcaster on this network offers anything."
                                else `Request pipe: {kinds} kinds, {things} in all`)
     core.ui_box(P, 0.3, gy - 0.1, PW - 0.6, (LINES - 1) * STEP + SIDE + 0.2, 28, 30, 36)
@@ -1859,7 +1859,7 @@ local function draw_recipes(player: number)
 
     local P = rpanel_of(v.slot)
     local cy = 2.1 + (RLINES - 1) * STEP + SIDE + 1.15   -- the grid's foot, the controls under it
-    if core.ui_define(P, PW, cy + 1.0) == 0 then return end
+    if not core.ui_define(P, PW, cy + 1.0) then return end
     core.ui_label(P, 0.4, 0.2, if kind_at(c) == KINDS.crafting then "Recipes of this crafting pipe"
                                else "Recipes of this extension pipe")
     for i = 1, RECIPE_SLOTS do

@@ -143,9 +143,9 @@ void test_isolation(const char *mods_dir)
     mods.set_host(host);
     const int running = mods.load_dir(mods_dir);
 
-    // dependent, good, hog, parts, runaway and timekeeper load; badcap,
+    // dependent, good, hog, parts, runaway, timekeeper and yesno load; badcap,
     // nomanifest, orphan and typo do not.
-    check(running == 6, "six mods loaded, four refused");
+    check(running == 7, "seven mods loaded, four refused");
 
     const Mod *good    = find_mod(mods, "good");
     const Mod *runaway = find_mod(mods, "runaway");
@@ -165,6 +165,8 @@ void test_isolation(const char *mods_dir)
     check(orphan && !orphan->running && orphan->error.find("ghost") != std::string::npos,
           "the mod depending on something absent was refused, naming it");
     check(!log_contains(world, "SHOULD NOT RUN"), "no refused mod executed a line");
+    check(log_contains(world, "yesno: loaded"),
+          "a yes-or-no call answers true/false under api 2 (and 1/0 under api 1: parts)");
 
     // require: files of the mod, each run once, none outside it (the mod
     // asserts each of these itself; loading is passing).

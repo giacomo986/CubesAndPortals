@@ -130,7 +130,7 @@ local function centre(g: Gate): (number, number, number)
            g.z + (if az == 1 then g.w / 2 else 0.5)
 end
 
-local function open_at(g: Gate): number
+local function open_at(g: Gate): boolean
     local x, y, z = centre(g)
     return core.portal_place(INDEX, x, y, z, g.axis, g.sign, g.w / 2, g.h / 2)
 end
@@ -171,7 +171,7 @@ end
 local lit: Gate? = nil
 
 local function place(g: Gate): boolean
-    if open_at(g) ~= 1 then return false end
+    if not open_at(g) then return false end
     lit = g
     core.storage_set("gate", `{g.x} {g.y} {g.z} {g.axis} {g.sign} {g.w} {g.h}`)
     if IN_INFERNO then
@@ -189,10 +189,10 @@ type Far = { x: number, z: number, w: number, h: number, axis: number, sign: num
 local wanted: Far? = nil
 
 local function ground(x: number, z: number): number?
-    if core.loaded(x, 0, z) ~= 1 then return nil end
+    if not core.loaded(x, 0, z) then return nil end
     for y = 250, 1, -1 do
         local id = core.get_block(x, y, z)
-        if id ~= 0 and core.node_solid(id) == 1 and not string.find(core.node_name(id), "leaves", 1, true) then
+        if id ~= 0 and core.node_solid(id) and not string.find(core.node_name(id), "leaves", 1, true) then
             return y + 1
         end
     end
@@ -212,7 +212,7 @@ local function build_far(f: Far): boolean
         end
         for _, d in { -1, 1 } do
             local fx, fz = g.x + ax * i + az * d, g.z + az * i + ax * d
-            if core.node_solid(core.get_block(fx, g.y - 1, fz)) == 0 then core.set_block(fx, g.y - 1, fz, OBSIDIAN) end
+            if not core.node_solid(core.get_block(fx, g.y - 1, fz)) then core.set_block(fx, g.y - 1, fz, OBSIDIAN) end
             for up = 0, g.h - 1 do core.set_block(fx, g.y + up, fz, 0) end
         end
     end

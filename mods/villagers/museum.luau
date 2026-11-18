@@ -233,7 +233,7 @@ core.event.on("core:tick", function(ev)
                 local piece = things[i]
                 local k = `{c[1]},{c[2]},{c[3]}`
                 if piece and shown[k] ~= piece.item
-                    and core.show_item(c[1], c[2] + 1, c[3], core.item_id(piece.item)) == 1 then
+                    and core.show_item(c[1], c[2] + 1, c[3], core.item_id(piece.item)) then
                     shown[k] = piece.item
                 end
             end

@@ -2,7 +2,7 @@
 # The portal lab: a scene for checking portals by eye (games/portallab). A
 # server with no world file -- the scene is made new every start -- and a
 # client on it. /lab wall, glass, head, bounce and view move you between its
-# stations.
+# stations; /lab room, loop3, loop5 and booth to the demo rooms.
 #
 #   tools/portallab.sh                # build-release
 #   BUILD=build tools/portallab.sh    # the debug build

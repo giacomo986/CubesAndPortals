@@ -99,7 +99,7 @@ if serving then
             if string.find(name, "^lakes:water") or string.find(name, "^building:cauldron") and name ~= "building:cauldron" then
                 return true
             end
-            if id ~= 0 and core.node_solid(id) == 1 then
+            if id ~= 0 and core.node_solid(id) then
                 return false
             end
         end

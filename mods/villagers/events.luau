@@ -241,7 +241,7 @@ EV.steer = function(id: number, r: { any })
         core.mob_hunt(id, if player then best else 0)
         core.mob_attack(id, if player then 0 else best)
     end
-    if best == 0 and common.villages[r[1]] and core.mob_going(id) == 0 then
+    if best == 0 and common.villages[r[1]] and not core.mob_going(id) then
         local gx, gy, gz = somewhere_in(r[1])
         if gx and gy and gz then
             core.mob_goto(id, gx, gy, gz)
@@ -581,7 +581,7 @@ EV.send = function(rk: string): boolean
     end
     local src = village_chests(rk)
     local tx, tz = EV.middle(to)
-    local dst = if tx and common.villages[to] and core.loaded(tx, common.villages[to].y, tz) == 1 then village_chests(to) else nil
+    local dst = if tx and common.villages[to] and core.loaded(tx, common.villages[to].y, tz) then village_chests(to) else nil
     local can = {}
     for _, g in GOODS do
         if stock_of(src, g[1]) >= g[2] + (g[2] + 1) // 2 and (dst == nil or stock_of(dst, g[1]) < g[2]) then
@@ -829,7 +829,7 @@ EV.arrive = function(i: number, c: Caravan, tx: number, tz: number): boolean
     if b == nil and e ~= nil then
         b = { x1 = e[1], z1 = e[2], x2 = e[3], z2 = e[4], y = core.terrain_height(tx, tz), homes = {} }
     end
-    if b == nil or core.loaded(tx, b.y, tz) ~= 1 then
+    if b == nil or not core.loaded(tx, b.y, tz) then
         return false   -- waits there to be seen unloading
     end
     local chests = village_chests(c.to, b)
@@ -937,7 +937,7 @@ EV.roads = function(dt: number)
         if c.m ~= 0 then
             local x, y, z = core.mob_pos(c.m)
             if x == nil or y == nil or z == nil then
-                if core.loaded(math.floor(c.x), math.floor(c.y), math.floor(c.z)) == 1 then
+                if core.loaded(math.floor(c.x), math.floor(c.y), math.floor(c.z)) then
                     EV.lost(i, c)   -- killed
                 else
                     EV.bodies_off(c)
@@ -961,7 +961,7 @@ EV.roads = function(dt: number)
                 end
                 c.best_at = common.clock
             end
-            if core.mob_going(c.m) == 0 then
+            if not core.mob_going(c.m) then
                 -- On the path where it has one; else the way it can find.
                 local gx, gz = math.floor(hx), math.floor(hz)
                 local gy = if c.k <= #(c.route or {}) then EV.ground(gx, math.floor(y), gz) else nil
@@ -975,7 +975,7 @@ EV.roads = function(dt: number)
                 local ux, uy, uz = core.mob_pos(c.mule)
                 if ux == nil or uy == nil or uz == nil then
                     c.mule = 0
-                elseif (ux - x) ^ 2 + (uz - z) ^ 2 > 3 * 3 and core.mob_going(c.mule) == 0 then
+                elseif (ux - x) ^ 2 + (uz - z) ^ 2 > 3 * 3 and not core.mob_going(c.mule) then
                     local bx, bz = math.floor(x - dx * 2), math.floor(z - dz * 2)
                     core.mob_goto(c.mule, bx, EV.ground(bx, math.floor(y), bz) or math.floor(y), bz)
                 end
@@ -999,7 +999,7 @@ EV.roads = function(dt: number)
             c.x += dx * step
             c.z += dz * step
             local x, z = math.floor(c.x), math.floor(c.z)
-            if EV.seen(c.x, c.z, 64) and core.loaded(x, math.floor(c.y), z) == 1 then
+            if EV.seen(c.x, c.z, 64) and core.loaded(x, math.floor(c.y), z) then
                 local y = EV.ground(x, math.floor(c.y), z)
                 if y == nil then
                     local h = core.terrain_height(x, z)

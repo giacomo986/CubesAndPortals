@@ -117,7 +117,7 @@ local function dig_cell(v: V, x: number, y: number, z: number)
         return
     end
     local was = core.get_block(x, y, z)
-    if was ~= AIR and core.node_solid(was) == 1 then
+    if was ~= AIR and core.node_solid(was) then
         core.set_block(x, y, z, AIR)
         local item = core.node_yield(was)
         if mat_of(item) == (v.task or GATHERS[v.kind]) or (v.kind == "miner" and item:sub(1, 4) == "ore:") then
@@ -139,7 +139,7 @@ local function chop(v: V)
     end
     local x, y, z = nearest(LOG_NAMES, v.hx, v.hy, v.hz, 32, 10, function(a: number, b: number, c: number)
         return failed(v, a, b, c) or is_in("logs", LOG_NAMES, core.get_block(a, b - 1, c))
-            or core.node_solid(core.get_block(a, b - 1, c)) ~= 1 or not tree_log(a, b, c)
+            or not core.node_solid(core.get_block(a, b - 1, c)) or not tree_log(a, b, c)
     end)
     if x == nil or y == nil or z == nil then
         stroll(v)
@@ -207,7 +207,7 @@ local function mend_shaft(v: V, mn: { number })
         end
         for _, f in { 0, 1, 4, 5 } do
             local n = RUNG_NORMAL[f]
-            if core.node_solid(core.get_block(x - n[1], y, z - n[3])) == 1 then
+            if core.node_solid(core.get_block(x - n[1], y, z - n[3])) then
                 votes[f] += 1
             end
         end
@@ -230,7 +230,7 @@ local function mend_shaft(v: V, mn: { number })
     for y = mn[2], mn[4] do
         local wx, wz = x - n[1], z - n[3]
         local w = core.get_block(wx, y, wz)
-        if w == rungs or core.node_solid(w) ~= 1 then
+        if w == rungs or not core.node_solid(w) then
             core.set_block(wx, y, wz, cobble)
             take(v, "rocks:cobblestone", 1)
             mended += 1
@@ -253,7 +253,7 @@ local function mend_shaft(v: V, mn: { number })
                                            2, 1, 3, true, 2000)
                 local n3 = #way
                 if n3 < 3 or way[n3 - 2] ~= x or way[n3] ~= z or math.abs(way[n3 - 1] - mn[2]) > 1 then
-                    if core.mob_place(other, x + 0.5, mn[2] + 0.02, z + 0.5) == 1 then
+                    if core.mob_place(other, x + 0.5, mn[2] + 0.02, z + 0.5) then
                         core.log(`villagers: {v.key} let creature {other} out of a walled gallery`)
                     end
                 end
@@ -277,7 +277,7 @@ local function blocked(x: number, y: number, z: number): boolean
         if holds_rung(x, yy, z) or name:sub(1, 6) == "lakes:" then
             return true
         end
-        if b ~= AIR and core.node_solid(b) == 1 and not is_in("natural", NATURAL, b)
+        if b ~= AIR and core.node_solid(b) and not is_in("natural", NATURAL, b)
             and name:sub(1, 6) ~= "rocks:" and name:sub(1, 4) ~= "ore:" then
             return true
         end
@@ -290,7 +290,7 @@ local function dig_at(v: V, x: number, y: number, z: number)
     act(v, "mine", TOOLING.of(v) or "tools:pick", 2.4 * pace(v), x, z)
     dig_cell(v, x, y, z)
     dig_cell(v, x, y + 1, z)
-    if core.node_solid(core.get_block(x, y - 1, z)) ~= 1 then
+    if not core.node_solid(core.get_block(x, y - 1, z)) then
         core.set_block(x, y - 1, z, id("rocks:cobblestone"))
     end
 end
@@ -535,7 +535,7 @@ local function mine(v: V)
     for yy = ny + 2, ny, -1 do
         local b = core.get_block(nx, yy, nz)
         if b ~= AIR and not (is_in("natural", NATURAL, b) or core.node_name(b):sub(1, 6) == "rocks:"
-            or core.node_solid(b) ~= 1) then
+            or not core.node_solid(b)) then
             q[6] = 99   -- not the world's own ground: elsewhere
             return
         end
@@ -544,7 +544,7 @@ local function mine(v: V)
     for yy = ny + 2, ny, -1 do
         dig_cell(v, nx, yy, nz)
     end
-    if core.node_solid(core.get_block(nx, ny - 1, nz)) ~= 1 then
+    if not core.node_solid(core.get_block(nx, ny - 1, nz)) then
         q[6] = 99
         return
     end
@@ -640,7 +640,7 @@ local function step(v: V)
             return
         end
     end
-    if v.co ~= nil and (common.clock >= v.wake or (v.walking and core.mob_going(v.id) == 0)) then
+    if v.co ~= nil and (common.clock >= v.wake or (v.walking and not core.mob_going(v.id))) then
         local ok, err = coroutine.resume(v.co)
         if not ok then
             core.log(`villagers: {v.kind} at {v.key}: {err}`)

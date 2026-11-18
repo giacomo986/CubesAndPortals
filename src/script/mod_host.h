@@ -31,7 +31,7 @@ namespace cnp {
 // kModApiOldest to the same number on the day this build stops carrying the old
 // shape. While the two are equal there is exactly one API and a mod written for
 // any other one is refused by name and number rather than failing on line 40.
-inline constexpr unsigned kModApi       = 1;
+inline constexpr unsigned kModApi       = 2;   // 2: a yes or no is true or false, not 1 or 0
 inline constexpr unsigned kModApiOldest = 1;
 
 // A mod's own version: three numbers, so that one mod can ask another for a
@@ -177,6 +177,15 @@ public:
     // this, which keeps src/script free of any dependency on core/.
     void set_vm_gone(std::function<void(script_vm *)> fn) { m_on_vm_gone = std::move(fn); }
 
+    // Told when a running mod is switched off by an error -- a handler, a
+    // system, a step -- with its name and the error. The log line alone is
+    // read by nobody while the world is being played: the server hands this to
+    // the admins in the world, so a broken mod is seen the minute it breaks.
+    void set_disabled(std::function<void(const std::string &mod, const std::string &why)> fn)
+    {
+        m_on_disabled = std::move(fn);
+    }
+
     // Disables one mod, by the VM its code is running in. Public because a
     // system that errored is not an event handler, and whoever runs those has
     // to be able to say so through the one place that knows what disabling a
@@ -287,6 +296,7 @@ private:
     script_host      m_host{};
     ModHostCallbacks m_cb{};
     std::function<void(script_vm *)> m_on_vm_gone;
+    std::function<void(const std::string &, const std::string &)> m_on_disabled;
     EventBus         m_bus;
     std::vector<Mod> m_mods;
     std::string      m_package_cache;

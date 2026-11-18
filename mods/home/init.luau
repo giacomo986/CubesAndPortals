@@ -114,7 +114,7 @@ local function may_enter(room: string, player: number): boolean
     if key ~= "" and "home-" .. key == room then
         return true
     end
-    if core.has_perm(player, "portals") == 1 then
+    if core.has_perm(player, "portals") then
         return true
     end
     local rule = read(room)
@@ -146,7 +146,7 @@ core.event.on("core:command", function(ev)
     if verb == "leave" then
         if not IS_HOME then
             core.chat(player, "/myroom leave is the way out of a player's own room: you are not in one.")
-        elseif core.room_send(player, "") == 0 then
+        elseif not core.room_send(player, "") then
             core.chat(player, "There is no room to send you to.")
         end
         return
@@ -220,7 +220,7 @@ local function say(): boolean
     end
     local x, y, z = hx :: number, hy :: number, hz :: number
     -- Standing in the XY plane, its front towards the spawn (+z).
-    if core.room_portal_set("door", x + 0.5, y + 1.0, z + 0.5, 0, 1, 0.5, 1.0) == 0 then
+    if not core.room_portal_set("door", x + 0.5, y + 1.0, z + 0.5, 0, 1, 0.5, 1.0) then
         return false
     end
     core.log(`home: the door of {ROOM} is at {x} {y} {z}`)

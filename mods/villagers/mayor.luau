@@ -273,7 +273,7 @@ local function order_post(rk: string, mark: string)
     for x = x1, x2 + 15, 16 do
         for z = z1, z2 + 15, 16 do
             for y = b.y - 12, b.y + 16 + 15, 16 do
-                if core.loaded(math.min(x, x2), math.min(y, b.y + 16), math.min(z, z2)) ~= 1 then
+                if not core.loaded(math.min(x, x2), math.min(y, b.y + 16), math.min(z, z2)) then
                     return
                 end
             end

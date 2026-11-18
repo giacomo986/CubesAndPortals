@@ -266,7 +266,7 @@ local function build(v: V, rk: string, o: Order)
         local want = if name == "" then AIR else id(name)
         local now = core.get_block(x, y, z)
         -- A way does not go through what somebody built: it steps round.
-        local built = p[6] and now ~= AIR and core.node_solid(now) == 1 and not is_in("natural", NATURAL, now)
+        local built = p[6] and now ~= AIR and core.node_solid(now) and not is_in("natural", NATURAL, now)
             and not tree_log(x, y, z) and not is_in("leaves", LEAF_NAMES, now)
             and not is_in("road", ROAD_BLOCKS, now)
         if now ~= want and not built then

@@ -7,6 +7,13 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
 ## Prossima alpha (non ancora consegnata)
 
+**API dei mod 2.** Una chiamata che risponde sì o no (`core.loaded`, `core.node_solid`,
+`core.has_perm` e altre 139) dà `true` o `false` a un mod che dice `api = 2`; uno che dice
+`api = 1`, o niente, continua a ricevere 1 o 0. Tutti i mod del gioco sono sulla 2. Come portarne
+uno: [docs/MODDING.it.md](docs/MODDING.it.md#api-cioè-per-quale-motore-è-scritto-il-mod).
+
+- **Un mod spento da un errore viene detto in chat** agli admin di quel mondo (il permesso `logs`),
+  con l'errore, invece che solo nel log del server.
 - **Le backrooms**: entrare in un livello non portava da nessuna parte -- il gestore del livello si
   fermava su una variabile usata sopra la riga che la dichiara. Ora ci porta, e dal livello 5 in
   poi le luci tornano a spegnersi come dovevano.
@@ -35,6 +42,16 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 - **Due test nuovi**: `mods_smoke` avvia la sandbox e ogni gioco e fallisce su un mod che non si è
   caricato o è stato spento; `api_types` fallisce quando una parte di `core` scritta a mano non ha
   un tipo.
+- **Per chi scrive mod**: `.luaurc` e `.vscode/settings.json` impostano per il repository un editor
+  con il Luau Language Server -- strict, e `core` tipizzato da `docs/api.d.luau`.
+- **Ogni push viene controllato** (`.github/workflows/check.yml`): la build con i warning come
+  errori, i test che non chiedono uno schermo, i tipi di ogni mod e le traduzioni.
+- **Stanze demo nel laboratorio dei portali**, idee da Portal Explorer di optozorax fatte con
+  semplici coppie: una stanza che porta in se stessa (`/lab room`), tre e cinque stanze attorno a
+  un angolo (`loop3`, `loop5`), una cabina più grande dentro (`booth`).
+- **Una porta vista attraverso un portale mostra cosa c'è oltre**, non il cielo dietro la stanza:
+  le aperture disegnate a ogni frame sono ora quelle che coprono più schermo, contando quelle viste
+  attraverso un'altra, invece delle più vicine in vista diretta (`/lab loop3x`).
 
 ## 0.18.0-alpha.1 — 2026-11-18
 

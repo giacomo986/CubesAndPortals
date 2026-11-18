@@ -41,7 +41,7 @@ core.event.on("core:tick", function(ev)
     for _, p in core.players() do
         here[p] = true
         local on = free[p] == true or core.worn_item(p, "back") == "jetpack:jetpack"
-        if flies[p] ~= on and core.player_fly(p, on) == 1 then
+        if flies[p] ~= on and core.player_fly(p, on) then
             flies[p] = on
         end
     end

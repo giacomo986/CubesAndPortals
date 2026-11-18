@@ -94,7 +94,7 @@ if serving then
     local function ground(x: number, y: number, z: number): number?
         for gy = y + 40, y - 40, -1 do
             local id = core.get_block(x, gy, z)
-            if id ~= 0 and core.node_solid(id) == 1 then
+            if id ~= 0 and core.node_solid(id) then
                 return gy
             end
         end

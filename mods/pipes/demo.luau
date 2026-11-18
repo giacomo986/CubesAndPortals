@@ -138,11 +138,11 @@ local function build()
     made = chest(X + 10, c)
     interface(X + 3, c + 1, "recipe", { "timber:planks", "timber:stick", "furnace:iron_pick", "craft:table" })
     interface(X + 6, c + 1, "recipe", { "furnace:iron_ingot", "core:glass", "core:stone", "furnace:charcoal" })
-    for _, m in { { X + 3, "pipes:autocrafter" }, { X + 6, "pipes:autofurnace" } } :: { { any } } do
-        put(m[1], c + 2, m[2])
-        core.set_facing(m[1], y, c + 2, 3)       -- its front to the spawn, as the signs
-        core.container_clear(m[1], y, c + 2)     -- what a reset found half made: gone
-        core.container_make(m[1], y, c + 2, 27)
+    for _, mk in { { X + 3, "pipes:autocrafter" }, { X + 6, "pipes:autofurnace" } } :: { { any } } do
+        put(mk[1], c + 2, mk[2])
+        core.set_facing(mk[1], y, c + 2, 3)       -- its front to the spawn, as the signs
+        core.container_clear(mk[1], y, c + 2)     -- what a reset found half made: gone
+        core.container_make(mk[1], y, c + 2, 27)
     end
 
     -- What it all is, from the spawn's side.

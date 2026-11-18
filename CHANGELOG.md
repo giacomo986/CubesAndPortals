@@ -7,6 +7,13 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
 ## Next alpha (not handed out yet)
 
+**Mod API 2.** A call that answers yes or no (`core.loaded`, `core.node_solid`, `core.has_perm`
+and 139 more) gives `true` or `false` to a mod that says `api = 2`; one that says `api = 1`, or
+nothing, keeps getting 1 or 0. Every mod in the game is on 2. How to move one:
+[docs/MODDING.md](docs/MODDING.md#api-that-is-which-engine-the-mod-is-written-for).
+
+- **A mod an error switches off is said in the chat** of the admins in that world (the `logs`
+  permission), with the error, instead of only in the server's log.
 - **The backrooms**: going into a level put you nowhere -- the level's handler stopped on a
   variable used above where it is declared. It now takes you in, and from level 5 on the lights go
   out again as they were meant to.
@@ -32,6 +39,16 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
   editor now reads as the folder above.
 - **Two new tests**: `mods_smoke` starts the sandbox and every game and fails on a mod that did not
   load or was switched off; `api_types` fails when a hand-written part of `core` has no type.
+- **For modders**: `.luaurc` and `.vscode/settings.json` set an editor with the Luau Language
+  Server up for the repository -- strict, and `core` typed from `docs/api.d.luau`.
+- **Every push is checked** (`.github/workflows/check.yml`): the build with warnings as errors, the
+  tests that need no screen, every mod's types and the translations.
+- **Demo rooms in the portal lab**, ideas from optozorax's Portal Explorer made of plain pairs:
+  a room that leads into itself (`/lab room`), three and five rooms round a corner (`loop3`,
+  `loop5`), a booth bigger inside (`booth`).
+- **A door seen through a portal shows what is past it**, not the sky behind the room: the
+  openings drawn each frame are now the ones covering most of the screen, counting those seen
+  through another, instead of the nearest in direct sight (`/lab loop3x`).
 
 ## 0.18.0-alpha.1 — 2026-11-18
 

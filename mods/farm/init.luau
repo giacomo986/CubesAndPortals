@@ -222,7 +222,7 @@ core.event.on("core:tick", function(_)
         if x and y and z then
             local top = peak[p] or y
             local bx, by, bz = math.floor(x), math.floor(y + 0.01) - 1, math.floor(z)
-            local standing = y - (by + 1) < 0.01 and core.node_solid(core.get_block(bx, by, bz)) == 1
+            local standing = y - (by + 1) < 0.01 and core.node_solid(core.get_block(bx, by, bz))
             if standing then
                 if top - y > 0.75 and core.get_block(bx, by, bz) == SOIL then
                     undo_soil(bx, by, bz)

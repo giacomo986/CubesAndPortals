@@ -50,13 +50,13 @@ core.event.on("core:tick", function(ev)
         local gone = false
         for key, v in people do
             -- A bed broken is a home gone, and its inhabitant with it.
-            if core.loaded(v.hx, v.hy, v.hz) == 1 and core.get_block(v.hx, v.hy, v.hz) ~= id("bed:bed") then
+            if core.loaded(v.hx, v.hy, v.hz) and core.get_block(v.hx, v.hy, v.hz) ~= id("bed:bed") then
                 if v.id ~= 0 then
                     core.mob_remove(v.id)
                 end
                 people[key] = nil
                 gone = true
-            elseif v.id == 0 and common.clock >= v.back_at and core.loaded(v.hx, v.hy, v.hz) == 1 and near_player(v, 64) then
+            elseif v.id == 0 and common.clock >= v.back_at and core.loaded(v.hx, v.hy, v.hz) and near_player(v, 64) then
                 come_out(v)
             end
         end
@@ -79,7 +79,7 @@ core.event.on("core:tick", function(ev)
                     core.mob_remove(v.id)
                 end
                 watch[key] = nil
-            elseif v.id == 0 and common.clock >= v.back_at and core.loaded(v.hx, v.hy, v.hz) == 1 and near_player(v, 64) then
+            elseif v.id == 0 and common.clock >= v.back_at and core.loaded(v.hx, v.hy, v.hz) and near_player(v, 64) then
                 come_out(v)
             end
         end

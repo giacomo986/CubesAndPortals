@@ -37,7 +37,7 @@ local function grounded(p: number): boolean
         return false
     end
     local id = core.get_block(math.floor(x), math.floor(y - 0.1), math.floor(z))
-    return id ~= 0 and core.node_solid(id) == 1
+    return id ~= 0 and core.node_solid(id)
 end
 
 local function leave(p: number)

@@ -151,7 +151,7 @@ core.event.on("core:used", function(ev)
     -- double chest opens the primary's.
     local px, pz = primary(ev.x, ev.y, ev.z, ev.id)
     local slots = if ev.id == CHEST then SLOTS else DOUBLE_SLOTS
-    if core.container_show(px, ev.y, pz, slots, ev.player) == 0 then
+    if not core.container_show(px, ev.y, pz, slots, ev.player) then
         core.log("chest: could not open the one at " .. ev.x .. " " .. ev.y .. " " .. ev.z)
         return
     end

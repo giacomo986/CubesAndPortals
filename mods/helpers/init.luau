@@ -156,15 +156,15 @@ end
 -- What a tunnel may go through: the ground as the world made it.
 local function diggable(id: number): boolean
     return id == AIR or is("soil", SOIL, id) or is("stone", STONE, id) or is("ores", ORES, id)
-        or core.node_solid(id) ~= 1 and core.node_name(id):sub(1, 7) == "plants:"
+        or not core.node_solid(id) and core.node_name(id):sub(1, 7) == "plants:"
 end
 
 local function free(x: number, y: number, z: number): boolean
     local a = core.get_block(x, y, z)
-    return core.node_solid(a) ~= 1 and core.node_name(a):sub(1, 6) ~= "lakes:" and core.node_name(a) ~= "rocks:lava"
+    return not core.node_solid(a) and core.node_name(a):sub(1, 6) ~= "lakes:" and core.node_name(a) ~= "rocks:lava"
 end
 local function standable(x: number, y: number, z: number): boolean
-    return core.node_solid(core.get_block(x, y - 1, z)) == 1 and free(x, y, z) and free(x, y + 1, z)
+    return core.node_solid(core.get_block(x, y - 1, z)) and free(x, y, z) and free(x, y + 1, z)
 end
 
 local function beside(x: number, y: number, z: number, fx: number, fz: number): (number?, number?, number?)
@@ -249,7 +249,7 @@ end
 
 local function walk(r: R, x: number, y: number, z: number, limit: number?): boolean
     core.mob_act(r.id, "", "")
-    if core.mob_goto(r.id, x, y, z) == 0 then
+    if not core.mob_goto(r.id, x, y, z) then
         return false
     end
     r.walking = true
@@ -407,7 +407,7 @@ WORK.chop = function(r: R): boolean
     local px, py, pz = where(r)
     local x, y, z = find(LOGS, r.bx, r.by - 3, r.by + 6, r.bz, RANGE, function(x, y, z)
         return not failed(r, x, y, z) and not is("logs", LOGS, core.get_block(x, y - 1, z))
-            and core.node_solid(core.get_block(x, y - 1, z)) == 1
+            and core.node_solid(core.get_block(x, y - 1, z))
     end, px, py, pz)
     if x == nil or y == nil or z == nil or not reach(r, x, y, z) then
         return false
@@ -422,7 +422,7 @@ WORK.chop = function(r: R): boolean
     -- A trunk grown in the ground leaves a hole: filled, as the ground was.
     local around = 0
     for _, d in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
-        if core.node_solid(core.get_block(x + d[1], y, z + d[2])) == 1 then
+        if core.node_solid(core.get_block(x + d[1], y, z + d[2])) then
             around += 1
         end
     end
@@ -570,7 +570,7 @@ local function tunnel_step(r: R, tx: number, ty: number, tz: number, tool: strin
             return "blocked"
         end
     end
-    if core.node_solid(core.get_block(nx, ny - 1, nz)) ~= 1 then
+    if not core.node_solid(core.get_block(nx, ny - 1, nz)) then
         core.set_block(nx, ny - 1, nz, core.node_id("rocks:cobblestone"))   -- a cave under the way: bridged
     end
     return if walk(r, nx, ny, nz, 8) then "moved" else "blocked"
@@ -698,7 +698,7 @@ WORK.quarry = function(r: R): boolean
                 return true
             end
         end
-        if core.node_solid(core.get_block(s[1], y - 1, s[2])) ~= 1 then
+        if not core.node_solid(core.get_block(s[1], y - 1, s[2])) then
             core.set_block(s[1], y - 1, s[2], core.node_id("rocks:cobblestone"))   -- a cave under the step
         end
         -- Then the layer, the nearest cell first; the next layer only when
@@ -745,7 +745,7 @@ local function ground(x: number, y: number, z: number): number?
     local run = 0
     for gy = y + 12, y - 16, -1 do
         local id = core.get_block(x, gy, z)
-        if core.node_solid(id) == 1 then
+        if core.node_solid(id) then
             if run >= 2 and not is("leaves", LEAVES, id) and not is("logs", LOGS, id) and free(x, gy + 1, z) then
                 return gy + 1
             end
@@ -764,7 +764,7 @@ end
 -- Where a torch can go: air, or grass and flowers it pulls up first.
 local function torch_room(x: number, y: number, z: number): boolean
     local id = core.get_block(x, y, z)
-    return id == AIR or core.node_solid(id) ~= 1 and core.node_name(id):sub(1, 7) == "plants:"
+    return id == AIR or not core.node_solid(id) and core.node_name(id):sub(1, 7) == "plants:"
 end
 
 -- The nearest dark ground to the base, ring by ring out to LIT_RANGE; where
@@ -788,7 +788,7 @@ local function next_dark(r: R): (number?, number?, number?)
             else dx, dz = -k, k - t end
             if dx * dx + dz * dz <= LIT_RANGE * LIT_RANGE then
                 local x, z = r.bx + dx, r.bz + dz
-                if r.tools.anchor ~= nil and core.loaded(x, r.by, z) == 0 then
+                if r.tools.anchor ~= nil and not core.loaded(x, r.by, z) then
                     asked = core.keep_loaded(x, z, 0) > 0 or asked
                 end
                 local y = ground(x, r.by, z)
@@ -943,7 +943,7 @@ WORK.light = function(r: R): boolean
         return true
     end
     act(r, "gather", TORCH, 0.8, x, z :: number)
-    if torch_room(x, y :: number, z :: number) and core.node_solid(core.get_block(x, (y :: number) - 1, z :: number)) == 1 then
+    if torch_room(x, y :: number, z :: number) and core.node_solid(core.get_block(x, (y :: number) - 1, z :: number)) then
         dig(r, x, y :: number, z :: number)
         core.set_block(x, y :: number, z :: number, core.node_id(TORCH))
         take(r, TORCH, 1)
@@ -1124,7 +1124,7 @@ WORK.tend = function(r: R): boolean
                         local bx, _, bz = core.mob_pos(list[j])
                         if ax and bx and (ax - bx) ^ 2 + (az - bz) ^ 2 < 36 and go(list[i]) then
                             act(r, "gather", food, 1.0, math.floor(ax), math.floor(az))
-                            local fed = core.mob_love(list[i]) + core.mob_love(list[j])
+                            local fed = (if core.mob_love(list[i]) then 1 else 0) + (if core.mob_love(list[j]) then 1 else 0)
                             take(r, food, fed)
                             if fed > 0 then
                                 return true
@@ -1652,7 +1652,7 @@ core.event.on("core:tick", function(ev)
         end
         if r.id == 0 then
             -- Not out yet: once its place is in memory.
-            if core.loaded(r.lx, r.ly, r.lz) == 1 then
+            if core.loaded(r.lx, r.ly, r.lz) then
                 start(r)
             end
         else
@@ -1672,7 +1672,7 @@ core.event.on("core:tick", function(ev)
                 save_index()
             else
                 r.lx, r.ly, r.lz = math.floor(x), math.floor(y + 0.5), math.floor(z)
-                if r.co ~= nil and (clock >= r.wake or (r.walking and core.mob_going(r.id) == 0)) then
+                if r.co ~= nil and (clock >= r.wake or (r.walking and not core.mob_going(r.id))) then
                     local ok, err = coroutine.resume(r.co)
                     if not ok then
                         core.log(`helpers: robot {r.n}: {err}`)

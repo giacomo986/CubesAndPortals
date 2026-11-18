@@ -517,7 +517,7 @@ core.event.on("core:tick", function(_)
         if run == nil or plan == nil then continue end
         local left = {}
         for _, c in run.pending do
-            if core.loaded(c[1], c[2], c[3]) == 1 then core.set_block(c[1], c[2], c[3], c[4])
+            if core.loaded(c[1], c[2], c[3]) then core.set_block(c[1], c[2], c[3], c[4])
             else table.insert(left, c) end
         end
         run.pending = left

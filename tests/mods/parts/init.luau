@@ -25,4 +25,8 @@ refused("./loop1", "a cycle")
 -- is its own chunk.
 assert(require("./many") == 150)
 
+-- api 1 (none declared): a yes-or-no call still answers 1 or 0 (tests/mods/yesno: api 2).
+local answer: any = core.node_solid(1)
+assert(type(answer) == "number", `api 1: node_solid gave a {type(answer)}`)
+
 core.log("parts: loaded")
