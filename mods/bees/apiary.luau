@@ -330,7 +330,7 @@ local PRESSED: { [string]: { { string | number } } } = {
     ["bees:crystal_honey"] = { { "rocks:amethyst_shard", 2 } },
 }
 
-local function use_press(ev)
+local function use_press(ev: EventPayload)
     local p, held = ev.player, ev.held
     local out = PRESSED[held]
     if out == nil then

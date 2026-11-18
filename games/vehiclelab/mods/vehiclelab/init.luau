@@ -132,7 +132,7 @@ core.event.on("core:command", function(ev)
         carrier = if carrier == ev.player then nil else ev.player
         core.notice(ev.player, if carrier then "CARRY: K goes with you" else "CARRY: K stays where it is")
     elseif ev.name == "vlab" then
-        put(ev.player, if STATIONS[ev.args] then ev.args else "rail")
+        put(ev.player, if STATIONS[ev.args :: string] then ev.args :: string else "rail")
     end
 end)
 -- A timed run types no commands: a player named after a station starts

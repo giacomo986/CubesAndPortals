@@ -36,7 +36,7 @@ core.register_item("wilds:mushroom_stew", 1, "", 0, 1.0, "")
 for _, n in { "peat", "mushroom_stew" } do
     core.register_model(`wilds:{n}_held`, `{n}_held.gltf`)   -- tools/make_held_models.py
 end
-core.recipe_shapeless("wilds:mushroom_stew", 1, "plants:brown_mushroom", "plants:brown_mushroom", "plants:red_mushroom")
+core.recipe_shapeless("wilds:mushroom_stew", 1, "plants:brown_mushroom plants:brown_mushroom plants:red_mushroom")
 core.recipe_shapeless("plants:brown_mushroom", 2, "wilds:brown_cap")
 core.recipe_shapeless("plants:red_mushroom", 2, "wilds:red_cap")
 

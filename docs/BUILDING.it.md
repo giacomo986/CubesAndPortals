@@ -62,6 +62,11 @@ Un build che si ferma su `api_generated.inc` vuol dire che `src/script/api.luau`
 il generatore (`build/tools/cnp_api_gen`) riscrive `src/script/api_generated.inc`, `docs/API.md`
 e `docs/api.d.luau`, che stanno nel repository e vanno committati insieme.
 
+`tools/typecheck.sh` controlla i tipi di ogni mod contro `docs/api.d.luau` e lo compila come fa il
+motore; la prima volta si costruisce il checker che gli serve in `build-typecheck/`. Va lanciato
+dopo aver toccato un mod o l'API: non deve stampare altro che il suo conteggio. Cosa controlla e
+cosa lascia fuori: [MODDING.it.md](MODDING.it.md#controllare-i-tipi-toolstypechecksh).
+
 ## I pacchetti
 
 Ogni pacchetto è una cartella con i tre programmi e, accanto, `mods/`, `games/` e `assets/`

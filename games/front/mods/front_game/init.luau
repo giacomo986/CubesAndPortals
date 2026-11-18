@@ -912,7 +912,7 @@ if serving then
         local p = POINTS[b.goal]
         -- A waypoint a couple of dozen nodes on, with a little spread so a
         -- squad does not walk in single file; at the point, somewhere in it.
-        local gx, gz = p[1] + (b.n % 5 - 2) * 3, p[2] + (b.n % 3 - 1) * 4
+        local gx: number, gz: number = p[1] + (b.n % 5 - 2) * 3, p[2] + (b.n % 3 - 1) * 4
         local dx, dz = gx - x, gz - z
         local d = math.sqrt(dx * dx + dz * dz)
         if d > 24 then
@@ -956,7 +956,7 @@ if serving then
         local a = b.ammo[b.gun]
         if b.reload_at then
             if clock < b.reload_at then return end
-            local n = math.min(GUNS[b.gun].mag - a.mag, a.res)
+            local n = math.min(GUNS[b.gun].mag - a.mag, a.res :: number)
             a.mag += n
             a.res -= n
             b.reload_at = nil
@@ -2614,7 +2614,7 @@ if serving then
             for p, s in players do
                 local x, y, z = core.player_pos(p)
                 if x ~= nil and core.health(p) > 0 then
-                    parts[p] = string.format("%.1f,%.1f,%.1f,%d", x, y, z, s.team)
+                    parts[p] = string.format("%.1f,%.1f,%.1f,%d", x, y, z, s.team :: number)
                 end
             end
             for p in players do

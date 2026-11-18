@@ -73,9 +73,9 @@ local function stock(x: number, y: number, z: number, h: number)
     core.container_make(x, y, z, 27)
     for i = 0, 3 + h % 4 do
         local pick = LOOT[1 + bit32.rshift(h, i * 3) % #LOOT]
-        local item = core.item_id(pick[1])
+        local item = core.item_id(pick[1] :: string)
         if item ~= 0 and core.container_count(x, y, z, item) == 0 then
-            core.container_add(x, y, z, item, 1 + bit32.rshift(h, i * 2 + 1) % pick[2])
+            core.container_add(x, y, z, item, 1 + bit32.rshift(h, i * 2 + 1) % (pick[2] :: number))
         end
     end
 end

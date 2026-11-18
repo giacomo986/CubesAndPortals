@@ -140,11 +140,11 @@ if serving then
     end
 
     local function said(r: Round): string
-        local list = {}
+        local list: { { any } } = {}
         for n, k in r.score do
             table.insert(list, { n, k })
         end
-        table.sort(list, function(a, b) return a[2] > b[2] end)
+        table.sort(list, function(a: { any }, b: { any }) return a[2] > b[2] end)
         local parts = {}
         for i, e in list do
             if i > 5 then
@@ -158,11 +158,11 @@ if serving then
     local function show(p: number, key: string)
         local name = `arena:panel{p}`
         local t = standing()
-        local list = {}
+        local list: { { any } } = {}
         for n, v in t do
             table.insert(list, { n, v[1], v[2] })
         end
-        table.sort(list, function(a, b) return a[2] > b[2] or (a[2] == b[2] and a[3] > b[3]) end)
+        table.sort(list, function(a: { any }, b: { any }) return a[2] > b[2] or (a[2] == b[2] and a[3] > b[3]) end)
         local rows = math.min(#list, 8)
         -- And the hunt's best: who found most, who lasted most.
         local ht, finders, lasters = hunt_standing(), {}, {}
@@ -175,7 +175,7 @@ if serving then
             end
         end
         local function best(l: { { any } }): string
-            table.sort(l, function(a, b) return a[2] > b[2] end)
+            table.sort(l, function(a: { any }, b: { any }) return a[2] > b[2] end)
             local parts = {}
             for i = 1, math.min(#l, 3) do
                 table.insert(parts, `{l[i][1]} {l[i][2]}`)
@@ -388,7 +388,7 @@ if serving then
                 return
             end
             if h.hiders[ev.player] ~= ev.id then
-                disguise(h, ev.player, ev.id)
+                disguise(h, ev.player :: number, ev.id :: number)
                 core.notice(ev.player, `You are {core.node_name(ev.id)} now. Stand still and you settle into the grid.`)
             end
             return
@@ -426,7 +426,7 @@ if serving then
         core.ui_show(ev.panel, false, ev.player)
         local hkey = string.match(ev.id, "^hunt (.+)$")
         if hkey then
-            start_hunt(hkey, ev.player)
+            start_hunt(hkey, ev.player :: number)
             return
         end
         local key = string.match(ev.id, "^start (.+)$")
@@ -716,7 +716,7 @@ if drawing then
     end
     if not serving then
         core.event.on("core:net_message", function(ev)
-            heard(ev.text)
+            heard(ev.text :: string)
         end)
     end
     core.event.on("core:tick", function(ev)

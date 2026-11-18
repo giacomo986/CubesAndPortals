@@ -28,10 +28,10 @@ if serving then
         "furnace:iron_ingot  furnace:iron_ingot  furnace:iron_ingot")
 
     local RAIL: { [number]: number } = {}   -- rail id -> its top over the cell's floor, mid-cell
-    for name, top in { ["building:rail"] = 1 / 16, ["building:powered_rail"] = 1 / 16,
+    for name, top in ({ ["building:rail"] = 1 / 16, ["building:powered_rail"] = 1 / 16,
                        ["building:powered_rail_on"] = 1 / 16, ["building:switch"] = 1 / 16,
                        ["building:switch_on"] = 1 / 16, ["building:rail_right"] = 1 / 16, ["building:rail_left"] = 1 / 16,
-                       ["building:rail_up"] = 0.5 + 1 / 16, ["building:rail_down"] = 0.5 + 1 / 16 } do
+                       ["building:rail_up"] = 0.5 + 1 / 16, ["building:rail_down"] = 0.5 + 1 / 16 } :: { [string]: number }) do
         RAIL[core.node_id(name)] = top
     end
     -- The way an upright cell runs, facing 0..3: away from whoever laid it.
@@ -63,7 +63,7 @@ if serving then
         core.player_clip(p, "")
         if core.give_item(p, CART, 1) < 1 then
             local x, y, z = core.player_pos(p)
-            core.drop_item(math.floor(x), math.floor(y), math.floor(z), core.item_id(CART), 1)
+            core.drop_item(math.floor(x :: number), math.floor(y), math.floor(z), core.item_id(CART), 1)
         end
     end
 
@@ -132,10 +132,10 @@ if serving then
                 continue
             end
             local x, y, z = core.player_pos(p)
-            local fx, fy, fz = math.floor(x), math.floor(y), math.floor(z)
+            local fx, fy, fz = math.floor(x :: number), math.floor(y), math.floor(z)
             if RAIL[core.get_block(fx, fy, fz)] or RAIL[core.get_block(fx, fy - 1, fz)] then
                 riding[p] = 0
-                roll(p, x, y, z)
+                roll(p, x :: number, y, z)
             elseif n + 1 >= DERAILED then
                 leave(p)
             else
@@ -151,7 +151,7 @@ if serving then
     end
     core.event.on("core:net_message", function(ev)
         if ev.text == "off" then
-            off(ev.player)
+            off(ev.player :: number)
         end
     end)
 end
@@ -168,7 +168,7 @@ if drawing then
         end
         ev.cancel = true
         if serving then
-            off(ev.player)
+            off(ev.player :: number)
         else
             core.net.send(0, "off")
         end

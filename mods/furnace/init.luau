@@ -236,15 +236,15 @@ local function resolve(): boolean
         return true
     end
     for _, f in FUELS do
-        local id = core.item_id(f[1])
+        local id = core.item_id(f[1] :: string)
         if id ~= 0 then
-            table.insert(fuel_ids, { id, f[2] })
+            table.insert(fuel_ids, { id, f[2] :: number })
         end
     end
     for _, pair in SMELTS do
-        local from, to = core.item_id(pair[1]), core.item_id(pair[2])
+        local from, to = core.item_id(pair[1] :: string), core.item_id(pair[2] :: string)
         if from ~= 0 and to ~= 0 then
-            table.insert(smelt_ids, { from, to, pair[3] })
+            table.insert(smelt_ids, { from, to, pair[3] :: number })
         end
     end
     return #fuel_ids > 0

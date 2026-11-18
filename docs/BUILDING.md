@@ -62,6 +62,11 @@ A build that stops on `api_generated.inc` means `src/script/api.luau` changed: t
 (`build/tools/cnp_api_gen`) rewrites `src/script/api_generated.inc`, `docs/API.md` and
 `docs/api.d.luau`, which are in the repository and are committed together.
 
+`tools/typecheck.sh` type-checks every mod against `docs/api.d.luau` and compiles it as the engine
+does; it builds the checker it needs in `build-typecheck/` the first time. Run it after touching
+a mod or the API: it should print nothing but its count. What it checks and what it leaves out:
+[MODDING.md](MODDING.md#checking-types-toolstypechecksh).
+
 ## The packages
 
 Every package is a folder with the three programs and, beside them, `mods/`, `games/` and

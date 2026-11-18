@@ -72,7 +72,7 @@ if serving then
 
     core.event.on("core:net_message", function(ev)
         if ev.text == "open" then
-            open_for(ev.player)
+            open_for(ev.player :: number)
         end
     end)
 end
@@ -83,7 +83,7 @@ if side ~= "server" then
             return
         end
         if serving then
-            open_for(ev.player)
+            open_for(ev.player :: number)
         else
             core.net.send(0, "open")
         end

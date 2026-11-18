@@ -505,14 +505,14 @@ local function try_spot(y: number, x0: number, z0: number, w: number, d: number,
             local owner = core.owned_at(x, z)
             local gy, gb = ground_at(x, y, z)
             if (owner >= 32768 and owner < 65536) or gy == nil or not is_in("natural", NATURAL, gb) then
-                return nil
+                return nil, nil, nil
             end
             g[`{dx},{dz}`] = gy
-            lo, hi = math.min(lo, gy), math.max(hi, gy)
+            lo, hi = math.min(lo, gy :: number), math.max(hi, gy :: number)
         end
     end
     if hi - lo > 3 then
-        return nil
+        return nil, nil, nil
     end
     local cx, cz = x0 + S / 2, z0 + S / 2
     local dx, dz = fx - cx, fz - cz
@@ -539,7 +539,7 @@ local orders: { [string]: { Order } } = {}
 local function find_lot(rk: string, w: number, d: number): (number?, number?, number?, number?, { number }?)
     local b = common.villages[rk]
     if b == nil then
-        return nil
+        return nil, nil, nil, nil, nil
     end
     local function free(x0: number, z0: number): boolean
         local S = math.max(w, d)
@@ -573,7 +573,7 @@ local function find_lot(rk: string, w: number, d: number): (number?, number?, nu
             end
         end
     end
-    return nil
+    return nil, nil, nil, nil, nil
 end
 
 -- The way from a lot's door to the nearest street, round what is built and
@@ -817,7 +817,7 @@ end)
 
 -- The order of a village still waiting for something, and what it lacks.
 local function wanting(rk: string): (Order?, { [string]: number })
-    local o = (orders[rk] or {})[1]
+    local o: Order? = (orders[rk] or {})[1]
     local lack = {}
     if o == nil or o.stage ~= "gather" then
         return nil, lack

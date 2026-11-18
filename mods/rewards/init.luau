@@ -153,7 +153,7 @@ if serving then
             core.notice(p, "A portal wants a wall two blocks tall with room before it")
             return
         end
-        local pr = pairs_of[p] or {}
+        local pr: { blue: Shot?, orange: Shot? } = pairs_of[p] or {}
         pairs_of[p] = pr
         local mine = if colour == "blue" then pr.blue else pr.orange
         close(mine)
@@ -164,8 +164,9 @@ if serving then
         end
         at.idx = idx
         if colour == "blue" then pr.blue = at else pr.orange = at end
-        if pr.blue and pr.orange then
-            core.portal_link((pr.blue :: Shot).idx, (pr.orange :: Shot).idx)
+        local blue, orange = pr.blue, pr.orange
+        if blue and orange then
+            core.portal_link(blue.idx, orange.idx)
         else
             core.portal_link(idx, -1)
         end
@@ -234,7 +235,7 @@ if serving then
         end
     end
     core.event.on("core:net_message", function(ev)
-        heard_click(ev.player, ev.text)
+        heard_click(ev.player :: number, ev.text :: string)
     end)
 
     local roped: { [number]: boolean } = {}

@@ -27,7 +27,7 @@ local treasury = common.treasury
 -- of it, up to twice that when it has less, down to half when it has more;
 -- it buys at half its price (two bundles for one ruby where that is one).
 -- What it buys goes into the village's chests, paid out of its treasury.
-local GOODS = {   -- item, how many a bundle, base price in rubies
+local GOODS: { { any } } = {   -- item, how many a bundle, base price in rubies
     { "farm:bread", 4, 1 }, { "pets:cooked_fish", 4, 1 }, { "animals:steak", 4, 1 },
     { "farm:wheat", 12, 1 }, { "animals:wool", 8, 1 }, { "animals:leather", 4, 1 },
     { "trees:trunk", 8, 1 }, { "timber:planks", 32, 1 }, { "rocks:cobblestone", 32, 1 },
@@ -39,7 +39,7 @@ local GOODS = {   -- item, how many a bundle, base price in rubies
 -- Every worker trades too (right click), as in the classic block game: it sells from the
 -- village's chests what its trade brings in, and buys what its trade needs,
 -- at the full price, out of the treasury.
-local TRADES = {   -- job -> what it sells, what it buys (item, a bundle, base price)
+local TRADES: { [string]: { { { any } } } } = {   -- job -> what it sells, what it buys (item, a bundle, base price)
     farmer = { { { "farm:wheat", 12, 1 }, { "farm:bread", 4, 1 } }, { { "animals:seeds", 16, 1 }, { "farm:hoe", 1, 2 },
                                                                        { "furnace:iron_hoe", 1, 5 }, { "furnace:diamond_hoe", 1, 15 } } },
     -- And buys every fish a player brings: the far waters' dearer, a goldfish

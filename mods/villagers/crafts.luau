@@ -123,7 +123,7 @@ end
 -- workers wear out and torches for its miners, two of each tool (16
 -- torches) kept in its chests for whoever comes for them, only for the
 -- kinds the village has. Sticks it makes of planks, planks of logs.
-local MAKES = {
+local MAKES: { { any } } = {
     -- Iron first, when the chests hold the ingots; stone otherwise. Two of a
     -- kind is two of any material (stocked, below).
     { "furnace:iron_pick", 1, { ["furnace:iron_ingot"] = 3, ["timber:stick"] = 2 }, "miner" },
@@ -244,7 +244,7 @@ local function near(v: V, x: number, y: number, z: number): boolean
         return false
     end
     if not walk(v, bx, by, bz, 6) then
-        core.mob_place(v.id, bx + 0.5, by + 0.02, bz + 0.5)
+        core.mob_place(v.id, bx + 0.5, (by :: number) + 0.02, (bz :: number) + 0.5)
     end
     return true
 end

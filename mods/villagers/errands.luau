@@ -152,7 +152,7 @@ E.make = function(rk: string): Errand?
                         pay = 0, posted = age(), taker = "", taken = 0, got = 0 }
     if kind == "bring" then
         local chests = village_chests(rk)
-        local short = {}
+        local short: { { any } } = {}
         for _, g in GOODS do
             if core.item_id(g[1]) ~= 0 and stock_of(chests, g[1]) < g[2] then
                 table.insert(short, g)

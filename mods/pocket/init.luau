@@ -512,7 +512,7 @@ core.event.on("core:tick", function(ev)
     end
     seen = now
 
-    table.sort(want, function(a, b) return a.dist < b.dist end)
+    table.sort(want, function(a, b) return (a.dist :: number) < b.dist end)
     local chosen: { [number]: boolean } = {}
     for i = 1, math.min(#want, #MOUTHS) do chosen[want[i].n] = true end
     local free: { number } = {}

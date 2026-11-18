@@ -45,9 +45,9 @@ end
 -- A village's collection: what, and who gave it, in the order given.
 type Piece = { item: string, giver: string }
 local function collection(rk: string): { Piece }
-    local out = {}
+    local out: { Piece } = {}
     for item, giver in string.gmatch(core.storage_get(`museum {rk}`), "([^,;]+),([^;]*)") do
-        table.insert(out, { item = item, giver = giver })
+        table.insert(out, { item = item, giver = giver :: string })
     end
     return out
 end
@@ -216,14 +216,14 @@ core.event.on("core:tick", function(ev)
             local pieces = collection(v.rk :: string)
             local f = core.find_nodes(bed[1] - 6, bed[2] - 1, bed[3] - 6, bed[1] + 6, bed[2] + 1, bed[3] + 6,
                                       "villagers:plinth")
-            local plinths = {}
+            local plinths: { { number } } = {}
             for i = 1, #f, 3 do
                 table.insert(plinths, { f[i], f[i + 1], f[i + 2] })
             end
-            table.sort(plinths, function(a, b)
+            table.sort(plinths, function(a: { number }, b: { number })
                 return a[1] * 100000 + a[3] < b[1] * 100000 + b[3]
             end)
-            local things = {}
+            local things: { Piece } = {}
             for _, piece in pieces do
                 if core.item_id(piece.item) ~= 0 then   -- a photograph is not a thing to stand up
                     table.insert(things, piece)

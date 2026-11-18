@@ -140,7 +140,7 @@ core.event.on("core:world_ready", function()
     waiting = {}
 end)
 
-local function stock_chest(t: Tower, ctx)
+local function stock_chest(t: Tower, ctx: MapgenStage)
     local chest = core.node_id("chest:box")
     if chest == 0 then
         return   -- a world without mods/chest gets a tower with nothing in it

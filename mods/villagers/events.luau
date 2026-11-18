@@ -593,7 +593,7 @@ EV.send = function(rk: string): boolean
         if #can == 0 then
             break
         end
-        local g = table.remove(can, math.random(#can))
+        local g = table.remove(can, math.random(#can)) :: { any }
         -- What it has over a bundle, kept at home: a bundle at most.
         local n = take_from(src, g[1], math.min(g[2], stock_of(src, g[1]) - g[2]))
         if n > 0 then

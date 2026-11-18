@@ -41,7 +41,7 @@ if serving then
             end
             WATER = w
         end
-        return w
+        return w :: { [number]: boolean }
     end
 
     type Lungs = { air: number, told: number, gills: number, choke: number }

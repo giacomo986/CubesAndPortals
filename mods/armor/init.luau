@@ -7,7 +7,7 @@
 -- What each is made of, its points head, chest, legs, feet, and how much each
 -- piece lasts per unit (The classic block game's: a helmet 11, a chestplate 16, leggings
 -- 15, boots 13 times this). A worn piece spends a quarter of every blow.
-local MATERIALS = {
+local MATERIALS: { { any } } = {
     { "wood",    "timber:planks",      { 1, 3, 2, 1 }, 5 },
     { "gold",    "furnace:gold_ingot", { 2, 5, 3, 1 }, 7 },
     { "iron",    "furnace:iron_ingot", { 2, 6, 5, 2 }, 15 },

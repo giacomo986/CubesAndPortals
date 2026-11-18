@@ -1273,7 +1273,7 @@ if serving then
     -- a blow takes off) and to their machine.
     function SV.recompute(p: number, s)
         local c = D.CLASS[s.cls]
-        local t = { str = s.str, dex = s.dex, vit = s.vit, ene = s.ene }
+        local t: { [string]: any } = { str = s.str, dex = s.dex, vit = s.vit, ene = s.ene }
         local def = 0
         local w = s.eq[1]
         local sets = {}

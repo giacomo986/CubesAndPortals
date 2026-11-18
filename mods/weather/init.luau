@@ -37,7 +37,7 @@ local FOLIAGE = { "trees:leaves", "woods:birch_leaves", "woods:jungle_leaves", "
 local WET_MIN, WET_MAX = 180, 480
 local BOLT_MIN, BOLT_MAX = 6, 18
 local BOLT_HURT, BOLT_REACH = 8, 3
-local SNOWS = { ["core:tundra"] = true, ["core:peaks"] = true }
+local SNOWS: { [string]: boolean } = { ["core:tundra"] = true, ["core:peaks"] = true }
 
 local side    = core.side()
 local serving = side ~= "client"

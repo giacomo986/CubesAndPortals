@@ -85,7 +85,7 @@ end
 -- The town's people: workers that stand at their stalls (arpg_game spawns and
 -- turns them) -- the smith, the jeweller, the alchemist, a guard at the gate.
 -- The sandbox's villagers, linked from mods/villagers.
-for kind, file in { smith = "crafter", jeweler = "merchant", alchemist = "mayor", guard = "guard" } do
+for kind, file in { smith = "crafter", jeweler = "merchant", alchemist = "mayor", guard = "guard" } :: { [string]: string } do
     core.register_mob(`arpg_core:{kind}`, core.register_model(`arpg_core:{kind}`, `{file}.gltf`), 1000, 2.0,
                       "worker", 0, 1.6, 1.0, "", 1, 0, false)
 end

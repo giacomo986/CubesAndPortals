@@ -1114,7 +1114,7 @@ core.event.on("core:tick", function(ev)
             queue[at] = nil
         end
     end
-    table.sort(due, function(a, b)
+    table.sort(due, function(a: Change, b: Change)
         return a.at < b.at
     end)
     for _, c in due do
@@ -1174,7 +1174,7 @@ core.event.on("cinnabar:changed", function(ev)
 end)
 
 core.event.on("core:watched", function(ev)
-    changed(ev.x, ev.y, ev.z)
+    changed(ev.x :: number, ev.y :: number, ev.z :: number)
 end)
 
 -- Dust drawn by an older rule takes today's shape when its chunk loads: the
@@ -1211,7 +1211,7 @@ core.event.on("core:placed", function(ev)
         core.container_make(ev.x, ev.y, ev.z, HOPPER_SLOTS)
     end
     reshape_around(ev.x, ev.y, ev.z)
-    changed(ev.x, ev.y, ev.z)
+    changed(ev.x :: number, ev.y :: number, ev.z :: number)
     update(ev.x, ev.y, ev.z)
 end)
 
@@ -1243,7 +1243,7 @@ core.event.on("core:pre_break", function(ev)
 end)
 
 core.event.on("core:broken", function(ev)
-    changed(ev.x, ev.y, ev.z)
+    changed(ev.x :: number, ev.y :: number, ev.z :: number)
     -- Dust or a torch on a block that goes goes with it.
     local above = core.get_block(ev.x, ev.y + 1, ev.z)
     if DUST[above] or above == TORCH or above == TORCH_OFF then

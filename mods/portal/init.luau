@@ -1406,8 +1406,8 @@ core.event.on("core:tick", function(ev)
                 table.insert(n, tonumber(word) or 0)
             end
             if #parts >= 3 and #n == 8 then
-                local f: Frame = { x = n[1], y = n[2], z = n[3], ex = n[4], ey = n[5], ez = n[6], axis = n[7],
-                                   sign = n[8], rot = 0, slot = -1, name = parts[1] }
+                local f = { x = n[1], y = n[2], z = n[3], ex = n[4], ey = n[5], ez = n[6], axis = n[7],
+                                   sign = n[8], rot = 0, slot = -1, name = parts[1] } :: Frame
                 offered[f] = if parts[3] == "" then {} else string.split(parts[3], ",")
                 ignored[f] = if (parts[5] or "") == "" then {} else string.split(parts[5], ",")
                 table.insert(rows, f)

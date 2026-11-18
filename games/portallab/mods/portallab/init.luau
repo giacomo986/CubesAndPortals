@@ -139,7 +139,7 @@ local function open_all(): boolean
     return true
 end
 
-local STATIONS = {
+local STATIONS: { [string]: { any } } = {
     wall = { 66.5, Y + 1, 59.5, 0, -0.05, -1, "WALL: the glass wall must be there, through the opening" },
     glass = { 66.5, Y + 1, 64.8, 0, -0.8, -0.6, "GLASS: look down into the hole -- the glass wall must be there" },
     head = { 77.5, Y + 1, 65.8, 0, 0.2, -1, "HEAD: step under the opening in the roof and jump" },
@@ -178,7 +178,7 @@ core.event.on("core:command", function(ev)
         still = not still
         core.notice(ev.player, if still then "STILL: the moving openings stop where they are" else "STILL: they move again")
     elseif ev.name == "lab" then
-        put(ev.player, if STATIONS[ev.args] then ev.args else "wall")
+        put(ev.player, if STATIONS[ev.args :: string] then ev.args :: string else "wall")
     end
 end)
 

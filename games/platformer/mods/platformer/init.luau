@@ -959,7 +959,7 @@ if serving then
             throw(p, r)
         end
     end
-    core.event.on("core:net_message", function(ev) asked(ev.player, ev.text) end)
+    core.event.on("core:net_message", function(ev) asked(ev.player :: number, ev.text :: string) end)
 
     -- The creatures on their beats: a sprout hops along, a spikeshell
     -- crawls, a buzzer flies up and down as it goes.
@@ -970,7 +970,7 @@ if serving then
                 foes[id] = nil
                 continue
             end
-            local dead = core.ecs.get(id, "dead")
+            local dead = core.ecs.get(id, "dead") :: number
             if dead > 0 then
                 if clock >= dead then
                     core.ecs.kill(id)
@@ -978,11 +978,11 @@ if serving then
                 end
                 continue
             end
-            local kind = core.ecs.get(id, "kind")
-            local dir, t = core.ecs.get(id, "dir"), core.ecs.get(id, "t") + dt
+            local kind = core.ecs.get(id, "kind") :: number
+            local dir, t = core.ecs.get(id, "dir") :: number, (core.ecs.get(id, "t") :: number) + dt
             x += dir * KINDS[kind].pace * dt
-            if x <= core.ecs.get(id, "a") then dir = 1 elseif x >= core.ecs.get(id, "b") then dir = -1 end
-            local base = core.ecs.get(id, "base")
+            if x <= core.ecs.get(id, "a") :: number then dir = 1 elseif x >= core.ecs.get(id, "b") :: number then dir = -1 end
+            local base = core.ecs.get(id, "base") :: number
             core.ecs.set(id, "x", x)
             core.ecs.set(id, "y", if kind == SPROUT then base + math.abs(math.sin(t * 7)) * 0.18
                                   elseif kind == BUZZER then base + math.sin(t * 2.2) * 1.1 else base)
@@ -1003,16 +1003,16 @@ if serving then
                 items[id] = nil
                 continue
             end
-            local rise = core.ecs.get(id, "rise")
+            local rise = core.ecs.get(id, "rise") :: number
             if rise > 0 then
                 rise = math.max(0, rise - dt)
                 core.ecs.set(id, "rise", rise)
                 -- Past 0.6 it waits inside its block for those before it to be out.
-                core.ecs.set(id, "y", core.ecs.get(id, "top") - math.min(rise, 0.6) / 0.6)
+                core.ecs.set(id, "y", (core.ecs.get(id, "top") :: number) - math.min(rise, 0.6) / 0.6)
                 continue
             end
             if core.ecs.get(id, "kind") ~= MUSHROOM then continue end
-            local vx, vy = core.ecs.get(id, "vx"), core.ecs.get(id, "vy")
+            local vx, vy = core.ecs.get(id, "vx") :: number, core.ecs.get(id, "vy") :: number
             if solid_at(x + (if vx < 0 then -0.35 else 0.35), y + 0.3) then vx = -vx end
             x += vx * dt
             if solid_at(x, y - 0.02) and vy <= 0 then
@@ -1046,7 +1046,7 @@ if serving then
                 continue
             end
             t += dt
-            local vx, vy = core.ecs.get(id, "vx"), core.ecs.get(id, "vy")
+            local vx, vy = core.ecs.get(id, "vx") :: number, core.ecs.get(id, "vy") :: number
             vy -= 40 * dt
             local nx, ny = x + vx * dt, y + vy * dt
             local gone = t > 2.5 or ny < VOID_Y
@@ -1059,9 +1059,9 @@ if serving then
             end
             if not gone then
                 for fid, of in foes do
-                    local fx, fy = core.ecs.get(fid, "x"), core.ecs.get(fid, "y")
+                    local fx, fy = core.ecs.get(fid, "x"), core.ecs.get(fid, "y") :: number
                     if fx and core.ecs.get(fid, "dead") == 0 then
-                        local k = KINDS[core.ecs.get(fid, "kind")]
+                        local k = KINDS[core.ecs.get(fid, "kind") :: number]
                         if math.abs(nx - fx) < 0.6 and ny > fy - 0.3 and ny < fy + k.tall then
                             squash(fid, of, fx, fy + k.tall * 0.5)
                             gone = true
@@ -1070,8 +1070,9 @@ if serving then
                     end
                 end
             end
-            if not gone and boss and runs[who] and runs[who].level == 3 then
-                local bx, by = core.ecs.get(boss.id, "x"), core.ecs.get(boss.id, "y")
+            local b = boss
+            if not gone and b and runs[who] and runs[who].level == 3 then
+                local bx, by = core.ecs.get(b.id, "x"), core.ecs.get(b.id, "y") :: number
                 if bx and math.abs(nx - bx) < 1.1 and ny > by and ny < by + 2.8 then
                     strike(1)
                     gone = true
@@ -1117,7 +1118,7 @@ if serving then
                 hot.coals[id], hots[id] = nil, nil
                 continue
             end
-            local vx, vy = core.ecs.get(id, "vx"), core.ecs.get(id, "vy") - 20 * dt
+            local vx, vy = core.ecs.get(id, "vx") :: number, (core.ecs.get(id, "vy") :: number) - 20 * dt
             x += vx * dt
             y += vy * dt
             if solid_at(x, y + 0.1) or y < VOID_Y then
@@ -1383,8 +1384,8 @@ if serving then
 
             -- A power-up touched.
             for id, of in items do
-                if of ~= r.level or core.ecs.get(id, "rise") > 0 then continue end
-                local ix, iy = core.ecs.get(id, "x"), core.ecs.get(id, "y")
+                if of ~= r.level or (core.ecs.get(id, "rise") :: number) > 0 then continue end
+                local ix, iy = core.ecs.get(id, "x"), core.ecs.get(id, "y") :: number
                 -- One that would change nothing is left for somebody else.
                 local kind = core.ecs.get(id, "kind")
                 if r.power >= (if kind == FLOWER then 2 else 1) then continue end
@@ -1423,9 +1424,9 @@ if serving then
             if clock >= r.safe then
                 for id, of in foes do
                     if of ~= r.level then continue end
-                    local fx, fy = core.ecs.get(id, "x"), core.ecs.get(id, "y")
-                    if fx == nil or core.ecs.get(id, "dead") > 0 then continue end
-                    local k = KINDS[core.ecs.get(id, "kind")]
+                    local fx, fy = core.ecs.get(id, "x"), core.ecs.get(id, "y") :: number
+                    if fx == nil or (core.ecs.get(id, "dead") :: number) > 0 then continue end
+                    local k = KINDS[core.ecs.get(id, "kind") :: number]
                     if math.abs(x - fx) < 0.55 + 0.3 * r.scale and y > fy - tall + 0.1 and y < fy + k.tall + 0.1 then
                         if k.soft and vy < -1 and y > fy + 0.35 * k.tall then
                             squash(id, of, fx, fy + k.tall * 0.5)
@@ -1442,7 +1443,7 @@ if serving then
             if runs[p] == r and clock >= r.safe then
                 for id, of in hots do
                     if of ~= r.level then continue end
-                    local hx, hy = core.ecs.get(id, "x"), core.ecs.get(id, "y")
+                    local hx, hy = core.ecs.get(id, "x"), core.ecs.get(id, "y") :: number
                     if hx and math.abs(x - hx) < 0.2 + 0.3 * r.scale and hy + 0.18 > y - 0.15 and hy + 0.18 < y + tall + 0.15 then
                         hurt(p, r)
                         break
@@ -1455,7 +1456,7 @@ if serving then
             -- it is never let stand inside the stove.
             local b = boss
             if b and r.level == 3 and runs[p] == r then
-                local bx, by = core.ecs.get(b.id, "x"), core.ecs.get(b.id, "y")
+                local bx, by = core.ecs.get(b.id, "x"), core.ecs.get(b.id, "y") :: number
                 if bx and math.abs(x - bx) < 1.0 + 0.3 * r.scale and y < by + 2.7 and y + tall > by then
                     local away = if x < bx then -1 else 1
                     local stomp = b.state == "cold" and vy < -1 and y > by + 1.7
@@ -1553,7 +1554,7 @@ if drawing then
         end
     end
     if not serving then
-        core.event.on("core:net_message", function(ev) heard(ev.text) end)
+        core.event.on("core:net_message", function(ev) heard(ev.text :: string) end)
     end
 
     core.event.on("core:tick", function(ev)
@@ -1618,7 +1619,7 @@ if drawing then
     core.event.on("core:input", function(ev)
         if not inside then return end
         local function send(what: string)
-            if serving then asked(ev.player, what) else core.net.send(0, what) end
+            if serving then asked(ev.player :: number, what) else core.net.send(0, what) end
         end
         if ev.action == "key_e" then
             send("quit")

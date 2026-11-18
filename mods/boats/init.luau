@@ -36,7 +36,7 @@ local function leave(p: number)
     core.player_clip(p, "")
     if core.give_item(p, BOAT, 1) < 1 then
         local x, y, z = core.player_pos(p)
-        core.drop_item(math.floor(x), math.floor(y), math.floor(z), core.item_id(BOAT), 1)
+        core.drop_item(math.floor(x :: number), math.floor(y), math.floor(z), core.item_id(BOAT), 1)
     end
 end
 
@@ -148,10 +148,10 @@ core.event.on("core:tick", function(ev)
             continue
         end
         local x, y, z = core.player_pos(p)
-        local fx, fy, fz = math.floor(x), math.floor(y), math.floor(z)
+        local fx, fy, fz = math.floor(x :: number), math.floor(y), math.floor(z)
         if core.get_block(fx, fy, fz) == WATER or core.get_block(fx, fy - 1, fz) == WATER then
             aboard[p] = 0
-            row(p, x, y, z, math.max(ev.dt, 0.001))
+            row(p, x :: number, y, z, math.max(ev.dt, 0.001))
         elseif n + 1 >= AGROUND then
             leave(p)
         else

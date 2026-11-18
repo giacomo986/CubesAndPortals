@@ -67,7 +67,7 @@ core.mob_lays("animals:chicken", "animals:egg", 120, 300)
 core.mob_drop("animals:cow", "animals:leather", 2)
 
 -- Wheat is mods/farm's: without it a cow and a sheep do not breed.
-local FOODS = { cow = "farm:wheat", sheep = "farm:wheat", pig = "animals:seeds", chicken = "animals:seeds" }
+local FOODS: { [string]: string } = { cow = "farm:wheat", sheep = "farm:wheat", pig = "animals:seeds", chicken = "animals:seeds" }
 for kind, food in FOODS do
     core.mob_breed(`animals:{kind}`, food, YOUNG[kind], 1200, HEARTS)
 end

@@ -687,7 +687,7 @@ int l_place_piece(lua_State *L)
     return 1;
 }
 
-// core.piece_entry(x: number, y: number, z: number) -> (number?, number?, number?, number?, number?)
+// core.piece_entry(x: number, y: number, z: number) -> (number?, number, number, number, number)
 int l_piece_entry(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1204,7 +1204,7 @@ int l_top_view_at(lua_State *L)
     return 0;
 }
 
-// core.cursor_ray() -> (number?, number?, number?, number?, number?, number?)
+// core.cursor_ray() -> (number?, number, number, number, number, number)
 int l_cursor_ray(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1580,7 +1580,7 @@ int l_mob_lunge(lua_State *L)
     return 1;
 }
 
-// core.shoot(x: number, y: number, z: number, dx: number, dy: number, dz: number, max: number, damage: number) -> (number?, boolean?)
+// core.shoot(x: number, y: number, z: number, dx: number, dy: number, dz: number, max: number, damage: number) -> (number?, boolean)
 int l_shoot(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -1737,7 +1737,7 @@ int l_mob_ids(lua_State *L)
     return 1;
 }
 
-// core.mob_pos(id: number) -> (number?, number?, number?)
+// core.mob_pos(id: number) -> (number?, number, number)
 int l_mob_pos(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2800,7 +2800,7 @@ int l_players(lua_State *L)
     return 1;
 }
 
-// core.player_pos(player: number) -> (number?, number?, number?)
+// core.player_pos(player: number) -> (number?, number, number)
 int l_player_pos(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2826,7 +2826,7 @@ int l_player_key(lua_State *L)
     return 1;
 }
 
-// core.world_spawn() -> (number?, number?, number?)
+// core.world_spawn() -> (number?, number, number)
 int l_world_spawn(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2850,7 +2850,7 @@ int l_seed(lua_State *L)
     return 1;
 }
 
-// core.plaza() -> (number?, number?)
+// core.plaza() -> (number?, number)
 int l_plaza(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -2904,7 +2904,7 @@ int l_body_taken(lua_State *L)
     return 1;
 }
 
-// core.player_look(player: number) -> (number?, number?, number?)
+// core.player_look(player: number) -> (number?, number, number)
 int l_player_look(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -3043,7 +3043,7 @@ int l_sound_loop_stop(lua_State *L)
     return 1;
 }
 
-// core.raycast(x: number, y: number, z: number, dx: number, dy: number, dz: number, max: number?) -> (number?, number?, number?, number?)
+// core.raycast(x: number, y: number, z: number, dx: number, dy: number, dz: number, max: number?) -> (number?, number, number, number)
 int l_raycast(lua_State *L)
 {
     VmState *vm = host_of(L);

@@ -180,7 +180,7 @@ core.register_mapgen("front_core:field", function(ctx)
     -- ------------------------------------------------------------ bases
     -- A concrete yard with a sandbag ring, a bunker at the back and a lamp
     -- on each corner; the team's colour on its flagpole and in its floor.
-    for _, b in { { RED_BASE, RED, 1 }, { BLUE_BASE, BLUE, -1 } } do
+    for _, b in { { RED_BASE, RED, 1 }, { BLUE_BASE, BLUE, -1 } } :: { { any } } do
         local cx, cz, colour, f = b[1][1], b[1][2], b[2], b[3]
         box(cx - 20, cx + 20, GROUND - 1, GROUND - 1, cz - 14, cz + 14, CONCRETE)
         for i = -20, 20, 5 do

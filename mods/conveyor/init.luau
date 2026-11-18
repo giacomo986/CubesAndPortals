@@ -86,7 +86,7 @@ for id in IS do CARRIES[id] = true end
 local RUN = { { 0, -1 }, { -1, 0 }, { 0, 1 }, { 1, 0 } }
 
 local function run_of(x: number, y: number, z: number): (number?, number?)
-    if not CARRIES[core.get_block(x, y, z)] then return nil end
+    if not CARRIES[core.get_block(x, y, z)] then return nil, nil end
     local r = RUN[core.get_facing(x, y, z) % 4 + 1]
     return r[1], r[2]
 end

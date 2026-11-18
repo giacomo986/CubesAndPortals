@@ -3,7 +3,7 @@
 -- are one block of it, and the block alone is the nine again. Mostly a way to
 -- carry a lot in one slot; a cinnabar block is also always powered
 -- (mods/cinnabar).
-local BLOCKS = {
+local BLOCKS: { { any } } = {
     { "coal",     "ore:coal",             20, 20, 22,   0, 5.0 },
     { "copper",   "furnace:copper_ingot", 196, 110, 72, 1, 5.0 },
     { "iron",     "furnace:iron_ingot",   220, 220, 220, 1, 5.0 },

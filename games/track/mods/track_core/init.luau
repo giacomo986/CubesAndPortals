@@ -476,9 +476,9 @@ local function square(gx: number, gz: number): (number, number)
     return RING_X + 8 * gx, RING_Z + 8 * gz
 end
 -- The byte for a heading: a piece is entered from the player's side.
-local HEAD = { pz = 2, px = 3, mz = 0, mx = 1 }
+local HEAD: { [string]: number } = { pz = 2, px = 3, mz = 0, mx = 1 }
 
-local RING = {
+local RING: { { any } } = {
     -- piece, square, heading, height above GROUND
     { "kicker", 2, 0, "px", 0 }, { "landing", 3, 0, "mx", 0 }, { "tilt_in", 4, 0, "px", 0 },
     { "bank_turn2", 7, 0, "px", 0 },
@@ -1008,7 +1008,7 @@ local function piece_in(sx: number, sz: number, y: number): (string?, { { any } 
             local ex, ey, ez, id, facing = core.piece_entry(sx * 8 + c[1], y + dy, sz * 8 + c[2])
             local name = ex and NAME_OF[id]
             if name ~= nil then
-                return name, travels(name, ex, ey, ez, facing)
+                return name, travels(name, ex :: number, ey, ez, facing)
             end
         end
     end
@@ -1062,7 +1062,7 @@ local function follow(st: Turtle, name: string, back: boolean): (Edit?, string?)
     end
     local at, last_name, last_back = st, name, back
     local _, after = step(at, name, back)
-    for _ = 1, 200 do
+    for _i = 1, 200 do
         local n, rev = piece_at(after)
         if n == nil then
             break
@@ -1132,7 +1132,7 @@ local function start_from(p: number, x: number, y: number, z: number): boolean
         return false
     end
     -- Followed the way it runs, as put down.
-    local e, why = follow({ gx = ex // 8, gz = ez // 8, t = (facing + 2) % 4, y = ey }, name, false)
+    local e, why = follow({ gx = (ex :: number) // 8, gz = ez // 8, t = (facing + 2) % 4, y = ey }, name, false)
     if e == nil then
         core.chat(p, why or "No track here")
         return true
@@ -1251,7 +1251,7 @@ end
 -- lanes down to one and, the other way round, one out to two. Flat first: the
 -- rises only when no way round at the end's height closes it.
 local MAX_TURTLES, MAX_PIECES, PER_TICK = 20000, 30, 300
-local MOVES = {
+local MOVES: { [number]: { { any } } } = {
     [1] = { { "straight", false }, { "straight2", false }, { "turn1", false }, { "turn2", false },
             { "turn3", false }, { "turn2_left", false }, { "turn3_left", false },
             { "chicane_right", false }, { "chicane_left", false }, { "rise", false }, { "rise", true },
@@ -1278,7 +1278,9 @@ local function taken(sx: number, sz: number, y: number): boolean
 end
 
 -- A heap of { f, node } by f.
-local function push(h, f: number, node)
+type SearchNode = { st: Turtle, w: number, g: number, n: number, parent: SearchNode?, move: { any }?,
+                    sq: { [string]: boolean } }
+local function push(h: { { any } }, f: number, node: SearchNode)
     table.insert(h, { f, node })
     local i = #h
     while i > 1 do
@@ -1288,7 +1290,7 @@ local function push(h, f: number, node)
         i = up
     end
 end
-local function pop(h)
+local function pop(h: { { any } }): SearchNode
     local top = h[1]
     local last = table.remove(h)
     if #h > 0 then
@@ -1321,7 +1323,7 @@ local function search(from: Turtle, goal: Turtle, w: number, wg: number, climb: 
         return math.max(d, math.abs(st.y - goal.y)) + (if st.t == goal.t then 0 else 2)
             + (if sw == wg then 0 else 2)
     end
-    local open = {}
+    local open: { { any } } = {}
     local best: { [string]: number } = { [key(from, w)] = 0 }
     push(open, h(from, w), { st = from, w = w, g = 0, n = 0, parent = nil, move = nil, sq = {} })
     local seen = 0
@@ -1336,9 +1338,9 @@ local function search(from: Turtle, goal: Turtle, w: number, wg: number, climb: 
     while #open > 0 do
         local node = pop(open)
         if same(node.st, goal) and node.w == wg then
-            local path = {}
+            local path: { { any } } = {}
             while node.parent ~= nil do
-                table.insert(path, 1, node.move)
+                table.insert(path, 1, node.move :: { any })
                 node = node.parent
             end
             return path
@@ -1359,10 +1361,10 @@ local function search(from: Turtle, goal: Turtle, w: number, wg: number, climb: 
                 -- The squares it covers: not on the path so far, nothing in
                 -- them at the height the road goes in at, and not the goal's.
                 local ok = true
-                local mine = {}
+                local mine: { [string]: boolean } = {}
                 for _, q in squares(node.st, rows) do
                     local k = `{q[1]} {q[2]}`
-                    local n = node
+                    local n: SearchNode? = node
                     while ok and n ~= nil do
                         if n.sq[k] then ok = false end
                         n = n.parent

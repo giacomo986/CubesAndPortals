@@ -87,7 +87,7 @@ local function relic_of(sx: number, sz: number, seed: number): Relic?
             local t = core.terrain_height(x + c[1], z + c[2])
             lo, hi = math.min(lo, t), math.max(hi, t)
         end
-        if hi - lo <= 4 then
+        if (hi :: number) - lo <= 4 then
             return { kind = "temple", x = x, z = z, y = lo, h = h }
         end
     end
@@ -97,7 +97,7 @@ end
 -- ------------------------------------------------------------ the chests
 
 local SLOTS = 27
-local LOOT = { { "ore:ruby", 4, 8 }, { "furnace:gold_ingot", 2, 6 }, { "furnace:iron_ingot", 3, 8 },
+local LOOT: { { any } } = { { "ore:ruby", 4, 8 }, { "furnace:gold_ingot", 2, 6 }, { "furnace:iron_ingot", 3, 8 },
                { "ore:diamond", 0, 2 }, { "ore:lapis", 4, 12 } }
 
 local function stock(x: number, y: number, z: number, h: number)

@@ -53,7 +53,7 @@ core.event.on("core:page_action", function(ev)
     end
     local list = notes()
     if ev.id == "add" and ev.text ~= "" then
-        table.insert(list, 1, `{string.sub(ev.text, 1, 100)} -- {core.player_name(ev.player)}`)
+        table.insert(list, 1, `{string.sub(ev.text :: string, 1, 100)} -- {core.player_name(ev.player)}`)
         while #list > 20 do
             table.remove(list)
         end

@@ -247,8 +247,10 @@ condividono le variabili globali del mod e la sua VM: la stessa quota, lo stesso
 `core`.
 
 - **I percorsi sono quelli di Luau** (require-by-string): `./` e `../` dal file che chiede, `.luau`
-  aggiunto, una cartella vuol dire il suo `init.luau`. Un editor che conosce Luau li segue anche lui.
-  Un percorso senza `./` o `../` è rifiutato: non c'è altro posto dove cercare.
+  aggiunto, una cartella vuol dire il suo `init.luau`. Un editor che conosce Luau li segue anche lui,
+  tranne da un `init.luau`: Luau ora legge `./` lì come la cartella sopra, il motore come quella in
+  cui sta, quindi l'editor dice "Unknown require" per un percorso che funziona. Un percorso senza
+  `./` o `../` è rifiutato: non c'è altro posto dove cercare.
 - **Solo dentro la cartella del mod.** Un percorso che ne esce è rifiutato, comunque sia scritto.
 - **Un file gira una volta sola.** Il secondo `require` riceve quello che ha ricevuto il primo: quello
   che il file ha restituito con `return` (`true` se non ha restituito niente).
@@ -2573,9 +2575,69 @@ Aggiungere `core.node_name` è costato sei righe nella tabella descrittiva più 
 funzione host: il glue, i tipi e la doc si sono aggiornati da soli. Il costo
 vero dei binding senza FFI (DESIGN.md §5.4) si paga con del tooling, non a mano.
 
-`core.event.*` e `core.register_mapgen` restano scritte a mano: prendono tabelle
-o funzioni invece di scalari, e un generatore che le coprisse sarebbe più grande
-di quello che sostituisce.
+`core.event.*`, `core.register_mapgen`, `core.register_abm`/`register_lbm`, `core.ecs`,
+`core.craft`, `core.net`, `core.render` e `core.hud` restano scritte a mano: prendono tabelle o
+funzioni invece di scalari, e un generatore che le coprisse sarebbe più grande di quello che
+sostituisce. Anche i loro tipi sono scritti a mano, nella parte `.d.luau` di
+`tools/api_gen/gen.luau`: **una funzione aggiunta a una di queste va aggiunta anche lì**, o il type
+checker non sa che esiste.
+
+### Controllare i tipi: `tools/typecheck.sh`
+
+```sh
+tools/typecheck.sh                         # ogni .luau del repository
+tools/typecheck.sh mods/pipes/init.luau    # solo questi
+ALL=1 tools/typecheck.sh                   # con i residui attesi (sotto)
+```
+
+Due passate, stato d'uscita 1 se una delle due trova qualcosa:
+
+1. **I tipi**, contro `docs/api.d.luau` -- quello che mostra il language server di un editor, per
+   tutto il repository insieme. Il `luau-analyze` di Luau non sa ricevere un file di definizioni,
+   quindi lo script ne compila una copia sua da `third_party/luau` in `build-typecheck/` con
+   un'opzione `--definitions` in più (qualche minuto la prima volta, poi solo quello che è
+   cambiato).
+2. **La compilazione a `-O2`**, il livello del motore. Il checker non conta i registri: un chunk
+   principale oltre i 200 local passa il controllo dei tipi e poi non si carica.
+
+Cosa lascia fuori se non c'è `ALL=1`, perché non è colpa del mod:
+
+- **`require("./x")` in un `init.luau`** ("Unknown require", e il "Unknown type 'L.Zone'" che ne
+  segue). Il motore cerca `x` accanto al file; Luau ora legge `./` in un `init.luau` come la
+  cartella sopra. Il mod ha ragione, il checker no.
+- **`tests/mods/parts`**: un require ciclico e una globale non dichiarata, messi apposta.
+- **`tools/api_gen/gen.luau`**: le sue globali le mette `cnp_api_gen`.
+
+**Cosa promettono i tipi**, dove è meno ovvio di una firma:
+
+- **Una chiamata che risponde con più valori** risponde con **tutti o nessuno**: `core.player_pos`
+  è `(number?, number, number)`. Il primo è opzionale e gli altri no, perché un type checker
+  restringe il valore su cui si è chiesto e mai i suoi fratelli: `if not x then return end` è il
+  controllo, e dopo `y` e `z` sono numeri.
+- **Il payload di un evento** è `{ [string]: any }`: i suoi campi sono quelli che ha dichiarato
+  `core.event.define`, e nessun tipo può saperli. Dite cosa sono dove conta: `ev.player :: number`.
+- `core.register_abm`/`register_lbm` passano all'azione una `ModifierCell` (`x, y, z, id`),
+  `core.ecs.system` un `EcsBatch` (`n, dt, tick, id` e una colonna per campo), uno stadio di mapgen
+  un `MapgenStage` (`seed, height, depth, min_x, min_z, max_x, max_z`), `core.craft.pose` una
+  `CraftPose` o nil. Un mod li può nominare: `local function stage(ctx: MapgenStage)`.
+
+**Gli errori che un mod `--!strict` incontra più spesso**, e cosa li toglie senza cambiare quello
+che il codice fa:
+
+| il checker dice | perché | scrivete |
+|---|---|---|
+| `Operator '-' could not be applied to operands of types unknown and number` | una tabella letterale usata come mappa: `SIZE[name]` | `local SIZE: { [string]: number } = { ... }` |
+| `Expected type table, got 'string \| {number} \| ...'` | una lista di tuple miste | `local LOOT: { { any } } = { ... }` |
+| `Cannot call a value of the union type` | una funzione dichiarata prima (`local f: (number) -> () = function() end`) e assegnata dopo, chiamata con un `ev.*` | il cast sull'argomento, alla chiamata: `f(ev.player :: number)` |
+| `Value of type 'X?' could be nil` dopo un `if v then` | `v` è un upvalue, e un controllo su un upvalue non lo restringe | copiatelo prima: `local b = boss; if b then ... b.id` |
+| `Expected this to be 'number', but got 'number?'` | un valore che il codice sa che c'è (un campo di un'entità dato allo spawn, il fratello di un valore controllato) | `core.ecs.get(e, "vx") :: number` |
+| `Unknown global 'x'` | un nome usato **sopra** il suo `local` è una globale, e un'altra | spostate il `local` in su: è un bug, non un tipo |
+
+L'ultima riga non è un tipo: il gestore di `keys:level` di `backrooms_exit` scriveva in `level_d`
+sopra la riga che la dichiara, quindi indicizzava una globale che non esiste e si fermava lì, prima
+di mettere il giocatore nel livello -- e le luci che dal livello 5 in poi si spengono non si sono
+mai spente. È a questo che serve un controllo pulito: gli errori di tipo nascondono i pochi che non
+lo sono.
 
 ### La modalità survival: livelli dietro i portali
 

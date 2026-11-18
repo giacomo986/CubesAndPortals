@@ -81,7 +81,7 @@ local AIR = 0
 
 -- ---------------------------------------------------------------- the orders
 
-local ORDERS = {
+local ORDERS: { { key: string, text: string, tool: string? } } = {
     { key = "chop", text = "Chop trees", tool = "axe" },
     { key = "plant", text = "Plant saplings" },
     { key = "soil", text = "Dig soil", tool = "shovel" },
@@ -309,7 +309,7 @@ end
 -- ---------------------------------------------------------------- chests
 
 local function chests(r: R): { { number } }
-    local out = {}
+    local out: { { number } } = {}
     for _, name in CHESTS do
         local found = core.find_nodes(r.bx - RANGE, r.by - 4, r.bz - RANGE, r.bx + RANGE, r.by + 4,
                                       r.bz + RANGE, name)
@@ -317,7 +317,7 @@ local function chests(r: R): { { number } }
             table.insert(out, { found[i], found[i + 1], found[i + 2] })
         end
     end
-    table.sort(out, function(a, b)
+    table.sort(out, function(a: { number }, b: { number }): boolean
         return a[1] * 1e6 + a[3] * 1e3 + a[2] < b[1] * 1e6 + b[3] * 1e3 + b[2]
     end)
     return out
@@ -938,14 +938,14 @@ WORK.light = function(r: R): boolean
         r.tried[`{dx},{dy},{dz}`] = clock + 600
         return true
     end
-    if not travel(r, x, z) or not reach(r, x, y, z) then
+    if not travel(r, x, z :: number) or not reach(r, x, y :: number, z :: number) then
         r.tried[`{dx},{dy},{dz}`] = clock + 600
         return true
     end
-    act(r, "gather", TORCH, 0.8, x, z)
-    if torch_room(x, y, z) and core.node_solid(core.get_block(x, y - 1, z)) == 1 then
-        dig(r, x, y, z)
-        core.set_block(x, y, z, core.node_id(TORCH))
+    act(r, "gather", TORCH, 0.8, x, z :: number)
+    if torch_room(x, y :: number, z :: number) and core.node_solid(core.get_block(x, (y :: number) - 1, z :: number)) == 1 then
+        dig(r, x, y :: number, z :: number)
+        core.set_block(x, y :: number, z :: number, core.node_id(TORCH))
         take(r, TORCH, 1)
     end
     return true
@@ -1139,7 +1139,7 @@ WORK.tend = function(r: R): boolean
 end
 
 -- The layout's cells, as mods/blueprints answers "blueprints:layout".
-local LAYOUT: { last: { any }?, said: { [number]: number } } = { last = nil, said = {} }
+local LAYOUT: { last: { owner: any, cells: { any } }?, said: { [number]: number } } = { last = nil, said = {} }
 core.event.on("blueprints:cells", function(ev)
     local cells = {}
     for x, y, z, name, f in string.gmatch(ev.cells, "(%-?%d+),(%-?%d+),(%-?%d+),([^,]*),(%d+)") do

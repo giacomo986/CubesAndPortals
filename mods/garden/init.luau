@@ -28,9 +28,11 @@ local COARSE = id("rocks:coarse_dirt")
 -- (115, GY + 1, 43); jambs and lintel a thirty-second of a node thick.
 -- Seen huge from inside, a door of a house.
 local FRAME = core.register_node("garden:frame", 74, 52, 32, true, 0, "", 0, 1.5, "wood")
--- Half as deep as G's doorway: a face on its clip plane (a sixteenth's 1/32
--- off the middle) was drawn as a black line across the door's picture.
-local T, D = 1 / 32, 1 / 64
+-- As deep as G's doorway (its tunnel and picture reach a sixteenth's 1/32
+-- either side of the middle) and a hair more: half as deep, the dark tunnel
+-- stood out of the frame; exactly 1/32, a face on the clip plane was drawn as
+-- a black line across the door's picture.
+local T, D = 1 / 32, 1 / 32 + 1 / 512
 core.node_box(FRAME, 0.5 - 1 / 32 - T, 0, 0.5 - D, 0.5 - 1 / 32, 1 / 8 + T, 0.5 + D)
 core.node_box(FRAME, 0.5 + 1 / 32, 0, 0.5 - D, 0.5 + 1 / 32 + T, 1 / 8 + T, 0.5 + D)
 core.node_box(FRAME, 0.5 - 1 / 32, 1 / 8, 0.5 - D, 0.5 + 1 / 32, 1 / 8 + T, 0.5 + D)
@@ -125,7 +127,7 @@ core.event.on("core:broken", function(ev)
     if ev.y == Y and ev.x >= TX0 + 1 and ev.x <= TX0 + 2 and ev.z >= TZ0 + 1 and ev.z <= TZ0 + 2 then
         core.set_block(ev.x, ev.y, ev.z, GLASS)
     elseif ev.x == 115 and ev.y == GY + 1 and ev.z == 43 then
-        core.set_block(ev.x, ev.y, ev.z, FRAME)   -- and G's frame
+        core.set_block(ev.x, ev.y, ev.z :: number, FRAME)   -- and G's frame
     end
 end)
 
@@ -327,7 +329,7 @@ core.event.on("core:tick", function(ev)
     end
 end)
 
-local COUNT = { ["garden:ant"] = 8, ["garden:ladybird"] = 3, ["garden:butterfly"] = 4 }
+local COUNT: { [string]: number } = { ["garden:ant"] = 8, ["garden:ladybird"] = 3, ["garden:butterfly"] = 4 }
 local RESPAWN = 30
 local FLOWER_TOP = 0.75   -- a flower's model is 0.8 high: where a butterfly sits
 

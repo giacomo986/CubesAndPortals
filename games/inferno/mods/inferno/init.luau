@@ -569,7 +569,7 @@ end)
 -- In the survival sites' levels (x from 8000, inferno_heart) less: half as
 -- likely, at most half as many, and never the rare things.
 local LEVELS = 8000
-local LOOT = {
+local LOOT: { { any } } = {
     { "inferno:gold_nugget", 3, 9, 1.0 }, { "inferno:cinder_rod", 1, 3, 0.7 }, { "inferno:quartz", 2, 6, 0.7 },
     { "inferno:wraith_tear", 1, 2, 0.4 }, { "inferno:obsidian", 1, 4, 0.5 }, { "furnace:iron_ingot", 1, 4, 0.5 },
     { "furnace:gold_ingot", 1, 2, 0.3 }, { "alchemy:fire_resistance", 1, 1, 0.15 }, { "ore:diamond", 1, 1, 0.08 },

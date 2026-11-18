@@ -45,6 +45,7 @@ local drawing = side ~= "server"
 local clock   = 0.0
 
 local heard: (string) -> () = function(_) end
+local heard_click: (number, string) -> () = function(_, _) end
 local function tell(player: number, text: string)
     if drawing then
         heard(text)
@@ -222,12 +223,12 @@ if serving then
     -- hill, and a platform with the way home. A lamp hangs six over every square.
     local FWD = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } }   -- +z, +x, -z, -x
     local function right_of(t: number) return FWD[(t + 3) % 4 + 1] end
-    local ESCAPE = {
+    local ESCAPE: { { string } } = {
         { "straight3" }, { "straight2" }, { "tilt_in_r" }, { "bank_r", "r" }, { "tilt_out_r" },
         { "straight2" }, { "rise", "up" }, { "straight2" }, { "rise", "down" }, { "tilt_in_l" },
         { "bank_l", "l" }, { "tilt_out_l" }, { "straight3" },
     }
-    local SIZE = { straight2 = 2, straight3 = 3, rise = 2, tilt_in_r = 3, tilt_out_r = 3, bank_r = 3,
+    local SIZE: { [string]: number } = { straight2 = 2, straight3 = 3, rise = 2, tilt_in_r = 3, tilt_out_r = 3, bank_r = 3,
                    tilt_in_l = 3, tilt_out_l = 3, bank_l = 3 }
     local ROAD_Y = GY + 1
     local pieces_left: { { number } } = {}
@@ -391,7 +392,8 @@ if serving then
         if at == nil then
             tell(0, `rim {p} {colour} -`)
         else
-            tell(0, string.format("rim %d %s %.2f %.2f %.2f %d %d", p, colour, at.x, at.y, at.z, at.axis, at.sign))
+            local a: any = at
+            tell(0, string.format("rim %d %s %.2f %.2f %.2f %d %d", p, colour, a.x, a.y, a.z, a.axis, a.sign))
         end
     end
     local function close_shot(sh: any?)
@@ -426,7 +428,7 @@ if serving then
         if colour == "blue" then s.blue = at else s.orange = at end
         rim_told(p, colour, at)
         if s.blue and s.orange then
-            core.portal_link(s.blue.idx, s.orange.idx)
+            core.portal_link((s.blue :: any).idx, (s.orange :: any).idx)
         else
             core.portal_link(idx, -1)
         end
@@ -534,13 +536,13 @@ if serving then
 
     local function step_orbs(dt: number)
         for o in orbs do
-            local x, y, z = core.ecs.get(o, "x"), core.ecs.get(o, "y"), core.ecs.get(o, "z")
+            local x, y, z = core.ecs.get(o, "x"), core.ecs.get(o, "y") :: number, core.ecs.get(o, "z") :: number
             if x == nil then
                 orbs[o] = nil
                 continue
             end
-            local vx, vy, vz = core.ecs.get(o, "vx"), core.ecs.get(o, "vy"), core.ecs.get(o, "vz")
-            local t = core.ecs.get(o, "t") + dt
+            local vx, vy, vz = core.ecs.get(o, "vx") :: number, core.ecs.get(o, "vy") :: number, core.ecs.get(o, "vz") :: number
+            local t = core.ecs.get(o, "t") :: number + dt
             core.ecs.set(o, "t", t)
             local hit = false
             for p, s in players do
@@ -851,14 +853,14 @@ if serving then
         end
         s.next_fire = clock + g.every
         if g.ammo then
-            if s[g.ammo] <= 0 then
+            if (s :: any)[g.ammo] <= 0 then
                 if not s.dry then
                     s.dry = true
                     tell(p, "dry")
                 end
                 return
             end
-            s[g.ammo] -= 1
+            (s :: any)[g.ammo] -= 1
             ammo_line(p, s)
         end
         local x, y, z = core.player_pos(p)
@@ -1137,7 +1139,7 @@ if serving then
             if s == nil then
                 s = { name = core.player_name(p), firing = false, next_fire = 0, driving = false, run_left = 0,
                       credits = 0, torch_at = 0, frost_at = 0, lava_at = 0, done = false, health = 20, grace = 0,
-                      shells = 16, bullets = 0, dry = false }
+                      shells = 16, bullets = 0, dry = false } :: P
                 players[p] = s
                 for q, o in players do
                     if o.blue then rim_told(q, "blue", o.blue) end
@@ -1275,7 +1277,7 @@ if drawing then
         end
     end
     if not serving then
-        core.event.on("core:net_message", function(ev) heard(ev.text) end)
+        core.event.on("core:net_message", function(ev) (heard :: (string) -> ())(ev.text) end)
     end
 
     local function ask(what: string, player: number)

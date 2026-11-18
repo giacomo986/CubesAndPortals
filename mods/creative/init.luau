@@ -140,7 +140,7 @@ if serving then
         -- is a placement, and without this the same click would open the catalogue
         -- and build whatever is in hand on top of the box.
         ev.cancel = true
-        open_for(ev.player)
+        open_for(ev.player :: number)
     end)
 
     -- The box beside the grid: narrowed on every key.
@@ -214,7 +214,7 @@ if serving then
         end
         query[ev.player] = string.sub(ev.args, 1, 64)
         row[ev.player] = 0
-        open_for(ev.player)
+        open_for(ev.player :: number)
     end)
 
     -- /kill: your own body for anybody stuck, somebody else's for a moderator.
@@ -260,9 +260,9 @@ if serving then
 
     core.event.on("core:net_message", function(ev)
         if ev.text == "open" then
-            open_for(ev.player)
+            open_for(ev.player :: number)
         elseif ev.text == "up" or ev.text == "down" then
-            turn(ev.player, if ev.text == "up" then -1 else 1)
+            turn(ev.player :: number, if ev.text == "up" then -1 else 1)
         end
     end)
 end
@@ -279,9 +279,9 @@ if side ~= "server" then
         if not serving then
             core.net.send(0, say)
         elseif say == "open" then
-            open_for(ev.player)
+            open_for(ev.player :: number)
         else
-            turn(ev.player, if say == "up" then -1 else 1)
+            turn(ev.player :: number, if say == "up" then -1 else 1)
         end
     end)
 end

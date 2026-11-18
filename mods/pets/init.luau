@@ -109,7 +109,7 @@ local function water(): { [number]: boolean }
         end
         WATER = w
     end
-    return w
+    return w :: { [number]: boolean }
 end
 
 -- The first water cell along a player's look, if nothing comes before it.

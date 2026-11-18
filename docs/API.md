@@ -810,7 +810,7 @@ Puts a track piece down the way a player does: entered by the grid square holdin
 ## `core.piece_entry`
 
 ```luau
-core.piece_entry(x: number, y: number, z: number) -> (number?, number?, number?, number?, number?)
+core.piece_entry(x: number, y: number, z: number) -> (number?, number, number, number, number)
 ```
 
 Where the track piece that cell belongs to is entered: the corner cell of its entry square (its right lane on a wide road), its height, its block and its facing -- the x, y, z, id and facing core.place_piece would put it down with again. Returns NOTHING for a cell of no piece.
@@ -1450,7 +1450,7 @@ core.top_view's camera held over one point instead of over the head: a whole fie
 ## `core.cursor_ray`
 
 ```luau
-core.cursor_ray() -> (number?, number?, number?, number?, number?, number?)
+core.cursor_ray() -> (number?, number, number, number, number, number)
 ```
 
 The ray under the mouse cursor -- through the middle of the screen, the crosshair, while the game holds the mouse: where it starts (the camera) and its direction, length 1. With core.raycast it finds the cell clicked. NOTHING when there is no camera yet. For a world's code on a player's machine.
@@ -1888,7 +1888,7 @@ Lets a melee creature of that kind dive at whoever it hunts: from the ground, wi
 ## `core.shoot`
 
 ```luau
-core.shoot(x: number, y: number, z: number, dx: number, dy: number, dz: number, max: number, damage: number) -> (number?, boolean?)
+core.shoot(x: number, y: number, z: number, dx: number, dy: number, dz: number, max: number, damage: number) -> (number?, boolean)
 ```
 
 A bullet: the first body that can be hurt -- a creature, or a mod's entity with core.ecs.health -- that a ray from x, y, z meets before a solid block and within `max` loses `damage`, and a creature is knocked back from where it came. Returns how far along the ray it was struck and whether that killed it, or NOTHING when it struck no body. Never a player. On a server.
@@ -2049,7 +2049,7 @@ The creatures core.mobs_near finds, by id, nearest first; at most 32. An id stay
 ## `core.mob_pos`
 
 ```luau
-core.mob_pos(id: number) -> (number?, number?, number?)
+core.mob_pos(id: number) -> (number?, number, number)
 ```
 
 Where that creature's feet are, or NOTHING once it is dead or gone.
@@ -3253,7 +3253,7 @@ The list is this moment's. Somebody in it may have left by the time the mod asks
 ## `core.player_pos`
 
 ```luau
-core.player_pos(player: number) -> (number?, number?, number?)
+core.player_pos(player: number) -> (number?, number, number)
 ```
 
 Where that player's FEET are -- the same position the server's movement authority accepted, not a claim a client made. Their eyes are about 1.6 above it and their box is half a node wide.
@@ -3279,7 +3279,7 @@ The fingerprint of the key that player proved at the door, or an empty string fo
 ## `core.world_spawn`
 
 ```luau
-core.world_spawn() -> (number?, number?, number?)
+core.world_spawn() -> (number?, number, number)
 ```
 
 Where a player arrives in this world, and comes back after dying without a bed. On a server it answers while the mods load too in a world without a plaza (--survival), whose spawn is known before they do; elsewhere only once it runs.
@@ -3295,7 +3295,7 @@ This world's seed, its low 31 bits, anywhere and at any time -- a mapgen stage's
 ## `core.plaza`
 
 ```luau
-core.plaza() -> (number?, number?)
+core.plaza() -> (number?, number)
 ```
 
 The flat square the portal gates stand on, as the lowest and highest x (and z) of it -- 20, 100 -- or nil in a world without one (--survival) or a process that does not generate the world. What a mod asks instead of which mode a world is in: something kept off the plaza, or built on it, follows the answer.
@@ -3352,7 +3352,7 @@ core.body_taken(player: number) -> number
 ## `core.player_look`
 
 ```luau
-core.player_look(player: number) -> (number?, number?, number?)
+core.player_look(player: number) -> (number?, number, number)
 ```
 
 Which way that player is looking, as a direction of length 1. On a server it is the look that came with their last ACCEPTED position, so a shot a mod fires along it goes where the server believes and not where a client says. Their eye is core.player_pos plus 1.62.
@@ -3509,7 +3509,7 @@ Stops a loop for everybody. Returns 1, or 0 for an id not going round.
 ## `core.raycast`
 
 ```luau
-core.raycast(x: number, y: number, z: number, dx: number, dy: number, dz: number, max: number?) -> (number?, number?, number?, number?)
+core.raycast(x: number, y: number, z: number, dx: number, dy: number, dz: number, max: number?) -> (number?, number, number, number)
 ```
 
 The first solid block a ray from x, y, z along dx, dy, dz runs into within `max`: its cell and how far along the ray. Returns NOTHING when it meets none.

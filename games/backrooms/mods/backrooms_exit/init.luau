@@ -30,6 +30,7 @@ local WALLPAPER, CARPET = id("backrooms:wallpaper"), id("backrooms:carpet")
 type Plan = { sx: number, sz: number, ex: number, ez: number, eF: number }
 local PLANS: { [number]: Plan } = {}
 local level_slot: { [number]: number } = {}
+local level_d: { [number]: number } = {}
 local function plan_of(slot: number): Plan?
     local hit = PLANS[slot]
     if hit then return hit end
@@ -144,7 +145,6 @@ local clock = 0
 -- of, so putting them back puts back exactly those.
 local TUBE, DARK = id("backrooms:tube"), id("backrooms:lamp_off")
 local outs: { { number } } = {}   -- { x, z, until }
-local level_d: { [number]: number } = {}
 local next_out: { [number]: number } = {}
 type P = { next_beep: number, next_word: number, down: boolean, found: boolean }
 local players: { [number]: P } = {}

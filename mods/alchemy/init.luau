@@ -299,7 +299,7 @@ if drawing then
         for name, left in string.gmatch(text, "([%w_]+)=(%d+)") do
             table.insert(shown, { name, tonumber(left) })
         end
-        table.sort(shown, function(a, b) return a[1] < b[1] end)
+        table.sort(shown, function(a, b) return (a[1] :: string) < (b[1] :: string) end)
     end
     if serving then
         -- One process, server and screen: the server half hands it over here.

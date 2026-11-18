@@ -137,7 +137,7 @@ local function chop(v: V)
         bring(v, m)
         return
     end
-    local x, y, z = nearest(LOG_NAMES, v.hx, v.hy, v.hz, 32, 10, function(a, b, c)
+    local x, y, z = nearest(LOG_NAMES, v.hx, v.hy, v.hz, 32, 10, function(a: number, b: number, c: number)
         return failed(v, a, b, c) or is_in("logs", LOG_NAMES, core.get_block(a, b - 1, c))
             or core.node_solid(core.get_block(a, b - 1, c)) ~= 1 or not tree_log(a, b, c)
     end)
@@ -524,6 +524,7 @@ local function mine(v: V)
         end
         quarry[v.key] = q
     end
+    q = q :: { number }
     local x, y, z, dx, dz = q[1], q[2], q[3], q[4], q[5]
     if not walk(v, x, y, z, 30) then
         quarry[v.key] = nil

@@ -176,7 +176,7 @@ core.event.on("keys:earned", function(ev)
     -- By a survival site: the world's own trial stood in for its level.
     local lv = level_of[ev.player]
     if lv then
-        done(ev.player, lv)
+        done(ev.player :: number, lv)
         if lv.d < 4 then return end
     end
     if TITLE[ev.key] == nil then return end   -- the front's and the assault's: no key
@@ -291,8 +291,8 @@ local function arrived(player: number)
         core.shared_storage_set("inst:next:" .. room, tostring(slot + 1))
         core.shared_storage_set("inst:" .. site, tostring(slot))
     end
-    level_of[player] = { site = site, d = d, room = room, slot = slot }
-    local ox, oz = 8192 + (slot % 16) * 2048, (slot // 16) * 2048
+    level_of[player] = { site = site, d = d, room = room, slot = slot :: number }
+    local ox, oz = 8192 + ((slot :: number) % 16) * 2048, ((slot :: number) // 16) * 2048
     local taken = core.event.emit("keys:level",
         { player = player, slot = slot, d = d, seed = seed, ox = ox, oz = oz })
     core.log(`keys: {core.player_name(player)} by {site} (d {d}): slot {slot}, `
@@ -344,7 +344,7 @@ end
 
 core.event.on("keys:cleared", function(ev)
     local lv = level_of[ev.player]
-    if lv and lv.slot == ev.slot then done(ev.player, lv) end
+    if lv and lv.slot == ev.slot then done(ev.player :: number, lv) end
 end)
 
 -- =================================================================== ways out

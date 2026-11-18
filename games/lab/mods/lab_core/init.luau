@@ -79,7 +79,7 @@ core.node_model(kart, KART)
 core.register_node("lab:piece_fill", 60, 62, 70, true, 0, "", 0, 0.2)
 local PFILL = core.node_id("lab:piece_fill")
 --  name           plan size climb g0 g1 bank0 bank1
-for _, p in { { "straight2",  1, 2, 0, 0, 0, 0, 0 }, { "straight3",  1, 3, 0, 0, 0, 0, 0 },
+for _, p: { any } in { { "straight2",  1, 2, 0, 0, 0, 0, 0 }, { "straight3",  1, 3, 0, 0, 0, 0, 0 },
               { "rise",       1, 2, 2, 0, 0, 0, 0 },
               { "tilt_in_r",  1, 3, 0, 0, 0, 0, 8 }, { "tilt_out_r", 1, 3, 0, 0, 0, 8, 0 },
               { "bank_r",     2, 3, 0, 0, 0, 8, 8 },

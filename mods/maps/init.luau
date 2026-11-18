@@ -85,8 +85,8 @@ local function heard(text: string)
         local tx, tz, code = string.match(rest or "", "^(-?%d+),(-?%d+):(%S+)$")
         if tx then
             local x0, z0 = (tonumber(tx) :: number) * TILE, (tonumber(tz) :: number) * TILE
-            for i = 0, math.min(#code, TILE * TILE) - 1 do
-                local c = (string.find(ALPHA, string.sub(code, i + 1, i + 1), 1, true) or 1) - 1
+            for i = 0, math.min(#(code :: string), TILE * TILE) - 1 do
+                local c = (string.find(ALPHA, string.sub(code :: string, i + 1, i + 1), 1, true) or 1) - 1
                 if c > 0 then
                     seen[pk(x0 + i % TILE, z0 + i // TILE)] = c
                 end
@@ -96,7 +96,7 @@ local function heard(text: string)
         local label, pts = string.match(rest or "", "^([^|]*)|(.*)$")
         if label then
             local list = {}
-            for x, z in string.gmatch(pts, "(-?%d+),(-?%d+)") do
+            for x, z in string.gmatch(pts :: string, "(-?%d+),(-?%d+)") do
                 table.insert(list, { tonumber(x) :: number, tonumber(z) :: number })
             end
             routes[label] = if #list > 0 then list else nil
@@ -306,7 +306,7 @@ if serving then
         while #kept > 64 do table.remove(kept, 1) end
         core.storage_set(`pins:{name}`, table.concat(kept, "#"))
         send(ev.player, `p {entry}`)
-        reveal(ev.player, math.floor(ev.x / PIXEL), math.floor(ev.z / PIXEL))
+        reveal(ev.player :: number, math.floor(ev.x / PIXEL), math.floor(ev.z / PIXEL))
     end)
 
     core.event.on("maps:route", function(ev)
@@ -331,7 +331,7 @@ if serving then
         for x, z in string.gmatch(ev.points, "(-?%d+),(-?%d+)") do
             local px, pz = math.floor((tonumber(x) :: number) / PIXEL), math.floor((tonumber(z) :: number) / PIXEL)
             if px ~= lx or pz ~= lz then
-                reveal(ev.player, px, pz)
+                reveal(ev.player :: number, px, pz)
                 lx, lz = px, pz
             end
         end

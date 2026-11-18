@@ -30,7 +30,11 @@
 -- block is a magenta one. Coal could not keep its name, because "ore:coal" is
 -- the coal a furnace burns and a chest in mods/ruins holds; the item took it,
 -- and core.node_alias below carries the old seams over.
-local ORES = {
+type Ore = {
+    name: string, rgb: { number }, dig: number, secs: number, drop: string, min: number, max: number,
+    every: number, low: number, high: number, depth: number, len: number, biome: string?, id: number?,
+}
+local ORES: { Ore } = {
     { name = "ore:coal_ore",     rgb = { 58, 54, 52 },    dig = 0, secs = 2.5,
       drop = "ore:coal", min = 1, max = 1,
       every = 24, low = 4, high = 44, depth = 3, len = 6 },
@@ -63,7 +67,7 @@ for _, ore in ORES do
     ore.id = core.register_node(ore.name, ore.rgb[1], ore.rgb[2], ore.rgb[3], true, 0, "",
                                 ore.dig, ore.secs, "stone")
     core.register_item(ore.drop, 64, "", 0, 1.0, "")
-    core.node_drop_item(ore.id, ore.drop)
+    core.node_drop_item(ore.id :: number, ore.drop)
 end
 
 -- Coal seams saved when the block was "ore:coal" load as coal ore. And iron
@@ -139,7 +143,7 @@ end
 -- filler, not the bedrock floor, and not whatever a stage registered before
 -- this one has already built there. And only a cell in the column being made:
 -- the rest of the walk is followed and not written.
-local function vein(ctx, x: number, y: number, z: number, id: number, len: number,
+local function vein(ctx: MapgenStage, x: number, y: number, z: number, id: number, len: number,
                     stone: number, walk: number): number
     local placed = 0
     local cx, cy, cz = x, y, z
@@ -178,7 +182,7 @@ end
 -- Below y 0 (--world-depth), one chunk of rock in two has veins and the rest
 -- stays one solid block: a whole deep column of ore would be most of a world's
 -- memory. The richest ores, more of them the further down.
-local function deep_veins(ctx, stone: number)
+local function deep_veins(ctx: MapgenStage, stone: number)
     local cx, cz = math.floor(ctx.min_x / 32), math.floor(ctx.min_z / 32)
     for cy = -math.floor(ctx.depth / 32), -1 do
         local h = hash(cx * 31 + cy, cz, ctx.seed + 0xD33B)
@@ -188,7 +192,7 @@ local function deep_veins(ctx, stone: number)
                 local r = hash(cx + v, cy * 17 + cz, ctx.seed + 0xD33C)
                 local ore = ORES[1 + r % #ORES]
                 vein(ctx, ctx.min_x + bit32.rshift(r, 4) % 32, cy * 32 + bit32.rshift(r, 10) % 32,
-                     ctx.min_z + bit32.rshift(r, 16) % 32, ore.id, ore.len, stone, bit32.rshift(r, 22))
+                     ctx.min_z + bit32.rshift(r, 16) % 32, ore.id :: number, ore.len, stone, bit32.rshift(r, 22))
             end
         end
     end
@@ -221,7 +225,7 @@ core.register_mapgen("ore:veins", function(ctx)
                         -- The low bits chose the column; the next ones the
                         -- height, and the top ones the walk.
                         local y = ore.low + math.floor(h / 4096) % (high - ore.low + 1)
-                        vein(ctx, x, y, z, ore.id, ore.len, stone, bit32.rshift(h, 20))
+                        vein(ctx, x, y, z, ore.id :: number, ore.len, stone, bit32.rshift(h, 20))
                     end
                 end
             end

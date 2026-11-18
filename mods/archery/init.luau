@@ -112,7 +112,7 @@ if serving then
 
     core.event.on("core:net_message", function(ev)
         if ev.text == "draw" or ev.text == "loose" then
-            pull(ev.player, ev.text == "draw")
+            pull(ev.player :: number, ev.text == "draw")
         end
     end)
 
@@ -147,7 +147,7 @@ if drawing then
 
     if not serving then
         core.event.on("core:net_message", function(ev)
-            heard(ev.text)
+            heard(ev.text :: string)
         end)
     end
 

@@ -240,7 +240,7 @@ local STEP  = 0.2
 -- What the player is pointing at, as two cells: the first source of water along
 -- their look, and the last air before the look hits anything. Either may be
 -- nothing.
-local function pointing_at(player: number)
+local function pointing_at(player: number): ({ number }?, { number }?)
     local px, py, pz = core.player_pos(player)
     local lx, ly, lz = core.player_look(player)
     if px == nil or py == nil or pz == nil or lx == nil or ly == nil or lz == nil then

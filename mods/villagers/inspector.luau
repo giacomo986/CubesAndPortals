@@ -243,8 +243,8 @@ local function muster()
             end
             local big = #b.homes >= 8
             core.log(`villagers: {rk}: watch, mayor and builder at {post.hx} {post.hy} {post.hz}`)
-            for kind, n in { guard = if big then 3 else 2, archer = if big then 2 else 1, inspector = if big then 2 else 1,
-                             mayor = 1, builder = 1, merchant = 1, crafter = 1, curator = 1 } do
+            for kind, n in ({ guard = if big then 3 else 2, archer = if big then 2 else 1, inspector = if big then 2 else 1,
+                              mayor = 1, builder = 1, merchant = 1, crafter = 1, curator = 1 } :: { [string]: number }) do
                 for i = 1, n do
                     local key = `{rk} {kind} {i}`
                     watch[key] = { key = key, hx = post.hx, hy = post.hy, hz = post.hz, kind = kind, id = 0,
@@ -305,7 +305,7 @@ local function bed_keepers(rk: string): { [string]: boolean }
         return missing
     end
     local mx, mz = (b.x1 + b.x2) / 2, (b.z1 + b.z2) / 2
-    local free = {}
+    local free: { { any } } = {}
     local f = AID.find(b.x1 - KEEPING.reach, b.y - 12, b.z1 - KEEPING.reach, b.x2 + KEEPING.reach, b.y + 16, b.z2 + KEEPING.reach, "bed:bed")
     for i = 1, #f, 3 do
         local x, y, z = f[i], f[i + 1], f[i + 2]
@@ -316,9 +316,9 @@ local function bed_keepers(rk: string): { [string]: boolean }
             table.insert(free, { x, y, z, (if m ~= "" then 0 else 1e6) + (x - mx) ^ 2 + (z - mz) ^ 2, m })
         end
     end
-    table.sort(free, function(a, c) return a[4] < c[4] end)
+    table.sort(free, function(a: { any }, c: { any }) return a[4] < c[4] end)
     local function take_bed(v: V, k: number)
-        local fb = table.remove(free, k)
+        local fb = table.remove(free, k) :: { any }
         if v.bed ~= nil then
             -- Its old bed is somebody else's to have.
             local o = v.bed

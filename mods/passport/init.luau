@@ -164,7 +164,7 @@ core.event.on("core:page_action", function(ev)
     elseif kind == "letter" then
         if words == "" then
             show_box(p, "A letter needs something in it: name@server and then the words.")
-        elseif core.fed_send(server, `letter\t{to}\t{from}\t{string.sub(words, 1, 600)}`) == 1 then
+        elseif core.fed_send(server, `letter\t{to}\t{from}\t{string.sub(words :: string, 1, 600)}`) == 1 then
             show_box(p, `Your letter to {to} on {server} is on its way.`)
         else
             show_box(p, `No friend server called {server} takes post from here.`)
@@ -208,12 +208,12 @@ core.event.on("core:tick", function(ev)
                         local left = n - core.give_item(p, a, n)
                         if left > 0 then
                             local px, py, pz = core.player_pos(p)
-                            core.drop_item(math.floor(px), math.floor(py), math.floor(pz), core.item_id(a), left)
+                            core.drop_item(math.floor(px :: number), math.floor(py), math.floor(pz), core.item_id(a), left)
                         end
                         core.chat(p, `A parcel from {from} on {server}: {n} {said(a)}.`)
                     end
                 elseif kind == "letter" and a then
-                    local words = if b ~= "" then a .. "\t" .. b else a
+                    local words = if b ~= "" then a .. "\t" .. (b :: string) else a
                     core.chat(p, `A letter from {from} on {server}: "{words}"`)
                 end
             end

@@ -5,6 +5,19 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
+## Next alpha (not handed out yet)
+
+- **The backrooms**: going into a level put you nowhere -- the level's handler stopped on a
+  variable used above where it is declared. It now takes you in, and from level 5 on the lights go
+  out again as they were meant to.
+- **Mushroom stew** takes the two brown mushrooms and the red one it always listed; it was being
+  made from a single brown mushroom.
+- **For modders**: `docs/api.d.luau` loads again in an editor (one description had broken out of
+  its comment) and now declares `core.ecs`, `craft`, `net`, `render`, `hud`, `register_abm` and
+  `register_lbm`, the whole `MapgenStage` and typed event payloads. Every mod in the game
+  type-checks clean, and `tools/typecheck.sh` checks yours the same way:
+  [docs/MODDING.md](docs/MODDING.md#checking-types-toolstypechecksh).
+
 ## 0.18.0-alpha.1 — 2026-11-18
 
 **Does not play with 0.17 servers** (protocol 125). Worlds are read as they are; a saved platform

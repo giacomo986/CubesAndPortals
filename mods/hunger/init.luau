@@ -78,7 +78,7 @@ if serving then
             b = {
                 points = tonumber(pts) or MAX, saturation = tonumber(sat) or 5, exhaustion = 0,
                 starve = 0, name = name, rising = false, since = 0, metres = 0, health = core.health(p),
-            }
+            } :: Belly
             bellies[p] = b
             tell(p, b)
         end
@@ -211,14 +211,14 @@ if serving then
             return
         end
         ev.cancel = true
-        eat(ev.player, ev.held)
+        eat(ev.player :: number, ev.held :: string)
     end)
 
     -- Right clicked at the air (below): eaten, unless a block is in reach
     -- after all -- then core:used was the click, and has eaten already.
     core.event.on("core:net_message", function(ev)
         if ev.text == "eat" and not facing_block(ev.player) then
-            eat(ev.player, core.held_item(ev.player))
+            eat(ev.player :: number, core.held_item(ev.player))
         end
     end)
 end
@@ -232,7 +232,7 @@ if drawing then
             return
         end
         if serving then
-            eat(ev.player, core.held_item(ev.player))
+            eat(ev.player :: number, core.held_item(ev.player))
         else
             core.net.send(0, "eat")
         end

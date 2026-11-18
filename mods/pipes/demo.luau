@@ -39,7 +39,7 @@ local function item(name: string): number
 end
 
 local y = 0
-local supply, sinks, storage, output, keeper = {}, {}, {}, {}, {}
+local supply: { number }, sinks: { { number } }, storage: { number }, output: { number }, keeper: { number } = {}, {}, {}, {}, {}
 local store, made = {}, {}           -- the crafting demo's store and the chest beside its request pipe
 
 local function put(x: number, z: number, name: string)
@@ -138,7 +138,7 @@ local function build()
     made = chest(X + 10, c)
     interface(X + 3, c + 1, "recipe", { "timber:planks", "timber:stick", "furnace:iron_pick", "craft:table" })
     interface(X + 6, c + 1, "recipe", { "furnace:iron_ingot", "core:glass", "core:stone", "furnace:charcoal" })
-    for _, m in { { X + 3, "pipes:autocrafter" }, { X + 6, "pipes:autofurnace" } } do
+    for _, m in { { X + 3, "pipes:autocrafter" }, { X + 6, "pipes:autofurnace" } } :: { { any } } do
         put(m[1], c + 2, m[2])
         core.set_facing(m[1], y, c + 2, 3)       -- its front to the spawn, as the signs
         core.container_clear(m[1], y, c + 2)     -- what a reset found half made: gone

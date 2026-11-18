@@ -163,7 +163,7 @@ local function city_of(cx: number, cz: number, seed: number): Village?
         local biome = core.biome(b[1], b[2])
         v = { x = b[1], z = b[2], y = b[3], town = true, city = true, r = r, h = h,
               desert = biome == "core:desert", cold = biome == "core:tundra",
-              rx = math.floor(b[1] / REGION), rz = math.floor(b[2] / REGION) }
+              rx = math.floor(b[1] / REGION), rz = math.floor(b[2] / REGION) } :: Village
     end
     CITY[key] = v or false
     return v
@@ -239,7 +239,7 @@ local function village_of(rx: number, rz: number, seed: number): Village?
         end
         if far and biome ~= "core:peaks" and y > SEA and not wet(x, z) then
             v = { x = x, z = z, y = y, town = town,
-                  desert = biome == "core:desert", cold = biome == "core:tundra", h = h, rx = rx, rz = rz }
+                  desert = biome == "core:desert", cold = biome == "core:tundra", h = h, rx = rx, rz = rz } :: Village
         end
     end
 
@@ -377,7 +377,7 @@ local function plan_version(v: Village): number
         kept = PLAN_NOW
         core.storage_set(key, tostring(kept))
     end
-    return kept
+    return kept :: number
 end
 
 local function overlaps(a: Rect, b: Rect): boolean
@@ -439,7 +439,7 @@ local function plan_of(v: Village, seed: number): Plan
 
     -- The square, nine across (a city's is 25), and the streets leaving it.
     local half = if v.city then 12 else 4
-    local square = { x0 = v.x - half, z0 = v.z - half, x1 = v.x + half, z1 = v.z + half }
+    local square: Rect = { x0 = v.x - half, z0 = v.z - half, x1 = v.x + half, z1 = v.z + half }
     table.insert(plan.streets, square)
     file_rect(taken, square)
 
@@ -527,7 +527,7 @@ local function plan_of(v: Village, seed: number): Plan
         square.h0 = queue[1][3]
         for _, a in queue do
             if a[4] ~= 0 or a[5] ~= 0 then
-                local r = { x0 = a[1] - 3, z0 = a[2] - 3, x1 = a[1] + 3, z1 = a[2] + 3, h0 = a[3] }
+                local r: Rect = { x0 = a[1] - 3, z0 = a[2] - 3, x1 = a[1] + 3, z1 = a[2] + 3, h0 = a[3] }
                 table.insert(plan.streets, r)
                 file_rect(taken, r)
             end
@@ -550,7 +550,7 @@ local function plan_of(v: Village, seed: number): Plan
             local to = (if e.b[4] == 0 and e.b[5] == 0 then half else 3) + 1
             local sx, sz = if along_x then e.a[1] + from else e.a[1], if along_x then e.a[2] else e.a[2] + from
             local ex, ez = if along_x then e.b[1] - to else e.b[1], if along_x then e.b[2] else e.b[2] - to
-            local r = { x0 = if along_x then sx else sx - hw, z0 = if along_x then sz - hw else sz,
+            local r: Rect = { x0 = if along_x then sx else sx - hw, z0 = if along_x then sz - hw else sz,
                         x1 = if along_x then ex else ex + hw, z1 = if along_x then ez + hw else ez,
                         h0 = e.a[3], h1 = e.b[3], along_x = along_x }
             table.insert(plan.streets, r)
@@ -600,7 +600,7 @@ local function plan_of(v: Village, seed: number): Plan
     for _, a in arms do
         if not v.city then
             local ex, ez = a.sx + a.ux * (a.len - 1), a.sz + a.uz * (a.len - 1)
-            local r = { x0 = math.min(a.sx, ex) - 1, z0 = math.min(a.sz, ez) - 1, x1 = math.max(a.sx, ex) + 1,
+            local r: Rect = { x0 = math.min(a.sx, ex) - 1, z0 = math.min(a.sz, ez) - 1, x1 = math.max(a.sx, ex) + 1,
                         z1 = math.max(a.sz, ez) + 1 }
             table.insert(plan.streets, r)
             file_rect(taken, r)
@@ -609,7 +609,7 @@ local function plan_of(v: Village, seed: number): Plan
 
     -- Plots along both sides of every street, doors to the street.
     local smithy, tower, mine, hall, barracks = false, false, false, false, ver < 3
-    local homes = if ver >= 3 then { "villages:scales", "villages:plans" } else {}
+    local homes: { string } = if ver >= 3 then { "villages:scales", "villages:plans" } else {}
     for ai, a in arms do
         for _, s in { 1, -1 } do
             local px, pz = -a.uz * s, a.ux * s
@@ -644,8 +644,8 @@ local function plan_of(v: Village, seed: number): Plan
                 local ax, az = a.sx + a.ux * along, a.sz + a.uz * along
                 local bx, bz = ax + a.ux * (w - 1) + px * (off + d - 1), az + a.uz * (w - 1) + pz * (off + d - 1)
                 ax, az = ax + px * off, az + pz * off
-                local rect = { x0 = math.min(ax, bx), z0 = math.min(az, bz), x1 = math.max(ax, bx), z1 = math.max(az, bz) }
-                local wide = { x0 = rect.x0 - 1, z0 = rect.z0 - 1, x1 = rect.x1 + 1, z1 = rect.z1 + 1 }
+                local rect: Rect = { x0 = math.min(ax, bx), z0 = math.min(az, bz), x1 = math.max(ax, bx), z1 = math.max(az, bz) }
+                local wide: Rect = { x0 = rect.x0 - 1, z0 = rect.z0 - 1, x1 = rect.x1 + 1, z1 = rect.z1 + 1 }
 
                 local ok = true
                 for tz = math.floor(wide.z0 / 32), math.floor(wide.z1 / 32) do
@@ -741,11 +741,11 @@ local function plan_of(v: Village, seed: number): Plan
         local wide = b.t % 2 == 0
         x1, z1 = math.min(x1, b.x0), math.min(z1, b.z0)
         x2 = math.max(x2, b.x0 + (if wide then b.w else b.d) - 1)
-        z2 = math.max(z2, b.z0 + (if wide then b.d else b.w) - 1)
+        z2 = math.max(z2 :: number, b.z0 + (if wide then b.d else b.w) - 1)
     end
     if not told_extent[key] then
         told_extent[key] = true
-        tell_extent(v.rx, v.rz, x1, z1, x2, z2)
+        tell_extent(v.rx, v.rz, x1 :: number, z1 :: number, x2 :: number, z2 :: number)
         if ready then
             core.storage_set(`extent {key}`, `{x1},{z1},{x2},{z2}`)
             local all = core.storage_get("extents")
@@ -1059,7 +1059,7 @@ local function path_between(a: Village, b: Village, seed: number): Path?
             table.insert(by_col[k], c)
             KEPT += 1
         end
-        found = { points = pts, cells = cells, line = line, deco = {}, a = a, b = b, len = len, by_col = by_col }
+        found = { points = pts, cells = cells, line = line, deco = {}, a = a, b = b, len = len, by_col = by_col } :: Path
         local knots: { number }? = nil
         if highway then
             -- The height at each point: the land smoothed, a bridge's deck over
@@ -1763,7 +1763,7 @@ end
 
 -- What is in a smithy's chest: a smith's things. Nothing is put in a chest
 -- that already holds some of it, as in mods/ruins.
-local LOOT = { { "furnace:iron_ingot", 5 }, { "ore:coal", 8 }, { "farm:bread", 3 }, { "furnace:iron_pick", 1 },
+local LOOT: { { any } } = { { "furnace:iron_ingot", 5 }, { "ore:coal", 8 }, { "farm:bread", 3 }, { "furnace:iron_pick", 1 },
                { "timber:stick", 6 }, { "furnace:gold_ingot", 2 } }
 
 local function stock(x: number, y: number, z: number, h: number)
@@ -1803,7 +1803,7 @@ core.event.on("core:world_ready", function()
         core.storage_set("path version", tostring(pv))
     end
     if pv ~= PATHS_V then
-        PATHS_V = pv
+        PATHS_V = pv :: number
         table.clear(VILLAGE)
         table.clear(CITY)
         table.clear(LINKED)
@@ -2199,7 +2199,7 @@ end
 -- A highway's cells for this column and two either side: stamped along its
 -- points in order, the first stamp of a cell staying, so that every column
 -- that sees a cell gives it the same height.
-local function highway_cells(p: Path, ctx): { [string]: { number } }
+local function highway_cells(p: Path, ctx: MapgenStage): { [string]: { number } }
     local set: { [string]: { number } } = {}
     local line, knots, near = p.line, p.knots :: { number }, p.near :: { [number]: { number } }
     local ks: { number } = {}
@@ -2238,7 +2238,7 @@ local function highway_cells(p: Path, ctx): { [string]: { number } }
 end
 
 -- A city's street cells for this column and two either side.
-local function city_cells(plan: Plan, ctx): { [string]: { number } }
+local function city_cells(plan: Plan, ctx: MapgenStage): { [string]: { number } }
     local set: { [string]: { number } } = {}
     for _, r in plan.streets do
         for z = math.max(r.z0, ctx.min_z - 2), math.min(r.z1, ctx.max_z + 2) do

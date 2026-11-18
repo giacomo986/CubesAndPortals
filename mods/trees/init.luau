@@ -53,7 +53,7 @@ local function hash(x: number, z: number, salt: number): number
 end
 
 -- One column in this many grows a tree, by climate. Absent means never.
-local ONE_IN = { ["core:plains"] = 40, ["core:tundra"] = 120 }
+local ONE_IN: { [string]: number } = { ["core:plains"] = 40, ["core:tundra"] = 120 }
 
 local function owns(ctx, x: number, z: number): boolean
     return x >= ctx.min_x and x <= ctx.max_x and z >= ctx.min_z and z <= ctx.max_z

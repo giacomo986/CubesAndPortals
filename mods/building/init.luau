@@ -307,7 +307,7 @@ if serving then
         { "black", { 20, 20, 24 } },
     }
     for _, entry in COLOURS do
-        local c, rgb = entry[1], entry[2]
+        local c, rgb = entry[1] :: string, entry[2] :: { number }
         local dye = `colors:{c}_dye`
         local glass = node(`building:{c}_stained_glass`, rgb, true, "", 0.3, "glass")
         core.node_glass(glass, 150)
@@ -343,7 +343,7 @@ if serving then
                   { "mossy_cobblestone", "rocks:mossy_cobblestone", { 100, 120, 90 } },
                   { "stone_brick", "rocks:stone_bricks", { 122, 122, 124 } },
                   { "brick", "craft:brick", { 190, 80, 60 } } } do
-        joined(`building:{w[1]}_wall`, w[3], 2.0, "stone", { 0.25, 0, 0.25, 0.75, 1, 0.75 },
+        joined(`building:{w[1]}_wall`, w[3] :: { number }, 2.0, "stone", { 0.25, 0, 0.25, 0.75, 1, 0.75 },
                reach(0.3125, 0.6875, { { 0, 0.8125 } }))
         core.recipe_shaped(`building:{w[1]}_wall`, 6, `{w[2]} {w[2]} {w[2]}`, `{w[2]} {w[2]} {w[2]}`)
         core.register_model(`building:{w[1]}_wall_held`, `{w[1]}_wall_held.gltf`)
@@ -685,7 +685,7 @@ if serving then
     local signs: { [string]: { number } } = {}
     local function sign_key(x: number, y: number, z: number): string return `{x},{y},{z}` end
     core.register_lbm("building:signs", (function()
-        local names = {}
+        local names: { string } = {}
         for _, w in WOODS do
             table.insert(names, `building:{w}_sign`)
             table.insert(names, `building:{w}_standing_sign`)
@@ -704,12 +704,12 @@ if serving then
     local LINE, LINES = 16, 4
     local function wrap(text: string): string
         if string.find(text, "\n", 1, true) then return text end
-        local lines, cur = {}, ""
+        local lines: { string }, cur = {}, ""
         for word in string.gmatch(text, "%S+") do
             if cur == "" then
                 cur = word
             elseif #cur + 1 + #word <= LINE then
-                cur ..= " " .. word
+                cur = cur .. " " .. word
             else
                 table.insert(lines, cur)
                 cur = word

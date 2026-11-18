@@ -5,6 +5,19 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
+## Prossima alpha (non ancora consegnata)
+
+- **Le backrooms**: entrare in un livello non portava da nessuna parte -- il gestore del livello si
+  fermava su una variabile usata sopra la riga che la dichiara. Ora ci porta, e dal livello 5 in
+  poi le luci tornano a spegnersi come dovevano.
+- **La zuppa di funghi** vuole i due funghi marroni e quello rosso che ha sempre elencato; si
+  faceva con un solo fungo marrone.
+- **Per chi scrive mod**: `docs/api.d.luau` si carica di nuovo in un editor (una descrizione era
+  uscita dal suo commento) e ora dichiara `core.ecs`, `craft`, `net`, `render`, `hud`,
+  `register_abm` e `register_lbm`, tutto il `MapgenStage` e i payload degli eventi tipati. Ogni mod
+  del gioco passa il controllo dei tipi pulito, e `tools/typecheck.sh` controlla i vostri allo
+  stesso modo: [docs/MODDING.it.md](docs/MODDING.it.md#controllare-i-tipi-toolstypechecksh).
+
 ## 0.18.0-alpha.1 — 2026-11-18
 
 **Non gioca con i server 0.17** (protocollo 125). I mondi si leggono così come sono; un mondo del

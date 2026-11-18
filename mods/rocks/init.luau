@@ -200,7 +200,7 @@ local function blob(ctx, cx: number, cy: number, cz: number, r: number, id: numb
 end
 
 -- A geode: calcite round amethyst round a hollow, clusters on the lining.
-local function geode(ctx, cx: number, cy: number, cz: number)
+local function geode(ctx: MapgenStage, cx: number, cy: number, cz: number)
     for dz = -4, 4 do
         for dx = -4, 4 do
             if owns(ctx, cx + dx, cz + dz) then

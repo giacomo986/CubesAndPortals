@@ -22,7 +22,7 @@ core.register_node("colors:terracotta", 152, 94, 67, true, 0, "", 0, 1.25, "ston
 
 local SETS: { [number]: number } = {}   -- powder id -> concrete id
 for i, entry in COLOURS do
-    local c, rgb = entry[1], entry[2]
+    local c, rgb = entry[1] :: string, entry[2] :: { number }
     local dye = `colors:{c}_dye`
     core.register_item(dye, 64, "", 0, 1.0, "")
     core.register_model(`{dye}_held`, `{c}_dye_held.gltf`)   -- tools/make_held_models.py
@@ -60,7 +60,7 @@ local FROM = {
     { "black", "ore:coal", 1 },
 }
 for _, f in FROM do
-    core.recipe_shapeless(`colors:{f[1]}_dye`, f[3], f[2])
+    core.recipe_shapeless(`colors:{f[1]}_dye`, f[3] :: number, f[2] :: string)
 end
 local MIX = {
     { "lime", 2, "colors:green_dye colors:white_dye" }, { "gray", 2, "colors:black_dye colors:white_dye" },
@@ -69,7 +69,7 @@ local MIX = {
     { "magenta", 2, "colors:purple_dye colors:pink_dye" }, { "light_blue", 2, "colors:blue_dye colors:white_dye" },
 }
 for _, m in MIX do
-    core.recipe_shapeless(`colors:{m[1]}_dye`, m[2], m[3])
+    core.recipe_shapeless(`colors:{m[1]}_dye`, m[2] :: number, m[3] :: string)
 end
 
 -- Powder sets where it touches water: put down beside it, or come to rest in it.
@@ -82,7 +82,7 @@ local function wet(x: number, y: number, z: number): boolean
     return false
 end
 
-local function set_if_wet(ev)
+local function set_if_wet(ev: EventPayload)
     local concrete = SETS[ev.id]
     if concrete ~= nil and core.get_block(ev.x, ev.y, ev.z) == ev.id and wet(ev.x, ev.y, ev.z) then
         core.set_block(ev.x, ev.y, ev.z, concrete)

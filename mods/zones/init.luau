@@ -287,7 +287,7 @@ end
 -- into the rectangles they make. `cells` maps "u v" (along the side, and up)
 -- to true. An error's text when a group is not a full rectangle.
 local function rectangles(cells: { [string]: boolean }): ({ { number } }, string?)
-    local out = {}
+    local out: { { number } } = {}
     local seen: { [string]: boolean } = {}
     for key in cells do
         if not seen[key] then
@@ -316,7 +316,7 @@ local function rectangles(cells: { [string]: boolean }): ({ { number } }, string
             table.insert(out, { lo_u, lo_v, hi_u - lo_u + 1, hi_v - lo_v + 1 })
         end
     end
-    table.sort(out, function(a, b)
+    table.sort(out, function(a: { number }, b: { number })
         return if a[1] ~= b[1] then a[1] < b[1] else a[2] < b[2]
     end)
     return out, nil

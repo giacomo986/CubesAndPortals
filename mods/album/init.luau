@@ -303,7 +303,7 @@ if serving then
         if id then
             local i, kk, nn = tonumber(id) :: number, tonumber(k) :: number, tonumber(n) :: number
             local u = uploads[i]
-            if u == nil or u.p ~= p or nn > 32 or kk < 1 or kk > nn or #data > PIECE then
+            if u == nil or u.p ~= p or nn > 32 or kk < 1 or kk > nn or #(data :: string) > PIECE then
                 return
             end
             u.got[kk] = data
@@ -330,7 +330,7 @@ if serving then
         end
     end
     core.event.on("core:net_message", function(ev)
-        server_heard(ev.player, ev.text)
+        server_heard(ev.player :: number, ev.text :: string)
     end)
     -- An upload never finished is forgotten after a minute.
     core.event.on("core:tick", function(ev)
@@ -470,7 +470,7 @@ if serving then
                         local ph = if id then photo(id) else nil
                         if ph then
                             table.insert(parts, string.format("%d,%d,%d,%d,%d,%.2f,%.2f,%.2f,%.4f,%.4f", f[1], f[2],
-                                f[3], core.get_facing(f[1], f[2], f[3]), id, ph.x, ph.y, ph.z, ph.yaw, ph.pitch))
+                                f[3], core.get_facing(f[1], f[2], f[3]), id :: number, ph.x, ph.y, ph.z, ph.yaw, ph.pitch))
                         end
                     end
                 end

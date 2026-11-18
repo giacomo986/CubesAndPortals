@@ -176,7 +176,8 @@ common.out_of_mine = function(_, _) end
 -- Helpers kept in one table, not a local each: this file's main chunk is at
 -- Luau's 200 locals. Doors (mods/doors): each half, shut and open, and what
 -- it becomes opened; and a search of a box of any size.
-local AID = { opened = {} :: { [number]: number }, is = {} :: { [number]: boolean } }
+local AID = { opened = {} :: { [number]: number }, is = {} :: { [number]: boolean },
+              ev = nil :: any, err = nil :: any }   -- filled in by events.luau and errands.luau
 function AID.known()
     if next(AID.is) then
         return
@@ -1025,7 +1026,7 @@ local watch: { [string]: V } = {}
 local function somewhere_in(rk: string): (number?, number?, number?)
     local b = common.villages[rk]
     if b == nil then
-        return nil
+        return nil, nil, nil
     end
     local h = b.homes[math.random(1, #b.homes)]
     local a = math.random() * math.pi * 2
@@ -1036,7 +1037,7 @@ local function somewhere_in(rk: string): (number?, number?, number?)
             return x, h.hy + dy, z
         end
     end
-    return nil
+    return nil, nil, nil
 end
 
 local function patrol(v: V)

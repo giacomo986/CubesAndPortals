@@ -74,7 +74,7 @@ function AID.pt.near(x: number, z: number, r: number, p: number?): { Portal }
             table.insert(out, { room = room, d = tonumber(d) or 1, x = px, z = pz })
         end
     end
-    table.sort(out, function(a, b) return (a.x - x) ^ 2 + (a.z - z) ^ 2 < (b.x - x) ^ 2 + (b.z - z) ^ 2 end)
+    table.sort(out, function(a: Portal, b: Portal) return (a.x - x) ^ 2 + (a.z - z) ^ 2 < (b.x - x) ^ 2 + (b.z - z) ^ 2 end)
     return out
 end
 function AID.pt.bearing(dx: number, dz: number): string
@@ -432,13 +432,13 @@ core.event.on("core:ui_click", function(ev)
         if pockets_here() then sell(ev.player, rk, "house", "small", "pocket") end
     elseif ev.id == "extend" then
         show_extend(ev.player, rk)
-    elseif ev.id:sub(1, 2) == "h " then
+    elseif (ev.id :: string):sub(1, 2) == "h " then
         local size, style = string.match(ev.id, "^h (%a+) (%a+)$")
         if size and style and SIZES[size] and STYLES[style] then
             sell(ev.player, rk, "house", size, style)
         end
-    elseif ev.id:sub(1, 2) == "x " then
-        extend(ev.player, rk, ev.id:sub(3))
+    elseif (ev.id :: string):sub(1, 2) == "x " then
+        extend(ev.player, rk, (ev.id :: string):sub(3))
     elseif ev.id == "give" then
         hand_over(ev.player, rk)
     elseif ev.id == "blueprint" then

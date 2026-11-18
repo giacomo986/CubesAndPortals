@@ -20,7 +20,7 @@ local TICK = 0.1
 local PULSE = 0.25
 local MAX_NET = 4096  -- ponytail: a net past this is left part done; ask for a limit by world if one is hit
 
-local COLOURS = {
+local COLOURS: { { any } } = {
     { "white", 234, 236, 236 }, { "orange", 240, 118, 20 }, { "magenta", 190, 68, 180 },
     { "light_blue", 58, 176, 218 }, { "yellow", 248, 198, 40 }, { "lime", 112, 186, 26 },
     { "pink", 238, 142, 172 }, { "gray", 62, 68, 72 }, { "light_gray", 142, 142, 136 },
@@ -33,7 +33,7 @@ local COLOURS = {
 -- by the facing byte is its bits rotated.
 local SIDES = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } }
 local ALL6 = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } }
-local SHAPES = { { "none", 0 }, { "end", 1 }, { "line", 5 }, { "corner", 3 }, { "tee", 7 }, { "cross", 15 } }
+local SHAPES: { { any } } = { { "none", 0 }, { "end", 1 }, { "line", 5 }, { "corner", 3 }, { "tee", 7 }, { "cross", 15 } }
 local FIT: { [number]: { shape: number, turn: number } } = {}
 for i, s in SHAPES do
     for turn = 0, 3 do

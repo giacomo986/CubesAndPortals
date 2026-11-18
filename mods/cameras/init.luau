@@ -159,7 +159,7 @@ local function heard(text: string)
             end
             -- Turned by somebody else (not the one turning it here).
             local aim = cam_aim[k]
-            local mine = control and control.cam == k
+            local mine = control and (control :: Control).cam == k
             if not mine and (aim == nil or aim[1] ~= s.off or aim[2] ~= s.pitch) then
                 place_camera(k, s.cx, s.cy, s.cz, s.cf, s.base, s.off, s.pitch)
             end
@@ -218,7 +218,7 @@ if serving then
             local n = NORMAL[core.get_facing(c.x, c.y, c.z) + 1] or NORMAL[3]
             base = if n[2] == 0 then math.atan2(n[1], -n[3]) else 0
         end
-        return base, tonumber(core.meta_get(c.x, c.y, c.z, "yaw")) or 0,
+        return base :: number, tonumber(core.meta_get(c.x, c.y, c.z, "yaw")) or 0,
                tonumber(core.meta_get(c.x, c.y, c.z, "pitch")) or PITCH
     end
     local screens: { [string]: Cam } = {}
@@ -322,7 +322,7 @@ if serving then
         end
     end
     core.event.on("core:net_message", function(ev)
-        server_heard(ev.player, ev.text)
+        server_heard(ev.player :: number, ev.text :: string)
     end)
 
     -- Whether the camera at c sees a body standing at (bx, by, bz).

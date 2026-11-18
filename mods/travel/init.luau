@@ -221,14 +221,14 @@ end
 
 local function show(p: number, from: Stone)
     local a = attuned(p)
-    local list = {}
+    local list: { Stone } = {}
     for k in a do
         local s = stones[k]
         if s and s ~= from then
             table.insert(list, s)
         end
     end
-    table.sort(list, function(u, v)
+    table.sort(list, function(u: Stone, v: Stone)
         return price(from, u) < price(from, v) or (price(from, u) == price(from, v) and u.name < v.name)
     end)
     while #list > SHOWN do

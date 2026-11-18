@@ -128,7 +128,7 @@ core.event.on("core:command", function(ev)
             end
             return
         end
-        v = string.lower(v)
+        v = string.lower(v :: string)
         for _, r in RULES do
             if r.name == name and (v == "on" or v == "off") then
                 core.set_rule(name, if v == r.default then "" else v)

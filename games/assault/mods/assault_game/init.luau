@@ -1077,7 +1077,7 @@ if serving then
 
     -- The trigger: a burst, a pause; a reload when the magazine is out, the
     -- next gun it likes when all of this one's rounds are.
-    function M.bot_trigger(id: number, b)
+    function M.bot_trigger(id: number, b: any)
         if clock < (b.react_at or 0) or b.hold_fire then return end
         local a = b.ammo[b.gun]
         if b.reload_at then
@@ -4730,7 +4730,7 @@ if serving then
             for p, s in players do
                 local x, y, z = core.player_pos(p)
                 if x ~= nil and core.health(p) > 0 then
-                    parts[p] = string.format("%.1f,%.1f,%.1f,%d", x, y, z, s.team)
+                    parts[p] = string.format("%.1f,%.1f,%.1f,%d", x, y, z, s.team :: number)
                 end
             end
             for p in players do

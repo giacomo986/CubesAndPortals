@@ -150,7 +150,7 @@ core.register_item("pipes:router", 1, "", 0, 1.0, "")
 local MACHINE_SLOTS = 27
 local MACHINE: { [number]: string } = {}    -- block id -> "craft" or "smelt"
 local MACHINE_IDS: { [string]: { off: number, on: number } } = {}
-for _, m in { { "autocrafter", "craft", { 112, 112, 120 }, 4 }, { "autofurnace", "smelt", { 96, 92, 90 }, 13 } } do
+for _, m: { any } in { { "autocrafter", "craft", { 112, 112, 120 }, 4 }, { "autofurnace", "smelt", { 96, 92, 90 }, 13 } } do
     local name, kind, rgb, glow = m[1], m[2], m[3], m[4]
     local off = core.register_node(`pipes:{name}`, rgb[1], rgb[2], rgb[3], true, 0, "upright", 2, 5.0, "stone")
     local on = core.register_node(`pipes:{name}_on`, rgb[1], rgb[2], rgb[3], true, glow, "upright", 2, 5.0, "stone")
@@ -594,7 +594,7 @@ end
 
 -- The cells from `from` (the node the ways start at) to the node `to`.
 local function way(w: Ways, from: Cell, to: string): { Cell }
-    local edges = {}
+    local edges: { Edge } = {}
     local k = to
     while w.back[k] do
         table.insert(edges, w.via[k])
@@ -832,7 +832,7 @@ local function text_cell(t: string): Cell?
 end
 
 local function save_transit()
-    local parts, cur = {}, {}
+    local parts: { string }, cur: { string } = {}, {}
     local size = 0
     for _, st in moving do
         if st.n > 0 then
@@ -979,7 +979,7 @@ local function broadcasters(to: Cell, item: number): { Offer }
         end
     end
     -- The higher priority first (a stack of broadcaster chips), nearest first among equals.
-    table.sort(out, function(a, b)
+    table.sort(out, function(a: Offer, b: Offer)
         if a.prio ~= b.prio then return a.prio > b.prio end
         return a.order < b.order
     end)
@@ -1318,7 +1318,7 @@ local function machine(spot: Spot): Machine
     local m = machines[k]
     if not m then
         m = { cell = spot.cell, pipe = spot.pipe, kind = spot.kind, queue = {}, current = nil, done_at = 0,
-              idle_since = clock, fed = clock }
+              idle_since = clock, fed = clock } :: Machine
         machines[k] = m
     end
     m.pipe = spot.pipe
@@ -1645,12 +1645,12 @@ local function draw_request(player: number)
         if not stock[item] then add(item) end
     end
     if v.order == "count" then
-        table.sort(list, function(a, b)
+        table.sort(list, function(a: Entry, b: Entry)
             if a.n ~= b.n then return a.n > b.n end
             return a.name < b.name
         end)
     else
-        table.sort(list, function(a, b)
+        table.sort(list, function(a: Entry, b: Entry)
             if a.name ~= b.name then return a.name < b.name end
             return a.item < b.item
         end)
@@ -1833,13 +1833,14 @@ local function served_kind(c: Cell): string?
     return nil
 end
 
+type Recipe = { item: number, name: string }
 local function draw_recipes(player: number)
     local v = rviews[player]
     if not v then return end
     local c = v.cell
     local kind = served_kind(c)
     local find = string.lower(v.find)
-    local list = {}
+    local list: { Recipe } = {}
     for item, ws in ways_to_make() do
         local fits = kind == nil
         for _, w in ws do
@@ -1851,7 +1852,7 @@ local function draw_recipes(player: number)
             table.insert(list, { item = item, name = shown_name(item) })
         end
     end
-    table.sort(list, function(a, b) return a.name < b.name end)
+    table.sort(list, function(a: Recipe, b: Recipe) return a.name < b.name end)
     local per = COLS * RLINES
     local pages = math.max(1, math.ceil(#list / per))
     v.page = math.clamp(v.page, 1, pages)

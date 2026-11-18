@@ -89,7 +89,7 @@ if serving then
     local ROBOT, FIGHTER, WINGMAN = model("robot"), model("fighter"), model("wingman")
 
     -- kind -> hp, points, half width and half length for a hit, model
-    local KINDS = {
+    local KINDS: { [string]: { hp: number, points: number, hw: number, hl: number, model: number } } = {
         dart   = { hp = 1,   points = 100,   hw = 4.0,  hl = 3.2, model = model("foe_dart") },
         weaver = { hp = 2,   points = 150,   hw = 4.0,  hl = 3.2, model = model("foe_weaver") },
         ace    = { hp = 5,   points = 400,   hw = 4.0,  hl = 3.2, model = model("foe_ace") },
@@ -115,7 +115,7 @@ if serving then
     -- The fortress's turrets: across, along (its nose is down the screen),
     -- how high they stand on it, and whether they fire three at a time.
     -- tools/make_shmup_models.py has a ring on the model for each.
-    local TURRETS = { { -15, -1.5, 3.0, false }, { -8, -1.5, 3.0, false }, { 8, -1.5, 3.0, false },
+    local TURRETS: { { any } } = { { -15, -1.5, 3.0, false }, { -8, -1.5, 3.0, false }, { 8, -1.5, 3.0, false },
                       { 15, -1.5, 3.0, false }, { 0, -7, 4.4, true }, { 0, 6, 4.4, true } }
     local SHIELD, SHIELD_DOWN = 70, 10
     local LAST_WAVE = 20      -- the carrier; the fortress is wave 10, the first level's last
@@ -149,7 +149,7 @@ if serving then
     --   hm  a homing missile more a salvo (4)   dg  two shots at a slant, then four
     --   lz  a beam in place of the guns, ten seconds a pick-up
     --   wm  a small plane alongside that fires too (2)
-    local DROPS = { { "sp", 2 }, { "st", 2 }, { "fp", 3 }, { "ft", 2 }, { "hm", 2 }, { "dg", 2 }, { "lz", 2 }, { "wm", 1 } }
+    local DROPS: { { any } } = { { "sp", 2 }, { "st", 2 }, { "fp", 3 }, { "ft", 2 }, { "hm", 2 }, { "dg", 2 }, { "lz", 2 }, { "wm", 1 } }
 
     type Foe = { kind: string, x: number, z: number, x0: number, t: number, hp: number, max: number, gun: number,
                  ox: number, oz: number, spread: boolean,
@@ -395,7 +395,7 @@ if serving then
 
     -- A power-up left where a plane went down: one its killer can still use.
     local function drop(x: number, z: number, f: Flier?)
-        local total, can = 0, {}
+        local total: number, can: { { any } } = 0, {}
         for _, d in DROPS do
             if f == nil or not full(f, d[1]) then
                 table.insert(can, d)
@@ -606,7 +606,7 @@ if serving then
             end
         end
     end
-    core.event.on("core:net_message", function(ev) asked(ev.player, ev.text) end)
+    core.event.on("core:net_message", function(ev) asked(ev.player :: number, ev.text :: string) end)
 
     -- The nearest fighter still flying to a point, for a plane that aims.
     local function nearest(x: number, z: number): (number?, number?)
@@ -1222,7 +1222,7 @@ if drawing then
         end
     end
     if not serving then
-        core.event.on("core:net_message", function(ev) heard(ev.text) end)
+        core.event.on("core:net_message", function(ev) heard(ev.text :: string) end)
     end
 
     core.event.on("core:tick", function(ev)

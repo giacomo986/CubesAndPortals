@@ -7,13 +7,34 @@
 
 -- What a mapgen stage is handed. Read-only: a stage writes with
 -- core.set_block and reads the ground with core.terrain_height.
+-- min/max are the column of cells this call generates.
 export type MapgenStage = {
     seed: number,
-    extent: number,
     height: number,
+    depth: number,
+    min_x: number,
+    min_z: number,
+    max_x: number,
+    max_z: number,
 }
 
-export type EventPayload = { [string]: number | string | boolean }
+-- A payload's fields are whatever its event's schema declared, so a
+-- handler reads them as the types it knows they are.
+export type EventPayload = { [string]: any }
+
+-- The cell an ABM or LBM fires on.
+export type ModifierCell = { x: number, y: number, z: number, id: number }
+
+-- What a core.ecs.system is handed: n entities, and a column (indexed
+-- from 1) per field -- x, y, z and the component's own. Writes are read back.
+export type EcsBatch = { n: number, dt: number, tick: number, id: {number}, [string]: any }
+
+export type CraftPose = {
+    x: number, y: number, z: number,
+    yaw: number, pitch: number, roll: number,
+    vx: number, vy: number, vz: number,
+    speed: number, grounded: boolean, impact: number, throttle: number,
+}
 export type EventSchema = {
     fields: { [string]: string },
     cancellable: boolean?,
@@ -85,10 +106,10 @@ declare core: {
     -- Declares a block and returns its id. Registering the same name again keeps the id, which is what makes a hot reload possible without renumbering a world.
     register_node: (name: string, r: number?, g: number?, b: number?, solid: boolean?, light_source: number?, turn: string?, dig_level: number?, hardness: number?, material: string?) -> number,
     -- Draws a block as a MODEL -- the same glTF a body wears -- and returns the model it now wears, or 0 if the world has no such model.
-
-The model is the picture and the boxes are the block: a body is stopped by core.node_box's boxes and a ray finds those, never the mesh, because a mesh is a thousand triangles and a collision is a handful of boxes. A block that wants a shape under its model declares both.
-
-It is turned about the middle of its cell by the cell's facing byte, like a box is, so a model authored inside the unit cube with its feet at 0 stands where the block is and faces the way it was put down. A client that has not got the file draws the boxes instead, and a block with none draws nothing: never a cube, because a cube is what it is not.
+    --
+    -- The model is the picture and the boxes are the block: a body is stopped by core.node_box's boxes and a ray finds those, never the mesh, because a mesh is a thousand triangles and a collision is a handful of boxes. A block that wants a shape under its model declares both.
+    --
+    -- It is turned about the middle of its cell by the cell's facing byte, like a box is, so a model authored inside the unit cube with its feet at 0 stands where the block is and faces the way it was put down. A client that has not got the file draws the boxes instead, and a block with none draws nothing: never a cube, because a cube is what it is not.
     node_model: (id: number, model: number) -> number,
     -- What breaking a block gives, when that is another block's item: half of a double chest gives a chest, a lit furnace gives a furnace. A block that drops as another has no item of its own -- nobody can hold one, and the creative page does not list it. Returns 1, or 0 for an id that is not a block.
     node_drop: (id: number, as: number) -> number,
@@ -137,16 +158,16 @@ It is turned about the middle of its cell by the cell's facing byte, like a box 
     -- Puts a track piece down the way a player does: entered by the grid square holding (x, z), at height y, running the way `facing` says. It takes the place of whatever is in its cells, ground or blocks, and empties the 3 cells over its road. Returns 1, or 0 when another track piece is in the way.
     place_piece: (x: number, y: number, z: number, id: number, facing: number) -> number,
     -- Where the track piece that cell belongs to is entered: the corner cell of its entry square (its right lane on a wide road), its height, its block and its facing -- the x, y, z, id and facing core.place_piece would put it down with again. Returns NOTHING for a cell of no piece.
-    piece_entry: (x: number, y: number, z: number) -> (number?, number?, number?, number?, number?),
+    piece_entry: (x: number, y: number, z: number) -> (number?, number, number, number, number),
     -- Takes a whole track piece away, as breaking any of its cells does, and gives nothing to anybody. Returns the piece's block, or 0 for a cell of no piece.
     take_piece: (x: number, y: number, z: number) -> number,
     -- Adds a box to a block's shape and returns how many it now has. A block with any boxes is no longer drawn as a cube: the mesher leaves its cell alone and the boxes are drawn on their own, so it also stops hiding its neighbours' faces.
-
-Call it once per box, after register_node. Boxes are in node space and may leave the cell, though nothing yet draws a neighbour's cell for it -- a box that sticks out is drawn and is not lit by the cell it sticks into, and a body in that cell is stopped by it.
-
-The boxes are the block: a body is stopped by them and not by the cell, a ray finds them and passes through the rest of the cell, a dropped item rests on them, and the outline a player sees is drawn around them. So a block half a cell tall is stood on half a node up, and the other half of its cell is air to walk through.
-
-A body WALKS onto one up to 0.55 of a node high, which is what makes a stair a stair; higher than that has to be jumped, and a whole node always does.
+    --
+    -- Call it once per box, after register_node. Boxes are in node space and may leave the cell, though nothing yet draws a neighbour's cell for it -- a box that sticks out is drawn and is not lit by the cell it sticks into, and a body in that cell is stopped by it.
+    --
+    -- The boxes are the block: a body is stopped by them and not by the cell, a ray finds them and passes through the rest of the cell, a dropped item rests on them, and the outline a player sees is drawn around them. So a block half a cell tall is stood on half a node up, and the other half of its cell is air to walk through.
+    --
+    -- A body WALKS onto one up to 0.55 of a node high, which is what makes a stair a stair; higher than that has to be jumped, and a whole node always does.
     node_box: (id: number, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, part: string?) -> number,
     -- The name a block id was registered under. Empty for an id nobody registered. Useful in a log line: an id is meaningless to the person reading it.
     node_name: (id: number) -> string,
@@ -155,46 +176,46 @@ A body WALKS onto one up to 0.55 of a node high, which is what makes a stair a s
     -- Looks up a block registered by somebody else. Returns 0 if there is no such block, so a mod that needs another mod's blocks should declare `depends` in its manifest.
     node_id: (name: string) -> number,
     -- The generator's own ground height at a column: the y of the first cell of AIR above the terrain, so a tree goes at this y and the block it stands on is at this y minus one. Meant for a mapgen stage, and it answers outside one too -- the terrain is a function of the seed and the column, not of when it is asked.
-
-Here so that a mod does not re-derive the noise. A mod computing its own height is a second opinion about where the ground is, and the day the generator changes only one of the two follows it.
+    --
+    -- Here so that a mod does not re-derive the noise. A mod computing its own height is a second opinion about where the ground is, and the day the generator changes only one of the two follows it.
     terrain_height: (x: number, z: number) -> number,
     -- Where the generator puts water over a column: the y of the first cell above it -- 18 over the sea, a river or a low lake, a lake's own level up in the hills -- or core.terrain_height where the column is dry. 0 where there is no generator to ask. mods/lakes fills the cells from the ground up to it.
     water_level: (x: number, z: number) -> number,
     -- The climate the generator gave a column, by name: `core:plains`, `core:desert`, `core:tundra` or `core:peaks`; or, where the ground lies against the water, `core:ocean`, `core:sea`, `core:river`, `core:lake`, `core:beach` or `core:gorge`. Empty where there is no generator to ask.
-
-Like core.terrain_height, a function of the seed and the column and not of the world, so a mapgen stage may ask it about a column that has not been generated yet -- which is what a tree standing in the next column, with its crown in this one, needs to know.
+    --
+    -- Like core.terrain_height, a function of the seed and the column and not of the world, so a mapgen stage may ask it about a column that has not been generated yet -- which is what a tree standing in the next column, with its crown in this one, needs to know.
     biome: (x: number, z: number) -> string,
     -- Makes a block fall, as the classic block game's sand and gravel do: whenever its cell or the cell under it is written -- a dig, a placing, a mod, a piston -- and nothing solid is under it, it lets go (core.fall), and a column of them goes together. Not while the world is generated. Returns 1, or 0 for an id that is not a block.
     node_falls: (id: number, on: boolean?) -> number,
     -- Lets light through a block and shows what is behind it: ice, a pane, a cobweb. It still stops a body if it is solid. Returns 1, or 0 for an id that is not a block.
     node_glass: (id: number, opacity: number?) -> number,
     -- Makes a registered block a liquid: a body goes through it and swims in it -- it sinks slowly, rises while jump is held, and moves at half its pace -- light passes through it, it is drawn see-through, and nothing digs it out. Returns 1, or 0 for an id nobody registered.
-
-Its surface ripples a little and its faces sway, a full column's too. Seen through, what lies behind it fades with how much of it is in the way: water to a blue murk, a liquid that gives light (lava) to its own colour and much sooner -- a node of it lets most through, eight hide all. Far from the eye a glowing one is drawn opaque.
-
-The server tells every client that joins what each block does to a body, so a client without the mod swims in the lake too.
+    --
+    -- Its surface ripples a little and its faces sway, a full column's too. Seen through, what lies behind it fades with how much of it is in the way: water to a blue murk, a liquid that gives light (lava) to its own colour and much sooner -- a node of it lets most through, eight hide all. Far from the eye a glowing one is drawn opaque.
+    --
+    -- The server tells every client that joins what each block does to a body, so a client without the mod swims in the lake too.
     node_liquid: (id: number, opacity: number?, fill: number?) -> number,
     -- Says how a body moves in THIS world: how fast it walks, sprints, flies and jumps, and how hard it falls. Returns 1 when the numbers were taken and 0 when they were refused, with the reason in the log.
-
-Per world and not per player. Every client that joins is told these numbers in the welcome and moves by them, and what the server accepts as a position is worked out from them -- so a body faster than the engine's own numbers is not a cheat in a world that declared it, and a body faster than THESE is.
-
-Call it while the mod loads. The numbers go out in the handshake, so a call once the mod directory has loaded -- from a tick, say -- is refused rather than applied to some players and not others. Two mods that both call it: the one loaded last wins, and the log names the one it replaced.
-
-Refused: a speed that is negative, not a number, or over 256 m/s; a gravity that is not a number or points up. The terminal fall speed, 60 m/s, is the engine's and is not declared here: it is what bounds a fall however strong the gravity. Also refused, with the log saying so, in the code a connected world sends its clients: there the welcome's numbers are the ones, and so for core.drive, core.body_movement and core.body_drive.
+    --
+    -- Per world and not per player. Every client that joins is told these numbers in the welcome and moves by them, and what the server accepts as a position is worked out from them -- so a body faster than the engine's own numbers is not a cheat in a world that declared it, and a body faster than THESE is.
+    --
+    -- Call it while the mod loads. The numbers go out in the handshake, so a call once the mod directory has loaded -- from a tick, say -- is refused rather than applied to some players and not others. Two mods that both call it: the one loaded last wins, and the log names the one it replaced.
+    --
+    -- Refused: a speed that is negative, not a number, or over 256 m/s; a gravity that is not a number or points up. The terminal fall speed, 60 m/s, is the engine's and is not declared here: it is what bounds a fall however strong the gravity. Also refused, with the log saying so, in the code a connected world sends its clients: there the welcome's numbers are the ones, and so for core.drive, core.body_movement and core.body_drive.
     movement: (walk: number?, sprint: number?, fly: number?, jump: number?, gravity: number?) -> number,
     -- Makes every body in THIS world drive: a kart on four wheels with springs, simulated as a rigid body (core.body_width says how wide and long). The keys stop setting a velocity: W is the throttle up to core.movement's sprint, S brakes and then reverses up to its walk, A and D turn the wheel -- not at all standing still, and less and less past half the top speed. The tyres decide how much of the turn the kart takes: driven into a bend too fast it slides wide and loses speed, and it pitches under braking and leans in the bend. Walls stop it, the drag fades the speed with nothing pressed, and nobody flies.
-
-A chassis is kept within 26 degrees of upright and its wheels take nothing steeper than 50 degrees as ground, so a kart that grazes a wall does not lie against it and drive up it.
-
-Checked by the server: a body is allowed its top speed and no flight, and it may rest against what it has driven into -- only its middle being inside a block is refused (core.body_width). NOT checked: how fast the speed grows, and the turn -- the server sees when a claim arrives and not when it was sent, and a check built on that let an instant 0 to 24 m/s through while correcting honest drivers on a jittery link (TODO.md OPEN-47).
-
-Call it while the mod loads, like core.movement, and it goes out in the same welcome. Refused: a number that is negative or not a number, an accel or a brake over 256, a turn over 12.57 (two turns a second), a drag over 20.
+    --
+    -- A chassis is kept within 26 degrees of upright and its wheels take nothing steeper than 50 degrees as ground, so a kart that grazes a wall does not lie against it and drive up it.
+    --
+    -- Checked by the server: a body is allowed its top speed and no flight, and it may rest against what it has driven into -- only its middle being inside a block is refused (core.body_width). NOT checked: how fast the speed grows, and the turn -- the server sees when a claim arrives and not when it was sent, and a check built on that let an instant 0 to 24 m/s through while correcting honest drivers on a jittery link (TODO.md OPEN-47).
+    --
+    -- Call it while the mod loads, like core.movement, and it goes out in the same welcome. Refused: a number that is negative or not a number, an accel or a brake over 256, a turn over 12.57 (two turns a second), a drag over 20.
     drive: (accel: number?, brake: number?, turn: number?, drag: number?) -> number,
     -- Says how big a body is in THIS world. On foot, the side of the square box it collides with, whichever way it faces; the height stays the engine's 1.8. A body that drives is a chassis `width` by `length` on four wheels, which turns with it: a kart 1.4 wide and 2.6 long is core.body_width(1.4, 2.6).
-
-The server checks positions with a square box: `width` on foot, and for a body that drives the square that fits inside the chassis however it is turned, `width` / 1.41. Being INSIDE a block is the one question it asks differently: a body on foot is refused by that box, a body that drives by its middle alone. A chassis turns, tips and carries its wheels outside its box, so the two ends disagree about touching, and a refusal that puts a kart back where the server's box is clear leaves the chassis inside the wall it was scraping -- which the server then refuses again, every claim (TODO.md). A kart may rest against a wall; one whose middle is inside it is still put back.
-
-An arrival out of a portal is pushed clear of the wall beside it by the width. Call it while the mod loads, like core.movement: it goes out in the same welcome. core.movement and core.body_movement keep it. Refused: a width under 0.2 or over 4, a length that is not 0 and under 0.2 or over 8, or not a number.
+    --
+    -- The server checks positions with a square box: `width` on foot, and for a body that drives the square that fits inside the chassis however it is turned, `width` / 1.41. Being INSIDE a block is the one question it asks differently: a body on foot is refused by that box, a body that drives by its middle alone. A chassis turns, tips and carries its wheels outside its box, so the two ends disagree about touching, and a refusal that puts a kart back where the server's box is clear leaves the chassis inside the wall it was scraping -- which the server then refuses again, every claim (TODO.md). A kart may rest against a wall; one whose middle is inside it is still put back.
+    --
+    -- An arrival out of a portal is pushed clear of the wall beside it by the width. Call it while the mod loads, like core.movement: it goes out in the same welcome. core.movement and core.body_movement keep it. Refused: a width under 0.2 or over 4, a length that is not 0 and under 0.2 or over 8, or not a number.
     body_width: (width: number?, length: number?) -> number,
     -- Says how high a body's eye is in THIS world: where the camera is in first person, and what reach and every ray a hand casts are measured from, on the client and on the server alike -- so it goes out in the welcome and has to be said while the mod loads, like core.movement. A world whose player model is not 1.8 tall says where that model's eyes are. The body's box stays 1.8 tall. Refused: under 0.2, over 1.8, or not a number.
     eye_height: (height: number) -> number,
@@ -209,16 +230,16 @@ An arrival out of a portal is pushed clear of the wall beside it by the width. C
     -- How big ONE player's body is now against a body at 1, as core.body_scale or a scaling portal (core.portal_scale) made it; 0 for nobody.
     body_size: (player: number) -> number,
     -- Gives ONE player's body numbers of its own -- a runner, a power-up, a slowed prisoner -- and returns 1, or 0 when refused with the reason in the log. Unlike core.movement this may be called at any time: it is one body, and that player is sent the numbers in a message of their own.
-
-The server checks that body against the new numbers at once, and for a second against whichever of the old and the new are faster, because the player's client goes on moving by the old ones until the message arrives: slowing somebody down does not correct the steps they had already taken.
-
-The defaults are the engine's own numbers, not the world's: to put a body back to what the world declared, pass those. Refused: the numbers core.movement refuses, a player who is not in this world, and somebody only watching.
+    --
+    -- The server checks that body against the new numbers at once, and for a second against whichever of the old and the new are faster, because the player's client goes on moving by the old ones until the message arrives: slowing somebody down does not correct the steps they had already taken.
+    --
+    -- The defaults are the engine's own numbers, not the world's: to put a body back to what the world declared, pass those. Refused: the numbers core.movement refuses, a player who is not in this world, and somebody only watching.
     body_movement: (player: number, walk: number?, sprint: number?, fly: number?, jump: number?, gravity: number?, rise: number?) -> number,
     -- Puts ONE player in a kart, or back on foot: core.drive and core.body_width for a single body, and like core.body_movement it may be called at any time. Returns 1, or 0 when refused with the reason in the log.
-
-The body keeps its speeds -- core.movement's sprint is still its top speed and its walk still the top speed in reverse -- and changes what it IS: four wheels and a chassis `width` by `length` while `accel` is above zero, a body on foot at 0. The player is sent the same message core.body_movement sends, and the server checks them by the new numbers from then on.
-
-A world where everybody drives says core.drive instead, once, and one where you walk up to a kart and get in says this. Refused: the numbers core.drive and core.body_width refuse, and a player who is not in this world.
+    --
+    -- The body keeps its speeds -- core.movement's sprint is still its top speed and its walk still the top speed in reverse -- and changes what it IS: four wheels and a chassis `width` by `length` while `accel` is above zero, a body on foot at 0. The player is sent the same message core.body_movement sends, and the server checks them by the new numbers from then on.
+    --
+    -- A world where everybody drives says core.drive instead, once, and one where you walk up to a kart and get in says this. Refused: the numbers core.drive and core.body_width refuse, and a player who is not in this world.
     body_drive: (player: number, accel: number?, brake: number?, turn: number?, drag: number?, width: number?, length: number?) -> number,
     -- Puts ONE player in a boat, or out of it, at any time like core.body_movement. On a liquid the body then floats with its feet a third of a node under the top: W and S row it along its heading, ahead up to its sprint and astern at half its walk, A and D steer it (the view turns with it) and the keel takes off a sideways drift; jump does nothing. Off a liquid it walks as ever: getting out, and what the boat looks like (core.player_wear, core.player_clip), are the mod's. Returns 1, or 0 for a player who is not in this world.
     body_boat: (player: number, on: boolean?) -> number,
@@ -243,14 +264,14 @@ A world where everybody drives says core.drive instead, once, and one where you 
     -- What a player's body looks like in this world. One model for everybody: there is nothing yet that makes one player look different from another.
     player_model: (model: number) -> (),
     -- What ONE player's body looks like, at any time: core.player_model for a single body, and what a world where you walk up to a kart and get in draws the difference with. Returns 1, or 0 when there is no such player here.
-
-Everybody else sees it at once. What the PLAYER sees of their own body, when the camera is behind it (core.view), is still core.player_model's: the one model the welcome carries.
+    --
+    -- Everybody else sees it at once. What the PLAYER sees of their own body, when the camera is behind it (core.view), is still core.player_model's: the one model the welcome carries.
     body_model: (player: number, model: number?) -> number,
     -- Draws ONE player's body as a block instead of their model, for everybody else: a whole cube of that block's tiles, its bottom at their feet and turned as they face (core.player_clip's dx, dz holds it square), aimed at as a cube of a node. What a hider in a prop hunt is (mods/arena). Their box stays the engine's, so they walk and are stopped as ever, and what they hold and wear is not drawn. On a player's machine only their own id, which their own drawing of the body (core.view) wears. Protocol 116. Returns 1, or 0 for a player who is not here or no such block.
     body_block: (player: number, block: number?) -> number,
     -- Where a player's camera sits in THIS world: at the eye, or behind and a little above it -- pulled in when a block is in the way -- with the player's own body drawn, wearing what core.player_model says. For a world's code on a player's machine; the key V switches it too, and a server has no camera to move.
-
-Per world: a crossing into a world that said nothing is the eye again. Returns the distance it was, the key V's included: a scope that goes to the eye puts it back.
+    --
+    -- Per world: a crossing into a world that said nothing is the eye again. Returns the distance it was, the key V's included: a scope that goes to the eye puts it back.
     view: (distance: number?) -> number,
     -- A camera that looks down on the player from one fixed direction, as in isometric action RPGs, or (distance 0) back to the eye: the mouse does not turn it, the cursor is free over the world (core.cursor_ray says what is under it) and W A S D walk along the screen's axes, not the body's. The body is drawn and turns to the way it walks. For a world's code on a player's machine; per world, as core.view.
     iso_view: (distance: number?, yaw: number?, pitch: number?, fov: number?, seconds: number?) -> (),
@@ -265,7 +286,7 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     -- core.top_view's camera held over one point instead of over the head: a whole field on one screen that does not scroll, as an arcade cabinet's, the body sliding about under it with the same keys. Unlike core.fixed_view the body moves and is drawn. Keeping it inside the picture is the mod's (core.player_place, or walls). For a world's code on a player's machine; per world, as core.view.
     top_view_at: (x: number, y: number, z: number, distance: number?, yaw: number?, fov: number?, seconds: number?) -> (),
     -- The ray under the mouse cursor -- through the middle of the screen, the crosshair, while the game holds the mouse: where it starts (the camera) and its direction, length 1. With core.raycast it finds the cell clicked. NOTHING when there is no camera yet. For a world's code on a player's machine.
-    cursor_ray: () -> (number?, number?, number?, number?, number?, number?),
+    cursor_ray: () -> (number?, number, number, number, number, number),
     -- Walks this machine's body that way, as if a key were held, and turns it to face where it goes, until said otherwise; dx and dz both 0 stops it and gives the body back to the keys. A click-to-move world calls it every frame towards where it was clicked. For a world's code on a player's machine.
     walk: (dx: number?, dz: number?, speed: number?) -> (),
     -- false hides the engine's hotbar, health and armour bars in THIS world, for a world that draws its own (core.hud.pass); the bag still opens. Per world. For a world's code on a player's machine.
@@ -331,7 +352,7 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     -- Lets a melee creature of that kind dive at whoever it hunts: from the ground, with them in sight, every few seconds, flying flat at them and striking half as hard again if it reaches them. A model with a "lunge" clip plays it in the air. Returns 1, or 0 for a kind nobody registered.
     mob_lunge: (name: string, nodes: number) -> number,
     -- A bullet: the first body that can be hurt -- a creature, or a mod's entity with core.ecs.health -- that a ray from x, y, z meets before a solid block and within `max` loses `damage`, and a creature is knocked back from where it came. Returns how far along the ray it was struck and whether that killed it, or NOTHING when it struck no body. Never a player. On a server.
-    shoot: (x: number, y: number, z: number, dx: number, dy: number, dz: number, max: number, damage: number) -> (number?, boolean?),
+    shoot: (x: number, y: number, z: number, dx: number, dy: number, dz: number, max: number, damage: number) -> (number?, boolean),
     -- Every cell of `from` in the box (corners included) becomes `to`, as core.set_block would make it -- in a mapgen stage only in the column being made -- and the count comes back. One call where a stage would make one per cell: a host call costs microseconds, and a pocket is hundreds of cells.
     replace_nodes: (x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, from: number, to: number, round: boolean?) -> number,
     -- The block in that cell lets go and falls, as the classic block game's sand does: the cell is air at once, and the block drops through air, water and anything else a body walks through, drawn whole on the way, until something solid stops it. It is put back there, turned as it was, or left as its item when that cell is taken; then core:landed says where and how many nodes it fell. Returns 1, or 0 for air, the floor of the world, or a cell not taking writes. On a server.
@@ -351,7 +372,7 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     -- The creatures core.mobs_near finds, by id, nearest first; at most 32. An id stays the same creature while it lives, so a mod can follow the one it chose with core.mob_pos.
     mob_ids: (x: number, y: number, z: number, r: number, all: boolean?) -> { number },
     -- Where that creature's feet are, or NOTHING once it is dead or gone.
-    mob_pos: (id: number) -> (number?, number?, number?),
+    mob_pos: (id: number) -> (number?, number, number),
     -- Sends a worker (register_mob with fight "worker") to that cell, along a way core.find_path finds, opening doors if its kind does; it stops in the middle of it. Where there is no way it walks as near as it can and keeps trying: core.mob_going says when it is there. Returns 1, or 0 for one that is gone or not a worker.
     mob_goto: (id: number, x: number, y: number, z: number) -> number,
     -- 1 while a worker is still on its way to where core.mob_goto sent it; 0 once it is there, and for one that is gone.
@@ -455,8 +476,8 @@ Per world: a crossing into a world that said nothing is the eye again. Returns t
     -- A stack lying on this block does not grow older, and is not gone after five minutes as one on the ground is -- a sorter, where things wait their turn. One on a belt (core.node_conveyor) never grows older anyway. Returns 1, or 0 for an id that is not a block.
     node_keeps_drops: (id: number, on: boolean?) -> number,
     -- Opens the container at that cell on one player's screen, making it if there is not one. An existing container is never made smaller, and grows when asked for more (see container_make). The chest is at the CELL and not in the player: two people can have it open at once and both reach into it. `player` is the id the events carry, and 0 is nobody -- there is no chest for the world.
-
-A cell at y -1073741824 or below is not in the world: a container there is CARRIED and never closes for being out of reach -- how mods/backpack keeps one per player.
+    --
+    -- A cell at y -1073741824 or below is not in the world: a container there is CARRIED and never closes for being out of reach -- how mods/backpack keeps one per player.
     container_show: (x: number, y: number, z: number, slots: number, player: number) -> number,
     -- Takes whatever container that player has open off their screen. What is in it stays where it is, and anybody else looking at it goes on looking at it.
     container_close: (player: number) -> number,
@@ -517,31 +538,31 @@ A cell at y -1073741824 or below is not in the world: a container there is CARRI
     -- Makes an item a dye for core.recipe_dye. Returns 1, or 0 for a dye out of range.
     item_dye: (item: string, dye: number) -> number,
     -- Every cell in that box holding that block, as a FLAT list of numbers: x, y, z, x, y, z. `#found // 3` is how many there are.
-
-Flat and not a list of tables because a table per cell is an allocation per cell, on the one call a mod makes over a whole region.
-
-This is what a mod uses to find cells a PLAYER placed -- the original engine's equivalent is an LBM. A mod that put its own blocks down could as easily have remembered where they went; this is for the ones it did not put down.
-
-Two limits, both stated rather than hidden. At most 512 positions come back, so a search that returns exactly 512 has probably found more and should be run over a smaller box. And a box of more than a million cells is REFUSED -- nothing comes back and the log says so -- because the search happens inside the tick and the interrupt budget that stops a runaway mod does not count time spent in the engine.
+    --
+    -- Flat and not a list of tables because a table per cell is an allocation per cell, on the one call a mod makes over a whole region.
+    --
+    -- This is what a mod uses to find cells a PLAYER placed -- the original engine's equivalent is an LBM. A mod that put its own blocks down could as easily have remembered where they went; this is for the ones it did not put down.
+    --
+    -- Two limits, both stated rather than hidden. At most 512 positions come back, so a search that returns exactly 512 has probably found more and should be run over a smaller box. And a box of more than a million cells is REFUSED -- nothing comes back and the log says so -- because the search happens inside the tick and the interrupt budget that stops a runaway mod does not count time spent in the engine.
     find_nodes: (x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, name: string) -> { number },
     -- A way a body that walks could take from one cell to another, as a FLAT list: x, y, z of every cell its feet pass through after the first, the last being where it ends. Both ends are first dropped onto the ground under them. Moves go to the eight cells around, level, up to `step_up` higher or `drop` lower, never through the corner of a wall. With no way, or when `max_nodes` runs out, the list is the way to the cell that came CLOSEST -- check whether it ends where you asked. Empty when the start has no ground under it. The creatures chase players with this (core/voxel/pathfind.h), hurry 1.5 and smooth; about 0.35 us per cell looked at.
     find_path: (x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, height: number?, step_up: number?, drop: number?, swim: boolean?, max_nodes: number?, hurry: number?, smooth: boolean?) -> { number },
     -- Everybody who is in this world with a body, as a list of the ids every event carries in its `player` field. An observer -- a portal looking in -- is NOT in it: DESIGN.md 4.4 gives them no avatar and no inventory, so there is nobody there to stand on a button or be handed anything.
-
-The list is this moment's. Somebody in it may have left by the time the mod asks where they are, which is why core.player_pos answers with nothing rather than with the origin.
+    --
+    -- The list is this moment's. Somebody in it may have left by the time the mod asks where they are, which is why core.player_pos answers with nothing rather than with the origin.
     players: () -> { number },
     -- Where that player's FEET are -- the same position the server's movement authority accepted, not a claim a client made. Their eyes are about 1.6 above it and their box is half a node wide.
-
-Returns NOTHING for a player who is not in this world, so `local x, y, z = core.player_pos(id)` gives nil and not 0 0 0 -- the origin is a real place, and a mod that measured a distance to it would find everybody standing on a button in the corner of the world.
-    player_pos: (player: number) -> (number?, number?, number?),
+    --
+    -- Returns NOTHING for a player who is not in this world, so `local x, y, z = core.player_pos(id)` gives nil and not 0 0 0 -- the origin is a real place, and a mod that measured a distance to it would find everybody standing on a button in the corner of the world.
+    player_pos: (player: number) -> (number?, number, number),
     -- The fingerprint of the key that player proved at the door, or an empty string for somebody who came without one (or is not here). On a world with a file a name belongs to the key that first joined under it, so a name with a key behind it is an identity; a mod that hands out something to keep -- land, say -- asks for one.
     player_key: (player: number) -> string,
     -- Where a player arrives in this world, and comes back after dying without a bed. On a server it answers while the mods load too in a world without a plaza (--survival), whose spawn is known before they do; elsewhere only once it runs.
-    world_spawn: () -> (number?, number?, number?),
+    world_spawn: () -> (number?, number, number),
     -- This world's seed, its low 31 bits, anywhere and at any time -- a mapgen stage's ctx.seed is the whole of it. For a mod that places things as a function of the seed outside a stage, and wants the same answer every start. 0 where there is no generator.
     seed: () -> number,
     -- The flat square the portal gates stand on, as the lowest and highest x (and z) of it -- 20, 100 -- or nil in a world without one (--survival) or a process that does not generate the world. What a mod asks instead of which mode a world is in: something kept off the plaza, or built on it, follows the answer.
-    plaza: () -> (number?, number?),
+    plaza: () -> (number?, number),
     -- The name that player joined with, or an empty string for somebody who is not in this world. A label and not an identity -- two players may pick the same one -- but it is what a mod can show on a screen, and what it can keep a lap time under across a rejoin: the id is a connection's, and a rejoin is a new connection.
     player_name: (player: number) -> string,
     -- A line this world keeps about a player's body, on a server of several rooms: when the player walks into an opening that leads to another room of the same server, the line goes with them and that room reads it with core.player_carried -- a lap in progress, or by which way out they left. A body that drives goes too, still driving, at its speed, into a room that knows the model it wears. In memory only. Returns 0 for a player with no body here, or a line too long.
@@ -551,14 +572,14 @@ Returns NOTHING for a player who is not in this world, so `local x, y, z = core.
     -- 1 when that player's body left this world with them: it drove into another room of this server, which took it (see core.player_carry), and what is left here is a window onto this world. 0 for a player who walked out on foot, left the server or is still here. For a mod that puts a kart back where a driver disappeared: not when the kart went too.
     body_taken: (player: number) -> number,
     -- Which way that player is looking, as a direction of length 1. On a server it is the look that came with their last ACCEPTED position, so a shot a mod fires along it goes where the server believes and not where a client says. Their eye is core.player_pos plus 1.62.
-
-Returns NOTHING for a player who is not in this world or has not moved yet.
-    player_look: (player: number) -> (number?, number?, number?),
+    --
+    -- Returns NOTHING for a player who is not in this world or has not moved yet.
+    player_look: (player: number) -> (number?, number, number),
     -- Throws a player: their body's speed becomes that, whatever it was (protocol 84), and for `seconds` the server lets them move as fast and as high as a crossing's grace does -- an launch plate. Returns 1, or 0 for a player with no body here or a speed out of range.
     player_launch: (player: number, vx: number, vy: number, vz: number, seconds: number?) -> number,
     -- Moves a player's body and turns it, the way a portal does: the server puts them there and gives them a second in which their movement is not checked, for the frames before their client knows. Getting into a parked kart is this call -- the body goes where the kart stood, facing the way it faced. Returns 1, or 0 for a player who is not in this world or somebody only watching.
-
-On a server the move goes out at the end of the tick, after the blocks the mods changed in it: a body put where a block was just taken away arrives to find it gone. Nothing checks the place is clear: put a body where it fits.
+    --
+    -- On a server the move goes out at the end of the tick, after the blocks the mods changed in it: a body put where a block was just taken away arrives to find it gone. Nothing checks the place is clear: put a body where it fits.
     player_place: (player: number, x: number, y: number, z: number, look_x: number?, look_y: number?, look_z: number?) -> number,
     -- Lays a player on their back, as in a bed: the body is put there as core.player_place puts it, drawn lying with its head the way (head_x, head_z) says -- to them and to everybody -- and their eye goes down to the pillow. They look about as they like. Walking off gets them up on their own screen; the mod says so to everybody else with on = false, which is also how a mod gets them up. Returns 1, or 0 for a player who is not in this world, is carried (core.ride), or somebody only watching.
     player_lie: (player: number, on: boolean, x: number?, y: number?, z: number?, head_x: number?, head_z: number?) -> number,
@@ -575,12 +596,12 @@ On a server the move goes out at the end of the tick, after the blocks the mods 
     -- Stops a loop for everybody. Returns 1, or 0 for an id not going round.
     sound_loop_stop: (id: number) -> number,
     -- The first solid block a ray from x, y, z along dx, dy, dz runs into within `max`: its cell and how far along the ray. Returns NOTHING when it meets none.
-
-Blocks only. A body or a mod's entity is the mod's to test, against the distance this returns: a target behind a wall is further than the wall.
-    raycast: (x: number, y: number, z: number, dx: number, dy: number, dz: number, max: number?) -> (number?, number?, number?, number?),
+    --
+    -- Blocks only. A body or a mod's entity is the mod's to test, against the distance this returns: a target behind a wall is further than the wall.
+    raycast: (x: number, y: number, z: number, dx: number, dy: number, dz: number, max: number?) -> (number?, number, number, number),
     -- The item in the square of the hotbar a player has chosen, by name, or an empty string for an empty hand or somebody who is not in this world. What they would click with now -- a rod whose line is out, put away, is a line to reel in.
-
-On a player's machine, world code included, it answers for that machine's own player (id 1) and nobody else: what the hand already shows there.
+    --
+    -- On a player's machine, world code included, it answers for that machine's own player (id 1) and nobody else: what the hand already shows there.
     held_item: (player: number) -> string,
     -- What a player wears in one worn square of their bag, by name, or an empty string for an empty square, a square that is not one of the five, or somebody who is not in this world.
     worn_item: (player: number, square: string) -> string,
@@ -619,12 +640,12 @@ On a player's machine, world code included, it answers for that machine's own pl
     -- How many of that item a player's bag holds, worn squares included, without taking any: 0 for none, an unknown item or somebody who is not in this world.
     bag_count: (player: number, item: string) -> number,
     -- Takes that many of that item out of a player's bag and returns how many it actually took -- fewer than asked when they did not have that many, and 0 when they had none.
-
-The hand first: the slot the player is holding is taken from before any other, so a mod answering a click takes the thing that was clicked with.
-
-Up to `count` rather than all-or-nothing, and a mod that needs all of it checks the number: giving back what it took is one call it can see, where an engine that decided for it would be a rule nobody can read from Lua.
-
-The player is told: their bag is sent again on the next tick, so what a mod took does not go on being drawn in their hand.
+    --
+    -- The hand first: the slot the player is holding is taken from before any other, so a mod answering a click takes the thing that was clicked with.
+    --
+    -- Up to `count` rather than all-or-nothing, and a mod that needs all of it checks the number: giving back what it took is one call it can see, where an engine that decided for it would be a rule nobody can read from Lua.
+    --
+    -- The player is told: their bag is sent again on the next tick, so what a mod took does not go on being drawn in their hand.
     take_item: (player: number, item: string, count: number?) -> number,
     -- Spends uses of what the player is holding, as a dig or a blow does, and it is gone when its durability runs out (Unbreaking spares some, as it does there). For a tool whose use is a mod's -- a hoe tilling. Returns 1 if the hand held something that wears, 0 otherwise.
     wear_held: (player: number, amount: number?) -> number,
@@ -635,10 +656,10 @@ The player is told: their bag is sent again on the next tick, so what a mod took
     -- Puts that many of that item in a player's bag and returns how many FIT. An partial stack of the item is topped up first, then an empty hand, then the first empty slot -- so taking the held item and giving another swaps what is in the hand. What does not fit is not dropped and not lost: nothing happens to it, and the mod decides -- core.drop_item puts it on the ground where a broken block's stack goes, and doing nothing leaves the player to make room. An engine that dropped it would be deciding for every mod at once.
     give_item: (player: number, item: string, count: number?, id: number?) -> number,
     -- What a cell remembers, written down. Survives the world being closed and opened, and is thrown away when the cell becomes air -- breaking a block takes its state with it, so the next block placed there does not inherit it.
-
-Strings, and only strings, on purpose: a pedestal that stores item id 41 is storing whatever 41 means the next time the world is opened, because ids are handed out in registration order. A NAME survives a mod being added. A mod that wants a number writes tostring and reads tonumber, which is a conversion it can see.
-
-Returns 0 when the write is refused -- a field name or value too long, more than 16 fields on one cell, or a world already remembering 65536 cells -- and says which in the log.
+    --
+    -- Strings, and only strings, on purpose: a pedestal that stores item id 41 is storing whatever 41 means the next time the world is opened, because ids are handed out in registration order. A NAME survives a mod being added. A mod that wants a number writes tostring and reads tonumber, which is a conversion it can see.
+    --
+    -- Returns 0 when the write is refused -- a field name or value too long, more than 16 fields on one cell, or a world already remembering 65536 cells -- and says which in the log.
     meta_set: (x: number, y: number, z: number, key: string, value: string) -> number,
     -- What that cell remembers under that name, or an empty string if it remembers nothing. Not an error: most cells remember nothing and that is the right answer for them.
     meta_get: (x: number, y: number, z: number, key: string) -> string,
@@ -659,8 +680,8 @@ Returns 0 when the write is refused -- a field name or value too long, more than
     -- 1 when this player's chat is held (/mute). The engine already holds what a muted player's command makes a mod core.chat to anybody else; this is for an answer that says why, as /msg gives. 0 in the single-process client.
     is_muted: (player: number) -> number,
     -- What this mod keeps across a restart: a string under a name, the mod's own -- another mod cannot read or write it. Saved in the world file with the chunks, only the keys that changed; a server with no world file, and the single-process client, keep it until they stop.
-
-The file is read after the mods load, so a mod reads what it kept from core:world_ready on, not while it loads. Returns 0 when refused -- a key or value too long, or more than 4 MiB of keys and values -- and says which in the log; and in a world's code on a player's machine, which keeps nothing.
+    --
+    -- The file is read after the mods load, so a mod reads what it kept from core:world_ready on, not while it loads. Returns 0 when refused -- a key or value too long, or more than 4 MiB of keys and values -- and says which in the log; and in a world's code on a player's machine, which keeps nothing.
     storage_set: (key: string, value: string) -> number,
     -- What this mod kept under that name, or an empty string if nothing.
     storage_get: (key: string) -> string,
@@ -671,8 +692,8 @@ The file is read after the mods load, so a mod reads what it kept from core:worl
     -- Looks up an item by name, including the item form of a block. Returns 0 for nothing, which is also the id an empty inventory slot holds.
     item_id: (name: string) -> number,
     -- How many item ids this world has handed out, so a mod can walk 1 to this and ask what each one is. It grows while mods load and does not shrink: an item whose mod went away keeps its id (ItemRegistry orphans it) so that a stack of it in somebody's chest still means what it meant.
-
-Here because a mod cannot otherwise know what EXISTS -- item_id answers about a name it already has. A creative inventory, a search box or a mod that lists what a world holds needs the other direction.
+    --
+    -- Here because a mod cannot otherwise know what EXISTS -- item_id answers about a name it already has. A creative inventory, a search box or a mod that lists what a world holds needs the other direction.
     item_count: () -> number,
     -- The name an item id was registered under, empty for an id nobody registered and for one whose mod is gone. Walking 1 to item_count and skipping the empty answers is every item a player could be handed.
     item_name: (id: number) -> string,
@@ -686,6 +707,67 @@ Here because a mod cannot otherwise know what EXISTS -- item_id answers about a 
         define: (name: string, schema: EventSchema) -> (),
         on: (name: string, priorityOrHandler: number | (EventPayload) -> (),
              handler: ((EventPayload) -> ())?) -> number,
-        emit: (name: string, payload: EventPayload) -> boolean,
+        emit: (name: string, payload: EventPayload?) -> boolean,
+    },
+    register_abm: (name: string, nodes: string | {string}, interval: number, chance: number,
+                   action: (ModifierCell) -> ()) -> (),
+    register_lbm: (name: string, nodes: string | {string}, action: (ModifierCell) -> ()) -> (),
+    ecs: {
+        component: (name: string, fields: {string}) -> (),
+        phase: (name: string, order: number) -> (),
+        system: (name: string, phase: string, component: string, fn: (EcsBatch) -> ()) -> (),
+        spawn: (component: string, x: number?, y: number?, z: number?) -> number?,
+        set: (id: number, field: string, value: number) -> boolean,
+        get: (id: number, field: string) -> number?,
+        kill: (id: number) -> boolean,
+        visible: (id: number, on: boolean?) -> boolean,
+        model: (id: number, model: number) -> boolean,
+        health: (id: number, hp: number?) -> number?,
+        clip: (id: number, name: string?) -> boolean,
+        box: (id: number, half: number, height: number) -> boolean,
+        count: (component: string) -> number,
+    },
+    craft: {
+        make: (id: number, kind: string, mass: number, half_w: number, half_h: number,
+               half_l: number, accel: number, top: number, turn: number) -> boolean,
+        keys: (id: number, forward: number?, right: number?, up: number?, yaw: number?) -> boolean,
+        pose: (id: number) -> CraftPose?,
+        push: (id: number, vx: number, vy: number, vz: number) -> boolean,
+        mount: (id: number, on: number, x: number?, y: number?, z: number?) -> boolean,
+        aim: (id: number, yaw: number, pitch: number?) -> boolean,
+        seat: (player: number, id: number, x: number?, y: number?, z: number?) -> boolean,
+    },
+    net: {
+        open: () -> number?,
+        send: (player: number, text: string) -> boolean,
+    },
+    render: {
+        pass: (name: string, order: number, fn: () -> ()) -> (),
+        box: (x: number, y: number, z: number, w: number?, h: number?, d: number?,
+              r: number?, g: number?, b: number?, a: number?) -> boolean,
+        model: (model: number, x: number, y: number, z: number, yaw: number?, scale: number?,
+                pitch: number?, roll: number?, gone: number?) -> boolean,
+        fx: (kind: string, x: number, y: number, z: number, size: number?, r: number?, g: number?,
+             b: number?, a: number?, t: number?, x2: number?, y2: number?, z2: number?) -> boolean,
+        camera: (id: number, x: number, y: number, z: number, yaw: number?, pitch: number?,
+                 fov: number?, still: boolean?) -> boolean,
+        camera_drop: (id: number) -> boolean,
+        screen: (id: number, x: number, y: number, z: number, yaw: number?, w: number?,
+                 h: number?, plain: boolean?) -> boolean,
+        text: (text: string, x: number, y: number, z: number, yaw: number?, size: number?,
+               r: number?, g: number?, b: number?, a: number?, max_w: number?, max_h: number?) -> boolean,
+        camera_read: (id: number) -> string,
+        photo: (id: number, data: string) -> boolean,
+    },
+    hud: {
+        pass: (name: string, order: number, fn: () -> ()) -> (),
+        text: (x: number, y: number, text: string, size: number?, align: number?,
+               r: number?, g: number?, b: number?, a: number?) -> boolean,
+        rect: (x: number, y: number, w: number, h: number,
+               r: number?, g: number?, b: number?, a: number?) -> boolean,
+        aspect: () -> number,
+        image: (name: string, x: number, y: number, w: number, h: number, a: number?) -> boolean,
+        item: (name: string, x: number, y: number, side: number) -> boolean,
+        mouse: () -> (number?, number?),
     },
 }

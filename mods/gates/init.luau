@@ -398,7 +398,7 @@ if PLAZA then
         if core.room() ~= "sandbox" then return end   -- not the pocket halls, whose mods these are too
         local y = core.get_portal(0, 1)
         for _, h in HOT do
-            local room, x, z = h[1], h[2], h[3]
+            local room, x, z = h[1] :: string, h[2] :: number, h[3] :: number
             local name = `gate-{room}`
             -- A server started with a mouth of its own onto that room (tools/platformer.sh,
             -- tools/shmup.sh) has its way in already.
@@ -647,7 +647,7 @@ end)
 
 -- The laboratory's mouth stays at its site (mods/keys' lock reads it there).
 if LAB_SITE and MOUTH.laboratorio then
-    core.set_portal(MOUTH.laboratorio, LAB_SITE.x + 0.5, LAB_SITE.y + 1, LAB_SITE.z + 0.5)
+    core.set_portal(MOUTH.laboratorio :: number, LAB_SITE.x + 0.5, LAB_SITE.y + 1, LAB_SITE.z + 0.5)
     core.log(`gates: the laboratory at {LAB_SITE.x} {LAB_SITE.y} {LAB_SITE.z}`)
 end
 -- The rest wait in the rock under the spawn until a site wants them.
@@ -802,10 +802,10 @@ core.event.on("core:tick", function(ev)
     for room, l in want do
         local ks = MOUTHS[room]
         if ks == nil then continue end
-        table.sort(l, function(a, b) return a.dist < b.dist end)
+        table.sort(l, function(a: { site: Site, dist: number }, b: { site: Site, dist: number }): boolean return a.dist < b.dist end)
         local chosen: { [Site]: boolean } = {}
         for i = 1, math.min(#l, #ks) do chosen[l[i].site] = true end
-        local free = {}
+        local free: { number } = {}
         for _, k in ks do
             local cur = at_site[k]
             if cur and chosen[cur] then chosen[cur] = nil else table.insert(free, k) end
@@ -813,7 +813,7 @@ core.event.on("core:tick", function(ev)
         for i = 1, math.min(#l, #ks) do
             local site = l[i].site
             if chosen[site] and #free > 0 then
-                place(table.remove(free, 1), room, site, i == 1)
+                place(table.remove(free, 1) :: number, room, site, i == 1)
                 chosen[site] = nil
             end
         end

@@ -216,7 +216,7 @@ local GROW = { birch = birch, jungle = jungle, acacia = acacia, dark_oak = dark_
 local REGIONS = { "", "birch", "dark_oak", "jungle", "acacia", "", "birch" }
 -- How much thinner than one column in eleven each kind stands: a birch wood
 -- and an acacia savanna are open, a dark oak wood and a jungle are not.
-local THIN = { birch = 2, dark_oak = 1, jungle = 1, acacia = 5, spruce = 1 }
+local THIN: { [string]: number } = { birch = 2, dark_oak = 1, jungle = 1, acacia = 5, spruce = 1 }
 
 core.register_mapgen("woods:grow", function(ctx)
     for z = ctx.min_z - REACH, ctx.max_z + REACH do
