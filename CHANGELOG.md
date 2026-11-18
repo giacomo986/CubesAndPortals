@@ -5,6 +5,26 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
+## 0.18.0-alpha.1 — 2026-11-18
+
+**Does not play with 0.17 servers** (protocol 125). Worlds are read as they are; a saved platform
+game world keeps its old blocks until it is started again with `--fresh`.
+
+- **Item pipes** (mod `pipes`): networks that sort, store and fetch, set up with chips (extractor,
+  responder, overflow, terminator, broadcaster, stock keeper...). A request pipe opens a panel with
+  a search to ask the network for anything it holds or can make, and an automatic crafting table
+  and furnace craft and smelt in chains. Three working demos east of the spawn; the guide is
+  [docs/PIPES.md](docs/PIPES.md).
+- **Signs** are written on their boards in the world, standing or hanging, at any of eight turns.
+- **Your own room**: `/myroom` chooses who may come in (a blacklist or a whitelist) and whether the
+  others may look in through the frame; `/myroom leave` takes you back to the spawn.
+- **The platform game**: a castle level with lava and a boss, a pole to slide down into the
+  castle, breakable bricks, the fire power-up with an aura, a power-up for each player.
+- **The arcade shooter**: a hangar and a take-off, eight power-ups, a flying fortress, a second
+  level of ten waves and an aircraft carrier at the end; several pilots can play together.
+- **Guns in first person** for every species, and **the fox man**, a new add-on species.
+- **Português**: the pipes and `/myroom` translated too.
+
 ## 0.17.0-alpha.1 — 2026-11-14
 
 **Does not play with 0.16 servers** (protocol 124). Worlds are read as they are; a bag saved before

@@ -670,7 +670,7 @@ com `{}` para as partes que variam. Valem para tudo o que o cliente desenha: men
 avisos dos mods, chat e texto do HUD, e nomes dos itens. Uma linha que falta deixa o texto como
 está. `python3 tools/lang_check.py` lista o que os mods e mundos mostram e que o `it.txt` (para
 texto em inglês) ou o `en.txt` (para texto em italiano) não tem; o `pt.txt` traduz as linhas dos
-dois. Num sistema em português o jogo já abre em português.
+dois, e o que faltar nele também aparece na lista. Num sistema em português o jogo já abre em português.
 
 ### Cliente (`cnp_client`)
 

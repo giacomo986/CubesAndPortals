@@ -5,6 +5,27 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
+## 0.18.0-alpha.1 — 2026-11-18
+
+**Non gioca con i server 0.17** (protocollo 125). I mondi si leggono così come sono; un mondo del
+gioco a piattaforme già salvato tiene i blocchi vecchi finché non lo si riavvia con `--fresh`.
+
+- **Tubi per oggetti** (mod `pipes`): reti che smistano, immagazzinano e vanno a prendere, regolate
+  con dei chip (estrattore, ricevitore, troppopieno, terminatore, annunciatore, magazziniere...). Un
+  tubo di richiesta apre un pannello con una ricerca per chiedere alla rete tutto ciò che ha o sa
+  fare, e un tavolo da lavoro e una fornace automatici fabbricano e cuociono a catena. Tre
+  dimostrazioni funzionanti a est dello spawn; la guida è [docs/PIPES.it.md](docs/PIPES.it.md).
+- **I cartelli** hanno la scritta sulle loro assi nel mondo, in piedi o appesi, in otto direzioni.
+- **La tua stanza**: `/myroom` sceglie chi può entrare (una lista nera o una lista bianca) e se gli
+  altri possono guardare dentro dalla cornice; `/myroom leave` riporta allo spawn.
+- **Il gioco a piattaforme**: un livello nel castello con la lava e un boss, un palo da cui
+  scivolare fino al castello, mattoni che si rompono, il fuoco con un'aura, un power-up per ogni
+  giocatore.
+- **Lo sparatutto arcade**: un hangar e un decollo, otto power-up, una fortezza volante, un secondo
+  livello di dieci ondate e una portaerei alla fine; più piloti possono giocare insieme.
+- **Armi in prima persona** per ogni specie, e **l'uomo volpe**, una nuova specie aggiuntiva.
+- **Português**: tradotti anche i tubi e `/myroom`.
+
 ## 0.17.0-alpha.1 — 2026-11-14
 
 **Non gioca con i server 0.16** (protocollo 124). I mondi si leggono così come sono; una borsa

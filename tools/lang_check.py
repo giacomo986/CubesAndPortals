@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""What the mods and worlds show that assets/lang/it.txt or en.txt lack.
+"""What the mods and worlds show that assets/lang/it.txt, en.txt or pt.txt lack.
 
 The client translates by the text itself (src/client/ui/lang.h): a notice, a
 chat line, hud text, a panel's label or button, a page's title and an item's
@@ -9,11 +9,12 @@ which en.txt puts into English. This reads every .luau under mods/ and
 games/*/mods/ (a linked mod once), finds the text of those calls -- a literal,
 a `string {interpolated}`, pieces joined with .., string.format, either side of
 an if-then-else -- as the {} patterns the files use, tells which language each
-is in, and lists those the other file has no line for.
+is in, and lists those the other file has no line for. Every other file there
+(pt.txt) is held to both: each line of it.txt and en.txt, and each text found.
 
     python3 tools/lang_check.py            # the missing, by file, with where
     python3 tools/lang_check.py --count    # only how many
-    python3 tools/lang_check.py --keys     # the missing keys alone, it.txt's then en.txt's
+    python3 tools/lang_check.py --keys     # the missing keys alone: it.txt's, en.txt's, then each other file's
 
 Exit status 1 when something is missing. A text built in a way this does not
 follow (from a table, a function's result) is not seen: say it in a comment
@@ -263,21 +264,44 @@ def main():
                 miss_en.append((t, where))
         elif not found(t, it_set, it_rx):
             miss_it.append((t, where))
+    # Every other language (pt.txt...) is read in place of both: it needs the
+    # English text it.txt has a line for -- the engine's own, which this does
+    # not read from the C++ -- the Italian en.txt has, and whatever the mods
+    # show that neither has yet.
+    others = []
+    for f in sorted(os.listdir(LANG)):
+        code = f[:-4]
+        if not f.endswith(".txt") or code in ("it", "en"):
+            continue
+        have = keys(os.path.join(LANG, f))
+        have_set, have_rx = set(have), [matcher(k) for k in have if "{}" in k]
+        want = {k: "assets/lang/it.txt" for k in it_keys}
+        for k in en_keys:
+            want.setdefault(k, "assets/lang/en.txt")
+        for t, where in texts.items():
+            want.setdefault(t, where)
+        miss = [(t, w) for t, w in sorted(want.items()) if not found(t, have_set, have_rx)]
+        others.append((f, miss))
     if "--count" in sys.argv:
-        print(f"{len(texts)} texts; missing: {len(miss_it)} in it.txt, {len(miss_en)} in en.txt")
+        print(f"{len(texts)} texts; missing: {len(miss_it)} in it.txt, {len(miss_en)} in en.txt" +
+              "".join(f", {len(miss)} in {f}" for f, miss in others))
     elif "--keys" in sys.argv:
         for t, _ in miss_it:
             print(t)
         print("----")
         for t, _ in miss_en:
             print(t)
+        for _, miss in others:
+            print("----")
+            for t, _ in miss:
+                print(t)
     else:
-        for title, miss in (("it.txt (English text)", miss_it), ("en.txt (Italian text)", miss_en)):
+        for title, miss in (("it.txt (English text)", miss_it), ("en.txt (Italian text)", miss_en)) + \
+                tuple((f"{f} (either)", miss) for f, miss in others):
             print(f"# missing in {title}: {len(miss)}")
             for t, where in miss:
                 print(f"{t}    <- {where}")
-    return 1 if miss_it or miss_en else 0
-
+    return 1 if miss_it or miss_en or any(miss for _, miss in others) else 0
 
 if __name__ == "__main__":
     sys.exit(main())
