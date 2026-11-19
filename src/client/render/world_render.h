@@ -508,10 +508,16 @@ public:
     {
         m_draw_model = std::move(d);
     }
+    // Whether the model is there to draw yet. Not yet, and the cell draws its
+    // boxes meanwhile: a rail is a rail-shaped box for the seconds after a join
+    // its model takes to be read, not a hole. Unset, every model is taken as
+    // there.
+    void set_model_ready(std::function<bool(ModelId)> r) { m_model_ready = std::move(r); }
 
 private:
     std::function<float(int, int, int)>          m_open_at;
     ModelDraw                                    m_draw_model;
+    std::function<bool(ModelId)>                 m_model_ready;
 
     const NodeRegistry     *m_reg = nullptr;   // whatever sync() was last given
     gfx_buffer              m_parts_vb{0};

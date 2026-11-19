@@ -315,10 +315,12 @@ Arcade shooter:
 ## Defects
 
 Seen by players first:
-- For about 10 s after joining, creatures are boxes, rails and other model
-  blocks are not drawn at all, and held models are missing, while the client
-  reads 456+ models a few a frame. Fix once: models near the player first, and
-  a block's boxes drawn until its model is there.
+- Models at join: fixed 2026-11-19, by script only. A draw that misses a
+  model queues it (ModelStore::entry) and the reading serves that queue before
+  the table's order: in the sandbox 31 of 882 were read ahead for what was in
+  sight. A model block whose model is not read yet draws its boxes, not
+  nothing. Not looked at by eye: how long a creature near the spawn stays a
+  box now (the reading of the rest took 19 s at Xephyr's 11 fps).
 - For about 4 s after a teleport, cave walls whose nearer chunks have not
   arrived show black in the sky.
 - OPEN-2: a crossing may wedge the player in the exit block. Never reproduced;

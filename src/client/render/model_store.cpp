@@ -8,11 +8,36 @@
 
 namespace cnp {
 
-const ModelStore::Entry *ModelStore::entry(uint16_t id) const
+const ModelStore::Entry *ModelStore::ready(uint16_t id) const
 {
     if (id == 0 || (size_t)id > m_by_id.size()) return nullptr;
     const std::unique_ptr<Entry> &e = m_by_id[(size_t)id - 1];
     return (e && e->ready) ? e.get() : nullptr;
+}
+
+const ModelStore::Entry *ModelStore::entry(uint16_t id) const
+{
+    const Entry *e = ready(id);
+    if (e == nullptr && id != 0) {
+        if (m_asked.size() <= id) m_asked.resize((size_t)id + 1, false);
+        if (!m_asked[id]) {
+            m_asked[id] = true;
+            m_wanted.push_back(id);
+        }
+    }
+    return e;
+}
+
+std::vector<uint16_t> ModelStore::take_wanted()
+{
+    std::vector<uint16_t> out;
+    out.swap(m_wanted);
+    return out;
+}
+
+void ModelStore::want_first(const std::vector<uint16_t> &ids)
+{
+    m_wanted.insert(m_wanted.begin(), ids.begin(), ids.end());
 }
 
 ModelStore::Entry *ModelStore::entry(uint16_t id)
@@ -26,6 +51,8 @@ void ModelStore::clear()
         if (e && e->ready) e->renderer.shutdown();
     m_by_id.clear();
     m_refused = 0;
+    m_wanted.clear();
+    m_asked.clear();
 }
 
 bool ModelStore::put(uint16_t id, const std::string &name, const std::string &path,

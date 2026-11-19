@@ -88,9 +88,23 @@ public:
 
     void clear();
 
-    bool has(uint16_t id) const { return entry(id) != nullptr; }
+    // Whether it is read, and nothing else. entry() is for drawing: a miss
+    // there is something on screen waiting for its model, and is noted.
+    bool has(uint16_t id) const { return ready(id) != nullptr; }
     const Entry *entry(uint16_t id) const;
     Entry       *entry(uint16_t id);
+    // The same without noting a miss: for a search through the whole table by
+    // name, which would otherwise queue every model it passed.
+    const Entry *peek(uint16_t id) const { return ready(id); }
+    Entry       *peek(uint16_t id) { return const_cast<Entry *>(ready(id)); }
+
+    // The ids entry() was asked for and did not have, each once, oldest
+    // first: what is in sight goes ahead of the rest of the table, so a
+    // creature or a rail near the player is drawn as itself in a frame or two
+    // and not when the reading reaches its number (TODO.md, models at join).
+    std::vector<uint16_t> take_wanted();
+    // Given back, the ones there was no time for this frame, in front.
+    void want_first(const std::vector<uint16_t> &ids);
 
     size_t size() const { return m_by_id.size(); }
     int    refused() const { return m_refused; }
@@ -99,6 +113,12 @@ private:
     // Index is the id minus one, and a gap is a model this client has not got.
     std::vector<std::unique_ptr<Entry>> m_by_id;
     int                                 m_refused = 0;
+    // Asked for by a draw and not there: the queue, and who was ever queued
+    // (so one that cannot be read is tried once, not every frame).
+    mutable std::vector<uint16_t> m_wanted;
+    mutable std::vector<bool>     m_asked;
+
+    const Entry *ready(uint16_t id) const;
 };
 
 } // namespace cnp

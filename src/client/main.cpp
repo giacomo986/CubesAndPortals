@@ -5158,7 +5158,7 @@ int host_model_id(void *ud, const char *name)
     }
     if (const int id = (int)w.model_defs.find(want)) return id;
     for (size_t id = 1; id <= w.models.size(); ++id)
-        if (const ModelStore::Entry *e = w.models.entry((uint16_t)id); e && e->name == want)
+        if (const ModelStore::Entry *e = w.models.peek((uint16_t)id); e && e->name == want)
             return (int)id;
     return 0;
 }
@@ -6565,6 +6565,10 @@ void advance_lids(Scene &s, double dt, const std::vector<Cell> &open_now)
 // block is not.
 void wire_model_draw(Scene &s, int world)
 {
+    // Asked every frame for every model cell in sight: a miss is also what puts
+    // the model at the front of the reading (ModelStore::entry).
+    s.at(world).world_render.set_model_ready(
+        [&s, world](ModelId id) { return s.at(world).models.entry(id) != nullptr; });
     s.at(world).world_render.set_model_draw(
         [&s, world](ModelId id, const Mat4 &place, float open, float light,
                     const Mat4 &projection, const Mat4 &view) {
@@ -6918,7 +6922,7 @@ struct LampTintHere {
 ModelStore::Entry *model_named(ModelStore &models, const std::string &name)
 {
     for (size_t id = 1; id <= models.size(); ++id) {   // ponytail: linear, a hundred models
-        ModelStore::Entry *e = models.entry((uint16_t)id);
+        ModelStore::Entry *e = models.peek((uint16_t)id);
         if (e != nullptr && e->name == name) return e;
     }
     return nullptr;
@@ -7248,7 +7252,7 @@ const AddonSpecies &addon_seen(const ModelStore &models, const std::string &base
     at->base  = base;
     std::set<std::string> have;   // sorted: the order below
     for (size_t id = 1; id <= models.size(); ++id)
-        if (const ModelStore::Entry *e = models.entry((uint16_t)id)) have.insert(e->name);
+        if (const ModelStore::Entry *e = models.peek((uint16_t)id)) have.insert(e->name);
     at->found = addons_from(have, base);
     return at->found;
 }
@@ -7394,7 +7398,7 @@ uint16_t species_model(ModelStore &models, uint16_t model, uint32_t livery)
     for (const std::string &b : species_bases(e->name)) {
         const std::string name = b + "_" + who;
         for (size_t id = 1; id <= models.size(); ++id) {
-            ModelStore::Entry *s = models.entry((uint16_t)id);
+            ModelStore::Entry *s = models.peek((uint16_t)id);
             if (s != nullptr && s->name == name) {
                 borrow_clips(s->model, e->model);   // the world's own robot's clips
                 return (uint16_t)id;
@@ -16327,6 +16331,9 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         int         from_wire = 0, from_disk = 0;
         std::string told;
         bool        firsts = false;   // the player's own models read ahead of the rest
+        int         ahead  = 0;       // read out of order because something in sight wanted them
+        double      began  = -1.0;    // when the reading began, for the line at its end
+        double      sights = -1.0;    // when the last of those was read
     };
     std::vector<unsigned>   conn_atlas_built((size_t)net_sessions.count(), 0);
     std::vector<ModelsRead> conn_models_read((size_t)net_sessions.count());
@@ -16845,6 +16852,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 store.clear();
             }
             s.at(world).models_arriving = mr.next < names.size();
+            if (mr.began < 0.0) mr.began = plat_time();
             const double models_until = models_from + (here && mr.next < names.size() ? 0.012 : 0.003);
             if (here && !mr.firsts) {
                 mr.firsts = true;
@@ -16860,14 +16868,31 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                             }
                 }
             }
+            // What is in sight and waiting first (ModelStore::entry noted it):
+            // a creature by the player, a rail at its feet, the thing in its
+            // hand -- before the rest of the table in its order.
+            if (mr.next < names.size()) {
+                std::vector<uint16_t> wanted = store.take_wanted();
+                size_t                k      = 0;
+                for (; k < wanted.size() && plat_time() < models_until; ++k)
+                    if (wanted[k] >= 1 && wanted[k] <= names.size() && !store.has(wanted[k])) {
+                        read_one(w, store, mr, wanted[k] - 1u);
+                        ++mr.ahead;
+                        mr.sights = plat_time();
+                    }
+                if (k < wanted.size())
+                    store.want_first(std::vector<uint16_t>(wanted.begin() + (long)k, wanted.end()));
+            }
             while (mr.next < names.size() && plat_time() < models_until) {
                 read_one(w, store, mr, mr.next);
                 if (++mr.next < names.size()) continue;
                 s.at(world).models_arriving = false;
                 std::printf("models: %zu named by %s, %d from it, %d from this machine, "
-                            "%d refused\n",
+                            "%d refused; %d read ahead for what was in sight (the last %.1f s "
+                            "in), all in %.1f s\n",
                             names.size(), conn_spec[(size_t)id].c_str(), mr.from_wire,
-                            mr.from_disk, store.refused());
+                            mr.from_disk, store.refused(), mr.ahead,
+                            mr.sights >= 0.0 ? mr.sights - mr.began : 0.0, plat_time() - mr.began);
                 if (!mr.told.empty()) std::fputs(mr.told.c_str(), stdout);
             }
         }

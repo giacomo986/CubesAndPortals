@@ -1055,7 +1055,7 @@ void WorldRenderer::draw_parts(const NodeRegistry &reg, const Mat4 &projection,
             // to draw falls through to the boxes, which is a shape rather than
             // a hole -- and to nothing at all if it has none, because the one
             // thing it is not is a cube.
-            if (def.model != kNoModel && m_draw_model) {
+            if (def.model != kNoModel && m_draw_model && (!m_model_ready || m_model_ready(def.model))) {
                 const float wx = cm->origin.x + (float)cell.x;
                 const float wy = cm->origin.y + (float)cell.y;
                 const float wz = cm->origin.z + (float)cell.z;
