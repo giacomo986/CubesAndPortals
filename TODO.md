@@ -638,10 +638,16 @@ survival levels.
    came to 1082 models, past the 1024 a welcome carries, and refused every
    client; a world's block mod now stops after its blocks in a workshop (888
    models there now). Each world added there has to keep to that.
-   Next (backrooms: rooms and lights;
-   parkour: stations with jumps measured; Inferno: fortress pieces; front and
+   Backrooms done 2026-11-19 (with 7's): their blocks in the workshop (the
+   backrooms mod returns after its blocks there), and a fresh site's level of
+   the approved backrooms zones on Level 0 (backrooms_exit, kept as
+   "zslot:N" in the plan's shape): in at "start", the way out four west, the
+   radio to "exit". Seen by script: laid, the player at the start, the way
+   out's hole, the exit found (keys:cleared). Not seen in a client; the
+   lights are the zones' own blocks, no rule.
+   Next (parkour: stations with jumps measured; Inferno: fortress pieces; front and
    assault: bases and points).
-7. Each world onto zones: chambers (done 2026-11-19, 6b), arpg (done 2026-11-19, 6b), backrooms, parkour, Inferno, then the
+7. Each world onto zones: chambers (done 2026-11-19, 6b), arpg (done 2026-11-19, 6b), backrooms (done 2026-11-19, 6b), parkour, Inferno, then the
    front and the assault after their shared library (Structure).
 
 Tickets between rooms: decided and done 2026-11-19 (protocol 127). A room past

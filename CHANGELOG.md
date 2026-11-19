@@ -51,6 +51,9 @@ for.
   lands are laid out of the approved arpg zones when there are any -- packs where the `mob`
   markers are, the lord at the `exit`, chests at `loot`, things to break at `trigger`.
   `/zone try` now lays a level with its floor at the player's.
+- **The backrooms made in the workshops**: their blocks in the workshop, and a fresh survival
+  site's level laid out of the approved backrooms zones -- in at the `start`, the radio leading to
+  the `exit`.
 - **Proposed zones**: `/zone propose` asks the admins, who are told, and `/page zones` lists what
   waits with show, approve and refuse; `/zone show` lays one zone alone to look at.
 - For mods: `core.room_send` starts a room of the rooms file that is down (or one its template

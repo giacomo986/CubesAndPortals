@@ -27,13 +27,29 @@ local WALLPAPER, CARPET = id("backrooms:wallpaper"), id("backrooms:carpet")
 -- radio leads there; reaching it is the level done, and a doorway there
 -- opens (a portal of this world) onto one in the start room, where the wall
 -- has opened. Opened only then: linked portals lead both ways.
-type Plan = { sx: number, sz: number, ex: number, ez: number, eF: number }
+--
+-- A fresh site's level is laid out of the approved backrooms zones instead
+-- when there are any (mods/zones, built in a player's workshop), on Level 0,
+-- 2 + d of them: the player comes in at the "start" marker, its way out a
+-- block of wallpaper four west of it, and the exit room is where the "exit"
+-- marker stands -- the radio leads there, and reaching it is the level done.
+-- What else is in the zones is blocks: their lights are their own, and the
+-- dark brings the creatures as everywhere here. Kept ("zslot:N": sx sz ex ez
+-- eF) in the same shape, so the rest is the same.
+type Plan = { sx: number, sz: number, ex: number, ez: number, eF: number, zoned: boolean? }
 local PLANS: { [number]: Plan } = {}
 local level_slot: { [number]: number } = {}
 local level_d: { [number]: number } = {}
 local function plan_of(slot: number): Plan?
     local hit = PLANS[slot]
     if hit then return hit end
+    local zx, zz, zex, zez, zeF = string.match(core.storage_get(`zslot:{slot}`), "(-?%d+) (-?%d+) (-?%d+) (-?%d+) (-?%d+)")
+    if zx ~= nil then
+        local zp: Plan = { sx = tonumber(zx) :: number, sz = tonumber(zz) :: number, ex = tonumber(zex) :: number,
+                           ez = tonumber(zez) :: number, eF = tonumber(zeF) :: number, zoned = true }
+        PLANS[slot] = zp
+        return zp
+    end
     local d, seed = string.match(core.storage_get(`slot:{slot}`), "(%d+) (%d+)")
     if d == nil then return nil end
     local dd = tonumber(d) or 1
@@ -89,7 +105,7 @@ core.register_mapgen("backrooms_exit:room", function(ctx)
     exit_room(ctx, X0, Z0, F, CONCRETE, SLAB, true)
     if ctx.min_x < 8192 then return end
     local plan = plan_of((ctx.min_x - 8192) // 2048 + 16 * (ctx.min_z // 2048))
-    if plan == nil then return end
+    if plan == nil or plan.zoned then return end
     -- The start room, and its niche: a block of wall west of it with a hole
     -- one wide and two high, facing +x, behind two cells of its west wall.
     exit_room(ctx, plan.sx, plan.sz, 21, WALLPAPER, CARPET, false)
@@ -123,17 +139,75 @@ core.register_mapgen("backrooms_exit:room", function(ctx)
 end)
 core.set_portal(1, X0 + 2.6, F + 1, Z0 + 2.5)
 
-core.event.on("keys:level", function(ev)
-    core.storage_set(`slot:{ev.slot}`, `{ev.d} {ev.seed}`)
-    local plan = plan_of(ev.slot)
+local function begin(player: number, slot: number, d: number)
+    local plan = plan_of(slot)
     if plan == nil then return end
-    ev.cancel = true
+    local ev = { player = player, slot = slot, d = d }
     level_slot[ev.player] = ev.slot
     level_d[ev.player] = ev.d
     core.player_place(ev.player, plan.sx + 3.5, 21, plan.sz + 5.5, -1, 0, 0)
     core.player_spawn(ev.player, plan.sx + 3.5, 21, plan.sz + 5.5, true)
     core.event.emit("keys:start", { player = ev.player, slot = ev.slot, ex = plan.sx - 1, ey = 21, ez = plan.sz + 2 })
     core.notice(ev.player, "Una radio gracchia, lontano. L'uscita e' dove il segnale e' forte.")
+end
+
+-- A site's level: the one it had, or a fresh one of zones (else the rooms'
+-- own, as before).
+type Laying = { player: number, slot: number, d: number, seed: number, marks: { { number } } }
+local laying: { [string]: Laying } = {}
+core.event.on("keys:level", function(ev)
+    ev.cancel = true
+    if core.storage_get(`slot:{ev.slot}`) ~= "" or core.storage_get(`zslot:{ev.slot}`) ~= "" then
+        begin(ev.player, ev.slot, ev.d)
+        return
+    end
+    local tag = `site {ev.slot}`
+    if laying[tag] then return end
+    laying[tag] = { player = ev.player, slot = ev.slot, d = ev.d, seed = ev.seed, marks = {} }
+    local ox, oz = 8192 + (ev.slot % 16) * 2048 + 1024, (ev.slot // 16) * 2048 + 1024
+    core.event.emit("zones:lay", { tag = tag, world = "backrooms", owner = "", x = ox, y = 20, z = oz,
+                                   seed = ev.seed, d = ev.d, count = 2 + ev.d })
+end)
+core.event.on("zones:mark", function(ev)
+    local l = laying[ev.tag]
+    if l == nil then return end
+    if ev.kind == "start" then
+        table.insert(l.marks, 1, { 1, ev.x, ev.y, ev.z })
+    elseif ev.kind == "exit" then
+        table.insert(l.marks, { 2, ev.x, ev.y, ev.z })
+    end
+end)
+core.event.on("zones:laid", function(ev)
+    local l = laying[ev.tag]
+    if l == nil then return end
+    laying[ev.tag] = nil
+    if ev.pieces == 0 then
+        core.storage_set(`slot:{l.slot}`, `{l.d} {l.seed}`)
+        begin(l.player, l.slot, l.d)
+        return
+    end
+    local st = { ev.x1 + 4, 21, ev.z1 + 4 }
+    local ex = { ev.x2 - 4, 21, ev.z2 - 4 }
+    for _, m in l.marks do
+        if m[1] == 1 then st = { m[2], m[3], m[4] } elseif m[1] == 2 then ex = { m[2], m[3], m[4] } end
+    end
+    -- The plan's corners, so that its start (sx + 3, sz + 5) is the marker and
+    -- its exit room (ex + 1 .. ex + 8) is round the other.
+    local plan: Plan = { sx = st[1] - 3, sz = st[3] - 5, ex = ex[1] - 4, ez = ex[3] - 4, eF = ex[2], zoned = true }
+    PLANS[l.slot] = plan
+    core.storage_set(`zslot:{l.slot}`, `{plan.sx} {plan.sz} {plan.ex} {plan.ez} {plan.eF}`)
+    -- The way out: a block of wallpaper west of the start, a hole one wide and
+    -- two high facing +x behind its east cells (mods/keys).
+    local hx, hz = plan.sx - 1, plan.sz + 2
+    for x = hx - 2, hx + 1 do
+        for z = hz - 1, hz + 1 do
+            for y = 21, 25 do core.set_block(x, y, z, WALLPAPER) end
+        end
+    end
+    core.set_block(hx, 21, hz, 0)
+    core.set_block(hx, 22, hz, 0)
+    core.log(`backrooms_exit: slot {l.slot}'s level of zones, {ev.pieces} piece(s), the exit at {ex[1]} {ex[2]} {ex[3]}`)
+    begin(l.player, l.slot, l.d)
 end)
 core.event.on("core:pre_break", function(ev)
     if ev.id == SIGN then ev.cancel = true end
@@ -186,6 +260,7 @@ core.event.on("core:tick", function(ev)
                 and math.abs(y - plan.eF) < 3 then
                 if not s.found then
                     s.found = true
+                    core.log(`backrooms_exit: {core.player_name(p)} found the way out of slot {slot}`)
                     core.event.emit("keys:cleared", { player = p, slot = slot })
                     local a = core.portal_open(plan.ex + 2.5, plan.eF + 1, plan.ez + 2.5, 1, 1, 0, 0.5, 1.0)
                     local b = core.portal_open(plan.sx + 6.5, 22, plan.sz + 6.5, 1, 1, 0, 0.5, 1.0)

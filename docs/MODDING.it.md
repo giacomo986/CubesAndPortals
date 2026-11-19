@@ -2771,7 +2771,7 @@ posto un pennello, dato all'ingresso, mette giù i blocchi di un mondo: `/worksh
 pulsante **Blocks** del pannello o il pennello su un blocco senza averne scelto uno aprono la sua
 tavolozza -- i blocchi del mondo che l'officina ha (`games/workshop/mods`, collegamenti alle mod dei
 blocchi dei mondi, che in una stanza `workshop-*` lasciano fuori le regole del loro mondo; per ora
-quelli delle chambers e dell'arpg) e i segnaposto. Un clic destro mette quello scelto sulla faccia cliccata;
+quelli delle chambers, dell'arpg e delle backrooms) e i segnaposto. Un clic destro mette quello scelto sulla faccia cliccata;
 una pedana, una presa, un bersaglio o il fondo di un pozzo prendono il posto del blocco cliccato;
 una porta sono le sue quattro celle di traverso a dove guarda il giocatore, un pulsante o una
 pedana il loro due per due. Una bacchetta, data all'ingresso, sceglie il volume con due angoli (disegnato sullo schermo) e apre un
@@ -2867,6 +2867,14 @@ terre, al livello del sito (2 d - 3); per segnaposto:
 | `zones:trigger` | una cosa da rompere: un barile, una cassa o un'urna |
 
 `/zone try` posa un livello col suo strato più basso al livello del pavimento sotto i piedi.
+
+**Le backrooms fatte di zone** (`games/backrooms/mods/backrooms_exit`). Il livello di un sito
+survival nuovo si posa con le zone backrooms approvate quando ce ne sono, 2 + d sul Livello 0 (il
+pavimento, lo strato più basso di una zona, a y 20); un sito già giocato tiene il livello che
+aveva, e senza zone è quello delle stanze come prima. Il giocatore arriva a `zones:start`,
+l'uscita del sito è un blocco di carta da parati quattro a ovest, e la stanza d'uscita è dove sta
+`zones:exit`: la radio porta lì e raggiungerla supera il livello. Tutto il resto di una zona sono
+i suoi blocchi -- le sue luci -- e il buio porta le creature come ovunque lì.
 
 **Come si posa un livello** (`layout.luau`, che non legge né scrive il mondo: le stesse zone, seme,
 numero e `d` danno lo stesso livello ovunque). Prima una zona "start"; poi una "room" attaccata al

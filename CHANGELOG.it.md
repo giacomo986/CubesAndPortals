@@ -57,6 +57,9 @@ non chiede.
   survival si posano con le zone arpg approvate quando ce ne sono -- branchi dove stanno i
   segnaposto `mob`, il signore all'`exit`, forzieri a `loot`, cose da rompere a `trigger`.
   `/zone try` ora posa un livello col pavimento a quello del giocatore.
+- **Le backrooms fatte nelle officine**: i loro blocchi nell'officina, e il livello di un sito
+  survival nuovo fatto con le zone backrooms approvate -- si entra allo `start`, la radio porta
+  all'`exit`.
 - **Zone proposte**: `/zone propose` le chiede agli admin, che vengono avvisati, e `/page zones`
   elenca quelle in attesa con mostra, approva e rifiuta; `/zone show` posa una zona da sola per
   guardarla.

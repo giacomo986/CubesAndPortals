@@ -118,6 +118,13 @@ local STAIR_CARPET   = stair("stair_carpet", { 150, 128, 70 })
 local STAIR_TILE     = stair("stair_tile", { 232, 236, 238 })
 local STAIR_CONCRETE = stair("stair_concrete", { 120, 120, 116 })
 
+-- Loaded in a player's workshop too (mods/workshop, games/workshop/mods), for
+-- its blocks alone: the maze, its creatures and the rest of the world are
+-- left out there.
+if string.sub(core.room(), 1, 9) == "workshop-" then
+    return
+end
+
 -- What each level is made of. F is the first cell of air over its floor, h how
 -- many cells of air up to its ceiling, `tall` the ceiling of its halls (up
 -- into the gap over it); `wall`, `corr` and `hall` are how many in a thousand

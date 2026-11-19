@@ -2468,7 +2468,7 @@ catalogue there: the bag is the same in every room. A brush, given on the way in
 world's own blocks instead: `/workshop blocks`, the panel's **Blocks** or the brush on a block with
 none picked open its palette -- the world's blocks the workshop has (`games/workshop/mods`, links
 to the worlds' block mods, which leave their worlds' rules out in a room `workshop-*`; the
-chambers' and the arpg's so far) and the markers. A right click puts the one picked on the face clicked; a
+chambers', the arpg's and the backrooms' so far) and the markers. A right click puts the one picked on the face clicked; a
 plate, a vent, a target tile or a pit's bottom takes the place of the block clicked; a door is its
 four cells across the way the player looks, a button or a plate its two by two. A wand, given on the way in, picks the box by
 two corners (drawn on the screen) and opens a panel: name, world, start/room/end, difficulties,
@@ -2560,6 +2560,14 @@ arpg's creatures and chests do. The whole level is one area of the lands, at the
 | `zones:trigger` | a thing to break: a barrel, a crate or an urn |
 
 `/zone try` lays a level with its lowest layer level with the floor under the player's feet.
+
+**The backrooms out of zones** (`games/backrooms/mods/backrooms_exit`). A fresh survival site's
+level is laid out of the approved backrooms zones when there are any, 2 + d of them on Level 0
+(the floor, a zone's lowest layer, at y 20); a site played before keeps the level it had, and with
+no zones it is the rooms' own as before. The player comes in at `zones:start`, the site's way out
+is a block of wallpaper four west of it, and the exit room is where `zones:exit` stands: the radio
+leads there and reaching it is the level done. Everything else in a zone is its blocks -- its own
+lights -- and the dark brings the creatures as it does everywhere there.
 
 **How a level is laid** (`layout.luau`, which reads and writes no world: the same zones, seed, count
 and `d` give the same level anywhere). A "start" zone first; then a "room" joined to the newest open
