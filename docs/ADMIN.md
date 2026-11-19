@@ -223,6 +223,7 @@ webhook = https://example.org/hooks/server
 | `--report FILE` `--since 7d` `--json` | No server: what a world file remembers, printed; `--json` as one JSON object |
 | `--names` `--free-name NAME` | No server: who owns each name; let one go |
 | `--survival` | One room's (the sandbox's): no plaza, the spawn on dry land the seed picks, the themed worlds behind portals scattered over the land; `creative` starts at `nobody`. The title menu's "Mode: Survival" writes `survival` to the world's `mode` file and passes it; `tools/track.sh --survival` too |
+| `--no-plaza` | One room's: no plaza (`core.plaza()` is nil, so the mods put nothing of theirs on it) and nothing else of `--survival`'s; the workshops' template has it |
 | `--difficulty peaceful\|easy\|normal\|hard` `--peaceful` | One room's (the sandbox's): that difficulty from the start (`--peaceful` is peaceful), and kept so in WORLD.difficulty beside the world file, its name a line (none is normal) -- what the room is at its next start without the flag. `/difficulty` and the title menu's "Monsters" button (new world, or a saved world's Edit) write the same file. The rules (`/rule`) are kept beside it in WORLD.rules, `name = value` a line |
 
 The rest of the flags (world, mods, portals, rooms) are in the [README](../README.md#server-cnp_server).
@@ -446,12 +447,16 @@ anybody with a key in any room, starts the room `workshop-` and the start of the
 them there (core.room_send starts a room of the file that is down). Only its owner goes in. It is
 flat, peaceful, without hunger or weather: where the zones of levels are built, tried and
 proposed ([MODDING](MODDING.md#levels-out-of-saved-pieces-modszones)). `/workshop leave` goes back
-to the spawn of the first room. The title screen's worlds and `tools/track.sh` write the template
-beside `home-*`, with the same mods and never survival:
+to the spawn of the first room; any portal frame's menu has "my workshop" (or "leave the
+workshop") too. Whoever sets up the server's portals (`portals`, the owner) may come into anyone's
+workshop. The title screen's worlds and `tools/track.sh` write the template beside `home-*`, with
+the same mods, never survival and without a plaza (`no-plaza`: otherwise the mods would set their
+tables and boxes on its floor):
 
 ```
 [room workshop-*]
 world-file worlds/{name}.world
+no-plaza
 ```
 
 Proposed zones wait for an admin on `/page zones`.

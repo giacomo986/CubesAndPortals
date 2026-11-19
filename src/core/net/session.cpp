@@ -340,7 +340,9 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
         }
 
         // Whether this world is open to them, to look into or to be in
-        // (core.room_access): a player's own room says who.
+        // (core.room_access): a player's own room says who. The rule reads the
+        // name (the owner is --owner's name), so it is theirs from here.
+        s.name = hello.player_name;   // a pending session's: negotiate() below may still refuse it
         if (m_scope_check) {
             std::string why;
             if (!m_scope_check(s, hello.scope, why))

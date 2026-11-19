@@ -224,6 +224,7 @@ webhook = https://example.org/hooks/server
 | `--report FILE` `--since 7d` `--json` | Senza server: cosa ricorda un file di mondo, stampato; `--json` come un oggetto JSON |
 | `--names` `--free-name NOME` | Senza server: chi possiede ogni nome; liberarne uno |
 | `--survival` | Di una stanza (il sandbox): niente piazza, lo spawn su terra asciutta scelta dal seme, i mondi a tema dietro portali sparsi sulla terra; `creative` parte a `nobody`. "Mode: Survival" nel menù del titolo scrive `survival` nel file `mode` del mondo e lo passa; anche `tools/track.sh --survival` |
+| `--no-plaza` | Di una stanza: niente piazza (`core.plaza()` è nil, quindi le mod non ci mettono niente di loro) e nient'altro di `--survival`; il modello delle officine lo ha |
 | `--difficulty peaceful\|easy\|normal\|hard` `--peaceful` | Di una stanza (il sandbox): quella difficoltà dall'avvio (`--peaceful` è pacifico), e tenuta così in WORLD.difficulty accanto al file del mondo, il suo nome in una riga (nessun file è normale) -- quello che la stanza è al prossimo avvio senza il flag. `/difficulty` e il pulsante "Mostri" del menù del titolo (mondo nuovo, o Modifica di un mondo salvato) scrivono lo stesso file. Le regole (`/rule`) stanno accanto in WORLD.rules, `nome = valore` una riga |
 
 Gli altri flag (mondo, mod, portali, stanze) sono nel [README](../README.it.md#server-cnp_server).
@@ -453,12 +454,16 @@ detto da chiunque abbia una chiave in qualunque stanza, avvia la stanza `worksho
 della sua chiave e ce lo porta (core.room_send avvia una stanza del file che è giù). Ci entra solo
 chi la possiede. È piatta, pacifica, senza fame né meteo: lì si costruiscono, si provano e si
 propongono le zone dei livelli ([MODDING](MODDING.it.md#livelli-fatti-di-pezzi-salvati-modszones)).
-`/workshop leave` riporta allo spawn della prima stanza. I mondi del menu del titolo e
-`tools/track.sh` scrivono il modello accanto a `home-*`, con le stesse mod e mai survival:
+`/workshop leave` riporta allo spawn della prima stanza; anche il menu di ogni cornice di
+portale ha "la mia officina" (o "esci dall'officina"). Chi gestisce i portali del server
+(`portals`, il proprietario) può entrare nell'officina di chiunque. I mondi del menu del titolo e
+`tools/track.sh` scrivono il modello accanto a `home-*`, con le stesse mod, mai survival e senza
+piazza (`no-plaza`: altrimenti le mod ci metterebbero i loro tavoli e le loro casse):
 
 ```
 [room workshop-*]
 world-file worlds/{name}.world
+no-plaza
 ```
 
 Le zone proposte aspettano un admin su `/page zones`.

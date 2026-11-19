@@ -119,13 +119,9 @@ local function shut(room: string)
     core.room_access(room, "key:" .. string.sub(room, 10), true, true)
 end
 
-core.command("workshop", "[leave] -- into your own workshop, where zones are built; or out of it")
-core.event.on("core:command", function(ev)
-    if ev.name ~= "workshop" then
-        return
-    end
-    local p = ev.player
-    local arg = string.lower(string.match(ev.args, "^%s*(%S*)") or "")
+-- Into the player's workshop, or out of it with "leave": /workshop, and the
+-- frame's menu (mods/portal) through "workshop:go".
+local function go(p: number, arg: string)
     if arg == "leave" then
         if not IS_WORKSHOP then
             core.chat(p, "You are not in a workshop.")
@@ -149,6 +145,17 @@ core.event.on("core:command", function(ev)
     else
         core.chat(p, "This server has no workshops: its rooms file needs a [room workshop-*].")
     end
+end
+
+core.command("workshop", "[leave] -- into your own workshop, where zones are built; or out of it")
+core.event.on("core:command", function(ev)
+    if ev.name == "workshop" then
+        go(ev.player, string.lower(string.match(ev.args, "^%s*(%S*)") or ""))
+    end
+end)
+core.event.define("workshop:go", { fields = { player = "number", leave = "boolean" }, cancellable = false })
+core.event.on("workshop:go", function(ev)
+    go(ev.player, if ev.leave then "leave" else "")
 end)
 
 if not IS_WORKSHOP then
@@ -203,7 +210,11 @@ core.event.on("core:tick", function(ev)
             if core.bag_count(p, "workshop:wand") == 0 then
                 core.give_item(p, "workshop:wand", 1)
             end
-            core.chat(p, "Your workshop. The wand picks a zone's box by two corners; /workshop leave goes out.")
+            if room_of(p) == ROOM then
+                core.chat(p, "Your workshop. The wand picks a zone's box by two corners; /workshop leave goes out.")
+            else
+                core.chat(p, "Somebody else's workshop: you are let in to look round. /workshop leave goes out.")
+            end
         end
     end
     for p in here do

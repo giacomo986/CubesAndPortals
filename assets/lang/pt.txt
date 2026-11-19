@@ -1578,3 +1578,7 @@ world: {} = mundo: {}
 {} is going up beside you. = {} está subindo ao seu lado.
 {} is proposed: an admin will look at it. = {} foi proposta: um admin vai olhar.
 {} is {} already. = {} já está {}.
+Somebody else's workshop: you are let in to look round. /workshop leave goes out. = A oficina de outra pessoa: você entrou para dar uma olhada. /workshop leave sai.
+leave the workshop = sair da oficina
+my workshop -- where zones are built = minha oficina -- onde as zonas são construídas
+this server has no workshops = este servidor não tem oficinas

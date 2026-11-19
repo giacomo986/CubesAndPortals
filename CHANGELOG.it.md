@@ -32,7 +32,12 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
   livello per provarlo (e torna indietro) e lo propone. Lì i blocchi messi giù non si consumano e
   quelli scavati non danno niente; lo zaino è lo stesso in tutte le stanze, quindi niente
   catalogo. Un server vuole il modello `[room workshop-*]` nel suo file delle stanze; i mondi del
-  menu del titolo e `tools/track.sh` lo scrivono.
+  menu del titolo e `tools/track.sh` lo scrivono. Anche il menu di ogni cornice di portale ha
+  "la mia officina".
+- **Il proprietario può entrare nella stanza o nell'officina di un giocatore** per nome: il server
+  leggeva il nome del giocatore dopo aver chiesto se poteva entrare, quindi `--owner` era
+  rifiutato come un estraneo.
+- `--no-plaza`: una stanza senza piazza e senza nient'altro della survival (le officine lo hanno).
 - **Zone proposte**: `/zone propose` le chiede agli admin, che vengono avvisati, e `/page zones`
   elenca quelle in attesa con mostra, approva e rifiuta; `/zone show` posa una zona da sola per
   guardarla.

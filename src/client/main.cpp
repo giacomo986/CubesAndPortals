@@ -11406,8 +11406,10 @@ void write_home_template(const std::string &path, const std::string &dir, bool s
     std::vector<std::string> mods;
     for (size_t i = 0; i + 1 < mod_flags.size(); i += 2)
         mods.push_back(mod_flags[i].substr(2) + " " + mod_flags[i + 1]);
-    // A player's workshop (mods/workshop): the same mods, never survival.
+    // A player's workshop (mods/workshop): the same mods, never survival, and
+    // no plaza -- the mods would set their tables and boxes on its floor.
     std::vector<std::string> workshop = body;
+    workshop.push_back("no-plaza");
     workshop.insert(workshop.end(), mods.begin(), mods.end());
     if (survival) body.push_back("survival");
     body.insert(body.end(), mods.begin(), mods.end());

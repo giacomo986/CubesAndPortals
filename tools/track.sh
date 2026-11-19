@@ -118,6 +118,7 @@ if [ ! -f "$HERE/rooms.conf" ]; then
         # L'officina di ogni giocatore (/workshop, mods/workshop): mai survival.
         echo "[room workshop-*]"
         echo "world-file $HERE/{name}.world"
+        echo "no-plaza"
         echo "mods $SANDBOX_MODS"
         true
     } > "$HERE/rooms.conf"

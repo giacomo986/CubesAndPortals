@@ -34,6 +34,8 @@
 -- has "my room" in its menu: the frame then leads to the door of their room,
 -- which the server makes the first time and starts whenever somebody is near.
 -- One frame of a room at a time: saying it of another moves the way in there.
+-- Any frame's menu has "my workshop" too (mods/workshop, the template
+-- workshop-*), which takes its viewer into their own workshop, or out of it.
 --
 -- A world holds as many frames as are built: core.portal_open's portals are
 -- virtual, and only the ones near a player (and what they lead to) take one
@@ -407,7 +409,12 @@ local function menu()
     local listed = f.away and not homeward and (admin or mine == "")
     local offers = if listed then far_offers(f) else {}
     local rows = if listed then #offers elseif f.away then 0 else math.ceil(#others / 2)
+    -- Into the viewer's workshop (mods/workshop), or out of it: on a server of
+    -- rooms, for a player with a key. A server without workshops says so.
+    local shop = if viewer ~= 0 and core.room() ~= "" and core.player_key(viewer) ~= "" then
+        (if string.sub(core.room(), 1, 9) == "workshop-" then "out" else "in") else ""
     local extra = (if rooms or (f.away and not homeward) then 1.1 else 0) + (if mine ~= "" then 1.1 else 0)
+        + (if shop ~= "" then 1.1 else 0)
     if not core.ui_define(PANEL, 13.0, 7.8 + rows + extra) then
         return
     end
@@ -466,6 +473,11 @@ local function menu()
     core.ui_button(PANEL, "window", 8.7, 5.3, 3.8, 0.9, if f.window then "a window: yes" else "a window: no")
 
     local y = 6.4
+    if shop ~= "" then
+        core.ui_button(PANEL, "workshop", 0.5, y, 12.0, 0.8,
+            if shop == "out" then "leave the workshop" else "my workshop -- where zones are built")
+        y += 1.1
+    end
     if mine ~= "" then
         core.ui_button(PANEL, "mine", 0.5, y, 12.0, 0.8,
             if f.far_room == mine then "my room: yes -- this frame leads to it" else "my room: no")
@@ -658,10 +670,14 @@ core.event.on("core:ui_click", function(ev)
     end
 
     local f = shown
-    if ev.id == "close" or f == nil then
+    if ev.id == "close" or f == nil or ev.id == "workshop" then
         core.ui_show(PANEL, false, ev.player)
         if viewer == ev.player then
             viewer = 0
+        end
+        if ev.id == "workshop" and not pcall(core.event.emit, "workshop:go",
+            { player = ev.player, leave = string.sub(core.room(), 1, 9) == "workshop-" }) then
+            core.notice(ev.player, "this server has no workshops")
         end
         return
     end

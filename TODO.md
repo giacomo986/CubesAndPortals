@@ -595,13 +595,16 @@ survival levels.
    nothing (driven by a scratch mod emitting core:used and core:ui_click: the
    probe has no panel). The admin told on coming in, show, refuse, the maker
    told. Not seen: the panel and the drawn box on a screen; a block put down
-   coming back (the probe places nothing). Missing: "my workshop" in the
-   frame's menu (only /workshop now); the sandbox's fixtures (the creative box,
-   the bench, the tables) stand in a workshop too; a list's "show" lays beside
-   the admin wherever they stand. Found: the owner (--owner, `portals`) is
-   refused when joining a workshop or a home by name -- "you may look into
-   this room, not go in" -- though room_access_of lets `portals` through: not
-   looked into.
+   coming back (the probe places nothing). Then, the same day: "my workshop"
+   (or "leave the workshop") in every frame's menu, through "workshop:go" (seen
+   by script: the click from the sandbox started the room and sent the player);
+   the workshops' template says `no-plaza` (a new flag: core.plaza() nil, so the
+   mods set no tables, boxes or benches on the floor -- seen: 16 blocks round
+   the spawn without it, none with it); the owner refused by name was the
+   session's name read after the room's rule asked (the name is --owner's),
+   now set before it -- seen: --owner bruno let into anna's workshop, and told
+   it is somebody else's. Missing: a list's "show" lays beside the admin
+   wherever they stand.
    6b. Tools made for each kind of world (chambers: panels, buttons, doors and
    triggers joined; arpg: areas, corridors, lairs; backrooms: rooms and lights;
    parkour: stations with jumps measured; Inferno: fortress pieces; front and

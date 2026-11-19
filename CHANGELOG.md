@@ -29,6 +29,10 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
   back) and proposes it. Blocks put down there are not used up and blocks dug give nothing; the
   bag is the same in every room, so there is no catalogue. A server needs the template
   `[room workshop-*]` in its rooms file; the title screen's worlds and `tools/track.sh` write it.
+  Any portal frame's menu has "my workshop" too.
+- **The owner can come into a player's own room or workshop** by its name: the server read the
+  player's name after asking whether they may, so `--owner` was refused as a stranger.
+- `--no-plaza`: a room without a plaza and nothing else of survival's (the workshops have it).
 - **Proposed zones**: `/zone propose` asks the admins, who are told, and `/page zones` lists what
   waits with show, approve and refuse; `/zone show` lays one zone alone to look at.
 - For mods: `core.room_send` starts a room of the rooms file that is down (or one its template

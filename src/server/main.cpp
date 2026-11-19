@@ -6976,6 +6976,10 @@ int serve_room(int argc, char **argv)
     // (core.plaza() is nil). The world's mode is this and only this: a mod
     // reads the plaza, never the mode.
     bool        survival = false;
+    // --no-plaza: no plaza, and nothing else of survival's -- a world whose
+    // mods make the ground themselves from the first (mods/workshop's flat
+    // floor), where the mods asking core.plaza() at their load must hear nil.
+    bool        no_plaza = false;
     const char *difficulty = nullptr;   // --difficulty NAME (--peaceful): and kept so (host_set_difficulty)
 
     // Whether a player has to say who they are. DESIGN.md 4.4. Off by default,
@@ -7078,6 +7082,8 @@ int serve_room(int argc, char **argv)
             portals = true;
         else if (std::strcmp(argv[i], "--survival") == 0)
             survival = true;
+        else if (std::strcmp(argv[i], "--no-plaza") == 0)
+            no_plaza = true;
         else if (std::strcmp(argv[i], "--peaceful") == 0)
             difficulty = "peaceful";
         else if (std::strcmp(argv[i], "--difficulty") == 0 && i + 1 < argc) {
@@ -7245,7 +7251,7 @@ int serve_room(int argc, char **argv)
     Mapgen mapgen;
     s.mapgen = &mapgen;
     mapgen.set_depth(s.depth);
-    mapgen.biomes().plaza = !survival;
+    mapgen.biomes().plaza = !survival && !no_plaza;
     Vec3 land_spawn{};
     if (survival) {
         land_spawn = spawn_on_land(mapgen_make_context(s.world, s.registry, mapgen.biomes(), seed, s.height));
