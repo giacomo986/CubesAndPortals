@@ -286,8 +286,29 @@ void plat_mouse_delta(float *dx, float *dy)
     if (dy) *dy = d.y;
 }
 
+// A script's buttons: held now, and held the frame before.
+namespace {
+bool g_script_down[3] = {false, false, false};
+bool g_script_was[3]  = {false, false, false};
+}
+
+void plat_script_mouse(plat_mouse_button button, bool down)
+{
+    if ((int)button < 0 || (int)button > 2) return;
+    g_script_was[button]  = g_script_down[button];
+    g_script_down[button] = down;
+}
+
+bool plat_script_mouse_active(void)
+{
+    for (int b = 0; b < 3; ++b)
+        if (g_script_down[b] || g_script_was[b]) return true;
+    return false;
+}
+
 bool plat_mouse_pressed(plat_mouse_button button)
 {
+    if ((int)button >= 0 && (int)button <= 2 && g_script_down[button] && !g_script_was[button]) return true;
     switch (button) {
         case PLAT_MOUSE_LEFT:   return IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
         case PLAT_MOUSE_RIGHT:  return IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
@@ -298,6 +319,7 @@ bool plat_mouse_pressed(plat_mouse_button button)
 
 bool plat_mouse_down(plat_mouse_button button)
 {
+    if ((int)button >= 0 && (int)button <= 2 && g_script_down[button]) return true;
     switch (button) {
         case PLAT_MOUSE_LEFT:   return IsMouseButtonDown(MOUSE_BUTTON_LEFT);
         case PLAT_MOUSE_RIGHT:  return IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
@@ -308,6 +330,7 @@ bool plat_mouse_down(plat_mouse_button button)
 
 bool plat_mouse_released(plat_mouse_button button)
 {
+    if ((int)button >= 0 && (int)button <= 2 && !g_script_down[button] && g_script_was[button]) return true;
     switch (button) {
         case PLAT_MOUSE_LEFT:   return IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
         case PLAT_MOUSE_RIGHT:  return IsMouseButtonReleased(MOUSE_BUTTON_RIGHT);

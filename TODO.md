@@ -49,9 +49,14 @@ what is built, and three or four structural fixes that each close many entries.
 
 ## Test rig (closes many entries below)
 
-- The timed client has `--use-at` (a right click) and no left click or swing:
-  add one. It would check the prop hunt's blow, the track's power-ups, the
-  chambers' gun, the bees' harvest, the arpg's held button.
+- Left click: done 2026-11-19. `--click-at x,y,z[,s]` walks up to a block,
+  looks at it and holds the left button (let go when the block is gone);
+  `--left-at t[,s]` holds it wherever the player looks. Both go down the
+  platform layer (`plat_script_mouse`), so mods hear `mouse_left`, the dig and
+  the swing run. Seen under Xephyr: a sandbox block dug, yafps' server told
+  `fire1` and `fire0`. Network loop only. Still to use it on: the prop hunt's
+  blow, the track's power-ups, the chambers' gun, the bees' harvest, the arpg's
+  held button.
 - "Not heard" is written some thirty times. The cause is the timed client, which
   opens no audio device, not Xephyr: let it open one on a null sink and record
   it (`pw-record` is installed). A script can then check that a sound plays, how

@@ -108,6 +108,15 @@ bool plat_mouse_pressed(plat_mouse_button button);
 bool plat_mouse_down(plat_mouse_button button);
 bool plat_mouse_released(plat_mouse_button button);
 
+// A button held by a script, not a hand (a timed client's --click-at,
+// --left-at): called once a frame, before anything reads the mouse, with
+// whether the script holds it now. pressed / down / released then report it as
+// they report the real one, so the click goes down every path a real one does.
+void plat_script_mouse(plat_mouse_button button, bool down);
+// Whether a script is holding a button this frame or let one go in it: a timed
+// run reads the mouse only then.
+bool plat_script_mouse_active(void);
+
 // Where the pointer is, in window pixels, origin top-left -- the same space
 // gfx_2d_* draws in. Only meaningful while the cursor is NOT grabbed: a grabbed
 // cursor is warped to the middle every frame and its position says nothing.

@@ -14189,6 +14189,20 @@ bool g_use_at = false;
 bool g_keep_portals = false;
 int  g_use_x = 0, g_use_y = 0, g_use_z = 0;
 
+// --click-at "x,y,z[,seconds]": after --use-at and before --walk-path, walk up
+// to that block, look at it and hold the left button on it for that long (0.1
+// s, a click, if not said; longer to dig). The button goes down the platform
+// layer (plat_script_mouse), so the mods hear mouse_left, the dig and the swing
+// run, and the server is told the hand works -- what a real click does.
+bool  g_click_at   = false;
+int   g_click_x = 0, g_click_y = 0, g_click_z = 0;
+float g_click_hold = 0.1f;
+// --left-at "t[,seconds]": t seconds into a timed run, hold the left button for
+// that long (0.1 s if not said) wherever the player looks: the prop hunt's
+// blow, the chambers' gun, a power-up, a held button.
+double g_left_at   = -1.0;
+float  g_left_hold = 0.1f;
+
 // --fly-down N: in a timed single-process run, fly N nodes up and come back
 // down to the ground with nobody at the keyboard, then say what the landing
 // cost. The server's rule -- a flight down is not a fall -- has a copy in this
@@ -16548,6 +16562,15 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
     const double shot_due   = g_shot_at >= 0.0 ? plat_time() + g_shot_at : -1.0;
     bool         shot_taken = false;
     double       press_r_due = g_press_r_at >= 0.0 ? plat_time() + g_press_r_at : -1.0;
+    // --click-at and --left-at: whether the script holds the left button, told
+    // to the platform at the top of the next frame; when --click-at's aim was
+    // first right, its press went down, and whether it is done.
+    bool   script_left   = false;
+    double click_aimed   = -1.0;
+    double click_down    = -1.0;
+    bool   click_done    = !g_click_at;
+    double left_due      = g_left_at >= 0.0 ? plat_time() + g_left_at : -1.0;
+    bool   left_told     = false;
     bool         dropped  = false;
     long         frames   = 0;
 
@@ -16557,6 +16580,8 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
     screen_targets.start();
 
     while (!plat_should_close()) {
+        // Every frame, so a press is one frame's edge and a release another's.
+        plat_script_mouse(PLAT_MOUSE_LEFT, script_left);
         window_keys(show_debug);
         const float  dt  = plat_delta_time();
         const double now = plat_time();
@@ -17131,7 +17156,63 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         const bool used = !g_use_at || (use_sent >= 0.0 && (s.act().movement.drives() ||
                                                             now - use_sent > 2.0));
 
-        if (walk_free && used && walk_point < g_walk_path.size()) {
+        // --click-at: up to the block, the eye on its middle, a moment for the
+        // aim to become the target, then the button held and let go.
+        script_left = false;
+        if (walk_free && used && !click_done) {
+            const Vec3 block{g_click_x + 0.5f, g_click_y + 0.5f, g_click_z + 0.5f};
+            const Vec3 gap{block.x - player.pos.x, 0.0f, block.z - player.pos.z};
+            if (click_aimed < 0.0 && length(gap) > 2.5f) {
+                player.pitch    = 0.0f;
+                player.yaw      = std::atan2(gap.x, -gap.z);
+                in.move_forward = 1.0f;
+            } else {
+                const Vec3  d    = block - player.eye();
+                const float flat = std::sqrt(d.x * d.x + d.z * d.z);
+                player.yaw   = std::atan2(d.x, -d.z);
+                player.pitch = std::atan2(d.y, flat);
+                if (click_aimed < 0.0) click_aimed = now;
+                const bool on_it = s.target.hit && s.target.x == g_click_x && s.target.y == g_click_y &&
+                                   s.target.z == g_click_z;
+                if (click_down < 0.0 && now - click_aimed > 0.25 && (on_it || now - click_aimed > 2.0)) {
+                    click_down = now;
+                    std::printf("left button on the block at %d %d %d%s from %.2f %.2f %.2f, %.1f s in\n",
+                                g_click_x, g_click_y, g_click_z,
+                                on_it ? "" : " (not the target: aimed at it anyway)",
+                                (double)player.pos.x, (double)player.pos.y, (double)player.pos.z,
+                                now - started);
+                }
+                // Let go once the block is gone, too: held on, the aim would go on
+                // into whatever is behind it, and a test asked for one block.
+                const bool gone = click_down >= 0.0 &&
+                                  s.act().world.get_block(g_click_x, g_click_y, g_click_z) == kAir;
+                if (click_down >= 0.0) {
+                    if (now - click_down < g_click_hold && !gone) {
+                        script_left = true;
+                    } else {
+                        click_done = true;
+                        std::printf("left button up after %.2f s%s, %.1f s in\n", now - click_down,
+                                    gone ? ", the block gone" : "", now - started);
+                    }
+                }
+            }
+        }
+        // --left-at: wherever the player looks.
+        if (left_due >= 0.0 && now >= left_due) {
+            if (now < left_due + g_left_hold) {
+                script_left = true;
+                if (!left_told) {
+                    left_told = true;
+                    std::printf("left button down, %.1f s into the run\n", now - started);
+                }
+            } else {
+                left_due = -1.0;
+                std::printf("left button up, %.1f s into the run\n", now - started);
+            }
+        }
+        const bool clicked = click_done;
+
+        if (walk_free && used && clicked && walk_point < g_walk_path.size()) {
             const Vec3 &to = g_walk_path[walk_point];
             const Vec3  gap{to.x - player.pos.x, 0.0f, to.z - player.pos.z};
             // Wider for a body driving fast: one that misses a point by two
@@ -17831,7 +17912,8 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             // The server shows everybody what is in this square, so it is told
             // when the square changes -- and again on every new connection.
             s.working = s.dig_progress > 0.0f ||
-                        (plat_cursor_grabbed() && plat_mouse_down(PLAT_MOUSE_LEFT));
+                        ((plat_cursor_grabbed() || plat_script_mouse_active()) &&
+                         plat_mouse_down(PLAT_MOUSE_LEFT));
             s.arms_clip = body_arms_clip(s.act(), player);
             hold_arms(s, player);
             static const net::ClientSession *told_conn    = nullptr;
@@ -18177,7 +18259,9 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         // it was last given: letting go, aiming at the sky or opening the bag
         // half way through a dig left a half-full bar on screen until the next
         // dig started -- seen in play.
-        const bool playing_input = plat_cursor_grabbed() && !s.hotbar.open && seconds <= 0.0;
+        // A timed run reads the mouse only while its script holds a button.
+        const bool playing_input =
+            (seconds <= 0.0 ? plat_cursor_grabbed() : plat_script_mouse_active()) && !s.hotbar.open;
         const bool claimed_right = claim_buttons(s, playing_input);
         // The world's code on this machine hears time pass, as the server's
         // mods do: a clock it shows, a first word once there is a server to
@@ -22180,6 +22264,19 @@ int client_main(int argc, char **argv)
         if (std::strcmp(argv[i], "--keep-portals") == 0) {
             g_keep_portals = true;
             continue;
+        }
+        if (std::strcmp(argv[i], "--click-at") == 0 && i + 1 < argc) {
+            float     hold = 0.1f;
+            const int n = std::sscanf(argv[++i], "%d,%d,%d,%f", &g_click_x, &g_click_y, &g_click_z, &hold);
+            g_click_at   = n >= 3;
+            g_click_hold = n == 4 && hold > 0.0f ? hold : 0.1f;
+        }
+        if (std::strcmp(argv[i], "--left-at") == 0 && i + 1 < argc) {
+            double    t    = -1.0;
+            float     hold = 0.1f;
+            const int n    = std::sscanf(argv[++i], "%lf,%f", &t, &hold);
+            g_left_at   = n >= 1 ? t : -1.0;
+            g_left_hold = n == 2 && hold > 0.0f ? hold : 0.1f;
         }
         if (std::strcmp(argv[i], "--use-at") == 0 && i + 1 < argc)
             g_use_at = std::sscanf(argv[++i], "%d,%d,%d", &g_use_x, &g_use_y, &g_use_z) == 3;
