@@ -35,6 +35,7 @@ using namespace cnp::net;
 namespace {
 
 float g_travel = 0.0f;    // --travel: blocks to fly along +x after joining
+std::string g_room;       // --room NAME: that room of the server, joined straight
 float g_hold   = 35.0f;   // --hold: seconds to hover at the end of it
 int   g_dig    = 0;       // --dig: blocks to break beside the spawn first (/rollback)
 bool  g_pack   = false;   // --pack: wear what is in square 1 on the back, then /packfill
@@ -81,6 +82,7 @@ int join_mode(const char *host, uint16_t port, const char *name, int extent,
 
     ClientConfig cfg;
     cfg.host    = host;
+    cfg.room    = g_room;
     cfg.port    = port;
     cfg.encrypt = encrypt;
 
@@ -442,6 +444,7 @@ int main(int argc, char **argv)
         if (arg == "--server-key" && i + 1 < argc) pin = argv[++i];
         if (arg == "--identity" && i + 1 < argc) g_identity = argv[++i];
         if (arg == "--play") g_play = true;
+        if (arg == "--room" && i + 1 < argc) g_room = argv[++i];
         if (arg == "--walk" && i + 1 < argc) g_walk = (float)std::atof(argv[++i]);
         if (arg == "--travel" && i + 1 < argc) g_travel = (float)std::atof(argv[++i]);
         if (arg == "--hold" && i + 1 < argc) g_hold = (float)std::atof(argv[++i]);

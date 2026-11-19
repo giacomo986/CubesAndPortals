@@ -19287,17 +19287,9 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             // ticket: it is the same server, it knows this player, and a
             // ticket from itself to itself is a check that can only go stale
             // -- one held across the arena's fight was refused at its way out.
-            // Settled as "none": nothing asked, nothing presented. Tickets are
-            // for a world on ANOTHER server, which has no reason to trust us.
-            // ponytail: a server run with --require-ticket and several rooms
-            // would refuse this; none is (it is for crossings between servers),
-            // and if one ever is, its rooms should admit a player of their own.
-            if (to.host == conn->host() && to.port == conn->port()) {
-                mo.ticket_asked   = true;
-                mo.ticket_settled = true;
-                mo.have_ticket    = false;
-                mo.ticket_renew   = false;
-            }
+            // A room of this same server wants one too (protocol 127): a room
+            // of several that is not the first is gone into only with a ticket
+            // signed for it, which the room this player stands in signs.
             // A ticket lives kTicketLifetime and was asked for once, when the
             // window opened. Held across a long stay -- an arena whose way out
             // opens only once it is won -- it was presented after it ran out,

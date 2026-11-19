@@ -958,7 +958,8 @@ public:
     // A ticket from this world to another room of this same server, for its
     // spawn (kSpawnOpening) or one of its openings: core.room_send. False with
     // why when this world cannot sign one or the player has no identity.
-    bool issue_ticket_here(PeerId peer, uint32_t portal_id, PortalTicket &out, std::string &why);
+    bool issue_ticket_here(PeerId peer, uint32_t portal_id, const std::string &room, PortalTicket &out,
+                           std::string &why);
 
     using CrossingSeen = std::function<void(const uint8_t *issuer, PeerId who)>;
     void set_crossing_seen(CrossingSeen seen) { m_crossing_seen = std::move(seen); }

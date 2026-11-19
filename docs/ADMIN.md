@@ -356,6 +356,13 @@ tickets another server signs, `--require-ticket` takes nobody else. A client cro
 that the far server's key is the one the link names, through a portal window and through the
 slow redirect alike. `/portals` shows both directions.
 
+**Between the rooms of one server** a ticket is always needed, with or without
+`--require-ticket`: a room that is not the server's first is joined straight only to look into
+it (a portal's window), and gone into only with a ticket the room the player stands in signs for
+that room by name -- a ticket for one room is no good at another, though all share the key. The
+first room is joined as always. A client older than protocol 127 asks for no such ticket and is
+not let in.
+
 ### Portals between rooms, built in the world
 
 On a server of several rooms a frame of `portal:frame` (eight frames round an iron ingot) can lead

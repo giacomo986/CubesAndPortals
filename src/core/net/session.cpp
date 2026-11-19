@@ -343,6 +343,13 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
         // (core.room_access): a player's own room says who. The rule reads the
         // name (the owner is --owner's name), so it is theirs from here.
         s.name = hello.player_name;   // a pending session's: negotiate() below may still refuse it
+        // A room gone into only through its portals is joined straight only
+        // to look into it.
+        if (m_config.enter_by_ticket && hello.scope == Scope::Enter)
+            return refuse_and_close(RefuseReason::BadTicket,
+                                    "this room is gone into through a portal, not joined",
+                                    "refused '" + hello.player_name +
+                                        "': joined room '" + m_config.room + "' straight");
         if (m_scope_check) {
             std::string why;
             if (!m_scope_check(s, hello.scope, why))
@@ -1614,7 +1621,8 @@ bool ServerSessions::issue_ticket(PeerId peer, const TicketRequest &req, double 
         return false;
     }
 
-    const std::vector<uint8_t> msg = ticket_challenge(out);
+    // For the room the opening leads to, and no other of that server.
+    const std::vector<uint8_t> msg = ticket_challenge(out, away.room);
     sign_message(m_ticket_key, msg.data(), msg.size(), out.signature);
 
     ++s->tickets_issued;
@@ -1622,7 +1630,8 @@ bool ServerSessions::issue_ticket(PeerId peer, const TicketRequest &req, double 
     return true;
 }
 
-bool ServerSessions::issue_ticket_here(PeerId peer, uint32_t portal_id, PortalTicket &out, std::string &why)
+bool ServerSessions::issue_ticket_here(PeerId peer, uint32_t portal_id, const std::string &room,
+                                       PortalTicket &out, std::string &why)
 {
     const Session *s = find(peer);
     if (!s || s->state != SessionState::Ready) {
@@ -1647,7 +1656,7 @@ bool ServerSessions::issue_ticket_here(PeerId peer, uint32_t portal_id, PortalTi
     out.scopes    = kTicketScopes;
     out.issued    = unix_now;
     out.expires   = unix_now + kTicketLifetime;
-    const std::vector<uint8_t> msg = ticket_challenge(out);
+    const std::vector<uint8_t> msg = ticket_challenge(out, room);
     sign_message(m_ticket_key, msg.data(), msg.size(), out.signature);
     return true;
 }
@@ -1730,9 +1739,11 @@ bool ServerSessions::ticket_admits(const PortalTicket &t, const Session &s, uint
         return false;
     }
 
-    // Last, because it is the expensive one.
-    if (!ticket_signed_by_issuer(t)) {
-        why = "the signature on the ticket is not that issuer's";
+    // Last, because it is the expensive one. Signed for this room by its
+    // name, or for the first room by none.
+    if (!ticket_signed_by_issuer(t, m_config.room) &&
+        !(m_config.first_room && !m_config.room.empty() && ticket_signed_by_issuer(t, ""))) {
+        why = "the signature on the ticket is not that issuer's, or it is for another room";
         return false;
     }
 
@@ -2550,9 +2561,10 @@ bool ServerSessions::change_scope(PeerId peer, const ChangeScope &req, double no
         s->admitted_by_ticket = true;   // and by whom: whose bag it is (src/server/admin.h)
         std::memcpy(s->ticket_issuer, req.ticket.issuer, kSignPublicBytes);
         if (m_crossing_seen) m_crossing_seen(req.ticket.issuer, peer);
-    } else if (m_config.require_ticket) {
+    } else if (m_config.require_ticket || m_config.enter_by_ticket) {
         reason = RefuseReason::BadTicket;
-        why    = "this world only takes players it has been vouched for";
+        why    = m_config.enter_by_ticket ? "this room is gone into with a ticket for it, through a portal"
+                                          : "this world only takes players it has been vouched for";
         return false;
     }
 

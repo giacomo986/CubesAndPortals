@@ -40,9 +40,6 @@ what is built, and three or four structural fixes that each close many entries.
   `core.get_block` reading air on a column not in memory; 20 ms a tick on columns
   on a listening server; the welcome's hash covering the region only; a furnace's
   clock starting again past a restart.
-- A world without `--require-ticket` lets a modified client walk into a room by
-  naming it; a ticket for one room is good at every room of the server. Proposal:
-  tickets always required between rooms, and bound to the room.
 - Distribution: macOS, real Windows, signing, app id, OPEN-39, OPEN-52 (below).
 - Track key: 32.0 s is the scripted driver's pace, possibly too hard by hand.
 - Lab: 1000 points, 36 a shotgun shot, orbs of 3 are guesses.
@@ -628,6 +625,16 @@ survival levels.
    assault: bases and points).
 7. Each world onto zones: chambers (done 2026-11-19, 6b), arpg, backrooms, parkour, Inferno, then the
    front and the assault after their shared library (Structure).
+
+Tickets between rooms: decided and done 2026-11-19 (protocol 127). A room past
+the server's first takes a body only with a ticket signed for it by name (the
+room is under the signature, ticket_challenge; "" signs what it always did, and
+the first room takes that too), with or without --require-ticket; joined
+straight it is only looked into. The client now asks a ticket for a room of
+its own server. Seen: the real client (Xephyr, --mouths 0) crossed a into b on
+b's ticket and was given one back; the probe's new --room b refused, --room a
+let in; a ticket signed for "a" refused at "b" (protocol_test). Not seen:
+core.room_send's redirect followed by a client (the probe follows none).
 
 Rooms starting while others run: fixed 2026-11-19. A room started from the
 rooms file held the rooms' lock for its whole start; an inferno room stopped

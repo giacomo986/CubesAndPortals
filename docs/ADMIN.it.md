@@ -360,6 +360,13 @@ attraversa controlla che la chiave del server lontano sia quella che il collegam
 attraverso una finestra di portale come attraverso il redirect lento. `/portals` mostra le due
 direzioni.
 
+**Tra le stanze di un server** il biglietto serve sempre, con o senza `--require-ticket`: in una
+stanza che non è la prima del server si entra direttamente solo per guardarci dentro (la finestra
+di un portale), e ci si entra davvero solo con un biglietto che la stanza in cui si sta firma per
+quella stanza, per nome -- un biglietto per una stanza non vale per un'altra, anche se la chiave è
+la stessa. Nella prima stanza si entra come sempre. Un client più vecchio del protocollo 127 non
+chiede quel biglietto e non viene fatto entrare.
+
 ### Portali tra stanze, costruiti nel mondo
 
 Su un server con più stanze una cornice di `portal:frame` (otto cornici attorno a un lingotto di

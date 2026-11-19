@@ -1960,7 +1960,7 @@ int host_room_send(void *ud, int player, const char *room)
     r.portal_id = net::kSpawnOpening;
     r.reason    = "sent to the spawn of room '" + to + "'";
     std::string why;
-    r.has_ticket = s->sessions->issue_ticket_here((net::PeerId)player, net::kSpawnOpening, r.ticket, why);
+    r.has_ticket = s->sessions->issue_ticket_here((net::PeerId)player, net::kSpawnOpening, to, r.ticket, why);
     if (!r.has_ticket) std::printf("        no ticket for '%s' to room '%s': %s\n", sess->name.c_str(), to.c_str(), why.c_str());
     s->mod_sends.emplace_back((net::PeerId)player, r.encode());
     std::printf("        '%s' sent to the spawn of room '%s'\n", sess->name.c_str(), to.c_str());
@@ -8391,6 +8391,10 @@ int serve_room(int argc, char **argv)
         config.allow_observers  = allow_observers;
         config.require_ticket   = require_ticket;
         config.room             = g_router.rooms[(size_t)g_room].name;
+        // A room of several that is not the first is gone into only through
+        // a portal, with a ticket for it (TODO.md, decided 2026-11-19).
+        config.first_room       = g_room == 0;
+        config.enter_by_ticket  = g_room != 0;
         config.has_sky          = s.has_sky;
         std::memcpy(config.sky, s.sky, 3);
         config.has_storm        = s.has_storm;

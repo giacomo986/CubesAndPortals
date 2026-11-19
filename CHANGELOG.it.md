@@ -7,6 +7,13 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
 ## Prossima alpha (non ancora consegnata)
 
+**Non gioca con la 0.19.0-alpha.1** (protocollo 127): in una stanza di un server di più stanze,
+dopo la prima, si entra solo con un biglietto firmato per quella stanza, che un client più vecchio
+non chiede.
+
+- **Nelle stanze si entra solo dai loro portali**: entrando direttamente, una stanza dopo la prima
+  del server si può solo guardare; un biglietto per una stanza non fa più entrare in un'altra dello
+  stesso server. `cnp_join_probe --room NOME` entra direttamente in una stanza, per i test.
 - **Appena entrati**, le creature, i binari e le cose in mano vicino a voi si leggono prima del
   resto dei modelli del mondo, e un binario o un altro blocco con un modello non ancora letto si
   vede come le sue scatole invece di non vedersi affatto.

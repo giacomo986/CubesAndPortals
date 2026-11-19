@@ -1140,7 +1140,7 @@ void write_ticket_fields(ByteWriter &w, const PortalTicket &t)
 
 } // namespace
 
-std::vector<uint8_t> ticket_challenge(const PortalTicket &t)
+std::vector<uint8_t> ticket_challenge(const PortalTicket &t, const std::string &room)
 {
     ByteWriter w;
     // The label, so a ticket cannot be read as any other thing this protocol
@@ -1150,12 +1150,16 @@ std::vector<uint8_t> ticket_challenge(const PortalTicket &t)
     const char *label = "cnp1 portal ticket";
     for (const char *c = label; *c; ++c) w.u8((uint8_t)*c);
     write_ticket_fields(w, t);
+    if (!room.empty()) {
+        for (const char *c = " room "; *c; ++c) w.u8((uint8_t)*c);
+        for (const char c : room) w.u8((uint8_t)c);
+    }
     return w.data();
 }
 
-bool ticket_signed_by_issuer(const PortalTicket &t)
+bool ticket_signed_by_issuer(const PortalTicket &t, const std::string &room)
 {
-    const std::vector<uint8_t> msg = ticket_challenge(t);
+    const std::vector<uint8_t> msg = ticket_challenge(t, room);
     return verify_message(t.issuer, msg.data(), msg.size(), t.signature);
 }
 

@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 126; // 126 world code may be api 2 (yes/no calls answer true/false); 125 kSpawnOpening, arriving at a room's spawn; 124 a person's left hand (EntityState::off_item); 123 kMaxNodeShapes 2048; 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
+inline constexpr uint16_t kProtocol    = 127; // 127 a room of several entered with a ticket signed for it; 126 world code may be api 2 (yes/no calls answer true/false); 125 kSpawnOpening, arriving at a room's spawn; 124 a person's left hand (EntityState::off_item); 123 kMaxNodeShapes 2048; 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -399,7 +399,11 @@ inline constexpr uint16_t kProtocol    = 126; // 126 world code may be api 2 (ye
 // And a world offer 8192 media (kMaxMediaItems), refused by a 122 past 4096.
 // 124 gives a person a left hand (EntityState::off_item, bit 64 of the byte
 // after their flags), which a 123 client refuses as a bit it does not know.
-inline constexpr uint16_t kMinProtocol = 124;
+// 127 signs a ticket for the room it lets into, and a room of several that is
+// not the first takes nobody without one: a 126 client asks none for a room of
+// its own server and would be refused at every step into one, so it is not
+// let in at all.
+inline constexpr uint16_t kMinProtocol = 127;
 
 // What a player picked to look like (protocol 93): the three colours of their
 // model's tint_1..3 materials -- primary, secondary, accent -- five bits each,
@@ -898,12 +902,18 @@ struct PortalTicket {
 // Exactly the bytes the signature covers, with a label in front so a ticket can
 // never be read as some other thing this protocol signs. The signature itself
 // is not in here, which is the whole point of it being a separate function.
-std::vector<uint8_t> ticket_challenge(const PortalTicket &t);
+//
+// And the room it lets into: a room of a server of several (protocol 56) is
+// part of what is signed, so a ticket for one room is not good at another of
+// the same server, which has the same key. "" -- a server of one world, or a
+// ticket for the first room by no name -- signs exactly the bytes it always
+// did.
+std::vector<uint8_t> ticket_challenge(const PortalTicket &t, const std::string &room = "");
 
 // Whether the signature on this ticket is the issuer's. Says nothing about
 // whether the ticket should be honoured -- trust, audience, expiry and scope
 // are policy, and policy lives with the server that has one.
-bool ticket_signed_by_issuer(const PortalTicket &t);
+bool ticket_signed_by_issuer(const PortalTicket &t, const std::string &room = "");
 
 // A client asking the world it is standing in for a ticket to the world its
 // portal leads to. It names what it wants to do over there; the server decides
@@ -2600,6 +2610,12 @@ struct ServerConfig {
 
     // This world's name among the server's rooms, told in the Welcome.
     std::string room;
+    // Whether it is the server's first room, which a ticket signed for no
+    // room ("") lets into too; and whether nobody goes in but through one of
+    // its portals -- a room of several that is not the first: joined straight
+    // only to look, and crossed into only with a ticket signed for it.
+    bool first_room      = true;
+    bool enter_by_ticket = false;
 
     // And its sky, when it has one of its own (core.world_sky), or its storm
     // (core.world_storm).

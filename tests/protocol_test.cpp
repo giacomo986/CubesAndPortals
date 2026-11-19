@@ -1662,6 +1662,19 @@ int main()
         check(caught == 6, "and changing ANY field under it breaks that signature");
         std::printf("        6 of 6 single-field edits are caught by the signature\n");
 
+        // A room of a server of several is under the signature too: the same
+        // ticket signed for room "a" is no good at room "b" of the same key,
+        // and one signed for no room is the bytes it always was.
+        {
+            PortalTicket r = t;
+            const auto msg = ticket_challenge(r, "a");
+            sign_message(issuer, msg.data(), msg.size(), r.signature);
+            check(ticket_signed_by_issuer(r, "a") && !ticket_signed_by_issuer(r, "b") &&
+                      !ticket_signed_by_issuer(r),
+                  "a ticket signed for a room is good there and nowhere else");
+            check(ticket_challenge(t) == ticket_challenge(t, ""), "and one for no room signs what it always did");
+        }
+
         // What the decoder refuses before policy ever sees it.
         PortalTicket empty_scope = t;
         empty_scope.scopes       = 0;

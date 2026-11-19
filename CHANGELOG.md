@@ -7,6 +7,13 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
 ## Next alpha (not handed out yet)
 
+**Does not play with 0.19.0-alpha.1** (protocol 127): a room of a server of several, past the
+first, is gone into only with a ticket signed for that room, which an older client does not ask
+for.
+
+- **Rooms are entered only through their portals**: joined straight, a room past the server's
+  first is only looked into; a ticket for one room no longer lets into another of the same server.
+  `cnp_join_probe --room NAME` joins a room straight, for testing.
 - **Right after joining**, the creatures, rails and things in hand near you are read before the
   rest of the world's models, and a rail or another model block not read yet is drawn as its
   boxes instead of not at all.
