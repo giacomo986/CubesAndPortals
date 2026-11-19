@@ -186,6 +186,12 @@ public:
         m_on_disabled = std::move(fn);
     }
 
+    // Called by load_dirs after each mod it starts, loaded or refused. Between
+    // two mods the host is as settled as between two ticks, and a server with
+    // several rooms lets the others have a turn here: one room's fifty mods
+    // loading held every other room still for three seconds.
+    void set_between_mods(std::function<void()> fn) { m_between_mods = std::move(fn); }
+
     // Disables one mod, by the VM its code is running in. Public because a
     // system that errored is not an event handler, and whoever runs those has
     // to be able to say so through the one place that knows what disabling a
@@ -297,6 +303,7 @@ private:
     ModHostCallbacks m_cb{};
     std::function<void(script_vm *)> m_on_vm_gone;
     std::function<void(const std::string &, const std::string &)> m_on_disabled;
+    std::function<void()>                                         m_between_mods;
     EventBus         m_bus;
     std::vector<Mod> m_mods;
     std::string      m_package_cache;

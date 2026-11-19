@@ -391,7 +391,8 @@ mods games/inferno/mods
 Such a room takes what comes before the first `--room` on the command line, as the others do, and
 then its own flags. It **starts when something leads to it**: a player comes near a portal linked
 to one of its portals, a player asks for it by name when joining, or `/room start NAME`. While it
-starts the other rooms wait (a second or two for a small world). It **saves and stops** a minute
+starts the other rooms keep running: it lets them have a turn after each of its mods and each column
+its mods generate, so they stand still about a quarter of a second at most. It **saves and stops** a minute
 after the last player left it and nobody stands near a portal onto it, or with `/room stop NAME`
 when it is empty; a portal that led to it reads "waiting" and starts it again when somebody comes
 near. The rooms the server started with never stop before the server does.

@@ -899,6 +899,7 @@ int ModHost::load_dirs(const std::vector<std::string> &dirs)
             done[i] = true;
             ++started;
             progress = true;
+            if (m_between_mods) m_between_mods();
         }
 
         // A cycle: nothing is ready and nothing ever will be. Start what is
@@ -910,6 +911,7 @@ int ModHost::load_dirs(const std::vector<std::string> &dirs)
                 start_mod(pending[i]);
                 done[i] = true;
                 ++started;
+                if (m_between_mods) m_between_mods();
             }
         }
     }

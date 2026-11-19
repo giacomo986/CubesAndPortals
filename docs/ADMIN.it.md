@@ -396,8 +396,9 @@ mods games/inferno/mods
 Una stanza così prende quello che sta prima del primo `--room` sulla riga di comando, come le
 altre, e poi i propri flag. **Parte quando qualcosa ci porta**: un giocatore si avvicina a un
 portale collegato a uno dei suoi, un giocatore la chiede per nome entrando, oppure
-`/room start NOME`. Mentre parte le altre stanze aspettano (un secondo o due per un mondo
-piccolo). **Salva e si ferma** un minuto dopo che l'ultimo giocatore è uscito e nessuno sta vicino
+`/room start NOME`. Mentre parte le altre stanze continuano a girare: dopo ognuno dei suoi mod e
+ogni colonna che i suoi mod generano lascia loro un turno, così stanno ferme al più un quarto di
+secondo circa. **Salva e si ferma** un minuto dopo che l'ultimo giocatore è uscito e nessuno sta vicino
 a un portale che ci porta, oppure con `/room stop NOME` quando è vuota; un portale che ci portava
 dice "in attesa" e la fa ripartire quando qualcuno si avvicina. Le stanze con cui il server è
 partito non si fermano prima del server.

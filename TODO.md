@@ -529,8 +529,7 @@ survival levels.
    once open (fixed). A level of zones laid in a client's world, seen only in
    part (the test's camera cannot look down). Missing: the client's title screen and
    `tools/track.sh` still write their own list of the rooms they start with;
-   the other rooms wait while one starts (it takes the rooms' lock for the
-   whole of its start); new rules (PvP, who may build, flight, a fixed
+   new rules (PvP, who may build, flight, a fixed
    hour); one page for all the rooms (each room's World page is its own:
    an admin stands in a room to set it). Since 2026-11-12 rules are
    declared by the mod that reads them (`rules:declare`: hunger, weather,
@@ -570,6 +569,15 @@ survival levels.
    assault: bases and points).
 7. Each world onto zones: chambers, arpg, backrooms, parkour, Inferno, then the
    front and the assault after their shared library (Structure).
+
+Rooms starting while others run: fixed 2026-11-19. A room started from the
+rooms file held the rooms' lock for its whole start; an inferno room stopped
+the two rooms already up for 2.9 s. It now lets go after each mod it loads
+(ModHost::set_between_mods), after each startup column its mods' stages
+generate, and while it builds its media; the rooms the server starts with
+still start one after another (the first's store is everybody's
+core.shared_storage). Measured: the worst tick of the rooms already up
+214-258 ms (one column's five stages), down from 2.9 s.
 
 A player's own room is a room of the server with a world of its own, one a
 player (not the pocket hall, which stays what it is): made the first time its

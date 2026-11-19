@@ -6928,6 +6928,16 @@ void bag_late_here(const uint8_t *identity)
 
 } // namespace
 
+// Whether this thread is a room started while the server runs (--rooms-file),
+// which lets the rooms already up have turns while it starts. Not the rooms the
+// server starts with: they start one after the other, as they always have, so
+// the first is up -- its store the others' core.shared_storage_* -- before the
+// second's mods load.
+bool starting_hot()
+{
+    return g_router.rooms.size() > 1 && g_room >= 0 && (size_t)g_room < kRoomSlots && g_hot.hot[g_room];
+}
+
 int serve_room(int argc, char **argv)
 {
 
@@ -7606,6 +7616,19 @@ int serve_room(int argc, char **argv)
         // A mod an error switched off, told to whoever here may read the logs:
         // the line on stderr is read by nobody while the world is played, and
         // a level that does not open was found weeks after it stopped opening.
+        // One mod at a time with the rooms' lock: a room starting while the
+        // server runs (--rooms-file) loaded its fifty mods in one hold, and the
+        // rooms already up stood still for three seconds -- their players'
+        // karts, claims and chats with them. Between two mods this room is as
+        // settled as between two ticks, and it is not published yet (its
+        // RoomShared pointers are set once it is up), so the others see a room
+        // that is not there, which they already know how to read.
+        s.mods.set_between_mods([] {
+            if (!starting_hot()) return;
+            let_go_of_rooms();
+            std::this_thread::yield();
+            take_rooms();
+        });
         s.mods.set_disabled([&s](const std::string &mod, const std::string &why) {
             if (!s.sessions) return;
             const std::string line = "[mod] " + mod + " switched off: " + why;
@@ -7907,7 +7930,17 @@ int serve_room(int argc, char **argv)
             // all. The light for everything they wrote comes when the region
             // is lit, below the world file.
             size_t failed = 0;
-            each_startup([&](ColumnPos c) { failed += run_mod_stages(s, c); });
+            // A turn for the other rooms after each column, as after each mod:
+            // the inferno's five stages over 36 columns are two seconds, which
+            // in one hold stopped every room already up for those two seconds.
+            each_startup([&](ColumnPos c) {
+                failed += run_mod_stages(s, c);
+                if (starting_hot()) {
+                    let_go_of_rooms();
+                    std::this_thread::yield();
+                    take_rooms();
+                }
+            });
 
             if (!quiet)
                 std::printf("        %zu mapgen stage(s) from mods over %d column(s), %zu "
@@ -8816,6 +8849,14 @@ int serve_room(int argc, char **argv)
         // wire carries names, and a name is not enough to bake anything from.
         MediaSet media;
         {
+            // Without the rooms' lock: files read and a set built that is this
+            // room's alone, and for a world of inferno's size seconds of it --
+            // seconds every room already up stood still for. Taken back before
+            // the sessions are given the set, the first thing here another
+            // room can see (they are published above).
+            const bool media_unlocked = starting_hot();
+            if (media_unlocked) let_go_of_rooms();
+            const auto t_media = std::chrono::steady_clock::now();
             const MediaBuildStats st = build_media_set(s.registry, textures_dir, media, fallback_textures);
 
             // And the item squares, into the same set. A tool is not a block
@@ -8869,11 +8910,14 @@ int serve_room(int argc, char **argv)
                                 offered, (double)bytes / 1024.0);
             }
 
+            const double media_seconds = seconds_since(t_media);
+            if (media_unlocked) take_rooms();
             sessions.set_media(&media);
             std::printf("        media: %zu file(s), %zu distinct, %.1f KB (%d drawn, %d "
-                        "generated); the offer a join carries is %zu bytes\n",
+                        "generated) in %.2f s%s; the offer a join carries is %zu bytes\n",
                         media.names(), media.blobs(), (double)media.total_bytes() / 1024.0,
-                        st.from_file, st.generated,
+                        st.from_file, st.generated, media_seconds,
+                        media_unlocked ? ", the other rooms running meanwhile" : "",
                         sessions.media_offer_message().encode().size());
 
             if (ist.files > 0)
