@@ -5,6 +5,20 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
+## Prossima alpha (non ancora consegnata)
+
+- **Appena entrati**, le creature, i binari e le cose in mano vicino a voi si leggono prima del
+  resto dei modelli del mondo, e un binario o un altro blocco con un modello non ancora letto si
+  vede come le sue scatole invece di non vedersi affatto.
+- **Una stanza che parte a server acceso** non ferma più le altre: stavano ferme fino a tre
+  secondi mentre si caricava una stanza dell'inferno, ora al più un quarto di secondo circa.
+- **I cancelli di un mondo survival** lasciano liberi i portali vicino a cui non c'è nessuno, così
+  anche lì i portali tra stanze costruiti a mano hanno bocche da prendere in prestito.
+- **Per i test**: il client temporizzato sa fare clic sinistro (`--click-at x,y,z[,s]`,
+  `--left-at t[,s]`) e registrare quello che suona (`--record-audio FILE.wav`, su un'uscita che
+  nessuno sente con `tools/null_sink.sh`); `tools/audio_check.py` dice quando c'era suono e quanto
+  forte.
+
 ## 0.19.0-alpha.1 — 2026-11-19
 
 **Non gioca con i server 0.18** (protocollo 126): il codice dei mondi può essere in `api = 2`, che un

@@ -5,6 +5,19 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
+## Next alpha (not handed out yet)
+
+- **Right after joining**, the creatures, rails and things in hand near you are read before the
+  rest of the world's models, and a rail or another model block not read yet is drawn as its
+  boxes instead of not at all.
+- **A room starting while the server runs** no longer stops the others: they stood still for up to
+  three seconds while an inferno room loaded, now for about a quarter of a second at most.
+- **A survival world's gates** let go of the portals nobody is near, so portals between rooms
+  built by hand have mouths to borrow there too.
+- **For testing**: the timed client can left click (`--click-at x,y,z[,s]`, `--left-at t[,s]`) and
+  record what it plays (`--record-audio FILE.wav`, on a sink nobody hears with
+  `tools/null_sink.sh`); `tools/audio_check.py` says when there was sound and how loud.
+
 ## 0.19.0-alpha.1 — 2026-11-19
 
 **Does not play with 0.18 servers** (protocol 126): a world's code may be on `api = 2`, which a
