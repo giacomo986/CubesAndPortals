@@ -206,6 +206,21 @@ bool mod_package_read_dir(const std::string &dir, ModPackage &out, std::string &
             (fs::relative(it->path().parent_path(), root, ec) / it->path().filename()).lexically_normal().generic_string();
         if (!mod_package_path_is_safe(rel, error)) return false;
 
+        // But only a script by a link that leaves the mod. What is packed is
+        // sent to every player who joins, and a mod someone downloaded could
+        // carry a link to ~/.ssh/id_rsa under any name it liked: before the
+        // change above such a link was refused by accident. A link inside the
+        // mod is the mod's own file; one out of it may only reach a .luau.
+        if (it->is_symlink(ec)) {
+            const fs::path target = fs::canonical(it->path(), ec);
+            const fs::path base   = fs::canonical(root, ec);
+            const std::string t = target.generic_string(), b = base.generic_string() + "/";
+            if (t.rfind(b, 0) != 0 && target.extension() != ".luau") {
+                error = rel + " is a link out of the mod to a file that is not a .luau";
+                return false;
+            }
+        }
+
         ModPackageFile f;
         f.path = rel;
         if (!read_whole_file(it->path(), f.bytes)) {
