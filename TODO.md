@@ -489,9 +489,9 @@ survival levels.
    plaza, pocket's mouths with no door). Server only, no protocol change.
    Seen in a client: through a frame of room b into room a's, on a lent mouth;
    the lender placed again and the portal moved to another mouth, the far end
-   following. Missing: the world's own mouths are not scheduled -- a placed
-   gate keeps its mouth with nobody near, so a survival sandbox, which parks
-   nothing, has none to lend (`mods/gates` to park the sites nobody is near);
+   following. A survival sandbox's gates park every mouth and arch
+   no site near a player wants (2026-11-19, `mods/gates`), so it has mouths
+   to lend; seen by script: both mouths parked once at the start. Missing:
    portals to other servers still hold a mouth each (Limits); a player
    arriving in the half second a lent mouth changes hands comes out of
    whatever holds that index; a room that is a pair of openings and no mouth

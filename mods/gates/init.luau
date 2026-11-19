@@ -721,15 +721,31 @@ local near: { [number]: Site } = {}      -- the site each player here stands at,
 local who_is: { [number]: string } = {}  -- each player here, by who
 local pinned: { [string]: { [string]: boolean } } = {}   -- pins sent this run, by who
 local since = 0.0
+-- The mouths parked now (core.portal_park): at no site, so the server may lend
+-- them to portals between rooms built by hand -- a survival sandbox parks
+-- nothing otherwise, and had none to lend.
+local parked: { [number]: boolean } = {}
 
 -- Mouth k to site s; the world's arch with it when it is the world's nearest.
 local function place(k: number, room: string, s: Site, arch: boolean)
     if room == "laboratorio" then return end
     if core.portal_place(k, s.x + 0.5, s.y + 1, s.z + 0.5, 1, 1, 0.5, 1.0) then
         at_site[k] = s
+        parked[k] = nil
     end
     local a = ARCH[room]
-    if a and arch then core.portal_place(a, s.x + 0.5, s.y + 1, s.z + 8.5, 1, 1, 0.5, 1.0) end
+    if a and arch and core.portal_place(a, s.x + 0.5, s.y + 1, s.z + 8.5, 1, 1, 0.5, 1.0) then
+        parked[a] = nil
+    end
+end
+
+-- Parked unless it is already: placed again by place() when a site wants it.
+local function park(k: number)
+    if parked[k] then return end
+    if core.portal_park(k) then
+        parked[k] = true
+        at_site[k] = nil
+    end
 end
 
 core.event.on("core:tick", function(ev)
@@ -817,6 +833,15 @@ core.event.on("core:tick", function(ev)
                 chosen[site] = nil
             end
         end
+        -- What no site wanted this time: parked, not left at the last one.
+        for _, k in free do park(k) end
+    end
+    -- And every mouth and arch of a world no site of which is wanted at all.
+    for room, ks in MOUTHS do
+        if room == "laboratorio" or want[room] ~= nil then continue end
+        for _, k in ks do park(k) end
+        local a = ARCH[room]
+        if a then park(a) end
     end
 end)
 
