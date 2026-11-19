@@ -658,9 +658,58 @@ if serving then
         end
     end
 
+    -- ---------------------------------------------------------------- the field
+    --
+    -- Made of the approved front zones when there are any (mods/zones, built
+    -- in a player's workshop): the band between the two bases' yards, z 44 to
+    -- 211 and x 8 to 247, made flat and scattered with zones again at the start
+    -- and at every new round, so a round is fought on new ground and on whole
+    -- ground. A zone's lowest layer is the field's floor (GROUND - 1). Its
+    -- "key" markers are the points to take: of all of them, the westmost, the
+    -- one nearest the middle and the eastmost; fewer than three, the field's
+    -- own stand in for the rest. No zones: the field is front_core's, as ever.
+    local FIELD = { x = 8, z = 44, w = 240, len = 168 }
+    local DEFAULT_POINTS = { table.clone(POINTS[1]), table.clone(POINTS[2]), table.clone(POINTS[3]) }
+    local field_keys: { { number } } = {}
+    local function remake_field()
+        field_keys = {}
+        core.event.emit("zones:scatter", { tag = "front field", world = "front", owner = "", x = FIELD.x, y = GROUND,
+                                           z = FIELD.z, w = FIELD.w, len = FIELD.len, h = 16,
+                                           ground = "front_core:grass", seed = math.random(1, 1000000),
+                                           d = if level_d > 0 then level_d else 5 })
+    end
+    core.event.on("zones:mark", function(ev)
+        if ev.tag == "front field" and ev.kind == "key" then table.insert(field_keys, { ev.x, ev.z }) end
+    end)
+    core.event.on("zones:laid", function(ev)
+        if ev.tag ~= "front field" or ev.pieces == 0 then return end
+        local keys = field_keys
+        local chosen: { { number }? } = { nil, nil, nil }
+        if #keys > 0 then
+            table.sort(keys, function(a: { number }, b: { number }): boolean return a[1] < b[1] end)
+            chosen[1], chosen[3] = keys[1], if #keys > 1 then keys[#keys] else nil
+            local best = math.huge
+            for i = 2, #keys - 1 do
+                local k = keys[i]
+                local dd = (k[1] - MID) ^ 2 + (k[2] - MID) ^ 2
+                if dd < best then best, chosen[2] = dd, k end
+            end
+        end
+        for i = 1, 3 do
+            local c = chosen[i] or DEFAULT_POINTS[i]
+            POINTS[i][1], POINTS[i][2] = c[1], c[2]
+        end
+        pole_built = false
+        core.log(`front_game: the field of zones, {ev.pieces} zone(s), {#keys} point(s) of theirs`)
+    end)
+    core.event.on("core:world_ready", function()
+        remake_field()
+    end)
+
     local function step_round()
         if over_at > 0 and clock >= over_at then
             over_at = 0
+            remake_field()
             if next(players) == nil then level_d = 0 end
             local t = if level_d > 0 then 100 + 10 * level_d else TICKETS
             tickets = { t, t }

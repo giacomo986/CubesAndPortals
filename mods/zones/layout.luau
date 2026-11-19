@@ -251,4 +251,64 @@ function L.lay(zones: { Zone }, seed: number, count: number, d: number): Level?
     return level
 end
 
+
+-- Zones scattered over a field W across (x) and LEN along (z), for a world
+-- that is open ground rather than rooms: rows of them along z, each row
+-- filled across x with zones drawn by weight -- any that suit d -- each turned
+-- and (if it may be) mirrored by the seed, GAP cells of the field's own
+-- ground between them. No doorway has to meet: they are all shut. The same
+-- zones, seed and size give the same field.
+local GAP = 2
+function L.scatter(zones: { Zone }, seed: number, W: number, LEN: number, d: number): Level?
+    local pool: { Zone } = {}
+    for _, z in zones do
+        if d >= z.dmin and d <= z.dmax then
+            table.insert(pool, z)
+        end
+    end
+    if #pool == 0 then
+        return nil
+    end
+    local roll = dice(seed)
+    local placed: { Placed } = {}
+    local z0 = 0
+    while z0 < LEN do
+        local x0, depth = 0, 0
+        while x0 < W do
+            local put = false
+            for _ = 1, 8 do
+                local z = drawn(pool, roll)[1]
+                local p: Placed = { zone = z, x = x0, y = 0, z = z0, t = roll(4), m = z.mirror and roll(2) == 1 }
+                local w, dd = L.span(p)
+                if x0 + w <= W and z0 + dd <= LEN then
+                    table.insert(placed, p)
+                    x0 += w + GAP
+                    depth = math.max(depth, dd)
+                    put = true
+                    break
+                end
+            end
+            if not put then
+                break
+            end
+        end
+        if depth == 0 then
+            break
+        end
+        z0 += depth + GAP
+    end
+    if #placed == 0 then
+        return nil
+    end
+    local open: { Open } = {}
+    local level: Level = { placed = placed, open = open, x1 = 0, y1 = 0, z1 = 0, x2 = W - 1, y2 = 0, z2 = LEN - 1 }
+    for _, p in placed do
+        level.y2 = math.max(level.y2, p.zone.h - 1)
+        for _, c in p.zone.conns do
+            table.insert(open, L.doorway(p, c))
+        end
+    end
+    return level
+end
+
 return L

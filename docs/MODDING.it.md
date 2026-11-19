@@ -2771,7 +2771,7 @@ posto un pennello, dato all'ingresso, mette giù i blocchi di un mondo: `/worksh
 pulsante **Blocks** del pannello o il pennello su un blocco senza averne scelto uno aprono la sua
 tavolozza -- i blocchi del mondo che l'officina ha (`games/workshop/mods`, collegamenti alle mod dei
 blocchi dei mondi, che in una stanza `workshop-*` lasciano fuori le regole del loro mondo; per ora
-quelli delle chambers, dell'arpg, delle backrooms, del parkour e dell'Inferno) e i segnaposto. Un clic destro mette quello scelto sulla faccia cliccata;
+quelli delle chambers, dell'arpg, delle backrooms, del parkour, dell'Inferno, del fronte e dell'assalto) e i segnaposto. Un clic destro mette quello scelto sulla faccia cliccata;
 una pedana, una presa, un bersaglio o il fondo di un pozzo prendono il posto del blocco cliccato;
 una porta sono le sue quattro celle di traverso a dove guarda il giocatore, un pulsante o una
 pedana il loro due per due. Una bacchetta, data all'ingresso, sceglie il volume con due angoli (disegnato sullo schermo) e apre un
@@ -2892,6 +2892,26 @@ blocco `inferno_heart:gate` posato è il cancello che aprono; il guardiano si le
 quando ardono tutti, con d - 1 della fortezza, e ogni `zones:mob` è un bruto o uno spettro che esce
 quando qualcuno arriva entro 16. Il guardiano a terra supera il livello, e una cella di fuoco vicino
 all'uscita riporta all'inizio.
+
+**Zone sparse su un campo.** Un mondo di terreno aperto chiede zone affiancate invece che
+collegate: file lungo z, ognuna riempita lungo x con zone pescate per peso, girate e (se possono)
+specchiate dal seme, due celle del terreno del campo tra l'una e l'altra, ogni varco chiuso. Il
+campo viene prima spianato -- `ground` a y - 1, aria per `h` in su -- ma solo se ci sono zone da
+posare; senza, `zones:laid` dice 0 pezzi e il campo resta com'è.
+
+```luau
+core.event.emit("zones:scatter", { tag = "field", world = "front", owner = "", x = 8, y = 20, z = 44,
+                                   w = 240, len = 168, h = 16, ground = "front_core:grass", seed = 7, d = 5 })
+```
+
+**Il fronte** (`games/front/mods/front_game`) rifà la fascia tra i cortili delle due basi (z da 44
+a 211, x da 8 a 247) con le zone fronte approvate all'avvio e a ogni nuovo round: si combatte su
+terreno nuovo, e intero. I suoi segnaposto `zones:key` sono i punti da prendere -- il più a ovest,
+il più vicino al centro, il più a est; se sono meno di tre, quelli del campo prendono il loro posto.
+**L'assalto** (`games/assault/mods/assault_game`) tiene le roccaforti, la sala e la fuga come sono,
+e sparge le zone assalto approvate nella valle davanti a ognuna delle prime tre roccaforti, ai lati
+della strada, quando quella roccaforte viene presidiata (posate davanti agli alleati: la dimensione
+non è tenuta su disco, e una scrittura su una colonna non ancora fatta la aspetta).
 
 **Come si posa un livello** (`layout.luau`, che non legge né scrive il mondo: le stesse zone, seme,
 numero e `d` danno lo stesso livello ovunque). Prima una zona "start"; poi una "room" attaccata al

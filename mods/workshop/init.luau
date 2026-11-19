@@ -315,10 +315,15 @@ local PALETTE: { [string]: { string } } = {
     inferno = { "scoria", "ash_sand", "glowrock", "bricks", "obsidian", "lava", "basalt", "quartz_block",
                 "ember_lantern", "fungus_stem", "fungus_cap", "fungus_planks", "inferno_heart:brazier",
                 "inferno_heart:gate" },
+    front = { "grass", "dirt", "stone", "road", "sandbag", "brick", "wall", "concrete", "planks", "roof", "lamp",
+              "red", "blue" },
+    assault = { "grass", "dirt", "stone", "road", "sandbag", "logs", "planks", "wall", "concrete", "basalt", "lamp",
+                "mud", "bog", "reed", "deadwood", "ash", "char", "cinder", "shard", "crystal", "bone", "ladder" },
 }
 -- A name with no ":" is the world's prefix's; one with it is whole.
 local PREFIX: { [string]: string } = { chambers = "chambers_core:", arpg = "arpg_core:", backrooms = "backrooms:",
-                                       parkour = "parkour:", inferno = "inferno:" }
+                                       parkour = "parkour:", inferno = "inferno:", front = "front_core:",
+                                       assault = "assault_core:" }
 local MARKERS = { "doorway", "start", "exit", "mob", "loot", "key", "trigger" }
 -- What takes the place of the block clicked rather than going on its face.
 local INTO = { ["chambers_core:plate"] = true, ["chambers_core:vent"] = true, ["chambers_core:target"] = true,

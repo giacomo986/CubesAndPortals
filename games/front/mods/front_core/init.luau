@@ -39,6 +39,12 @@ local RUNWAY_LIGHT = core.register_node("front_core:runway_light", 255, 200, 90,
 core.node_glass(PANE, 60)
 core.node_glass(MAP_GLASS, 18)
 
+-- Loaded in a player's workshop too (mods/workshop, games/workshop/mods), for
+-- its blocks alone: the rest is the world's.
+if string.sub(core.room(), 1, 9) == "workshop-" then
+    return
+end
+
 -- What a player is here: the sandbox's robot (mods/robot, linked).
 core.player_model(core.register_model("front_core:robot", "robot.gltf"))
 for _, extra in {"cap", "tophat", "headphones", "scarf", "bowtie", "medal",

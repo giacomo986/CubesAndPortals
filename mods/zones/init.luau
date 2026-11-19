@@ -92,6 +92,16 @@ core.event.define("zones:block", {
     fields = { tag = "string", name = "string", x = "number", y = "number", z = "number", facing = "number" },
     cancellable = false,
 })
+-- Zones scattered over a field instead of joined (layout.luau's L.scatter):
+-- W across x and LEN along z from x, y, z, the field first made flat -- its
+-- floor `ground` at y - 1 and air H up from y -- when there are zones to lay
+-- (none: "zones:laid" with 0 pieces, and the field left as it is). A zone's
+-- lowest layer goes at y - 1, the floor's own.
+core.event.define("zones:scatter", {
+    fields = { tag = "string", world = "string", owner = "string", x = "number", y = "number", z = "number",
+               w = "number", len = "number", h = "number", ground = "string", seed = "number", d = "number" },
+    cancellable = false,
+})
 core.event.define("zones:laid", {
     fields = { tag = "string", pieces = "number", x1 = "number", y1 = "number", z1 = "number",
                x2 = "number", y2 = "number", z2 = "number" },
@@ -427,6 +437,8 @@ type Job = {
     tag: string, level: L.Level, piece: number, cell: number,
     ox: number, oy: number, oz: number,
     found: { { any } },   -- the watched cells written so far: name, x, y, z, facing
+    clear: { number }?,   -- a field made flat first: x, y, z, w, len, h, the floor's block; and how far
+    ci: number?,
 }
 local jobs: { Job } = {}
 local watched: { [string]: boolean } = {}
@@ -450,6 +462,23 @@ end
 -- level stands whole.
 local function work(job: Job, budget: number): (number, boolean)
     local wrote = 0
+    local c = job.clear
+    if c ~= nil then
+        local per = c[4] * c[5]
+        local total = per * (c[6] + 1)
+        local i = job.ci or 0
+        while i < total do
+            if wrote >= budget then
+                job.ci = i
+                return wrote, false
+            end
+            local layer, rest = i // per, i % per
+            core.set_block(c[1] + rest % c[4], c[2] - 1 + layer, c[3] + rest // c[4], if layer == 0 then c[7] else 0)
+            i += 1
+            wrote += 1
+        end
+        job.clear = nil
+    end
     while job.piece <= #job.level.placed do
         local p = job.level.placed[job.piece]
         local z = p.zone
@@ -542,6 +571,20 @@ local function lay_one(tag: string, z: Zone, x: number, y: number, zz: number)
     local job: Job = { tag = tag, level = level, piece = 1, cell = 1, ox = x, oy = y, oz = zz, found = {} }
     table.insert(jobs, job)
 end
+
+core.event.on("zones:scatter", function(ev)
+    local level = L.scatter(usable(ev.world, ev.owner), ev.seed, math.floor(ev.w), math.floor(ev.len), ev.d)
+    local x, y, z = math.floor(ev.x), math.floor(ev.y), math.floor(ev.z)
+    if level == nil then
+        core.event.emit("zones:laid", { tag = ev.tag, pieces = 0, x1 = x, y1 = y, z1 = z, x2 = x, y2 = y, z2 = z })
+        return
+    end
+    local job: Job = { tag = ev.tag, level = level, piece = 1, cell = 1, ox = x, oy = y - 1, oz = z, found = {} }
+    if ev.ground ~= "" and ev.h > 0 then
+        job.clear = { x, y, z, math.floor(ev.w), math.floor(ev.len), math.floor(ev.h), block_of(ev.ground) }
+    end
+    table.insert(jobs, job)
+end)
 
 core.event.on("zones:lay", function(ev)
     lay(ev.tag, ev.world, ev.owner, math.floor(ev.x), math.floor(ev.y), math.floor(ev.z), ev.seed, ev.d, ev.count)

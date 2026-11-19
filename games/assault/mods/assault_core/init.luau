@@ -69,6 +69,12 @@ local ZIP      = core.register_node("assault_core:zipline", 140, 142, 150, false
 core.node_conveyor(ZIP, 7, 1.25, -1)
 core.node_model(ZIP, core.register_model("assault_core:zipline", "zipline.gltf"))
 
+-- Loaded in a player's workshop too (mods/workshop, games/workshop/mods), for
+-- its blocks alone: the rest is the world's.
+if string.sub(core.room(), 1, 9) == "workshop-" then
+    return
+end
+
 -- What a player is here: the sandbox's robot (mods/robot, linked), with the
 -- front's arms (its guns).
 core.player_model(core.register_model("assault_core:robot", "robot.gltf"))

@@ -60,6 +60,10 @@ for.
 - **The Inferno made in the workshops**: its blocks in the workshop, and a fresh survival site's
   fortress laid out of the approved inferno zones -- its braziers to light, its gate, the guardian
   at the `exit`.
+- **The front and the assault made in the workshops**: the front's field between the bases is laid
+  again out of the approved front zones at every round (their `key` markers the points), and the
+  assault's valleys before its first three strongholds out of the approved assault zones. For mods:
+  `zones:scatter` lays zones side by side over a field made flat.
 - **Proposed zones**: `/zone propose` asks the admins, who are told, and `/page zones` lists what
   waits with show, approve and refuse; `/zone show` lays one zone alone to look at.
 - For mods: `core.room_send` starts a room of the rooms file that is down (or one its template

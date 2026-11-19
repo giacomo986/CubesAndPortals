@@ -1410,7 +1410,28 @@ if serving then
         end
     end
 
+    -- The valley before stronghold k (1 to 3), either side of the road: made
+    -- of the approved assault zones when there are any (mods/zones, built in a
+    -- player's workshop) as the stronghold is manned, flat first, its ground
+    -- the land's there. Laid ahead of the allies, where the dimension has not
+    -- been made yet or still is (it is kept on no disk): a write to a column
+    -- not made waits for it. No zones: the valley is assault_core's.
+    local VALLEY_GROUND = { "assault_core:grass", "assault_core:mud", "assault_core:ash" }
+    local function scatter_valley(k: number)
+        if k > 3 then return end
+        local z0 = (if k == 1 then CAMP[2] else FORTS[k - 1][2]) + 32
+        local z1 = FORTS[k][2] - 32
+        if z1 - z0 < 16 then return end
+        for side, x in { 6, MID + 6 } do
+            core.event.emit("zones:scatter", { tag = `assault valley {k} {side}`, world = "assault", owner = "",
+                                               x = x, y = GROUND, z = z0, w = MID - 12, len = z1 - z0, h = 14,
+                                               ground = VALLEY_GROUND[k], seed = math.random(1, 1000000),
+                                               d = math.clamp(math.floor(A.more * 4), 1, 10) })
+        end
+    end
+
     function A.man(k: number)
+        scatter_valley(k)
         A.fort, A.progress = k, 0
         local n = math.ceil(A.GARRISON[k] * A.more) + 2 * math.max(0, #core.players() - 1)
         local a = A.AREA[k]

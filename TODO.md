@@ -660,9 +660,19 @@ survival levels.
    a wraith within 16. Seen by script: laid, both braziers lit by a used
    event, the gate gone, a brute at the mob, the guardian risen in the hall.
    Not seen: the guardian killed, a client.
-   Next (front and assault: bases and points), after their shared library.
-7. Each world onto zones: chambers (done 2026-11-19, 6b), arpg (done 2026-11-19, 6b), backrooms (done 2026-11-19, 6b), parkour (done 2026-11-19, 6b), Inferno (done 2026-11-19, 6b), then the
-   front and the assault after their shared library (Structure).
+   Front and assault decided and done 2026-11-19 ("the two maps may be random
+   zones"): zones:scatter (layout's L.scatter: rows of zones side by side over
+   a field made flat, only when there are zones); the front's band between
+   the yards laid again at the start and at every new round, its "key"
+   markers the points; the assault's valleys before strongholds 1 to 3, either
+   side of the road, as each is manned (the strongholds, the hall and the
+   escape stay hand-made). Seen by script: the front's field of 35 zones at a
+   start, three points of their keys; an assault valley laid (a zone's floor,
+   the flat ground between, the road whole). Not seen: a round on it, bots on
+   a field of zones, a client. The assault's valley is laid ahead and lost if
+   its columns are made and let go before anybody gets there.
+7. Each world onto zones: chambers (done 2026-11-19, 6b), arpg (done 2026-11-19, 6b), backrooms (done 2026-11-19, 6b), parkour (done 2026-11-19, 6b), Inferno (done 2026-11-19, 6b), the
+   front and the assault (done 2026-11-19, scattered).
 
 Tickets between rooms: decided and done 2026-11-19 (protocol 127). A room past
 the server's first takes a body only with a ticket signed for it by name (the

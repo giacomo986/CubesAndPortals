@@ -66,6 +66,10 @@ non chiede.
 - **L'Inferno fatto nelle officine**: i suoi blocchi nell'officina, e la fortezza di un sito
   survival nuovo fatta con le zone inferno approvate -- i bracieri da accendere, il cancello, il
   guardiano all'`exit`.
+- **Il fronte e l'assalto fatti nelle officine**: il campo del fronte tra le basi si rifà a ogni
+  round con le zone fronte approvate (i loro segnaposto `key` sono i punti), e le valli davanti alle
+  prime tre roccaforti dell'assalto con le zone assalto approvate. Per le mod: `zones:scatter` posa
+  zone affiancate su un campo spianato.
 - **Zone proposte**: `/zone propose` le chiede agli admin, che vengono avvisati, e `/page zones`
   elenca quelle in attesa con mostra, approva e rifiuta; `/zone show` posa una zona da sola per
   guardarla.
