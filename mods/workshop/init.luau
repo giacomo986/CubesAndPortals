@@ -311,8 +311,10 @@ local PALETTE: { [string]: { string } } = {
     backrooms = { "wallpaper", "carpet", "ceiling", "tube", "tube_off", "stair_carpet", "tile", "pool_tile",
                   "pool_edge", "pool_lamp", "water", "slide", "ladder", "stair_tile", "concrete", "slab", "lamp",
                   "lamp_off", "puddle", "stair_concrete", "frame", "glow" },
+    parkour = { "concrete", "brick", "steel", "hazard", "pad", "bounce", "crumble", "frame", "lamp" },
 }
-local PREFIX: { [string]: string } = { chambers = "chambers_core:", arpg = "arpg_core:", backrooms = "backrooms:" }
+local PREFIX: { [string]: string } = { chambers = "chambers_core:", arpg = "arpg_core:", backrooms = "backrooms:",
+                                       parkour = "parkour:" }
 local MARKERS = { "doorway", "start", "exit", "mob", "loot", "key", "trigger" }
 -- What takes the place of the block clicked rather than going on its face.
 local INTO = { ["chambers_core:plate"] = true, ["chambers_core:vent"] = true, ["chambers_core:target"] = true,

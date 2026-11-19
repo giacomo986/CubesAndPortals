@@ -2771,7 +2771,7 @@ posto un pennello, dato all'ingresso, mette giù i blocchi di un mondo: `/worksh
 pulsante **Blocks** del pannello o il pennello su un blocco senza averne scelto uno aprono la sua
 tavolozza -- i blocchi del mondo che l'officina ha (`games/workshop/mods`, collegamenti alle mod dei
 blocchi dei mondi, che in una stanza `workshop-*` lasciano fuori le regole del loro mondo; per ora
-quelli delle chambers, dell'arpg e delle backrooms) e i segnaposto. Un clic destro mette quello scelto sulla faccia cliccata;
+quelli delle chambers, dell'arpg, delle backrooms e del parkour) e i segnaposto. Un clic destro mette quello scelto sulla faccia cliccata;
 una pedana, una presa, un bersaglio o il fondo di un pozzo prendono il posto del blocco cliccato;
 una porta sono le sue quattro celle di traverso a dove guarda il giocatore, un pulsante o una
 pedana il loro due per due. Una bacchetta, data all'ingresso, sceglie il volume con due angoli (disegnato sullo schermo) e apre un
@@ -2875,6 +2875,14 @@ aveva, e senza zone è quello delle stanze come prima. Il giocatore arriva a `zo
 l'uscita del sito è un blocco di carta da parati quattro a ovest, e la stanza d'uscita è dove sta
 `zones:exit`: la radio porta lì e raggiungerla supera il livello. Tutto il resto di una zona sono
 i suoi blocchi -- le sue luci -- e il buio porta le creature come ovunque lì.
+
+**Il parkour fatto di zone** (`games/parkour/mods/parkour`). Il livello di un sito survival nuovo
+si posa con le zone parkour approvate quando ce ne sono, 3 + d, col loro strato più basso al
+pavimento del percorso (y 30); un sito già giocato tiene il suo. Il giocatore arriva a
+`zones:start` (l'uscita in un blocco di cemento a est), ogni `parkour:pad` posato è un posto dove
+una caduta riporta -- prima il più vicino all'inizio -- e `zones:exit` è la cima: raggiunta, il
+livello è superato e una porta lì riporta giù all'inizio. I cuscini che lanciano e le lastre che
+cedono funzionano come ovunque nel percorso; un cuscino in una zona lancia dove guarda il corpo.
 
 **Come si posa un livello** (`layout.luau`, che non legge né scrive il mondo: le stesse zone, seme,
 numero e `d` danno lo stesso livello ovunque). Prima una zona "start"; poi una "room" attaccata al

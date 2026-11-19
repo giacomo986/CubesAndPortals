@@ -1592,3 +1592,4 @@ The brush puts down: {} = O pincel coloca: {}
 The level is done. = O nível foi superado.
 The next chamber is being made... = A próxima câmara está sendo construída...
 The palette is the workshop's: /workshop goes in. = A paleta é da oficina: /workshop para entrar.
+Terre nuove, fatte nelle officine. Il loro signore aspetta in fondo. = Terras novas, feitas nas oficinas. O seu senhor espera no fim.

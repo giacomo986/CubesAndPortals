@@ -129,3 +129,4 @@ Il tempo: {} s. Giri di fila sotto: {} di 3. = The time: {} s. Laps in a row und
 La ricompensa e' nella cassa accanto al portale{} = The reward is in the chest by the portal{}
 Camere di prova: {}, fatte nelle officine. = Test chambers: {}, made in the workshops.
 Prova superata. Un portale porta all'uscita. = Test passed. A portal leads to the way out.
+Terre nuove, fatte nelle officine. Il loro signore aspetta in fondo. = New lands, made in the workshops. Their lord waits at the far end.

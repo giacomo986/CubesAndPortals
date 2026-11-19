@@ -2468,7 +2468,7 @@ catalogue there: the bag is the same in every room. A brush, given on the way in
 world's own blocks instead: `/workshop blocks`, the panel's **Blocks** or the brush on a block with
 none picked open its palette -- the world's blocks the workshop has (`games/workshop/mods`, links
 to the worlds' block mods, which leave their worlds' rules out in a room `workshop-*`; the
-chambers', the arpg's and the backrooms' so far) and the markers. A right click puts the one picked on the face clicked; a
+chambers', the arpg's, the backrooms' and the parkour's so far) and the markers. A right click puts the one picked on the face clicked; a
 plate, a vent, a target tile or a pit's bottom takes the place of the block clicked; a door is its
 four cells across the way the player looks, a button or a plate its two by two. A wand, given on the way in, picks the box by
 two corners (drawn on the screen) and opens a panel: name, world, start/room/end, difficulties,
@@ -2568,6 +2568,14 @@ no zones it is the rooms' own as before. The player comes in at `zones:start`, t
 is a block of wallpaper four west of it, and the exit room is where `zones:exit` stands: the radio
 leads there and reaching it is the level done. Everything else in a zone is its blocks -- its own
 lights -- and the dark brings the creatures as it does everywhere there.
+
+**The parkour out of zones** (`games/parkour/mods/parkour`). A fresh survival site's level is laid
+out of the approved parkour zones when there are any, 3 + d of them, their lowest layer at the
+course's floor (y 30); a site played before keeps its own. The player comes in at `zones:start`
+(the way out in a block of concrete east of it), every `parkour:pad` laid is a place a fall comes
+back to -- the nearest the start first -- and `zones:exit` is the summit: reached, the level is
+done and a doorway there leads down to the start. Bounce pads and slabs that give way work as
+everywhere in the course; a bounce pad in a zone throws the way the body looks.
 
 **How a level is laid** (`layout.luau`, which reads and writes no world: the same zones, seed, count
 and `d` give the same level anywhere). A "start" zone first; then a "room" joined to the newest open

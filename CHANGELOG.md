@@ -54,6 +54,9 @@ for.
 - **The backrooms made in the workshops**: their blocks in the workshop, and a fresh survival
   site's level laid out of the approved backrooms zones -- in at the `start`, the radio leading to
   the `exit`.
+- **The parkour made in the workshops**: its blocks in the workshop, and a fresh survival site's
+  course laid out of the approved parkour zones -- its pads the places a fall comes back to, the
+  `exit` the summit.
 - **Proposed zones**: `/zone propose` asks the admins, who are told, and `/page zones` lists what
   waits with show, approve and refuse; `/zone show` lays one zone alone to look at.
 - For mods: `core.room_send` starts a room of the rooms file that is down (or one its template

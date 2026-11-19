@@ -173,6 +173,13 @@ else
         case "$game" in
             # tools/vehiclelab.sh: the lab on top of the sandbox's own mods.
             vehiclelab) play "$game" --user-mods "$dir/mods" ;;
+            # A player's workshop (mods/workshop): the worlds' blocks over the
+            # sandbox's mods, in a room workshop-* where they leave their worlds
+            # out -- of two: with one, core.room() is "". Second, since only its
+            # owner goes in: the probe plays in the first, the workshop loads.
+            workshop) play "$game" --room other --mods "$ROOT/games/track/mods" \
+                          --room workshop-test --no-plaza --mods "$ROOT/mods" --user-mods "$dir/mods" \
+                          --world-file "$WORK/workshop-room.world" ;;
             *)          play "$game" --mods "$dir/mods" ;;
         esac
     done

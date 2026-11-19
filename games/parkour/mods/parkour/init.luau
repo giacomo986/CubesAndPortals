@@ -60,6 +60,13 @@ if serving then
     core.register_item(GUN, 1, "", 0, 1.0, "")
     core.register_model("parkour:rope_gun_held", "rope_gun_held.gltf")
 
+    -- Loaded in a player's workshop too (mods/workshop, games/workshop/mods),
+    -- for its blocks alone: the course is left out there.
+    if string.sub(core.room(), 1, 9) == "workshop-" then
+        return
+    end
+    core.event.emit("zones:watch", { names = "parkour:pad" })
+
     -- The body, and parkour on: parkour_core.
 
     -- Nothing of the engine's terrain: the course hangs in the sky.
@@ -343,8 +350,41 @@ if serving then
     -- they began, behind two cells of concrete under a dark lamp.
     local LF = 30
     type Plan = { boxes: { { number } }, pads: { { number } }, hints: { string }, start: { number },
-                  back: { number }, exit: { number }, top: { number }, bounces: { [string]: { number } } }
+                  back: { number }, exit: { number }, top: { number }, bounces: { [string]: { number } },
+                  zoned: boolean? }
     local PLANS: { [number]: Plan } = {}
+
+    -- A fresh site's level of the approved parkour zones instead, when there
+    -- are any (mods/zones, built in a player's workshop), 3 + d of them, its
+    -- lowest layer at LF: in at the "start" marker, the way out in a block of
+    -- concrete beside it, every pad laid (parkour:pad) a place a fall comes
+    -- back to, nearest the start first, and the "exit" marker the summit --
+    -- reached, the level is done and a doorway from there leads down to the
+    -- start. Bounce pads and slabs that give way work as everywhere here (a
+    -- bounce pad with no landing of its own throws the way the body looks).
+    -- Kept as "zslot:N": the start, the summit and the pads, each "x y z".
+    local function zoned_plan(text: string): Plan?
+        local parts = string.split(text, ";")
+        if #parts < 2 then return nil end
+        local function at(t: string): { number }
+            local x, y, z = string.match(t, "(-?%d+) (-?%d+) (-?%d+)")
+            return { tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0 }
+        end
+        local st, top = at(parts[1]), at(parts[2])
+        local plan: Plan = { boxes = {}, pads = { st }, hints = { "Il percorso comincia qui; la cima ti riportera' qui." },
+                             start = st, back = { st[1] + 2, st[2] + 1, st[3] + 3 },
+                             exit = { st[1] + 6, st[2] + 1, st[3] }, top = { top[1], top[2] + 1, top[3] },
+                             bounces = {}, zoned = true }
+        for i = 3, #parts do
+            if parts[i] ~= "" then
+                table.insert(plan.pads, at(parts[i]))
+                table.insert(plan.hints, "Un punto di partenza.")
+            end
+        end
+        table.insert(plan.pads, top)
+        table.insert(plan.hints, "La cima. Una porta riporta giu'.")
+        return plan
+    end
 
     local function lcg(seed: number): () -> number
         local st = seed % 2147483647
@@ -358,6 +398,11 @@ if serving then
     local function plan_of(slot: number): Plan?
         local hit = PLANS[slot]
         if hit then return hit end
+        local zp = zoned_plan(core.storage_get(`zslot:{slot}`))
+        if zp ~= nil then
+            PLANS[slot] = zp
+            return zp
+        end
         local d, seed = string.match(core.storage_get(`slot:{slot}`), "(%d+) (%d+)")
         if d == nil then return nil end
         local dd, rnd = tonumber(d) or 1, lcg((tonumber(seed) or 1) + slot * 7919)
@@ -484,17 +529,84 @@ if serving then
 
     -- Which level each player here is in.
     local level_slot: { [number]: number } = {}
-    core.event.on("keys:level", function(ev)
-        core.storage_set(`slot:{ev.slot}`, `{ev.d} {ev.seed}`)
-        local plan = plan_of(ev.slot)
+    local function begin(player: number, slot: number)
+        local plan = plan_of(slot)
         if plan == nil then return end
-        ev.cancel = true
+        local ev = { player = player, slot = slot }
         level_slot[ev.player] = ev.slot
         local s = plan.start
         core.player_place(ev.player, s[1] + 0.5, s[2] + 1, s[3] + 0.5, -1, 0, 0)
         core.player_spawn(ev.player, s[1] + 0.5, s[2] + 1, s[3] + 0.5, true)
         local e = plan.exit
         core.event.emit("keys:start", { player = ev.player, slot = ev.slot, ex = e[1], ey = e[2], ez = e[3] })
+    end
+
+    -- A site's level: the one it had, or a fresh one of zones (else the
+    -- pieces above, as before).
+    type Laying = { player: number, slot: number, d: number, seed: number, start: { number }?, top: { number }?,
+                    pads: { { number } } }
+    local laying: { [string]: Laying } = {}
+    core.event.on("keys:level", function(ev)
+        ev.cancel = true
+        if core.storage_get(`slot:{ev.slot}`) ~= "" or core.storage_get(`zslot:{ev.slot}`) ~= "" then
+            begin(ev.player, ev.slot)
+            return
+        end
+        local tag = `site {ev.slot}`
+        if laying[tag] then return end
+        laying[tag] = { player = ev.player, slot = ev.slot, d = ev.d, seed = ev.seed, pads = {} }
+        local ox, oz = 8192 + (ev.slot % 16) * 2048 + 1024, (ev.slot // 16) * 2048 + 1024
+        core.event.emit("zones:lay", { tag = tag, world = "parkour", owner = "", x = ox, y = LF, z = oz,
+                                       seed = ev.seed, d = ev.d, count = math.min(12, 3 + ev.d) })
+    end)
+    core.event.on("zones:block", function(ev)
+        local l = laying[ev.tag]
+        if l ~= nil and ev.name == "parkour:pad" then table.insert(l.pads, { ev.x, ev.y, ev.z }) end
+    end)
+    core.event.on("zones:mark", function(ev)
+        local l = laying[ev.tag]
+        if l == nil then return end
+        if ev.kind == "start" then
+            l.start = { ev.x, ev.y - 1, ev.z }
+        elseif ev.kind == "exit" then
+            l.top = { ev.x, ev.y - 1, ev.z }
+        end
+    end)
+    core.event.on("zones:laid", function(ev)
+        local l = laying[ev.tag]
+        if l == nil then return end
+        laying[ev.tag] = nil
+        if ev.pieces == 0 then
+            core.storage_set(`slot:{l.slot}`, `{l.d} {l.seed}`)
+            begin(l.player, l.slot)
+            return
+        end
+        local st = l.start or { ev.x1 + 2, ev.y1, ev.z1 + 2 }
+        local top = l.top or { ev.x2 - 2, ev.y1, ev.z2 - 2 }
+        -- The pads nearest the start first; the start and the summit are pads too.
+        table.sort(l.pads, function(a: { number }, b: { number }): boolean
+            return (a[1] - st[1]) ^ 2 + (a[3] - st[3]) ^ 2 < (b[1] - st[1]) ^ 2 + (b[3] - st[3]) ^ 2
+        end)
+        local text = { `{st[1]} {st[2]} {st[3]}`, `{top[1]} {top[2]} {top[3]}` }
+        for _, p in l.pads do table.insert(text, `{p[1]} {p[2]} {p[3]}`) end
+        core.storage_set(`zslot:{l.slot}`, table.concat(text, ";"))
+        local plan = plan_of(l.slot) :: Plan
+        core.set_block(st[1], st[2], st[3], PAD)
+        core.set_block(top[1], top[2], top[3], PAD)
+        -- The way out: a block of concrete east of the start, its hole facing
+        -- +x behind a frame (mods/keys).
+        local e = plan.exit
+        for x = e[1] - 2, e[1] + 1 do
+            for z = e[3] - 2, e[3] + 2 do
+                for y = e[2], e[2] + 3 do core.set_block(x, y, z, CONCRETE) end
+            end
+        end
+        core.set_block(e[1], e[2], e[3], AIR)
+        core.set_block(e[1], e[2] + 1, e[3], AIR)
+        core.set_block(e[1] - 1, e[2], e[3], FRAME)
+        core.set_block(e[1] - 1, e[2] + 1, e[3], FRAME)
+        core.log(`parkour: slot {l.slot}'s level of zones, {ev.pieces} piece(s), {#plan.pads} pad(s)`)
+        begin(l.player, l.slot)
     end)
 
     core.register_mapgen("parkour:course", function(ctx)
@@ -591,6 +703,7 @@ if serving then
                     if i == #pads and plan and slot then
                         -- A level's summit: done; the doorway past it leads
                         -- down to the start, where the way out has opened.
+                        core.log(`parkour: {core.player_name(p)} reached the summit of slot {slot}`)
                         core.event.emit("keys:cleared", { player = p, slot = slot })
                         -- Opened only now, a portal leading both ways: before,
                         -- the start's doorway would have been the way up. The

@@ -645,9 +645,16 @@ survival levels.
    radio to "exit". Seen by script: laid, the player at the start, the way
    out's hole, the exit found (keys:cleared). Not seen in a client; the
    lights are the zones' own blocks, no rule.
-   Next (parkour: stations with jumps measured; Inferno: fortress pieces; front and
-   assault: bases and points).
-7. Each world onto zones: chambers (done 2026-11-19, 6b), arpg (done 2026-11-19, 6b), backrooms (done 2026-11-19, 6b), parkour, Inferno, then the
+   Parkour done 2026-11-19 (with 7's): its blocks in the workshop (the mod
+   returns after its blocks there), a fresh site's course of the approved
+   parkour zones at LF ("zslot:N": start, summit, pads): pads nearest the
+   start first, "exit" the summit. Seen by script: laid, three pads, a fall
+   back to the last pad, the summit done. Not measured: whether a zone's
+   jumps can be made (the builder tries them in the workshop, where the
+   parkour moves are not on: parkour_core is not loaded there); the summit's
+   doorway opens on the summit itself.
+   Next (Inferno: fortress pieces; front and assault: bases and points).
+7. Each world onto zones: chambers (done 2026-11-19, 6b), arpg (done 2026-11-19, 6b), backrooms (done 2026-11-19, 6b), parkour (done 2026-11-19, 6b), Inferno, then the
    front and the assault after their shared library (Structure).
 
 Tickets between rooms: decided and done 2026-11-19 (protocol 127). A room past
