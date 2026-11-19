@@ -196,7 +196,14 @@ bool mod_package_read_dir(const std::string &dir, ModPackage &out, std::string &
         if (it->is_directory(ec)) continue;
         if (!it->is_regular_file(ec)) continue;
 
-        const std::string rel = fs::relative(it->path(), root, ec).generic_string();
+        // A file is packed under the name it has in the mod, not the one at
+        // the end of a link: fs::relative of the file itself follows the link,
+        // and a file two games share (games/assault's battle.luau is a link
+        // to games/front's) came out as '../../../front/...' and the whole
+        // mod was not offered. Its folder is resolved -- a mod that is itself
+        // a link (games/inferno's) is read through it -- and its name kept.
+        const std::string rel =
+            (fs::relative(it->path().parent_path(), root, ec) / it->path().filename()).lexically_normal().generic_string();
         if (!mod_package_path_is_safe(rel, error)) return false;
 
         ModPackageFile f;

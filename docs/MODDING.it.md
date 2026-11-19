@@ -273,6 +273,11 @@ condividono le variabili globali del mod e la sua VM: la stessa quota, lo stesso
 - **Modificare un file richiesto ricarica il mod** come modificare il suo ingresso.
 - Viaggia: un pacchetto, e il codice che un mondo manda alla macchina di un giocatore, sono l'intera
   cartella.
+- **Un file può essere un link** a uno di un altro mod, ed è così che due giochi condividono il
+  sorgente: il `battle.luau` dell'assalto è un link a quello del fronte
+  (`games/front/mods/front_game/battle.luau`), e tutti e due fanno `require("@self/battle")`. Si
+  legge attraverso il link, e si impacchetta -- e arriva alla macchina di un giocatore -- col nome
+  che ha nel mod. Ogni mod ne ha comunque una copia sua: si condivide il testo, non una tabella.
 
 ## Un mod come un file solo
 

@@ -5,6 +5,16 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
+## Prossima alpha (non ancora consegnata)
+
+- **Il fronte e l'assalto condividono armi, granate, bot e mezzi**: un solo file che caricano
+  tutti e due (`battle.luau`, quello di front_game; quello dell'assalto è un link), così una
+  correzione all'uno è una correzione all'altro. Due correzioni che aveva solo l'assalto arrivano
+  anche al fronte: un carro armato incastrato sul bordo di un cratere viene sollevato fuori dopo un
+  momento, e i soldati su un mezzo si muovono con lui nello stesso tick invece che un tick dopo. Un
+  file di un mod ora può essere un link a quello di un altro mod: si impacchetta, e arriva ai
+  giocatori, col nome che ha nel mod.
+
 ## 0.19.0-alpha.1 — 2026-11-19
 
 **Non gioca con i server 0.18** (protocollo 126): il codice dei mondi può essere in `api = 2`, che un

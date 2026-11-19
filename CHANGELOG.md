@@ -5,6 +5,15 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
+## Next alpha (not handed out yet)
+
+- **The front and the assault share their guns, grenades, bots and machines**: one file both
+  load (`battle.luau`, front_game's; the assault's is a link to it), so a fix to one is a fix to
+  both. Two fixes only the assault had now reach the front: a tank stuck on a crater's lip is
+  lifted out after a moment, and the soldiers in a machine move with it in the same tick instead
+  of a tick behind. A mod's file can now be a link to another mod's: it is packed, and sent to
+  players, under the name it has in the mod.
+
 ## 0.19.0-alpha.1 — 2026-11-19
 
 **Does not play with 0.18 servers** (protocol 126): a world's code may be on `api = 2`, which a
