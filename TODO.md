@@ -57,12 +57,16 @@ what is built, and three or four structural fixes that each close many entries.
   `fire1` and `fire0`. Network loop only. Still to use it on: the prop hunt's
   blow, the track's power-ups, the chambers' gun, the bees' harvest, the arpg's
   held button.
-- "Not heard" is written some thirty times. The cause is the timed client, which
-  opens no audio device, not Xephyr: let it open one on a null sink and record
-  it (`pw-record` is installed). A script can then check that a sound plays, how
-  loud, and whether a loop has a seam. Whether it sounds good stays Giacomo's.
+- Audio: done 2026-11-19. `--record-audio FILE.wav` opens the device in a timed
+  run and writes the mix (stereo, 48 kHz, before the options' volume), saying
+  where in the file the run starts; `tools/null_sink.sh` runs it on a sink
+  nobody hears; `tools/audio_check.py` gives the level in time and fails on
+  `--expect T0-T1` silent or `--silent T0-T1` loud, and lists `--seams`. Seen:
+  a dug block heard 0.4 s after the button went up, silence before. Still to
+  go through: the thirty "not heard" entries below, one by one. yafps' shot
+  needs a gun in the hand first (the run holds none, so `fire` returns).
 - A 1920 x 1080 Xephyr screen for client checks: on a smaller one the HUD's top
-  lines fall off.
+  lines fall off (`Xephyr :5 -screen 1920x1080 -ac -br -noreset`).
 
 ## To play by hand (built, checked by script only)
 

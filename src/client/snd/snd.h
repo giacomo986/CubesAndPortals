@@ -57,6 +57,16 @@ void snd_set_volume(float v);
 // How many sounds are loaded, for a caller that wants to say so.
 int snd_loaded(void);
 
+// The mix as it goes to the device, recorded (--record-audio): stereo, 48 kHz,
+// before the options' volume. snd_record_start after snd_init; snd_record_save
+// writes what was heard since as a 16-bit WAV and stops. Returns the seconds
+// written, or a negative number when nothing could be.
+#define SND_RECORD_RATE 48000
+bool  snd_record_start(void);
+// Seconds recorded so far: where in the file "now" is.
+float snd_record_seconds(void);
+float snd_record_save(const char *path);
+
 #ifdef __cplusplus
 }
 #endif

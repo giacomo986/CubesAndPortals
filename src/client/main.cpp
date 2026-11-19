@@ -14183,6 +14183,11 @@ std::vector<Vec3> g_walk_path;
 // it once, as a player gets into a parked kart. Then wait a moment for what the
 // click changes -- a body that drives from now on -- before the first point.
 bool g_use_at = false;
+// --record-audio FILE.wav: a measured run opens the audio device after all,
+// and writes the mix it played to FILE when it ends (stereo, 48 kHz, 16 bit,
+// before the options' volume) -- for tools/audio_check.py. Run it under
+// tools/null_sink.sh and the speakers hear nothing.
+std::string g_record_audio;
 // --keep-portals: a timed run leaves the world's openings where they are, and
 // does not shoot its own pair at its feet (a scene built round its openings,
 // games/vehiclelab).
@@ -16554,6 +16559,9 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
 
     const double started  = plat_time();
     const double deadline = seconds > 0.0 ? started + seconds : 0.0;
+    // So that "6.0 s in" can be found in the file: add this to it.
+    if (!g_record_audio.empty())
+        std::printf("audio: the run starts %.2f s into the recording\n", (double)snd_record_seconds());
 
     // --shot: the same one screenshot the single-process loop takes. Wired into
     // both loops rather than one, because a flag that is accepted and does
@@ -22265,6 +22273,7 @@ int client_main(int argc, char **argv)
             g_keep_portals = true;
             continue;
         }
+        if (std::strcmp(argv[i], "--record-audio") == 0 && i + 1 < argc) g_record_audio = argv[++i];
         if (std::strcmp(argv[i], "--click-at") == 0 && i + 1 < argc) {
             float     hold = 0.1f;
             const int n = std::sscanf(argv[++i], "%d,%d,%d,%f", &g_click_x, &g_click_y, &g_click_z, &hold);
@@ -22458,15 +22467,29 @@ int client_main(int argc, char **argv)
 
     Scene scene;
 
-    // Sound is for the loops a person plays, and not for the ones that measure.
-    const bool wants_sound = !window_is_measured;
+    // Sound is for the loops a person plays, and not for the ones that measure
+    // -- unless the run is there to record what it heard (--record-audio).
+    const bool wants_sound = !window_is_measured || !g_record_audio.empty();
     struct AudioUp {
-        ~AudioUp() { snd_shutdown(); }
+        ~AudioUp()
+        {
+            if (!g_record_audio.empty()) {
+                const float secs = snd_record_save(g_record_audio.c_str());
+                if (secs >= 0.0f)
+                    std::printf("audio: recorded %.1f s of the mix to %s\n", (double)secs,
+                                g_record_audio.c_str());
+                else
+                    std::printf("audio: nothing recorded to %s\n", g_record_audio.c_str());
+            }
+            snd_shutdown();
+        }
     } audio_up;
     if (wants_sound && snd_init()) {
         scene.sounds.mods_dir = mods_dir;
         scene.sounds.load();
         std::printf("audio: %d sound(s)\n", snd_loaded());
+        if (!g_record_audio.empty() && snd_record_start())
+            std::printf("audio: recording the mix for %s\n", g_record_audio.c_str());
     }
 
 

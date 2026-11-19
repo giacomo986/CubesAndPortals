@@ -41,6 +41,11 @@ set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
 add_subdirectory(third_party/raylib EXCLUDE_FROM_ALL)
+# The device at 48 kHz rather than whatever the machine's default is: miniaudio
+# converts to the real one either way, and a recording of the mix
+# (--record-audio) then has a rate known without asking raylib, which has no
+# call for it.
+target_compile_definitions(raylib PRIVATE AUDIO_DEVICE_SAMPLE_RATE=48000)
 
 # ENet 1.3.18. UDP with reliable and unreliable channels, fragmentation,
 # sequencing and congestion control, in 6.5k lines of C with no dependencies of

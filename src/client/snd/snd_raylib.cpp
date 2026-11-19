@@ -13,6 +13,7 @@
 #include <raylib.h>
 
 #include <cstdio>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 
@@ -26,6 +27,31 @@ std::unordered_map<uint32_t, Loaded> g_sounds;
 uint32_t                             g_next  = 1;
 bool                                 g_ready = false;
 float                                g_volume = 1.0f;
+
+// --record-audio: the mix, interleaved stereo, appended on the audio thread.
+std::mutex         g_rec_mutex;
+std::vector<float> g_rec;
+bool               g_recording = false;
+
+void record_mix(void *buffer, unsigned int frames)
+{
+    const float *in = static_cast<const float *>(buffer);
+    std::lock_guard<std::mutex> lock(g_rec_mutex);
+    g_rec.insert(g_rec.end(), in, in + (size_t)frames * 2);
+}
+
+void put_u32(std::FILE *f, uint32_t v)
+{
+    const unsigned char b[4] = {(unsigned char)v, (unsigned char)(v >> 8), (unsigned char)(v >> 16),
+                                (unsigned char)(v >> 24)};
+    std::fwrite(b, 1, 4, f);
+}
+
+void put_u16(std::FILE *f, uint16_t v)
+{
+    const unsigned char b[2] = {(unsigned char)v, (unsigned char)(v >> 8)};
+    std::fwrite(b, 1, 2, f);
+}
 
 } // namespace
 
@@ -49,6 +75,10 @@ bool snd_init(void)
 void snd_shutdown(void)
 {
     if (!g_ready) return;
+    if (g_recording) {
+        DetachAudioMixedProcessor(record_mix);
+        g_recording = false;
+    }
     for (auto &kv : g_sounds) UnloadSound(kv.second.sound);
     g_sounds.clear();
     CloseAudioDevice();
@@ -152,5 +182,57 @@ void snd_set_volume(float v)
 }
 
 int snd_loaded(void) { return (int)g_sounds.size(); }
+
+bool snd_record_start(void)
+{
+    if (!g_ready || g_recording) return g_recording;
+    {
+        std::lock_guard<std::mutex> lock(g_rec_mutex);
+        g_rec.clear();
+    }
+    AttachAudioMixedProcessor(record_mix);
+    g_recording = true;
+    return true;
+}
+
+float snd_record_seconds(void)
+{
+    std::lock_guard<std::mutex> lock(g_rec_mutex);
+    return (float)g_rec.size() / 2.0f / (float)SND_RECORD_RATE;
+}
+
+float snd_record_save(const char *path)
+{
+    if (!g_recording) return -1.0f;
+    DetachAudioMixedProcessor(record_mix);
+    g_recording = false;
+    std::vector<float> mix;
+    {
+        std::lock_guard<std::mutex> lock(g_rec_mutex);
+        mix.swap(g_rec);
+    }
+    std::FILE *f = std::fopen(path, "wb");
+    if (!f) return -1.0f;
+    const uint32_t bytes = (uint32_t)(mix.size() * 2);
+    std::fwrite("RIFF", 1, 4, f);
+    put_u32(f, 36 + bytes);
+    std::fwrite("WAVEfmt ", 1, 8, f);
+    put_u32(f, 16);
+    put_u16(f, 1);                              // PCM
+    put_u16(f, 2);                              // stereo
+    put_u32(f, SND_RECORD_RATE);
+    put_u32(f, SND_RECORD_RATE * 2 * 2);        // bytes a second
+    put_u16(f, 4);                              // bytes a frame
+    put_u16(f, 16);
+    std::fwrite("data", 1, 4, f);
+    put_u32(f, bytes);
+    for (const float v : mix) {
+        const float   c = v < -1.0f ? -1.0f : (v > 1.0f ? 1.0f : v);
+        const int16_t s = (int16_t)(c * 32767.0f);
+        put_u16(f, (uint16_t)s);
+    }
+    const bool ok = std::fclose(f) == 0;
+    return ok ? (float)mix.size() / 2.0f / (float)SND_RECORD_RATE : -1.0f;
+}
 
 } // extern "C"
