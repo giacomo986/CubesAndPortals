@@ -11,6 +11,9 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 dopo la prima, si entra solo con un biglietto firmato per quella stanza, che un client più vecchio
 non chiede.
 
+- **Niente più lampi verdi nel cielo del fronte**: l'estremo lontano di una finestra (la mappa della
+  galleria sopra il campo) non si disegna, e la sua apertura non si ripete più -- in cielo, a ogni
+  cambio dei portali del mondo -- né quella della finestra stessa, nel pavimento della galleria.
 - **Nelle stanze si entra solo dai loro portali**: entrando direttamente, una stanza dopo la prima
   del server si può solo guardare; un biglietto per una stanza non fa più entrare in un'altra dello
   stesso server. `cnp_join_probe --room NOME` entra direttamente in una stanza, per i test.

@@ -11,6 +11,9 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 first, is gone into only with a ticket signed for that room, which an older client does not ask
 for.
 
+- **No more green flashes in the front's sky**: the far end of a window (the gallery's map over the
+  field) is drawn from nowhere, and its opening no longer played -- in the sky, at every change of
+  the world's portals -- nor the window's own, in the gallery's floor, over and over.
 - **Rooms are entered only through their portals**: joined straight, a room past the server's
   first is only looked into; a ticket for one room no longer lets into another of the same server.
   `cnp_join_probe --room NAME` joins a room straight, for testing.

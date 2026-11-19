@@ -957,6 +957,10 @@ struct Session {
     // world, whose openings are the two above.
     std::vector<PortalLink> more_links;
     std::vector<Portal>     linked_openings;
+    // The windows looked through (core.portal_window, view 1): not fallen
+    // into, so not among linked_openings, but kept so that one already linked
+    // is not opened again at every Portals message.
+    std::vector<Portal>     linked_windows;
     std::vector<Portal>     linked_to;   // the other end of each, index for index
 
     // And a world whose first openings are mouths onto other worlds may hold
@@ -15623,10 +15627,12 @@ void apply_server_portals(Scene &s, const net::Portals &ps)
     // taken before the lists are emptied. Taken after, nothing was ever linked
     // before, and every Portals message -- a chamber's server sends one for
     // each change of its openings -- started a linked pair's opening again.
-    const std::vector<Portal> was_closed = s.act().closed_openings;
-    const std::vector<Portal> was_linked = s.act().linked_openings;
+    const std::vector<Portal> was_closed  = s.act().closed_openings;
+    const std::vector<Portal> was_linked  = s.act().linked_openings;
+    const std::vector<Portal> was_windows = s.act().linked_windows;
     s.act().more_links.clear();
     s.act().linked_openings.clear();
+    s.act().linked_windows.clear();
     s.act().linked_to.clear();
     // A quarter node: an opening that moves (core.portal_move) is a little
     // further on at every message, and is the same opening; two openings in
@@ -15637,9 +15643,13 @@ void apply_server_portals(Scene &s, const net::Portals &ps)
     const auto now = std::chrono::steady_clock::now();
     for (int i = 0; i < net::kMaxOpenings; ++i) {
         if (ps.partner(i) < 0 || (i < net::kMaxMouths && ps.away[i].leads_away())) continue;
+        // What a window looks out of is drawn from nowhere: no membrane opens
+        // there -- over the front's field it opened in the sky at every message.
+        if (ps.opening[i].view == 2) continue;
         const Portal opened = portal_from_desc(ps.opening[i]);
         bool linked_before = false, closed_before = false;
         for (const Portal &q : was_linked) linked_before = linked_before || same(opened, q);
+        for (const Portal &q : was_windows) linked_before = linked_before || same(opened, q);
         for (const Portal &q : was_closed) closed_before = closed_before || same(opened, q);
         if (closed_before || (!linked_before && s.act().portals_heard))
             s.act().opening.push_back({opened, now});
@@ -15668,7 +15678,10 @@ void apply_server_portals(Scene &s, const net::Portals &ps)
             s.act().local_links.push_back(
                 PortalLink{surface_from_portal(portal_from_desc(ps.opening[i])),
                            surface_from_portal(portal_from_desc(ps.opening[j])), gfx_rt{}});
-            if (ps.opening[i].view) continue;   // a window: looked through, not fallen into
+            if (ps.opening[i].view) {   // a window: looked through, not fallen into
+                s.act().linked_windows.push_back(portal_from_desc(ps.opening[i]));
+                continue;
+            }
             // And fallen into, as the openings of a world without mouths are:
             // a floor one holds a body up until it is over it (floor shift),
             // and a fall is steered into it (funnel).
@@ -15698,7 +15711,10 @@ void apply_server_portals(Scene &s, const net::Portals &ps)
         const Portal from = portal_from_desc(ps.opening[i]);
         all.push_back(PortalLink{surface_from_portal(from),
                                  surface_from_portal(portal_from_desc(ps.opening[j])), gfx_rt{}});
-        if (from.view) continue;   // a window: looked through, not fallen into
+        if (from.view) {   // a window: looked through, not fallen into
+            s.act().linked_windows.push_back(from);
+            continue;
+        }
         s.act().linked_openings.push_back(from);
         s.act().linked_to.push_back(portal_from_desc(ps.opening[j]));
     }
