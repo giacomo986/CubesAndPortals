@@ -605,11 +605,28 @@ survival levels.
    now set before it -- seen: --owner bruno let into anna's workshop, and told
    it is somebody else's. Missing: a list's "show" lays beside the admin
    wherever they stand.
-   6b. Tools made for each kind of world (chambers: panels, buttons, doors and
-   triggers joined; arpg: areas, corridors, lairs; backrooms: rooms and lights;
+   6b. Tools made for each kind of world. Chambers decided and done
+   2026-11-19 (with 7's chambers): the workshop loads the worlds' block mods
+   (games/workshop/mods, links; chambers_core leaves its world's rules out in
+   a workshop) and a brush puts down a palette's blocks, the bag untouched;
+   joined by rule, not by hand: each button, push button, target tile and
+   turret (marker "mob") holds the nearest door, a door nothing holds opens
+   as somebody comes near (chambers_game, "levels of zones"; zones:watch /
+   zones:block say where the blocks went). Seen by script (a zone built by a
+   scratch mod, saved, approved, laid by /zone try, a site's keys:level and
+   the series): the door held by a body on the button and shut again, the
+   exit done, a site's way out built, the pit back to the start, a level laid
+   again over its last without what it held twice; a plate's throw worked
+   out towards the target (not flown: the probe does not move). Not seen:
+   the brush and the palette in a client, a turret of a zone, a push
+   button's clock, the vent's cube in a level, the more button pressed by
+   hand (its call made from a scratch command). Left: the dissolving field
+   and the fixed portals in zones; Try in the workshop lays the geometry
+   only (chambers_game is not loaded there); no chambers zones shipped yet.
+   Next (arpg: areas, corridors, lairs; backrooms: rooms and lights;
    parkour: stations with jumps measured; Inferno: fortress pieces; front and
    assault: bases and points).
-7. Each world onto zones: chambers, arpg, backrooms, parkour, Inferno, then the
+7. Each world onto zones: chambers (done 2026-11-19, 6b), arpg, backrooms, parkour, Inferno, then the
    front and the assault after their shared library (Structure).
 
 Rooms starting while others run: fixed 2026-11-19. A room started from the

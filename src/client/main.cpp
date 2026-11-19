@@ -11399,7 +11399,8 @@ void write_room_section(const std::string &path, const std::string &head,
 
 void write_home_template(const std::string &path, const std::string &dir, bool survival,
                          const std::string &depth, const std::string &top,
-                         const std::vector<std::string> &mod_flags)
+                         const std::vector<std::string> &mod_flags, const std::string &games,
+                         const std::string &sandbox_tex)
 {
     std::vector<std::string> body{"world-file " + dir + "/{name}.db", "world-depth " + depth,
                                   "world-top " + top};
@@ -11410,6 +11411,13 @@ void write_home_template(const std::string &path, const std::string &dir, bool s
     // no plaza -- the mods would set their tables and boxes on its floor.
     std::vector<std::string> workshop = body;
     workshop.push_back("no-plaza");
+    // And the blocks of the worlds zones are built for (games/workshop: their
+    // block mods, which leave their worlds' rules out there, and pictures).
+    if (std::error_code ec; std::filesystem::is_directory(games + "/workshop/mods", ec)) {
+        workshop.push_back("user-mods " + games + "/workshop/mods");
+        workshop.push_back("textures " + games + "/workshop/textures");
+        workshop.push_back("fallback-textures " + sandbox_tex);
+    }
     workshop.insert(workshop.end(), mods.begin(), mods.end());
     if (survival) body.push_back("survival");
     body.insert(body.end(), mods.begin(), mods.end());
@@ -12558,7 +12566,7 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
     // The pocket halls take the same: a hall is the sandbox's, indoors.
     const std::vector<std::string> mod_flags = world_mod_flags(dir);
     if (rooms) {
-        write_home_template(rooms_file, dir, survival, depth_s, top_s, mod_flags);
+        write_home_template(rooms_file, dir, survival, depth_s, top_s, mod_flags, games, sandbox_tex);
         // The platform game and the arcade shooter are rooms of that file too,
         // not of the command line: each starts when somebody comes near its
         // gate on the plaza (mods/gates, a portal between rooms) and stops a

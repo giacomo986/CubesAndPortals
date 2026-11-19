@@ -38,6 +38,14 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
   leggeva il nome del giocatore dopo aver chiesto se poteva entrare, quindi `--owner` era
   rifiutato come un estraneo.
 - `--no-plaza`: una stanza senza piazza e senza nient'altro della survival (le officine lo hanno).
+- **Chambers fatte nelle officine**: l'officina ha i blocchi delle chambers, messi giù con un
+  pennello da una tavolozza (niente zaino: `/workshop blocks`), e uno nuovo, il fondo di un pozzo.
+  Un livello chambers fatto di zone funziona per regola -- ogni pulsante, pulsante a tempo,
+  bersaglio e torretta comanda la porta più vicina, le prese fanno cadere i cubi, le pedane lanciano
+  sul bersaglio più vicino, un piedistallo dà la pistola. Le quindici camere restano; il livello di
+  un sito survival è fatto con le zone approvate quando ce ne sono, e l'ultima stanza ha un pulsante
+  per altre camere, più difficili a ogni livello superato.
+- Per le mod: `zones:watch` / `zones:block` dicono a un mondo dove sono stati posati i suoi blocchi.
 - **Zone proposte**: `/zone propose` le chiede agli admin, che vengono avvisati, e `/page zones`
   elenca quelle in attesa con mostra, approva e rifiuta; `/zone show` posa una zona da sola per
   guardarla.

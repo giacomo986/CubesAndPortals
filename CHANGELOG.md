@@ -33,6 +33,13 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 - **The owner can come into a player's own room or workshop** by its name: the server read the
   player's name after asking whether they may, so `--owner` was refused as a stranger.
 - `--no-plaza`: a room without a plaza and nothing else of survival's (the workshops have it).
+- **Chambers made in the workshops**: the workshop has the chambers' blocks, put down with a brush
+  from a palette (no bag: `/workshop blocks`), and a new one, a pit's bottom. A chambers level laid
+  out of zones works by rule -- each button, push button, target tile and turret holds the door
+  nearest it, vents drop cubes, plates throw onto the nearest target, a pedestal gives the gun. The
+  fifteen chambers stay; a survival site's level is made of the approved zones when there are any,
+  and the last room has a button for more chambers, harder each one done.
+- For mods: `zones:watch` / `zones:block` tell a world where its own blocks were laid.
 - **Proposed zones**: `/zone propose` asks the admins, who are told, and `/page zones` lists what
   waits with show, approve and refuse; `/zone show` lays one zone alone to look at.
 - For mods: `core.room_send` starts a room of the rooms file that is down (or one its template

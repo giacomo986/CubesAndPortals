@@ -458,12 +458,16 @@ propongono le zone dei livelli ([MODDING](MODDING.it.md#livelli-fatti-di-pezzi-s
 portale ha "la mia officina" (o "esci dall'officina"). Chi gestisce i portali del server
 (`portals`, il proprietario) può entrare nell'officina di chiunque. I mondi del menu del titolo e
 `tools/track.sh` scrivono il modello accanto a `home-*`, con le stesse mod, mai survival e senza
-piazza (`no-plaza`: altrimenti le mod ci metterebbero i loro tavoli e le loro casse):
+piazza (`no-plaza`: altrimenti le mod ci metterebbero i loro tavoli e le loro casse), e coi blocchi dei mondi di cui si fanno le zone
+(`games/workshop`):
 
 ```
 [room workshop-*]
 world-file worlds/{name}.world
 no-plaza
+user-mods games/workshop/mods
+textures games/workshop/textures
+fallback-textures assets/textures
 ```
 
 Le zone proposte aspettano un admin su `/page zones`.

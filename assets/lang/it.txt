@@ -1456,3 +1456,11 @@ Somebody else's workshop: you are let in to look round. /workshop leave goes out
 leave the workshop = esci dall'officina
 my workshop -- where zones are built = la mia officina -- dove si costruiscono le zone
 this server has no workshops = questo server non ha officine
+Blocks: the brush's palette = Blocchi: la tavolozza del pennello
+More chambers, difficulty {}: {} rooms. = Altre camere, difficoltà {}: {} stanze.
+The brush puts down {}. = Il pennello mette {}.
+The brush puts down: nothing yet = Il pennello mette: ancora niente
+The brush puts down: {} = Il pennello mette: {}
+The level is done. = Il livello è superato.
+The next chamber is being made... = La prossima camera è in costruzione...
+The palette is the workshop's: /workshop goes in. = La tavolozza è dell'officina: /workshop per entrare.

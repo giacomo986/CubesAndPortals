@@ -451,12 +451,15 @@ to the spawn of the first room; any portal frame's menu has "my workshop" (or "l
 workshop") too. Whoever sets up the server's portals (`portals`, the owner) may come into anyone's
 workshop. The title screen's worlds and `tools/track.sh` write the template beside `home-*`, with
 the same mods, never survival and without a plaza (`no-plaza`: otherwise the mods would set their
-tables and boxes on its floor):
+tables and boxes on its floor), and with the worlds' blocks zones are built of (`games/workshop`):
 
 ```
 [room workshop-*]
 world-file worlds/{name}.world
 no-plaza
+user-mods games/workshop/mods
+textures games/workshop/textures
+fallback-textures assets/textures
 ```
 
 Proposed zones wait for an admin on `/page zones`.

@@ -38,7 +38,8 @@
 -- (mods/workshop, a room workshop-KEY).
 --
 -- Another mod asks for a level with "zones:lay" and hears "zones:mark" for
--- every marker in it, then "zones:laid" once it stands. "zones:do" runs a
+-- every marker in it, then "zones:laid" once it stands; a world that names its
+-- own blocks with "zones:watch" hears "zones:block" for each of them laid. "zones:do" runs a
 -- /zone line as a player said it (the workshop's panel).
 --
 -- Kept in the server's shared storage, so every room has the same zones:
@@ -80,6 +81,15 @@ core.event.define("zones:lay", {
 })
 core.event.define("zones:mark", {
     fields = { tag = "string", kind = "string", x = "number", y = "number", z = "number", facing = "number" },
+    cancellable = false,
+})
+-- A world's own blocks it wants told of where a level put them: "zones:watch"
+-- names them (space between), once, as the world's mod loads; then, before
+-- "zones:laid", "zones:block" for every such cell of the level, with its
+-- facing as laid -- a chambers door, a button, a vent.
+core.event.define("zones:watch", { fields = { names = "string" }, cancellable = false })
+core.event.define("zones:block", {
+    fields = { tag = "string", name = "string", x = "number", y = "number", z = "number", facing = "number" },
     cancellable = false,
 })
 core.event.define("zones:laid", {
@@ -416,8 +426,15 @@ end
 type Job = {
     tag: string, level: L.Level, piece: number, cell: number,
     ox: number, oy: number, oz: number,
+    found: { { any } },   -- the watched cells written so far: name, x, y, z, facing
 }
 local jobs: { Job } = {}
+local watched: { [string]: boolean } = {}
+core.event.on("zones:watch", function(ev)
+    for name in string.gmatch(ev.names, "%S+") do
+        watched[name] = true
+    end
+end)
 local ids_of: { [string]: number } = {}   -- a palette entry's block, looked up once
 
 local function block_of(name: string): number
@@ -453,8 +470,13 @@ local function work(job: Job, budget: number): (number, boolean)
                 local id = block_of(name :: string)
                 core.set_block(x, y, zz, id)
                 local turns = core.node_turns(id)
+                local facing = tonumber(f) :: number
                 if turns > 1 then
-                    core.set_facing(x, y, zz, T.turned(turns, tonumber(f) :: number, p.t, p.m))
+                    facing = T.turned(turns, facing, p.t, p.m)
+                    core.set_facing(x, y, zz, facing)
+                end
+                if watched[name :: string] then
+                    table.insert(job.found, { name, x, y, zz, facing })
                 end
             end
             job.cell += 1
@@ -475,6 +497,9 @@ local function work(job: Job, budget: number): (number, boolean)
                     job.oz + o.z + (if along_x then 0 else u), id)
             end
         end
+    end
+    for _, b in job.found do
+        core.event.emit("zones:block", { tag = job.tag, name = b[1], x = b[2], y = b[3], z = b[4], facing = b[5] })
     end
     for _, p in job.level.placed do
         for _, m in p.zone.marks do
@@ -499,7 +524,8 @@ local function lay(tag: string, world: string, owner: string, x: number, y: numb
         core.event.emit("zones:laid", { tag = tag, pieces = 0, x1 = x, y1 = y, z1 = z, x2 = x, y2 = y, z2 = z })
         return 0
     end
-    table.insert(jobs, { tag = tag, level = level, piece = 1, cell = 1, ox = x, oy = y, oz = z })
+    local job: Job = { tag = tag, level = level, piece = 1, cell = 1, ox = x, oy = y, oz = z, found = {} }
+    table.insert(jobs, job)
     return #level.placed
 end
 
@@ -513,7 +539,8 @@ local function lay_one(tag: string, z: Zone, x: number, y: number, zz: number)
     end
     local level: L.Level = { placed = { p }, open = open, x1 = 0, y1 = 0, z1 = 0, x2 = z.w - 1, y2 = z.h - 1,
                              z2 = z.d - 1 }
-    table.insert(jobs, { tag = tag, level = level, piece = 1, cell = 1, ox = x, oy = y, oz = zz })
+    local job: Job = { tag = tag, level = level, piece = 1, cell = 1, ox = x, oy = y, oz = zz, found = {} }
+    table.insert(jobs, job)
 end
 
 core.event.on("zones:lay", function(ev)

@@ -138,7 +138,8 @@ if serving then
         { x0 = 297, x1 = 320, h = 14, name = "Test chamber 13: the dissolving field" },
         { x0 = 324, x1 = 355, h = 14, name = "Test chamber 14: the steps" },
         { x0 = 359, x1 = 380, h = 12, name = "Test chamber 15: three cubes" },
-        { x0 = 384, x1 = 391, h = 5, name = "Testing complete. The portal home is on the west wall." },
+        { x0 = 384, x1 = 391, h = 5,
+          name = "Testing complete. The portal home is on the west wall; the button, more chambers." },
     }
     local Z1 = 11
     local DZ0, DZ1 = 5, 6   -- the doors' cells across
@@ -246,7 +247,11 @@ if serving then
     end
 
     -- The doors: cells, open or shut. A shut door is its block, an open one air.
-    type Door = { x: number, open: boolean, want: boolean, frame: number, next: number }
+    -- A door of a level of zones (below) says its own cells, the one wearing
+    -- the model first, the way they face, its middle, and whether it opens as
+    -- somebody comes up to it; the chambers' doors stand at DZ0 on the floor.
+    type Door = { x: number, open: boolean, want: boolean, frame: number, next: number,
+                  cells: { { number } }?, f: number?, mid: { number }?, near: boolean? }
     local doors: { [number]: Door } = {}   -- by the room it lets out of
     -- A door's four cells, shut or open: the lower one at DZ0 wears the
     -- model, turned so its two cells run along +Z (upright 3).
@@ -274,8 +279,19 @@ if serving then
                 local was_open = d.frame == #DOOR_FRAMES - 1
                 d.frame += if want > d.frame then 1 else -1
                 d.next = clock + 0.06
-                put_turned(d.x, FL, DZ0, DOOR_FRAMES[d.frame + 1], 3)
                 local open = d.frame == #DOOR_FRAMES - 1
+                local cells, f = d.cells, d.f or 3
+                if cells ~= nil then
+                    local c = cells[1]
+                    put_turned(c[1], c[2], c[3], DOOR_FRAMES[d.frame + 1], f)
+                    if open ~= was_open then
+                        for i = 2, #cells do
+                            put_turned(cells[i][1], cells[i][2], cells[i][3], if open then DOOR_OPEN_PART else DOOR_PART, f)
+                        end
+                    end
+                    continue
+                end
+                put_turned(d.x, FL, DZ0, DOOR_FRAMES[d.frame + 1], 3)
                 if open ~= was_open then
                     for dy = 0, 1 do
                         for dz = 0, 1 do
@@ -330,7 +346,8 @@ if serving then
         { x = 177, y = FL, z = 3, door = 9, pressed = false },
         { x = 317, y = FL + 6, z = 1, door = 14, pressed = false },   -- 13, on the ledge
     }
-    type Vent = { x: number, z: number, top: number, room: number, cube: number }
+    -- `low`: under it a cube has fallen and comes again (FL - 4 in the chambers).
+    type Vent = { x: number, z: number, top: number, room: number, cube: number, low: number? }
     local vents: { Vent } = {
         { x = 33, z = 3, top = FL + 7, room = 3, cube = 0 },
         { x = 74, z = 9, top = FL + 8, room = 5, cube = 0 },
@@ -347,7 +364,8 @@ if serving then
         { x = 363, z = 9, top = FL + 11, room = 16, cube = 0 },
         { x = 366, z = 4, top = FL + 11, room = 16, cube = 0 },
     }
-    type Plate = { x: number, z: number, vx: number, vy: number, vz: number }
+    -- `y`: the height a body stands at on it (FL in the chambers).
+    type Plate = { x: number, z: number, vx: number, vy: number, vz: number, y: number? }
     local plates: { Plate } = {
         { x = 93, z = 5, vx = 8, vy = 12, vz = 0 },
         { x = 102, z = 5, vx = 8, vy = 12, vz = 0 },
@@ -356,7 +374,7 @@ if serving then
     }
     -- A pedestal's gun is level 1 (blue) or 2 (both); a player's level is
     -- kept by name, so a gun is given once.
-    type Pedestal = { x: number, z: number, gives: string, takes: string?, level: number }
+    type Pedestal = { x: number, z: number, gives: string, takes: string?, level: number, y: number? }
     local pedestals: { Pedestal } = {
         { x = 51, z = 2, gives = "chambers_game:gun_blue", level = 1 },
         { x = 72, z = 2, gives = "chambers_game:gun", takes = "chambers_game:gun_blue", level = 2 },
@@ -367,6 +385,9 @@ if serving then
         { x = 220, y = FL, z = 2, door = 11, time = 10 },   -- 10
     }
     local timers: { [number]: number } = {}   -- seconds left, by door
+    -- The last room's push button: the next level of the series past chamber
+    -- 15 (levels of zones, below).
+    local MORE_X, MORE_Z = 389, 2
 
     -- Trigger zones: a box (cells x0..x1, z0..z1 inclusive, y0..y1 in
     -- metres) in a room; the first body to come into it does its actions, once
@@ -398,8 +419,10 @@ if serving then
     -- Sentry turrets: where, the way they face, their room; `id` the creature
     -- while there is one, `state` idle (asleep), awake, down (knocked over,
     -- silent for good) or gone (dissolved).
+    -- `y`: where it stands (FL in the chambers); `near`: it wakes as somebody
+    -- comes within 12 (a level of zones has no trigger for it).
     type Turret = { x: number, z: number, fx: number, fz: number, room: number, id: number, state: string,
-                    seen: number, next: number, lost: number, aimed: number }
+                    seen: number, next: number, lost: number, aimed: number, y: number?, near: boolean? }
     local function turret(x: number, z: number, room: number): Turret
         return { x = x, z = z, fx = -1, fz = 0, room = room, id = 0, state = "idle", seen = 0, next = 0, lost = 0,
                  aimed = 0 }
@@ -617,9 +640,10 @@ if serving then
             put(v[1], FL + 12, v[2], VENT)
         end
 
-        -- The last room: the way home's rim.
+        -- The last room: the way home's rim, and the button for more.
         rim(ROOMS[#ROOMS].x0 - 1, 9, FL, false, RIM_BLUE)
         recess(ROOMS[#ROOMS].x0 - 1, 9, FL, 0)
+        put(MORE_X, FL, MORE_Z, PUSH)
     end
 
     -- The chambers are made as their columns are, a mapgen stage: lit with
@@ -661,7 +685,7 @@ if serving then
     -- doors of four blocks each drawing a whole door. The plan's version is
     -- kept, and a world behind it has the chambers built again over it, all
     -- of them, at its start (writes to columns not made yet wait for them).
-    local CHAMBERS = "11"
+    local CHAMBERS = "12"
     core.event.on("core:world_ready", function()
         if core.storage_get("chambers") ~= CHAMBERS then
             build()
@@ -692,8 +716,9 @@ if serving then
     type Aim = { x: number, y: number, z: number, axis: number, sign: number, rot: number?, hw: number, hh: number,
                  cells: { { number } }, face: number }
     type Shot = { x: number, y: number, z: number, idx: number, at: Aim }
+    -- `zl`: the tag of the level of zones they are in (below), or nil.
     type P = { blue: Shot?, orange: Shot?, carry: number, room: number, plate_at: number, level: number,
-               name: string, low: number, px: number?, py: number?, pz: number?, said: number }
+               name: string, low: number, px: number?, py: number?, pz: number?, said: number, zl: string? }
     local players: { [number]: P } = {}
 
     -- A room by its key: k in the chambers, k + 100 * slot in a site's copy.
@@ -1143,7 +1168,7 @@ if serving then
                     end
                     core.mob_remove(t.id)
                 end
-                t.id = core.spawn_mob("chambers_game:turret", t.x, FL, t.z)
+                t.id = core.spawn_mob("chambers_game:turret", t.x, t.y or FL, t.z)
                 t.state, t.seen, t.next, t.lost = "idle", 0, 0, 0
                 if t.id ~= 0 then core.mob_face(t.id, t.x + t.fx * 8, t.z + t.fz * 8) end
             end
@@ -1384,6 +1409,7 @@ if serving then
 
     -- ------------------------------------------------------------- clicks
 
+    local more_pressed: (p: number) -> () = function(_) end
     local function pressed_push(p: number): boolean
         local x, y, z = core.player_pos(p)
         local dx, dy, dz = core.player_look(p)
@@ -1393,6 +1419,10 @@ if serving then
         local cx, cy, cz = core.raycast(x, y + EYE, z, dx, dy, dz, 3)
         if cx == nil or core.get_block(cx, cy, cz) ~= PUSH then
             return false
+        end
+        if cx == MORE_X and cy == FL and cz == MORE_Z then
+            more_pressed(p)
+            return true
         end
         for _, b in PUSHES do
             if b.x == cx and b.y == cy and b.z == cz then
@@ -1560,13 +1590,14 @@ if serving then
         if a >= 0 and b >= 0 then core.portal_link(a, b) end
         core.notice(p, "Prova superata. Un portale riporta alla prima camera: li' qualcosa si e' aperto.")
     end
-    core.event.on("keys:level", function(ev)
+    -- A site's level as a stretch of a copy of the chambers: when the chambers
+    -- have no zones to lay one of (levels of zones, below).
+    local function site_by_copy(ev: { player: number, slot: number, d: number })
         local known = core.storage_get("copies")
         if not string.find(";" .. known, `;{ev.slot};`, 1, true) then
             core.storage_set("copies", known .. `{ev.slot};`)
         end
         make_copy(ev.slot)
-        ev.cancel = true
         local count = math.clamp(2 + ev.d // 2, 2, 7)
         local a = 2 + math.floor((ev.d - 1) * (13 - count) / 9)
         local first, done_at = a + 100 * ev.slot, a + count + 100 * ev.slot
@@ -1596,10 +1627,468 @@ if serving then
         core.event.emit("keys:start", { player = ev.player, slot = ev.slot, ex = x0 - 2, ey = FL, ez = 9 })
         core.notice(ev.player, `Camere di prova: {count}, dalla {ROOMS[a].name}.`)
         core.log(`chambers_game: slot {ev.slot}, d {ev.d}: rooms {a} to {a + count - 1}`)
-    end)
+    end
     core.event.on("core:world_ready", function()
         for slot in string.gmatch(core.storage_get("copies"), "(%d+);") do make_copy(tonumber(slot) :: number) end
     end)
+
+    -- ------------------------------------------------ levels of zones
+    --
+    -- A level laid out of the chambers' zones (mods/zones, built in a player's
+    -- workshop): a survival site's when there are any (keys:level, else the
+    -- copy above), the series past chamber 15 (the last room's push button),
+    -- an admin's /zone try here. What is in it works by rule, out of the
+    -- blocks as they were laid ("zones:block"):
+    --   a door                opens as somebody comes up to it, unless one of
+    --                         these holds it -- each holds the door nearest it:
+    --     a floor button      all of a door's buttons down: it is open
+    --     a push button       open for 12 s, the clock over it
+    --     a target tile       a body on it opens it for good
+    --     a turret ("mob")    all of a door's turrets down: it is open
+    --   a vent                drops a cube, and again when it falls out or
+    --                         lies on a pit's bottom
+    --   a launch plate        throws a body onto the nearest target tile
+    --                         within 24, or straight up without one
+    --   a pedestal            the whole gun
+    --   a pit's bottom        a second on it, or out under the level, and a
+    --                         body is back at the level's start
+    -- The markers: "start" where a player is put, "exit" the level done.
+    local PIT = id("pit")
+    local function on_pit_at(x: number, y: number, z: number): boolean
+        return core.get_block(math.floor(x), math.floor(y - 0.05), math.floor(z)) == PIT
+    end
+    function on_pit(c: number): boolean
+        local x, y, z = core.mob_pos(c)
+        return x ~= nil and on_pit_at(x, y :: number, z :: number)
+    end
+    local WATCH = { "door", "door_part", "button", "button_down", "button_part", "plate", "plate_part",
+                    "pushbutton", "vent", "pedestal", "target" }
+    do
+        local names = {}
+        for _, n in WATCH do table.insert(names, `chambers_core:{n}`) end
+        core.event.emit("zones:watch", { names = table.concat(names, " ") })
+    end
+    local GRAVITY = 25   -- chambers_core's core.movement
+
+    type ZLevel = { tag: string, kind: string, player: number, slot: number, d: number,
+                    blocks: { { any } }, marks: { { any } }, box: { number }?,
+                    start: { number }?, exit: { number }?, doors: { number }, done: boolean,
+                    way: { number }? }
+    local zlevels: { [string]: ZLevel } = {}
+    local next_key = 1000000   -- a level's doors' keys, past any room's
+
+    local function zlevel(tag: string): ZLevel
+        local lv = zlevels[tag]
+        if lv ~= nil then
+            return lv
+        end
+        local fresh: ZLevel = { tag = tag, kind = "try", player = 0, slot = 0, d = 1, blocks = {}, marks = {},
+                                doors = {}, done = false }
+        zlevels[tag] = fresh
+        return fresh
+    end
+    core.event.on("zones:block", function(ev)
+        table.insert(zlevel(ev.tag).blocks, { ev.name, ev.x, ev.y, ev.z, ev.facing })
+    end)
+    core.event.on("zones:mark", function(ev)
+        table.insert(zlevel(ev.tag).marks, { ev.kind, ev.x, ev.y, ev.z, ev.facing })
+    end)
+
+    -- Along which way an upright door's second cell stands from the one that
+    -- wears it: +X turned f quarters (each +X to -Z), so the chambers' 3 is +Z.
+    local ALONG = { { 1, 0 }, { 0, -1 }, { -1, 0 }, { 0, 1 } }
+    local function cell_key(x: number, y: number, z: number): string
+        return `{x},{y},{z}`
+    end
+
+    local function nearest_door(lv: ZLevel, x: number, y: number, z: number): number
+        local best, which = math.huge, -1
+        for _, k in lv.doors do
+            local m = (doors[k] :: Door).mid :: { number }
+            local dd = (m[1] - x) ^ 2 + (m[2] - y) ^ 2 * 4 + (m[3] - z) ^ 2
+            if dd < best then
+                best, which = dd, k
+            end
+        end
+        return which
+    end
+
+    -- The 2 x 2 a two-by-two thing's cell `at` is in, out of `cells`: its lowest
+    -- corner, which wears it (drawn towards +x and +z), made so if the zone was
+    -- turned the other way.
+    local function square(cells: { [string]: boolean }, x: number, y: number, z: number, main: number,
+                          part: number): (number, number)
+        for _, o in { { 0, 0 }, { -1, 0 }, { 0, -1 }, { -1, -1 } } do
+            local cx, cz = x + o[1], z + o[2]
+            if cells[cell_key(cx, y, cz)] and cells[cell_key(cx + 1, y, cz)] and cells[cell_key(cx, y, cz + 1)]
+                and cells[cell_key(cx + 1, y, cz + 1)] then
+                if cx ~= x or cz ~= z then
+                    core.set_block(x, y, z, part)
+                    core.set_block(cx, y, cz, main)
+                end
+                return cx, cz
+            end
+        end
+        return x, z
+    end
+
+    -- A plate's throw: from the middle of its two by two onto the target tile
+    -- nearest (its top), the way up 12 m/s or what reaches it.
+    local function throw_of(lv: ZLevel, x: number, y: number, z: number): (number, number, number)
+        local fx, fz, best, tx, ty, tz = x + 1, z + 1, 24 * 24, 0.0, 0.0, 0.0
+        local found = false
+        for _, b in lv.blocks do
+            if b[1] == "chambers_core:target" then
+                local dd = (b[2] + 0.5 - fx) ^ 2 + (b[4] + 0.5 - fz) ^ 2
+                if dd < best then
+                    best, tx, ty, tz, found = dd, b[2] + 0.5, b[3] + 1, b[4] + 0.5, true
+                end
+            end
+        end
+        if not found then
+            return 0, 12, 0
+        end
+        local dy = ty - y
+        local vy = math.max(12, math.sqrt(2 * GRAVITY * math.max(dy + 1.5, 0.5)))
+        local t = (vy + math.sqrt(math.max(vy * vy - 2 * GRAVITY * dy, 0))) / GRAVITY
+        return (tx - fx) / t, vy, (tz - fz) / t
+    end
+
+    -- Everything of a level that stands, made to work.
+    local function wire(lv: ZLevel)
+        local box = lv.box :: { number }
+        local cells: { [string]: boolean } = {}
+        for _, b in lv.blocks do
+            if b[1] ~= "chambers_core:door" then
+                cells[cell_key(b[2], b[3], b[4])] = true
+            end
+        end
+        -- The doors first: everything else holds the nearest.
+        for _, b in lv.blocks do
+            if b[1] == "chambers_core:door" then
+                local x, y, z, f = b[2], b[3], b[4], b[5] % 4
+                local a = ALONG[f + 1]
+                local ox, oz = x + a[1], z + a[2]
+                if not cells[cell_key(ox, y, oz)] and cells[cell_key(x - a[1], y, z - a[2])] then
+                    -- Mirrored: the cell that wears it is the other one.
+                    ox, oz = x, z
+                    x, z = x - a[1], z - a[2]
+                    put_turned(x, y, z, DOOR, f)
+                    put_turned(ox, y, oz, DOOR_PART, f)
+                end
+                next_key += 1
+                doors[next_key] = { x = x, open = false, want = false, frame = 0, next = 0,
+                                    cells = { { x, y, z }, { x, y + 1, z }, { ox, y, oz }, { ox, y + 1, oz } }, f = f,
+                                    mid = { (x + ox) / 2 + 0.5, y, (z + oz) / 2 + 0.5 }, near = true }
+                table.insert(lv.doors, next_key)
+            end
+        end
+        local function hold(k: number)
+            local d = doors[k]
+            if d ~= nil then d.near = false end
+        end
+        for _, b in lv.blocks do
+            local name, x, y, z = b[1], b[2], b[3], b[4]
+            if name == "chambers_core:button" or name == "chambers_core:button_down" then
+                local cx, cz = square(cells, x, y, z, BUTTON, BUTTON_PART)
+                local k = nearest_door(lv, cx + 1, y, cz + 1)
+                hold(k)
+                table.insert(buttons, { x = cx, y = y, z = cz, door = k, pressed = false })
+            elseif name == "chambers_core:plate" then
+                local cx, cz = square(cells, x, y, z, PLATE, PLATE_PART)
+                local vx, vy, vz = throw_of(lv, cx, y + 1, cz)
+                table.insert(plates, { x = cx, z = cz, y = y + 1, vx = vx, vy = vy, vz = vz })
+            elseif name == "chambers_core:pushbutton" then
+                local k = nearest_door(lv, x, y, z)
+                hold(k)
+                table.insert(PUSHES, { x = x, y = y, z = z, door = k, time = 12 })
+            elseif name == "chambers_core:target" then
+                local k = nearest_door(lv, x, y, z)
+                hold(k)
+                table.insert(TRIGGERS, { room = -1, x0 = x, x1 = x, y0 = y + 0.5, y1 = y + 3, z0 = z, z1 = z,
+                                         actions = { { "door", k } }, fired = false })
+            elseif name == "chambers_core:vent" then
+                local v: Vent = { x = x, z = z, top = y - 1, room = -1, cube = 0, low = box[2] - 3 }
+                table.insert(vents, v)
+                dispense(v)
+            elseif name == "chambers_core:pedestal" then
+                table.insert(pedestals, { x = x, z = z, y = y, gives = "chambers_game:gun",
+                                          takes = "chambers_game:gun_blue", level = 2 })
+            end
+        end
+        for _, m in lv.marks do
+            if m[1] == "start" and lv.start == nil then
+                lv.start = { m[2] + 0.5, m[3], m[4] + 0.5 }
+            elseif m[1] == "exit" and lv.exit == nil then
+                lv.exit = { m[2] + 0.5, m[3], m[4] + 0.5 }
+            end
+        end
+        local st = lv.start or { box[1] + 1.5, box[2] + 1, box[3] + 1.5 }
+        lv.start = st
+        for _, m in lv.marks do
+            if m[1] == "mob" then
+                local x, z = m[2] + 0.5, m[4] + 0.5
+                local k = nearest_door(lv, x, m[3], z)
+                hold(k)
+                local t = turret(x, z, k)
+                t.y, t.near = m[3], true
+                local dx, dz = st[1] - x, st[3] - z
+                local len = math.sqrt(dx * dx + dz * dz)
+                if len > 0.1 then
+                    t.fx, t.fz = dx / len, dz / len
+                end
+                table.insert(TURRETS, t)
+                reset_turrets(k)
+            end
+        end
+        fields_told()
+        core.log(`chambers_game: level {lv.tag} works: {#lv.doors} door(s), {#lv.blocks} thing(s), {#lv.marks} marker(s)`)
+    end
+
+    -- Taking a level's cells away before one is laid there again, a slice a tick.
+    type Clearing = { box: { number }, x: number, after: () -> () }
+    local clearings: { Clearing } = {}
+    local function clear_then(tag: string, after: () -> ())
+        local x1, y1, z1, x2, y2, z2 = string.match(core.storage_get(`box {tag}`),
+            "^(-?%d+) (-?%d+) (-?%d+) (-?%d+) (-?%d+) (-?%d+)$")
+        if x1 == nil then
+            after()
+            return
+        end
+        local box = { tonumber(x1) :: number, tonumber(y1) :: number, tonumber(z1) :: number,
+                      tonumber(x2) :: number, tonumber(y2) :: number, tonumber(z2) :: number }
+        table.insert(clearings, { box = box, x = box[1], after = after })
+    end
+    local function step_clearings()
+        local c = clearings[1]
+        if c == nil then return end
+        local b = c.box
+        local left = 30000
+        while c.x <= b[4] and left > 0 do
+            for y = b[2], b[5] do
+                for z = b[3], b[6] do
+                    core.set_block(c.x, y, z, 0)
+                end
+            end
+            left -= (b[5] - b[2] + 1) * (b[6] - b[3] + 1)
+            c.x += 1
+        end
+        if c.x > b[4] then
+            table.remove(clearings, 1)
+            c.after()
+        end
+    end
+
+    -- What made the last level under a tag work, let go: its doors, and
+    -- everything else standing inside its box (cubes and turrets taken away).
+    local function unwire(lv: ZLevel)
+        for _, k in lv.doors do
+            doors[k] = nil
+            timers[k] = nil
+        end
+        lv.doors = {}
+        local b = lv.box
+        if b == nil then return end
+        local function inside(x: number, y: number, z: number): boolean
+            return x >= b[1] and x <= b[4] + 1 and y >= b[2] - 1 and y <= b[5] + 1 and z >= b[3] and z <= b[6] + 1
+        end
+        local function keep<T>(list: { T }, at: (T) -> boolean): { T }
+            local out = {}
+            for _, e in list do
+                if not at(e) then table.insert(out, e) end
+            end
+            return out
+        end
+        buttons = keep(buttons, function(e: Button) return inside(e.x, e.y, e.z) end)
+        plates = keep(plates, function(e: Plate) return inside(e.x, e.y or FL, e.z) end)
+        PUSHES = keep(PUSHES, function(e) return inside(e.x, e.y, e.z) end)
+        pedestals = keep(pedestals, function(e: Pedestal) return inside(e.x, e.y or FL, e.z) end)
+        TRIGGERS = keep(TRIGGERS, function(e: Trigger) return inside(e.x0, e.y0, e.z0) end)
+        vents = keep(vents, function(e: Vent)
+            if not inside(e.x, e.top, e.z) then return false end
+            if e.cube ~= 0 then
+                core.mob_remove(e.cube)
+                cubes[e.cube] = nil
+            end
+            return true
+        end)
+        TURRETS = keep(TURRETS, function(e: Turret)
+            if not inside(e.x, e.y or FL, e.z) then return false end
+            if e.id ~= 0 then core.mob_remove(e.id) end
+            return true
+        end)
+    end
+
+    -- A level asked for: the last one under that tag let go and its cells
+    -- taken away, then laid.
+    local function lay_level(lv: ZLevel, x: number, y: number, z: number, count: number, seed: number)
+        unwire(lv)
+        lv.blocks, lv.marks, lv.box, lv.start, lv.exit, lv.done, lv.way = {}, {}, nil, nil, nil, false, nil
+        clear_then(lv.tag, function()
+            core.event.emit("zones:lay", { tag = lv.tag, world = "chambers", owner = "", x = x, y = y, z = z,
+                                           seed = seed, d = lv.d, count = count })
+        end)
+    end
+
+    -- A site's way out, beside the level outside its box (keys:start): a hole
+    -- at (ex, ey, ez) facing +x, the wall at ex + 1 between it and a little room
+    -- a portal from the level's exit comes out in, once it is done.
+    local function way_out(lv: ZLevel)
+        local box, st = lv.box :: { number }, lv.start :: { number }
+        local ex, ey, ez = box[1] - 8, math.floor(st[2]), math.floor(st[3])
+        for x = ex - 1, ex + 6 do
+            for y = ey - 1, ey + 3 do
+                for z = ez - 2, ez + 2 do
+                    local inside = x >= ex + 2 and x <= ex + 5 and y >= ey and y <= ey + 2 and z >= ez - 1 and z <= ez + 1
+                    core.set_block(x, y, z, if inside then 0 elseif y == ey + 3 and x == ex + 3 and z == ez then LIGHT
+                        else METAL)
+                end
+            end
+        end
+        core.set_block(ex, ey, ez, 0)
+        core.set_block(ex, ey + 1, ez, 0)
+        lv.way = { ex, ey, ez }
+        core.event.emit("keys:start", { player = lv.player, slot = lv.slot, ex = ex, ey = ey, ez = ez })
+    end
+
+    core.event.on("zones:laid", function(ev)
+        local lv = zlevel(ev.tag)
+        if ev.pieces == 0 then
+            zlevels[ev.tag] = nil
+            if lv.kind == "site" then
+                site_by_copy({ player = lv.player, slot = lv.slot, d = lv.d })
+            elseif lv.kind == "more" then
+                core.notice(lv.player, "There are no more chambers yet: none of the workshops' has been approved.")
+            end
+            return
+        end
+        lv.box = { ev.x1, ev.y1, ev.z1, ev.x2, ev.y2, ev.z2 }
+        core.storage_set(`box {ev.tag}`, `{ev.x1} {ev.y1} {ev.z1} {ev.x2} {ev.y2} {ev.z2}`)
+        wire(lv)
+        local st = lv.start :: { number }
+        if lv.kind ~= "try" and core.player_name(lv.player) ~= "" then
+            core.player_place(lv.player, st[1], st[2], st[3], 1, 0, 0)
+            core.player_spawn(lv.player, st[1], st[2], st[3], true)
+            local s = players[lv.player]
+            if s then s.zl = lv.tag end
+        end
+        if lv.kind == "site" then
+            way_out(lv)
+            core.notice(lv.player, `Camere di prova: {ev.pieces}, fatte nelle officine.`)
+        elseif lv.kind == "more" then
+            core.notice(lv.player, `More chambers, difficulty {lv.d}: {ev.pieces} rooms.`)
+        end
+    end)
+
+    -- A site's level: of zones when there are any (else site_by_copy, above).
+    core.event.on("keys:level", function(ev)
+        ev.cancel = true
+        local lv = zlevel(`site {ev.slot}`)
+        lv.kind, lv.player, lv.slot, lv.d = "site", ev.player, ev.slot, ev.d
+        lay_level(lv, ev.ox, FL - 1, ev.oz, math.clamp(2 + ev.d // 2, 2, 7), ev.seed)
+    end)
+
+    -- The series past chamber 15: a level a player at a time, harder each one
+    -- done, each player's in a place of their own.
+    more_pressed = function(p: number)
+        local s = players[p]
+        if s == nil then return end
+        local tag0 = core.storage_get(`more slot {s.name}`)
+        local slot = tonumber(tag0)
+        if slot == nil then
+            slot = tonumber(core.storage_get("more next")) or 0
+            core.storage_set("more next", tostring((slot :: number) + 1))
+            core.storage_set(`more slot {s.name}`, tostring(slot))
+        end
+        local lv = zlevel(`more {slot}`)
+        if lv.kind == "more" and lv.player == p and lv.box == nil then
+            return   -- being laid
+        end
+        lv.kind, lv.player, lv.slot = "more", p, slot :: number
+        lv.d = math.clamp(tonumber(core.storage_get(`more d {s.name}`)) or 1, 1, 10)
+        core.notice(p, "The next chamber is being made...")
+        lay_level(lv, -8192, FL - 1, (slot :: number) * 1024, math.clamp(2 + lv.d // 2, 2, 7), math.random(1, 1000000))
+    end
+
+    local function level_through(p: number, s: P, lv: ZLevel)
+        lv.done = true
+        core.log(`chambers_game: {s.name} through level {lv.tag} (d {lv.d})`)
+        if lv.kind == "site" then
+            core.event.emit("keys:cleared", { player = p, slot = lv.slot })
+            local e, w = lv.exit :: { number }, lv.way
+            if w ~= nil then
+                local a = core.portal_open(e[1], e[2] + 1, e[3], 1, 1, 0, 0.5, 1.0)
+                local b = core.portal_open(w[1] + 4.5, w[2] + 1, w[3] + 0.5, 1, -1, 0, 0.5, 1.0)
+                if a >= 0 and b >= 0 then core.portal_link(a, b) end
+            end
+            core.notice(p, "Prova superata. Un portale porta all'uscita.")
+        elseif lv.kind == "more" then
+            local d = math.min(lv.d + 1, 10)
+            core.storage_set(`more d {s.name}`, tostring(d))
+            s.zl = nil
+            local sx, sy, sz = start_of(#ROOMS)
+            core.player_place(p, sx, sy, sz, 1, 0, 0)
+            core.player_spawn(p, sx, sy, sz, true)
+            core.notice(p, `Chamber done. The button again for the next, difficulty {d}.`)
+        else
+            core.notice(p, "The level is done.")
+        end
+    end
+
+    -- Who is in which level, its exit reached, a fall back to its start; a
+    -- level's turrets waking as somebody comes near.
+    function step_levels(dt: number)
+        step_clearings()
+        for p, s in players do
+            local x, y, z = core.player_pos(p)
+            if x == nil then continue end
+            if s.zl == nil then
+                for tag, lv in zlevels do
+                    local b = lv.box
+                    if b ~= nil and x >= b[1] and x <= b[4] + 1 and z >= b[3] and z <= b[6] + 1 and y >= b[2] - 2
+                        and y <= b[5] + 1 then
+                        s.zl = tag
+                    end
+                end
+            end
+            local lv = if s.zl then zlevels[s.zl] else nil
+            if lv == nil or lv.box == nil then
+                s.zl = nil
+                continue
+            end
+            local b, st = lv.box :: { number }, lv.start :: { number }
+            local e = lv.exit
+            if e ~= nil and not lv.done and math.abs(x - e[1]) < 1.2 and math.abs(z - e[3]) < 1.2
+                and math.abs(y - e[2]) < 1.5 then
+                level_through(p, s, lv)
+                continue
+            end
+            s.low = if y < b[2] - 2 or on_pit_at(x, y, z) then s.low + dt else 0
+            if s.low > 1.0 then
+                s.low = 0
+                core.player_place(p, st[1], st[2], st[3], 1, 0, 0)
+                drop(p, false)
+            end
+            if x < b[1] - 12 or x > b[4] + 12 or z < b[3] - 12 or z > b[6] + 12 then
+                s.zl = nil
+            end
+        end
+        for _, t in TURRETS do
+            if t.near and t.state == "idle" and t.id ~= 0 then
+                local tx, ty, tz = core.mob_pos(t.id)
+                if tx ~= nil then
+                    for p in players do
+                        local x, y, z = core.player_pos(p)
+                        if x ~= nil and (x - tx) ^ 2 + (z - tz :: number) ^ 2 < 144 and math.abs(y - ty :: number) < 4 then
+                            t.state = "awake"
+                            core.notice(p, line("wake"))
+                            break
+                        end
+                    end
+                end
+            end
+        end
+    end
 
     -- On each player and each cube whether it is on a button.
     local function on_button(b: Button, x: number, y: number, z: number): boolean
@@ -1656,6 +2145,20 @@ if serving then
                 set_door(k, near)
             end
         end
+        -- And a level's doors nothing else holds (levels of zones, below).
+        for _, d in doors do
+            local m = d.mid
+            if d.near and m ~= nil then
+                local near = false
+                for p in players do
+                    local x, y, z = core.player_pos(p)
+                    if x ~= nil and math.abs(x - m[1]) < 3 and math.abs(z - m[3]) < 3 and math.abs(y - m[2]) < 2.5 then
+                        near = true
+                    end
+                end
+                d.open = near
+            end
+        end
     end
 
     -- Trigger zones: a player coming into a room is told its name and has its
@@ -1690,7 +2193,11 @@ if serving then
                 end
             end
             -- A second below the floor, not at once: the long fall's pit is
-            -- a way through when a portal is at its bottom.
+            -- a way through when a portal is at its bottom. A level of zones
+            -- keeps its own (step_levels).
+            if s.zl ~= nil then
+                continue
+            end
             s.low = if y < FL - 3 then s.low + dt else 0
             if s.low > 1.0 then
                 s.low = 0
@@ -1702,7 +2209,7 @@ if serving then
         for _, v in vents do
             if v.cube ~= 0 then
                 local _, cy = core.mob_pos(v.cube)
-                if cy == nil or cy < FL - 4 then
+                if cy == nil or cy < (v.low or FL - 4) or on_pit(v.cube) then
                     dispense(v)
                 end
             end
@@ -1716,7 +2223,7 @@ if serving then
                 continue
             end
             for _, pl in plates do
-                if x >= pl.x and x <= pl.x + 2 and z >= pl.z and z <= pl.z + 2 and math.abs(y - FL) < 0.3 then
+                if x >= pl.x and x <= pl.x + 2 and z >= pl.z and z <= pl.z + 2 and math.abs(y - (pl.y or FL)) < 0.3 then
                     core.player_launch(p, pl.vx, pl.vy, pl.vz, 2.0)
                     s.plate_at = clock + 1.0
                 end
@@ -1733,7 +2240,7 @@ if serving then
             for _, s in players do
                 if s.level < pd.level then want = core.item_id(pd.gives) end
             end
-            if shown_on[i] ~= want and core.show_item(pd.x, FL + 1, pd.z, want) then
+            if shown_on[i] ~= want and core.show_item(pd.x, (pd.y or FL) + 1, pd.z, want) then
                 shown_on[i] = want
             end
         end
@@ -1743,7 +2250,7 @@ if serving then
                 continue
             end
             for _, pd in pedestals do
-                if (x - pd.x - 0.5) ^ 2 + (z - pd.z - 0.5) ^ 2 < 2.2 and math.abs(y - FL) < 1
+                if (x - pd.x - 0.5) ^ 2 + (z - pd.z - 0.5) ^ 2 < 2.2 and math.abs(y - (pd.y or FL)) < 1
                     and s.level < pd.level then
                     s.level = pd.level
                     core.storage_set(`gun {s.name}`, tostring(pd.level))
@@ -1830,6 +2337,7 @@ if serving then
         step_plates()
         step_pedestals()
         step_timer(dt)
+        step_levels(dt)
     end
 end
 

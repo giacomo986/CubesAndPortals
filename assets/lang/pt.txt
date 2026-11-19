@@ -1582,3 +1582,13 @@ Somebody else's workshop: you are let in to look round. /workshop leave goes out
 leave the workshop = sair da oficina
 my workshop -- where zones are built = minha oficina -- onde as zonas são construídas
 this server has no workshops = este servidor não tem oficinas
+Blocks: the brush's palette = Blocos: a paleta do pincel
+Camere di prova: {}, fatte nelle officine. = Câmaras de testes: {}, feitas nas oficinas.
+More chambers, difficulty {}: {} rooms. = Mais câmaras, dificuldade {}: {} salas.
+Prova superata. Un portale porta all'uscita. = Prova superada. Um portal leva à saída.
+The brush puts down {}. = O pincel coloca {}.
+The brush puts down: nothing yet = O pincel coloca: nada ainda
+The brush puts down: {} = O pincel coloca: {}
+The level is done. = O nível foi superado.
+The next chamber is being made... = A próxima câmara está sendo construída...
+The palette is the workshop's: /workshop goes in. = A paleta é da oficina: /workshop para entrar.

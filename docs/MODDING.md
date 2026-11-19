@@ -2464,7 +2464,13 @@ takes them to a room of their own, `workshop-` and the start of their key, made 
 file's template `[room workshop-*]` (the title screen's worlds and `tools/track.sh` write it; a
 server without it says so). The room is flat, peaceful, without hunger or weather; its owner flies,
 takes no harm, digs fast, a block put down is not used up and one dug gives nothing. There is no
-catalogue there: the bag is the same in every room. A wand, given on the way in, picks the box by
+catalogue there: the bag is the same in every room. A brush, given on the way in, puts down a
+world's own blocks instead: `/workshop blocks`, the panel's **Blocks** or the brush on a block with
+none picked open its palette -- the world's blocks the workshop has (`games/workshop/mods`, links
+to the worlds' block mods, which leave their worlds' rules out in a room `workshop-*`; the
+chambers' so far) and the markers. A right click puts the one picked on the face clicked; a
+plate, a vent, a target tile or a pit's bottom takes the place of the block clicked; a door is its
+four cells across the way the player looks, a button or a plate its two by two. A wand, given on the way in, picks the box by
 two corners (drawn on the screen) and opens a panel: name, world, start/room/end, difficulties,
 weight, mirror, then **Save**, **Try** (a level of that world's zones, the approved and the
 player's own, laid on a trying ground 400 south of the spawn, the last one taken away first, the
@@ -2505,6 +2511,38 @@ core.event.emit("zones:lay", { tag = "mine 7", world = "chambers", owner = core.
 `x y z` is where the first zone's lowest corner goes, unturned; the rest grow from its doorways,
 whichever way they face. The level is written 4000 cells a tick, every `zones:mark` comes when it
 stands, then `zones:laid`. `tag` is the asker's own word, to know its answers by.
+
+A world whose own blocks do something (a door, a button) names them once, as its mod loads, and
+hears where each was laid, with its facing turned as its zone was, before `zones:laid`:
+
+```luau
+core.event.emit("zones:watch", { names = "chambers_core:door chambers_core:button" })
+core.event.on("zones:block", function(ev)
+    -- ev.tag, ev.name, ev.x, ev.y, ev.z, ev.facing
+end)
+```
+
+**The chambers out of zones** (`games/chambers/mods/chambers_game`). The fifteen chambers stay as
+they are; a survival site's level is laid out of the approved chambers zones when there are any
+(else the copy of the row as before), the last room's push button lays a level of them for the
+player who pressed it (a place of their own, harder each one done, back in the last room after its
+exit), and `/zone try chambers` works there too. What is in a level works by rule:
+
+| Built | Does |
+|---|---|
+| `chambers_core:door` (four cells) | opens as somebody comes up to it, unless one of the four below holds it: each holds the door nearest it |
+| a floor button (two by two) | all of a door's buttons down (a body or a cube): it is open |
+| a push button | the door open for 12 s, the clock over it |
+| a target tile | a body on it opens the door for good; a launch plate throws onto the nearest one |
+| marker `zones:mob` | a sentry turret, facing the start; it wakes as somebody comes within 12; all of a door's down: it is open |
+| a vent (in the ceiling) | drops a cube, and again when it falls out of the level or lies on a pit's bottom |
+| a launch plate (two by two, in the floor) | throws a body onto the nearest target tile within 24, straight up without one |
+| a pedestal | the whole gun |
+| `chambers_core:pit` (in the floor) | a second on it, or under the level, and a body is back at the start |
+| markers `zones:start`, `zones:exit` | where a player is put; the level done (a site's: its way out opens, a portal to it) |
+
+White panels take portals as everywhere in the chambers. The dissolving field and the fixed
+portals are not in zones yet.
 
 **How a level is laid** (`layout.luau`, which reads and writes no world: the same zones, seed, count
 and `d` give the same level anywhere). A "start" zone first; then a "room" joined to the newest open

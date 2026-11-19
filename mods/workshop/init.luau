@@ -26,8 +26,18 @@
 --   Back     where they were before they tried;
 --   Propose  asks the admins to approve the zone (/zone propose).
 --
+-- THE BRUSH, given on the way in too: the blocks of a world's zones without
+-- the bag (whose blocks would be had in every room). /workshop blocks, the
+-- panel's Blocks or the brush on a block with none picked open the palette:
+-- the world's own blocks (games/workshop/mods: chambers_core's) and the
+-- zones' markers. A right click puts the one picked on the face clicked; a
+-- floor's or a ceiling's thing (a launch plate, a vent, a target tile, a
+-- pit's bottom) takes the place of the block clicked; a door is its four
+-- cells across the way the player looks, a button or a plate its two by two.
+--
 --   /workshop          into your workshop, from any room
 --   /workshop leave    out, to the spawn of the server's first room
+--   /workshop blocks   the brush's palette, in the workshop
 
 local side    = core.side()
 local serving = side ~= "client"
@@ -121,7 +131,17 @@ end
 
 -- Into the player's workshop, or out of it with "leave": /workshop, and the
 -- frame's menu (mods/portal) through "workshop:go".
+local open_blocks: (p: number) -> () = function(_) end   -- the brush's palette, below
+
 local function go(p: number, arg: string)
+    if arg == "blocks" then
+        if IS_WORKSHOP then
+            open_blocks(p)
+        else
+            core.chat(p, "The palette is the workshop's: /workshop goes in.")
+        end
+        return
+    end
     if arg == "leave" then
         if not IS_WORKSHOP then
             core.chat(p, "You are not in a workshop.")
@@ -147,7 +167,7 @@ local function go(p: number, arg: string)
     end
 end
 
-core.command("workshop", "[leave] -- into your own workshop, where zones are built; or out of it")
+core.command("workshop", "[leave|blocks] -- into your own workshop, where zones are built; out of it; its palette")
 core.event.on("core:command", function(ev)
     if ev.name == "workshop" then
         go(ev.player, string.lower(string.match(ev.args, "^%s*(%S*)") or ""))
@@ -210,6 +230,9 @@ core.event.on("core:tick", function(ev)
             if core.bag_count(p, "workshop:wand") == 0 then
                 core.give_item(p, "workshop:wand", 1)
             end
+            if core.bag_count(p, "workshop:brush") == 0 then
+                core.give_item(p, "workshop:brush", 1)
+            end
             if room_of(p) == ROOM then
                 core.chat(p, "Your workshop. The wand picks a zone's box by two corners; /workshop leave goes out.")
             else
@@ -257,6 +280,7 @@ type Draft = {
     name: string, world: number, role: number,
     dmin: number, dmax: number, weight: number, mirror: boolean,
     back: { number }?,
+    brush: string,   -- the block the brush puts down, "" for none picked
 }
 local drafts: { [number]: Draft } = {}
 
@@ -265,7 +289,8 @@ local function draft(p: number): Draft
     if d then
         return d
     end
-    local fresh: Draft = { name = "", world = 1, role = 1, dmin = 1, dmax = 10, weight = 5, mirror = true }
+    local fresh: Draft = { name = "", world = 1, role = 1, dmin = 1, dmax = 10, weight = 5, mirror = true,
+                           brush = "" }
     drafts[p] = fresh
     return fresh
 end
@@ -274,10 +299,61 @@ local function zone_id(d: Draft): string
     return `{WORLDS[d.world]}.{d.name}`
 end
 
+-- ------------------------------------------- the brush's palette
+
+-- Each world's own blocks for its zones (what games/workshop/mods loads here),
+-- those of them this workshop has; and every world's markers.
+local PALETTE: { [string]: { string } } = {
+    chambers = { "panel", "metal", "metal_slab", "floor", "light", "glass", "pit", "door", "button", "pushbutton",
+                 "vent", "plate", "pedestal", "target", "emitter", "exit" },
+}
+local PREFIX: { [string]: string } = { chambers = "chambers_core:" }
+local MARKERS = { "doorway", "start", "exit", "mob", "loot", "key", "trigger" }
+-- What takes the place of the block clicked rather than going on its face.
+local INTO = { ["chambers_core:plate"] = true, ["chambers_core:vent"] = true, ["chambers_core:target"] = true,
+               ["chambers_core:pit"] = true }
+
+local function choices(world: string): { string }
+    local out = {}
+    for _, n in PALETTE[world] or {} do
+        local name = (PREFIX[world] or "") .. n
+        if core.node_id(name) ~= 0 then
+            table.insert(out, name)
+        end
+    end
+    for _, n in MARKERS do
+        table.insert(out, `zones:{n}`)
+    end
+    return out
+end
+
+local function show_blocks(p: number)
+    local d = draft(p)
+    local world = WORLDS[d.world]
+    local list = choices(world)
+    local name = `workshop:blocks{p}`
+    local rows = math.ceil(#list / 3)
+    core.ui_define(name, 13, 3.4 + rows * 1.0)
+    core.ui_button(name, "world", 0.4, 0.3, 12.2, 0.9, `world: {world}`)
+    core.ui_label(name, 0.4, 1.4, if d.brush == "" then "The brush puts down: nothing yet" else `The brush puts down: {d.brush}`)
+    for i, n in list do
+        local col, row = (i - 1) % 3, (i - 1) // 3
+        local short = string.match(n, ":(.+)$") or n
+        local mark = if string.sub(n, 1, 6) == "zones:" then "marker " else ""
+        core.ui_button(name, `b:{n}`, 0.4 + col * 4.1, 2.0 + row * 1.0, 4.0, 0.85,
+            if n == d.brush then `> {mark}{short}` else `{mark}{short}`)
+    end
+    core.ui_button(name, "close", 0.4, 2.2 + rows * 1.0, 12.2, 0.8, "Close")
+    core.ui_show(name, true, p)
+end
+
+open_blocks = show_blocks
+
+
 local function panel(p: number)
     local d = draft(p)
     local name = `workshop:panel{p}`
-    core.ui_define(name, 13, 11.6)
+    core.ui_define(name, 13, 12.8)
     local b = d.box
     core.ui_label(name, 0.4, 0.3, if b then `The box: {b[4] - b[1] + 1} x {b[5] - b[2] + 1} high x {b[6] - b[3] + 1}`
                                   else "No box yet: the wand on two corners.")
@@ -293,7 +369,8 @@ local function panel(p: number)
     core.ui_button(name, "try", 0.4, 6.9, 12.2, 1.1, `Try a level of {WORLDS[d.world]}`)
     core.ui_button(name, "back", 0.4, 8.2, 12.2, 1.1, if d.back then "Back to where I was" else "Back (after a try)")
     core.ui_button(name, "propose", 0.4, 9.5, 12.2, 1.1, "Propose it to the admins")
-    core.ui_button(name, "close", 0.4, 10.6, 12.2, 0.8, "Close")
+    core.ui_button(name, "blocks", 0.4, 10.8, 12.2, 0.9, "Blocks: the brush's palette")
+    core.ui_button(name, "close", 0.4, 11.8, 12.2, 0.8, "Close")
     core.ui_show(name, true, p)
 end
 
@@ -473,6 +550,10 @@ core.event.on("core:ui_click", function(ev)
         end
         core.ui_show(ev.panel, false, p)
         return
+    elseif ev.id == "blocks" then
+        core.ui_show(ev.panel, false, p)
+        show_blocks(p)
+        return
     elseif ev.id == "back" then
         local b = d.back
         if b == nil then
@@ -485,4 +566,104 @@ core.event.on("core:ui_click", function(ev)
         return
     end
     panel(p)
+end)
+
+-- ------------------------------------------------------------ the brush
+
+core.register_item("workshop:brush", 1, "", 0, 1.0, "")
+local EYE = 1.5   -- mods/robot's
+core.event.on("core:ui_click", function(ev)
+    if ev.panel ~= `workshop:blocks{ev.player}` then
+        return
+    end
+    local p = ev.player
+    local d = draft(p)
+    if ev.id == "close" then
+        core.ui_show(ev.panel, false, p)
+        return
+    elseif ev.id == "world" then
+        d.world = d.world % #WORLDS + 1
+    elseif string.sub(ev.id, 1, 2) == "b:" then
+        d.brush = string.sub(ev.id, 3)
+        core.ui_show(ev.panel, false, p)
+        core.notice(p, `The brush puts down {d.brush}.`)
+        return
+    end
+    show_blocks(p)
+end)
+
+-- The face of cell (x, y, z) the player's eye looks at: its normal.
+local function face(p: number, x: number, y: number, z: number): (number, number, number)
+    local px, py, pz = core.player_pos(p)
+    local dx, dy, dz = core.player_look(p)
+    if px == nil or dx == nil then
+        return 0, 1, 0
+    end
+    local len = math.sqrt(dx * dx + dy * dy + dz * dz)
+    dx, dy, dz = dx / len, dy / len, dz / len
+    local ox, oy, oz = px, (py :: number) + EYE, pz :: number
+    -- Where the ray meets the cell's box: the nearest of the planes it comes at.
+    local best, nx, ny, nz = math.huge, 0, 1, 0
+    for _, f in { { 1, 0, 0, x + 1 }, { -1, 0, 0, x }, { 0, 1, 0, y + 1 }, { 0, -1, 0, y }, { 0, 0, 1, z + 1 },
+                  { 0, 0, -1, z } } do
+        -- Only a face the ray comes at from in front of it.
+        if f[1] * dx + f[2] * dy + f[3] * dz < 0 then
+            -- How far along the ray its plane is; the face is the one the hit
+            -- lies closest to the inside of.
+            local t = if f[1] ~= 0 then (f[4] - ox) / dx elseif f[2] ~= 0 then (f[4] - oy) / dy else (f[4] - oz) / dz
+            local hx, hy, hz = ox + dx * t, oy + dy * t, oz + dz * t
+            local slack = math.max(math.abs(hx - math.clamp(hx, x, x + 1)), math.abs(hy - math.clamp(hy, y, y + 1)),
+                math.abs(hz - math.clamp(hz, z, z + 1)))
+            if t > 0 and slack < best then
+                best, nx, ny, nz = slack, f[1], f[2], f[3]
+            end
+        end
+    end
+    return nx, ny, nz
+end
+
+local function put(x: number, y: number, z: number, name: string, f: number)
+    local id = core.node_id(name)
+    core.set_block(x, y, z, id)
+    if core.node_turns(id) > 1 then
+        core.set_facing(x, y, z, f)
+    end
+end
+
+core.event.on("core:used", function(ev)
+    if ev.held ~= "workshop:brush" then
+        return
+    end
+    ev.cancel = true
+    local p = ev.player
+    local d = draft(p)
+    if d.brush == "" or core.node_id(d.brush) == 0 then
+        show_blocks(p)
+        return
+    end
+    local nx, ny, nz = face(p, ev.x, ev.y, ev.z)
+    local x, y, z = ev.x + nx, ev.y + ny, ev.z + nz
+    if INTO[d.brush] then
+        x, y, z = ev.x, ev.y, ev.z
+    end
+    -- Across the way the player looks: an upright block's quarter turn.
+    local lx, _, lz = core.player_look(p)
+    local along_x = math.abs(lz or 0) > math.abs(lx or 0)
+    local f = if along_x then 0 else 3   -- an upright block's second cell along +X, or +Z (chambers_game's ALONG)
+    local b = d.brush
+    if b == "chambers_core:door" then
+        local ax, az = if along_x then 1 else 0, if along_x then 0 else 1
+        put(x, y, z, b, f)
+        put(x, y + 1, z, "chambers_core:door_part", f)
+        put(x + ax, y, z + az, "chambers_core:door_part", f)
+        put(x + ax, y + 1, z + az, "chambers_core:door_part", f)
+    elseif b == "chambers_core:button" or b == "chambers_core:plate" then
+        local part = if b == "chambers_core:button" then "chambers_core:button_part" else "chambers_core:plate_part"
+        for _, o in { { 1, 0 }, { 0, 1 }, { 1, 1 } } do
+            put(x + o[1], y, z + o[2], part, 0)
+        end
+        put(x, y, z, b, 0)
+    else
+        put(x, y, z, b, f)
+    end
 end)

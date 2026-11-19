@@ -2766,8 +2766,15 @@ lo porta in una stanza sua, `workshop-` e l'inizio della sua chiave, fatta dal m
 `[room workshop-*]` del file delle stanze (lo scrivono i mondi del menu del titolo e
 `tools/track.sh`; un server che non ce l'ha lo dice). La stanza è piatta, pacifica, senza fame né
 meteo; chi la possiede vola, non si fa male, scava in fretta, un blocco messo giù non si consuma e
-uno scavato non dà niente. Lì non c'è il catalogo: lo zaino è lo stesso in tutte le stanze. Una
-bacchetta, data all'ingresso, sceglie il volume con due angoli (disegnato sullo schermo) e apre un
+uno scavato non dà niente. Lì non c'è il catalogo: lo zaino è lo stesso in tutte le stanze. Al suo
+posto un pennello, dato all'ingresso, mette giù i blocchi di un mondo: `/workshop blocks`, il
+pulsante **Blocks** del pannello o il pennello su un blocco senza averne scelto uno aprono la sua
+tavolozza -- i blocchi del mondo che l'officina ha (`games/workshop/mods`, collegamenti alle mod dei
+blocchi dei mondi, che in una stanza `workshop-*` lasciano fuori le regole del loro mondo; per ora
+quelli delle chambers) e i segnaposto. Un clic destro mette quello scelto sulla faccia cliccata;
+una pedana, una presa, un bersaglio o il fondo di un pozzo prendono il posto del blocco cliccato;
+una porta sono le sue quattro celle di traverso a dove guarda il giocatore, un pulsante o una
+pedana il loro due per due. Una bacchetta, data all'ingresso, sceglie il volume con due angoli (disegnato sullo schermo) e apre un
 pannello: nome, mondo, start/room/end, difficoltà, peso, specchio, poi **Save**, **Try** (un
 livello con le zone di quel mondo, le approvate e le proprie, posato su un terreno di prova 400 a
 sud dello spawn, togliendo prima il precedente, col giocatore messo al suo inizio), **Back** e
@@ -2809,6 +2816,40 @@ core.event.emit("zones:lay", { tag = "mio 7", world = "chambers", owner = core.p
 varchi, da qualunque parte guardino. Il livello viene scritto 4000 celle a tick, ogni `zones:mark`
 arriva quando è in piedi, poi `zones:laid`. `tag` è una parola di chi chiede, per riconoscere le
 risposte.
+
+Un mondo i cui blocchi fanno qualcosa (una porta, un pulsante) li nomina una volta, mentre la sua
+mod si carica, e prima di `zones:laid` sente dove è stato posato ognuno, col suo orientamento girato
+come la sua zona:
+
+```luau
+core.event.emit("zones:watch", { names = "chambers_core:door chambers_core:button" })
+core.event.on("zones:block", function(ev)
+    -- ev.tag, ev.name, ev.x, ev.y, ev.z, ev.facing
+end)
+```
+
+**Le chambers fatte di zone** (`games/chambers/mods/chambers_game`). Le quindici camere restano
+come sono; il livello di un sito survival si posa con le zone chambers approvate quando ce ne sono
+(altrimenti la copia della fila come prima), il pulsante a tempo dell'ultima stanza ne posa un
+livello per chi l'ha premuto (in un posto suo, più difficile a ogni livello superato, di nuovo
+nell'ultima stanza dopo l'uscita), e lì funziona anche `/zone try chambers`. Quello che c'è in un
+livello funziona per regola:
+
+| Costruito | Fa |
+|---|---|
+| `chambers_core:door` (quattro celle) | si apre quando qualcuno ci arriva vicino, a meno che una delle quattro cose sotto la comandi: ognuna comanda la porta più vicina |
+| un pulsante a pavimento (due per due) | tutti i pulsanti di una porta premuti (da un corpo o un cubo): è aperta |
+| un pulsante a tempo | la porta aperta per 12 s, l'orologio sopra |
+| un bersaglio | un corpo sopra apre la porta per sempre; una pedana lancia sul più vicino |
+| segnaposto `zones:mob` | una torretta, rivolta verso l'inizio; si sveglia quando qualcuno arriva entro 12; tutte quelle di una porta a terra: è aperta |
+| una presa (nel soffitto) | fa cadere un cubo, e di nuovo quando cade fuori dal livello o sta sul fondo di un pozzo |
+| una pedana (due per due, nel pavimento) | lancia un corpo sul bersaglio più vicino entro 24, dritto in su senza |
+| un piedistallo | la pistola intera |
+| `chambers_core:pit` (nel pavimento) | un secondo sopra, o sotto il livello, e un corpo torna all'inizio |
+| segnaposto `zones:start`, `zones:exit` | dove viene messo un giocatore; il livello superato (di un sito: la sua uscita si apre, con un portale fino lì) |
+
+I pannelli bianchi prendono i portali come ovunque nelle chambers. Il campo dissolvente e i portali
+fissi non sono ancora nelle zone.
 
 **Come si posa un livello** (`layout.luau`, che non legge né scrive il mondo: le stesse zone, seme,
 numero e `d` danno lo stesso livello ovunque). Prima una zona "start"; poi una "room" attaccata al

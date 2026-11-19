@@ -120,6 +120,9 @@ if [ ! -f "$HERE/rooms.conf" ]; then
         echo "world-file $HERE/{name}.world"
         echo "no-plaza"
         echo "mods $SANDBOX_MODS"
+        echo "user-mods $ROOT/games/workshop/mods"
+        echo "textures $ROOT/games/workshop/textures"
+        echo "fallback-textures $ROOT/assets/textures"
         true
     } > "$HERE/rooms.conf"
 fi

@@ -55,6 +55,9 @@ core.node_glass(node("glass", { 190, 220, 235 }), 60)
 node("emitter", { 90, 180, 255 }, 9)
 -- A trigger's floor tile: something happens when a body stands here.
 node("target", { 230, 180, 20 })
+-- The bottom of a pit, in a level of zones (mods/zones): a body that stands on
+-- it a second is back at the level's start, a cube on it back in its vent.
+node("pit", { 70, 60, 58 })
 
 -- Flat things a body stands on or beside: the floor button (and pressed), the
 -- launch plate, the push button on its stalk, the pedestal.
@@ -119,13 +122,22 @@ local FLAT = core.register_node("chambers_core:shell_flat", 226, 228, 230, true,
 core.node_box(FLAT, 0, 0, 0, 1, 1, T)
 core.node_model(FLAT, HIDDEN)
 
+-- Loaded in a player's workshop too (mods/workshop, games/workshop/mods), for
+-- its blocks alone: what makes a world of chambers is left out there.
+local OWN_WORLD = string.sub(core.room(), 1, 9) ~= "workshop-"
+
 -- Nothing of the engine's terrain: the chambers hang in nothing.
-core.mapgen_core(false)
-core.world_sky(40, 44, 50)
+if OWN_WORLD then
+    core.mapgen_core(false)
+    core.world_sky(40, 44, 50)
+end
 
 -- A player is the sandbox's robot (mods/robot, linked here as games/arpg's),
 -- seen from the eye, the gun in its hands.
-core.player_model(core.register_model("chambers_core:robot", "robot.gltf"))
+local ROBOT = core.register_model("chambers_core:robot", "robot.gltf")
+if OWN_WORLD then
+    core.player_model(ROBOT)
+end
 -- The extras a player may pick to wear (tools/make_robot_extras.py): the
 -- client draws "<player model>_<extra>" on their skeleton in their colours.
 for _, extra in {"cap", "tophat", "headphones", "scarf", "bowtie", "medal",
@@ -143,7 +155,8 @@ for _, extra in {"cap", "tophat", "headphones", "scarf", "bowtie", "medal",
     core.register_model("chambers_core:robot_" .. extra, "robot_" .. extra .. ".gltf")
 end
 core.register_model("chambers_core:robot_arms", "robot_arms.gltf")
-core.eye_height(1.5)
-
--- The sandbox's walk and run and jump; no flying.
-core.movement(4.8, 8, 0, 8, -25)
+if OWN_WORLD then
+    core.eye_height(1.5)
+    -- The sandbox's walk and run and jump; no flying.
+    core.movement(4.8, 8, 0, 8, -25)
+end
