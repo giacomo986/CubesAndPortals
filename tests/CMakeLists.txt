@@ -77,6 +77,15 @@ set_tests_properties(mods_play PROPERTIES
                      TIMEOUT 600
                      ENVIRONMENT "CNP_LOG_DIR=${CMAKE_BINARY_DIR}/test-logs")
 
+# A mod switched off by an error is told in the chat of its admins, and only
+# of its admins.
+add_test(NAME mod_notice
+         COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/mod_notice.sh $<TARGET_FILE:cnp_server>
+                 $<TARGET_FILE:cnp_join_probe> ${CMAKE_SOURCE_DIR})
+set_tests_properties(mod_notice PROPERTIES
+                     TIMEOUT 120
+                     ENVIRONMENT "CNP_LOG_DIR=${CMAKE_BINARY_DIR}/test-logs")
+
 # The hand-written part of core and its types in docs/api.d.luau name the same
 # functions.
 find_program(CNP_PYTHON3 python3)

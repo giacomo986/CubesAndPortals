@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 125; // 125 kSpawnOpening, arriving at a room's spawn; 124 a person's left hand (EntityState::off_item); 123 kMaxNodeShapes 2048; 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
+inline constexpr uint16_t kProtocol    = 126; // 126 world code may be api 2 (yes/no calls answer true/false); 125 kSpawnOpening, arriving at a room's spawn; 124 a person's left hand (EntityState::off_item); 123 kMaxNodeShapes 2048; 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity

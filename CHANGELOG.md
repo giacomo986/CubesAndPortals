@@ -5,7 +5,10 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
-## Next alpha (not handed out yet)
+## 0.19.0-alpha.1 — 2026-11-19
+
+**Does not play with 0.18 servers** (protocol 126): a world's code may be on `api = 2`, which a
+0.18 client cannot run. Worlds are read as they are.
 
 **Mod API 2.** A call that answers yes or no (`core.loaded`, `core.node_solid`, `core.has_perm`
 and 139 more) gives `true` or `false` to a mod that says `api = 2`; one that says `api = 1`, or
@@ -38,7 +41,9 @@ nothing, keeps getting 1 or 0. Every mod in the game is on 2. How to move one:
   `a.luau` in `a/`. Write it in an `init.luau` instead of `./x`, which still loads but which an
   editor now reads as the folder above.
 - **Two new tests**: `mods_smoke` starts the sandbox and every game and fails on a mod that did not
-  load or was switched off; `api_types` fails when a hand-written part of `core` has no type.
+  load or was switched off; `api_types` fails when a hand-written part of `core` has no type. A third,
+  `mods_play`, sends a windowless player into every world who chats, breaks blocks and walks; a
+  fourth, `mod_notice`, checks that a switched-off mod is told to the owner and to nobody else.
 - **For modders**: `.luaurc` and `.vscode/settings.json` set an editor with the Luau Language
   Server up for the repository -- strict, and `core` typed from `docs/api.d.luau`.
 - **Every push is checked** (`.github/workflows/check.yml`): the build with warnings as errors, the

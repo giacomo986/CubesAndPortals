@@ -5,7 +5,10 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
-## Prossima alpha (non ancora consegnata)
+## 0.19.0-alpha.1 — 2026-11-19
+
+**Non gioca con i server 0.18** (protocollo 126): il codice dei mondi può essere in `api = 2`, che un
+client 0.18 non sa eseguire. I mondi si leggono così come sono.
 
 **API dei mod 2.** Una chiamata che risponde sì o no (`core.loaded`, `core.node_solid`,
 `core.has_perm` e altre 139) dà `true` o `false` a un mod che dice `api = 2`; uno che dice
@@ -41,7 +44,9 @@ uno: [docs/MODDING.it.md](docs/MODDING.it.md#api-cioè-per-quale-motore-è-scrit
   ancora ma che un editor ora legge come la cartella sopra.
 - **Due test nuovi**: `mods_smoke` avvia la sandbox e ogni gioco e fallisce su un mod che non si è
   caricato o è stato spento; `api_types` fallisce quando una parte di `core` scritta a mano non ha
-  un tipo.
+  un tipo. Un terzo, `mods_play`, fa entrare in ogni mondo un giocatore senza finestra che scrive,
+  rompe blocchi e cammina; un quarto, `mod_notice`, controlla che l'avviso di un mod spento arrivi
+  all'owner e a nessun altro.
 - **Per chi scrive mod**: `.luaurc` e `.vscode/settings.json` impostano per il repository un editor
   con il Luau Language Server -- strict, e `core` tipizzato da `docs/api.d.luau`.
 - **Ogni push viene controllato** (`.github/workflows/check.yml`): la build con i warning come
