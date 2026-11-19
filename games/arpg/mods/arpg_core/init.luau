@@ -27,6 +27,15 @@ core.register_node("arpg_core:stash", 170, 130, 50, true, 6)
 core.register_node("arpg_core:coffer", 150, 110, 40, true, 5)
 core.register_node("arpg_core:coffer_open", 80, 64, 40)
 
+-- Loaded in a player's workshop too (mods/workshop, games/workshop/mods), for
+-- its blocks alone: what makes the arpg's world is left out there, and so are
+-- its creatures' and its gear's models -- a workshop holds the sandbox's and
+-- every world's blocks, and a welcome carries 1024 models at most.
+local OWN_WORLD = string.sub(core.room(), 1, 9) ~= "workshop-"
+if not OWN_WORLD then
+    return
+end
+
 -- Nothing of the engine's terrain: the ground is arpg_game's alone.
 core.mapgen_core(false)
 

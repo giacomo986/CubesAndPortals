@@ -306,8 +306,10 @@ end
 local PALETTE: { [string]: { string } } = {
     chambers = { "panel", "metal", "metal_slab", "floor", "light", "glass", "pit", "door", "button", "pushbutton",
                  "vent", "plate", "pedestal", "target", "emitter", "exit" },
+    arpg = { "grass", "moss", "dirt", "rock", "cobble", "mossy", "flags", "planks", "roof", "awning", "grave",
+             "brazier", "waystone", "cliff", "highland" },
 }
-local PREFIX: { [string]: string } = { chambers = "chambers_core:" }
+local PREFIX: { [string]: string } = { chambers = "chambers_core:", arpg = "arpg_core:" }
 local MARKERS = { "doorway", "start", "exit", "mob", "loot", "key", "trigger" }
 -- What takes the place of the block clicked rather than going on its face.
 local INTO = { ["chambers_core:plate"] = true, ["chambers_core:vent"] = true, ["chambers_core:target"] = true,

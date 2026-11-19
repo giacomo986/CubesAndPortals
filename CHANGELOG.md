@@ -47,6 +47,10 @@ for.
   fifteen chambers stay; a survival site's level is made of the approved zones when there are any,
   and the last room has a button for more chambers, harder each one done.
 - For mods: `zones:watch` / `zones:block` tell a world where its own blocks were laid.
+- **The arpg made in the workshops**: the workshop has the arpg's blocks too, and a survival site's
+  lands are laid out of the approved arpg zones when there are any -- packs where the `mob`
+  markers are, the lord at the `exit`, chests at `loot`, things to break at `trigger`.
+  `/zone try` now lays a level with its floor at the player's.
 - **Proposed zones**: `/zone propose` asks the admins, who are told, and `/page zones` lists what
   waits with show, approve and refuse; `/zone show` lays one zone alone to look at.
 - For mods: `core.room_send` starts a room of the rooms file that is down (or one its template

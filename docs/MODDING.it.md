@@ -2771,7 +2771,7 @@ posto un pennello, dato all'ingresso, mette giù i blocchi di un mondo: `/worksh
 pulsante **Blocks** del pannello o il pennello su un blocco senza averne scelto uno aprono la sua
 tavolozza -- i blocchi del mondo che l'officina ha (`games/workshop/mods`, collegamenti alle mod dei
 blocchi dei mondi, che in una stanza `workshop-*` lasciano fuori le regole del loro mondo; per ora
-quelli delle chambers) e i segnaposto. Un clic destro mette quello scelto sulla faccia cliccata;
+quelli delle chambers e dell'arpg) e i segnaposto. Un clic destro mette quello scelto sulla faccia cliccata;
 una pedana, una presa, un bersaglio o il fondo di un pozzo prendono il posto del blocco cliccato;
 una porta sono le sue quattro celle di traverso a dove guarda il giocatore, un pulsante o una
 pedana il loro due per due. Una bacchetta, data all'ingresso, sceglie il volume con due angoli (disegnato sullo schermo) e apre un
@@ -2850,6 +2850,23 @@ livello funziona per regola:
 
 I pannelli bianchi prendono i portali come ovunque nelle chambers. Il campo dissolvente e i portali
 fissi non sono ancora nelle zone.
+
+**L'arpg fatto di zone** (`games/arpg/mods/arpg_game`). Le terre di un sito survival si posano con
+le zone arpg approvate quando ce ne sono (altrimenti con le aree dell'arpg, come prima), `count`
+3 + d; lì funziona anche `/zone try arpg`. Nell'arpg tutto sta a una sola altezza, quindi il
+pavimento di una zona arpg è il suo strato più basso: posato al pavimento delle terre, quello che
+ci sta sopra sta dove stanno le creature e i forzieri dell'arpg. Tutto il livello è un'area delle
+terre, al livello del sito (2 d - 3); per segnaposto:
+
+| Segnaposto | È |
+|---|---|
+| `zones:start` | dove arriva il giocatore; l'uscita del sito è un blocco di roccia quattro a ovest |
+| `zones:mob` | un branco delle creature della zona, più grande col livello; uno su cinque un campione e i suoi tre |
+| `zones:exit` | il signore (il signore delle tombe, l'ala di brace dalla d 6) e quattro dei suoi: a terra, le terre sono superate e un portale riporta all'inizio |
+| `zones:loot` | un forziere |
+| `zones:trigger` | una cosa da rompere: un barile, una cassa o un'urna |
+
+`/zone try` posa un livello col suo strato più basso al livello del pavimento sotto i piedi.
 
 **Come si posa un livello** (`layout.luau`, che non legge né scrive il mondo: le stesse zone, seme,
 numero e `d` danno lo stesso livello ovunque). Prima una zona "start"; poi una "room" attaccata al

@@ -620,10 +620,28 @@ survival levels.
    hand (its call made from a scratch command). Left: the dissolving field
    and the fixed portals in zones; Try in the workshop lays the geometry
    only (chambers_game is not loaded there); no chambers zones shipped yet.
-   Next (arpg: areas, corridors, lairs; backrooms: rooms and lights;
+   Arpg done 2026-11-19 (with 7's arpg): its blocks in the workshop
+   (arpg_core leaves its world's rules out there), and a site's lands of the
+   approved arpg zones when there are any (else L.add_level as before): one
+   area at the site's level, a pack at each "mob", the lord and four at
+   "exit" (down: keys:cleared and a portal to the start), a chest at "loot",
+   a thing to break at "trigger"; a zone's floor is its lowest layer, laid at
+   GROUND - 1 (everything in the arpg stands at GROUND). Seen by script: a
+   zone saved, approved, a site's keys:level laid it, the player at its start,
+   the chest, the pack, the lord and its four, the barrel. Not seen: the lord
+   killed (the probe does not fight), the brush's arpg blocks in a client.
+   Left: lands laid again after a restart over the last without clearing
+   (the same seed and zones lay the same; others could leave walls); an
+   admin's /zone try adds an area each time; corridors between zones are the
+   zones' own doorways, no waypoint in zoned lands. Found on the way: a
+   workshop with the sandbox's mods and the chambers' and the arpg's whole
+   came to 1082 models, past the 1024 a welcome carries, and refused every
+   client; a world's block mod now stops after its blocks in a workshop (888
+   models there now). Each world added there has to keep to that.
+   Next (backrooms: rooms and lights;
    parkour: stations with jumps measured; Inferno: fortress pieces; front and
    assault: bases and points).
-7. Each world onto zones: chambers (done 2026-11-19, 6b), arpg, backrooms, parkour, Inferno, then the
+7. Each world onto zones: chambers (done 2026-11-19, 6b), arpg (done 2026-11-19, 6b), backrooms, parkour, Inferno, then the
    front and the assault after their shared library (Structure).
 
 Tickets between rooms: decided and done 2026-11-19 (protocol 127). A room past

@@ -132,12 +132,15 @@ if OWN_WORLD then
     core.world_sky(40, 44, 50)
 end
 
+-- The rest is the world's own, not its blocks': left out of a workshop, whose
+-- welcome carries 1024 models at most for the sandbox's and every world's.
+if not OWN_WORLD then
+    return
+end
+
 -- A player is the sandbox's robot (mods/robot, linked here as games/arpg's),
 -- seen from the eye, the gun in its hands.
-local ROBOT = core.register_model("chambers_core:robot", "robot.gltf")
-if OWN_WORLD then
-    core.player_model(ROBOT)
-end
+core.player_model(core.register_model("chambers_core:robot", "robot.gltf"))
 -- The extras a player may pick to wear (tools/make_robot_extras.py): the
 -- client draws "<player model>_<extra>" on their skeleton in their colours.
 for _, extra in {"cap", "tophat", "headphones", "scarf", "bowtie", "medal",
@@ -155,8 +158,7 @@ for _, extra in {"cap", "tophat", "headphones", "scarf", "bowtie", "medal",
     core.register_model("chambers_core:robot_" .. extra, "robot_" .. extra .. ".gltf")
 end
 core.register_model("chambers_core:robot_arms", "robot_arms.gltf")
-if OWN_WORLD then
-    core.eye_height(1.5)
-    -- The sandbox's walk and run and jump; no flying.
-    core.movement(4.8, 8, 0, 8, -25)
-end
+core.eye_height(1.5)
+
+-- The sandbox's walk and run and jump; no flying.
+core.movement(4.8, 8, 0, 8, -25)

@@ -947,14 +947,15 @@ if serving then
         core.set_block(x0 + 2, GROUND + 1, a.cz, 0)
         return x0 + 2, GROUND, a.cz
     end
-    core.event.on("keys:level", function(ev)
+    -- A site's lands as areas of this file's own (L.add_level): when the arpg
+    -- has no zones to lay them out of (lands of zones, below).
+    local function site_by_areas(ev: { player: number, slot: number, d: number, seed: number })
         local known = core.storage_get("slots")
         if not string.find(known, `{ev.slot} `, 1, true) then
             core.storage_set("slots", known .. `{ev.slot} {ev.d} {ev.seed};`)
         end
         local n = L.add_level(ev.slot, ev.d, ev.seed)
         local a = L.AREAS[n]
-        ev.cancel = true
         level_slot[ev.player] = ev.slot
         local ex, ey, ez = niche(a)
         core.player_place(ev.player, a.cx + 0.5, GROUND, a.cz + 0.5, 1, 0, 0)
@@ -962,7 +963,7 @@ if serving then
         core.event.emit("keys:start", { player = ev.player, slot = ev.slot, ex = ex, ey = ey, ez = ez })
         core.notice(ev.player, "Terre nuove, dietro questo portale. Il loro signore aspetta nel covo in fondo.")
         core.log(`arpg_game: slot {ev.slot}'s lands, d {ev.d}, from area {n}`)
-    end)
+    end
     core.event.on("core:world_ready", function()
         for slot, d, seed in string.gmatch(core.storage_get("slots"), "(%d+) (%d+) (%d+);") do
             L.add_level(tonumber(slot) :: number, tonumber(d) :: number, tonumber(seed) :: number)
@@ -975,8 +976,15 @@ if serving then
         local first = L.AREAS[L.SLOTS[e.slot]]
         local here = L.AREAS[e.area]
         -- Both facing -x: the camera looks from -x -z, and sees their fronts.
-        local a = core.portal_open(here.cx + 0.5, GROUND + 1, here.cz + 4.5, 1, -1, 0, 0.5, 1.0)
-        local b = core.portal_open(first.cx - 3.5, GROUND + 1, first.cz + 4.5, 1, -1, 0, 0.5, 1.0)
+        -- Lands of zones are one area: from beside the lord to beside the start.
+        local ax, az = here.cx + 0.5, here.cz + 4.5
+        local bx, bz = first.cx - 3.5, first.cz + 4.5
+        if first.kind == "zoned" then
+            ax, az = e.x + 0.5, e.z + 3.5
+            bx, bz = first.cx + 0.5, first.cz + 2.5
+        end
+        local a = core.portal_open(ax, GROUND + 1, az, 1, -1, 0, 0.5, 1.0)
+        local b = core.portal_open(bx, GROUND + 1, bz, 1, -1, 0, 0.5, 1.0)
         if a >= 0 and b >= 0 then core.portal_link(a, b) end
         for p, slot in level_slot do
             if slot == e.slot then
@@ -985,6 +993,7 @@ if serving then
             end
         end
     end
+
     core.net.open()
 
     -- Opening 0, where a player from the sandbox comes in: an arch in the
@@ -1016,6 +1025,160 @@ if serving then
             B[n] = core.node_id("arpg_core:" .. n)
         end
     end
+
+    -- ------------------------------------------------- lands of zones
+    --
+    -- A survival site's lands laid out of the arpg's zones (mods/zones, built
+    -- in a player's workshop) when there are any, else of this file's areas as
+    -- before (site_by_areas); and an admin's /zone try here. A zone's floor is
+    -- its lowest layer, laid at the lands' floor (GROUND - 1), so whatever
+    -- stands on it stands at GROUND as everything here does. The whole level
+    -- is one area of the lands (L.at), at the site's level; by marker:
+    --   start    where a player comes in, the site's way out beside it
+    --   mob      a pack of the zone's creatures, bigger with the level; now
+    --            and then a champion and its three
+    --   exit     the lord and four of its kin: down, the lands are done
+    --   loot     a chest
+    --   trigger  a thing to break, a barrel, a crate or an urn
+    type ZLands = { tag: string, kind: string, player: number, slot: number, d: number, seed: number,
+                    marks: { { any } }, area: number?, start: { number }? }
+    local zlands: { [string]: ZLands } = {}
+    local function zl(tag: string): ZLands
+        local z = zlands[tag]
+        if z ~= nil then
+            return z
+        end
+        local fresh: ZLands = { tag = tag, kind = "try", player = 0, slot = -1, d = 1, seed = 0, marks = {} }
+        zlands[tag] = fresh
+        return fresh
+    end
+    core.event.on("zones:mark", function(ev)
+        table.insert(zl(ev.tag).marks, { ev.kind, ev.x, ev.y, ev.z })
+    end)
+
+    -- What the markers stand for, the lands made one area of them.
+    local function fill(z: ZLands, x1: number, z1: number, x2: number, z2: number)
+        local zone = if z.d >= 6 then 2 else 1
+        local level = math.max(1, 2 * z.d - 3)
+        local st = { (x1 + x2) // 2, (z1 + z2) // 2 }
+        for _, m in z.marks do
+            if m[1] == "start" then
+                st = { m[2], m[4] }
+                break
+            end
+        end
+        local a: any = { key = `zone {z.tag}`, zone = zone, level = level, kind = "zoned",
+                         slot = if z.slot >= 0 then z.slot else nil, cx = st[1], cz = st[2],
+                         hw = (x2 - x1) // 2, hd = (z2 - z1) // 2, i = 0, j = 0 }
+        table.insert(L.AREAS, a)
+        local n = #L.AREAS
+        L.BY_KEY[a.key] = n
+        add_rect(x1, z1, x2, z2, n)
+        z.area, z.start = n, st
+        if z.slot >= 0 then
+            L.SLOTS[z.slot] = n
+        end
+        blocks()
+        local kinds = KINDS[zone]
+        local boss = if zone == 2 then "arpg_core:ember_wing" else "arpg_core:grave_lord"
+        local minion = if zone == 2 then "arpg_core:imp" else "arpg_core:zombie"
+        local packs, chests, props = 0, 0, 0
+        for k, m in z.marks do
+            local x, mz = m[2], m[4]
+            if m[1] == "mob" then
+                local kind = "arpg_core:" .. kinds[1 + math.floor(hash(x, mz, 71) * #kinds)]
+                local e: any = { area = n, x = x, z = mz, members = {} }
+                if hash(x, mz, 72) < 0.2 then
+                    e.name = D.NAME_A[1 + math.floor(hash(x, mz, 73) * #D.NAME_A)] ..
+                             string.lower(D.NAME_B[1 + math.floor(hash(x, mz, 74) * #D.NAME_B)])
+                    table.insert(e.members, { kind, 2 })
+                    for _ = 1, 3 do table.insert(e.members, { kind, 0 }) end
+                else
+                    for _ = 1, 2 + math.floor(hash(x, mz, 75) * 2) + level // 3 do
+                        table.insert(e.members, { kind, 0 })
+                    end
+                end
+                table.insert(L.ENC, e)
+                packs += 1
+            elseif m[1] == "exit" then
+                local e: any = { area = n, x = x, z = mz, members = { { boss, 3 } }, name = D.MOB[boss].boss,
+                                 slot = a.slot }
+                for _ = 1, 4 do table.insert(e.members, { minion, 0 }) end
+                table.insert(L.ENC, e)
+            elseif m[1] == "loot" then
+                table.insert(L.CHESTS, { x = x, z = mz, level = level, area = n })
+                core.set_block(x, GROUND, mz, B.coffer)
+                chests += 1
+            elseif m[1] == "trigger" then
+                local pk = if zone == 1 then { "barrel", "barrel", "crate" } else { "barrel", "crate", "urn", "urn" }
+                table.insert(L.PROPS, { x = x, z = mz, area = n,
+                                        kind = "arpg_core:" .. pk[1 + math.floor(hash(x, mz, 120 + k) * #pk)] })
+                props += 1
+            end
+        end
+        core.log(`arpg_game: lands {z.tag} of zones, area {n} at level {level}: {packs} pack(s), {chests} chest(s), `
+            .. `{props} thing(s) to break`)
+    end
+
+    -- A site's way out beside where its lands start: a block of rock west of
+    -- the start, its hole facing it (mods/keys).
+    local function zniche(st: { number }): (number, number, number)
+        local x0, z0 = st[1] - 6, st[2]
+        for x = x0, x0 + 3 do
+            for z = z0 - 2, z0 + 2 do
+                for y = GROUND, GROUND + 3 do core.set_block(x, y, z, B.rock) end
+            end
+        end
+        core.set_block(x0 + 2, GROUND, z0, 0)
+        core.set_block(x0 + 2, GROUND + 1, z0, 0)
+        return x0 + 2, GROUND, z0
+    end
+
+    local function arrive(z: ZLands, p: number)
+        local st = z.start :: { number }
+        level_slot[p] = z.slot
+        core.player_place(p, st[1] + 0.5, GROUND, st[2] + 0.5, 1, 0, 0)
+        core.player_spawn(p, st[1] + 0.5, GROUND, st[2] + 0.5, true)
+        local ex, ey, ez = zniche(st)
+        core.event.emit("keys:start", { player = p, slot = z.slot, ex = ex, ey = ey, ez = ez })
+        core.notice(p, "Terre nuove, fatte nelle officine. Il loro signore aspetta in fondo.")
+    end
+
+    core.event.on("zones:laid", function(ev)
+        local z = zl(ev.tag)
+        if ev.pieces == 0 then
+            zlands[ev.tag] = nil
+            if z.kind == "site" then
+                site_by_areas({ player = z.player, slot = z.slot, d = z.d, seed = z.seed })
+            end
+            return
+        end
+        fill(z, ev.x1, ev.z1, ev.x2, ev.z2)
+        if z.kind == "site" and core.player_name(z.player) ~= "" then
+            arrive(z, z.player)
+        end
+    end)
+
+    -- A site's lands: of zones when the arpg has any. Laid once a run: whoever
+    -- comes by the same site after is put at its start.
+    core.event.on("keys:level", function(ev)
+        ev.cancel = true
+        local tag = `site {ev.slot}`
+        local z = zlands[tag]
+        if z ~= nil and z.area ~= nil then
+            arrive(z, ev.player)
+            return
+        end
+        if z ~= nil then
+            return   -- being laid
+        end
+        z = zl(tag)
+        z.kind, z.player, z.slot, z.d, z.seed = "site", ev.player, ev.slot, ev.d, ev.seed
+        local ox, oz = 8192 + (ev.slot % 16) * 2048 + 1024, (ev.slot // 16) * 2048 + 1024
+        core.event.emit("zones:lay", { tag = tag, world = "arpg", owner = "", x = ox, y = GROUND - 1, z = oz,
+                                       seed = ev.seed, d = ev.d, count = math.min(10, 3 + ev.d) })
+    end)
+
 
     -- ------------------------------------------------------------- the ground
 

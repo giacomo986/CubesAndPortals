@@ -53,6 +53,10 @@ non chiede.
   un sito survival è fatto con le zone approvate quando ce ne sono, e l'ultima stanza ha un pulsante
   per altre camere, più difficili a ogni livello superato.
 - Per le mod: `zones:watch` / `zones:block` dicono a un mondo dove sono stati posati i suoi blocchi.
+- **L'arpg fatto nelle officine**: l'officina ha anche i blocchi dell'arpg, e le terre di un sito
+  survival si posano con le zone arpg approvate quando ce ne sono -- branchi dove stanno i
+  segnaposto `mob`, il signore all'`exit`, forzieri a `loot`, cose da rompere a `trigger`.
+  `/zone try` ora posa un livello col pavimento a quello del giocatore.
 - **Zone proposte**: `/zone propose` le chiede agli admin, che vengono avvisati, e `/page zones`
   elenca quelle in attesa con mostra, approva e rifiuta; `/zone show` posa una zona da sola per
   guardarla.

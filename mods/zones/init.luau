@@ -31,7 +31,7 @@
 --   /zone delete ID                          yours, or anybody's for an admin
 --   /zone propose ID                         yours: for the admins to approve
 --   /zone approve ID   /zone refuse ID       an admin's (private: refuse)
---   /zone try WORLD [COUNT [SEED [D]]]       a level laid beside you
+--   /zone try WORLD [COUNT [SEED [D]]]       a level laid beside you, its floor at yours
 --   /zone show ID                            that zone alone, laid beside you
 --
 -- Try and show are an admin's, and anybody's in their own workshop
@@ -728,7 +728,9 @@ local function run(player: number, args: string)
             return
         end
         local count, seed, d = tonumber(a[3] or "") or 6, tonumber(a[4] or "") or 1, tonumber(a[5] or "") or 1
-        local n = lay(`try {core.player_name(player)}`, world, key, math.floor(px) + 4, math.floor(py),
+        -- Its lowest layer -- a zone's floor, as it is built -- level with the
+        -- floor under the feet.
+        local n = lay(`try {core.player_name(player)}`, world, key, math.floor(px) + 4, math.floor(py) - 1,
             math.floor(pz), seed, d, count)
         if n == 0 then
             core.chat(player, `No zone of {world} to start a level with.`)

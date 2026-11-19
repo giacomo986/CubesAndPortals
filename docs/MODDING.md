@@ -2468,7 +2468,7 @@ catalogue there: the bag is the same in every room. A brush, given on the way in
 world's own blocks instead: `/workshop blocks`, the panel's **Blocks** or the brush on a block with
 none picked open its palette -- the world's blocks the workshop has (`games/workshop/mods`, links
 to the worlds' block mods, which leave their worlds' rules out in a room `workshop-*`; the
-chambers' so far) and the markers. A right click puts the one picked on the face clicked; a
+chambers' and the arpg's so far) and the markers. A right click puts the one picked on the face clicked; a
 plate, a vent, a target tile or a pit's bottom takes the place of the block clicked; a door is its
 four cells across the way the player looks, a button or a plate its two by two. A wand, given on the way in, picks the box by
 two corners (drawn on the screen) and opens a panel: name, world, start/room/end, difficulties,
@@ -2543,6 +2543,23 @@ exit), and `/zone try chambers` works there too. What is in a level works by rul
 
 White panels take portals as everywhere in the chambers. The dissolving field and the fixed
 portals are not in zones yet.
+
+**The arpg out of zones** (`games/arpg/mods/arpg_game`). A survival site's lands are laid out of
+the approved arpg zones when there are any (else of the arpg's own areas, as before), `count`
+3 + d; `/zone try arpg` works there too. Everything in the arpg stands at one height, so an arpg
+zone's floor is its lowest layer: laid at the lands' floor, what stands on it stands where the
+arpg's creatures and chests do. The whole level is one area of the lands, at the site's level
+(2 d - 3); by marker:
+
+| Marker | Is |
+|---|---|
+| `zones:start` | where the player comes in; the site's way out is a block of rock four west of it |
+| `zones:mob` | a pack of the zone's creatures, bigger with the level; one in five a champion and its three |
+| `zones:exit` | the lord (the grave lord, the ember wing from d 6) and four of its kin: down, the lands are done and a portal leads back to the start |
+| `zones:loot` | a chest |
+| `zones:trigger` | a thing to break: a barrel, a crate or an urn |
+
+`/zone try` lays a level with its lowest layer level with the floor under the player's feet.
 
 **How a level is laid** (`layout.luau`, which reads and writes no world: the same zones, seed, count
 and `d` give the same level anywhere). A "start" zone first; then a "room" joined to the newest open
