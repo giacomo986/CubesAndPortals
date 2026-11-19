@@ -26,7 +26,7 @@ what is built, and three or four structural fixes that each close many entries.
    turn most of "To play" and "To hear" into things a script can check.
 3. Models at join (first defect below): one cause behind three entries, and the
    first thing a new player sees.
-4. One shared library for the front and the assault (Structure).
+4. One shared library for the front and the assault (Structure). Done 2026-11-19.
 5. Giacomo plays and listens through the two lists; what he finds comes back here.
 6. Then the additions, in the order he picks.
 
@@ -456,7 +456,20 @@ Mods:
 - `games/assault/mods/assault_game` (5391 lines) is a copy of
   `games/front/mods/front_game` (3156): 2005 of the front's 2361 distinct lines
   are in both. Every fix to bots, machines or guns is made twice or missed once.
-  Move what is shared into one library both load.
+  Move what is shared into one library both load. Done 2026-11-19:
+  `games/front/mods/front_game/battle.luau` (the guns, grenades, blasts, the
+  bots' shared moves and every machine), and assault_game's `battle.luau` is a
+  link to it; both `require("@self/battle")` and say what differs with a few
+  values and hooks (`battle.server`, its `Game` type). front_game's init.luau
+  is 1201 lines (was 3251), assault_game's 3426 (was 5438), battle.luau 2348.
+  What stayed apart: a bot's mind (`think`, `step_bots`, where it goes), a bot
+  at the wheel (`M.bot_drive`), the fleet (`M.start`), each game's rules, and
+  the whole player's machine (its HUD, its drawing, what it hears): the client
+  half is still two copies, a smaller job for later. The engine packed a linked
+  file as `../../../front/...` and did not offer the mod to players
+  (src/modpack/mod_package.cpp now keeps the name it has in the mod; mods_play
+  fails on a world's code not offered), and `tools/typecheck.sh` follows a link
+  as the engine does.
 - `mods/villagers/init.luau` is at 194 of Luau's 200 locals and the fishers'
   table is already copied because of it. Move the main chunk's state into one
   table before the next villager feature.

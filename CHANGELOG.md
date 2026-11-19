@@ -17,6 +17,12 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 - **For testing**: the timed client can left click (`--click-at x,y,z[,s]`, `--left-at t[,s]`) and
   record what it plays (`--record-audio FILE.wav`, on a sink nobody hears with
   `tools/null_sink.sh`); `tools/audio_check.py` says when there was sound and how loud.
+- **The front and the assault share their guns, grenades, bots and machines**: one file both
+  load (`battle.luau`, front_game's; the assault's is a link to it), so a fix to one is a fix to
+  both. Two fixes only the assault had now reach the front: a tank stuck on a crater's lip is
+  lifted out after a moment, and the soldiers in a machine move with it in the same tick instead
+  of a tick behind. A mod's file can now be a link to another mod's: it is packed, and sent to
+  players, under the name it has in the mod.
 
 ## 0.19.0-alpha.1 — 2026-11-19
 

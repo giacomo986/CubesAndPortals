@@ -18,6 +18,13 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
   `--left-at t[,s]`) e registrare quello che suona (`--record-audio FILE.wav`, su un'uscita che
   nessuno sente con `tools/null_sink.sh`); `tools/audio_check.py` dice quando c'era suono e quanto
   forte.
+- **Il fronte e l'assalto condividono armi, granate, bot e mezzi**: un solo file che caricano
+  tutti e due (`battle.luau`, quello di front_game; quello dell'assalto è un link), così una
+  correzione all'uno è una correzione all'altro. Due correzioni che aveva solo l'assalto arrivano
+  anche al fronte: un carro armato incastrato sul bordo di un cratere viene sollevato fuori dopo un
+  momento, e i soldati su un mezzo si muovono con lui nello stesso tick invece che un tick dopo. Un
+  file di un mod ora può essere un link a quello di un altro mod: si impacchetta, e arriva ai
+  giocatori, col nome che ha nel mod.
 
 ## 0.19.0-alpha.1 — 2026-11-19
 

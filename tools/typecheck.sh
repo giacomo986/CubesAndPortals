@@ -14,6 +14,11 @@
 # editor's language server does with the same file. The first run takes a few
 # minutes; after that only what changed is rebuilt.
 #
+# And FileUtils.cpp with isFile following a link: Luau's asks lstat, so a
+# file that is a link is not a file to it and `require` of it is "Unknown
+# require" -- games/assault's battle.luau is a link to games/front's, and the
+# engine (std::filesystem) reads it through the link.
+#
 # The second pass is luau-compile at -O2 (the engine's level, see
 # compile_options in src/script/script_luau.cpp): the checker does not count
 # registers, and a main chunk past 200 locals type-checks fine and then does
@@ -84,13 +89,28 @@ hook = '''    for (int i = 1; i < argc; ++i)
 open(dst, "w").write(s.replace(anchor, hook + anchor))
 EOF
 fi
-if [ ! -x "$ANALYZE" ] || [ "$SRC" -nt "$ANALYZE" ] || [ "$OUT/luau/libLuau.Analysis.a" -nt "$ANALYZE" ]; then
+FU="$OUT/FileUtils.cpp"
+if [ ! -f "$FU" ] || [ "$LUAU/CLI/src/FileUtils.cpp" -nt "$FU" ] || [ "$0" -nt "$FU" ]; then
+    python3 - "$LUAU/CLI/src/FileUtils.cpp" "$FU" <<'EOF'
+import sys
+src, dst = sys.argv[1], sys.argv[2]
+s = open(src).read()
+old = '''    lstat(path.c_str(), &st);
+    return (st.st_mode & S_IFMT) == S_IFREG;'''
+if s.count(old) != 1:
+    sys.exit("tools/typecheck.sh: FileUtils.cpp has changed shape; isFile needs a new anchor")
+open(dst, "w").write(s.replace(old, old.replace("lstat", "stat")))
+EOF
+fi
+if [ ! -x "$ANALYZE" ] || [ "$SRC" -nt "$ANALYZE" ] || [ "$FU" -nt "$ANALYZE" ] \
+   || [ "$OUT/luau/libLuau.Analysis.a" -nt "$ANALYZE" ]; then
     INC=()
     for d in Analysis Ast Common Config CLI Require VM; do INC+=("-I$LUAU/$d/include"); done
     c++ -O2 -std=c++17 "${INC[@]}" -c "$SRC" -o "$OUT/Analyze.o"
     c++ -O2 -std=c++17 "${INC[@]}" -c "$LUAU/CLI/src/AnalyzeRequirer.cpp" -o "$OUT/AnalyzeRequirer.o"
+    c++ -O2 -std=c++17 "${INC[@]}" -c "$FU" -o "$OUT/FileUtils.o"
     L="$OUT/luau"
-    c++ "$OUT/Analyze.o" "$OUT/AnalyzeRequirer.o" -o "$ANALYZE" \
+    c++ "$OUT/Analyze.o" "$OUT/AnalyzeRequirer.o" "$OUT/FileUtils.o" -o "$ANALYZE" \
         "$L/libLuau.Analysis.a" "$L/libLuau.CLI.lib.a" "$L/libLuau.Require.a" "$L/libLuau.Config.a" \
         "$L/libLuau.Compiler.a" "$L/libLuau.Ast.a" "$L/libLuau.Bytecode.a" "$L/libLuau.VM.a" \
         "$L/libLuau.Common.a" -lpthread

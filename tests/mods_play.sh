@@ -8,8 +8,8 @@
 # way, listening, and sends in a windowless client (cnp_join_probe) that says
 # a line and asks for /help, breaks two blocks, stands a few seconds, walks a
 # few blocks and leaves. Then the server is told to stop, and the test fails
-# on any mod that did not load or was switched off, and on a probe that could
-# not join.
+# on any mod that did not load or was switched off, on a probe that could not
+# join, and on a mod for players' machines the server could not offer them.
 #
 # usage: mods_play.sh <server binary> <probe binary> <source dir>
 
@@ -132,6 +132,15 @@ check() {
         fail "$name: no mod loaded"
         failed=1
     fi
+    # A mod for clients the server could not pack is one a player's machine
+    # never runs: the front and the assault share battle.luau through a link,
+    # which the packing once refused, and the world went on without a word.
+    unoffered=$(grep "world code '[^']*': not offered" "$LOG")
+    if [ -n "$unoffered" ]; then
+        fail "$name:"
+        echo "$unoffered" | sed 's/^/        /'
+        failed=1
+    fi
     [ "$failed" -eq 0 ] && echo "  ok    $name: $loaded mods, a player joined, played and left"
 }
 
@@ -177,7 +186,7 @@ for name in $NAMES; do
 done
 
 if [ "$FAILURES" -ne 0 ]; then
-    echo "$FAILURES failure(s): a mod that did not load or was switched off, or a player who could not play"
+    echo "$FAILURES failure(s): a mod that did not load or was switched off, a player who could not play, or world code not offered"
     exit 1
 fi
 exit 0

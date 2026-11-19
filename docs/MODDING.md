@@ -251,6 +251,11 @@ its VM -- the same quota, the same budget, the same `core`.
   not a half-built table.
 - **Editing a required file reloads the mod** like editing its entry.
 - It travels: a package, and a world's code sent to a player's machine, are the whole directory.
+- **A file can be a link** to one in another mod, which is how two games share source: the
+  assault's `battle.luau` is a link to the front's (`games/front/mods/front_game/battle.luau`),
+  and both `require("@self/battle")`. It is read through the link, and packed -- and sent to a
+  player's machine -- under the name it has in the mod. Each mod still gets a copy of its own:
+  what it shares is the text, not a table.
 
 ## A mod as a single file
 
