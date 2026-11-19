@@ -448,6 +448,21 @@ qualcuno era dentro: `/myroom leave`, detto nella stanza, manda chi lo dice allo
 stanza del server (il sandbox), come attraverso un portale; la stanza avvisa chi è dentro quando
 il suo ingresso non c'è più.
 
+**L'officina di ogni giocatore.** Il modello `workshop-*` è quello di `mods/workshop`: `/workshop`,
+detto da chiunque abbia una chiave in qualunque stanza, avvia la stanza `workshop-` e l'inizio
+della sua chiave e ce lo porta (core.room_send avvia una stanza del file che è giù). Ci entra solo
+chi la possiede. È piatta, pacifica, senza fame né meteo: lì si costruiscono, si provano e si
+propongono le zone dei livelli ([MODDING](MODDING.it.md#livelli-fatti-di-pezzi-salvati-modszones)).
+`/workshop leave` riporta allo spawn della prima stanza. I mondi del menu del titolo e
+`tools/track.sh` scrivono il modello accanto a `home-*`, con le stesse mod e mai survival:
+
+```
+[room workshop-*]
+world-file worlds/{name}.world
+```
+
+Le zone proposte aspettano un admin su `/page zones`.
+
 ### Portali costruiti nel mondo
 
 Fra [server amici](#server-amici) che condividono **portals**, un portale si può costruire e

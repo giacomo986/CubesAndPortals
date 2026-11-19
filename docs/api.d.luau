@@ -97,7 +97,7 @@ declare core: {
     room_access: (room: string, who: string, look: boolean, enter: boolean) -> boolean,
     -- Takes a room's rule away (core.room_access): open to everybody again. Returns 1, or 0 when it had none.
     room_access_clear: (room: string) -> boolean,
-    -- Sends a player to another room of this server, at its spawn: the way out of a room whose way in is gone. The player arrives as through a portal, on a ticket this room signs. Returns 1, or 0 for no such player, a player only looking in, or no such room.
+    -- Sends a player to another room of this server, at its spawn: the way out of a room whose way in is gone, or the way into one with none (a workshop). A room the rooms file names that is down, or one its template makes, is started for it, the player waiting for it as at a portal. The player arrives as through a portal, on a ticket this room signs. Returns 1, or 0 for no such player, a player only looking in, or no such room.
     room_send: (player: number, room: string?) -> boolean,
     -- Says one of the world's own mouths is not in use now -- a second way in nobody is near, a door's mouth with no door to stand in -- instead of putting it out of sight. Its opening goes, and until core.portal_place puts it somewhere again the mouth may be lent to a portal between rooms (core.room_portal_set); placed again, whatever borrowed it gives it back at once. A seal on it (core.portal_seal) does not hold for the borrower. Returns 1, or 0 for an index that is not one of the world's own or no server.
     portal_park: (index: number) -> boolean,

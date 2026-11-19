@@ -26,6 +26,20 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
   file di un mod ora può essere un link a quello di un altro mod: si impacchetta, e arriva ai
   giocatori, col nome che ha nel mod.
 
+- **L'officina**: `/workshop` porta un giocatore in una stanza piatta tutta sua dove i pezzi dei
+  livelli (le zone) si fanno senza coordinate: una bacchetta sceglie il volume con due angoli,
+  disegnato sullo schermo, e un pannello gli dà un nome, dice a cosa serve, lo salva, ne posa un
+  livello per provarlo (e torna indietro) e lo propone. Lì i blocchi messi giù non si consumano e
+  quelli scavati non danno niente; lo zaino è lo stesso in tutte le stanze, quindi niente
+  catalogo. Un server vuole il modello `[room workshop-*]` nel suo file delle stanze; i mondi del
+  menu del titolo e `tools/track.sh` lo scrivono.
+- **Zone proposte**: `/zone propose` le chiede agli admin, che vengono avvisati, e `/page zones`
+  elenca quelle in attesa con mostra, approva e rifiuta; `/zone show` posa una zona da sola per
+  guardarla.
+- Per le mod: `core.room_send` avvia una stanza del file delle stanze che è giù (o una fatta dal
+  suo modello) invece di rispondere 0; `zones:do` esegue una riga di `/zone` come detta da un
+  giocatore.
+
 ## 0.19.0-alpha.1 — 2026-11-19
 
 **Non gioca con i server 0.18** (protocollo 126): il codice dei mondi può essere in `api = 2`, che un

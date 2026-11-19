@@ -441,6 +441,21 @@ permission, always come in. Somebody inside who is no longer let in is sent out 
 `/myroom leave`, said in the room, sends whoever says it to the spawn of the server's first room
 (the sandbox), as through a portal; the room tells whoever is inside when its way in is gone.
 
+**Every player's workshop.** The template `workshop-*` is `mods/workshop`'s: `/workshop`, said by
+anybody with a key in any room, starts the room `workshop-` and the start of their key and takes
+them there (core.room_send starts a room of the file that is down). Only its owner goes in. It is
+flat, peaceful, without hunger or weather: where the zones of levels are built, tried and
+proposed ([MODDING](MODDING.md#levels-out-of-saved-pieces-modszones)). `/workshop leave` goes back
+to the spawn of the first room. The title screen's worlds and `tools/track.sh` write the template
+beside `home-*`, with the same mods and never survival:
+
+```
+[room workshop-*]
+world-file worlds/{name}.world
+```
+
+Proposed zones wait for an admin on `/page zones`.
+
 ### Portals built in the world
 
 Between [friend servers](#friend-servers) that share **portals**, a portal can be built and set

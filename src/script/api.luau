@@ -481,7 +481,9 @@ local api: { Fn } = {
             { name = "room", type = "string", default = "", doc = "Another room of this server; \"\" is its first." },
         },
         doc = "Sends a player to another room of this server, at its spawn: the way out of a room "
-           .. "whose way in is gone. The player arrives as through a portal, on a ticket this room "
+           .. "whose way in is gone, or the way into one with none (a workshop). A room the rooms file "
+           .. "names that is down, or one its template makes, is started for it, the player waiting "
+           .. "for it as at a portal. The player arrives as through a portal, on a ticket this room "
            .. "signs. Returns 1, or 0 for no such player, a player only looking in, or no such room.",
     },
     {

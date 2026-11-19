@@ -5750,10 +5750,13 @@ admin::Who admin_who(const net::Session &p, const std::string *room)
 const std::string &room_name() { return g_router.rooms[(size_t)g_room].name; }
 
 // core.room_send's room: one that is up, not this one; "" the server's first.
+// One the rooms file names (or a template makes) is started for it.
 std::string send_room(const std::string &name)
 {
     const std::string to = name.empty() && !g_router.rooms.empty() ? g_router.rooms[0].name : name;
-    const int i = to.empty() ? -1 : g_router.find(to);
+    int i = to.empty() ? -1 : g_router.find(to);
+    if (!to.empty() && (i < 0 || !g_hot.running[(size_t)i]) && g_hot.def(to) != nullptr && start_room(to).empty())
+        i = g_router.find(to);
     return i >= 0 && i != g_room && g_hot.running[(size_t)i] ? to : "";
 }
 

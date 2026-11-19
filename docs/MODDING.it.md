@@ -2753,9 +2753,27 @@ quali difficoltà va bene (da 1 a 10), quanto spesso esce, se può essere posata
 comincia un livello, lo finisce o è una stanza lungo la strada.
 
 **Di chi è.** Una zona è della chiave che l'ha salvata (`core.player_key`) ed è `private`: la usano
-solo i livelli chiesti con quella chiave come `owner`. `/zone approve ID` di un admin la rende
-`approved`, in ogni livello del suo mondo; `/zone private ID` la ritira, e la ritira anche chi l'ha
-fatta quando la cambia.
+solo i livelli chiesti con quella chiave come `owner`. Con `/zone propose ID` chi l'ha fatta la
+rende `proposed`: gli admin nella stanza vengono avvisati, un admin che entra dopo sente quante ne
+aspettano, e `/page zones` le elenca, ognuna con **show** (`/zone show ID`: quella zona da sola,
+posata accanto all'admin com'è stata salvata), **approve** e **refuse**. `/zone approve ID` di un
+admin la rende `approved`, in ogni livello del suo mondo; `/zone refuse ID` (o `private`) la
+rimette privata, e così fa chi l'ha fatta quando la salva di nuovo o la cambia: quello che è stato
+guardato era la zona com'era.
+
+**L'officina** (`mods/workshop`) è dove un giocatore fa tutto questo senza coordinate: `/workshop`
+lo porta in una stanza sua, `workshop-` e l'inizio della sua chiave, fatta dal modello
+`[room workshop-*]` del file delle stanze (lo scrivono i mondi del menu del titolo e
+`tools/track.sh`; un server che non ce l'ha lo dice). La stanza è piatta, pacifica, senza fame né
+meteo; chi la possiede vola, non si fa male, scava in fretta, un blocco messo giù non si consuma e
+uno scavato non dà niente. Lì non c'è il catalogo: lo zaino è lo stesso in tutte le stanze. Una
+bacchetta, data all'ingresso, sceglie il volume con due angoli (disegnato sullo schermo) e apre un
+pannello: nome, mondo, start/room/end, difficoltà, peso, specchio, poi **Save**, **Try** (un
+livello con le zone di quel mondo, le approvate e le proprie, posato su un terreno di prova 400 a
+sud dello spawn, togliendo prima il precedente, col giocatore messo al suo inizio), **Back** e
+**Propose**. `/zone try` e `/zone show` sono di chiunque nella propria officina, altrove di un
+admin. Un'altra mod esegue una riga di `/zone` come detta da un giocatore con
+`core.event.emit("zones:do", { player = p, line = "propose chambers.hall" })`.
 
 **Le zone che arrivano col gioco** stanno in `mods/zones/shipped.luau`, che uno strumento scrive
 leggendo un world file (quello della prima stanza, dove sta lo storage condiviso del server), su

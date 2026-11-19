@@ -2452,8 +2452,25 @@ which difficulties it suits (1 to 10), how often it comes up, whether it may be 
 whether it starts a level, ends one or is a room on the way.
 
 **Whose it is.** A zone belongs to the key that saved it (`core.player_key`) and is `private`: only
-levels asked for with that key as `owner` use it. An admin's `/zone approve ID` makes it `approved`,
-in every level of its world; `/zone private ID` takes that back, and so does its maker changing it.
+levels asked for with that key as `owner` use it. Its maker's `/zone propose ID` makes it
+`proposed`: the admins in the room are told, an admin who comes in later hears how many wait, and
+`/page zones` lists them, each with **show** (`/zone show ID`: that zone alone, laid beside the
+admin as it was saved), **approve** and **refuse**. An admin's `/zone approve ID` makes it
+`approved`, in every level of its world; `/zone refuse ID` (or `private`) makes it private again,
+and so does its maker saving it over or setting it: what was looked at was the zone as it was.
+
+**The workshop** (`mods/workshop`) is where a player does all this without coordinates: `/workshop`
+takes them to a room of their own, `workshop-` and the start of their key, made from the rooms
+file's template `[room workshop-*]` (the title screen's worlds and `tools/track.sh` write it; a
+server without it says so). The room is flat, peaceful, without hunger or weather; its owner flies,
+takes no harm, digs fast, a block put down is not used up and one dug gives nothing. There is no
+catalogue there: the bag is the same in every room. A wand, given on the way in, picks the box by
+two corners (drawn on the screen) and opens a panel: name, world, start/room/end, difficulties,
+weight, mirror, then **Save**, **Try** (a level of that world's zones, the approved and the
+player's own, laid on a trying ground 400 south of the spawn, the last one taken away first, the
+player put at its start), **Back** and **Propose**. `/zone try` and `/zone show` are anybody's in
+their own workshop, an admin's elsewhere. Another mod runs a `/zone` line as a player said it
+with `core.event.emit("zones:do", { player = p, line = "propose chambers.hall" })`.
 
 **Zones that come with the game** are in `mods/zones/shipped.luau`, which a tool writes out of a
 world file (the first room's, where the server's shared storage is), on a world no server has

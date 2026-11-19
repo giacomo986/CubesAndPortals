@@ -444,7 +444,7 @@ Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 core.room_send(player: number, room: string?) -> boolean
 ```
 
-Sends a player to another room of this server, at its spawn: the way out of a room whose way in is gone. The player arrives as through a portal, on a ticket this room signs. Returns 1, or 0 for no such player, a player only looking in, or no such room.
+Sends a player to another room of this server, at its spawn: the way out of a room whose way in is gone, or the way into one with none (a workshop). A room the rooms file names that is down, or one its template makes, is started for it, the player waiting for it as at a portal. The player arrives as through a portal, on a ticket this room signs. Returns 1, or 0 for no such player, a player only looking in, or no such room.
 
 Risponde `true` o `false`; un mod con `api = 1` riceve `1` o `0`, come prima.
 

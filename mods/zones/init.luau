@@ -19,17 +19,27 @@
 -- was under it when the zone was saved.
 --
 -- A zone is its maker's (core.player_key) and only in levels asked for in
--- their name, until an admin approves it: then it is in everybody's.
+-- their name, until an admin approves it: then it is in everybody's. Its maker
+-- PROPOSES it first: the admins here are told, and those who come later, and
+-- /page zones lists what waits, to look at, approve or refuse. Saved over or
+-- set again by its maker, a zone is private again: what was looked at was the
+-- zone as it was.
 --
 --   /zone                                    the zones, yours and the approved
 --   /zone save WORLD NAME X1 Y1 Z1 X2 Y2 Z2 [start|room|end]
 --   /zone set ID d MIN MAX | weight N | mirror on|off | role start|room|end
 --   /zone delete ID                          yours, or anybody's for an admin
---   /zone approve ID   /zone private ID      an admin's
---   /zone try WORLD [COUNT [SEED [D]]]       an admin's: a level laid beside you
+--   /zone propose ID                         yours: for the admins to approve
+--   /zone approve ID   /zone refuse ID       an admin's (private: refuse)
+--   /zone try WORLD [COUNT [SEED [D]]]       a level laid beside you
+--   /zone show ID                            that zone alone, laid beside you
+--
+-- Try and show are an admin's, and anybody's in their own workshop
+-- (mods/workshop, a room workshop-KEY).
 --
 -- Another mod asks for a level with "zones:lay" and hears "zones:mark" for
--- every marker in it, then "zones:laid" once it stands.
+-- every marker in it, then "zones:laid" once it stands. "zones:do" runs a
+-- /zone line as a player said it (the workshop's panel).
 --
 -- Kept in the server's shared storage, so every room has the same zones:
 -- "index", the ids; "z ID", a zone's head; "z ID 1".., its palette and cells.
@@ -493,6 +503,19 @@ local function lay(tag: string, world: string, owner: string, x: number, y: numb
     return #level.placed
 end
 
+-- One zone alone, as it was saved, its corner at x, y, z: what an admin looks
+-- at before approving it. Its doorways are shut as a level's that nothing met.
+local function lay_one(tag: string, z: Zone, x: number, y: number, zz: number)
+    local p: L.Placed = { zone = z, x = 0, y = 0, z = 0, t = 0, m = false }
+    local open: { L.Open } = {}
+    for _, c in z.conns do
+        table.insert(open, L.doorway(p, c))
+    end
+    local level: L.Level = { placed = { p }, open = open, x1 = 0, y1 = 0, z1 = 0, x2 = z.w - 1, y2 = z.h - 1,
+                             z2 = z.d - 1 }
+    table.insert(jobs, { tag = tag, level = level, piece = 1, cell = 1, ox = x, oy = y, oz = zz })
+end
+
 core.event.on("zones:lay", function(ev)
     lay(ev.tag, ev.world, ev.owner, math.floor(ev.x), math.floor(ev.y), math.floor(ev.z), ev.seed, ev.d, ev.count)
 end)
@@ -520,6 +543,12 @@ local function admin(player: number): boolean
     return core.has_perm(player, "admin")
 end
 
+-- In their own workshop (mods/workshop) a player may lay what an admin may.
+local function in_workshop(player: number): boolean
+    local key = string.sub(string.gsub(string.lower(core.player_key(player)), "[^a-z0-9]", ""), 1, 24)
+    return key ~= "" and core.room() == "workshop-" .. key
+end
+
 local function mine(player: number, z: Zone): boolean
     local key = core.player_key(player)
     return admin(player) or (key ~= "" and z.owner == key)
@@ -530,13 +559,79 @@ local function line(z: Zone): string
         .. `d {z.dmin}-{z.dmax}, weight {z.weight}{if z.mirror then ", mirrored too" else ""}, {z.status}`
 end
 
-core.command("zone", "[save|set|delete|approve|private|try] -- pieces of levels, and levels laid out of them")
-core.event.on("core:command", function(ev)
-    if ev.name ~= "zone" then
+-- The zones waiting for an admin.
+local function proposed(): { Zone }
+    local out = {}
+    for _, id in ids() do
+        local z = load(id)
+        if z and z.status == "proposed" then
+            table.insert(out, z)
+        end
+    end
+    return out
+end
+
+local function tell_admins(text: string)
+    for _, p in core.players() do
+        if admin(p) then
+            core.chat(p, text)
+        end
+    end
+end
+
+-- An admin who comes in hears once what waits for them.
+local seen: { [number]: boolean } = {}
+local since = 0.0
+core.event.on("core:tick", function(ev)
+    since += ev.dt
+    if since < 2 then
         return
     end
-    local a = string.split(string.gsub(ev.args, "^%s+", ""), " ")
-    local verb, player = string.lower(a[1] or ""), ev.player
+    since = 0
+    local here: { [number]: boolean } = {}
+    for _, p in core.players() do
+        here[p] = true
+        if not seen[p] then
+            seen[p] = true
+            if admin(p) then
+                local n = #proposed()
+                if n > 0 then
+                    core.chat(p, `{n} zone(s) proposed wait for an admin: /page zones`)
+                end
+            end
+        end
+    end
+    for p in seen do
+        if not here[p] then
+            seen[p] = nil
+        end
+    end
+end)
+
+core.page_register("zones", "Zones proposed", "admin")
+core.event.on("core:page_open", function(ev)
+    if ev.page ~= "zones" then
+        return
+    end
+    local page = { "# Zones proposed", "" }
+    local list = proposed()
+    if #list == 0 then
+        table.insert(page, "No zone waits for an admin.")
+    end
+    for _, z in list do
+        table.insert(page, `| {z.id} | {z.w} x {z.h} x {z.d}, {z.role} | [show](cmd:/zone show {z.id}) | `
+            .. `[approve](cmd:/zone approve {z.id}) | [refuse](cmd:/zone refuse {z.id}) |`)
+    end
+    table.insert(page, "")
+    table.insert(page, "> Show lays the zone alone beside you, as it was proposed.")
+    core.page_show(ev.player, "zones", table.concat(page, "\n"))
+end)
+
+core.command("zone", "[save|set|delete|propose|approve|refuse|try|show] -- pieces of levels, and levels laid out of them")
+
+local function run(player: number, args: string)
+    local a = string.split(string.gsub(args, "^%s+", ""), " ")
+    local verb = string.lower(a[1] or "")
     local key = core.player_key(player)
 
     if verb == "" then
@@ -595,8 +690,8 @@ core.event.on("core:command", function(ev)
     end
 
     if verb == "try" then
-        if not admin(player) then
-            core.chat(player, "Laying a level in this world is an admin's.")
+        if not admin(player) and not in_workshop(player) then
+            core.chat(player, "Laying a level is an admin's, and yours in your own workshop.")
             return
         end
         local world = clean(a[2] or "")
@@ -622,15 +717,35 @@ core.event.on("core:command", function(ev)
         core.chat(player, `No zone called {a[2] or ""}: /zone lists them.`)
         return
     end
-    if verb == "approve" or verb == "private" then
+    if verb == "approve" or verb == "private" or verb == "refuse" then
         if not admin(player) then
             core.chat(player, "Approving a zone is an admin's.")
             return
         end
+        local was = z.status
         z.status = if verb == "approve" then "approved" else "private"
         save_head(z)
         core.chat(player, line(z))
         core.log(`zones: {core.player_name(player)} made {z.id} {z.status}`)
+        if was == "proposed" then
+            for _, p in core.players() do
+                if p ~= player and z.owner ~= "" and core.player_key(p) == z.owner then
+                    core.chat(p, if z.status == "approved" then `Your zone {z.id} is approved: it is in everybody's levels now.`
+                                 else `Your zone {z.id} was not approved; it is yours alone again.`)
+                end
+            end
+        end
+    elseif verb == "show" then
+        if not admin(player) and not in_workshop(player) then
+            core.chat(player, "Laying a zone is an admin's, and yours in your own workshop.")
+            return
+        end
+        local px, py, pz = core.player_pos(player)
+        if px == nil or py == nil or pz == nil then
+            return
+        end
+        lay_one(`show {core.player_name(player)}`, z, math.floor(px) + 4, math.floor(py), math.floor(pz))
+        core.chat(player, `{z.id} is going up beside you.`)
     elseif not mine(player, z) then
         core.chat(player, `{z.id} is somebody else's zone.`)
     elseif verb == "delete" then
@@ -641,6 +756,20 @@ core.event.on("core:command", function(ev)
         erase(z.id)
         core.chat(player, if SHIPPED[z.id] then `{z.id} is the game's own again.` else `{z.id} is gone.`)
         core.log(`zones: {core.player_name(player)} deleted {z.id}`)
+    elseif verb == "propose" then
+        if z.status ~= "private" then
+            core.chat(player, `{z.id} is {z.status} already.`)
+            return
+        end
+        if get_long(`z {z.id}`) == "" then
+            core.chat(player, `{z.id} comes with the game.`)
+            return
+        end
+        z.status = "proposed"
+        save_head(z)
+        core.chat(player, `{z.id} is proposed: an admin will look at it.`)
+        core.log(`zones: {core.player_name(player)} proposed {z.id}`)
+        tell_admins(`{core.player_name(player)} proposes the zone {z.id}: /page zones`)
     elseif verb == "set" then
         local what = string.lower(a[3] or "")
         if what == "d" and tonumber(a[4] or "") and tonumber(a[5] or "") then
@@ -656,13 +785,24 @@ core.event.on("core:command", function(ev)
             core.chat(player, "/zone set ID d MIN MAX | weight N | mirror on|off | role start|room|end")
             return
         end
-        -- What an admin approved is the zone as it was.
-        if z.status == "approved" and not admin(player) then
+        -- What an admin approved, or was asked to, is the zone as it was.
+        if z.status ~= "private" and not admin(player) then
             z.status = "private"
         end
         save_head(z)
         core.chat(player, line(z))
     else
-        core.chat(player, "/zone [save|set|delete|approve|private|try]")
+        core.chat(player, "/zone [save|set|delete|propose|approve|refuse|try|show]")
     end
+end
+
+core.event.on("core:command", function(ev)
+    if ev.name == "zone" then
+        run(ev.player, ev.args)
+    end
+end)
+
+core.event.define("zones:do", { fields = { player = "number", line = "string" }, cancellable = false })
+core.event.on("zones:do", function(ev)
+    run(ev.player, ev.line)
 end)

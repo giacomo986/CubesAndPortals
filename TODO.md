@@ -576,6 +576,32 @@ survival levels.
    server that never saved it); doorway kinds other than "door"; levels on more
    than one floor are only what the zones' own doorway heights give.
 6. The workshop room: an editor in the game, a "try" button, an admin's approval.
+   Decided 2026-11-19: one per player, a template `workshop-*` like `home-*`
+   (flat, flying, blocks without end, no survival rules), entered from the
+   frame's menu ("my workshop") or `/workshop`, left with `/workshop leave`; a
+   wand picks the box by two corners, a panel sets name, world, role, d, weight,
+   mirror with Save, Try, Propose; Try is anybody's in their own workshop (a
+   level of their private zones and the approved ones laid beside, the player
+   put at its start, Back to where they were), elsewhere still an admin's; a
+   zone proposed is a status between private and approved, the admins told
+   (mod_notice) and given a list with try, approve, refuse; saved over, it is
+   private again.
+   Done 2026-11-19 (`mods/workshop`, `mods/zones`), seen by script only, in no
+   client: /workshop from the sandbox started workshop-KEY and sent the player
+   (core.room_send now starts a room of the file); in it the flat floor, no
+   hunger, no weather, peaceful; the wand's two corners, Save (save and the
+   three sets), Try (a level on the trying ground, the player at its start
+   marker), Back, a second Try after the first was taken away; a block dug gave
+   nothing (driven by a scratch mod emitting core:used and core:ui_click: the
+   probe has no panel). The admin told on coming in, show, refuse, the maker
+   told. Not seen: the panel and the drawn box on a screen; a block put down
+   coming back (the probe places nothing). Missing: "my workshop" in the
+   frame's menu (only /workshop now); the sandbox's fixtures (the creative box,
+   the bench, the tables) stand in a workshop too; a list's "show" lays beside
+   the admin wherever they stand. Found: the owner (--owner, `portals`) is
+   refused when joining a workshop or a home by name -- "you may look into
+   this room, not go in" -- though room_access_of lets `portals` through: not
+   looked into.
    6b. Tools made for each kind of world (chambers: panels, buttons, doors and
    triggers joined; arpg: areas, corridors, lairs; backrooms: rooms and lights;
    parkour: stations with jumps measured; Inferno: fortress pieces; front and

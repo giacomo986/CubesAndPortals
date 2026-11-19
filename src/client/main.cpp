@@ -11403,10 +11403,16 @@ void write_home_template(const std::string &path, const std::string &dir, bool s
 {
     std::vector<std::string> body{"world-file " + dir + "/{name}.db", "world-depth " + depth,
                                   "world-top " + top};
-    if (survival) body.push_back("survival");
+    std::vector<std::string> mods;
     for (size_t i = 0; i + 1 < mod_flags.size(); i += 2)
-        body.push_back(mod_flags[i].substr(2) + " " + mod_flags[i + 1]);
+        mods.push_back(mod_flags[i].substr(2) + " " + mod_flags[i + 1]);
+    // A player's workshop (mods/workshop): the same mods, never survival.
+    std::vector<std::string> workshop = body;
+    workshop.insert(workshop.end(), mods.begin(), mods.end());
+    if (survival) body.push_back("survival");
+    body.insert(body.end(), mods.begin(), mods.end());
     write_room_section(path, "[room home-*]", body);
+    write_room_section(path, "[room workshop-*]", workshop);
 }
 
 // A world directory holds the server's world file, its key, its log, and

@@ -69,7 +69,7 @@ mkdir -p "$HERE"
 if [ "$FRESH" = 1 ]; then
     rm -f "$HERE"/sandbox.world* "$HERE"/pista.world* "$HERE"/inferno.world* \
           "$HERE"/arena.world* "$HERE"/arpg.world* "$HERE"/chambers.world* "$HERE"/backrooms.world* "$HERE"/parkour.world* "$HERE"/laboratorio.world* "$HERE"/front.world* "$HERE"/platformer.world* "$HERE"/shmup.world* \
-          "$HERE"/home-*.world* "$HERE"/rooms.conf
+          "$HERE"/home-*.world* "$HERE"/workshop-*.world* "$HERE"/rooms.conf
     echo "== mondi salvati cancellati"
     # Proprietario del server: il permesso creative (moderatore in su) apre il
     # catalogo con C. In survival resta chiuso (creative a nobody).
@@ -115,6 +115,10 @@ if [ ! -f "$HERE/rooms.conf" ]; then
         echo "mods $SANDBOX_MODS"
         [ ${#SURVIVAL[@]} -gt 0 ] && echo "survival"
         [ -d "$HOME/.cubes-and-portals/mods" ] && echo "user-mods $HOME/.cubes-and-portals/mods"
+        # L'officina di ogni giocatore (/workshop, mods/workshop): mai survival.
+        echo "[room workshop-*]"
+        echo "world-file $HERE/{name}.world"
+        echo "mods $SANDBOX_MODS"
         true
     } > "$HERE/rooms.conf"
 fi

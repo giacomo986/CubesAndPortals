@@ -23,6 +23,16 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
   lifted out after a moment, and the soldiers in a machine move with it in the same tick instead
   of a tick behind. A mod's file can now be a link to another mod's: it is packed, and sent to
   players, under the name it has in the mod.
+- **The workshop**: `/workshop` takes a player to a flat room of their own where the pieces of
+  levels (zones) are made without coordinates: a wand picks the box by two corners, drawn on the
+  screen, and a panel names it, says what it is for, saves it, lays a level of it to try (and
+  back) and proposes it. Blocks put down there are not used up and blocks dug give nothing; the
+  bag is the same in every room, so there is no catalogue. A server needs the template
+  `[room workshop-*]` in its rooms file; the title screen's worlds and `tools/track.sh` write it.
+- **Proposed zones**: `/zone propose` asks the admins, who are told, and `/page zones` lists what
+  waits with show, approve and refuse; `/zone show` lays one zone alone to look at.
+- For mods: `core.room_send` starts a room of the rooms file that is down (or one its template
+  makes) instead of answering 0; `zones:do` runs a `/zone` line as a player said it.
 
 ## 0.19.0-alpha.1 — 2026-11-19
 
