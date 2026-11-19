@@ -2468,7 +2468,7 @@ catalogue there: the bag is the same in every room. A brush, given on the way in
 world's own blocks instead: `/workshop blocks`, the panel's **Blocks** or the brush on a block with
 none picked open its palette -- the world's blocks the workshop has (`games/workshop/mods`, links
 to the worlds' block mods, which leave their worlds' rules out in a room `workshop-*`; the
-chambers', the arpg's, the backrooms' and the parkour's so far) and the markers. A right click puts the one picked on the face clicked; a
+chambers', the arpg's, the backrooms', the parkour's and the Inferno's) and the markers. A right click puts the one picked on the face clicked; a
 plate, a vent, a target tile or a pit's bottom takes the place of the block clicked; a door is its
 four cells across the way the player looks, a button or a plate its two by two. A wand, given on the way in, picks the box by
 two corners (drawn on the screen) and opens a panel: name, world, start/room/end, difficulties,
@@ -2576,6 +2576,15 @@ course's floor (y 30); a site played before keeps its own. The player comes in a
 back to -- the nearest the start first -- and `zones:exit` is the summit: reached, the level is
 done and a doorway there leads down to the start. Bounce pads and slabs that give way work as
 everywhere in the course; a bounce pad in a zone throws the way the body looks.
+
+**The Inferno out of zones** (`games/inferno/mods/inferno_heart`). A fresh survival site's fortress
+is laid out of the approved inferno zones when there are any, 2 + d of them, their lowest layer
+the floor (y 29); a site played before keeps its own. The player comes in at `zones:start` (the
+way out in a block of brick west of it); every `inferno_heart:brazier` laid is one to light and
+every `inferno_heart:gate` block laid is the gate they open; the guardian rises at `zones:exit`
+once they all burn, with d - 1 of the fortress's own, and each `zones:mob` is a brute or a wraith
+that comes out as somebody comes within 16. The guardian down is the level done, and a cell of
+fire by the exit leads back to the start.
 
 **How a level is laid** (`layout.luau`, which reads and writes no world: the same zones, seed, count
 and `d` give the same level anywhere). A "start" zone first; then a "room" joined to the newest open

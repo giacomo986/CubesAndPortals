@@ -44,12 +44,18 @@ end
 
 local BEDROCK = core.node_id("core:bedrock")
 
-core.world_sky(58, 12, 10)
-core.mapgen_core(false)
--- The sandbox's mods are loaded here too, so that what a player carries in is
--- worth something; their lakes, trees and ores are not this world's ground.
-for _, mod in { "inferno", "inferno_heart", "inferno_track", "track_game" } do
-    core.mapgen_only(mod)
+-- Loaded in a player's workshop too (mods/workshop, games/workshop/mods), for
+-- its blocks alone: the world they make is left out there.
+local WORKSHOP = string.sub(core.room(), 1, 9) == "workshop-"
+
+if not WORKSHOP then
+    core.world_sky(58, 12, 10)
+    core.mapgen_core(false)
+    -- The sandbox's mods are loaded here too, so that what a player carries in is
+    -- worth something; their lakes, trees and ores are not this world's ground.
+    for _, mod in { "inferno", "inferno_heart", "inferno_track", "track_game" } do
+        core.mapgen_only(mod)
+    end
 end
 
 -- The Inferno's own creatures, beside mods/mobs's zombie and skeleton, drawn by
@@ -81,6 +87,9 @@ core.register_node("inferno:fungus_planks", 150, 86, 120, true, 0, "", 0, 1.0, "
 local FIRE = core.register_node("inferno:fire", 255, 150, 40, false, 13)
 core.node_glass(FIRE)
 core.node_drop(FIRE, 0)
+if WORKSHOP then
+    return
+end
 
 local G = "inferno:gold_nugget"
 core.recipe_shaped("furnace:gold_ingot", 1, `{G} {G} {G}`, `{G} {G} {G}`, `{G} {G} {G}`)

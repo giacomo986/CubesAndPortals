@@ -653,8 +653,15 @@ survival levels.
    jumps can be made (the builder tries them in the workshop, where the
    parkour moves are not on: parkour_core is not loaded there); the summit's
    doorway opens on the summit itself.
-   Next (Inferno: fortress pieces; front and assault: bases and points).
-7. Each world onto zones: chambers (done 2026-11-19, 6b), arpg (done 2026-11-19, 6b), backrooms (done 2026-11-19, 6b), parkour (done 2026-11-19, 6b), Inferno, then the
+   Inferno done 2026-11-19 (with 7's): its blocks in the workshop (inferno
+   and inferno_heart return after their blocks there), a fresh site's
+   fortress of the approved inferno zones (inferno_heart, "zslot:N"):
+   braziers and gate cells as laid, the guardian at "exit", "mob" a brute or
+   a wraith within 16. Seen by script: laid, both braziers lit by a used
+   event, the gate gone, a brute at the mob, the guardian risen in the hall.
+   Not seen: the guardian killed, a client.
+   Next (front and assault: bases and points), after their shared library.
+7. Each world onto zones: chambers (done 2026-11-19, 6b), arpg (done 2026-11-19, 6b), backrooms (done 2026-11-19, 6b), parkour (done 2026-11-19, 6b), Inferno (done 2026-11-19, 6b), then the
    front and the assault after their shared library (Structure).
 
 Tickets between rooms: decided and done 2026-11-19 (protocol 127). A room past

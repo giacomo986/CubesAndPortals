@@ -2771,7 +2771,7 @@ posto un pennello, dato all'ingresso, mette giù i blocchi di un mondo: `/worksh
 pulsante **Blocks** del pannello o il pennello su un blocco senza averne scelto uno aprono la sua
 tavolozza -- i blocchi del mondo che l'officina ha (`games/workshop/mods`, collegamenti alle mod dei
 blocchi dei mondi, che in una stanza `workshop-*` lasciano fuori le regole del loro mondo; per ora
-quelli delle chambers, dell'arpg, delle backrooms e del parkour) e i segnaposto. Un clic destro mette quello scelto sulla faccia cliccata;
+quelli delle chambers, dell'arpg, delle backrooms, del parkour e dell'Inferno) e i segnaposto. Un clic destro mette quello scelto sulla faccia cliccata;
 una pedana, una presa, un bersaglio o il fondo di un pozzo prendono il posto del blocco cliccato;
 una porta sono le sue quattro celle di traverso a dove guarda il giocatore, un pulsante o una
 pedana il loro due per due. Una bacchetta, data all'ingresso, sceglie il volume con due angoli (disegnato sullo schermo) e apre un
@@ -2883,6 +2883,15 @@ pavimento del percorso (y 30); un sito già giocato tiene il suo. Il giocatore a
 una caduta riporta -- prima il più vicino all'inizio -- e `zones:exit` è la cima: raggiunta, il
 livello è superato e una porta lì riporta giù all'inizio. I cuscini che lanciano e le lastre che
 cedono funzionano come ovunque nel percorso; un cuscino in una zona lancia dove guarda il corpo.
+
+**L'Inferno fatto di zone** (`games/inferno/mods/inferno_heart`). La fortezza di un sito survival
+nuovo si posa con le zone inferno approvate quando ce ne sono, 2 + d, col loro strato più basso al
+pavimento (y 29); un sito già giocato tiene la sua. Il giocatore arriva a `zones:start` (l'uscita
+in un blocco di mattoni a ovest); ogni `inferno_heart:brazier` posato è uno da accendere e ogni
+blocco `inferno_heart:gate` posato è il cancello che aprono; il guardiano si leva a `zones:exit`
+quando ardono tutti, con d - 1 della fortezza, e ogni `zones:mob` è un bruto o uno spettro che esce
+quando qualcuno arriva entro 16. Il guardiano a terra supera il livello, e una cella di fuoco vicino
+all'uscita riporta all'inizio.
 
 **Come si posa un livello** (`layout.luau`, che non legge né scrive il mondo: le stesse zone, seme,
 numero e `d` danno lo stesso livello ovunque). Prima una zona "start"; poi una "room" attaccata al

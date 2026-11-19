@@ -21,6 +21,13 @@ local GATE    = core.register_node("inferno_heart:gate", 30, 20, 40, true, 2, ""
 -- the guardian falls.
 local RETURN  = core.register_node("inferno_heart:return", 255, 120, 60, true, 12, "", 0, 0, "stone")
 
+-- Loaded in a player's workshop too (mods/workshop, games/workshop/mods), for
+-- its blocks alone.
+if string.sub(core.room(), 1, 9) == "workshop-" then
+    return
+end
+core.event.emit("zones:watch", { names = "inferno_heart:brazier inferno_heart:gate" })
+
 local FIREBALL = core.register_model("inferno_heart:fireball", "fireball.gltf")
 core.register_mob("inferno_heart:guardian", core.register_model("inferno_heart:guardian", "cinder_guardian.gltf"),
                   120, 2.0, "archer", 4, 20.0, 1.8, "inferno:cinder_rod", 3, FIREBALL, false, 2.5, true,
@@ -227,7 +234,39 @@ end)
 local BASALT, LAVA = id("inferno:basalt"), id("inferno:lava")
 
 type Plan = { boxes: { { number } }, start: { number }, exit: { number }, braziers: { { number } },
-              gate: { number }, hall: { number }, back: { number }, spawns: { { any } }, d: number }
+              gate: { number }, hall: { number }, back: { number }, spawns: { { any } }, d: number,
+              gates: { { number } }? }
+
+-- A fresh site's fortress of the approved inferno zones instead, when there
+-- are any (mods/zones, built in a player's workshop), 2 + d of them, their
+-- lowest layer the floor (FLOOR - 1): in at the "start" marker, the way out a
+-- block of brick west of it; every brazier laid (inferno_heart:brazier) one
+-- to light, every gate block laid (inferno_heart:gate) the gate they open;
+-- the guardian rises at the "exit" marker once they burn, and each "mob"
+-- marker is a brute or a wraith out as somebody comes within 16. Kept as
+-- "zslot:N": d | start | hall | braziers | gates | spawns, each "x y z" and
+-- ";" between.
+local function zoned_plan(text: string): Plan?
+    local parts = string.split(text, "|")
+    if #parts < 6 then return nil end
+    local function list(t: string): { { number } }
+        local out = {}
+        for x, y, z in string.gmatch(t, "(-?%d+) (-?%d+) (-?%d+)") do
+            table.insert(out, { tonumber(x) :: number, tonumber(y) :: number, tonumber(z) :: number })
+        end
+        return out
+    end
+    local st, hall = list(parts[2])[1], list(parts[3])[1]
+    if st == nil or hall == nil then return nil end
+    local spawns: { { any } } = {}
+    for i, m in list(parts[6]) do
+        table.insert(spawns, { m[1], m[2], m[3], if i % 2 == 0 then "inferno:wraith" else "inferno:brute", m[1], true })
+    end
+    local gates = list(parts[5])
+    return { boxes = {}, start = st, exit = { st[1] - 4, st[2], st[3] }, braziers = list(parts[4]),
+             gate = gates[1] or { hall[1] - 6, hall[2] + 1, hall[3] }, hall = hall,
+             back = { hall[1] + 2, hall[2], hall[3] }, spawns = spawns, d = tonumber(parts[1]) or 1, gates = gates }
+end
 local PLANS: { [number]: Plan } = {}
 
 local function lcg(seed: number): () -> number
@@ -246,6 +285,11 @@ end
 local function plan_of(slot: number): Plan?
     local hit = PLANS[slot]
     if hit then return hit end
+    local zp = zoned_plan(core.storage_get(`zslot:{slot}`))
+    if zp ~= nil then
+        PLANS[slot] = zp
+        return zp
+    end
     local ds, ss = string.match(core.storage_get(`slot:{slot}`), "(%d+) (%d+)")
     if ds == nil then return nil end
     local d, rnd = tonumber(ds) or 1, lcg((tonumber(ss) or 1) + slot * 7919)
@@ -431,6 +475,7 @@ local function in_slot(slot: number): { number }
 end
 
 local function gate_cells(plan: Plan): { { number } }
+    if plan.gates ~= nil then return plan.gates end
     local g, out = plan.gate, {}
     for z = g[3] - 1, g[3] + 1 do
         for y = g[2], g[2] + 2 do table.insert(out, { g[1], y, z }) end
@@ -464,11 +509,10 @@ local function level_lit(plan: Plan): number
     return n
 end
 
-core.event.on("keys:level", function(ev)
-    core.storage_set(`slot:{ev.slot}`, `{ev.d} {ev.seed}`)
-    local plan = plan_of(ev.slot)
+local function begin(player: number, slot: number)
+    local plan = plan_of(slot)
     if plan == nil then return end
-    ev.cancel = true
+    local ev = { player = player, slot = slot }
     if #in_slot(ev.slot) == 0 then reset(ev.slot, plan) end
     local s = plan.start
     core.player_place(ev.player, s[1] + 0.5, s[2], s[3] + 0.5, 1, 0, 0)
@@ -479,6 +523,76 @@ core.event.on("keys:level", function(ev)
     if plan.d >= 7 and plan.d <= 8 then
         core.notice(ev.player, "Un braciere e' in fondo alla lava: serve la resistenza al fuoco.")
     end
+end
+
+-- A site's level: the one it had, or a fresh fortress of zones (else the
+-- pieces above, as before).
+type Laying = { player: number, slot: number, d: number, seed: number, start: { number }?, hall: { number }?,
+                braziers: { { number } }, gates: { { number } }, mobs: { { number } } }
+local laying: { [string]: Laying } = {}
+core.event.on("keys:level", function(ev)
+    ev.cancel = true
+    if core.storage_get(`slot:{ev.slot}`) ~= "" or core.storage_get(`zslot:{ev.slot}`) ~= "" then
+        begin(ev.player, ev.slot)
+        return
+    end
+    local tag = `site {ev.slot}`
+    if laying[tag] then return end
+    laying[tag] = { player = ev.player, slot = ev.slot, d = ev.d, seed = ev.seed, braziers = {}, gates = {}, mobs = {} }
+    local ox, oz = 8192 + (ev.slot % 16) * 2048 + 1024, (ev.slot // 16) * 2048 + 1024
+    core.event.emit("zones:lay", { tag = tag, world = "inferno", owner = "", x = ox, y = FLOOR - 1, z = oz,
+                                   seed = ev.seed, d = ev.d, count = 2 + ev.d })
+end)
+core.event.on("zones:block", function(ev)
+    local l = laying[ev.tag]
+    if l == nil then return end
+    if ev.name == "inferno_heart:brazier" then
+        table.insert(l.braziers, { ev.x, ev.y, ev.z })
+    elseif ev.name == "inferno_heart:gate" then
+        table.insert(l.gates, { ev.x, ev.y, ev.z })
+    end
+end)
+core.event.on("zones:mark", function(ev)
+    local l = laying[ev.tag]
+    if l == nil then return end
+    if ev.kind == "start" then
+        l.start = { ev.x, ev.y, ev.z }
+    elseif ev.kind == "exit" then
+        l.hall = { ev.x, ev.y - 1, ev.z }
+    elseif ev.kind == "mob" then
+        table.insert(l.mobs, { ev.x, ev.y, ev.z })
+    end
+end)
+core.event.on("zones:laid", function(ev)
+    local l = laying[ev.tag]
+    if l == nil then return end
+    laying[ev.tag] = nil
+    if ev.pieces == 0 then
+        core.storage_set(`slot:{l.slot}`, `{l.d} {l.seed}`)
+        begin(l.player, l.slot)
+        return
+    end
+    local st = l.start or { ev.x1 + 2, FLOOR, ev.z1 + 2 }
+    local hall = l.hall or { ev.x2 - 4, FLOOR - 1, ev.z2 - 4 }
+    local function text(list: { { number } }): string
+        local out = {}
+        for _, c in list do table.insert(out, `{c[1]} {c[2]} {c[3]}`) end
+        return table.concat(out, ";")
+    end
+    core.storage_set(`zslot:{l.slot}`, table.concat({ tostring(l.d), text({ st }), text({ hall }), text(l.braziers),
+                                                      text(l.gates), text(l.mobs) }, "|"))
+    -- The way out: a block of brick west of the start, its hole facing +x.
+    local ex, ey, ez = st[1] - 4, st[2], st[3]
+    for x = ex - 2, ex + 1 do
+        for z = ez - 2, ez + 2 do
+            for y = ey, ey + 3 do core.set_block(x, y, z, BRICKS) end
+        end
+    end
+    core.set_block(ex, ey, ez, 0)
+    core.set_block(ex, ey + 1, ez, 0)
+    core.log(`inferno_heart: slot {l.slot}'s fortress of zones, {ev.pieces} piece(s), {#l.braziers} brazier(s), `
+        .. `{#l.gates} gate cell(s), {#l.mobs} spawn(s)`)
+    begin(l.player, l.slot)
 end)
 
 level_used = function(ev: any)
@@ -527,7 +641,11 @@ core.event.on("core:tick", function(_)
             local x, y, z = core.player_pos(p)
             if x == nil then continue end
             for i, s in plan.spawns do
-                if not run.spawned[i] and x >= s[5] - 6 and math.abs(z - s[3]) < 16 then
+                -- A fortress of zones has no east: its spawns come out as
+                -- somebody comes within 16 (s[6]).
+                local near = if s[6] then (x - s[1]) ^ 2 + (z - s[3]) ^ 2 < 256
+                    else x >= s[5] - 6 and math.abs(z - s[3]) < 16
+                if not run.spawned[i] and near then
                     run.spawned[i] = true
                     core.spawn_mob(s[4], s[1] + 0.5, s[2], s[3] + 0.5)
                 end

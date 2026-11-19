@@ -312,9 +312,13 @@ local PALETTE: { [string]: { string } } = {
                   "pool_edge", "pool_lamp", "water", "slide", "ladder", "stair_tile", "concrete", "slab", "lamp",
                   "lamp_off", "puddle", "stair_concrete", "frame", "glow" },
     parkour = { "concrete", "brick", "steel", "hazard", "pad", "bounce", "crumble", "frame", "lamp" },
+    inferno = { "scoria", "ash_sand", "glowrock", "bricks", "obsidian", "lava", "basalt", "quartz_block",
+                "ember_lantern", "fungus_stem", "fungus_cap", "fungus_planks", "inferno_heart:brazier",
+                "inferno_heart:gate" },
 }
+-- A name with no ":" is the world's prefix's; one with it is whole.
 local PREFIX: { [string]: string } = { chambers = "chambers_core:", arpg = "arpg_core:", backrooms = "backrooms:",
-                                       parkour = "parkour:" }
+                                       parkour = "parkour:", inferno = "inferno:" }
 local MARKERS = { "doorway", "start", "exit", "mob", "loot", "key", "trigger" }
 -- What takes the place of the block clicked rather than going on its face.
 local INTO = { ["chambers_core:plate"] = true, ["chambers_core:vent"] = true, ["chambers_core:target"] = true,
@@ -323,7 +327,7 @@ local INTO = { ["chambers_core:plate"] = true, ["chambers_core:vent"] = true, ["
 local function choices(world: string): { string }
     local out = {}
     for _, n in PALETTE[world] or {} do
-        local name = (PREFIX[world] or "") .. n
+        local name = if string.find(n, ":", 1, true) then n else (PREFIX[world] or "") .. n
         if core.node_id(name) ~= 0 then
             table.insert(out, name)
         end

@@ -63,6 +63,9 @@ non chiede.
 - **Il parkour fatto nelle officine**: i suoi blocchi nell'officina, e il percorso di un sito
   survival nuovo fatto con le zone parkour approvate -- i suoi cuscinetti i posti dove una caduta
   riporta, l'`exit` la cima.
+- **L'Inferno fatto nelle officine**: i suoi blocchi nell'officina, e la fortezza di un sito
+  survival nuovo fatta con le zone inferno approvate -- i bracieri da accendere, il cancello, il
+  guardiano all'`exit`.
 - **Zone proposte**: `/zone propose` le chiede agli admin, che vengono avvisati, e `/page zones`
   elenca quelle in attesa con mostra, approva e rifiuta; `/zone show` posa una zona da sola per
   guardarla.
