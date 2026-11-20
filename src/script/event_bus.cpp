@@ -112,7 +112,17 @@ bool EventBus::emit(const std::string &event, script_field *fields, int count, b
     // because a mod disabled mid-dispatch is removed from the list under us.
     const std::vector<Handler> list = hit->second;
 
-    m_string_scratch.assign((size_t)count, std::string());
+    // This emit's own strings, apart from those of any emit it is running
+    // inside: see m_string_scratch.
+    if (m_string_scratch.size() <= m_depth) m_string_scratch.emplace_back();
+    std::vector<std::string> &scratch = m_string_scratch[m_depth];
+    scratch.assign((size_t)count, std::string());
+
+    struct Depth {
+        size_t &depth;
+        explicit Depth(size_t &d) : depth(d) { ++depth; }
+        ~Depth() { --depth; }
+    } nested(m_depth);
 
     // Names the running mod for the length of one handler, and puts back
     // whatever was named before -- handlers nest, because a handler may emit.
@@ -158,8 +168,8 @@ bool EventBus::emit(const std::string &event, script_field *fields, int count, b
         // dies at the next call into it, so it is copied before the next one.
         for (int i = 0; i < count; ++i) {
             if (fields[i].type != SCRIPT_V_STRING) continue;
-            m_string_scratch[(size_t)i] = fields[i].str ? fields[i].str : "";
-            fields[i].str = m_string_scratch[(size_t)i].c_str();
+            scratch[(size_t)i] = fields[i].str ? fields[i].str : "";
+            fields[i].str = scratch[(size_t)i].c_str();
         }
 
         if (schema.cancellable && result.cancelled) {

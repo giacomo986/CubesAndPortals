@@ -3,6 +3,7 @@
 #include "script/script.h"
 
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -118,7 +119,14 @@ private:
 
     // Storage for strings a handler wrote, since those point into the VM that
     // wrote them and stop being valid at the next call into it.
-    std::vector<std::string> m_string_scratch;
+    //
+    // One per depth of emit, because a handler may emit: one shared buffer was
+    // re-sized by the inner emit under the outer one, which then indexed past
+    // its end and handed its caller pointers into strings that were gone. A
+    // deque, so a deeper level added later does not move the ones whose
+    // c_str() a caller is still holding.
+    std::deque<std::vector<std::string>> m_string_scratch;
+    size_t                               m_depth = 0;
 
     // Keys a handler set that its event does not have, already reported.
     std::unordered_set<std::string> m_strays_told;

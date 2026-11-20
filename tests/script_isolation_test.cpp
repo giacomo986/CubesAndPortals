@@ -39,6 +39,7 @@ struct StubWorld {
     int  good_ticks  = 0;   // the control mod writes its tick count as a block x
     int  next_id     = 1;
     std::vector<std::string> registered;
+    ModHost *mods = nullptr;   // for the event hooks, which go through its bus
 };
 
 void h_set_block(void *ud, int x, int y, int z, int id)
@@ -53,6 +54,50 @@ void h_set_block(void *ud, int x, int y, int z, int id)
 }
 
 int h_get_block(void *ud, int x, int y, int z) { return 0; }
+
+// The three doors into the event bus, as the server fills them in
+// (src/server/main.cpp): what is defined and listened to is the running mod's.
+int h_event_define(void *ud, const char *event, const script_field *fields, int count,
+                   int cancellable, char *err, size_t err_size)
+{
+    StubWorld  *w = static_cast<StubWorld *>(ud);
+    EventSchema schema;
+    schema.name        = event ? event : "";
+    schema.cancellable = cancellable != 0;
+    schema.owner       = mod_host_current() ? mod_host_current()->name : "core";
+    for (int i = 0; i < count; ++i) schema.fields.push_back(EventField{fields[i].name, fields[i].type});
+    std::string e;
+    if (w->mods->events().define(schema, e)) return 1;
+    std::snprintf(err, err_size, "%s", e.c_str());
+    return 0;
+}
+
+int h_event_on(void *ud, const char *event, int priority, int handler_ref, char *err,
+               size_t err_size)
+{
+    StubWorld        *w     = static_cast<StubWorld *>(ud);
+    const std::string owner = mod_host_current() ? mod_host_current()->name : "core";
+    std::string       e;
+    if (w->mods->events().on(event ? event : "", priority, mod_host_current_vm(), handler_ref,
+                             owner, e))
+        return 1;
+    std::snprintf(err, err_size, "%s", e.c_str());
+    return 0;
+}
+
+int h_event_emit(void *ud, const char *event, script_field *fields, int count,
+                 int *out_cancelled, char *err, size_t err_size)
+{
+    StubWorld  *w         = static_cast<StubWorld *>(ud);
+    bool        cancelled = false;
+    std::string e;
+    if (!w->mods->events().emit(event ? event : "", fields, count, &cancelled, e)) {
+        std::snprintf(err, err_size, "%s", e.c_str());
+        return 0;
+    }
+    if (out_cancelled) *out_cancelled = cancelled ? 1 : 0;
+    return 1;
+}
 
 void h_set_portal(void *ud, int index, float x, float y, float z) {}
 
@@ -137,15 +182,19 @@ void test_isolation(const char *mods_dir)
     host.log           = h_log;
     host.register_node = h_register_node;
     host.node_id       = h_node_id;
+    host.event_define  = h_event_define;
+    host.event_on      = h_event_on;
+    host.event_emit    = h_event_emit;
     host.ud            = &world;
 
     ModHost mods;
+    world.mods = &mods;
     mods.set_host(host);
     const int running = mods.load_dir(mods_dir);
 
-    // dependent, good, hog, parts, runaway, timekeeper and yesno load; badcap,
-    // nomanifest, orphan and typo do not.
-    check(running == 7, "seven mods loaded, four refused");
+    // dependent, good, hog, nested, parts, runaway, timekeeper and yesno load;
+    // badcap, nomanifest, orphan and typo do not.
+    check(running == 8, "eight mods loaded, four refused");
 
     const Mod *good    = find_mod(mods, "good");
     const Mod *runaway = find_mod(mods, "runaway");
@@ -216,6 +265,25 @@ void test_isolation(const char *mods_dir)
     bool saw_good_block = false;
     for (const std::string &n : world.registered) saw_good_block |= (n == "good:block");
     check(saw_good_block, "the control mod's node reached the registry");
+
+    // A handler that emits, then writes a string field: what it wrote is what
+    // the emitter reads back. The inner event has one field and the outer two,
+    // so a buffer shared between them is indexed past its end here -- an abort
+    // under _GLIBCXX_ASSERTIONS, a read of freed memory without.
+    {
+        script_field fields[2] = {};
+        fields[0].name = "n";
+        fields[0].type = SCRIPT_V_NUMBER;
+        fields[0].num  = 1.0;
+        fields[1].name = "text";
+        fields[1].type = SCRIPT_V_STRING;
+        fields[1].str  = "before";
+        std::string err;
+        const bool  ok = mods.events().emit("nested:outer", fields, 2, nullptr, err);
+        check(ok && fields[1].str != nullptr &&
+                  std::strcmp(fields[1].str, "written after the inner emit") == 0,
+              "a string written after an inner emit reaches whoever emitted the outer one");
+    }
 
     check(mods.memory_used() > 0, "per-VM memory is measurable");
 
