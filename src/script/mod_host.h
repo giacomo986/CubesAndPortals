@@ -162,6 +162,22 @@ class ModHost {
 public:
     ModHost();
 
+    // Closes every VM still open. Without it a server that returned normally
+    // left each mod's whole Lua heap behind -- what LeakSanitizer reported on
+    // every game, tens of megabytes on the big ones -- because only the client
+    // ever called shutdown().
+    //
+    // NOT shutdown(): that tells set_vm_gone's callback about each VM, and the
+    // callback reaches into whatever owns this (the server's lua_ecs and
+    // mapgen stages), which a destructor running in member order may already
+    // have destroyed. Nobody is left to tell.
+    ~ModHost();
+
+    // The bus's callbacks hold `this`, and two hosts closing the same VMs is
+    // a double free: one place, never copied or moved.
+    ModHost(const ModHost &)            = delete;
+    ModHost &operator=(const ModHost &) = delete;
+
     // The bus every mod and the engine share. Owned here because reloading a
     // mod has to drop that VM's handlers, and because a handler that errors has
     // to cost its mod and nobody else.

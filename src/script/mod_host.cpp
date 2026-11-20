@@ -1109,6 +1109,12 @@ int ModHost::reload_changed()
     return reloaded;
 }
 
+ModHost::~ModHost()
+{
+    for (Mod &m : m_mods)
+        if (m.vm) script_destroy(m.vm);
+}
+
 void ModHost::shutdown()
 {
     for (Mod &m : m_mods) {
