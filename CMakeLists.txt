@@ -40,7 +40,9 @@ set(OPENGL_VERSION "3.3" CACHE STRING "" FORCE)
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
-add_subdirectory(third_party/raylib EXCLUDE_FROM_ALL)
+# SYSTEM: its headers are included from our code, and what our warnings say
+# about raylib.h is raylib's business.
+add_subdirectory(third_party/raylib EXCLUDE_FROM_ALL SYSTEM)
 # The device at 48 kHz rather than whatever the machine's default is: miniaudio
 # converts to the real one either way, and a recording of the mix
 # (--record-audio) then has a rate known without asking raylib, which has no
@@ -71,7 +73,7 @@ add_subdirectory(third_party/zstd/build/cmake EXCLUDE_FROM_ALL)
 # something a server may one day be handed, and an extension load is arbitrary
 # code execution from a file.
 add_library(cnp_sqlite STATIC third_party/sqlite/sqlite3.c)
-target_include_directories(cnp_sqlite PUBLIC third_party/sqlite)
+target_include_directories(cnp_sqlite SYSTEM PUBLIC third_party/sqlite)   # its header, its warnings
 target_compile_definitions(cnp_sqlite PRIVATE
     SQLITE_OMIT_LOAD_EXTENSION=1
     SQLITE_OMIT_DEPRECATED=1
@@ -122,7 +124,7 @@ target_compile_options(cnp_monocypher PRIVATE -w)   # not our code; not our warn
 # hierarchies, and the REST explorer DESIGN.md 6.1 asks for -- are in there, and
 # trimming before knowing which is a saving measured against a guess.
 add_library(cnp_flecs STATIC third_party/flecs/distr/flecs.c)
-target_include_directories(cnp_flecs PUBLIC third_party/flecs/distr)
+target_include_directories(cnp_flecs SYSTEM PUBLIC third_party/flecs/distr)   # its header, its warnings
 # flecs.h defines flecs_STATIC itself when nothing asks for a shared build.
 target_compile_options(cnp_flecs PRIVATE -w)   # not our code; not our warnings
 
@@ -162,10 +164,52 @@ add_subdirectory(third_party/JoltPhysics/Build EXCLUDE_FROM_ALL)
 # ---------------------------------------------------------------------------
 # our code
 # ---------------------------------------------------------------------------
+# Every warning that finds something and costs nothing to keep. Measured on the
+# whole tree before turning on (GCC 13): each one below reported nothing in our
+# code, or a handful that were fixed, so from here they only ever speak about a
+# line somebody just wrote.
+#
+# Left off on purpose, with what they said when tried:
+#   -Wconversion, -Wsign-conversion  ~220, nearly all an int block coordinate
+#                                    into a float, exact below 2^24
+#   -Wformat-truncation=2            ~50, a %f of a double that could in theory
+#                                    be 300 digits, into a buffer snprintf
+#                                    truncates safely anyway
+#   -Wold-style-cast, -Wuseless-cast ~7000, the house style is (T)x
+#   -Wfloat-equal, -Wdouble-promotion, -Wswitch-enum  style, not bugs
+#   -Wnull-dereference               false positives inside libstdc++'s own
+#                                    streams at -O2
+# Turning one on is a matter of fixing what it says, not of adding it here.
+#
+# GCC only: Clang (the Windows build, through zig) does not know these.
+set(CNP_GCC_WARNINGS
+    -Wduplicated-cond -Wduplicated-branches -Wlogical-op
+    -Wstrict-null-sentinel -Wctor-dtor-privacy -Wcomma-subscript
+    -Wtrampolines -Walloca -Wformat-signedness
+    -Wshift-overflow=2 -Wformat-overflow=2 -Wstringop-overflow=4 -Warray-bounds=2)
 add_library(cnp_warnings INTERFACE)
 target_compile_options(cnp_warnings INTERFACE
-    -Wall -Wextra -Wshadow -Wno-unused-parameter
+    -Wall -Wextra -Wpedantic -Wshadow -Wno-unused-parameter
+    # classes and overloads
+    -Wnon-virtual-dtor -Woverloaded-virtual -Wsuggest-override
+    -Wdeprecated-copy-dtor -Wmismatched-tags
+    # casts and pointers
+    -Wcast-align -Wcast-qual -Wzero-as-null-pointer-constant
+    # moves and loops that copy without meaning to
+    -Wpessimizing-move -Wredundant-move -Wrange-loop-construct
+    # printf-style formats, fall-throughs, the stack
+    -Wformat=2 -Wimplicit-fallthrough -Wvla
+    # declarations: a function nobody declared is one that should be static
+    -Wmissing-declarations -Wredundant-decls -Wundef -Wextra-semi -Wunused
+    -Wmisleading-indentation
+    "$<$<CXX_COMPILER_ID:GNU>:${CNP_GCC_WARNINGS}>"
     $<$<BOOL:${CNP_WERROR}>:-Werror>)
+
+# And in a Debug build the standard library checks itself: operator[] on a
+# vector, front() of an empty one, an iterator past the end -- an abort with
+# the line, where Release reads whatever is there. Free in Release, where it is
+# off.
+target_compile_definitions(cnp_warnings INTERFACE $<$<CONFIG:Debug>:_GLIBCXX_ASSERTIONS>)
 
 add_subdirectory(tools)
 add_subdirectory(src/core)

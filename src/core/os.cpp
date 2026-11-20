@@ -250,7 +250,7 @@ bool ChildProcess::start(const std::string &prog, const std::vector<std::string>
             ::dup2(fd, 2);
         }
         if (::chdir(dir.c_str()) != 0) ::_exit(1);
-        ::execv(prog.c_str(), (char *const *)argv.data());
+        ::execv(prog.c_str(), const_cast<char *const *>(argv.data()));
         ::_exit(127);
     }
     id = pid;

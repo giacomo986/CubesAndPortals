@@ -897,7 +897,7 @@ void emit_node_box(const NodeDef::Box &box, const NodeDef &def, float wx, float 
 // every other segment darker, which needs no picture of their own.
 // ponytail: drawn when the corner's chunk is, so a piece whose corner is off
 // screen pops at the edge of the view; cull by the footprint if that shows.
-void emit_piece(const NodeDef &def, float wx, float wy, float wz, uint8_t facing, uint8_t light,
+static void emit_piece(const NodeDef &def, float wx, float wy, float wz, uint8_t facing, uint8_t light,
                 std::vector<PartVertex> &out, uint8_t tint = kWhiteTint)
 {
     static std::map<std::array<int, 11>, std::vector<PieceTri>> made;

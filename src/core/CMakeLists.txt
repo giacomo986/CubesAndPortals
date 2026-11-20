@@ -76,7 +76,7 @@ target_include_directories(cnp_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 # cgltf is PRIVATE on purpose: media/gltf.h hands back this engine's own shapes
 # and nothing above it ever sees a cgltf type. DESIGN.md 8 puts the original engine's .b3d
 # models in M11, and a second reader has to be able to fill the same structs.
-target_include_directories(cnp_core PRIVATE ${CMAKE_SOURCE_DIR}/third_party/cgltf)
+target_include_directories(cnp_core SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/third_party/cgltf)   # its header, its warnings
 
 # cgltf's implementation is one translation unit's worth of C99 compiled as C++,
 # and it is not ours to hold to our warnings.

@@ -491,7 +491,7 @@ std::string offer_for(const std::string &fr)
 
 // A line from `fr` signed by `key`: links made with another key of its come
 // undone, before anything it says is read.
-void rekey(const std::string &fr, const std::string &key)
+static void rekey(const std::string &fr, const std::string &key)
 {
     for (Friend &f : g_friends)
         if (f.name == fr) f.key_hex = key;

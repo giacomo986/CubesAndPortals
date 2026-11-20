@@ -2549,7 +2549,6 @@ int host_chat(void *ud, int player, const char *text)
     return 1;
 }
 
-admin::Who admin_who(const net::Session &p, const std::string *room);   // below the rooms
 
 int host_command(void *ud, const char *name, const char *help, const char *perm)
 {
@@ -6936,7 +6935,7 @@ void bag_late_here(const uint8_t *identity)
 // server starts with: they start one after the other, as they always have, so
 // the first is up -- its store the others' core.shared_storage_* -- before the
 // second's mods load.
-bool starting_hot()
+static bool starting_hot()
 {
     return g_router.rooms.size() > 1 && g_room >= 0 && (size_t)g_room < kRoomSlots && g_hot.hot[g_room];
 }
@@ -10657,7 +10656,7 @@ int serve_room(int argc, char **argv)
 // after it on the command line says otherwise. A line is `key value` or
 // `key = value`, meaning --key value; a key alone or set to true is the bare
 // flag, false leaves it out; `[room NAME]` starts a room; # starts a comment.
-bool expand_config(const std::vector<std::string> &in, std::vector<std::string> &out,
+static bool expand_config(const std::vector<std::string> &in, std::vector<std::string> &out,
                    std::string &err)
 {
     const auto trim = [](std::string t) {
