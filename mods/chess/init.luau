@@ -1029,10 +1029,14 @@ if serving then
         plies: number,              -- moves made this game
         offered: number,            -- the move at which a draw was last offered
         duo: boolean,               -- two players have sat at this game
+        gone: number?,              -- `now` when one of the two got up and the other stayed
     }
     local boards: { [string]: Board } = {}
     local now = 0.0                                 -- seconds the server has run
     local menu_of: { [number]: string } = {}        -- the board a player's menu is about
+    -- Seconds a game of two waits for the one who got up (left the world,
+    -- walked away, went through a portal) before the one who stayed wins it.
+    local ABANDON = 60
     local promoting: { [number]: { any } } = {}     -- a pawn move waiting for its piece
 
     local function tell(player: number, text: string)
@@ -1556,7 +1560,11 @@ if serving then
     end
 
     -- The clocks, and whoever left the world or walked away from a table
-    -- gets up.
+    -- gets up. A game of two with one of them gone is held for them ABANDON
+    -- seconds -- somebody may sit in their place meanwhile -- and then goes
+    -- to the one who stayed (drawn if they could never mate), or, before the
+    -- first move, is theirs to play alone or with whoever comes. Nobody at
+    -- all: it waits.
     local idle = 0.0
     core.event.on("core:tick", function(ev)
         now += ev.dt
@@ -1587,6 +1595,24 @@ if serving then
                     end
                     everybody(state_line(key, bd))
                 end
+            end
+            local st = bd.st
+            local stays = if bd.white == nil then bd.black elseif bd.black == nil then bd.white else nil
+            if not (bd.duo and st.result == "" and stays) then
+                bd.gone = nil
+            elseif bd.gone == nil then
+                bd.gone = now
+                core.notice(stays :: number, `{who(if bd.white == nil then "w" else "b")} got up: `
+                    .. `the game is yours if nobody sits there within {ABANDON} seconds`)
+            elseif now - (bd.gone :: number) >= ABANDON then
+                bd.gone = nil
+                local c = if bd.white then "w" else "b"
+                if st.from == 0 then
+                    bd.duo = false   -- not a move made: nothing to win
+                else
+                    end_game(bd, if can_mate(st, c) then c else "=", "abandoned")
+                end
+                told(key, bd)
             end
         end
     end)
@@ -2033,6 +2059,7 @@ if drawing then
 
     local DRAWN = { stalemate = "stalemate", fifty = "fifty-move rule", material = "insufficient material",
                     repetition = "threefold repetition", agreed = "by agreement", time = "time out",
+                    abandoned = "game abandoned",
                     race = "both kings on the eighth rank", forty = "forty moves without a capture" }
     local WON = { hill = "King on the hill", checks = "Third check", race = "King on the eighth rank",
                   anti = "No moves left", atomic = "King blown up", horde = "Horde destroyed",
@@ -2047,6 +2074,7 @@ if drawing then
         if st.result == "w" or st.result == "b" then
             local loser = who(other(st.result))
             line = if st.why == "resign" then `{loser} resigns: {who(st.result)} wins`
+                elseif st.why == "abandoned" then `{loser} left the game: {who(st.result)} wins`
                 elseif st.why == "time" then `{loser} ran out of time: {who(st.result)} wins`
                 elseif WON[st.why] then `{WON[st.why]}: {who(st.result)} wins`
                 else `Checkmate: {who(st.result)} wins`
