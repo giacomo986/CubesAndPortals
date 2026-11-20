@@ -86,18 +86,22 @@ core.register_model("track_core:robot_arms", "robot_arms.gltf")   -- first perso
 -- which is how a cell draws a model authored about its own middle, so the kart
 -- you see straddles four cells around the block that is it.
 --
--- Its box is that ONE cell and not the mesh, which is a deliberate lie about
--- its nose and its tail: a box that leaves its cell is a box only the server
--- knows about -- a ray finds it and a body is stopped by it only in the cell
--- the block is in -- and a kart reversing into a parked one was put back by
--- the server as "inside a solid block" while its own client had driven it
--- clean through. One cell is what both ends agree on, and it is the middle of
--- the kart, which is what a player aims at.
+-- Its box is the kart's own footprint about that corner, 1.7 wide, as high
+-- as the bodywork and 2 long: a body is stopped by a box that reaches into the
+-- cell it is in from the ring of cells round it (physics/aabb.cpp), on the
+-- server and on every client alike, and a kart's driving finds every box near
+-- it -- so another kart bumps into a parked one rather than through its nose
+-- and tail. Two and not the mesh's 2.36, because one cell out is as far as
+-- that ring looks: the nose's last 0.3 would be a box a body in that cell
+-- never meets. What the crosshair finds is the one cell the block is in
+-- (node_selection_box): a ray only asks the cells it crosses, and the middle of
+-- the kart is what a player aims at.
 --
 -- dig_level 2: a bare hand cannot take the track's karts apart.
 local KART = core.register_node("track_core:kart", 40, 45, 55, true, 0, "upright", 2)
 core.node_model(KART, KART_MODEL)
-core.node_box(KART, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+core.node_box(KART, -0.85, 0.0, -1.0, 0.85, 0.75, 1.0)
+core.node_selection_box(KART, 0.0, 0.0, 0.0, 1.0, 0.8, 1.0)
 
 local GROUND = 20   -- the engine's plaza height: cells from here up are air
 local LO, HI = 20, 108   -- the road's middle line, on x and on z
@@ -1263,7 +1267,8 @@ local MOVES: { [number]: { { any } } } = {
 }
 
 -- Whether a square at road height y has anything in it: every column, the
--- road's cell and the two over it -- a parked kart is one cell.
+-- road's cell and the two over it -- a parked kart is one cell, whose box
+-- reaches a node round it.
 local function taken(sx: number, sz: number, y: number): boolean
     for x = sx * 8, sx * 8 + 7 do
         for z = sz * 8, sz * 8 + 7 do

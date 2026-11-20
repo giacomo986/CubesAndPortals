@@ -426,6 +426,23 @@ if serving then
     type Garage = { paint: { number }, part: { number } }
     local garage: { [string]: Garage } = {}   -- name -> { paint = { 3 }, part = { 5 } }
 
+    -- A garage's kart from its words: the three paints, then the five parts.
+    local function garage_from(kept: string): Garage
+        local w = string.split(kept, " ")
+        local g: Garage = { paint = {}, part = {} }
+        for i = 1, 3 do
+            g.paint[i] = math.clamp(tonumber(w[i]) or 0, 0, #DYES)
+        end
+        for i, part in PARTS do
+            g.part[i] = math.clamp(tonumber(w[3 + i]) or 0, 0, #part.variants)
+        end
+        return g
+    end
+
+    local function garage_words(g: Garage): string
+        return `{table.concat(g.paint, " ")} {table.concat(g.part, " ")}`
+    end
+
     local function kart_of(name: string): Garage
         local g = garage[name]
         if g == nil then
@@ -436,14 +453,7 @@ if serving then
                 kept = core.storage_get(`kart:{name}`)
                 if kept ~= "" then core.shared_storage_set(`kart:{name}`, kept) end
             end
-            local w = string.split(kept, " ")
-            g = { paint = {}, part = {} }
-            for i = 1, 3 do
-                g.paint[i] = math.clamp(tonumber(w[i]) or 0, 0, #DYES)
-            end
-            for i, part in PARTS do
-                g.part[i] = math.clamp(tonumber(w[3 + i]) or 0, 0, #part.variants)
-            end
+            g = garage_from(kept)
             garage[name] = g
         end
         return g
@@ -524,6 +534,94 @@ if serving then
         core.ui_show(panel, true, p)
     end
 
+    -- A parked kart as its last driver had it, and not as made: their
+    -- garage's words on its cell (meta "kart", kept with the world and thrown
+    -- away with the block when somebody gets in), and the cells in a list kept
+    -- in storage (some 280 fit in its 4096 bytes; a karting world parks a
+    -- handful), so that a player who comes in is told every one. The
+    -- player's machine dresses the cell's model (core.cell_look, "look" below).
+    -- Read when first wanted and not while the mod loads: the world's
+    -- storage is opened after its mods are, and read then it is empty.
+    local parked_cells: { [string]: boolean }? = nil   -- "x y z" -> true
+    local function parked(): { [string]: boolean }
+        if parked_cells == nil then
+            local cells = {}
+            for _, k in string.split(core.storage_get("parked"), ",") do
+                if k ~= "" then cells[k] = true end
+            end
+            parked_cells = cells
+            return cells
+        end
+        return parked_cells
+    end
+    local function keep_parked()
+        local keys = {}
+        for k in parked() do
+            table.insert(keys, k)
+        end
+        core.storage_set("parked", table.concat(keys, ","))
+    end
+    -- What a player's machine is told about a cell: "look x y z tint pieces...",
+    -- tint 0 and no pieces for a kart as made (or none).
+    local function look_line(key: string): string
+        local c = string.split(key, " ")
+        local kept = core.meta_get(tonumber(c[1]) :: number, tonumber(c[2]) :: number, tonumber(c[3]) :: number, "kart")
+        if kept == "" then
+            return `look {key} 0`
+        end
+        local tint, parts = kart_look(garage_from(kept))
+        local pieces = {}
+        for _, m in parts do
+            if m ~= 0 then table.insert(pieces, m) end
+        end
+        return `look {key} {tint} {table.concat(pieces, " ")}`
+    end
+    local function tell_all(text: string)
+        for _, p in core.players() do
+            tell(p, text)
+        end
+    end
+    -- Somebody's kart parked at a cell, or gone from it (name nil).
+    local function park_look(x: number, y: number, z: number, name: string?)
+        local key = `{x} {y} {z}`
+        local g = if name ~= nil then kart_of(name) else nil
+        local tint, parts = 0, {}
+        if g ~= nil then
+            tint, parts = kart_look(g)
+        end
+        local made = tint == 0
+        for _, m in parts do
+            made = made and m == 0
+        end
+        if g ~= nil and not made then
+            core.meta_set(x, y, z, "kart", garage_words(g))
+            parked()[key] = true
+        else
+            core.meta_set(x, y, z, "kart", "")
+            parked()[key] = nil
+        end
+        keep_parked()
+        tell_all(look_line(key))
+    end
+    -- Every parked kart's look, to a player who has just come in. A cell whose
+    -- kart has gone some other way (broken, built over) remembers nothing and
+    -- leaves the list.
+    local function tell_looks(p: number)
+        tell(p, "look reset")
+        local gone = false
+        local cells = parked()
+        for key in cells do
+            local c = string.split(key, " ")
+            if core.meta_get(tonumber(c[1]) :: number, tonumber(c[2]) :: number, tonumber(c[3]) :: number, "kart") == "" then
+                cells[key] = nil
+                gone = true
+            else
+                tell(p, look_line(key))
+            end
+        end
+        if gone then keep_parked() end
+    end
+
     -- A parked kart, by the facing of its cell (0..3): which way its nose
     -- points, and the corner of the cell its middle is drawn at -- a cell draws
     -- a model turned about the cell's own middle, and the kart is authored
@@ -540,6 +638,7 @@ if serving then
     local function mount(p: number, s: Racer, x: number, y: number, z: number)
         local f = core.get_facing(x, y, z) % 4
         core.set_block(x, y, z, 0)
+        park_look(x, y, z, nil)
         core.body_drive(p, KART.accel, KART.brake, KART.turn, KART.drag, KART.width, KART.length)
         core.body_model(p, KART_MODEL)
         core.player_place(p, x + CORNER[f][1], y, z + CORNER[f][2], NOSE[f][1], 0, NOSE[f][2])
@@ -558,7 +657,7 @@ if serving then
     -- so getting back in does not turn anybody round. False when nothing
     -- around it is clear, which is a kart that does not come back -- said out
     -- loud in the log rather than left.
-    local function park(x: number, y: number, z: number, lx: number, lz: number): boolean
+    local function park(x: number, y: number, z: number, lx: number, lz: number, name: string): boolean
         local n = math.sqrt(lx * lx + lz * lz)
         if n < 0.01 then
             lx, lz = 0, 1
@@ -588,6 +687,7 @@ if serving then
             if core.get_block(cx, cy, cz) == 0 and core.get_block(cx, cy + 1, cz) == 0 then
                 core.set_block(cx, cy, cz, KART_NODE)
                 core.set_facing(cx, cy, cz, facing)
+                park_look(cx, cy, cz, name)
                 return true
             end
         end
@@ -606,7 +706,7 @@ if serving then
         s.items, s.boost, s.star, s.spin, s.slow = {}, 0, 0, 0, 0
         tell(p, "items")
         tell(p, "fx clear")
-        if x ~= nil and not park(x, y, z, lx or 0, lz or 0) then
+        if x ~= nil and not park(x, y, z, lx or 0, lz or 0, s.name) then
             core.log(`track_game: nowhere to park {core.player_name(p)}'s kart`)
         end
         tell(p, "kart 0")
@@ -1644,7 +1744,7 @@ if serving then
         end
         local count = if what == "c" then #DYES else #PARTS[n :: number].variants
         list[n :: number] = (list[n :: number] + (if way == "+" then 1 else count)) % (count + 1)
-        core.shared_storage_set(`kart:{s.name}`, `{table.concat(g.paint, " ")} {table.concat(g.part, " ")}`)
+        core.shared_storage_set(`kart:{s.name}`, garage_words(g))
         dress_kart(p, s)
         show_garage(p, s)
     end)
@@ -1676,6 +1776,7 @@ if serving then
                                started = 0, name = name, held = 0, driving = false, off = 0, skip = 0,
                                items = {}, boost = 0, star = 0, spin = 0, slow = 0,
                                speeds = `{KART.walk} {KART.sprint} {KART.accel}` }
+                tell_looks(p)
 
                 -- Driven in from the other room, still in the kart and on a
                 -- lap (core.player_carried): the lap goes on here. Or in a kart
@@ -1871,7 +1972,7 @@ if serving then
         for p, s in players do
             if not present[p] then
                 if s.driving and not core.body_taken(p) then
-                    park(s.x, s.y, s.z, 0, 1)
+                    park(s.x, s.y, s.z, 0, 1, s.name)
                     core.log(string.format("track_game: %s gone, their kart parked at %.1f %.1f",
                                            s.name, s.x, s.z))
                 elseif s.driving then
@@ -1898,6 +1999,7 @@ if drawing then
     local count   = -1     -- the countdown's number, -1 when there is none
     local board: { { name: string, t: number } } = {}     -- { name, t } rows, fastest first
     local driving = false  -- in a kart, told by the server
+    local looks: { [string]: { number } } = {}   -- the parked karts dressed here, by "x y z"
     local picking = ""     -- the piece on trial while the track editor picks from afar
     -- And the grid of every piece drawn instead of the hotbar meanwhile: the
     -- pieces by their place in track_core's list, the one on trial, those
@@ -2022,6 +2124,21 @@ if drawing then
             for i = 1, 6 do
                 local m = tonumber(w[2 + i]) or 0
                 core.player_wear(1, i, m, if m ~= 0 then tint else 0)   -- this machine's own, as core.players() has it
+            end
+        elseif w[1] == "look" then
+            -- A parked kart as its last driver had it ("look x y z tint
+            -- pieces..."), or "look reset" before every one of them again.
+            if w[2] == "reset" then
+                for _, c in looks do
+                    core.cell_look(c[1], c[2], c[3], 0, "")
+                end
+                looks = {}
+            else
+                local x, y, z = tonumber(w[2]) or 0, tonumber(w[3]) or 0, tonumber(w[4]) or 0
+                local tint = tonumber(w[5]) or 0
+                local key = `{x} {y} {z}`
+                core.cell_look(x, y, z, tint, table.concat(w, " ", 6))
+                looks[key] = if tint ~= 0 or #w > 5 then { x, y, z } else nil
             end
         elseif w[1] == "items" then
             slots = {}

@@ -1400,6 +1400,21 @@ int l_ghost_clear(lua_State *L)
     return 0;
 }
 
+// core.cell_look(x: number, y: number, z: number, tint: number?, pieces: string?) -> boolean
+int l_cell_look(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int x = (int)luaL_checkinteger(L, 1);
+    const int y = (int)luaL_checkinteger(L, 2);
+    const int z = (int)luaL_checkinteger(L, 3);
+    const int tint = (int)luaL_optinteger(L, 4, 0);
+    const char *pieces = (const char *)luaL_optstring(L, 5, "");
+    const int result = (vm && vm->host.cell_look) ? vm->host.cell_look(vm->host.ud, x, y, z, tint, pieces) : (int)0;
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.night_sight(amount: number) -> ()
 int l_night_sight(lua_State *L)
 {
@@ -3918,6 +3933,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "ghost_cell");
     lua_pushcfunction(L, l_ghost_clear, "core.ghost_clear");
     lua_setfield(L, -2, "ghost_clear");
+    lua_pushcfunction(L, l_cell_look, "core.cell_look");
+    lua_setfield(L, -2, "cell_look");
     lua_pushcfunction(L, l_night_sight, "core.night_sight");
     lua_setfield(L, -2, "night_sight");
     lua_pushcfunction(L, l_overcast, "core.overcast");

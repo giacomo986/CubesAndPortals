@@ -4109,11 +4109,15 @@ bool ServerSessions::in_reach(Session &s, flecs::entity e, const ecs::Position &
     // player standing over a mob would otherwise be further from it than a
     // player standing beside it.
     // A creature by its kind's body (a dog is not a player's height).
+    // A person drawn as a block (core.body_block) by that block's box.
     const ecs::Brain    *brain  = e.try_get<ecs::Brain>();
     const float          height = brain ? brain->hit_height : e.has<ecs::Mob>() ? ecs::kMobHeight : kPlayerHeight;
+    const float          half   = brain ? brain->hit_half : e.has<ecs::Mob>() ? ecs::kMobHalfWidth : m_limits.half_width;
+    AABB box{Vec3{p->x - half, p->y, p->z - half}, Vec3{p->x + half, p->y + height, p->z + half}};
+    if (m_registry) ecs::disguised_box(*m_registry, e, p->x, p->y, p->z, box);
     const MovementState &at     = s.authority();
     const Vec3           eye{at.x, at.y + eye_of(s), at.z};
-    const Vec3           middle{p->x, p->y + height * 0.5f, p->z};
+    const Vec3           middle = (box.min + box.max) * 0.5f;
     const float          away = length(middle - eye);
     if (away > m_limits.place_reach) {
         char buf[96];
@@ -4136,9 +4140,6 @@ bool ServerSessions::in_reach(Session &s, flecs::entity e, const ecs::Position &
     // middle is hidden and whose head shows over a wall is refused.
     if (has_authority() && away > 1e-3f) {
         const Vec3  dir  = (middle - eye) * (1.0f / away);
-        const float half = brain ? brain->hit_half : e.has<ecs::Mob>() ? ecs::kMobHalfWidth : m_limits.half_width;
-        const AABB  box{Vec3{p->x - half, p->y, p->z - half},
-                       Vec3{p->x + half, p->y + height, p->z + half}};
 
         float into = away;   // where the ray enters the body; its middle if it never does
         ray_hits_box(box, eye, dir, away + 1.0f, into);

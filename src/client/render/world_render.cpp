@@ -1086,7 +1086,7 @@ void WorldRenderer::draw_parts(const NodeRegistry &reg, const Mat4 &projection,
                      m_open_at ? m_open_at((int)wx, (int)wy, (int)wz) : 0.0f,
                      // The world shader's rule, said once more here because a
                      // model is drawn by the model shader.
-                     cell_light(cell.light, false)});
+                     cell_light(cell.light, false), (int)wx, (int)wy, (int)wz});
                 ++m_parts_drawn;
                 continue;
             }
@@ -1120,7 +1120,7 @@ void WorldRenderer::draw_parts(const NodeRegistry &reg, const Mat4 &projection,
     // are not drawn where they are found.
     const auto draw_collected_models = [&]() {
         for (const ModelCell &mc : m_model_cells)
-            m_draw_model(mc.model, mc.place, mc.open, mc.light, projection, view);
+            m_draw_model(mc.model, mc.place, mc.open, mc.light, projection, view, mc.x, mc.y, mc.z);
     };
 
     const int solid = (int)m_part_vertices.size();

@@ -384,6 +384,14 @@ struct Posed {
 struct Disguised {
     uint16_t block = 0;
 };
+// Where a person drawn as `block` is struck, feet at x y z: the block's own
+// boxes (node_extent) in the cell the client draws it in, its bottom at the
+// feet -- not the person's 0.6 x 1.8 box, which a seeker would hit as empty
+// air over a hider. The same box on the server (a blow's reach and wall, an
+// arrow) and on the client (what the crosshair finds).
+AABB disguised_box(const NodeRegistry &reg, uint16_t block, float x, float y, float z);
+// A body's box if it is disguised, false otherwise.
+bool disguised_box(const NodeRegistry &reg, flecs::entity e, float x, float y, float z, AABB &out);
 
 // How big a person is (core.body_scale), when not 1: drawn that big by
 // everybody else. Its movement's MovementRules::scale is the same number.

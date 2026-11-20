@@ -320,6 +320,8 @@ typedef struct script_host {
     int (*held_set_id)(void *ud, int player, int id);
     int (*ghost_cell)(void *ud, int x, int y, int z, int colour);   // a block seen through where it would go
     void (*ghost_clear)(void *ud);
+    // A block's model dressed as core.ui_model's: painted and wearing pieces.
+    int (*cell_look)(void *ud, int x, int y, int z, int tint, const char *pieces);
     int (*node_foliage)(void *ud, int id, int on);   // a block that takes the season's colour
     void (*foliage)(void *ud, int r, int g, int b, double amount);
     void (*mapgen_core)(void *ud, int on);

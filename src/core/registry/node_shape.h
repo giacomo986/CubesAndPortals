@@ -114,4 +114,26 @@ inline NodeBox node_shape_box(const NodeDef &def, uint8_t facing, int i, int bx,
     return out;
 }
 
+// Everything a block is, unturned, in its own cell's coordinates: its boxes
+// together, or the whole cell for a block with none. What a body drawn as
+// that block stands in (core.body_block): a person disguised as a slab is
+// struck in the slab's half of the cell, and nowhere above it.
+inline NodeBox node_extent(const NodeDef &def)
+{
+    NodeBox out;
+    if (def.parts.empty()) return out;
+    for (int a = 0; a < 3; ++a) {
+        out.min[a] = 1.0f;
+        out.max[a] = 0.0f;
+    }
+    for (const NodeDef::Box &box : def.parts)
+        for (int a = 0; a < 3; ++a) {
+            out.min[a] = std::min(out.min[a], std::min(box.min[a], box.max[a]));
+            out.max[a] = std::max(out.max[a], std::max(box.min[a], box.max[a]));
+        }
+    for (int a = 0; a < 3; ++a)
+        if (out.max[a] <= out.min[a]) return NodeBox{};   // boxes of no size: the cell
+    return out;
+}
+
 } // namespace cnp

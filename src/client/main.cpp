@@ -1034,6 +1034,13 @@ struct Session {
     std::unordered_map<uint64_t, int> ghost;   // cell -> 0xRRGGBB
     std::vector<std::pair<int, std::vector<float>>> ghost_tris;
     bool ghost_dirty = false;
+    // core.cell_look: a block's model dressed in this cell (a parked kart as
+    // its last driver had it), as core.ui_model dresses one.
+    struct CellLook {
+        uint16_t              tint = 0;
+        std::vector<uint16_t> pieces;
+    };
+    std::unordered_map<Cell, CellLook, CellHash> cell_looks;
     float night_sight = 0.0f;   // core.night_sight: nothing drawn darker, 0..1
     float foliage[4] = {1.0f, 1.0f, 1.0f, 0.0f};   // core.foliage: the season's colour, how much
 
@@ -5259,6 +5266,24 @@ int host_ghost_cell(void *ud, int x, int y, int z, int colour)
     return 1;
 }
 
+int host_cell_look(void *ud, int x, int y, int z, int tint, const char *pieces)
+{
+    Session &w = static_cast<Scene *>(ud)->act();
+    if (tint < 0 || tint > 0x7FFF) return 0;
+    Session::CellLook look;
+    look.tint = (uint16_t)tint;
+    std::istringstream in(pieces ? pieces : "");
+    for (int id; look.pieces.size() < 10 && in >> id;)
+        if (id > 0 && id <= 0xFFFF) look.pieces.push_back((uint16_t)id);
+    if (look.tint == 0 && look.pieces.empty()) {
+        w.cell_looks.erase(Cell{x, y, z});
+        return 1;
+    }
+    if (w.cell_looks.size() >= 4096 && !w.cell_looks.count(Cell{x, y, z})) return 0;
+    w.cell_looks[Cell{x, y, z}] = std::move(look);
+    return 1;
+}
+
 void host_ghost_clear(void *ud)
 {
     Session &w = static_cast<Scene *>(ud)->act();
@@ -6567,6 +6592,9 @@ void advance_lids(Scene &s, double dt, const std::vector<Cell> &open_now)
 // A model this client has not got draws nothing, and the cell falls back to its
 // boxes -- the renderer's own rule. Never a cube: a cube is the one thing that
 // block is not.
+void draw_dressed(ModelStore &models, ModelStore::Entry &e, uint16_t tint, const std::vector<uint16_t> &pieces,
+                  const Mat4 &projection, const Mat4 &view, const Mat4 &place, float light);
+
 void wire_model_draw(Scene &s, int world)
 {
     // Asked every frame for every model cell in sight: a miss is also what puts
@@ -6575,9 +6603,18 @@ void wire_model_draw(Scene &s, int world)
         [&s, world](ModelId id) { return s.at(world).models.entry(id) != nullptr; });
     s.at(world).world_render.set_model_draw(
         [&s, world](ModelId id, const Mat4 &place, float open, float light,
-                    const Mat4 &projection, const Mat4 &view) {
+                    const Mat4 &projection, const Mat4 &view, int x, int y, int z) {
             ModelStore::Entry *e = s.at(world).models.entry(id);
             if (e == nullptr) return;
+
+            // Dressed by the world's code (core.cell_look): a parked kart as
+            // its last driver had it, painted and wearing their parts.
+            if (const auto look = s.at(world).cell_looks.find(Cell{x, y, z});
+                look != s.at(world).cell_looks.end() && e->model.skinned()) {
+                draw_dressed(s.at(world).models, *e, look->second.tint, look->second.pieces, projection,
+                             view, place, light);
+                return;
+            }
 
             // Two clips a block's model may have, by name, and nothing else:
             //   "open"  held at how far open the cell is -- a chest's lid, which
@@ -7460,7 +7497,7 @@ void draw_extras(ModelStore &models, const ModelStore::Entry &e, const std::vect
     if (neck >= 1 && neck <= kLiveryNeckCount) wear(kLiveryNecks[neck - 1]);
 }
 
-SkinnedModel held_block_model(const NodeDef &def, int tiles, Vec3 centre, float size);
+SkinnedModel held_block_model(const NodeDef &def, int tiles, Vec3 centre, float size, bool shaped = false);
 SkinnedModel held_piece_model(const NodeDef &def, int tiles, Vec3 centre, float size);
 
 // A stack on the ground, as a body. Its box is the one the server collects it
@@ -7594,7 +7631,7 @@ bool draw_drop(Scene &s, Session &w, const Body &b, const Mat4 &projection, cons
         // A track piece lying on the ground is the piece in miniature, as in the hand.
         const SkinnedModel made = def.piece.plan != 0 && !b.falling
                                       ? held_piece_model(def, tiles, Vec3{}, kBlock * 1.5f)
-                                      : held_block_model(def, tiles, Vec3{}, b.falling ? 1.0f : kBlock);
+                                      : held_block_model(def, tiles, Vec3{}, b.falling ? 1.0f : kBlock, b.falling);
         if (!cube.render.init() || !cube.render.upload(made, why))
             std::fprintf(stderr, "dropped block: %s\n", why.c_str());
         cube.built = key;
@@ -7711,6 +7748,7 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
         cube.falling    = true;
         cube.shown      = false;
         cube.hand_block = b.as_block;
+        cube.yaw        = 0.0f;   // as a block stands, and as it is struck (ecs::disguised_box)
         return draw_drop(s, w, cube, projection, view);
     }
     ModelStore::Entry *e = w.models.entry(b.model);
@@ -8264,8 +8302,8 @@ AABB creature_box(const ModelStore &models, uint16_t model, Vec3 feet, float sca
     return AABB{Vec3{feet.x - r, feet.y, feet.z - r}, Vec3{feet.x + r, feet.y + hi.y * scale, feet.z + r}};
 }
 
-uint64_t aimed_body(const net::ClientSession &conn, const ModelStore &models, Vec3 eye, Vec3 fwd,
-                    float reach, float &at)
+uint64_t aimed_body(const net::ClientSession &conn, const ModelStore &models, const NodeRegistry &reg, Vec3 eye,
+                    Vec3 fwd, float reach, float &at)
 {
     uint64_t best   = 0;
     float    best_t = reach;
@@ -8273,9 +8311,11 @@ uint64_t aimed_body(const net::ClientSession &conn, const ModelStore &models, Ve
     for (const net::RemotePlayer &p : conn.players()) {
         if (p.kind == net::EntityKind::Drop || p.held) continue;   // nor what is in your hands
 
-        const AABB box = (p.kind == net::EntityKind::Mob)
-                             ? creature_box(models, p.model, Vec3{p.x, p.y, p.z}, p.scale)
-                             : body_box(Vec3{p.x, p.y, p.z}, conn.welcome().movement.width * 0.5f);
+        // A person drawn as a block (116) is aimed at in that block, as the
+        // server strikes them (ecs::disguised_box): not in the air over it.
+        const AABB box = (p.kind == net::EntityKind::Mob) ? creature_box(models, p.model, Vec3{p.x, p.y, p.z}, p.scale)
+                         : p.as_block != kAir ? ecs::disguised_box(reg, p.as_block, p.x, p.y, p.z)
+                                              : body_box(Vec3{p.x, p.y, p.z}, conn.welcome().movement.width * 0.5f);
 
         float t = 0.0f;
         if (!ray_hits_box(box, eye, fwd, reach, t)) continue;
@@ -9284,7 +9324,7 @@ void set_view_distance(Scene &s, float d)
     if (s.conn) {
         // Not the body the camera sits in (a seat's machine): nothing within a node.
         float body = at;
-        if (aimed_body(*s.conn, w.models, eye + fwd, fwd, at - 1.0f, body) != 0) at = body + 1.0f;
+        if (aimed_body(*s.conn, w.models, w.registry, eye + fwd, fwd, at - 1.0f, body) != 0) at = body + 1.0f;
     }
     const Vec3 point = eye + fwd * at;
 
@@ -9977,33 +10017,44 @@ void animate_body(Session &w, uint64_t key, Body &b, Vec3 feet, uint16_t rider,
 
 // A block in the hand: a cube `size` across about `centre`, each face the
 // block's own tile of the atlas, bound to joint 0 so the hand's bone carries it.
-SkinnedModel held_block_model(const NodeDef &def, int tiles, Vec3 centre, float size)
+// `shaped`: its boxes (NodeDef::parts, unturned) in that cube instead, each
+// face the part of its tile the box covers -- a slab is half a cube, not a
+// cube (a falling block, a person drawn as a block).
+SkinnedModel held_block_model(const NodeDef &def, int tiles, Vec3 centre, float size, bool shaped)
 {
     SkinnedModel m;
-    const float  h   = size * 0.5f;
     const float  per = 1.0f / (float)std::max(tiles, 1);
     const float  pad = per * 0.02f;   // off the tile's edge, so its neighbour never bleeds in
     static const Vec3 normals[6] = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
-    for (int f = 0; f < 6; ++f) {
-        const Vec3 n = normals[f];
-        const Vec3 v = std::fabs(n.y) > 0.5f ? Vec3{0, 0, -n.y} : Vec3{0, 1, 0};   // the picture's up
-        const Vec3 u = cross(v, n);
-        const int  t = def.tex[f];
-        const float u0 = (float)(t % tiles) * per + pad, u1 = u0 + per - 2 * pad;
-        const float v0 = (float)(t / tiles) * per + pad, v1 = v0 + per - 2 * pad;
-        const float corner[4][4] = {{-1, -1, u0, v1}, {1, -1, u1, v1}, {1, 1, u1, v0}, {-1, 1, u0, v0}};
-        const uint32_t base = (uint32_t)m.vertices.size();
-        for (const auto &c : corner) {
-            const Vec3 p = centre + (n + u * c[0] + v * c[1]) * h;
-            SkinVertex sv{};
-            sv.pos[0] = p.x, sv.pos[1] = p.y, sv.pos[2] = p.z;
-            sv.normal[0] = n.x, sv.normal[1] = n.y, sv.normal[2] = n.z;
-            sv.uv[0] = c[2], sv.uv[1] = c[3];
-            sv.weights[0] = 1.0f;
-            m.vertices.push_back(sv);
+    static const std::vector<NodeDef::Box> whole(1);
+    const std::vector<NodeDef::Box> &boxes = shaped && !def.parts.empty() ? def.parts : whole;
+    for (const NodeDef::Box &box : boxes)
+        for (int f = 0; f < 6; ++f) {
+            const Vec3 n = normals[f];
+            const Vec3 v = std::fabs(n.y) > 0.5f ? Vec3{0, 0, -n.y} : Vec3{0, 1, 0};   // the picture's up
+            const Vec3 u = cross(v, n);
+            const int  t = def.tex[f];
+            const float u0 = (float)(t % tiles) * per + pad, u1 = u0 + per - 2 * pad;
+            const float v0 = (float)(t / tiles) * per + pad, v1 = v0 + per - 2 * pad;
+            const float corner[4][2] = {{-1, -1}, {1, -1}, {1, 1}, {-1, 1}};
+            const uint32_t base = (uint32_t)m.vertices.size();
+            for (const auto &c : corner) {
+                // The corner of the cube this corner of the face is, then the
+                // box's on that side; in the cell from -0.5 to 0.5.
+                const Vec3 d = n + u * c[0] + v * c[1];
+                const Vec3 q{(d.x > 0 ? box.max[0] : box.min[0]) - 0.5f, (d.y > 0 ? box.max[1] : box.min[1]) - 0.5f,
+                             (d.z > 0 ? box.max[2] : box.min[2]) - 0.5f};
+                const float a = dot(q, u) + 0.5f, b = dot(q, v) + 0.5f;   // across the tile, and up it
+                const Vec3  p = centre + q * size;
+                SkinVertex sv{};
+                sv.pos[0] = p.x, sv.pos[1] = p.y, sv.pos[2] = p.z;
+                sv.normal[0] = n.x, sv.normal[1] = n.y, sv.normal[2] = n.z;
+                sv.uv[0] = u0 + a * (u1 - u0), sv.uv[1] = v1 - b * (v1 - v0);
+                sv.weights[0] = 1.0f;
+                m.vertices.push_back(sv);
+            }
+            for (uint32_t k : {0u, 1u, 2u, 0u, 2u, 3u}) m.indices.push_back(base + k);
         }
-        for (uint32_t k : {0u, 1u, 2u, 0u, 2u, 3u}) m.indices.push_back(base + k);
-    }
     m.parts.push_back(ModelPart{0, (uint32_t)m.indices.size(), 0});
     m.materials.push_back(ModelMaterial{});
     m.joint_count = 1;
@@ -10856,6 +10907,29 @@ ModelStore &title_robot()
     return store;
 }
 
+// A model standing still, dressed: a vehicle's own pieces (vehicle_part) on
+// its bones in place of its parts, the rest on it as worn pieces, and painted
+// by the tint. A panel's (core.ui_model) and a cell's (core.cell_look).
+void draw_dressed(ModelStore &models, ModelStore::Entry &e, uint16_t tint, const std::vector<uint16_t> &pieces,
+                  const Mat4 &projection, const Mat4 &view, const Mat4 &place, float light)
+{
+    static std::vector<float> posed, bare;
+    Body still;
+    wheel_pose(e.model, still, posed);
+    bare = posed;
+    WornLit lit(light, 1.0f);
+    for (const uint16_t id : pieces) {
+        const ModelStore::Entry *piece = models.entry(id);
+        if (piece == nullptr) continue;
+        draw_worn(models, e.model, posed, piece->name, projection, view, place, tint);
+        const std::string part = vehicle_part(e.name, piece->name);
+        for (int j = 0; j < e.model.joint_count && !part.empty(); ++j)
+            if (bone_of_part(e.model.joint_names[(size_t)j], part))
+                std::fill(bare.begin() + (ptrdiff_t)j * 12, bare.begin() + (ptrdiff_t)j * 12 + 12, 0.0f);
+    }
+    e.renderer.draw(projection, view, place, bare, gfx_texture{0}, light, 1.0f, (uint32_t)tint << kTagIdBits);
+}
+
 // The models a panel turns in its boxes (ui::ElemKind::Model, core.ui_model):
 // each its own viewport over the panel, lit, slowly turning, dressed in its
 // pieces as a body is -- a vehicle's own (vehicle_part) on its bones in place
@@ -10894,21 +10968,7 @@ void draw_panel_models(ModelStore &models, const ui::Panel &p, const ui::PanelPl
         const Mat4 place = mat4_multiply(mat4_rotate_y((float)std::fmod(t * 0.5, 6.283185307)),
                                          mat4_translate(Vec3{-mid.x, -mid.y, -mid.z}));
 
-        static std::vector<float> posed, bare;
-        Body still;
-        wheel_pose(e->model, still, posed);
-        bare = posed;
-        for (const uint16_t id : pieces) {
-            const ModelStore::Entry *piece = models.entry(id);
-            if (piece == nullptr) continue;
-            draw_worn(models, e->model, posed, piece->name, projection, view, place, (uint16_t)tint);
-            const std::string part = vehicle_part(e->name, piece->name);
-            for (int j = 0; j < e->model.joint_count && !part.empty(); ++j)
-                if (bone_of_part(e->model.joint_names[(size_t)j], part))
-                    std::fill(bare.begin() + (ptrdiff_t)j * 12, bare.begin() + (ptrdiff_t)j * 12 + 12, 0.0f);
-        }
-        e->renderer.draw(projection, view, place, bare, gfx_texture{0}, 1.0f, 1.0f,
-                         (uint32_t)tint << kTagIdBits);
+        draw_dressed(models, *e, (uint16_t)tint, pieces, projection, view, place, 1.0f);
 
         gfx_scissor_off();
         gfx_viewport(0, 0, render_width(), sh);
@@ -18175,7 +18235,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
 
         float          aimed_at   = kReach;
         const uint64_t aimed_at_body =
-            aimed_body(*conn, s.act().models, player.eye(), player.forward(), kReach, aimed_at);
+            aimed_body(*conn, s.act().models, s.act().registry, player.eye(), player.forward(), kReach, aimed_at);
 
         // The panel this world's mods put up, as the server last described it.
         // Rebuilt only when a PanelShow actually arrived -- see
@@ -19075,6 +19135,24 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 fallback_seconds = now - fallback_started;
                 ++crossed_once;
                 chunks_before_arriving = 0;   // nothing had been streamed: that IS the cost
+
+                // A renderer for the world arrived in. A redirect through an
+                // opening has one from the window onto it; one with no
+                // opening (core.room_send) never had a window, and its first
+                // frame drew a renderer never built -- its water box read out
+                // of an empty buffer and the client aborted.
+                if (!conn_meshed[(size_t)fallback_conn]) {
+                    conn_meshed[(size_t)fallback_conn] =
+                        s.at(fallback_world).world_render.init(s.at(fallback_world).registry,
+                                                               world_media(fb))
+                            ? 1
+                            : 0;
+                    if (conn_meshed[(size_t)fallback_conn])
+                        wire_model_draw(s, fallback_world);
+                    else
+                        std::printf("could not build a renderer for world %d\n", fallback_world);
+                    conn_media_version[(size_t)fallback_conn] = fb->media_version();
+                }
 
                 carry_kart(s.act(), conn->welcome().models, s.at(fallback_world),
                            fb->welcome().models);
@@ -21911,6 +21989,7 @@ script_host make_client_host(Scene &scene)
     host.sky_eclipse     = host_sky_eclipse;
     host.night_sight     = host_night_sight;
     host.ghost_cell      = host_ghost_cell;
+    host.cell_look       = host_cell_look;
     host.ghost_clear     = host_ghost_clear;
     host.node_foliage    = host_node_foliage;
     host.foliage         = host_foliage;

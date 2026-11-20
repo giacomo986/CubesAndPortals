@@ -501,9 +501,11 @@ public:
     //
     // The first float is how far open the cell is (set_open_query), so a
     // chest's model can swing its lid the way a chest's boxes do; the second
-    // is how bright the cell is, 0.15..1, by the rule a box is lit by.
+    // is how bright the cell is, 0.15..1, by the rule a box is lit by. The
+    // three ints are the cell, for whatever a client dresses there
+    // (core.cell_look).
     using ModelDraw =
-        std::function<void(ModelId, const Mat4 &, float, float, const Mat4 &, const Mat4 &)>;
+        std::function<void(ModelId, const Mat4 &, float, float, const Mat4 &, const Mat4 &, int, int, int)>;
     void set_model_draw(ModelDraw d)
     {
         m_draw_model = std::move(d);
@@ -538,6 +540,7 @@ private:
         Mat4    place;
         float   open;
         float   light;
+        int     x, y, z;
     };
     std::vector<ModelCell> m_model_cells;
     int                     m_parts_drawn = 0;      // cells, not vertices

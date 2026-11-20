@@ -13,6 +13,7 @@
 #include "core/media/gltf.h"
 #include "core/physics/movement.h"
 #include "core/registry/node_registry.h"
+#include "core/registry/node_shape.h"
 #include "core/voxel/chunk.h"
 #include "core/voxel/raycast.h"
 
@@ -344,7 +345,9 @@ void step_arrows(flecs::world &w, const World &world, const NodeRegistry &reg,
         uint32_t hit_peer = 0;
         for (const Target &t : targets) {
             if (a.shooter != 0 && t.entity == a.shooter) continue;   // not the archer
-            const AABB box{Vec3{t.x - 0.3f, t.y, t.z - 0.3f}, Vec3{t.x + 0.3f, t.y + 1.8f, t.z + 0.3f}};
+            AABB box{Vec3{t.x - 0.3f, t.y, t.z - 0.3f}, Vec3{t.x + 0.3f, t.y + 1.8f, t.z + 0.3f}};
+            if (t.entity != 0)   // a hider: their block
+                disguised_box(reg, w.entity((flecs::entity_t)t.entity), t.x, t.y, t.z, box);
             float      at = 0.0f;
             if (ray_hits_box(box, from, dir, best, at) && at < best) {
                 best     = at;
@@ -1083,6 +1086,21 @@ bool size_mob_kind(MobKind &k, const std::string &model_file)
     k.hit_half   = std::clamp(std::max({std::fabs(m.min.x), std::fabs(m.max.x), std::fabs(m.min.z), std::fabs(m.max.z)}),
                               kMinHalf, 3.0f);
     return m.clip("death") >= 0;
+}
+
+AABB disguised_box(const NodeRegistry &reg, uint16_t block, float x, float y, float z)
+{
+    const NodeBox c = block < reg.size() ? node_extent(reg.get(block)) : NodeBox{};
+    return AABB{Vec3{x + c.min[0] - 0.5f, y + c.min[1], z + c.min[2] - 0.5f},
+                Vec3{x + c.max[0] - 0.5f, y + c.max[1], z + c.max[2] - 0.5f}};
+}
+
+bool disguised_box(const NodeRegistry &reg, flecs::entity e, float x, float y, float z, AABB &out)
+{
+    const Disguised *d = e.is_alive() ? e.try_get<Disguised>() : nullptr;
+    if (d == nullptr || d->block == 0) return false;
+    out = disguised_box(reg, d->block, x, y, z);
+    return true;
 }
 
 AABB mob_box(float x, float y, float z)

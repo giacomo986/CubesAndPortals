@@ -1560,9 +1560,11 @@ local api: { Fn } = {
             { name = "block", type = "int", default = 0, doc = "A block's id (core.node_id); 0, air, draws their model again." },
         },
         doc = "Draws ONE player's body as a block instead of their model, for everybody else: a "
-           .. "whole cube of that block's tiles, its bottom at their feet and turned as they "
-           .. "face (core.player_clip's dx, dz holds it square), aimed at as a cube of a node. "
-           .. "What a hider in a prop hunt is (mods/arena). Their box stays the engine's, so "
+           .. "cube of that block's tiles, or its boxes for a block made of boxes (a slab is half "
+           .. "a cube), its bottom at their feet and square with the grid whichever way they "
+           .. "face. They are aimed at and struck (a blow, an arrow) in that block and nowhere "
+           .. "else: not in the air over it. What a hider in a prop hunt is (mods/arena). The "
+           .. "box they walk in stays the engine's, so "
            .. "they walk and are stopped as ever, and what they hold and wear is not drawn. "
            .. "On a player's machine only their own id, which their own drawing of the body "
            .. "(core.view) wears. Protocol 116. Returns 1, or 0 for a player who is not here or "
@@ -1876,6 +1878,24 @@ local api: { Fn } = {
         host = "ghost_clear",
         args = {},
         doc = "Takes every ghost cell (core.ghost_cell) away. For a world's code on a player's machine.",
+    },
+    {
+        name = "cell_look",
+        host = "cell_look",
+        ret  = "flag",
+        args = {
+            { name = "x", type = "int" }, { name = "y", type = "int" }, { name = "z", type = "int" },
+            { name = "tint", type = "int", default = 0,
+              doc = "Its tint_1..3 colours and its pieces', five bits each, as core.player_wear's." },
+            { name = "pieces", type = "string", default = "",
+              doc = "Model ids, space apart, drawn on its bones as worn pieces; one named for it "
+                 .. "(\"<model>_<part>_<variant>\") takes the place of its bones of that part." },
+        },
+        doc = "Dresses the model the block in that cell is drawn as (core.node_model) the way "
+           .. "core.ui_model dresses one: painted by the tint and wearing the pieces. A parked "
+           .. "kart drawn as its last driver had it (track_game). Only drawn, and only while "
+           .. "the cell's block wears a model; tint 0 and no pieces take the look away. At most "
+           .. "4096 cells. Returns 1, or 0 when refused. For a world's code on a player's machine.",
     },
     {
         name = "night_sight",
