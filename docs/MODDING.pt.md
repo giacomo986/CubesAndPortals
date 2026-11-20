@@ -1725,10 +1725,11 @@ a pé e entra num kart estacionado: `games/track`.
   mundo que roda no cliente pode chamar `core.body_model(0, id)` para mudar como **aquela máquina**
   desenha o próprio corpo (0 o põe de volta): `games/track` põe ali o kart enquanto se dirige.
 * **Um corpo desenhado como bloco: `core.body_block(player, id)`.** Em vez de um modelo, um cubo
-  inteiro com as faces daquele bloco e o fundo nos pés dele -- ou o próprio modelo do bloco, um baú
-  --, visto e mirado como o cubo de um nó; 0 põe o modelo de volta. A caixa com que ele colide
-  continua sendo a do motor, e o que ele segura e veste não é desenhado. Ele gira para onde o jogador
-  olha: `core.player_clip(p, name, 0, 1)` o mantém no esquadro. Como para `core.body_model`, o código
+  com as faces daquele bloco, ou as caixas dele para um bloco feito de caixas (uma laje é meio cubo),
+  com o fundo nos pés dele -- ou o próprio modelo do bloco, um baú --, sempre no esquadro da grade.
+  Ele é mirado e atingido (um golpe, uma flecha) naquele bloco e em nenhum outro lugar, não no ar
+  acima dele; 0 põe o modelo de volta. A caixa com que ele anda continua sendo a do motor, e o que ele
+  segura e veste não é desenhado. Como para `core.body_model`, o código
   do cliente chama `core.body_block(0, id)` para o próprio desenho. O esconde-esconde de objetos de
   `mods/arena` é feito disso.
 * **Rodas que giram e viram.** Um modelo com esqueleto as anima sozinho, pelo nome do osso: `steer_*`

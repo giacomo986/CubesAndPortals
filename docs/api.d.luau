@@ -267,7 +267,7 @@ declare core: {
     --
     -- Everybody else sees it at once. What the PLAYER sees of their own body, when the camera is behind it (core.view), is still core.player_model's: the one model the welcome carries.
     body_model: (player: number, model: number?) -> boolean,
-    -- Draws ONE player's body as a block instead of their model, for everybody else: a whole cube of that block's tiles, its bottom at their feet and turned as they face (core.player_clip's dx, dz holds it square), aimed at as a cube of a node. What a hider in a prop hunt is (mods/arena). Their box stays the engine's, so they walk and are stopped as ever, and what they hold and wear is not drawn. On a player's machine only their own id, which their own drawing of the body (core.view) wears. Protocol 116. Returns 1, or 0 for a player who is not here or no such block.
+    -- Draws ONE player's body as a block instead of their model, for everybody else: a cube of that block's tiles, or its boxes for a block made of boxes (a slab is half a cube), its bottom at their feet and square with the grid whichever way they face. They are aimed at and struck (a blow, an arrow) in that block and nowhere else: not in the air over it. What a hider in a prop hunt is (mods/arena). The box they walk in stays the engine's, so they walk and are stopped as ever, and what they hold and wear is not drawn. On a player's machine only their own id, which their own drawing of the body (core.view) wears. Protocol 116. Returns 1, or 0 for a player who is not here or no such block.
     body_block: (player: number, block: number?) -> boolean,
     -- Where a player's camera sits in THIS world: at the eye, or behind and a little above it -- pulled in when a block is in the way -- with the player's own body drawn, wearing what core.player_model says. For a world's code on a player's machine; the key V switches it too, and a server has no camera to move.
     --
@@ -311,6 +311,8 @@ declare core: {
     ghost_cell: (x: number, y: number, z: number, colour: number) -> boolean,
     -- Takes every ghost cell (core.ghost_cell) away. For a world's code on a player's machine.
     ghost_clear: () -> (),
+    -- Dresses the model the block in that cell is drawn as (core.node_model) the way core.ui_model dresses one: painted by the tint and wearing the pieces. A parked kart drawn as its last driver had it (track_game). Only drawn, and only while the cell's block wears a model; tint 0 and no pieces take the look away. At most 4096 cells. Returns 1, or 0 when refused. For a world's code on a player's machine.
+    cell_look: (x: number, y: number, z: number, tint: number?, pieces: string?) -> boolean,
     -- How much this player sees in the dark: every block and creature drawn at least this bright, whatever the hour or the cave. A potion's, a lamp worn on the head. 0 takes it away. Only drawn: no creature or crop reads it. For a world's code on a player's machine.
     night_sight: (amount: number) -> (),
     -- Weather over this world's sky: the sky and its clouds go grey by this much, the sun's light on the ground weaker and its shadows fainter, the hours kept. 0 takes it away. Called as it changes, so a mod fades it in, on a player's machine. On a server it darkens the day the creatures and core.light read: at 1 the sun's share is 0.4 of the hour's, so the dark's creatures come out in a storm and do not burn.

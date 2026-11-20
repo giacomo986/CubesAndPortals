@@ -5,7 +5,7 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
-## Next alpha (not handed out yet)
+## 0.20.0-alpha.1 — 2026-11-20
 
 **Does not play with 0.19.0-alpha.1** (protocol 127): a room of a server of several, past the
 first, is gone into only with a ticket signed for that room, which an older client does not ask
@@ -28,6 +28,21 @@ for.
   an id used before (somebody who joined after another left). For mod writers: `core:hit`'s
   `target` is the id every other call takes, as `core.spawn_mob` gives it, and no longer a number
   `core.body_player` could not read.
+- **A prop hunt's hider is struck where their block is**: no more blows landing on the empty air
+  above it or missing its lower edge, and a hider disguised as a slab, a stair or a fence is drawn
+  that shape, not a whole cube.
+- **Stacks lying on the ground are saved with the world**: after a restart they are where they
+  were, worn, enchanted and coloured things included, with the rest of their five minutes to run.
+- **A parked kart keeps its last driver's paint and parts** for everybody, past a restart too, and
+  blocks at its real size, not one block's.
+- **Chess**: an opponent who leaves half way (quits, walks off, goes through a portal) is waited
+  for 60 seconds; then the game is the one who stayed, and the board is free for a new one.
+- **Sound loops go round without a hole**: rain, engines, ambiences no longer stop for a frame each
+  time round (over a fifth of a second on a slow machine).
+- **A player a world's code sends to another room** (`core.room_send`) no longer crashes the
+  client on arrival.
+- For mod writers: `core.cell_look(x, y, z, tint, pieces)`, on the client, dresses the model a
+  cell's block is drawn with, as `core.ui_model` does a preview.
 - **The documentation is in Portuguese too**: `docs/`, the worlds' guides, `contrib/` and this
   changelog, beside English and Italian; `docs/API.md`, generated, is in English.
 - **For testing**: the timed client can left click (`--click-at x,y,z[,s]`, `--left-at t[,s]`) and

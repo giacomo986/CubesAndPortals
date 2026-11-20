@@ -5,7 +5,7 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
-## Prossima alpha (non ancora consegnata)
+## 0.20.0-alpha.1 — 2026-11-20
 
 **Non gioca con la 0.19.0-alpha.1** (protocollo 127): in una stanza di un server di più stanze,
 dopo la prima, si entra solo con un biglietto firmato per quella stanza, che un client più vecchio
@@ -29,6 +29,21 @@ non chiede.
   chi si nascondeva aveva un id già usato (chi è entrato dopo che un altro era uscito). Per chi
   scrive mod: il `target` di `core:hit` è l'id che prendono tutte le altre chiamate, come lo dà
   `core.spawn_mob`, e non più un numero che `core.body_player` non sapeva leggere.
+- **Chi si nasconde nel prop hunt è colpito dove è il suo blocco**: niente più colpi che vanno a
+  segno nell'aria vuota sopra o che mancano il suo bordo basso, e chi è travestito da lastra, scala
+  o recinto è disegnato con quella forma, non come un cubo intero.
+- **Gli oggetti a terra si salvano con il mondo**: dopo un riavvio sono dove erano, anche quelli
+  consumati, incantati e colorati, con il resto dei loro cinque minuti ancora da passare.
+- **Un kart parcheggiato tiene la vernice e i pezzi del suo ultimo pilota** per tutti, anche dopo un
+  riavvio, e ingombra quanto è grande, non un blocco solo.
+- **Scacchi**: un avversario che se ne va a metà (esce, si allontana, passa da un portale) è
+  aspettato 60 secondi; poi la partita è di chi è rimasto, e la scacchiera è libera per un'altra.
+- **I suoni in loop girano senza buchi**: pioggia, motori, ambienti non si fermano più per un frame
+  a ogni giro (più di un quinto di secondo su una macchina lenta).
+- **Un giocatore che il codice di un mondo manda in un'altra stanza** (`core.room_send`) non fa più
+  andare in crash il client all'arrivo.
+- Per chi scrive mod: `core.cell_look(x, y, z, tinta, pezzi)`, sul client, veste il modello con cui
+  è disegnato il blocco di una cella, come `core.ui_model` fa con un'anteprima.
 - **La documentazione è anche in portoghese**: `docs/`, le guide dei mondi, `contrib/` e questo
   changelog, accanto a inglese e italiano; `docs/API.md`, generato, è in inglese.
 - **Per i test**: il client temporizzato sa fare clic sinistro (`--click-at x,y,z[,s]`,

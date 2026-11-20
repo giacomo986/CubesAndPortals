@@ -21,9 +21,9 @@ what is built, and three or four structural fixes that each close many entries.
 
 ## Suggested order
 
-1. The next package needs a new version first: `kEngineVersion` says
-   0.19.0-alpha.1 (protocol 126, da93cf5, never tagged), and the branch speaks
-   127 since then, so the next one is 0.20.0-alpha.1. The last tag is
+1. The next package: `kEngineVersion` raised to 0.20.0-alpha.1 on 2026-11-20
+   (0.19.0-alpha.1 was never tagged; the branch speaks protocol 127) and the
+   changelogs dated; the tag waits for Giacomo's word. The last tag is
    v0.18.0-alpha.1.
 2. The test rig (section below): done 2026-11-20 for the five left-click cases;
    the thirty "not heard" entries are still to go through one by one.
@@ -135,6 +135,13 @@ engines, the Inferno's ambience, the chess blast, creatures' attack and shoot.
 
 Missing: the assault's own sounds (it uses the front's), the yafps base, the
 poolrooms, the balloon's burner.
+
+Measured 2026-11-20 (every .ogg/.wav decoded): hard clipping, to be judged by
+ear and maybe made quieter -- assets/sounds/portal.ogg (159 samples at full
+scale), backrooms' splash.ogg (148) and smiler_hurt.ogg (102); a dozen others
+touch full scale a few samples (breaks, places, chest, hurt, skeleton hurt).
+These are recorded files, not made by a script. The bees' sting peaks at
+-0.2 dBFS in the mix.
 
 ## From a player's comment (TODO comments from youtube.md)
 
@@ -351,13 +358,12 @@ Seen by players first:
 - OPEN-2: a crossing may wedge the player in the exit block. Never reproduced;
   untried: an exit more than three higher, an arrival inside another body, a
   crossing during the previous one's camera warp.
-- Stacks on the ground are not saved.
-- Parked karts are drawn as made, not as their last driver's; one node solid.
+- After core.room_send's redirect (a client sent from room a to b, Xephyr at
+  6 fps), 18 s after arriving the ground to one side still had black patches
+  and holes the sky showed through: the black-after-a-teleport below, or
+  longer than its 4 s. Not looked into.
 - Cards: a seat behind a wall leaves the body where it stood and the fan at the
   seat; the fists hide the fan's bottom edge.
-- Chess: a game of two left half way waits for ever.
-- Prop hunt: a hider is hit by the 0.6 x 1.8 body box, not by the cube; a block
-  with boxes is drawn as a cube.
 - Front: a craft of mass 2500 barely moves on the ground (800 is fine).
 - Windows: a crashed client kills its server unsaved.
 
@@ -370,8 +376,9 @@ Engine:
 - A moving mouth onto another world is not carried between messages; one moving
   opening is a Portals message a tick to everybody.
 - OPEN-38: the temporary file of a world with no file only grows.
-- A sound loop restarts with a seam of a frame (a Music stream would not); it is
-  not heard through a portal; a dead mod's loops go on.
+- A sound loop is not heard through a portal; a dead mod's loops go on. (The
+  hole of a frame each time round: fixed 2026-11-20, loops are Music streams;
+  a 0.25 s hum recorded at 9 fps had 25 holes in 8 s, now none in 14 s.)
 - Coloured light: columns saved before it have none until relit; stained glass
   does not filter; sky light is not tinted; cost not measured on the real GPU.
 - A tumbling box asleep is woken only by a block changing within 3; one resting
@@ -709,8 +716,9 @@ the first room takes that too), with or without --require-ticket; joined
 straight it is only looked into. The client now asks a ticket for a room of
 its own server. Seen: the real client (Xephyr, --mouths 0) crossed a into b on
 b's ticket and was given one back; the probe's new --room b refused, --room a
-let in; a ticket signed for "a" refused at "b" (protocol_test). Not seen:
-core.room_send's redirect followed by a client (the probe follows none).
+let in; a ticket signed for "a" refused at "b" (protocol_test). core.room_send's redirect followed by a real client: seen 2026-11-20 (a rig
+mod in room a sending the player to b 5 s in; b's mod saw them at its spawn).
+It aborted on arrival -- no window had built that world's renderer -- fixed.
 
 Rooms starting while others run: fixed 2026-11-19. A room started from the
 rooms file held the rooms' lock for its whole start; an inferno room stopped

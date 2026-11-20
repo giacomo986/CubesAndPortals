@@ -5,7 +5,7 @@
 Uma entrada para cada alfa distribuída, a mais nova no topo. Como elas são numeradas e como se faz
 uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
 
-## Próxima alfa (ainda não distribuída)
+## 0.20.0-alpha.1 — 2026-11-20
 
 **Não joga com a 0.19.0-alpha.1** (protocolo 127): numa sala de um servidor com várias, depois da
 primeira, só se entra com um tíquete assinado para aquela sala, que um cliente mais antigo não
@@ -29,6 +29,22 @@ pede.
   se escondia tinha um id já usado (alguém que entrou depois que outro saiu). Para quem escreve
   mods: o `target` de `core:hit` é o id que todas as outras chamadas recebem, como
   `core.spawn_mob` o dá, e não mais um número que `core.body_player` não sabia ler.
+- **Quem se esconde no prop hunt é atingido onde está o seu bloco**: acabaram os golpes que acertam o
+  ar vazio acima dele ou erram a sua borda de baixo, e quem está disfarçado de laje, escada ou cerca
+  é desenhado com essa forma, não como um cubo inteiro.
+- **As pilhas de itens no chão são salvas com o mundo**: depois de reiniciar elas estão onde
+  estavam, inclusive as gastas, encantadas e coloridas, com o resto dos seus cinco minutos pela
+  frente.
+- **Um kart estacionado mantém a pintura e as peças do seu último piloto** para todos, também depois
+  de reiniciar, e ocupa o seu tamanho real, não o de um bloco só.
+- **Xadrez**: um adversário que sai no meio (fecha o jogo, se afasta, passa por um portal) é esperado
+  por 60 segundos; depois a partida é de quem ficou, e o tabuleiro fica livre para outra.
+- **Os sons em loop giram sem buracos**: chuva, motores e ambientes não param mais por um frame a
+  cada volta (mais de um quinto de segundo numa máquina lenta).
+- **Um jogador que o código de um mundo manda para outra sala** (`core.room_send`) não faz mais o
+  cliente travar ao chegar.
+- Para quem escreve mods: `core.cell_look(x, y, z, tint, pieces)`, no cliente, veste o modelo com
+  que o bloco de uma célula é desenhado, como `core.ui_model` faz com uma prévia.
 - **A documentação também está em português**: `docs/`, os guias dos mundos, `contrib/` e este
   changelog, ao lado do inglês e do italiano; `docs/API.md`, gerado, está em inglês.
 - **Para testes**: o cliente cronometrado sabe dar clique esquerdo (`--click-at x,y,z[,s]`,
