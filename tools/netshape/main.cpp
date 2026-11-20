@@ -30,22 +30,81 @@
 //   cnp_netshape --listen 25801 --to 127.0.0.1:25491
 //                [--delay 60] [--jitter 20] [--loss 2] [--dup 0] [--seed 1]
 
-#include <arpa/inet.h>
 #include <cerrno>
 #include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <netinet/in.h>
-#include <poll.h>
 #include <string>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #include <algorithm>
 #include <chrono>
 #include <vector>
+
+// The sockets, on both systems. Winsock has every call this needs under nearly
+// the same name; what differs is a socket's type, poll's name, the length
+// types, and where the last error is kept. Those four, and nothing else, are
+// what this block is.
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#ifndef SIO_UDP_CONNRESET   // in mstcpip.h on MSVC, nowhere in some MinGW headers
+#define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
+#endif
+
+using sock_t  = SOCKET;
+using poll_t  = WSAPOLLFD;
+using io_len  = int;
+inline constexpr sock_t kNoSocket = INVALID_SOCKET;
+
+static int net_poll(poll_t *fds, size_t n, int timeout_ms) { return ::WSAPoll(fds, (ULONG)n, timeout_ms); }
+static bool net_interrupted() { return false; }   // WSAPoll is not interrupted by signals
+
+static const char *net_error()
+{
+    static char text[32];
+    std::snprintf(text, sizeof(text), "winsock error %d", ::WSAGetLastError());
+    return text;
+}
+#else
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <poll.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+using sock_t  = int;
+using poll_t  = pollfd;
+using io_len  = size_t;
+inline constexpr sock_t kNoSocket = -1;
+
+static int net_poll(poll_t *fds, size_t n, int timeout_ms) { return ::poll(fds, (nfds_t)n, timeout_ms); }
+static bool net_interrupted() { return errno == EINTR; }
+static const char *net_error() { return std::strerror(errno); }
+#endif
+
+// A UDP socket, or kNoSocket.
+//
+// On Windows a datagram sent to a port nobody listens on comes back as an ICMP
+// "port unreachable", and Winsock reports THAT as a failure of the next
+// recvfrom on the socket that sent it -- WSAECONNRESET, on a protocol with no
+// connection. A server restarting behind this relay would make every client
+// socket fail once per datagram. Turned off, so UDP here means what it means on
+// Linux.
+static sock_t udp_socket()
+{
+    const sock_t fd = ::socket(AF_INET, SOCK_DGRAM, 0);
+#ifdef _WIN32
+    if (fd != kNoSocket) {
+        BOOL  report = FALSE;
+        DWORD unused = 0;
+        ::WSAIoctl(fd, SIO_UDP_CONNRESET, &report, sizeof(report), nullptr, 0, &unused, nullptr,
+                   nullptr);
+    }
+#endif
+    return fd;
+}
 
 namespace {
 
@@ -70,7 +129,7 @@ struct Rng {
 struct Datagram {
     double               due  = 0.0;
     bool                 to_client = false;   // direction, for the counters
-    int                  fd   = -1;           // socket to send it on
+    sock_t               fd   = kNoSocket;    // socket to send it on
     sockaddr_in          to{};
     std::vector<uint8_t> bytes;
     uint64_t             arrived = 0;   // order it came in, to measure reordering
@@ -82,7 +141,7 @@ struct Datagram {
 // relay in the way.
 struct Client {
     sockaddr_in addr{};
-    int         fd        = -1;
+    sock_t      fd        = kNoSocket;
     double      last_seen = 0.0;
 };
 
@@ -174,9 +233,17 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    const int listen_fd = ::socket(AF_INET, SOCK_DGRAM, 0);
-    if (listen_fd < 0) {
-        std::printf("netshape: no socket (%s)\n", std::strerror(errno));
+#ifdef _WIN32
+    WSADATA wsa;
+    if (::WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+        std::printf("netshape: winsock would not start\n");
+        return 1;
+    }
+#endif
+
+    const sock_t listen_fd = udp_socket();
+    if (listen_fd == kNoSocket) {
+        std::printf("netshape: no socket (%s)\n", net_error());
         return 1;
     }
 
@@ -185,7 +252,7 @@ int main(int argc, char **argv)
     bind_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     bind_addr.sin_port        = htons(listen_port);
     if (::bind(listen_fd, (sockaddr *)&bind_addr, sizeof(bind_addr)) != 0) {
-        std::printf("netshape: cannot bind UDP %u (%s)\n", listen_port, std::strerror(errno));
+        std::printf("netshape: cannot bind UDP %u (%s)\n", listen_port, net_error());
         return 1;
     }
 
@@ -213,7 +280,7 @@ int main(int argc, char **argv)
 
     std::vector<uint8_t> buf(65536);
 
-    auto schedule = [&](Counters &c, bool to_client, int fd, const sockaddr_in &to,
+    auto schedule = [&](Counters &c, bool to_client, sock_t fd, const sockaddr_in &to,
                         const uint8_t *data, size_t size) {
         ++c.in;
         if (loss_pct > 0.0 && rng.unit() * 100.0 < loss_pct) {
@@ -260,21 +327,21 @@ int main(int argc, char **argv)
             if (timeout_ms > 50) timeout_ms = 50;
         }
 
-        std::vector<pollfd> fds;
-        fds.push_back(pollfd{listen_fd, POLLIN, 0});
-        for (const Client &c : clients) fds.push_back(pollfd{c.fd, POLLIN, 0});
+        std::vector<poll_t> fds;
+        fds.push_back(poll_t{listen_fd, POLLIN, 0});
+        for (const Client &c : clients) fds.push_back(poll_t{c.fd, POLLIN, 0});
 
-        const int ready = ::poll(fds.data(), (nfds_t)fds.size(), timeout_ms);
-        if (ready < 0 && errno != EINTR) {
-            std::printf("netshape: poll failed (%s)\n", std::strerror(errno));
+        const int ready = net_poll(fds.data(), fds.size(), timeout_ms);
+        if (ready < 0 && !net_interrupted()) {
+            std::printf("netshape: poll failed (%s)\n", net_error());
             break;
         }
 
         if (ready > 0 && (fds[0].revents & POLLIN)) {
             sockaddr_in from{};
             socklen_t   from_len = sizeof(from);
-            const ssize_t n = ::recvfrom(listen_fd, buf.data(), buf.size(), 0,
-                                         (sockaddr *)&from, &from_len);
+            const long n = (long)::recvfrom(listen_fd, (char *)buf.data(), (io_len)buf.size(), 0,
+                                            (sockaddr *)&from, &from_len);
             if (n > 0) {
                 // Which client this is, or a new one. Matched on address and
                 // port together: two clients behind one address are two peers
@@ -290,14 +357,14 @@ int main(int argc, char **argv)
                 if (client == nullptr) {
                     Client c;
                     c.addr = from;
-                    c.fd   = ::socket(AF_INET, SOCK_DGRAM, 0);
-                    if (c.fd >= 0) {
+                    c.fd   = udp_socket();
+                    if (c.fd != kNoSocket) {
                         clients.push_back(c);
                         client = &clients.back();
                         char text[INET_ADDRSTRLEN] = {0};
                         ::inet_ntop(AF_INET, &from.sin_addr, text, sizeof(text));
-                        std::printf("        a client from %s:%u, socket %d\n", text,
-                                    (unsigned)ntohs(from.sin_port), c.fd);
+                        std::printf("        a client from %s:%u, socket %llu\n", text,
+                                    (unsigned)ntohs(from.sin_port), (unsigned long long)c.fd);
                         std::fflush(stdout);
                     }
                 }
@@ -314,8 +381,8 @@ int main(int argc, char **argv)
             if (i + 1 >= fds.size() || !(fds[i + 1].revents & POLLIN)) continue;
             sockaddr_in from{};
             socklen_t   from_len = sizeof(from);
-            const ssize_t n = ::recvfrom(clients[i].fd, buf.data(), buf.size(), 0,
-                                         (sockaddr *)&from, &from_len);
+            const long n = (long)::recvfrom(clients[i].fd, (char *)buf.data(), (io_len)buf.size(),
+                                            0, (sockaddr *)&from, &from_len);
             if (n <= 0) continue;
             down.bytes += (uint64_t)n;
             schedule(down, true, listen_fd, clients[i].addr, buf.data(), (size_t)n);
@@ -328,8 +395,8 @@ int main(int argc, char **argv)
         size_t       sent = 0;
         while (sent < queue.size() && queue[sent].due <= t) {
             Datagram &d = queue[sent];
-            ::sendto(d.fd, d.bytes.data(), d.bytes.size(), 0, (const sockaddr *)&d.to,
-                     sizeof(d.to));
+            ::sendto(d.fd, (const char *)d.bytes.data(), (io_len)d.bytes.size(), 0,
+                     (const sockaddr *)&d.to, sizeof(d.to));
 
             Counters &c = d.to_client ? down : up;
             ++c.forwarded;

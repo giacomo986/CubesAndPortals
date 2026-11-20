@@ -43,6 +43,9 @@ target_compile_definitions(cnp_bake_textures PRIVATE CNP_SOURCE_ROOT="${CMAKE_SO
 # supposed to be underneath.
 add_executable(cnp_netshape netshape/main.cpp)
 target_link_libraries(cnp_netshape PRIVATE cnp_warnings)
+if(WIN32)
+    target_link_libraries(cnp_netshape PRIVATE ws2_32)   # Winsock
+endif()
 
 # The other half of "two servers on different machines" (DESIGN.md 8): two wall
 # clocks that do not agree. An LD_PRELOAD shim rather than a container or a VM,
