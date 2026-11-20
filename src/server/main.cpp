@@ -127,6 +127,7 @@ struct ServerState {
     // order they did: a creature's Brain names one by its place here.
     std::vector<cnp::ecs::MobKind> mob_kinds;
     size_t                         pets_kept = 0;   // "pet:N" keys the store holds (keep_pets)
+    size_t                         drops_kept = 0;  // and "drop:N", the stacks on the ground
 
     // What this world's mods say turns some things into another thing.
     RecipeSet    recipes;
@@ -8205,6 +8206,15 @@ int serve_room(int argc, char **argv)
             s.mod_store.set("core", "pet:" + std::to_string(i), lines[i], why);
         for (size_t k = i; k < s.pets_kept; ++k) s.mod_store.set("core", "pet:" + std::to_string(k), "", why);
         s.pets_kept = i;
+
+        // And the stacks on the ground, the same way. Capped, so one spilled
+        // warehouse cannot take the engine's whole share of the store.
+        const std::vector<std::string> drops = cnp::ecs::drops_to_lines(s.sessions->ecs(), s.items, s.now);
+        size_t                         d     = 0;
+        for (; d < drops.size() && d < 8192; ++d)
+            if (!s.mod_store.set("core", "drop:" + std::to_string(d), drops[d], why)) break;
+        for (size_t k = d; k < s.drops_kept; ++k) s.mod_store.set("core", "drop:" + std::to_string(k), "", why);
+        s.drops_kept = d;
     };
 
     const auto save_world = [&](bool loud) {
@@ -8565,6 +8575,16 @@ int serve_room(int argc, char **argv)
             const int back = cnp::ecs::pets_from_lines(sessions.ecs(), s.mob_kinds, lines,
                                                        0.0);
             if (back > 0 && !quiet) std::printf("        %d tamed pet(s) back\n", back);
+        }
+
+        // The stacks that were on the ground, back where they lay (keep_pets).
+        {
+            std::vector<std::string> lines;
+            for (std::string l; !(l = s.mod_store.get("core", "drop:" + std::to_string(lines.size()))).empty();)
+                lines.push_back(l);
+            s.drops_kept   = lines.size();
+            const int back = cnp::ecs::drops_from_lines(sessions.ecs(), s.items, lines, 0.0);
+            if (back > 0 && !quiet) std::printf("        %d stack(s) back on the ground\n", back);
         }
 
         // --mobs N: N creatures of the first kind a mod registered, round the

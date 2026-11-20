@@ -2,10 +2,12 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <limits>
 
 #include "core/ecs/components.h"
 #include "core/ecs/mob.h"
+#include "core/item/item_codec.h"
 #include "core/physics/aabb.h"
 #include "core/physics/movement.h"
 #include "core/registry/node_shape.h"
@@ -353,6 +355,68 @@ size_t expire_drops(flecs::world &w, double now)
 
     for (const flecs::entity_t id : done) w.entity(id).destruct();
     return done.size();
+}
+
+std::vector<std::string> drops_to_lines(flecs::world &w, const ItemRegistry &items, double now)
+{
+    static const char *const digits = "0123456789abcdef";
+    std::vector<std::string> out;
+    w.each([&](const Position &p, const Dropped &d) {
+        if (d.shown || d.stack.empty()) return;
+        Inventory one(1);
+        one.slot(0) = d.stack;
+        const std::vector<uint8_t> bytes = encode_inventory(items, one);
+        const double left = std::clamp(d.expire_at - now, 0.0, kDropLifetime);
+        char buf[96];
+        std::snprintf(buf, sizeof(buf), "%.3f %.3f %.3f %d %.1f ", (double)p.x, (double)p.y, (double)p.z,
+                      d.resting ? 1 : 0, left);
+        std::string line = buf;
+        for (const uint8_t b : bytes) {
+            line.push_back(digits[b >> 4]);
+            line.push_back(digits[b & 15]);
+        }
+        out.push_back(std::move(line));
+    });
+    return out;
+}
+
+int drops_from_lines(flecs::world &w, ItemRegistry &items, const std::vector<std::string> &lines, double now)
+{
+    const auto nibble = [](char c) -> int {
+        if (c >= '0' && c <= '9') return c - '0';
+        if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+        return -1;
+    };
+    int made = 0;
+    for (const std::string &line : lines) {
+        float  x = 0.0f, y = 0.0f, z = 0.0f;
+        int    resting = 0, used = 0;
+        double left = 0.0;
+        if (std::sscanf(line.c_str(), "%f %f %f %d %lf %n", &x, &y, &z, &resting, &left, &used) < 5 ||
+            used <= 0 || (size_t)used >= line.size())
+            continue;
+        const std::string hex = line.substr((size_t)used);
+        if (hex.size() % 2 != 0) continue;
+        std::vector<uint8_t> bytes(hex.size() / 2);
+        bool ok = true;
+        for (size_t i = 0; i < bytes.size() && ok; ++i) {
+            const int hi = nibble(hex[2 * i]), lo = nibble(hex[2 * i + 1]);
+            ok           = hi >= 0 && lo >= 0;
+            bytes[i]     = (uint8_t)((hi << 4) | lo);
+        }
+        if (!ok || stored_slots(bytes) != 1) continue;
+        Inventory   one(1);
+        std::string err;
+        if (!decode_inventory(items, bytes, one, err) || one.at(0).empty()) continue;
+
+        flecs::entity e = spawn_drop(w, one.at(0), x, y, z, now);
+        Dropped      &d = e.get_mut<Dropped>();
+        d.arm_at        = now;
+        d.expire_at     = now + std::clamp(left, 0.0, kDropLifetime);
+        d.resting       = resting != 0;
+        ++made;
+    }
+    return made;
 }
 
 } // namespace cnp::ecs

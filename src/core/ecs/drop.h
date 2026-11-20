@@ -14,6 +14,7 @@
 // that was not changed to let it -- the same claim core/ecs/mob.h was written
 // to make, made a second time by something that is not a creature.
 
+#include <string>
 #include <vector>
 
 #include "flecs.h"
@@ -133,6 +134,29 @@ int drop_from(flecs::world &w, Inventory &bag, int count, float tx, float ty, fl
 // world nobody is standing in. It also means a gate can hand it a clock without
 // having to build terrain for the physics to fall onto.
 size_t expire_drops(flecs::world &w, double now);
+
+// The stacks on the ground, one line each, for the world file -- and back.
+//
+// Kept the way the tamed pets are (pets_to_lines): lines under the engine's own
+// keys in the mods' store, which the world file already saves and an older file
+// simply does not have, so a world from before this loads with nothing on the
+// ground and nothing to migrate.
+//
+// A line is "x y z resting seconds-left stack", the stack as a one-slot
+// inventory in hex (core/item/item_codec.h): by NAME, so a mod list that
+// changed between runs gives an orphan rather than somebody else's item, and
+// with its wear, enchantments and tag. The fall speed is not kept -- a stack
+// saved in the air falls again from where it was.
+//
+// What is left of the lifetime is what is kept, not when it ends: the clock
+// does not run while the server is down, or every stack would be gone on any
+// restart longer than kDropLifetime. Stacks on show are not kept: they are the
+// mod's, which shows them again (core.show_item).
+std::vector<std::string> drops_to_lines(flecs::world &w, const ItemRegistry &items, double now);
+// Each line a stack put back, armed at once. A line that will not read is
+// skipped. `items` may gain an orphan row, as a chest read back can.
+int drops_from_lines(flecs::world &w, ItemRegistry &items, const std::vector<std::string> &lines,
+                     double now);
 
 // The box a drop occupies, for whoever has to draw it or reach it.
 AABB drop_box(float x, float y, float z);

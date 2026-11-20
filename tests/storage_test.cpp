@@ -9,6 +9,8 @@
 // hostile-input gate covers the parsing. What this file adds is the database
 // around it and the refusals that belong to a file rather than to a socket.
 
+#include "core/ecs/components.h"
+#include "core/ecs/drop.h"
 #include "core/ecs/health.h"
 #include "core/item/item_codec.h"
 #include "core/net/crypto.h"
@@ -457,6 +459,60 @@ int main()
               "the broken one does not come back from the dead holding what it held");
 
         db.close();
+    }
+
+    std::printf("\nstacks on the ground\n");
+    {
+        // TODO.md: "Stacks on the ground are not saved." Kept as the pets are,
+        // lines under the engine's keys in the mods' store, so this goes the
+        // whole way: entities, lines, the store, the file, and back.
+        ItemRegistry items;
+        items.adopt_blocks(registry);
+        const ItemId stone = items.find("core:stone");
+        const ItemId glass = items.find("core:glass");
+
+        flecs::world w;
+        ecs::spawn_drop(w, ItemStack{stone, 7}, 4.5f, 20.15f, -3.5f, 10.0);
+        flecs::entity worn = ecs::spawn_drop(w, ItemStack{glass, 1, 3, 2, 99}, -40.5f, 30.0f, 8.5f, 10.0);
+        worn.get_mut<ecs::Dropped>().resting = true;
+        ecs::show_drop(w, 1, 2, 3, glass);   // the mod's, shown again by it: not kept
+
+        const std::vector<std::string> lines = ecs::drops_to_lines(w, items, 70.0);
+        check(lines.size() == 2, "two stacks lie on the ground, the one on show is not kept");
+
+        ModStore store;
+        std::string why;
+        for (size_t i = 0; i < lines.size(); ++i) store.set("core", "drop:" + std::to_string(i), lines[i], why);
+
+        WorldDb     db;
+        std::string err;
+        db.open(path, kSeed, registry, err);
+        check(db.save_mod_store(store.take_touched(), err), "they save with what the mods keep");
+        ModStore back;
+        db.load_mod_store(back, err);
+        db.close();
+
+        std::vector<std::string> read;
+        for (std::string l; !(l = back.get("core", "drop:" + std::to_string(read.size()))).empty();)
+            read.push_back(l);
+        flecs::world again;
+        check(ecs::drops_from_lines(again, items, read, 0.0) == 2, "and both come back");
+
+        int  found = 0;
+        bool right = true;
+        again.each([&](const ecs::Position &p, const ecs::Dropped &d) {
+            ++found;
+            if (d.stack.item == stone)
+                right = right && d.stack.count == 7 && p.x == 4.5f && p.z == -3.5f && !d.resting &&
+                        d.expire_at > 239.0 && d.expire_at < 241.0;   // 300 less the minute it lay
+            else
+                right = right && d.stack.item == glass && d.stack.used == 3 && d.stack.ench == 2 &&
+                        d.stack.tag == 99 && p.x == -40.5f && p.y == 30.0f && d.resting;
+        });
+        check(found == 2 && right, "where they lay, as they were, with what was left of their time");
+
+        std::vector<std::string> junk = {"", "1 2 3", "1 2 3 0 5 zz", "1 2 3 0 5 0501"};
+        check(ecs::drops_from_lines(again, items, junk, 0.0) == 0, "a line that will not read is skipped");
     }
 
     std::printf("\na container row that has rotted\n");
