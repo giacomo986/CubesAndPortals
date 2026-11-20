@@ -14226,11 +14226,20 @@ int  g_use_x = 0, g_use_y = 0, g_use_z = 0;
 bool  g_click_at   = false;
 int   g_click_x = 0, g_click_y = 0, g_click_z = 0;
 float g_click_hold = 0.1f;
-// --left-at "t[,seconds]": t seconds into a timed run, hold the left button for
-// that long (0.1 s if not said) wherever the player looks: the prop hunt's
-// blow, the chambers' gun, a power-up, a held button.
-double g_left_at   = -1.0;
-float  g_left_hold = 0.1f;
+// --left-at "t[,seconds[,x,y]]": t seconds into a timed run, hold the left
+// button for that long (0.1 s if not said) wherever the player looks: the prop
+// hunt's blow, the chambers' gun, a power-up, a held button. x,y put the pointer
+// there for that long, as fractions of the screen (0,0 top left): from above
+// (the arpg) the click goes where the pointer is, and the middle of the screen
+// is the player's own feet -- a walk to where they already stand. Said again,
+// one press after another, in the order of their t: the arpg wants a class
+// picked on its panel before the held button walks anywhere.
+struct ScriptLeft {
+    double at   = 0.0;
+    float  hold = 0.1f;
+    float  fx = -1.0f, fy = -1.0f;
+};
+std::vector<ScriptLeft> g_lefts;
 
 // --fly-down N: in a timed single-process run, fly N nodes up and come back
 // down to the ground with nobody at the keyboard, then say what the landing
@@ -16366,6 +16375,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         int         ahead  = 0;       // read out of order because something in sight wanted them
         double      began  = -1.0;    // when the reading began, for the line at its end
         double      sights = -1.0;    // when the last of those was read
+        double      offer_wait = -1.0;   // since when the welcome has named models and no offer came
     };
     std::vector<unsigned>   conn_atlas_built((size_t)net_sessions.count(), 0);
     std::vector<ModelsRead> conn_models_read((size_t)net_sessions.count());
@@ -16613,11 +16623,14 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
     // to the platform at the top of the next frame; when --click-at's aim was
     // first right, its press went down, and whether it is done.
     bool   script_left   = false;
+    bool   script_point  = false;   // --left-at's x,y: the pointer is the script's
     double click_aimed   = -1.0;
     double click_down    = -1.0;
     bool   click_done    = !g_click_at;
-    double left_due      = g_left_at >= 0.0 ? plat_time() + g_left_at : -1.0;
+    const double left_base = plat_time();   // --left-at's t counts from here
+    size_t left_next     = 0;
     bool   left_told     = false;
+    float  script_fx = -1.0f, script_fy = -1.0f;
     bool         dropped  = false;
     long         frames   = 0;
 
@@ -16629,6 +16642,8 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
     while (!plat_should_close()) {
         // Every frame, so a press is one frame's edge and a release another's.
         plat_script_mouse(PLAT_MOUSE_LEFT, script_left);
+        plat_script_cursor(script_point ? script_fx * (float)gfx_screen_width() : -1.0f,
+                           script_point ? script_fy * (float)gfx_screen_height() : -1.0f);
         window_keys(show_debug);
         const float  dt  = plat_delta_time();
         const double now = plat_time();
@@ -16879,8 +16894,24 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             ModelsRead                     &mr    = conn_models_read[(size_t)id];
             ModelStore                     &store = s.at(world).models;
             const std::vector<std::string> &names = w->welcome().models;
+            // The offer goes with the welcome, but can be read a frame after
+            // it, and until then there is no offer and media_complete() says
+            // yes (see media_version()). A pass then read the whole table from
+            // nothing -- the sandbox's 882 "not a glTF" lines and a "0 from it,
+            // all in 0.0 s" -- and began again when the offer landed. Waited
+            // for, up to two seconds: a world that serves no media at all
+            // (every model in the player's own folder) sends no offer.
+            if (w->media_version() == 0 && !names.empty()) {
+                if (mr.offer_wait < 0.0) mr.offer_wait = plat_time();
+                if (plat_time() - mr.offer_wait < 2.0) {
+                    s.at(world).models_arriving = true;
+                    continue;
+                }
+            }
             if (mr.version != w->media_version() + 1) {
+                const double waited = mr.offer_wait;   // the wait above is once a world, not once a reading
                 mr = ModelsRead{w->media_version() + 1};
+                mr.offer_wait = waited;
                 store.clear();
             }
             s.at(world).models_arriving = mr.next < names.size();
@@ -17072,6 +17103,12 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             // Screen axes while the horizon is tipped, as in the local loop.
             look_apply_roll(in, s.roll);
             steer_input(s, player, in);
+        } else if (seconds > 0.0) {
+            // No keys in a timed run, but a walk the world's code steers
+            // (core.walk) still walks: the arpg's held button sends the body
+            // where the pointer is, and without this a scripted click there
+            // asked the server for a way and stood still.
+            steer_input(s, player, in);
         }
 
         // The scripted walk, for the gate. Nobody holds a key down in a
@@ -17262,16 +17299,26 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 }
             }
         }
-        // --left-at: wherever the player looks.
-        if (left_due >= 0.0 && now >= left_due) {
-            if (now < left_due + g_left_hold) {
-                script_left = true;
+        // --left-at: wherever the player looks, or where the pointer is put.
+        // The frame one press ends in holds nothing, so the next one is a new
+        // press even when it was due at once.
+        if (left_next < g_lefts.size() && now >= left_base + g_lefts[left_next].at) {
+            const ScriptLeft &press = g_lefts[left_next];
+            if (now < left_base + press.at + press.hold) {
+                script_left  = true;
+                script_point = press.fx >= 0.0f && press.fy >= 0.0f;
+                script_fx    = press.fx;
+                script_fy    = press.fy;
                 if (!left_told) {
                     left_told = true;
-                    std::printf("left button down, %.1f s into the run\n", now - started);
+                    std::printf("left button down, %.1f s into the run", now - started);
+                    if (script_point) std::printf(", the pointer at %.2f %.2f of the screen", press.fx, press.fy);
+                    std::printf("\n");
                 }
             } else {
-                left_due = -1.0;
+                ++left_next;
+                left_told    = false;
+                script_point = false;
                 std::printf("left button up, %.1f s into the run\n", now - started);
             }
         }
@@ -21381,7 +21428,7 @@ int run_interactive(Scene &s, double seconds)
                         const uint16_t after = e.get<ecs::Health>().hp;
                         script_field   hf[4] = {
                             {"player", SCRIPT_V_NUMBER, (double)ui::kLocalPlayer, nullptr, 0},
-                            {"target", SCRIPT_V_NUMBER, (double)aimed, nullptr, 0},
+                            {"target", SCRIPT_V_NUMBER, (double)(uint32_t)aimed, nullptr, 0},   // as the server's core:hit
                             {"damage", SCRIPT_V_NUMBER, (double)(before - after), nullptr, 0},
                             {"killed", SCRIPT_V_BOOL, 0.0, nullptr, after == 0 ? 1 : 0},
                         };
@@ -22332,9 +22379,18 @@ int client_main(int argc, char **argv)
         if (std::strcmp(argv[i], "--left-at") == 0 && i + 1 < argc) {
             double    t    = -1.0;
             float     hold = 0.1f;
-            const int n    = std::sscanf(argv[++i], "%lf,%f", &t, &hold);
-            g_left_at   = n >= 1 ? t : -1.0;
-            g_left_hold = n == 2 && hold > 0.0f ? hold : 0.1f;
+            float     fx = -1.0f, fy = -1.0f;
+            const int n    = std::sscanf(argv[++i], "%lf,%f,%f,%f", &t, &hold, &fx, &fy);
+            if (n >= 1 && t >= 0.0) {
+                ScriptLeft press;
+                press.at   = t;
+                press.hold = n >= 2 && hold > 0.0f ? hold : 0.1f;
+                press.fx   = n == 4 ? fx : -1.0f;
+                press.fy   = n == 4 ? fy : -1.0f;
+                g_lefts.push_back(press);
+                std::stable_sort(g_lefts.begin(), g_lefts.end(),
+                                 [](const ScriptLeft &a, const ScriptLeft &b) { return a.at < b.at; });
+            }
         }
         if (std::strcmp(argv[i], "--use-at") == 0 && i + 1 < argc)
             g_use_at = std::sscanf(argv[++i], "%d,%d,%d", &g_use_x, &g_use_y, &g_use_z) == 3;

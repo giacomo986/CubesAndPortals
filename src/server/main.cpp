@@ -9242,9 +9242,16 @@ int serve_room(int argc, char **argv)
                     if (!a.log.empty()) std::printf("        %s\n", a.log.c_str());
 
                     if (a.has_hit) {
+                        // The target as every other call names a body: its low
+                        // 32 bits, what core.spawn_mob returned and core.body_player
+                        // takes. The whole 64-bit id carries the entity's
+                        // generation above them, and a body whose slot had been
+                        // used before (a player who joined after somebody left)
+                        // came out as 4294967809: no player to body_player, and
+                        // a prop hunt's blow found nobody.
                         script_field fields[4] = {
                             {"player", SCRIPT_V_NUMBER, (double)ev.peer, nullptr, 0},
-                            {"target", SCRIPT_V_NUMBER, (double)a.hit_target, nullptr, 0},
+                            {"target", SCRIPT_V_NUMBER, (double)(uint32_t)a.hit_target, nullptr, 0},
                             {"damage", SCRIPT_V_NUMBER, (double)a.hit_taken, nullptr, 0},
                             {"killed", SCRIPT_V_BOOL, 0.0, nullptr, a.hit_killed ? 1 : 0},
                         };

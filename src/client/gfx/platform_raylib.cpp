@@ -299,6 +299,14 @@ void plat_script_mouse(plat_mouse_button button, bool down)
     g_script_down[button] = down;
 }
 
+float g_script_cursor_x = -1.0f, g_script_cursor_y = -1.0f;
+
+void plat_script_cursor(float x, float y)
+{
+    g_script_cursor_x = x;
+    g_script_cursor_y = y;
+}
+
 bool plat_script_mouse_active(void)
 {
     for (int b = 0; b < 3; ++b)
@@ -341,6 +349,11 @@ bool plat_mouse_released(plat_mouse_button button)
 
 void plat_mouse_position(float *x, float *y)
 {
+    if (g_script_cursor_x >= 0.0f && g_script_cursor_y >= 0.0f) {
+        if (x) *x = g_script_cursor_x;
+        if (y) *y = g_script_cursor_y;
+        return;
+    }
     const Vector2 p = GetMousePosition();
     if (x) *x = p.x;
     if (y) *y = p.y;

@@ -116,6 +116,12 @@ void plat_script_mouse(plat_mouse_button button, bool down);
 // Whether a script is holding a button this frame or let one go in it: a timed
 // run reads the mouse only then.
 bool plat_script_mouse_active(void);
+// Where a script puts the pointer (a timed client's --left-at with a place on
+// the screen), in the same pixels as plat_mouse_position; negative gives it back
+// to the hand. Called once a frame, like plat_script_mouse. From above
+// (core.iso_view) the click goes where the pointer is, and the middle of the
+// screen is the player's own feet.
+void plat_script_cursor(float x, float y);
 
 // Where the pointer is, in window pixels, origin top-left -- the same space
 // gfx_2d_* draws in. Only meaningful while the cursor is NOT grabbed: a grabbed
