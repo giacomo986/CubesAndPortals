@@ -71,6 +71,15 @@ for.
   waits with show, approve and refuse; `/zone show` lays one zone alone to look at.
 - For mods: `core.room_send` starts a room of the rooms file that is down (or one its template
   makes) instead of answering 0; `zones:do` runs a `/zone` line as a player said it.
+- **A mod's handler that emits an event of its own** and then changes a text field of the event it
+  is handling no longer crashes the server or hands back text from freed memory (it stopped the
+  front's server in a debug build).
+- **`cnp_netshape` on Windows**: the relay that makes a link slow and lossy builds and runs there
+  too; the Windows build used to stop on it.
+- **For developers**: about thirty more compiler warnings on the engine's own code, a debug build
+  that checks every container index, and a server that frees its mods' memory when it stops --
+  each game used to leave tens of megabytes to LeakSanitizer. How to build with AddressSanitizer:
+  [docs/BUILDING.md](docs/BUILDING.md#warnings-and-sanitizers).
 
 ## 0.19.0-alpha.1 — 2026-11-19
 

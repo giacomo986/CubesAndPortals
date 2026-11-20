@@ -34,7 +34,7 @@ git submodule update --init --recursive
 ```sh
 cmake -S . -B build -G Ninja           # RelWithDebInfo se non si dice altro
 cmake --build build -j
-ctest --test-dir build                 # 15 test; -LE gpu salta quello che apre una finestra
+ctest --test-dir build                 # 18 test; -LE gpu salta quello che apre una finestra
 ```
 
 Escono tre programmi:
@@ -66,6 +66,35 @@ e `docs/api.d.luau`, che stanno nel repository e vanno committati insieme.
 motore; la prima volta si costruisce il checker che gli serve in `build-typecheck/`. Va lanciato
 dopo aver toccato un mod o l'API: non deve stampare altro che il suo conteggio. Cosa controlla e
 cosa lascia fuori: [MODDING.it.md](MODDING.it.md#controllare-i-tipi-toolstypechecksh).
+
+### Warning e sanitizer
+
+Il nostro codice -- non `third_party/` -- si compila con `-Wall -Wextra -Wpedantic` e una trentina
+di altri (`cnp_warnings` in `CMakeLists.txt`), ognuno acceso solo dopo che su tutto l'albero non
+segnalava niente. I pochi lasciati spenti sono elencati lì con quello che segnalavano. raylib,
+flecs, sqlite e cgltf sono inclusi come header di sistema, così quello che questi warning dicono
+dei loro header non è affar nostro. Una modifica dovrebbe compilare con `-DCNP_WERROR=ON`; il build
+Windows (Clang, tramite zig) ha la stessa lista senza quelli che esistono solo in GCC.
+
+Un build `Debug` definisce anche `_GLIBCXX_ASSERTIONS`: un indice oltre la fine di un
+`std::vector`, `front()` di uno vuoto o un iteratore sbagliato fermano il programma su quella riga,
+dove ogni altro build legge la memoria che c'è.
+
+AddressSanitizer e UndefinedBehaviorSanitizer, in un build a parte:
+
+```sh
+SAN="-fsanitize=address,undefined -fno-sanitize=vptr -fno-omit-frame-pointer"
+cmake -S . -B build-asan -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+      "-DCMAKE_CXX_FLAGS=$SAN" "-DCMAKE_C_FLAGS=$SAN"
+cmake --build build-asan -j
+ctest --test-dir build-asan -LE gpu
+```
+
+Un problema trovato ferma il programma con la riga e lo stack; i test che fanno girare il server
+vero tengono il suo log in `build-asan/test-logs/`. Due cose lì sono note e non sono problemi:
+`left shift of 1 by 31 places` viene da `third_party/enet`, e `two_process_join` e `mods_play`
+possono andare in timeout -- un build Debug sotto ASan è così lento che un probe si stanca di
+aspettare i primi chunk (i log tenuti allora non riportano niente).
 
 ## I pacchetti
 

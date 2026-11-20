@@ -34,7 +34,7 @@ git submodule update --init --recursive
 ```sh
 cmake -S . -B build -G Ninja           # RelWithDebInfo unless told otherwise
 cmake --build build -j
-ctest --test-dir build                 # 15 tests; -LE gpu skips the one that opens a window
+ctest --test-dir build                 # 18 tests; -LE gpu skips the one that opens a window
 ```
 
 Three programs come out:
@@ -66,6 +66,35 @@ A build that stops on `api_generated.inc` means `src/script/api.luau` changed: t
 does; it builds the checker it needs in `build-typecheck/` the first time. Run it after touching
 a mod or the API: it should print nothing but its count. What it checks and what it leaves out:
 [MODDING.md](MODDING.md#checking-types-toolstypechecksh).
+
+### Warnings and sanitizers
+
+Our own code -- not `third_party/` -- builds with `-Wall -Wextra -Wpedantic` and about thirty
+more (`cnp_warnings` in `CMakeLists.txt`), each turned on only once the whole tree said nothing
+under it. The few left off are listed there with what they reported. raylib, flecs, sqlite and
+cgltf are included as system headers, so what these warnings say about their headers is not ours.
+A change should build with `-DCNP_WERROR=ON`; the Windows build (Clang, through zig) gets the same
+list without the GCC-only ones.
+
+A `Debug` build also defines `_GLIBCXX_ASSERTIONS`: an index past the end of a `std::vector`,
+`front()` of an empty one or a bad iterator stops the program at that line, where any other build
+reads whatever memory is there.
+
+AddressSanitizer and UndefinedBehaviorSanitizer, in a build of their own:
+
+```sh
+SAN="-fsanitize=address,undefined -fno-sanitize=vptr -fno-omit-frame-pointer"
+cmake -S . -B build-asan -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+      "-DCMAKE_CXX_FLAGS=$SAN" "-DCMAKE_C_FLAGS=$SAN"
+cmake --build build-asan -j
+ctest --test-dir build-asan -LE gpu
+```
+
+A finding stops the program with the line and the stack; the tests that run the real server keep
+its log in `build-asan/test-logs/`. Two things in there are known and are not findings:
+`left shift of 1 by 31 places` comes from `third_party/enet`, and `two_process_join` and
+`mods_play` can time out -- a Debug build under ASan is slow enough that a probe gives up waiting
+for its first chunks (the kept logs then show no report at all).
 
 ## The packages
 

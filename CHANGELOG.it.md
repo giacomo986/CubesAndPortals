@@ -80,6 +80,16 @@ non chiede.
   suo modello) invece di rispondere 0; `zones:do` esegue una riga di `/zone` come detta da un
   giocatore.
 
+- **L'handler di un mod che emette un suo evento** e poi cambia un campo di testo dell'evento che
+  sta gestendo non fa più cadere il server né restituisce testo da memoria già liberata (fermava
+  il server del fronte in un build di debug).
+- **`cnp_netshape` su Windows**: il relay che rende un collegamento lento e con perdite si compila
+  e gira anche lì; il build Windows si fermava su di lui.
+- **Per gli sviluppatori**: una trentina di warning del compilatore in più sul codice del motore,
+  un build di debug che controlla ogni indice dei container, e un server che libera la memoria dei
+  suoi mod quando si ferma -- ogni gioco lasciava decine di megabyte a LeakSanitizer. Come si
+  compila con AddressSanitizer: [docs/BUILDING.it.md](docs/BUILDING.it.md#warning-e-sanitizer).
+
 ## 0.19.0-alpha.1 — 2026-11-19
 
 **Non gioca con i server 0.18** (protocollo 126): il codice dei mondi può essere in `api = 2`, che un
