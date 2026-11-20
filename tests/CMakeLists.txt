@@ -17,6 +17,9 @@ endfunction()
 
 # What the parsers do with truncated, corrupted and random input from a peer.
 cnp_unit_test(protocol    LIBS cnp_core)
+# What the session table does once a player is in: leaving, silence, health and
+# death, the clock, owned ground, openings.
+cnp_unit_test(session     LIBS cnp_core)
 cnp_unit_test(chunk_codec LIBS cnp_net)
 target_include_directories(cnp_chunk_codec_test PRIVATE ${CMAKE_SOURCE_DIR}/third_party/zstd/lib)
 
