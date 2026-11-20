@@ -20,9 +20,9 @@ uint32_t name_seed(const std::string &s)
 uint32_t hash2(uint32_t seed, int x, int y)
 {
     uint32_t h = seed;
-    h ^= (uint32_t)(x * 374761393);
+    h ^= (uint32_t)x * 374761393u;   // unsigned: the same bits, without an int overflowing
     h *= 2246822519u;
-    h ^= (uint32_t)(y * 668265263);
+    h ^= (uint32_t)y * 668265263u;
     h *= 3266489917u;
     h ^= h >> 15;
     return h;
