@@ -1,6 +1,6 @@
 # The platform game
 
-*[Leggi in italiano](README.it.md)*
+*[Leggi in italiano](README.it.md) · [Leia em português](README.pt.md)*
 
 A platform game seen from the side, in the manner of the eighties' ones: three levels, a bonus room, a boss,
 power-ups, their rules and the camera. Two mods: `mods/platformer_core` (server only: the robot, how it jumps,

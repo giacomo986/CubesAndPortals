@@ -1,6 +1,6 @@
 # The front
 
-*[Leggi in italiano](README.it.md)*
+*[Leggi in italiano](README.it.md) · [Leia em português](README.pt.md)*
 
 A battlefield in the style of the big team shooters: two bases, three points to take, red against
 blue. Two mods: `mods/front_core` (server only: the field, the blocks, how bodies move) and

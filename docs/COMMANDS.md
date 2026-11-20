@@ -1,6 +1,6 @@
 # Commands
 
-*[Leggi in italiano](COMMANDS.it.md)*
+*[Leggi in italiano](COMMANDS.it.md) · [Leia em português](COMMANDS.pt.md)*
 
 Every command a player can type in chat (T, then `/name`), what it is and what it does.
 `/help` in the game lists the ones you may use where you are; the list changes with the

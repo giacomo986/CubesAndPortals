@@ -40,9 +40,12 @@ anyone can read and change.
 This is a **collaborative project, open to contributions**: code, worlds, mods, texture packs,
 translations, bug reports and playtesting are all welcome (see [Contributing](#contributing)).
 
-Most of the in-depth documentation (`docs/`, the worlds' guides, the changelog) is written in
-Italian; code, comments, `TODO.md` and commit messages are in English. Issues and pull requests
-are fine in either language.
+The official languages are English, Italian and Brazilian Portuguese. The documentation (`docs/`,
+the worlds' guides, `contrib/`, the changelog) is in all three, and a change to one is made in all
+three. [`docs/API.md`](docs/API.md) is generated from `src/script/api.luau` and is in English.
+Code, comments, `TODO.md` and commit messages are in English. Issues and pull requests are welcome
+in any of the three. The game itself is in the three languages too (`assets/lang/`: `en`, `it`,
+`pt`): it starts in the system's language, and Options, Language changes it.
 
 ## Status
 
@@ -126,7 +129,7 @@ cmake --build build -j
 A clone made without `--recursive` can be completed with
 `git submodule update --init --recursive`.
 
-The build makes three programs:
+The build makes these programs:
 
 | | |
 |---|---|
@@ -136,7 +139,7 @@ The build makes three programs:
 | `build/tools/cnp_modpack` | packs a mod into a single `.cnpmod` file |
 
 A development build reads `mods/`, `games/` and `assets/` from the checkout, so run it from
-there. The tests run with `ctest --test-dir build` (15 tests, under a minute).
+there. The tests run with `ctest --test-dir build` (18 tests, about two minutes).
 
 The players' packages are made by the scripts in `tools/dist/` and land in
 `<build directory>/dist/`. The Windows package is cross-compiled **from Linux** with zig; the
@@ -322,7 +325,8 @@ to every world's key, told as they are reached (`/page goals`).
   world's key comes only from a level of d 4 or more.
 - **Directions** (`mods/villagers`): a villager now and then tells of the nearest portal, vaguely
   (what it looks like, which way, near or far, how those who went came back); a caravan, of one near
-  the village it comes from; the mayor, for 2 + d rubies, exactly, with the way on the map.
+  the village it comes from; the mayor, for 2 + d rubies, exactly, with the way on the map. The
+  portals seen go on the map, green once done.
 
 ### The sandbox
 
@@ -551,7 +555,7 @@ The full plan and its decisions are in [`docs/DESIGN.md`](docs/DESIGN.md).
 After building ([above](#building-from-source)), from the checkout:
 
 ```sh
-ctest --test-dir build                       # 15 tests, under a minute; -LE gpu skips the one that opens a window
+ctest --test-dir build                       # 18 tests, about two minutes; -LE gpu skips the one that opens a window
 
 ./build/src/client/cnp_client                # the title menu
 ./build/src/client/cnp_client --quick        # quick start: a local test world, nothing saved
@@ -736,12 +740,14 @@ server running across restarts and crashes, with a log a day.
 
 ### Tests
 
-Fifteen, chosen because they guard things that break silently and cost dearly: input from the
-network (`protocol`, `chunk_codec`, `crypto`), saved worlds (`storage`, `migration`,
+Eighteen, chosen because they guard things that break silently and cost dearly: input from the
+network (`protocol`, `chunk_codec`, `crypto`), the server's table of players once they are in
+(`session`), saved worlds (`storage`, `migration`,
 `persistence`), portal maths and collisions (`portal_math`, `portal_traverse`, `physics_box`,
 `portal_continuity` on the GPU), the mods' sandbox (`script_isolation`), the mods
 themselves (`mods_smoke` starts every game and fails on a mod that did not load or was switched
-off; `api_types` ties the hand-written part of `core` to its types), and client and server
+off; `mods_play` does the same with a player walking, chatting and digging in each world;
+`mod_notice` checks that a mod switched off is told to its admins, and only to them; `api_types` ties the hand-written part of `core` to its types), and client and server
 agreeing on the world (`worldgen`, `two_process_join`). The rest is checked by playing. Why each
 one exists is in [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 
@@ -758,19 +764,29 @@ one exists is in [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 
 ## Documentation
 
-The documents are in Italian.
+Every document is in English (`.md`), Italian (`.it.md`) and Brazilian Portuguese (`.pt.md`); the
+links below go to the English one.
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): how the code is laid out today and where a new
   feature goes.
 - [`docs/DESIGN.md`](docs/DESIGN.md): feasibility study, decisions, milestone plan, risks.
 - [`docs/MODDING.md`](docs/MODDING.md): writing a mod; [`docs/API.md`](docs/API.md): the Luau
-  API, generated from `src/script/api.luau`.
+  API, generated from `src/script/api.luau` (English only).
 - [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.md): making a texture pack.
 - [`docs/PIPES.md`](docs/PIPES.md): pipes, chips and item networks, for players and mod writers.
 - [`docs/BUILDING.md`](docs/BUILDING.md): building, packages, versions and the Flatpak repository.
+- [`docs/ADMIN.md`](docs/ADMIN.md): running a server: every admin command, permission, flag and
+  `server.conf` key.
+- [`docs/COMMANDS.md`](docs/COMMANDS.md): every chat command, the players' too, with what it does.
+- [`CHANGELOG.md`](CHANGELOG.md): what changed in each release.
+- The worlds' guides: [the assault](games/assault/README.md),
+  [the backrooms](games/backrooms/README.md), [the front](games/front/README.md),
+  [the Inferno](games/inferno/README.md), [the parkour course](games/parkour/README.md),
+  [the platform game](games/platformer/README.md), [the arcade shooter](games/shmup/README.md).
+- [`contrib/README.md`](contrib/README.md): add-ons kept outside the game, like the lizard man.
 - [`TODO.md`](TODO.md) (English): what is missing and what is broken.
 - [`docs/archive/`](docs/archive/README.md): the history, milestone by milestone, with the
-  measurements.
+  measurements (in Italian, as it was written).
 
 ## License
 

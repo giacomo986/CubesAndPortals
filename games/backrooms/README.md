@@ -1,6 +1,6 @@
 # The backrooms
 
-*[Leggi in italiano](README.it.md)*
+*[Leggi in italiano](README.it.md) · [Leia em português](README.pt.md)*
 
 An endless maze of rooms nobody built, on three stacked levels, with rare doors leading from one
 level to another. The world is `mods/backrooms/init.luau` (server), plus `backrooms_exit` (the

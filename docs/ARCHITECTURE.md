@@ -1,6 +1,6 @@
 # Architecture
 
-*[Leggi in italiano](ARCHITECTURE.it.md)*
+*[Leggi in italiano](ARCHITECTURE.it.md) · [Leia em português](ARCHITECTURE.pt.md)*
 
 How the code is made today, and where a new feature goes. The why of the big choices is in
 [`DESIGN.md`](DESIGN.md); the why of the small ones is nearly always in the comment at the top of
@@ -139,8 +139,8 @@ at a time holds the common lock (`TurnLock` in `src/server/main.cpp`) and lets i
 waits for the network; the lock is handed on **in the order it was asked for**, and a room behind
 on its ticks lets it go once a poll anyway. With a `std::mutex` a busy room (the Inferno making
 columns) took it back before the others woke up, and the track's players went unanswered for more
-than a second. Each room writes in the log how long it held it at most. A room's mouths (up to 24
-since protocol 111) are its ways onto the others.
+than a second. Each room writes in the log how long it held it at most. A room's mouths (up to 28
+since protocol 116) are its ways onto the others.
 
 ## How light is drawn
 
@@ -162,7 +162,7 @@ goes on reading the levels and `daylight_at`.
   (`gfx_shadow_create`: depth only, compared in hardware).
 - **Sun and moon** in the clouds' pass; **bodies and things in hand** take the light of their cell
   (`WorldRenderer::cell_light`).
-- **Classic** (`set_classic`, Options → Lighting): the old formula, from the packed light byte the
+- **Classic** (`set_classic`, Options → Video, Light: classic): the old formula, from the packed light byte the
   vertex still carries; no shadows and no sun.
 
 ## Traps already fallen into
@@ -241,7 +241,7 @@ When a change touches one of them, check it the way the line says.
 
 | What | Where |
 |---|---|
-| A new Lua function | Its signature in `src/script/api.luau`; the host function in `src/server/main.cpp` and, if it is wanted locally too, in `make_client_host` of `src/client/main.cpp`; two lines in `docs/MODDING.md` (and `MODDING.it.md`). `docs/API.md` regenerates by itself |
+| A new Lua function | Its signature in `src/script/api.luau`; the host function in `src/server/main.cpp` and, if it is wanted locally too, in `make_client_host` of `src/client/main.cpp`; two lines in `docs/MODDING.md` (and `MODDING.it.md`, `MODDING.pt.md`). `docs/API.md` regenerates by itself |
 | An engine event | The schema among the engine's events (`define_core_events` in the client, the event table in the server's `main()`) and the `emit` where it happens |
 | A game rule | First ask whether it can be a mod. If it is the engine's: the function in `src/core/`, called by the server (`net/session.cpp`) and by the local client |
 | A network message | A struct with `encode`/`decode` in `core/net/protocol.h`, `kProtocol` +1 with a line saying what changes, handling in `net/session.cpp` and `net/client_session.cpp`. A decoder must refuse truncated input: the `protocol` test tries it |

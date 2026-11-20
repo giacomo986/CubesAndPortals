@@ -1,6 +1,6 @@
 # The Inferno
 
-*[Leggi in italiano](README.it.md)*
+*[Leggi in italiano](README.it.md) · [Leia em português](README.pt.md)*
 
 A world of caverns between a floor and a roof of bedrock, seas of lava at the bottom, glowrock
 hanging from the roof, and fortresses of brick whose lanes bridge the caverns. No sun: a red sky,

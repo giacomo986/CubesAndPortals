@@ -1,6 +1,6 @@
 # Il fronte
 
-*[Read in English](README.md)*
+*[Read in English](README.md) · [Leia em português](README.pt.md)*
 
 Un campo di battaglia nello stile dei grandi sparatutto a squadre: due basi,
 tre punti da prendere, rossi contro blu. Due mod: `mods/front_core` (solo

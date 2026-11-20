@@ -1,6 +1,6 @@
 # Gestire un server
 
-*[Read in English](ADMIN.md)*
+*[Read in English](ADMIN.md) · [Leia em português](ADMIN.pt.md)*
 
 Tutto quello che un proprietario o un membro dello staff può fare a un `cnp_server`: i comandi,
 chi li può usare, i flag e le chiavi di `server.conf`, gli script, e cosa tiene su disco ognuno.
@@ -507,7 +507,7 @@ Poi il client controlla quello che controlla sempre quando attraversa: la chiave
 lontano contro quella dell'amico, il proprio protocollo nell'handshake e il ticket che questo
 server firma per il giocatore.
 
-Un portale collegato è una delle mouth della stanza (24, in comune con `--portal-to`): un'apertura
+Un portale collegato è una delle mouth della stanza (28, in comune con `--portal-to`): un'apertura
 sull'altro server, attraversata con un ticket, e finché è collegato la stanza accetta i ticket di
 quell'amico.
 

@@ -41,10 +41,12 @@ Este é um **projeto colaborativo, aberto a contribuições**: código, mundos, 
 texturas, traduções, relatórios de bugs e testes de jogo são todos bem-vindos (veja
 [Como contribuir](#como-contribuir)).
 
-A maior parte da documentação detalhada (`docs/`, os guias dos mundos, o changelog) está escrita
-em italiano, e há versões em inglês de muitos arquivos; código, comentários, `TODO.md` e mensagens
-de commit estão em inglês. Issues e pull requests podem ser em inglês, italiano ou português. O
-jogo em si está traduzido para o português (Opções, Idioma: Português).
+Os idiomas oficiais são o inglês, o italiano e o português brasileiro. A documentação (`docs/`, os
+guias dos mundos, `contrib/`, o changelog) está nos três, e uma mudança num deles é feita nos três.
+O [`docs/API.md`](docs/API.md) é gerado a partir de `src/script/api.luau` e está em inglês. Código,
+comentários, `TODO.md` e mensagens de commit estão em inglês. Issues e pull requests são bem-vindos
+em qualquer um dos três. O jogo em si também está nos três idiomas (`assets/lang/`: `en`, `it`,
+`pt`): ele começa no idioma do sistema, e Opções, Idioma o troca.
 
 ## Estado
 
@@ -52,7 +54,7 @@ jogo em si está traduzido para o português (Opções, Idioma: Português).
 habitantes e sua economia, animais e monstros, circuitos, xadrez e cartas), os sete mundos atrás
 dos portais da praça, o laboratório final, mais dois mundos depois dele, e multijogador. Muita
 coisa ainda está incompleta ou crua: o que falta ou está quebrado está no [`TODO.md`](TODO.md), e
-o que mudou em cada versão está no [`CHANGELOG.md`](CHANGELOG.md).
+o que mudou em cada versão está no [`CHANGELOG.md`](CHANGELOG.pt.md).
 
 Enquanto o jogo estiver em alfa, uma versão nova pode não ler os mundos salvos pela anterior, nem
 jogar com os servidores dela. O changelog avisa sempre que isso acontece.
@@ -139,12 +141,12 @@ A compilação gera estes programas:
 | `build/tools/cnp_modpack` | empacota um mod num único arquivo `.cnpmod` |
 
 Uma compilação de desenvolvimento lê `mods/`, `games/` e `assets/` do checkout, então rode-a de
-lá. Os testes rodam com `ctest --test-dir build` (15 testes, menos de um minuto).
+lá. Os testes rodam com `ctest --test-dir build` (18 testes, uns dois minutos).
 
 Os pacotes para os jogadores são feitos pelos scripts em `tools/dist/` e vão para
 `<pasta de build>/dist/`. O pacote do Windows é compilado **a partir do Linux** com zig; o do
 macOS precisa ser gerado **num Mac**. Todos os detalhes (opções do CMake, pacotes, versões) estão
-em [`docs/BUILDING.md`](docs/BUILDING.md) (em inglês).
+em [`docs/BUILDING.md`](docs/BUILDING.pt.md).
 
 ## Como contribuir
 
@@ -155,12 +157,12 @@ O projeto é aberto a todos, e há muitas formas de ajudar:
   menu de título), e o log se puder;
 - **traduzir**: um idioma novo é um arquivo novo em `assets/lang/` (veja `it.txt` e `pt.txt`);
   revisar o `pt.txt` também ajuda muito;
-- **fazer mods, mundos e pacotes de texturas**: veja [`docs/MODDING.md`](docs/MODDING.md),
-  [`docs/API.md`](docs/API.md) e [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.md); os arquivos
+- **fazer mods, mundos e pacotes de texturas**: veja [`docs/MODDING.md`](docs/MODDING.pt.md),
+  [`docs/API.md`](docs/API.md) e [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.pt.md); os arquivos
   Blender dos modelos estão em [`assets/blender/`](assets/blender/README.md); um mod que adiciona
   algo ao jogo de fora dele -- uma espécie para o jogador, por exemplo -- pode ser testado primeiro
-  como add-on, do jeito que [`contrib/`](contrib/README.md) guarda o homem-lagarto;
-- **trabalhar no motor**: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) explica como o código
+  como add-on, do jeito que [`contrib/`](contrib/README.pt.md) guarda o homem-lagarto;
+- **trabalhar no motor**: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.pt.md) explica como o código
   está organizado e onde entra um recurso novo; [`TODO.md`](TODO.md) lista o que falta.
 
 Como propor uma mudança:
@@ -230,9 +232,9 @@ mundo atrás dele (`mods/gates`), levam a sete mundos, todos salas do mesmo serv
   de portais que cresce com você, cubos, botões e plataformas de lançamento.
 - **Os backrooms** (`games/backrooms`): três níveis infinitos com escadas, poços, piscinas,
   escorregadores e duas criaturas; caixas raras guardam o caminho de volta. Guia em
-  [`games/backrooms/README.md`](games/backrooms/README.md).
+  [`games/backrooms/README.md`](games/backrooms/README.pt.md).
 - **O percurso de parkour** (`games/parkour`): corrida na parede, quiques, deslizes, rolamentos e
-  uma arma de corda. Guia em [`games/parkour/README.md`](games/parkour/README.md).
+  uma arma de corda. Guia em [`games/parkour/README.md`](games/parkour/README.pt.md).
 
 Mais dois jogos ficam nas salas `platformer` e `shmup`, com portões na praça: um jogo de
 plataforma visto de lado (`games/platformer`) e um shooter de fliperama visto de cima com um caça
@@ -336,6 +338,7 @@ do sandbox, `tools/track.sh --survival`) faz o mesmo jogo sem praça:
 - **Direções** (`mods/villagers`): um aldeão de vez em quando fala do portal mais próximo, de forma
   vaga (como ele é, para que lado, perto ou longe, como voltaram os que foram); uma caravana, de um
   perto da vila de onde ela vem; o prefeito, por 2 + d rubis, com exatidão, com o caminho no mapa.
+  Os portais vistos vão para o mapa, verdes depois de concluídos.
 
 ### O sandbox
 
@@ -402,7 +405,7 @@ rotação de cada bloco. Um nível é feito de zonas ligadas passagem a passagem
 como precisarem, de um início a um fim, igual para a mesma semente; uma passagem que não liga a
 nada é fechada. Uma zona é de quem a fez, e só entra nos níveis pedidos em nome dele, até um admin
 aprová-la (`/zone approve`); `/zone try MUNDO` monta um nível ao lado de um admin. Para quem faz
-mods: `docs/MODDING.md`, "Levels out of saved pieces".
+mods: `docs/MODDING.pt.md`, a seção sobre `mods/zones`.
 
 **Tarefas**: cada vila pendura até três num quadro de avisos perto do poço -- trazer o que falta,
 conseguir um material, fabricar ferramentas, caçar à noite, levar uma encomenda a outra vila,
@@ -500,9 +503,7 @@ você (`mods/mobs`, `mods/animals`, `mods/pets`).
 duplo), uma fornalha com fileiras de entrada, combustível e saída, ferramentas em cinco materiais
 que se desgastam, armadura em quatro, fome, experiência e uma mesa de encantamento, camas que
 pulam a noite, agricultura (enxada, sementes, trigo, pão, melancias e abóboras, água e luz),
-pesca, cana-de-açúcar, papel e livros, portas, escadas e alçapões. A mão esquerda segura um segundo
-item (H troca as mãos), e uma tocha vai no chão, na parede ou no teto; uma tocha (ou qualquer bloco
-que faz luz) em qualquer uma das mãos ilumina em volta de quem a segura, para todos verem.
+pesca, cana-de-açúcar, papel e livros, portas, escadas e alçapões.
 
 **Máquinas.** Circuitos de cinábrio (`mods/cinnabar`): pó, alavancas, botões, tochas,
 repetidores, comparadores, lâmpadas, pistões, observadores e funis, então relógios e lógica
@@ -549,9 +550,7 @@ um altar segura (uma chave, a arma de portais, um fragmento) fica flutuando em c
 - **Voxels.** Chunks de 32³, greedy meshing em threads, vértices de 12 bytes, luz por flood fill do
   sol e dos blocos, oclusão de ambiente, frustum e occlusion culling, um profiler na tela (F6).
 - **Luz.** Escuridão de verdade: uma caverna sem tochas é preta, e a noite quase. Sol e lua
-  projetam sombras (as folhas também); as tochas iluminam as faces viradas para elas, e uma luz
-  carregada na mão se espalha como a de um bloco colocado, contornando cantos e parando nas paredes.
-  A luz antiga continua lá: Opções, Luz: clássica. As lâmpadas iluminam na sua própria cor: um bloco
+  projetam sombras (as folhas também); as tochas iluminam as faces viradas para elas. A luz antiga continua lá: Opções, Luz: clássica. As lâmpadas iluminam na sua própria cor: um bloco
   dá luz da cor com que foi registrado, mais clara, e duas luzes se encontram numa mistura.
 - **Portais.** Uma imagem contínua da vista real, recursão até três níveis, todas as 24
   orientações (chão, parede, teto, girados), corpos cortados ao atravessar, e o horizonte nivelado
@@ -574,21 +573,21 @@ um altar segura (uma chave, a arma de portais, um fragmento) fica flutuando em c
 - **Modding.** Luau, uma VM por mod com cota de memória, orçamento de interrupção e permissões.
   Recarga a quente (F5), um barramento de eventos tipado, um ECS programável, ABM/LBM, etapas de
   geração do mapa, blocos como caixas ou modelos, movimento por mundo e por corpo, pacotes
-  `.cnpmod` com versões e dependências, teclas próprias dos mods (`core.register_key`). Um mundo
+  `.cnpmod` com versões e dependências. Um mundo
   pode enviar **código Luau para o cliente**, numa sandbox sem arquivos nem rede, e o jogador pode
-  recusar. Guia em [`docs/MODDING.md`](docs/MODDING.md).
+  recusar. Guia em [`docs/MODDING.md`](docs/MODDING.pt.md).
 - **Salvamento.** SQLite: chunks, baús, bolsas, posições dos jogadores e o armazenamento dos mods.
   Só o que mudou é gravado, numa transação, e o servidor salva quando é parado com Ctrl+C. Os
   blocos são guardados pelo nome, então adicionar um mod nunca obriga a criar um mundo novo.
 
-O plano completo e suas decisões estão em [`docs/DESIGN.md`](docs/DESIGN.md).
+O plano completo e suas decisões estão em [`docs/DESIGN.md`](docs/DESIGN.pt.md).
 
 ## Jogar e testar: referência
 
 Depois de compilar ([acima](#compilar-a-partir-do-código)), a partir do checkout:
 
 ```sh
-ctest --test-dir build                       # 15 testes, menos de um minuto; -LE gpu pula o que abre uma janela
+ctest --test-dir build                       # 18 testes, uns dois minutos; -LE gpu pula o que abre uma janela
 
 ./build/src/client/cnp_client                # o menu de título
 ./build/src/client/cnp_client --quick        # início rápido: um mundo local de teste, nada é salvo
@@ -641,7 +640,8 @@ Toda tecla da tabela, menos o ESC, pode ser trocada em **Opções > Controles**:
 aperte a nova (ESC deixa como estava, Backspace deixa a ação sem tecla). O botão do meio e os
 laterais do mouse também servem. As teclas próprias dos mods (`core.register_key`) também aparecem
 ali. Uma tocha vai no chão, numa parede ou no teto, e uma tocha (ou qualquer bloco que faz luz)
-segurada em qualquer uma das mãos ilumina em volta do jogador, e os outros jogadores veem.
+segurada em qualquer uma das mãos ilumina em volta do jogador como faria se estivesse colocada --
+contornando cantos, sem atravessar paredes -- e todos veem.
 
 As opções ficam salvas entre uma partida e outra. `CNP_HITCH_MS=30 cnp_client ...` imprime cada
 frame mais longo que 30 ms com as seções do profiler.
@@ -670,7 +670,7 @@ com `{}` para as partes que variam. Valem para tudo o que o cliente desenha: men
 avisos dos mods, chat e texto do HUD, e nomes dos itens. Uma linha que falta deixa o texto como
 está. `python3 tools/lang_check.py` lista o que os mods e mundos mostram e que o `it.txt` (para
 texto em inglês) ou o `en.txt` (para texto em italiano) não tem; o `pt.txt` traduz as linhas dos
-dois, e o que faltar nele também aparece na lista. Num sistema em português o jogo já abre em português.
+dois, e o que faltar nele também aparece na lista. Rode depois de mudar o texto de um mod.
 
 ### Cliente (`cnp_client`)
 
@@ -731,13 +731,13 @@ A lista completa está em `main()` em [`src/client/main.cpp`](src/client/main.cp
 | `--max-per-address N` | No máximo N jogadores de um mesmo endereço |
 | `--watchdog S` | Uma sala que não terminou um tick em S segundos derruba o servidor com a pilha impressa, para o `tools/serve.sh` iniciá-lo de novo |
 | `--federation PORTA` | Servidores amigos (`/friend`): linhas seladas e assinadas nesta porta TCP, sob a chave dos tickets (`--ticket-key`, ou WORLD.sign) |
-| `--rules-file ARQUIVO` `--no-update-check` | Regras que cada jogador aceita antes de jogar; não perguntar ao GitHub por uma versão nova ([`docs/ADMIN.md`](docs/ADMIN.md)) |
-| `--webhook URL` | Ações de admin, início, parada e denúncias enviadas por POST para lá em JSON ([`docs/ADMIN.md`](docs/ADMIN.md#webhooks)) |
+| `--rules-file ARQUIVO` `--no-update-check` | Regras que cada jogador aceita antes de jogar; não perguntar ao GitHub por uma versão nova ([`docs/ADMIN.md`](docs/ADMIN.pt.md)) |
+| `--webhook URL` | Ações de admin, início, parada e denúncias enviadas por POST para lá em JSON ([`docs/ADMIN.md`](docs/ADMIN.pt.md#webhooks)) |
 | `--report ARQUIVO` `--since 7d` `--json` | Sem servidor: o que um arquivo de mundo lembra -- jogadores, tempo de jogo, máximo ao mesmo tempo, entradas por hora, salas, quem foi recusado, ações da equipe, reinícios e travamentos, travessias vindas de outros servidores |
 | `--portals` `--portal-to HOST:PORTA[/N]` | Um par de aberturas controladas pelo servidor; `--portal-to` diz aonde a primeira leva (e por qual abertura `N` você sai); repetido, a segunda, terceira e quarta |
 | `--ticket-key ARQUIVO` `--portal-peer-key HEX` `--trust HEX` `--require-ticket` | Tickets assinados para atravessar entre servidores |
 | `--mobs N` `--ticks N` `--quiet` | Criaturas de teste, ticks antes de sair, menos log |
-| `--rooms-file ARQUIVO` | Salas iniciadas e paradas com o servidor rodando: uma linha `[room NOME]` e as opções dessa sala; uma inicia quando um portal ou um jogador leva até ela e salva e para quando fica sozinha. Um nome que termina com asterisco (`[room home-*]`) é um modelo, uma sala feita a partir dele para cada nome pedido: a sala própria de cada jogador. `/room` as gerencia ([ADMIN](docs/ADMIN.md)) |
+| `--rooms-file ARQUIVO` | Salas iniciadas e paradas com o servidor rodando: uma linha `[room NOME]` e as opções dessa sala; uma inicia quando um portal ou um jogador leva até ela e salva e para quando fica sozinha. Um nome que termina com asterisco (`[room home-*]`) é um modelo, uma sala feita a partir dele para cada nome pedido: a sala própria de cada jogador. `/room` as gerencia ([ADMIN](docs/ADMIN.pt.md)) |
 | `--room NOME` | Uma sala: mais um mundo no mesmo servidor e na mesma porta. O que vem depois vale só para essa sala (`--mods`, `--world-file`, `--portal-to`...), o que vem antes do primeiro `--room` vale para todas. `--portal-to @NOME[/N]` leva a outra sala; bolsa e vida são compartilhadas entre as salas. O cliente escolhe uma sala com `--room NOME` |
 
 ### Administração do servidor
@@ -751,8 +751,8 @@ webhooks, `/bag` e `/give`, e servidores amigos que compartilham banimentos, pre
 bolsa para cada jogador e portais construídos entre eles (uma moldura dourada que um admin
 configura pelo menu).
 
-**Todo comando, permissão, opção e chave do `server.conf` está em [`docs/ADMIN.md`](docs/ADMIN.md);
-todo comando de chat, os dos jogadores também, com o que faz, em [`docs/COMMANDS.md`](docs/COMMANDS.md).**
+**Todo comando, permissão, opção e chave do `server.conf` está em [`docs/ADMIN.md`](docs/ADMIN.pt.md);
+todo comando de chat, os dos jogadores também, com o que faz, em [`docs/COMMANDS.md`](docs/COMMANDS.pt.md).**
 `/help` no jogo lista os que você pode usar.
 
 `tools/serve.sh -l logs build-release/src/server/cnp_server --config server.conf` mantém um
@@ -769,23 +769,24 @@ servidor rodando através de reinícios e travamentos, com um log por dia.
 | `tools/windowlab.sh` | Corpos vistos por uma janela para outro mundo (games/windowlab): duas salas, seis criaturas marchando diante da boca distante. |
 | `tools/vehiclelab.sh` | Veículos pelos portais (games/vehiclelab, sobre os mods do sandbox): uma linha de carrinho que entra numa abertura e sai de outra girada um quarto, um canal de barco igual; um portal levado por um trem numa curva; `NAME=boat` ou `train` começa lá, `/vlab rail`, `boat`, `train`, `watch`; um cliente cronometrado precisa de `--keep-portals` |
 | `build/tools/cnp_modpack pack mods/ore` | Um mod num arquivo `.cnpmod`, que carrega de `mods/` como uma pasta |
-| `tools/dist/package-*.sh` | Os pacotes para Linux, Windows e macOS ([`docs/BUILDING.md`](docs/BUILDING.md)) |
+| `tools/dist/package-*.sh` | Os pacotes para Linux, Windows e macOS ([`docs/BUILDING.md`](docs/BUILDING.pt.md)) |
 | `build/tools/cnp_netshape` | Um relay UDP com atraso e perda, para testar conexões lentas |
 | `build/tools/libcnp_clock_skew.so` | Um `LD_PRELOAD` que desloca o relógio de um processo, para os tickets |
 | `tools/two_machines.sh` | Dois servidores em contêineres, com MTU e NAT reais |
 | `tools/admin.sh` (`-p PORTA`) | Um comando de admin para um servidor rodando, por RCON; a senha em `CNP_RCON_PASSWORD` |
 | `tools/serve.sh` (`-l PASTA` `-k DIAS` `-w URL`) | Mantém um servidor rodando através de reinícios e travamentos, um log por dia; travamentos enviados por POST à URL |
 | `build/tools/cnp_bake_textures` | Gera de novo as texturas provisórias dos blocos |
-| `tools/make_torch_models.py` | Os modelos da tocha (na mão, no chão, na parede, no teto), no Blender |
 
 ### Testes
 
-Quinze, escolhidos porque protegem coisas que quebram em silêncio e custam caro: entrada da rede
-(`protocol`, `chunk_codec`, `crypto`), mundos salvos (`storage`, `migration`, `persistence`),
+Dezoito, escolhidos porque protegem coisas que quebram em silêncio e custam caro: entrada da rede
+(`protocol`, `chunk_codec`, `crypto`), a tabela de jogadores do servidor depois que entram
+(`session`), mundos salvos (`storage`, `migration`, `persistence`),
 matemática e colisões dos portais (`portal_math`, `portal_traverse`, `physics_box`,
 `portal_continuity` na GPU), a sandbox dos mods (`script_isolation`), os
 próprios mods (`mods_smoke` inicia cada jogo e falha se um mod não carregou ou foi desligado;
-`api_types` amarra a parte de `core` escrita à mão aos seus tipos), e cliente e servidor de acordo
+`mods_play` faz o mesmo com um jogador andando, falando no chat e cavando em cada mundo;
+`mod_notice` confere que um mod desligado é avisado aos admins dele, e só a eles; `api_types` amarra a parte de `core` escrita à mão aos seus tipos), e cliente e servidor de acordo
 sobre o mundo (`worldgen`, `two_process_join`). O resto é conferido jogando. Por que cada um
 existe está em [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 
@@ -802,20 +803,33 @@ existe está em [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 
 ## Documentação
 
-Os documentos estão em italiano, muitos com uma versão em inglês ao lado (`.md` em inglês,
-`.it.md` em italiano).
+Cada documento está em inglês (`.md`), italiano (`.it.md`) e português brasileiro (`.pt.md`); os
+links abaixo levam ao em português.
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): como o código está organizado hoje e onde entra
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.pt.md): como o código está organizado hoje e onde entra
   um recurso novo.
-- [`docs/DESIGN.md`](docs/DESIGN.md): estudo de viabilidade, decisões, plano de marcos, riscos.
-- [`docs/MODDING.md`](docs/MODDING.md): escrever um mod; [`docs/API.md`](docs/API.md): a API Luau,
-  gerada a partir de `src/script/api.luau`.
-- [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.md): fazer um pacote de texturas.
-- [`docs/PIPES.md`](docs/PIPES.md): os tubos, os chips e as redes de itens, para jogadores e
+- [`docs/DESIGN.md`](docs/DESIGN.pt.md): estudo de viabilidade, decisões, plano de marcos, riscos.
+- [`docs/MODDING.md`](docs/MODDING.pt.md): escrever um mod; [`docs/API.md`](docs/API.md): a API Luau,
+  gerada a partir de `src/script/api.luau` (só em inglês).
+- [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.pt.md): fazer um pacote de texturas.
+- [`docs/PIPES.md`](docs/PIPES.pt.md): os tubos, os chips e as redes de itens, para jogadores e
   autores de mods.
-- [`docs/BUILDING.md`](docs/BUILDING.md): compilação, pacotes, versões e o repositório Flatpak.
+- [`docs/BUILDING.md`](docs/BUILDING.pt.md): compilação, pacotes, versões e o repositório Flatpak.
+- [`docs/ADMIN.md`](docs/ADMIN.pt.md): manter um servidor: todo comando de admin, permissão, opção
+  e chave do `server.conf`.
+- [`docs/COMMANDS.md`](docs/COMMANDS.pt.md): todo comando de chat, os dos jogadores também, com o
+  que faz.
+- [`CHANGELOG.md`](CHANGELOG.pt.md): o que mudou em cada versão.
+- Os guias dos mundos: [o assalto](games/assault/README.pt.md),
+  [os backrooms](games/backrooms/README.pt.md), [o front](games/front/README.pt.md),
+  [o Inferno](games/inferno/README.pt.md), [o parkour](games/parkour/README.pt.md),
+  [o jogo de plataforma](games/platformer/README.pt.md),
+  [o shooter de fliperama](games/shmup/README.pt.md).
+- [`contrib/README.md`](contrib/README.pt.md): os add-ons guardados fora do jogo, como o
+  homem-lagarto.
 - [`TODO.md`](TODO.md) (inglês): o que falta e o que está quebrado.
-- [`docs/archive/`](docs/archive/README.md): a história, marco por marco, com as medições.
+- [`docs/archive/`](docs/archive/README.md): a história, marco por marco, com as medições (em
+  italiano, como foi escrita).
 
 ## Licença
 

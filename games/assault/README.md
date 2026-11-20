@@ -1,6 +1,6 @@
 # The assault
 
-*[Leggi in italiano](README.it.md)*
+*[Leggi in italiano](README.it.md) · [Leia em português](README.pt.md)*
 
 The final assault on Basoalth's dimension, played together. Two mods: `mods/assault_core` (server
 only: the valley, the fortresses, the core's hall, the escape tunnel) and `mods/assault_game`

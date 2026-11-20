@@ -1,6 +1,6 @@
 # Cubes and Portals — sandbox voxel ex-novo su raylib con portali nativi
 
-*[Read in English](DESIGN.md)*
+*[Read in English](DESIGN.md) · [Leia em português](DESIGN.pt.md)*
 
 > Documento di progettazione. Analisi di fattibilità (grafica, server, client multi-istanza,
 > scripting, estensibilità) e piano a milestone. Non è ancora un impegno a scrivere codice:
@@ -40,10 +40,10 @@ con pregi/difetti misurati e un piano a milestone.
 | I clip plane laterali sono fattibili? | **Sì.** Shader nostri → `gl_ClipDistance[0..4]`; `glEnable(GL_CLIP_DISTANCE0+i)` è GL core, basta dichiararlo (raylib non lo espone ma non lo blocca). Fallback `discard` per GLES/Web. |
 | Server fattibile in C/C++ puro? | **Sì.** ENet + zstd + SQLite + FastNoiseLite. Nessuna toolchain nuova, tutte librerie C. |
 | Client multi-istanza per portali cross-server? | **Sì, ed è l'argomento più forte a favore del rewrite.** Oggi funziona ma è stato strappato a forza dai singleton; da zero è "una `struct Session`, niente globali". Misura già in mano: **il render del mondo B costa solo il 3-7% del frame** — il multi-sessione non è il collo di bottiglia. |
-| Linguaggio di scripting? | **Luau** (un Lua moderno: tipi graduali, native codegen, sandbox *progettata* per codice non fidato) dietro un'interfaccia `script_*`. Era previsto **LuaJIT** come secondo backend per i mod legacy l'engine di partenza e per il codice trusted con FFI: caduta la compatibilità (2026-09-12), resta un runtime solo e la FFI non è in piano. Valutati anche QuickJS-ng, WASM, Wren, Umka, C#: §5. |
+| Linguaggio di scripting? | **Luau** (un Lua moderno: tipi graduali, native codegen, sandbox *progettata* per codice non fidato) dietro un'interfaccia `script_*`. Era previsto **LuaJIT** come secondo backend per i mod legacy dell'engine di partenza e per il codice trusted con FFI: caduta la compatibilità (2026-09-12), resta un runtime solo e la FFI non è in piano. Valutati anche QuickJS-ng, WASM, Wren, Umka, C#: §5. |
 | Estendere le *meccaniche*, non solo i blocchi? | ECS server-side con componenti/sistemi definiti da Lua + trait sui nodi + render-graph con pass registrabili + canali di protocollo per mod. §6. |
 | **Costo reale** | Spike di validazione ~3 settimane. Client+server giocabile con portali cross-server: **~7 mesi**. Engine + gioco minimo: **~11 mesi**. Parità di contenuti in stile gioco a blocchi classico: **anni**, a meno di §7.5. |
-| **Raccomandazione** | Spike M0 come cancello. Sui contenuti la raccomandazione era il **layer di compatibilità con l'API dell'engine di partenza** (§7.5), **annullato il 2026-09-12**: L'engine di partenza era l'ispirazione, non l'obiettivo. Resta vera la metà scomoda della frase — un progetto come questo muore sui contenuti e non sulla grafica. **Scope fissato lo stesso giorno:** un clone del classico gioco a blocchi da cui i portali portano ad altri mondi, ciascuno un server con i suoi mod, fino a mondi che sono un altro gioco — una corsa acrobatica, un FPS in stile arena shooter. Non è più piccolo dello scope che §7.5 chiamava fatale; lo tiene in piedi il fatto che ogni modo è un mondo piccolo dietro un portale e non un pezzo del sandbox (M12, M13). |
+| **Raccomandazione** | Spike M0 come cancello. Sui contenuti la raccomandazione era il **layer di compatibilità con l'API dell'engine di partenza** (§7.5), **annullato il 2026-09-12**: l'engine di partenza era l'ispirazione, non l'obiettivo. Resta vera la metà scomoda della frase — un progetto come questo muore sui contenuti e non sulla grafica. **Scope fissato lo stesso giorno:** un clone del classico gioco a blocchi da cui i portali portano ad altri mondi, ciascuno un server con i suoi mod, fino a mondi che sono un altro gioco — una corsa acrobatica, un FPS in stile arena shooter. Non è più piccolo dello scope che §7.5 chiamava fatale; lo tiene in piedi il fatto che ogni modo è un mondo piccolo dietro un portale e non un pezzo del sandbox (M12, M13). |
 
 ### Decisioni prese (fissano lo scope di questo piano)
 
@@ -112,7 +112,7 @@ degli oggetti GL e te li lascia manipolare.
 | Nessun scene graph / frustum culling / occlusion | Alto — è *il* lavoro di un engine voxel | Lo scrivi tu, ed è meglio così (§2.6) |
 | Nessuna texture array (`GL_TEXTURE_2D_ARRAY`) | Medio | ~60 righe di shim GL, oppure atlas con padding + mip manuali |
 | GL single-thread | Medio | Meshing su worker → buffer CPU → upload sul thread GL (come fa l'engine di partenza) |
-| Niente shadow map / ombre | Medio | Le scrivi tu, o parti senza ombre (Il classico gioco a blocchi non le ha). Scritte il 2026-10-11: vedi ARCHITECTURE.md, "Come si disegna la luce" |
+| Niente shadow map / ombre | Medio | Le scrivi tu, o parti senza ombre (il classico gioco a blocchi non le ha). Scritte il 2026-10-11: vedi ARCHITECTURE.md, "Come si disegna la luce" |
 | Audio non spaziale 3D (solo pan/volume) | Basso | Attenuazione+pan a mano, o miniaudio diretto (già linkato) |
 | Nessun `BeginTextureMode` annidato | Basso | Non serve: la ricorsione portali si fa **dal più profondo al più superficiale** su un pool di RT (§2.5) |
 | Nessuna UI dichiarativa | Medio | `microui` o `Clay` (C, MIT) + backend raylib; formspec-like guidato da Lua |
@@ -890,7 +890,7 @@ strade, e solo una regge per una persona sola:
 | Strada | Costo | Esito |
 |---|---|---|
 | Riscrivere i contenuti da zero | anni-uomo | Il progetto muore prima |
-| ~~Far girare i mod dell'engine di partenza sul nuovo engine~~ | 8-12 settimane | I giochi esistenti, tutta la mod library, **e i 9 700 righe di Lua già scritte** girano con modifiche minime |
+| ~~Far girare i mod dell'engine di partenza sul nuovo engine~~ | 8-12 settimane | I giochi esistenti, tutta la mod library, **e le 9 700 righe di Lua già scritte** girano con modifiche minime |
 
 **Come**, senza sporcare l'architettura nuova: il compat layer è **un mod Lua**, non codice di
 engine. L'engine espone la sua API nativa pulita (§6); `compat_layer/` è un pacchetto Lua che
@@ -908,8 +908,8 @@ function M.show_formspec(pl, fid, spec)  core.ui.show(pl, formspec_parse(spec)) 
 rawset(_G, "legacy", M); rawset(_G, "core", M)
 ```
 
-Quello che l'**engine** deve fornire perché il layer sia sottile (e non una reimplementazione di
-L'engine di partenza travestita):
+Quello che l'**engine** deve fornire perché il layer sia sottile (e non una reimplementazione
+dell'engine di partenza travestita):
 
 - `param2` a 8 bit per nodo con semantica `facedir`/`wallmounted` come **trait standard**;
 - drawtype `nodebox` e `mesh` con `node_box`/`selection_box` (14 nodebox nel solo `yaportal`);

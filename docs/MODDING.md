@@ -1,6 +1,6 @@
 # Writing a mod
 
-*[Leggi in italiano](MODDING.it.md)*
+*[Leggi in italiano](MODDING.it.md) · [Leia em português](MODDING.pt.md)*
 
 Status: M2 under way. This document describes what **works today**, not what is planned; for the
 whole plan see `DESIGN.md` §5 and §6.
@@ -531,7 +531,7 @@ is the channel read back as a name. The event reaches **only the handlers of tha
 everybody, and on the client the bars of `mods/hunger` and `mods/enchant` swapped their values.
 
 `core:hit` is a player's blow **that landed** on a body (a creature, a mod's entity with health):
-`target` is the body's id, `damage` the points taken, `killed` whether it was the last. Emitted
+`target` is the body's id, the one `core.spawn_mob` gives and `core.body_player` and the `core.mob_*` calls take, `damage` the points taken, `killed` whether it was the last. Emitted
 after the fact, on the server and in the client that is its own server. `mods/hunger` counts it as
 exertion, `mods/enchant` as experience for a kill.
 
@@ -1754,7 +1754,7 @@ on foot and get into a parked kart: `games/track`.
   depth (the front's vehicles' windows, 0.3). Texture alpha instead cuts out: under 0.5 the pixel is
   not there.
 * **The player's colours and accessories.** The `tint_1`, `tint_2`, `tint_3` materials of the
-  player's model (and its `_arms`) take the primary, secondary and accent chosen in the Robot menu
+  player's model (and its `_arms`) take the primary, secondary and accent chosen in the Character menu
   (protocol 93, `Hello::livery`); with no choice they keep the file's colour. Accessories are models
   named after the player plus `_cap`, `_tophat`, `_headphones`, `_scarf`, `_bowtie`, `_medal`
   (`robot:robot_cap`), made on the player's skeleton and drawn as a worn piece; a world that does not
@@ -2361,7 +2361,7 @@ code does:
 | `Unknown require: unsupported path` | `require("./x")` in an `init.luau` | `require("@self/x")` |
 | `Module does not return exactly 1 value` | the file required is run for what it does | `return nil` at its end |
 
-The last row is not a type at all: `backrooms_exit`'s `keys:level` handler wrote into
+The `Unknown global` row is not a type at all: `backrooms_exit`'s `keys:level` handler wrote into
 `level_d` above the line that declares it, so it indexed a global that does not exist and stopped
 there, before it put the player in the level -- and the lights that go out from level 5 on never
 did. That is what a clean check is for: the typing errors hide the few that are not.
@@ -2667,7 +2667,7 @@ The mods in `mods/` are working examples:
   wandering, butterflies flying flower to flower (`core.mob_place` every tick, `hover`), each with its
   `_say`, `_hurt` and `_death` sounds (`tools/make_garden_sounds.py`);
 - `portal` -- a frame of `portal:frame` round a hole of air, upright or lying, opens a portal
-  (`core.portal_open`, as many frames as you like: the server gives the 32 real openings to those near
+  (`core.portal_open`, as many frames as you like: the server gives the 40 real openings to those near
   players) and links it to the last one left alone (`core.portal_link`); right click on the frame opens
   its menu, with the other frames to link it to. Until it is linked the client closes it with an
   animated green membrane, which opens from the centre onto the picture when the other end arrives

@@ -1,6 +1,6 @@
 # Comandi
 
-*[Read in English](COMMANDS.md)*
+*[Read in English](COMMANDS.md) · [Leia em português](COMMANDS.pt.md)*
 
 Ogni comando che un giocatore può scrivere in chat (T, poi `/nome`), cos'è e cosa fa.
 `/help` nel gioco elenca quelli che puoi usare dove sei; l'elenco cambia con il mondo,

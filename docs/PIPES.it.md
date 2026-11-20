@@ -1,6 +1,6 @@
 # Tubi
 
-*[Read in English](PIPES.md)*
+*[Read in English](PIPES.md) · [Leia em português](PIPES.pt.md)*
 
 Guida completa al mod `pipes` (`mods/pipes/`): tubi che portano oggetti da un contenitore
 all'altro e reti instradate che li smistano, li conservano e li consegnano su richiesta. Il
@@ -467,7 +467,7 @@ pressione ricostruisce tutto com'era.
 
 ### Blocchi e forme
 
-Ognuno dei cinque tipi è registrato in **64 blocchi**, uno per ogni combinazione dei sei bracci:
+Ognuno dei nove tipi è registrato in **64 blocchi**, uno per ogni combinazione dei sei bracci:
 `pipes:<tipo>` (nessun braccio) e `pipes:<tipo>_<maschera>`, con il bit `d−1` della maschera per la
 direzione `d` nell'ordine +x, −x, +y, −y, +z, −z. Le forme sono `core.node_box`: l'asta
 `[0,375 … 0,625]³` più un braccio fino al bordo della cella per ogni bit. Tutte le forme

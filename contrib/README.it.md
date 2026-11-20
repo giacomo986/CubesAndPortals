@@ -1,6 +1,6 @@
 # Add-on
 
-*[Read in English](README.md)*
+*[Read in English](README.md) · [Leia em português](README.pt.md)*
 
 Quello che c'è qui **non fa parte del gioco**: nessun mondo lo carica se un giocatore non lo installa.
 Ogni cartella è una mod fatta come la manderebbe qualcuno da fuori del progetto, tenuta nel

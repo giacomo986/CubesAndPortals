@@ -1,6 +1,6 @@
 # Le backrooms
 
-*[Read in English](README.md)*
+*[Read in English](README.md) · [Leia em português](README.pt.md)*
 
 Un labirinto senza fine di stanze che nessuno ha costruito, su tre livelli
 impilati, con porte rare che portano da un livello all'altro. Il mondo è

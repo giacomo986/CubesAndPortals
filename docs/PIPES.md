@@ -1,6 +1,6 @@
 # Pipes
 
-*[Leggi in italiano](PIPES.it.md)*
+*[Leggi in italiano](PIPES.it.md) · [Leia em português](PIPES.pt.md)*
 
 The complete guide to the `pipes` mod (`mods/pipes/`): pipes that carry items from one container
 to another, and routed networks that sort them, store them and deliver them on request. The model
@@ -463,7 +463,7 @@ all again as it was.
 
 ### Blocks and shapes
 
-Each of the five kinds is registered as **64 blocks**, one per combination of the six arms:
+Each of the nine kinds is registered as **64 blocks**, one per combination of the six arms:
 `pipes:<kind>` (no arm) and `pipes:<kind>_<mask>`, with bit `d−1` of the mask for direction `d` in
 the order +x, −x, +y, −y, +z, −z. The shapes are `core.node_box`es: the core `[0.375 … 0.625]³`
 plus an arm to the edge of the cell for each bit. Every shape `node_drop`s as shape 0.

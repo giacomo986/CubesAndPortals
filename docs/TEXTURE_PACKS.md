@@ -1,6 +1,6 @@
 # Texture packs
 
-*[Leggi in italiano](TEXTURE_PACKS.it.md)*
+*[Leggi in italiano](TEXTURE_PACKS.it.md) · [Leia em português](TEXTURE_PACKS.pt.md)*
 
 A pack is **a folder of images** and, when needed, a sheet saying which image each block wears.
 

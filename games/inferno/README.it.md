@@ -1,6 +1,6 @@
 # L'Inferno
 
-*[Read in English](README.md)*
+*[Read in English](README.md) · [Leia em português](README.pt.md)*
 
 Un mondo di caverne tra un pavimento e un soffitto di roccia madre, mari di lava in fondo,
 glowrock appesa al soffitto e fortezze di mattoni le cui corsie fanno da ponte sulle caverne.

@@ -1,6 +1,6 @@
 # L'assalto
 
-*[Read in English](README.md)*
+*[Read in English](README.md) · [Leia em português](README.pt.md)*
 
 L'assalto finale alla dimensione di Basoalth, da giocare insieme. Due mod:
 `mods/assault_core` (solo server: la valle, le fortezze, la sala del nucleo,

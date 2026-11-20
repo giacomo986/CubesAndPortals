@@ -1,6 +1,6 @@
 # Cambiamenti
 
-*[Read in English](CHANGELOG.md)*
+*[Read in English](CHANGELOG.md) · [Leia em português](CHANGELOG.pt.md)*
 
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
@@ -13,7 +13,8 @@ non chiede.
 
 - **Niente più lampi verdi nel cielo del fronte**: l'estremo lontano di una finestra (la mappa della
   galleria sopra il campo) non si disegna, e la sua apertura non si ripete più -- in cielo, a ogni
-  cambio dei portali del mondo -- né quella della finestra stessa, nel pavimento della galleria.
+  cambio dei portali del mondo -- né quella della finestra stessa, nel pavimento della galleria, in
+  continuazione.
 - **Nelle stanze si entra solo dai loro portali**: entrando direttamente, una stanza dopo la prima
   del server si può solo guardare; un biglietto per una stanza non fa più entrare in un'altra dello
   stesso server. `cnp_join_probe --room NOME` entra direttamente in una stanza, per i test.
@@ -24,10 +25,20 @@ non chiede.
   secondi mentre si caricava una stanza dell'inferno, ora al più un quarto di secondo circa.
 - **I cancelli di un mondo survival** lasciano liberi i portali vicino a cui non c'è nessuno, così
   anche lì i portali tra stanze costruiti a mano hanno bocche da prendere in prestito.
+- **Il colpo del prop hunt trova sempre chi si nasconde**: non trovava nessuno quando il corpo di
+  chi si nascondeva aveva un id già usato (chi è entrato dopo che un altro era uscito). Per chi
+  scrive mod: il `target` di `core:hit` è l'id che prendono tutte le altre chiamate, come lo dà
+  `core.spawn_mob`, e non più un numero che `core.body_player` non sapeva leggere.
+- **La documentazione è anche in portoghese**: `docs/`, le guide dei mondi, `contrib/` e questo
+  changelog, accanto a inglese e italiano; `docs/API.md`, generato, è in inglese.
 - **Per i test**: il client temporizzato sa fare clic sinistro (`--click-at x,y,z[,s]`,
   `--left-at t[,s]`) e registrare quello che suona (`--record-audio FILE.wav`, su un'uscita che
   nessuno sente con `tools/null_sink.sh`); `tools/audio_check.py` dice quando c'era suono e quanto
   forte.
+  `--left-at t,s,x,y` mette il puntatore lì per la pressione (frazioni dello schermo: dall'alto,
+  come nell'arpg, il clic va dove sta), e `--left-at` si può dare più volte; una camminata guidata
+  dal codice del mondo (`core.walk`, il tasto tenuto dell'arpg) ora cammina anche in una corsa
+  temporizzata.
 - **Il fronte e l'assalto condividono armi, granate, bot e mezzi**: un solo file che caricano
   tutti e due (`battle.luau`, quello di front_game; quello dell'assalto è un link), così una
   correzione all'uno è una correzione all'altro. Due correzioni che aveva solo l'assalto arrivano

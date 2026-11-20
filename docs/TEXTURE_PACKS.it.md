@@ -1,6 +1,6 @@
 # Pacchetti di texture
 
-*[Read in English](TEXTURE_PACKS.md)*
+*[Read in English](TEXTURE_PACKS.md) · [Leia em português](TEXTURE_PACKS.pt.md)*
 
 Un pacchetto è **una cartella di immagini** e, se serve, un foglietto che dice
 quale immagine porta ogni blocco.
@@ -257,8 +257,9 @@ textures: 'Kenney Voxel Pack' (1 of 1) from assets/packs/kenney -- 19 name(s) ma
 atlas: 8 x 8 tiles at 128px (1024px square), 19 from the pack, 20 generated
 ```
 
-I venti generati sono i `palette:hue*`, campioni di colore piatto che il
-foglietto lascia apposta com'erano.
+I venti generati erano i `palette:hue*`, campioni di colore piatto che il
+foglietto lasciava apposta com'erano (dal 2026-10-30 hanno immagini proprie in
+`assets/textures`).
 
 ---
 

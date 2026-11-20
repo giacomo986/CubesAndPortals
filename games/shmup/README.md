@@ -1,6 +1,6 @@
 # The arcade shooter
 
-*[Leggi in italiano](README.it.md)*
+*[Leggi in italiano](README.it.md) · [Leia em português](README.pt.md)*
 
 A shooter seen from overhead on a fighter, in the manner of the arcade cabinets of the eighties:
 one screen with the sea going by under it, two levels of ten waves of planes, power-ups, a flying

@@ -1,6 +1,6 @@
 # Compilare e distribuire
 
-*[Read in English](BUILDING.md)*
+*[Read in English](BUILDING.md) · [Leia em português](BUILDING.pt.md)*
 
 Come si passa dal sorgente agli eseguibili, e da lì ai pacchetti per chi gioca. Come si gioca
 e si prova una volta compilato è nel [README](../README.it.md#giocare-e-testare-riferimento).
@@ -37,7 +37,7 @@ cmake --build build -j
 ctest --test-dir build                 # 18 test; -LE gpu salta quello che apre una finestra
 ```
 
-Escono tre programmi:
+Escono quattro programmi:
 
 | | |
 |---|---|
@@ -98,7 +98,7 @@ aspettare i primi chunk (i log tenuti allora non riportano niente).
 
 ## I pacchetti
 
-Ogni pacchetto è una cartella con i tre programmi e, accanto, `mods/`, `games/` e `assets/`
+Ogni pacchetto è una cartella con i quattro programmi e, accanto, `mods/`, `games/` e `assets/`
 (`textures`, `sounds`, `lang`): la copia la fa `tools/dist/stage.sh`, ed è la disposizione in
 cui `core/paths.h` cerca i file. Un pacchetto si chiama
 `cubes-and-portals-<versione>-<sistema>-<architettura>` e finisce in `<build>/dist/`.
@@ -221,8 +221,8 @@ destro e Apri, oppure `xattr -dr com.apple.quarantine "Cubes and Portals.app"`.
 `.github/workflows/release.yml` costruisce tutti i pacchetti: Linux e Windows su Ubuntu, macOS
 su un runner Apple silicon. Parte da solo a ogni tag `v*` e si può lanciare a mano dalla
 scheda Actions. Su un tag controlla che il tag sia la versione scritta nel codice, e mette i
-pacchetti in una GitHub Release (marcata pre-release finché la versione è un'alpha). Il
-repository deve stare su GitHub perché tutto questo funzioni.
+pacchetti in una GitHub Release (marcata pre-release finché la versione è un'alpha o una beta)
+le cui note sono la sezione di quella versione in `CHANGELOG.md`. Il repository deve stare su GitHub perché tutto questo funzioni.
 
 Nessun pacchetto è firmato: Windows SmartScreen chiede conferma una volta ("Ulteriori
 informazioni", poi "Esegui comunque") e macOS Gatekeeper pure.
@@ -247,7 +247,8 @@ Per fare un'alpha:
 
 1. alzare `kEngineVersion`;
 2. aggiungere in cima a `CHANGELOG.md` la nuova voce, con la data e cosa cambia per chi gioca
-   (in inglese, e la stessa in italiano in `CHANGELOG.it.md`);
+   (in inglese, e la stessa in italiano in `CHANGELOG.it.md` e in portoghese in
+   `CHANGELOG.pt.md`);
 3. fare un commit, poi `git tag v<versione>` (per esempio `git tag v0.4.0-alpha.2`);
 4. `git push`, poi `git push origin v<versione>` (`--follow-tags` non porta i tag semplici):
    la CI costruisce i pacchetti e li pubblica. Senza GitHub, si

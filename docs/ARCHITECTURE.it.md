@@ -1,6 +1,6 @@
 # Architettura
 
-*[Read in English](ARCHITECTURE.md)*
+*[Read in English](ARCHITECTURE.md) · [Leia em português](ARCHITECTURE.pt.md)*
 
 Come è fatto il codice oggi, e dove va una feature nuova. Il perché delle scelte grandi è in
 [`DESIGN.it.md`](DESIGN.it.md); il perché delle piccole è quasi sempre nel commento in cima al file.
@@ -51,7 +51,7 @@ cnp_server ─── cnp_script, cnp_net, cnp_core      (nessuna GPU, nessuna fi
 | Cartella | File principali |
 |---|---|
 | `voxel/` | `chunk` (32³, id + luce + verso), `mesher` (greedy, vertice 12 byte con luce morbida e direzionale), `mesh_pool` (meshing su thread), `light` (flood fill sole e blocchi), `raycast`, `dig` (lato client di uno scavo), `find` |
-| `worldgen/` | `worldgen` (stage in ordine, una colonna di chunk alla volta; `world_hash`), `biome`, `noise`, `spawn` |
+| `worldgen/` | `worldgen` (stage in ordine, una colonna di chunk alla volta; `world_hash`), `biome`, `noise`, `spawn` (davanti a un'apertura, sulla piazza, o su terra asciutta per un mondo survival) |
 | `world/` | `columns` (quali colonne sono in memoria: blocchi, poi luce, poi lasciate), `daylight` (orologio del mondo; `sky_light_at`: sole e luna per il disegno), `modifiers` (ABM/LBM), `node_meta` (cosa ricorda una cella) |
 | `registry/` | `node_registry` (blocchi), `node_shape` (scatole di un blocco, ruotate), `core_nodes` (i blocchi del motore), `model_registry` |
 | `physics/` | `aabb` (box del giocatore contro il mondo), `movement` (limiti e validazione), `fall`, `rigid` (scatole che rotolano: un mondo Jolt per mondo ECS, i blocchi attorno a ogni scatola come terreno statico; `core.mob_tumble`) |
@@ -59,7 +59,7 @@ cnp_server ─── cnp_script, cnp_net, cnp_core      (nessuna GPU, nessuna fi
 | `item/` | `item_registry`, `inventory`, `container` (casse), `recipe`, `craft_grid`, `item_codec` (su disco) |
 | `ecs/` | `components` (Flecs), `health`, `drop`, `mob`, `lua_ecs` (componenti e sistemi dei mod) |
 | `media/` | `content_hash`, `media_set` (lato server), `media_cache` (lato client), `png`, `gltf`, `texture_pack`, `face_tiles`, `tile_bake` |
-| `net/` | `protocol` (messaggi, versione 37, handshake), `session` (`ServerSessions`: tutto quello che il server fa con un peer, senza socket), `client_session`, `interest` (quali chunk e in che ordine), `chunk_codec`, `transport` (ENet), `crypto`, `bytes` |
+| `net/` | `protocol` (messaggi, versione, handshake), `session` (`ServerSessions`: tutto quello che il server fa con un peer, senza socket), `client_session`, `interest` (quali chunk e in che ordine), `chunk_codec`, `transport` (ENet), `crypto`, `bytes` |
 | `storage/` | `world_db` (SQLite: chunk, casse, borse, metadati, migrazioni), `column_keeper` (le colonne che entrano, si illuminano e si lasciano; server e client da solo) |
 | `ui/` | `panel` (pannelli dichiarati dai mod, layout e hit test) |
 | `audio/` `diag/` `math/` | Attenuazione e toni; profiler e stack dump; vettori, matrici, frustum |
@@ -78,7 +78,7 @@ cnp_server ─── cnp_script, cnp_net, cnp_core      (nessuna GPU, nessuna fi
 
 | File | |
 |---|---|
-| `main.cpp` | `Session` (un mondo) e `Scene` (tutti i mondi), le funzioni host dei mod lato client (`make_client_host`), `run_interactive` (gioco locale), `run_network` (gioco connesso), `run_bench`, `run_dual_bench`, `run_soak`, `run_verify`, e `main()` con i flag |
+| `main.cpp` | `Session` (un mondo) e `Scene` (tutti i mondi), le funzioni host dei mod lato client (`make_client_host`), `run_interactive` (gioco locale), `run_network` (gioco connesso), `run_bench`, `run_dual_bench`, `run_soak`, `run_verify`, e `main()` con i flag; il menù del titolo e `serve_world` (un mondo proprio, sandbox o survival) |
 | `player.cpp` | Movimento del giocatore: input, gravità, collisione, passo |
 | `gfx/` `snd/` | Unico punto che include raylib |
 | `render/` | `world_render` (chunk e atlas), `portal_render` (target, ricorsione, `draw_closed`: la membrana dei portali chiusi e la sua apertura), `body_render`, `model_render` e `model_store` (glTF), `selection`, `mod_pass` (pass dei mod), `shaders.h` |
@@ -138,7 +138,8 @@ e lo lascia solo mentre aspetta la rete; il lock si passa **nell'ordine in cui �
 chiesto**, e una stanza in ritardo sui tick lo lascia comunque una volta per poll. Con un
 `std::mutex` una stanza occupata (l'inferno che genera colonne) se lo riprendeva prima che
 le altre si svegliassero, e i giocatori della pista restavano senza risposta per più di un
-secondo. Ogni stanza scrive nel log quanto l'ha tenuto al massimo.
+secondo. Ogni stanza scrive nel log quanto l'ha tenuto al massimo. Le bocche di una stanza (fino a
+28 dal protocollo 116) sono le sue vie verso le altre.
 
 ## Come si disegna la luce
 
@@ -160,7 +161,7 @@ a leggere i livelli e `daylight_at`.
   aprire il proprio target (`gfx_shadow_create`: solo profondità, confronto in hardware).
 - **Sole e luna** nel pass delle nuvole; **corpi e oggetti in mano** prendono la luce della cella
   (`WorldRenderer::cell_light`).
-- **Classica** (`set_classic`, Opzioni → Lighting): la formula di prima, dal byte di luce
+- **Classica** (`set_classic`, Opzioni → Video, Luce: classica): la formula di prima, dal byte di luce
   impacchettato che il vertice porta ancora; niente ombre né sole.
 
 ## Trappole già incontrate
@@ -248,7 +249,7 @@ di tornare. Quando una modifica tocca una di queste, va verificata come dice la 
 
 | Cosa | Dove |
 |---|---|
-| Una funzione Lua nuova | La firma in `src/script/api.luau`; la funzione host in `src/server/main.cpp` e, se serve anche in locale, in `make_client_host` di `src/client/main.cpp`; due righe in `docs/MODDING.md`. `docs/API.md` si rigenera da solo |
+| Una funzione Lua nuova | La firma in `src/script/api.luau`; la funzione host in `src/server/main.cpp` e, se serve anche in locale, in `make_client_host` di `src/client/main.cpp`; due righe in `docs/MODDING.md` (e `MODDING.it.md`, `MODDING.pt.md`). `docs/API.md` si rigenera da solo |
 | Un evento del motore | Lo schema fra gli eventi del motore (`define_core_events` nel client, la tabella degli eventi in `main()` del server) e l'`emit` nel punto in cui succede |
 | Una regola di gioco | Prima chiedersi se può essere un mod. Se è del motore: la funzione in `src/core/`, chiamata dal server (`net/session.cpp`) e dal client locale |
 | Un messaggio di rete | Struttura con `encode`/`decode` in `core/net/protocol.h`, `kProtocol` +1 con una riga che dice cosa cambia, gestione in `net/session.cpp` e `net/client_session.cpp`. Un decoder deve rifiutare input troncato: il test `protocol` lo prova |
@@ -272,7 +273,7 @@ di tornare. Quando una modifica tocca una di queste, va verificata come dice la 
 | `depths` | Miniere abbandonate e cripte sotto terra, pianificate per regione e costruite una colonna alla volta |
 | `portal` | Portali costruiti a blocchi: una cornice di `portal:frame` attorno a un buco d'aria, in piedi o coricata, apre un'apertura; tasto destro sulla cornice per il menù |
 | `furnace` | Una fornace: il carbone fonde il grezzo in lingotti, la sabbia in vetro e il cibo; tiene l'esperienza della fusione e la dà a chi la apre (`furnace:xp`) |
-| `creative` | Un inventario creativo su un pannello, col tasto C (`side = both`) |
+| `creative` | Un inventario creativo su un pannello, col tasto C (`side = both`); chiede il permesso `creative` |
 | `doors` | Porte a due blocchi, anche per chi trova una strada (`core.find_path`) |
 | `mobs`, `robot` | Zombie, scheletri, il robot che fa da corpo al giocatore |
 | `animals`, `pets` | Maiali, mucche, pecore, galline (cibo, lana, uova, pelle, allevamento); gatto, cane, canna da pesca |

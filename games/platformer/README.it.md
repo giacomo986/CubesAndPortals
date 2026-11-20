@@ -1,6 +1,6 @@
 # Il gioco a piattaforme
 
-*[Read in English](README.md)*
+*[Read in English](README.md) · [Leia em português](README.pt.md)*
 
 Un gioco a piattaforme visto di lato, come quelli degli anni ottanta: tre livelli, un boss, una stanza
 bonus, i power-up, le loro regole e la telecamera. Due mod: `mods/platformer_core` (solo server: il robot, come

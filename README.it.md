@@ -41,9 +41,12 @@ multiplayer, e ogni mondo è fatto di mod in Luau che chiunque può leggere e ca
 traduzioni, segnalazioni di bug e partite di prova sono tutti benvenuti (vedi
 [Contribuire](#contribuire)).
 
-La documentazione di approfondimento (`docs/`, le guide dei mondi, il changelog) è in italiano;
-codice, commenti, `TODO.md` e messaggi di commit sono in inglese. Issue e pull request vanno bene
-in tutte e due le lingue.
+Le lingue ufficiali sono l'inglese, l'italiano e il portoghese brasiliano. La documentazione
+(`docs/`, le guide dei mondi, `contrib/`, il changelog) è in tutte e tre, e una modifica a una si fa
+in tutte e tre. [`docs/API.md`](docs/API.md) è generato da `src/script/api.luau` ed è in inglese.
+Codice, commenti, `TODO.md` e messaggi di commit sono in inglese. Issue e pull request sono
+benvenute in una qualunque delle tre. Anche il gioco è nelle tre lingue (`assets/lang/`: `en`,
+`it`, `pt`): parte nella lingua del sistema, e Opzioni, Lingua la cambia.
 
 ## Stato
 
@@ -127,7 +130,7 @@ cmake --build build -j
 
 Un clone fatto senza `--recursive` si completa con `git submodule update --init --recursive`.
 
-Il build produce tre programmi:
+Il build produce questi programmi:
 
 | | |
 |---|---|
@@ -137,7 +140,7 @@ Il build produce tre programmi:
 | `build/tools/cnp_modpack` | impacchetta un mod in un file `.cnpmod` |
 
 Un build di sviluppo legge `mods/`, `games/` e `assets/` dal checkout, quindi va avviato da lì.
-I test si lanciano con `ctest --test-dir build` (15 test, meno di un minuto).
+I test si lanciano con `ctest --test-dir build` (18 test, un paio di minuti).
 
 I pacchetti per chi gioca si costruiscono con gli script di `tools/dist/` e finiscono in
 `<cartella di build>/dist/`. Il pacchetto Windows si compila **da Linux** con zig, quello macOS
@@ -299,7 +302,7 @@ alla chiave di ogni mondo, annunciate quando le raggiungi (`/page goals`).
 
 ### Survival: i mondi sparsi sulla terra
 
-"Mode: Survival" nella pagina del nuovo mondo del menù del titolo (`cnp_server --survival` sulla
+"Modalità: sopravvivenza" nella pagina del nuovo mondo del menù del titolo (`cnp_server --survival` sulla
 stanza sandbox, `tools/track.sh --survival`) fa lo stesso gioco senza piazza:
 
 - **Niente piazza, uno spawn a caso.** Il terreno è il rumore ovunque; si parte su terra asciutta
@@ -571,7 +574,7 @@ Il piano completo e le sue decisioni sono in [`docs/DESIGN.md`](docs/DESIGN.it.m
 Dopo aver compilato ([sopra](#compilare-dal-sorgente)), dalla cartella del checkout:
 
 ```sh
-ctest --test-dir build                       # 15 test, meno di un minuto; -LE gpu salta quello che apre una finestra
+ctest --test-dir build                       # 18 test, un paio di minuti; -LE gpu salta quello che apre una finestra
 
 ./build/src/client/cnp_client                # il menù del titolo
 ./build/src/client/cnp_client --quick        # avvio rapido: un mondo locale di prova, niente salvato
@@ -758,12 +761,14 @@ server acceso tra riavvii e crash, con un log al giorno.
 
 ### Test
 
-Quindici, scelti perché proteggono cose che si rompono in silenzio e costano care: l'input dalla
-rete (`protocol`, `chunk_codec`, `crypto`), i mondi salvati (`storage`, `migration`,
+Diciotto, scelti perché proteggono cose che si rompono in silenzio e costano care: l'input dalla
+rete (`protocol`, `chunk_codec`, `crypto`), la tabella dei giocatori del server una volta entrati
+(`session`), i mondi salvati (`storage`, `migration`,
 `persistence`), la matematica dei portali e le collisioni (`portal_math`, `portal_traverse`,
 `physics_box`, `portal_continuity` in GPU), la sandbox dei mod (`script_isolation`), i mod
 stessi (`mods_smoke` avvia ogni gioco e fallisce su un mod che non si è caricato o è stato spento;
-`api_types` lega la parte di `core` scritta a mano ai suoi tipi), e client e server d'accordo sul
+`mods_play` fa lo stesso con un giocatore che cammina, scrive in chat e scava in ogni mondo;
+`mod_notice` controlla che un mod spento sia detto ai suoi admin, e solo a loro; `api_types` lega la parte di `core` scritta a mano ai suoi tipi), e client e server d'accordo sul
 mondo (`worldgen`, `two_process_join`). Il resto si verifica giocando. Il
 perché di ciascuno è in [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 
@@ -780,18 +785,33 @@ perché di ciascuno è in [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 
 ## Documentazione
 
+Ogni documento è in inglese (`.md`), in italiano (`.it.md`) e in portoghese brasiliano (`.pt.md`);
+i link qui sotto portano a quello in italiano.
+
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.it.md): come è fatto il codice oggi e dove si mette una
   feature nuova.
 - [`docs/DESIGN.md`](docs/DESIGN.it.md): analisi di fattibilità, decisioni, piano a milestone,
   rischi.
 - [`docs/MODDING.md`](docs/MODDING.it.md): scrivere un mod; [`docs/API.md`](docs/API.md): l'API
-  Luau, generata da `src/script/api.luau`.
+  Luau, generata da `src/script/api.luau` (solo in inglese).
 - [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.it.md): fare un texture pack.
 - [`docs/PIPES.md`](docs/PIPES.it.md): i tubi, i chip e le reti di oggetti, per chi gioca e per
   chi scrive mod.
 - [`docs/BUILDING.md`](docs/BUILDING.it.md): compilare, pacchetti, versioni e il repository Flatpak.
+- [`docs/ADMIN.md`](docs/ADMIN.it.md): gestire un server: ogni comando admin, permesso, flag e
+  chiave di `server.conf`.
+- [`docs/COMMANDS.md`](docs/COMMANDS.it.md): ogni comando della chat, anche quelli dei giocatori,
+  con cosa fa.
+- [`CHANGELOG.md`](CHANGELOG.it.md): cosa è cambiato a ogni versione.
+- Le guide dei mondi: [l'assalto](games/assault/README.it.md),
+  [le backrooms](games/backrooms/README.it.md), [il fronte](games/front/README.it.md),
+  [l'Inferno](games/inferno/README.it.md), [il parkour](games/parkour/README.it.md),
+  [il platform](games/platformer/README.it.md), [lo sparatutto da sala giochi](games/shmup/README.it.md).
+- [`contrib/README.md`](contrib/README.it.md): gli add-on tenuti fuori dal gioco, come l'uomo
+  lucertola.
 - [`TODO.md`](TODO.md) (in inglese): cosa manca e cosa non va.
-- [`docs/archive/`](docs/archive/README.md): lo storico, milestone per milestone, con le misure.
+- [`docs/archive/`](docs/archive/README.md): lo storico, milestone per milestone, con le misure (in
+  italiano, com'è stato scritto).
 
 ## Licenza
 

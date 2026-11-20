@@ -1,6 +1,6 @@
 # Il percorso di parkour
 
-*[Read in English](README.md)*
+*[Read in English](README.md) · [Leia em português](README.pt.md)*
 
 Un percorso sospeso nel cielo, dieci stazioni in fila lungo -x, ognuna una
 mossa del parkour del motore (`core.parkour`, `core.rope`). Due mod:
@@ -14,7 +14,8 @@ settimo cancello della piazza, un'impalcatura a strisce arancioni e nere con
 una scala di blocchi grigi e una corda appesa, sta a 16.5 21 52.5
 (`mods/gates`). Si esce sulla piazza del percorso, davanti alla porta di
 ritorno; un'altra porta di ritorno è in cima alla torre. All'arrivo si riceve la rope
-gun (una sola, quante se ne avessero).
+gun (una sola, quante se ne avessero). In un mondo survival ogni sito di parkour ha un percorso
+suo (vedi sotto).
 
 ## Le stazioni
 

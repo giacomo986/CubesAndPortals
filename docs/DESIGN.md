@@ -1,6 +1,6 @@
 # Cubes and Portals — a from-scratch voxel sandbox on raylib with native portals
 
-*[Leggi in italiano](DESIGN.it.md)*
+*[Leggi in italiano](DESIGN.it.md) · [Leia em português](DESIGN.pt.md)*
 
 > Design document. Feasibility analysis (graphics, server, multi-instance client, scripting,
 > extensibility) and a milestone plan. It is not yet a commitment to write code: §8 contains an

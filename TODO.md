@@ -21,11 +21,13 @@ what is built, and three or four structural fixes that each close many entries.
 
 ## Suggested order
 
-1. The next package needs a new version first: 0.15.0-alpha.2 speaks 122.
-2. The test rig (section below): a scripted left click and recorded audio. They
-   turn most of "To play" and "To hear" into things a script can check.
-3. Models at join (first defect below): one cause behind three entries, and the
-   first thing a new player sees.
+1. The next package needs a new version first: `kEngineVersion` says
+   0.19.0-alpha.1 (protocol 126, da93cf5, never tagged), and the branch speaks
+   127 since then, so the next one is 0.20.0-alpha.1. The last tag is
+   v0.18.0-alpha.1.
+2. The test rig (section below): done 2026-11-20 for the five left-click cases;
+   the thirty "not heard" entries are still to go through one by one.
+3. Models at join (first defect below): done 2026-11-20, looked at by eye.
 4. One shared library for the front and the assault (Structure). Done 2026-11-19.
 5. Giacomo plays and listens through the two lists; what he finds comes back here.
 6. Then the additions, in the order he picks.
@@ -51,9 +53,30 @@ what is built, and three or four structural fixes that each close many entries.
   `--left-at t[,s]` holds it wherever the player looks. Both go down the
   platform layer (`plat_script_mouse`), so mods hear `mouse_left`, the dig and
   the swing run. Seen under Xephyr: a sandbox block dug, yafps' server told
-  `fire1` and `fire0`. Network loop only. Still to use it on: the prop hunt's
-  blow, the track's power-ups, the chambers' gun, the bees' harvest, the arpg's
-  held button.
+  `fire1` and `fire0`. Network loop only.
+  2026-11-20: `--left-at t,s,x,y` also puts the pointer at x,y (fractions of
+  the screen; from above the middle is the player's own feet), `--left-at` is
+  repeatable, and a timed run walks a walk world code steers (core.walk; before,
+  steer_input was skipped with no keys). Run on the five cases, under Xephyr
+  with small rig mods (scratch, not kept) that put the player in place:
+  - chambers' gun: the blue gun from a rig, in 03 facing the panels; the blue
+    portal opened on the panel with its rim, the shot heard 0.75 s after.
+  - arpg's held button: a class picked on the panel (first click), then 3 s
+    held off-centre: 18 moves sent, one every 0.15 s, the body walked 13
+    nodes and stopped on letting go.
+  - track's power-up: in a kart by --use-at, through the ring's box by
+    --walk-path, then the click: "tester used banana", the throw heard.
+  - bees' harvest: a right click, not a left one (every bees action is):
+    --use-at on a full nest: emptied, stung 20 -> 18 without smoke, the notice
+    and the sting heard. The sting peaks at -0.2 dBFS, at the edge of clipping.
+  - prop hunt's blow: two clients and a scratch arena that strikes its own gong
+    (3 s to hide): found 3 of 3 after the fix below; before it, 1 in 2.
+    Fixed: core:hit's target was the whole 64-bit entity id, and a body in a
+    slot used before (generation 1: 4294967809) read as nobody to
+    core.body_player (a 32-bit int in the binding) -- the blow landed and found
+    nobody. Now the low 32 bits, as core.spawn_mob gives them, on the server
+    and in the local loop; villagers, animals, helpers and garden compare
+    ev.target with spawn_mob's ids too.
 - Audio: done 2026-11-19. `--record-audio FILE.wav` opens the device in a timed
   run and writes the mix (stereo, 48 kHz, before the options' volume), saying
   where in the file the run starts; `tools/null_sink.sh` runs it on a sink
@@ -75,15 +98,15 @@ The ending:
 - Arena: the seven waves through to the Guardian.
 - Inferno: the heart with four braziers lit by hand; a wraith's fireball
   setting a fire; a frame lit in the sandbox since the 1:8 change.
-- Arpg: the crypt, the pale shape of a body behind walls, the held buttons.
+- Arpg: the crypt, the pale shape of a body behind walls (held buttons: by script, 2026-11-20).
 - Backrooms: drops and the compass craft; the chute at a real frame rate.
 - Lab: every phase by hand (generators, the climb, valves, torch, frost, the
   tunnel by kart); the pit's parkour route.
 
 Survival: the bounce pad; the Inferno's level; a chambers stretch.
 
-Track: a drift (Ctrl); a loop and a tall loop; a wall ride; power-ups by the
-left click; the item box tool; the dragon pipes' flames in a lap; a kart got
+Track: a drift (Ctrl); a loop and a tall loop; a wall ride; power-ups other
+than the banana (one used by a scripted click, 2026-11-20); the item box tool; the dragon pipes' flames in a lap; a kart got
 into in the Inferno by somebody who walked there; the kart's first-person view
 with the knight.
 
@@ -92,8 +115,9 @@ Front and assault: the plane by hand; the tank's unsticking lift; two players.
 Sandbox:
 - Pocket hut bought from the mayor and built; a fifth hall wanted at once.
 - Rewards after the ending: rope gun, portal gun, kart anywhere.
-- Bees: harvest, sting, net, apiary upgrades, press.
-- Prop hunt: a blow finding a hider, changing block, put back on the edge.
+- Bees: net, apiary upgrades, press (harvest and sting by script, 2026-11-20).
+- Prop hunt: changing block, put back on the edge (a blow finding a hider by
+  script, 2026-11-20).
 - Museum plinths filled; `core:arrived` on a real crossing between servers;
   friend bag copy between two servers; /mute with a muted player.
 - Melon and pumpkin from seed; a chess variant played through; a pony or a kart
@@ -312,12 +336,16 @@ Arcade shooter:
 ## Defects
 
 Seen by players first:
-- Models at join: fixed 2026-11-19, by script only. A draw that misses a
-  model queues it (ModelStore::entry) and the reading serves that queue before
-  the table's order: in the sandbox 31 of 882 were read ahead for what was in
-  sight. A model block whose model is not read yet draws its boxes, not
-  nothing. Not looked at by eye: how long a creature near the spawn stays a
-  box now (the reading of the rest took 19 s at Xephyr's 11 fps).
+- Models at join: fixed 2026-11-19, looked at by eye 2026-11-20. A draw that
+  misses a model queues it (ModelStore::entry) and the reading serves that
+  queue before the table's order. Sandbox under Xephyr at about 9 fps, shots at
+  5, 10 and 16 s: the sheep near the spawn is a model at 5 s; 34-35 models read
+  ahead for what was in sight, the last 7.5-8.5 s in; all 882 in 23-24 s. At
+  5 s the ground is what is missing (holes, black), not the creatures. Also
+  fixed: before the media offer landed (it can be read a frame after the
+  welcome) the reading ran the whole table against no media -- 925 "not a
+  glTF" lines and a "0 from it, all in 0.0 s" -- and started again; it now
+  waits for the offer, up to 2 s.
 - For about 4 s after a teleport, cave walls whose nearer chunks have not
   arrived show black in the sky.
 - OPEN-2: a crossing may wedge the player in the exit block. Never reproduced;

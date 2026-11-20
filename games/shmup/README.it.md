@@ -1,6 +1,6 @@
 # Lo sparatutto da sala giochi
 
-*[Read in English](README.md)*
+*[Read in English](README.md) · [Leia em português](README.pt.md)*
 
 Uno sparatutto visto dall'alto su un caccia, come nei cabinati degli anni ottanta: uno schermo con
 il mare che scorre sotto, due livelli di dieci ondate di aerei, i power-up, una fortezza volante

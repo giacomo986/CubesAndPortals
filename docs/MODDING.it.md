@@ -1,6 +1,6 @@
 # Scrivere un mod
 
-*[Read in English](MODDING.md)*
+*[Read in English](MODDING.md) · [Leia em português](MODDING.pt.md)*
 
 Stato: M2 in corso. Questo documento descrive quello che **funziona oggi**, non
 quello che è previsto; per il piano completo vedi `DESIGN.md` §5 e §6.
@@ -221,8 +221,8 @@ cella scritta con `core.set_block` e mai girata.
 `facedir` messo giù da un giocatore si gira verso di lui, dalla sua
 **posizione** (il server ha quella e non lo sguardo); un `wallmounted` punta
 fuori dalla faccia che è stata cliccata. Le altre venti orientazioni esistono
-per un mod — `core.set_facing` — e per l'attrezzo che un giorno girerà una cella
-già piazzata.
+per un mod — `core.set_facing` — e per l'attrezzo che gira una cella già
+piazzata (`mods/screwdriver`).
 
 **Un byte che il blocco non ammette viene rifiutato**, non mascherato: una
 cassa girata a 7 è un errore di chi scrive il mod, e `core.set_facing` lo dice
@@ -494,6 +494,7 @@ un bus che trasporta qualsiasi cosa è un bus il cui schema non significa niente
   prosegue verso gli altri handler.
 - Ascoltare un evento che nessuno ha dichiarato è un errore di caricamento che
   lo nomina. Ridichiarare l'evento di un altro mod è rifiutato.
+- Un evento emesso vuole **tutti** i suoi campi (`event 'gates:ask' takes 5 field(s), got 4`).
 
 ### Eventi del motore
 
@@ -577,7 +578,8 @@ mandato da `hunger` non lo sente `enchant`. Prima arrivava a tutti, e sul client
 le barre di `mods/hunger` e `mods/enchant` si scambiavano i valori.
 
 `core:hit` è un colpo di un giocatore **andato a segno** su un corpo (una
-creatura, un'entità di un mod con salute): `target` è l'id del corpo, `damage` i
+creatura, un'entità di un mod con salute): `target` è l'id del corpo, quello che dà
+`core.spawn_mob` e che prendono `core.body_player` e le chiamate `core.mob_*`, `damage` i
 punti tolti, `killed` se era l'ultimo. Emesso dopo il fatto, sul server e nel
 client che è server di sé stesso. `mods/hunger` lo conta come fatica,
 `mods/enchant` come esperienza per un'uccisione.
@@ -592,6 +594,10 @@ a ogni apertura vengono sempre generate, anche senza giocatori vicini.
 `core:watched` è una scrittura su una cella che il mod ha chiesto di osservare con
 `core.watch_cell` — vedi più sotto. Arriva all'inizio del tick successivo, una
 volta per cella per tick.
+
+`core:died`: un giocatore è morto a `x, y, z` ed è già stato rimesso al suo letto o allo spawn, con
+la borsa ancora addosso (`ServerSessions::kill_body` dice perché); un mod che vuole che una morte
+costi qualcosa la prende qui (`mods/grave`, `core.bag_to_container`).
 
 Limite noto: se una versione di un mod chiama `define` e poi fallisce il
 caricamento, lo schema modificato resta. Gli handler no — quelli vengono tolti
@@ -638,6 +644,7 @@ core.sound_loop_move(id, x, y, z) -> bool      core.sound_loop_stop(id) -> bool
 
 core.take_item(player, nome, quanti?) -> presi   -- fino a `quanti`, dice quanti
 core.give_item(player, nome, quanti?) -> entrati -- quello che non entra resta al mod
+core.bag_to_container(player, x, y, z) -> spostati  -- le 36 caselle della borsa, così come sono, in un contenitore
 
 core.players() -> { id }                         -- chi ha un corpo in questo mondo
 core.player_pos(id) -> (x, y, z) | nil           -- i PIEDI, o niente se non c'e'
@@ -646,13 +653,14 @@ core.player_look(id) -> (dx, dy, dz) | nil       -- dove guarda, lunghezza 1
 core.player_place(id, x, y, z, dx?, dy?, dz?) -> bool  -- sposta e gira un corpo, come un portale
 core.ride(id, host, x?, y?, z?) -> bool         -- seduto sul corpo di host; host 0 = scende
 core.monsters_near(x, y, z, r) -> n              -- creature che combattono entro r
+core.mob_health(id, hp) -> bool                 -- la salute di una creatura e il suo massimo
 core.raycast(x, y, z, dx, dy, dz, max?) -> (bx, by, bz, distanza) | nil
 
 core.meta_set(x, y, z, chiave, valore) -> bool   -- valore vuoto = cancella
 core.meta_get(x, y, z, chiave) -> stringa        -- "" se non c'è niente
 core.storage_set(chiave, valore) -> bool         -- del mod, nel world file; vuoto = cancella
 core.storage_get(chiave) -> stringa              -- "" se non c'è niente
-core.shared_storage_set(chiave, valore) -> bool  -- lo stesso, uno per tutte le stanze
+core.shared_storage_set(chiave, valore) -> bool  -- lo stesso, uno per tutte le stanze (sempre del mod)
 core.shared_storage_get(chiave) -> stringa
 core.notice(player, testo) -> bool              -- una frase sullo schermo; 0 = tutti
 core.chat(player, testo) -> bool                -- una riga nella chat (T); 0 = tutti
@@ -673,6 +681,9 @@ core.biome(x, z) -> nome                         -- il clima della colonna, seco
                                                  -- core:plains/desert/tundra/peaks, o dove il suolo sta
                                                  -- rispetto al mare: core:ocean/sea/river/lake/beach,
                                                  -- o core:gorge
+core.seed() -> n                                 -- il seme del mondo (i suoi 31 bit bassi), ovunque
+core.plaza() -> lo, hi | nil                     -- i limiti della piazza, nil in un mondo senza
+core.world_spawn() -> x, y, z | nil              -- dove arriva un giocatore
 core.node_liquid(id, opacità?) -> bool          -- ci si nuota dentro, e ci passa la luce
 
 core.container_take(x, y, z, item, quanti?) -> presi  -- da un contenitore, dal primo slot
@@ -1954,7 +1965,7 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   texture invece ritaglia, sotto 0.5 il pixel non c'è.
 * **Colori e accessori del giocatore.** I materiali `tint_1`, `tint_2`,
   `tint_3` del modello del giocatore (e delle sue `_arms`) prendono il
-  primario, secondario e accento scelti nel menù Robot (protocollo 93,
+  primario, secondario e accento scelti nel menù Personaggio (protocollo 93,
   `Hello::livery`); senza scelta restano del colore del file. Gli accessori
   sono modelli col nome del giocatore più `_cap`, `_tophat`, `_headphones`,
   `_scarf`, `_bowtie`, `_medal` (`robot:robot_cap`), fatti sullo scheletro
@@ -2656,7 +2667,7 @@ che il codice fa:
 | `Unknown require: unsupported path` | `require("./x")` in un `init.luau` | `require("@self/x")` |
 | `Module does not return exactly 1 value` | il file richiesto si esegue per quello che fa | `return nil` in fondo |
 
-L'ultima riga non è un tipo: il gestore di `keys:level` di `backrooms_exit` scriveva in `level_d`
+La riga `Unknown global` non è un tipo: il gestore di `keys:level` di `backrooms_exit` scriveva in `level_d`
 sopra la riga che la dichiara, quindi indicizzava una globale che non esiste e si fermava lì, prima
 di mettere il giocatore nel livello -- e le luci che dal livello 5 in poi si spengono non si sono
 mai spente. È a questo che serve un controllo pulito: gli errori di tipo nascondono i pochi che non
@@ -2956,7 +2967,7 @@ version = 0.1.0
 capabilities =
 ```
 
-I tre mod in `mods/` sono esempi funzionanti:
+I mod in `mods/` sono esempi funzionanti:
 
 - `spike` — nessuna capability, una torre e un portale che si muove ogni frame;
 - `beacons` — `capabilities = os`, `depends = spike`, un faro che pulsa;

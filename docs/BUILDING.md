@@ -1,6 +1,6 @@
 # Building and distributing
 
-*[Leggi in italiano](BUILDING.it.md)*
+*[Leggi in italiano](BUILDING.it.md) · [Leia em português](BUILDING.pt.md)*
 
 How to get from the source to the executables, and from there to the packages for players. How to
 play and test once it is built is in the [README](../README.md#playing-and-testing-reference).
@@ -37,7 +37,7 @@ cmake --build build -j
 ctest --test-dir build                 # 18 tests; -LE gpu skips the one that opens a window
 ```
 
-Three programs come out:
+Four programs come out:
 
 | | |
 |---|---|
@@ -98,7 +98,7 @@ for its first chunks (the kept logs then show no report at all).
 
 ## The packages
 
-Every package is a folder with the three programs and, beside them, `mods/`, `games/` and
+Every package is a folder with the four programs and, beside them, `mods/`, `games/` and
 `assets/` (`textures`, `sounds`, `lang`): `tools/dist/stage.sh` makes the copy, and it is the layout
 `core/paths.h` looks for. A package is named `cubes-and-portals-<version>-<system>-<architecture>`
 and ends up in `<build>/dist/`.
@@ -242,7 +242,7 @@ To make an alpha:
 
 1. raise `kEngineVersion`;
 2. add the new entry at the top of `CHANGELOG.md`, with the date and what changes for players
-   (and the same in `CHANGELOG.it.md`);
+   (and the same in `CHANGELOG.it.md` and `CHANGELOG.pt.md`);
 3. commit, then `git tag v<version>` (for example `git tag v0.4.0-alpha.2`);
 4. `git push`, then `git push origin v<version>` (`--follow-tags` does not carry plain tags): the
    CI builds the packages and publishes them. Without GitHub, run the `package-*.sh` above by hand

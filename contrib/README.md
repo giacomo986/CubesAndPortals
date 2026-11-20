@@ -1,6 +1,6 @@
 # Add-ons
 
-*[Leggi in italiano](README.it.md)*
+*[Leggi in italiano](README.it.md) · [Leia em português](README.pt.md)*
 
 What is here is **not part of the game**: no world loads it unless a player installs it. Each folder
 is a mod made the way somebody outside the project would send one, kept in the repository to try

@@ -1,6 +1,6 @@
 # The parkour course
 
-*[Leggi in italiano](README.it.md)*
+*[Leggi in italiano](README.it.md) · [Leia em português](README.pt.md)*
 
 A course hanging in the sky, ten stations in a row along -x, each one a move of the engine's
 parkour (`core.parkour`, `core.rope`). Two mods: `mods/parkour_core` (server only: the robot and

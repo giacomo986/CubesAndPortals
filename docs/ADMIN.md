@@ -1,6 +1,6 @@
 # Running a server
 
-*[Leggi in italiano](ADMIN.it.md)*
+*[Leggi in italiano](ADMIN.it.md) · [Leia em português](ADMIN.pt.md)*
 
 Everything an owner or a member of staff can do to a `cnp_server`: the commands, who may use
 them, the flags and the `server.conf` keys, the scripts, and what each one keeps on disk. The
@@ -496,7 +496,7 @@ refuses one says why, and the asker's menu shows it. Then the client
 checks what it always does when it crosses: the far server's key against the friend's key, its
 own protocol in the handshake, and the ticket this server signs for the player.
 
-A linked portal is one of the room's mouths (24, shared with `--portal-to`): an opening onto the
+A linked portal is one of the room's mouths (28, shared with `--portal-to`): an opening onto the
 other server, crossed on a ticket, and while it is linked the room takes that friend's tickets.
 
 **A link once made lasts**: it is kept in the world file (`farportals` row) with both servers'
