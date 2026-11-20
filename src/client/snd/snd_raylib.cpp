@@ -13,15 +13,30 @@
 #include <raylib.h>
 
 #include <cstdio>
+#include <cstring>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
 namespace {
 
+// A loop is not the Sound played again when it ends: that waits for the next
+// frame to notice, a hole of a frame each time round (over 200 ms at 9 fps).
+// It is a Music stream over the same file's bytes, which the mixer refills and
+// wraps itself, made the first time the sound is looped.
 struct Loaded {
-    Sound sound{};
+    Sound                      sound{};
+    std::vector<unsigned char> bytes;   // the file, for the loop's stream
+    std::string                ext;     // ".ogg" or ".wav"
+    Music                      music{};
+    bool                       has_music = false;
 };
+
+// Frames in each half of a loop's stream buffer: half a second at 48 kHz, so a
+// frame as slow as 2 fps still refills it before it runs dry. Only memory: the
+// volume and the pan are applied as it is mixed, so they change at once.
+constexpr int kLoopBufferFrames = 24000;
 
 std::unordered_map<uint32_t, Loaded> g_sounds;
 uint32_t                             g_next  = 1;
@@ -53,6 +68,30 @@ void put_u16(std::FILE *f, uint16_t v)
     std::fwrite(b, 1, 2, f);
 }
 
+// A mono 16-bit WAV file in memory, for a sound uploaded as samples.
+std::vector<unsigned char> wav_bytes(const int16_t *samples, int count, int rate)
+{
+    std::vector<unsigned char> b;
+    auto u32 = [&](uint32_t v) { for (int i = 0; i < 4; ++i) b.push_back((unsigned char)(v >> (8 * i))); };
+    auto u16 = [&](uint16_t v) { b.push_back((unsigned char)v); b.push_back((unsigned char)(v >> 8)); };
+    auto tag = [&](const char *t) { b.insert(b.end(), t, t + 4); };
+    const uint32_t bytes = (uint32_t)count * 2;
+    tag("RIFF"); u32(36 + bytes); tag("WAVE"); tag("fmt "); u32(16);
+    u16(1); u16(1); u32((uint32_t)rate); u32((uint32_t)rate * 2); u16(2); u16(16);
+    tag("data"); u32(bytes);
+    const size_t at = b.size();
+    b.resize(at + bytes);
+    std::memcpy(b.data() + at, samples, bytes);
+    return b;
+}
+
+void unload(Loaded &l)
+{
+    if (l.has_music) UnloadMusicStream(l.music);
+    l.has_music = false;
+    UnloadSound(l.sound);
+}
+
 } // namespace
 
 extern "C" {
@@ -79,7 +118,7 @@ void snd_shutdown(void)
         DetachAudioMixedProcessor(record_mix);
         g_recording = false;
     }
-    for (auto &kv : g_sounds) UnloadSound(kv.second.sound);
+    for (auto &kv : g_sounds) unload(kv.second);
     g_sounds.clear();
     CloseAudioDevice();
     g_ready = false;
@@ -107,7 +146,10 @@ snd_sound snd_upload(const int16_t *samples, int count, int rate)
     if (s.frameCount == 0) return out;
 
     out.id = g_next++;
-    g_sounds[out.id] = Loaded{s};
+    Loaded &l = g_sounds[out.id];
+    l.sound   = s;
+    l.bytes   = wav_bytes(samples, count, rate);
+    l.ext     = ".wav";
     return out;
 }
 
@@ -116,11 +158,11 @@ snd_sound snd_load(const char *path)
     snd_sound out{0};
     if (!g_ready || path == nullptr || !FileExists(path)) return out;
 
-    const Sound s = LoadSound(path);
-    if (s.frameCount == 0) return out;
-
-    out.id = g_next++;
-    g_sounds[out.id] = Loaded{s};
+    int            size = 0;
+    unsigned char *data = LoadFileData(path, &size);
+    if (data == nullptr) return out;
+    out = snd_load_memory(GetFileExtension(path), data, size);
+    UnloadFileData(data);
     return out;
 }
 
@@ -135,7 +177,10 @@ snd_sound snd_load_memory(const char *ext, const unsigned char *data, int size)
     if (s.frameCount == 0) return out;
 
     out.id = g_next++;
-    g_sounds[out.id] = Loaded{s};
+    Loaded &l = g_sounds[out.id];
+    l.sound   = s;
+    l.bytes.assign(data, data + size);
+    l.ext = ext;
     return out;
 }
 
@@ -143,7 +188,7 @@ void snd_free(snd_sound s)
 {
     const auto it = g_sounds.find(s.id);
     if (it == g_sounds.end()) return;
-    UnloadSound(it->second.sound);
+    unload(it->second);
     g_sounds.erase(it);
 }
 
@@ -165,14 +210,27 @@ void snd_loop(snd_sound s, float gain, float pan, bool on)
     const auto it = g_sounds.find(s.id);
     if (it == g_sounds.end()) return;
 
-    Sound &snd = it->second.sound;
+    Loaded &l = it->second;
     if (!on) {
-        if (IsSoundPlaying(snd)) StopSound(snd);
+        if (l.has_music && IsMusicStreamPlaying(l.music)) StopMusicStream(l.music);
         return;
     }
-    SetSoundVolume(snd, gain > 1.0f ? 1.0f : gain);
-    SetSoundPan(snd, pan < -1.0f ? -1.0f : (pan > 1.0f ? 1.0f : pan));
-    if (!IsSoundPlaying(snd)) PlaySound(snd);
+    if (!l.has_music) {
+        if (l.bytes.empty()) return;
+        SetAudioStreamBufferSizeDefault(kLoopBufferFrames);
+        l.music = LoadMusicStreamFromMemory(l.ext.c_str(), l.bytes.data(), (int)l.bytes.size());
+        SetAudioStreamBufferSizeDefault(0);
+        if (l.music.frameCount == 0) {
+            l.bytes.clear();   // will not decode as a stream: not tried again every frame
+            return;
+        }
+        l.music.looping = true;
+        l.has_music     = true;
+    }
+    SetMusicVolume(l.music, gain > 1.0f ? 1.0f : gain);
+    SetMusicPan(l.music, pan < -1.0f ? -1.0f : (pan > 1.0f ? 1.0f : pan));
+    if (!IsMusicStreamPlaying(l.music)) PlayMusicStream(l.music);
+    UpdateMusicStream(l.music);
 }
 
 void snd_set_volume(float v)
