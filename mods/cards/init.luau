@@ -86,6 +86,19 @@ local function name_of(c: number): string
     return `{VALUE_NAME[value(c)]} of {SUIT_NAME[suit(c)]}`
 end
 
+-- Every card is also an item, "cards:seven_of_coins": what a player keeps of a
+-- hand won, to hold, to give a village's museum for its plinths (mods/villagers).
+-- The bag shows it by its picture (assets/textures/cards_<name>.png,
+-- tools/make_card_icons.py) and calls it "Seven of coins".
+local function item_of(c: number): string
+    return `cards:{VALUE_NAME[value(c)]}_of_{SUIT_NAME[suit(c)]}`
+end
+
+local function title_of(c: number): string
+    local w = name_of(c)
+    return string.upper(string.sub(w, 1, 1)) .. string.sub(w, 2)
+end
+
 local BR_RANK = { 10, 1, 9, 2, 3, 4, 5, 6, 7, 8 }   -- ace, three, king, horse, jack, 7..2
 local BR_PTS  = { 11, 0, 10, 0, 0, 0, 0, 2, 3, 4 }
 local TR_RANK = { 8, 9, 10, 1, 2, 3, 4, 5, 6, 7 }   -- three, two, ace, king, horse, jack, 7..4
@@ -281,6 +294,12 @@ if serving then
         end
         core.register_model(`cards:{deck}back`, `{deck}back.gltf`)
     end
+    -- The cards as items, each drawn as itself standing (held<n>.gltf): in the
+    -- hand, on the ground and on show.
+    for c = 1, 40 do
+        core.register_item(item_of(c), 16)
+        core.register_model(item_of(c) .. "_held", `held{c}.gltf`)
+    end
     core.recipe_shaped("cards:table", 1,
         "timber:planks timber:planks timber:planks",
         "timber:stick  timber:planks timber:stick",
@@ -342,7 +361,7 @@ if serving then
             local x, y, z = cell_of(w[2])
             local a = seat_yaw(T.facing, T.n, q)
             local bx, bz = x + 0.5 + SEAT_R * math.sin(a), z + 0.5 + SEAT_R * math.cos(a)
-            -- not into a wall: where the seat is not free the body stays where it stands
+            -- not into a wall (seat_free), should one have been built there since
             local cx, cz = math.floor(bx), math.floor(bz)
             if core.get_block(cx, y, cz) == 0 and core.get_block(cx, y + 1, cz) == 0 then
                 core.player_place(p, bx, y, bz, -math.sin(a), 0, -math.cos(a))
@@ -351,6 +370,17 @@ if serving then
         elseif w[1] == "sit" or w[1] == "out" then
             core.player_clip(p, "")
         end
+    end
+
+    -- Whether seat q of a game for n has room for a body: the cell its feet
+    -- would be in and the one over it empty. A seat behind a wall is the
+    -- table's to play and nobody sits there: the body could not stand in it,
+    -- and the eye and the fan would be in the wall.
+    local function seat_free(key: string, T: Table, n: number, q: number): boolean
+        local x, y, z = cell_of(key)
+        local a = seat_yaw(T.facing, n, q)
+        local cx, cz = math.floor(x + 0.5 + SEAT_R * math.sin(a)), math.floor(z + 0.5 + SEAT_R * math.cos(a))
+        return core.get_block(cx, y, cz) == 0 and core.get_block(cx, y + 1, cz) == 0
     end
 
     local function tell(player: number, text: string)
@@ -630,7 +660,7 @@ if serving then
             local put = -1
             for k = 0, n - 1 do
                 local q = (want + k) % n
-                if T.humans[q] == nil then
+                if T.humans[q] == nil and seat_free(key, T, n, q) then
                     put = q
                     break
                 end
@@ -651,6 +681,43 @@ if serving then
     end
 
     -- ------------------------------------------------------------- the count
+
+    -- Whoever sits on the side that won a hand keeps a card of it, one of the
+    -- cards that side took, at random: the side that gained the most (none
+    -- for a draw), and in cinquiglio everybody who gained. Into the bag, or at
+    -- their feet when it is full.
+    local function keepsakes(T: Table, add: { [number]: number })
+        local top: number, low: number = -math.huge, math.huge
+        for t = 0, teams(T) - 1 do
+            top = math.max(top, add[t])
+            low = math.min(low, add[t])
+        end
+        local clear = top > low and top > 0   -- somebody won it, and not everybody
+        local function won(t: number): boolean
+            return if T.game == "cinquiglio" then add[t] > 0 else clear and add[t] == top
+        end
+        local pool = {}
+        for t = 0, teams(T) - 1 do
+            if won(t) then
+                for _, c in T.taken[t] do
+                    table.insert(pool, c)
+                end
+            end
+        end
+        for s, p in T.humans do
+            if won(team(T, s)) then
+                local c = if #pool > 0 then pool[math.random(#pool)] else math.random(40)
+                if core.give_item(p, item_of(c), 1) < 1 then
+                    local x, y, z = core.player_pos(p)
+                    if x ~= nil then
+                        core.drop_item(math.floor(x), math.floor(y), math.floor(z), core.item_id(item_of(c)), 1)
+                    end
+                end
+                core.notice(p, `You keep a card of the hand: {title_of(c)}`)
+                core.log(`cards: {core.player_name(p)} keeps the {name_of(c)}`)
+            end
+        end
+    end
 
     local function end_hand(T: Table)
         local nt = teams(T)
@@ -744,6 +811,7 @@ if serving then
         end
         local goal = TARGET[T.game]
         T.phase = if goal ~= nil and top >= goal and top ~= second then "match" else "hand"
+        keepsakes(T, add)
     end
 
     local function empty_hands(T: Table): boolean
@@ -1282,7 +1350,7 @@ if serving then
             local want = side_of(T, key, p)
             for k = 0, T.n - 1 do
                 local q = (want + k) % T.n
-                if T.humans[q] == nil then
+                if T.humans[q] == nil and seat_free(key, T, T.n, q) then
                     s = q
                     break
                 end
@@ -2204,7 +2272,9 @@ if drawing then
         local th = ((k + 1) / 2 - i) * math.min(0.19, 1.1 / math.max(k, 1))
         local c, sn = math.cos(th), math.sin(th)
         local h, cr, m = {}, {}, {}
-        local d = CH * 0.5 - 0.025 + lift
+        -- the bottom edges a little over the grip: pinched by the fists' tops,
+        -- not inside them, so the pips and figures stand clear of the fingers
+        local d = CH * 0.5 + 0.015 + lift
         for j = 1, 3 do
             h[j] = w[j] * c - r[j] * sn
             cr[j] = r[j] * c + w[j] * sn

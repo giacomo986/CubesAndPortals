@@ -8,6 +8,8 @@
 -- collection, kept per village, and pays for it out of the village's
 -- treasury: more for what is rarer. The collection stands on the plinths, the
 -- first seven things given, each turning over its own (core.show_item).
+-- It wants the cards of mods/cards too, every one of the forty: what a player
+-- keeps of a hand won at a card table.
 -- Right click the curator for what is in it and what is still wanted.
 
 local common = require("./common")
@@ -40,6 +42,23 @@ end
 local PRICE: { [string]: number } = {}
 for _, w in WANTED do
     PRICE[w[1] :: string] = w[2] :: number
+end
+
+-- The cards (mods/cards, "cards:seven_of_coins"): a ruby each, an ace two and
+-- the seven of coins, the settebello, three. Looked up when asked and not
+-- here, as the cards mod may load after this one or not at all.
+local SUITS = { "coins", "cups", "swords", "clubs" }
+local VALUES = { "ace", "two", "three", "four", "five", "six", "seven", "jack", "knight", "king" }
+local function card_price(item: string): number?
+    local v = string.match(item, "^cards:(%a+)_of_%a+$")
+    if v == nil or core.item_id(item) == 0 then
+        return nil
+    end
+    return if item == "cards:seven_of_coins" then 3 elseif v == "ace" then 2 else 1
+end
+
+local function price_of(item: string): number?
+    return PRICE[item] or card_price(item)
 end
 
 -- A village's collection: what, and who gave it, in the order given.
@@ -89,10 +108,11 @@ local function show_curator(p: number, rk: string, told: string?)
     local page = { "# The village's museum", `> {#pieces} things in the collection`, "",
                    "Photographs of rare places are offered from your album (/album).", "" }
     local held = core.held_item(p)
-    if PRICE[held] ~= nil and not has(rk, held) then
-        table.insert(page, `[Give your {said(held)} to the museum: {PRICE[held]} rubies](act:give)`)
+    local worth = price_of(held)
+    if worth ~= nil and not has(rk, held) then
+        table.insert(page, `[Give your {said(held)} to the museum: {worth} rubies](act:give)`)
         table.insert(page, "")
-    elseif PRICE[held] ~= nil then
+    elseif worth ~= nil then
         table.insert(page, `> The museum has a {said(held)} already.`)
         table.insert(page, "")
     end
@@ -116,6 +136,17 @@ local function show_curator(p: number, rk: string, told: string?)
     for tag, ph in PHOTOS do
         if not has(rk, `photo:{tag}`) then
             table.insert(still, `a photograph of {ph[1]} ({ph[2]})`)
+        end
+    end
+    if core.item_id("cards:ace_of_coins") ~= 0 then
+        local missing = 0
+        for _, su in SUITS do
+            for _, v in VALUES do
+                missing += if has(rk, `cards:{v}_of_{su}`) then 0 else 1
+            end
+        end
+        if missing > 0 then
+            table.insert(still, `{missing} of the forty playing cards (1, an ace 2, the seven of coins 3)`)
         end
     end
     if #still > 0 then
@@ -147,7 +178,7 @@ core.event.on("core:page_action", function(ev)
         return
     end
     local held = core.held_item(p)
-    local price = PRICE[held]
+    local price = price_of(held)
     if price == nil or has(rk, held) then
         show_curator(p, rk, "The curator does not want that.")
         return

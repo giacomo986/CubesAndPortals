@@ -258,6 +258,48 @@ a body out of a smaller hole may come out in its frame and be stuck = um corpo v
 
 # --- Cards ---
 Not hungry = Sem fome
+# the cards as items (mods/cards), as the bag names them
+You keep a card of the hand: {} = Você guarda uma carta da mão: {}
+Ace of coins = Ás de ouros
+Two of coins = Dois de ouros
+Three of coins = Três de ouros
+Four of coins = Quatro de ouros
+Five of coins = Cinco de ouros
+Six of coins = Seis de ouros
+Seven of coins = Sete de ouros
+Jack of coins = Valete de ouros
+Knight of coins = Cavaleiro de ouros
+King of coins = Rei de ouros
+Ace of cups = Ás de copas
+Two of cups = Dois de copas
+Three of cups = Três de copas
+Four of cups = Quatro de copas
+Five of cups = Cinco de copas
+Six of cups = Seis de copas
+Seven of cups = Sete de copas
+Jack of cups = Valete de copas
+Knight of cups = Cavaleiro de copas
+King of cups = Rei de copas
+Ace of swords = Ás de espadas
+Two of swords = Dois de espadas
+Three of swords = Três de espadas
+Four of swords = Quatro de espadas
+Five of swords = Cinco de espadas
+Six of swords = Seis de espadas
+Seven of swords = Sete de espadas
+Jack of swords = Valete de espadas
+Knight of swords = Cavaleiro de espadas
+King of swords = Rei de espadas
+Ace of clubs = Ás de paus
+Two of clubs = Dois de paus
+Three of clubs = Três de paus
+Four of clubs = Quatro de paus
+Five of clubs = Cinco de paus
+Six of clubs = Seis de paus
+Seven of clubs = Sete de paus
+Jack of clubs = Valete de paus
+Knight of clubs = Cavaleiro de paus
+King of clubs = Rei de paus
 
 # --- Enchanting ---
 Level L costs L lapis and L levels = O nível L custa L lápis e L níveis

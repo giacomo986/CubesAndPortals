@@ -12,12 +12,19 @@
 #   back.gltf       a card face down: the back on top.
 #   ecard<n>.gltf, edim<n>.gltf, eback.gltf
 #                   the same for the illustrated deck (ec<n>.png ...).
+#   held<n>.gltf    a classic card standing, as an item is drawn held, lying on
+#                   the ground or on show (core.show_item): the face towards
+#                   glTF +Z, its head up +Y, about its middle
+#                   (tools/make_held_models.py's way round).
 #
 #   flatpak run org.blender.Blender --background --python "$PWD/tools/make_card_models.py"
+#   ... --python "$PWD/tools/make_card_models.py" -- --held    only the held ones
 #
 # Blender is Z up: glTF (x, y, z) is Blender (x, -z, y) -- so the head of a
 # card is Blender +Y.
+import math
 import os
+import sys
 
 import bmesh
 import bpy
@@ -149,7 +156,25 @@ def make():
                        os.path.join(MOD, f"{deck}{kind}{n}.gltf"))
         clear()
         export(card(f"{deck}back", f"{deck}back.png", f"{deck}back.png"), os.path.join(MOD, f"{deck}back.gltf"))
+    make_held()
+
+
+def make_held():
+    for n in range(1, 41):
+        clear()
+        o = card(f"held{n}", f"c{n}.png")
+        # stood up: Blender +Y (the head) to +Z, the face from +Z to -Y (glTF +Z)
+        o.location = (0, 0, -CT / 2)
+        bpy.context.view_layer.objects.active = o
+        o.select_set(True)
+        bpy.ops.object.transform_apply(location=True, rotation=False, scale=False)
+        o.rotation_euler = (math.pi / 2, 0, 0)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+        export(o, os.path.join(MOD, f"held{n}.gltf"))
 
 
 if __name__ == "__main__":
-    make()
+    if "--held" in sys.argv:
+        make_held()
+    else:
+        make()
