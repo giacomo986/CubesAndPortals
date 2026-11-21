@@ -1112,7 +1112,7 @@ end)
 
 -- ------------------------------------------------------------ the clock
 
-core.command("village", "siege|feast|caravan|incoming -- start one now in the village you stand in", "admin")
+core.command("village", "siege|feast|caravan|incoming|errand KIND -- start one now in the village you stand in", "admin")
 core.event.on("core:command", function(ev)
     if ev.name ~= "village" then
         return
@@ -1136,8 +1136,31 @@ core.event.on("core:command", function(ev)
         if not EV.incoming(rk) then
             core.chat(ev.player, "No caravan: no village near unvisited and joined by the paths, or one coming already.")
         end
+    elseif what == "errand" then
+        -- Taken by whoever asked, at once -- the one of that kind on the
+        -- board, or a new one: to try one out.
+        local kind = string.match(ev.args, "^%s*%a+%s+(%a+)")
+        local E = AID.err
+        local e = nil
+        if kind and E.mine(core.player_name(ev.player)) == nil then
+            for _, b in E.load(rk) do
+                if b.kind == kind and b.taker == "" then
+                    e = b
+                end
+            end
+            if e == nil then
+                e = E.make(rk, kind)
+                if e then table.insert(E.load(rk), e) end
+            end
+        end
+        if e then
+            E.take(ev.player, e, rk)
+        else
+            core.chat(ev.player, "No errand: one taken already, nowhere to carry to, or the treasury short. "
+                .. "Kinds: bring procure craft hunt carry explore")
+        end
     else
-        core.chat(ev.player, "Usage: /village siege|feast|caravan|incoming")
+        core.chat(ev.player, "Usage: /village siege|feast|caravan|incoming|errand KIND")
     end
 end)
 

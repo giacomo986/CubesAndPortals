@@ -38,8 +38,14 @@ local village_chests = common.village_chests
 --
 -- One taken at a time. Each lasts a day (DAY): one not taken goes, one taken
 -- and not done goes back on the board, its pay back in the treasury -- and
--- nothing else is lost. Every one done is remembered by the village; after
--- five the merchant sells to that player at a fifth off.
+-- nothing else is lost.
+--
+-- A carry and an explore are drawn on the taker's map (mods/maps'
+-- maps:route, labelled "errand"): the parcel's way along the path to the
+-- other village where there is one, the far place in a straight line, and
+-- once it is stood on, the way back to the mayor. Done, or gone back on
+-- the board, the line goes. Every one done is remembered by the village;
+-- after five the merchant sells to that player at a fifth off.
 -- (All in AID.err: this file's main chunk is at Luau's 200 locals.)
 
 AID.err = { list = {} :: { [string]: { Errand } }, known = {} :: { [string]: { number } }, next = 1,
@@ -131,8 +137,8 @@ E.mine = function(name: string): (Errand?, string?)
 end
 
 -- A new errand for a village, or nil when nothing fits or the treasury
--- cannot pay it.
-E.make = function(rk: string): Errand?
+-- cannot pay it. Of a kind drawn at random, or of `want` (/village errand).
+E.make = function(rk: string, want: string?): Errand?
     local b = common.villages[rk]
     local k = E.known[rk]
     if b == nil or k == nil then
@@ -144,8 +150,8 @@ E.make = function(rk: string): Errand?
         has[e.kind] = true
     end
     local kinds = { "bring", "procure", "craft", "hunt", "carry", "explore" }
-    local kind = kinds[math.random(#kinds)]
-    if has[kind] then
+    local kind = want or kinds[math.random(#kinds)]
+    if has[kind] or not table.find(kinds, kind) then
         return nil
     end
     local e: Errand = { id = E.next, kind = kind, giver = "mayor", item = "", n = 0, x = 0, z = 0, to = "",
@@ -218,6 +224,7 @@ E.tick = function()
                         if e.kind == "carry" then
                             core.take_item(q, "villagers:parcel", 1)
                         end
+                        E.mark(q, nil, nil)
                     end
                 end
                 e.taker, e.taken, e.got, e.posted = "", 0, 0, now
@@ -248,8 +255,8 @@ E.tick = function()
             if x and (x - e.x) ^ 2 + (z - e.z) ^ 2 < 12 * 12 then
                 e.got = 1
                 core.notice(q, "You are there: go back and tell the mayor.")
-                local _, rk = E.mine(core.player_name(q))
-                E.save(rk :: string)
+                E.save(erk :: string)
+                E.mark(q, e, erk)
             end
         end
     end
@@ -325,6 +332,59 @@ E.credit = function(rk: string, who: string, n: number)
     core.storage_set(`errands done {rk}`, table.concat(parts, ";"))
 end
 
+-- A straight way on the map, a point every eight nodes (a pixel of it).
+E.line = function(parts: { string }, x0: number, z0: number, x1: number, z1: number)
+    local n = math.max(1, math.floor(math.sqrt((x1 - x0) ^ 2 + (z1 - z0) ^ 2) / 8))
+    for i = 1, n do
+        table.insert(parts, `{math.floor(x0 + (x1 - x0) * i / n)},{math.floor(z0 + (z1 - z0) * i / n)}`)
+    end
+end
+
+-- The taker's errand on their map, from where they stand: none for an errand
+-- done at the giver's panel or in the village (bring, procure, craft, hunt).
+E.mark = function(p: number, e: Errand?, rk: string?)
+    local px, _, pz = core.player_pos(p)
+    if px == nil or pz == nil then
+        return
+    end
+    local parts: { string } = {}
+    local function from(x: number, z: number, near: number)
+        table.insert(parts, `~{near}`)
+        table.insert(parts, `{math.floor(x)},{math.floor(z)}`)
+    end
+    local to = e and E.known[e.to]
+    local home = rk and E.known[rk]
+    if e and e.kind == "carry" and to and rk then
+        -- Paid within 32 of the other village's middle (E.tick).
+        from(px, pz, 32)
+        local way = AID.ev.way(rk, e.to)
+        local best, bd = 1, math.huge
+        for k, q in way do
+            local d = (q[1] - px) ^ 2 + (q[2] - pz) ^ 2
+            if d < bd then
+                best, bd = k, d
+            end
+        end
+        local lx, lz = px, pz
+        if #way > 0 then
+            E.line(parts, lx, lz, way[best][1], way[best][2])
+            for k = best + 1, #way do
+                table.insert(parts, `{math.floor(way[k][1])},{math.floor(way[k][2])}`)
+            end
+            lx, lz = way[#way][1], way[#way][2]
+        end
+        E.line(parts, lx, lz, to[1], to[2])
+    elseif e and e.kind == "explore" and e.got == 0 then
+        from(px, pz, 12)   -- stood on within 12 (E.tick)
+        E.line(parts, px, pz, e.x, e.z)
+    elseif e and e.kind == "explore" and home then
+        from(px, pz, 40)
+        E.line(parts, px, pz, home[1], home[2])
+    end
+    core.event.emit("maps:route", { player = p, label = "errand",
+                                    points = if #parts > 2 then table.concat(parts, ";") else "" })
+end
+
 -- Paid out of what was set aside, and remembered.
 E.finish = function(p: number, e: Errand, rk: string)
     local who = core.player_name(p)
@@ -337,6 +397,7 @@ E.finish = function(p: number, e: Errand, rk: string)
     end
     E.save(rk)
     E.credit(rk, who, 1)
+    E.mark(p, nil, nil)
     core.notice(p, `Done: {ems(e.pay)}. Thank you.`)
     core.log(`villagers: {rk}: {who} did an errand ({e.kind}) for {e.pay}`)
     -- Somebody who went far for the village is told, as well, where the
@@ -347,6 +408,23 @@ E.finish = function(p: number, e: Errand, rk: string)
             core.notice(p, "\"And since you like the road -- one more thing, for nothing.\"")
             AID.pt.tell(p)
         end
+    end
+end
+
+-- Taken by p: its pay set aside, a carry's parcel in their bag, its way on
+-- their map.
+E.take = function(p: number, e: Errand, rk: string)
+    to_treasury(rk, -e.pay)   -- set aside
+    e.taker, e.taken, e.got = core.player_name(p), age(), 0
+    if e.kind == "carry" then
+        core.give_item(p, "villagers:parcel", 1)
+    end
+    E.save(rk)
+    if e.kind == "carry" or e.kind == "explore" then
+        E.mark(p, e, rk)
+        core.notice(p, `Taken: {E.said(e)}, within a day. The way is on your map.`)
+    else
+        core.notice(p, `Taken: {E.said(e)}, within a day.`)
     end
 end
 
@@ -397,13 +475,7 @@ E.click = function(p: number, id: number)
                 core.notice(p, "The treasury cannot pay for that now.")
                 return
             end
-            to_treasury(t.rk, -e.pay)   -- set aside
-            e.taker, e.taken, e.got = who, age(), 0
-            if e.kind == "carry" then
-                core.give_item(p, "villagers:parcel", 1)
-            end
-            E.save(t.rk)
-            core.notice(p, `Taken: {E.said(e)}, within a day.`)
+            E.take(p, e, t.rk)
             return
         end
     end
