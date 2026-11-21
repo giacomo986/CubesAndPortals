@@ -22,6 +22,11 @@
 -- cell beside it over dirt, grass or soil -- one at a time: a stem with its
 -- fruit beside it waits for that to be picked. Broken, a stem gives its seed
 -- back.
+--
+-- BONE MEAL, six out of two of a skeleton's bones (mods/mobs), right
+-- clicked on a crop puts it up a stage at once, whatever the light, the
+-- water or the season -- and on a grown stem, its fruit. One is spent a
+-- stage.
 local SOIL = core.register_node("farm:soil", 92, 62, 40, true, 0, "", 0, 0.6, "soil")
 core.node_drop(SOIL, core.node_id("core:dirt"))
 
@@ -75,10 +80,37 @@ core.recipe_shaped("farm:hoe", 1,
     "-              timber:stick",
     "-              timber:stick")
 core.recipe_shaped("farm:bread", 1, "farm:wheat farm:wheat farm:wheat")
+core.register_item("farm:bone_meal", 64, "", 0, 1.0, "")
+-- Two bones, as one alone is already three white dye (mods/colors).
+core.recipe_shapeless("farm:bone_meal", 6, "mobs:bone mobs:bone")
 
 local TILLS = { [core.node_id("core:grass")] = true, [core.node_id("core:dirt")] = true }
 
+-- A crop up a stage, or a grown stem's fruit, for one bone meal of the
+-- player's: nothing spent on ripe wheat, or on a stem whose fruit is there.
+local bear: (number, number, number, Stem) -> boolean
+local function grow(x: number, y: number, z: number, id: number, p: number)
+    local stem = STEM_OF[id]
+    local stages = if stem then stem.stages else STAGES
+    for i = 1, 3 do
+        if stages[i] == id then
+            if core.take_item(p, "farm:bone_meal", 1) > 0 then
+                core.set_block(x, y, z, stages[i + 1])
+            end
+            return
+        end
+    end
+    if stem and core.bag_count(p, "farm:bone_meal") > 0 and bear(x, y, z, stem) then
+        core.take_item(p, "farm:bone_meal", 1)
+    end
+end
+
 core.event.on("core:used", function(ev)
+    if ev.held == "farm:bone_meal" and DROPS[ev.id] then
+        ev.cancel = true
+        grow(ev.x, ev.y, ev.z, ev.id, ev.player)
+        return
+    end
     if core.get_block(ev.x, ev.y + 1, ev.z) ~= 0 then
         return
     end
@@ -145,19 +177,21 @@ end
 local SIDES = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }
 local BEARS = { [core.node_id("core:dirt")] = true, [core.node_id("core:grass")] = true, [SOIL] = true }
 
--- A grown stem's fruit, on a free cell beside it, unless one is there already.
-local function bear(x: number, y: number, z: number, stem: Stem)
+-- A grown stem's fruit, on a free cell beside it, unless one is there
+-- already. True when one was put.
+bear = function(x: number, y: number, z: number, stem: Stem): boolean
     local free = {}
     for _, s in SIDES do
         local fx, fz = x + s[1], z + s[2]
         local here = core.get_block(fx, y, fz)
-        if here == stem.fruit then return end
+        if here == stem.fruit then return false end
         if here == 0 and BEARS[core.get_block(fx, y - 1, fz)] then table.insert(free, { fx, fz }) end
     end
-    if #free == 0 then return end
+    if #free == 0 then return false end
     local at = free[math.random(#free)]
     core.set_block(at[1], y, at[2], stem.fruit)
     if core.node_turns(stem.fruit) > 1 then core.set_facing(at[1], y, at[2], math.random(0, 3)) end
+    return true
 end
 
 local CROPS = { "farm:wheat_0", "farm:wheat_1", "farm:wheat_2", "farm:wheat_3" }
@@ -257,6 +291,6 @@ core.log("farm: a hoe tills grass, seeds grow into wheat, three wheat are bread;
 
 -- What each item looks like in a hand: its own model, drawn in the palm
 -- (tools/make_held_models.py).
-for _, n in { "bread", "hoe", "wheat", "melon_seeds", "pumpkin_seeds" } do
+for _, n in { "bread", "hoe", "wheat", "melon_seeds", "pumpkin_seeds", "bone_meal" } do
     core.register_model(`farm:{n}_held`, `{n}_held.gltf`)
 end

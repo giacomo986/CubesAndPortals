@@ -5,7 +5,8 @@ the iron pick (mods/furnace) and the screwdriver (mods/screwdriver); the arm
 pack (mods/armpack); the boat (mods/boats), the cart (mods/carts), and the
 compass and the map (mods/maps); the shard (mods/relics); the flask and its
 potions (mods/alchemy), one bottle in the colour of what is in it; the
-bucket of milk (mods/animals); honey and honeycomb (mods/bees).
+bucket of milk (mods/animals); honey and honeycomb (mods/bees); bone meal
+(mods/farm).
 
 Drawn the way tools_pick.png is: a 16x16 picture doubled to 32 px, flat
 colours lit on the top-left, and a dark outline round every shape. The iron
@@ -437,6 +438,27 @@ SHAPES["villagers_parcel"] = ([
     "................",
     "................",
 ], {"p": (150, 105, 60), "P": (190, 145, 95), "d": (160, 115, 70), "s": (235, 225, 200), "S": (250, 245, 230)})
+
+# Bone meal (mods/farm): a heap of white powder ground out of a bone, a few
+# grey grains in it and a light top-left.
+SHAPES["farm_bone_meal"] = ([
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    ".......ww.......",
+    ".....wwWWw......",
+    "....wWWWwwg.....",
+    "...wWWwwwgwwg...",
+    "..wWwwgwwwwwgg..",
+    "..wwwwwwgwwwwg..",
+    ".gwwgwwwwwwgwgg.",
+    ".ggggggggggggg..",
+    "................",
+    "................",
+    "................",
+], {"w": (226, 222, 206), "W": (250, 248, 238), "g": (176, 170, 152)})
 
 # A bucket of milk (mods/animals): the bucket of water, white.
 SHAPES["animals_milk"] = (SHAPES["lakes_bucket_water"][0], dict(SHAPES["lakes_bucket_water"][1], b=(245, 244, 236)))

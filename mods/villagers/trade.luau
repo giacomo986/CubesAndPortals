@@ -40,12 +40,14 @@ local GOODS: { { any } } = {   -- item, how many a bundle, base price in rubies
 -- village's chests what its trade brings in, and buys what its trade needs,
 -- at the full price, out of the treasury.
 local TRADES: { [string]: { { { any } } } } = {   -- job -> what it sells, what it buys (item, a bundle, base price)
+    -- Bone meal too, for its fields (mods/farm).
     farmer = { { { "farm:wheat", 12, 1 }, { "farm:bread", 4, 1 } }, { { "animals:seeds", 16, 1 }, { "farm:hoe", 1, 2 },
-                                                                       { "furnace:iron_hoe", 1, 5 }, { "furnace:diamond_hoe", 1, 15 } } },
+                                                                       { "furnace:iron_hoe", 1, 5 }, { "furnace:diamond_hoe", 1, 15 },
+                                                                       { "farm:bone_meal", 12, 1 } } },
     -- And buys every fish a player brings: the far waters' dearer, a goldfish
-    -- dearest of all.
+    -- dearest of all. And a zombie's flesh, for bait.
     fisher = { { { "pets:cooked_fish", 4, 1 }, { "pets:fish", 6, 1 } },
-               { { "farm:bread", 4, 1 }, { "pets:carp", 6, 1 }, { "pets:trout", 4, 1 },
+               { { "farm:bread", 4, 1 }, { "mobs:flesh", 8, 1 }, { "pets:carp", 6, 1 }, { "pets:trout", 4, 1 },
                  { "pets:cod", 4, 1 }, { "pets:eel", 3, 1 }, { "pets:tuna", 2, 1 }, { "pets:goldfish", 1, 4 } } },
     forager = { { { "plants:melon_slice", 8, 1 }, { "plants:brown_mushroom", 4, 1 }, { "plants:red_mushroom", 4, 1 },
                   { "animals:seeds", 16, 1 } }, { { "farm:bread", 4, 1 } } },

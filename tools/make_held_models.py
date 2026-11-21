@@ -1394,6 +1394,11 @@ ITEMS["track_core:editor"] = [(box((0.12, 0.16, 0.006), at=(0, 0.05, 0)), "wood"
     (box((0.075, 0.004, 0.001), at=(-0.005, 0.09 - k * 0.022, 0.0055)), "black_flat") for k in range(5)] + [
     (rod((0.035, -0.01, 0.012), (0.075, 0.08, 0.012), 0.005), "flag_yellow"), (rod((0.075, 0.08, 0.012), (0.08, 0.093, 0.012), 0.004), "dark_iron")]
 
+# Bone meal (mods/farm): a little heap of the bone's own white in the palm,
+# a few grains fallen off it. Its icon is tools/make_item_textures.py's.
+ITEMS["farm:bone_meal"] = [(lump(0.05, 5, rough=0.12, subdiv=2, at=(0, 0.03, 0), scale=(1.2, 0.55, 1.1)), "bone")] + [
+    (ball(0.008, segs=6, rings=4, at=_g), "bone") for _g in ((0.07, 0.0, 0.02), (-0.065, 0.005, -0.015), (0.03, 0.0, 0.06))]
+
 
 # `-- DIR` after the script: a picture of every model in DIR as well, to look
 # them over; the icons of assets/textures are only made for ICONS.
