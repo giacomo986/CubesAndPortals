@@ -1578,6 +1578,9 @@ struct Scene {
     // now, by name, so the frame a name is gone its voice is stopped.
     std::map<uint32_t, net::SoundLoop>         own_loops;
     uint32_t                                   own_loop_next = 1;
+    // Which VM started each, so a mod that goes away takes its loops with it
+    // (the server's sound_loop_vm, for the same reason).
+    std::map<uint32_t, const void *>           own_loop_vm;
     std::unordered_map<std::string, snd_sound> loops_on;
 
     Scene() { sessions.push_back(std::make_unique<Session>()); }
@@ -2735,7 +2738,8 @@ int host_sound_loop(void *ud, const char *name, double x, double y, double z, do
         return 0;
     l.id = s->own_loop_next++;
     if (s->own_loop_next == 0) s->own_loop_next = 1;
-    s->own_loops[l.id] = l;
+    s->own_loops[l.id]   = l;
+    s->own_loop_vm[l.id] = mod_host_current_vm();
     return (int)l.id;
 }
 
@@ -2752,7 +2756,21 @@ int host_sound_loop_move(void *ud, int id, double x, double y, double z)
 int host_sound_loop_stop(void *ud, int id)
 {
     Scene *s = static_cast<Scene *>(ud);
+    s->own_loop_vm.erase((uint32_t)id);
     return id > 0 && s->own_loops.erase((uint32_t)id) > 0 ? 1 : 0;
+}
+
+// Every loop a VM going away started (a mod switched off, reloaded or closed).
+void stop_own_loops_of(Scene &s, const void *vm)
+{
+    for (auto it = s.own_loop_vm.begin(); it != s.own_loop_vm.end();) {
+        if (it->second == vm) {
+            s.own_loops.erase(it->first);
+            it = s.own_loop_vm.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 int host_player_lie(void *ud, int player, int on, double x, double y, double z, double hx,
@@ -4518,6 +4536,48 @@ void spill_craft(Scene *s, int w, int h)
 // takes it: a sound in the world through the opening arrives THROUGH the
 // opening -- the way round rather than the way through, and out of the doorway
 // rather than out of its own coordinates. See core/audio/attenuation.h.
+//
+// Every opening that could carry it is tried and the loudest way wins: a
+// world through one mouth of several is heard through THAT mouth and not
+// through the first one, and a sound in this world beside the far end of one
+// of its own pairs (or what a window looks out of) is heard through the near
+// end as well as straight -- whichever is the shorter way to the ear.
+Heard hear_in(const Scene &s, int world, const Emitter &e)
+{
+    const Session &here = s.act();
+    Heard          best;
+    const auto     through = [&](const PortalLink &l) {
+        const Heard h = hear_through(s.ear, l.src, l.dst, e);
+        if (h.gain > best.gain) best = h;
+    };
+
+    if (world == s.active) {
+        best = hear(s.ear, e);
+        // The pairs of a world without mouths: link_ab, link_ba and the rest,
+        // each one way, so each end is the near end once. Only while they are
+        // drawn: before its first Portals message a world's links are where
+        // nobody put them.
+        if (here.link_session < 0 && here.portals) {
+            through(here.link_ab);
+            if (here.link_count >= 2) through(here.link_ba);
+            for (const PortalLink &l : here.more_links) through(l);
+        }
+        // And a world with mouths keeps its own pairs here.
+        for (const PortalLink &l : here.local_links) through(l);
+        return best;
+    }
+
+    // Another world: through each mouth that shows it. With link_session_b
+    // unset, link_session speaks for link_ba as well (Session::link_session_b).
+    for (int m = 0; m < net::kMaxMouths; ++m) {
+        const int shows = (m == 1 && here.link_session_b < 0)
+                              ? (here.link_count >= 2 ? here.link_session : -1)
+                              : mouth_world(here, m);
+        if (shows == world) through(mouth_link(const_cast<Session &>(here), m));
+    }
+    return best;
+}
+
 void play_at(Scene &s, snd_sound which, Vec3 at, int world, float range)
 {
     if (which.id == 0) return;
@@ -4526,9 +4586,7 @@ void play_at(Scene &s, snd_sound which, Vec3 at, int world, float range)
     e.pos   = at;
     e.range = range;
 
-    const Heard h = (world == s.active)
-                        ? hear(s.ear, e)
-                        : hear_through(s.ear, s.act().link_ab.src, s.act().link_ab.dst, e);
+    const Heard h = hear_in(s, world, e);
     snd_play(which, h.gain, h.pan);
 }
 
@@ -4579,25 +4637,40 @@ void sound_body(Scene &s, const Player &p, float dt)
     snd_loop(s.sounds.jetpack, jet, 0.0f, p.flying);
 }
 
-// The sounds going round (core.sound_loop): the server's list, when there is
-// one, and this process's own. One voice a name, as loud as the nearest loop
-// of that name and from its side -- thirty blocks of lava are one lake, not
-// thirty voices fighting for the mixer.
-void sound_loops(Scene &s, const std::vector<net::SoundLoop> *remote, const MediaSource &media)
+// The sounds going round (core.sound_loop): each world's list, and this
+// process's own. One voice a name, as loud as the nearest loop of that name and
+// from its side -- thirty blocks of lava are one lake, not thirty voices
+// fighting for the mixer. A loop in a world seen through an opening is heard
+// as a one-shot there is (hear_in): the way round, out of the doorway.
+struct LoopsFrom {
+    const std::vector<net::SoundLoop> *loops = nullptr;
+    int                                world = -1;
+    MediaSource                        media;
+};
+
+void sound_loops(Scene &s, const std::vector<LoopsFrom> &from)
 {
-    std::unordered_map<std::string, Heard> loudest;
-    const auto add = [&](const net::SoundLoop &l) {
+    struct Loudest {
+        Heard              heard;
+        const MediaSource *media = nullptr;
+    };
+    std::unordered_map<std::string, Loudest> loudest;
+    const auto add = [&](const net::SoundLoop &l, int world, const MediaSource *media) {
         Emitter e;
         e.pos   = Vec3{l.x, l.y, l.z};
         e.range = l.range;
         e.gain  = l.gain;
-        const Heard h    = hear(s.ear, e);
-        Heard      &best = loudest[l.name];
-        if (h.gain > best.gain) best = h;
+        const Heard h    = hear_in(s, world, e);
+        Loudest    &best = loudest[l.name];
+        if (best.media == nullptr || h.gain > best.heard.gain) best = Loudest{h, media};
     };
-    if (remote != nullptr)
-        for (const net::SoundLoop &l : *remote) add(l);
-    for (const auto &[id, l] : s.own_loops) add(l);
+    for (const LoopsFrom &f : from)
+        if (f.loops != nullptr && f.world >= 0)
+            for (const net::SoundLoop &l : *f.loops) add(l, f.world, &f.media);
+    // This process's own mods' loops are in the world it stands in, and found
+    // as its own sounds are.
+    static const MediaSource own_media;
+    for (const auto &[id, l] : s.own_loops) add(l, s.active, from.empty() ? &own_media : &from[0].media);
 
     for (auto it = s.loops_on.begin(); it != s.loops_on.end();) {
         if (loudest.count(it->first) == 0) {
@@ -4607,10 +4680,10 @@ void sound_loops(Scene &s, const std::vector<net::SoundLoop> *remote, const Medi
             ++it;
         }
     }
-    for (const auto &[name, h] : loudest) {
-        const snd_sound voice = s.sounds.named(name, media, true);
+    for (const auto &[name, l] : loudest) {
+        const snd_sound voice = s.sounds.named(name, *l.media, true);
         s.loops_on[name]      = voice;
-        snd_loop(voice, h.gain, h.pan, h.gain > 0.0f);
+        snd_loop(voice, l.heard.gain, l.heard.pan, l.heard.gain > 0.0f);
     }
 }
 
@@ -17590,9 +17663,26 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         // to drive the same kart with the same keys (TODO.md OPEN-47).
         static std::vector<DriveEvent> drive_log;
 
-        for (const net::Sound &snd : conn->take_sounds())
-            play_at(s, s.sounds.named(snd.name, world_media(conn)), Vec3{snd.x, snd.y, snd.z}, s.active);
-        sound_loops(s, &conn->sound_loops(), world_media(conn));
+        // Every world's sounds, each heard from where it is: the one stood in
+        // straight, the ones through an opening through it. A world through
+        // an opening that is not drained here keeps its last 64 sounds, and
+        // crossing into it played them all at once.
+        {
+            std::vector<LoopsFrom> loops_from{{&conn->sound_loops(), s.active, world_media(conn)}};
+            for (const net::Sound &snd : conn->take_sounds())
+                play_at(s, s.sounds.named(snd.name, world_media(conn)), Vec3{snd.x, snd.y, snd.z}, s.active);
+            for (int id = 0; id < net_sessions.count(); ++id) {
+                net::ClientSession *w     = net_sessions.get(id);
+                const int           world = world_of(id);
+                if (id == self_conn || w == nullptr || !w->playing()) continue;
+                const std::vector<net::Sound> heard = w->take_sounds();
+                if (world < 0 || world == s.active) continue;
+                for (const net::Sound &snd : heard)
+                    play_at(s, s.sounds.named(snd.name, world_media(w)), Vec3{snd.x, snd.y, snd.z}, world);
+                loops_from.push_back({&w->sound_loops(), world, world_media(w)});
+            }
+            sound_loops(s, loops_from);
+        }
 
         // Laid down or got up by the server (core.player_lie).
         if (net::Lie lie; conn->take_lie(lie)) {
@@ -21403,7 +21493,7 @@ int run_interactive(Scene &s, double seconds)
         s.step.note(player, was_grounded, y_before);
         s.step.settle(dt);
         sound_body(s, player, dt);
-        sound_loops(s, nullptr, nullptr);
+        sound_loops(s, {});
 
         // After the move and before the aim: a crossing changes where the
         // player is looking, and the outline should point at what they are
@@ -23507,6 +23597,7 @@ int client_main(int argc, char **argv)
         });
         scene.act().mods.set_vm_gone([&scene, sess = &scene.act()](script_vm *vm) {
             scene.lua_ecs.drop_vm(vm);
+            stop_own_loops_of(scene, vm);
             scene.passes.drop_vm(vm);
             scene.hud_passes.drop_vm(vm);
             for (Session::LuaStage &st : sess->mapgen_stages)

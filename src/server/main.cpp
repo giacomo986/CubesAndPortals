@@ -314,6 +314,11 @@ struct ServerState {
     uint32_t                                   sound_loops_version = 0;
     double                                     sound_loops_sent_at = -1.0;
     std::unordered_map<net::PeerId, uint32_t>  sound_loops_sent;
+    // And whose each one is, by the VM that started it: a mod that errors, is
+    // reloaded or is closed takes its loops with it (stop_loops_of). Before,
+    // the loops of a mod that broke went on for as long as the server did,
+    // with nothing left that could stop them.
+    std::map<uint32_t, const void *>           sound_loop_vm;
 
     // What the cells of this world remember. M8: three of the four classic portal-puzzle
     // blocks are a cell that holds a value.
@@ -2935,7 +2940,8 @@ int host_sound_loop(void *ud, const char *name, double x, double y, double z, do
     }
     l.id = s->sound_loop_next++;
     if (s->sound_loop_next == 0) s->sound_loop_next = 1;
-    s->sound_loops[l.id] = l;
+    s->sound_loops[l.id]   = l;
+    s->sound_loop_vm[l.id] = mod_host_current_vm();
     ++s->sound_loops_version;
     return (int)l.id;
 }
@@ -2960,8 +2966,29 @@ int host_sound_loop_stop(void *ud, int id)
 {
     ServerState *s = static_cast<ServerState *>(ud);
     if (id <= 0 || s->sound_loops.erase((uint32_t)id) == 0) return 0;
+    s->sound_loop_vm.erase((uint32_t)id);
     ++s->sound_loops_version;
     return 1;
+}
+
+// Every loop a VM started, stopped for everybody: the VM is going away (its
+// mod switched off by an error, reloaded or closed), and the ids it held go
+// with it. Told to every player at the next sending, like any stop.
+void stop_loops_of(ServerState &s, const void *vm)
+{
+    size_t stopped = 0;
+    for (auto it = s.sound_loop_vm.begin(); it != s.sound_loop_vm.end();) {
+        if (it->second != vm) {
+            ++it;
+            continue;
+        }
+        stopped += s.sound_loops.erase(it->first);
+        it = s.sound_loop_vm.erase(it);
+    }
+    if (stopped == 0) return;
+    ++s.sound_loops_version;
+    std::printf("[mod] %zu sound loop%s stopped with the VM that started %s\n", stopped,
+                stopped == 1 ? "" : "s", stopped == 1 ? "it" : "them");
 }
 
 bool panel_ok(bool ok, const std::string &err)
@@ -7663,6 +7690,7 @@ int serve_room(int argc, char **argv)
         // same one, as whatever function sits at that ref.
         s.mods.set_vm_gone([&s](script_vm *vm) {
             s.lua_ecs.drop_vm(vm);
+            stop_loops_of(s, vm);
             for (ServerState::LuaStage &st : s.mapgen_stages)
                 if (st.vm == vm) st.vm = nullptr;
         });

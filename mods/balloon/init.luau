@@ -31,6 +31,31 @@ local SLOT = 7   -- of core.player_wear's ten: mods/glider has 8, carts and the 
 type Ride = { y: number, burning: boolean, hold: number }
 local aboard: { [number]: Ride } = {}
 
+-- The burner's roar (core.sound_loop, tools/make_loop_sounds.py), going round
+-- over the basket while it burns and moved with it: by player, its loop id.
+local BURNER_UP = 2.6   -- the flame, over the head of whoever is in the basket
+local roaring: { [number]: number } = {}
+local function roar(p: number, on: boolean)
+    local id = roaring[p]
+    if not on then
+        if id then
+            core.sound_loop_stop(id)
+            roaring[p] = nil
+        end
+        return
+    end
+    local x, y, z = core.player_pos(p)
+    if x == nil or y == nil or z == nil then
+        return
+    end
+    if id then
+        core.sound_loop_move(id, x, y + BURNER_UP, z)
+    else
+        local got = core.sound_loop("balloon:burner", x, y + BURNER_UP, z, 24, 0.6)
+        roaring[p] = if got ~= 0 then got else nil
+    end
+end
+
 local function grounded(p: number): boolean
     local x, y, z = core.player_pos(p)
     if x == nil or y == nil or z == nil then
@@ -42,6 +67,7 @@ end
 
 local function leave(p: number)
     aboard[p] = nil
+    roar(p, false)
     core.body_balloon(p, false)
     core.player_wear(p, SLOT, 0)
     core.player_clip(p, "")
@@ -107,11 +133,17 @@ core.event.on("core:tick", function(ev)
                 core.player_wear(p, SLOT, if burning then BURNING else ENVELOPE)
                 core.player_clip(p, if burning then "balloon_burn" else "balloon_idle")
             end
+            roar(p, burning)
         end
     end
     for p in aboard do
         if not here[p] then
             aboard[p] = nil
+        end
+    end
+    for p in roaring do
+        if not aboard[p] then
+            roar(p, false)
         end
     end
 end)

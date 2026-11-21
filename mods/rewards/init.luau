@@ -238,6 +238,44 @@ if serving then
         heard_click(ev.player :: number, ev.text :: string)
     end)
 
+    -- The kart's engine (core.sound_loop), going round where it is while it
+    -- is driven: started again louder past 4 m/s and louder still past 10,
+    -- since a loop keeps the gain it was started with (games/track's
+    -- track_game does the same; engine.ogg is a copy of its sound).
+    local ENGINE_GAIN = { 0.22, 0.38, 0.55 }
+    type Engine = { id: number, step: number, x: number, z: number, speed: number }
+    local engines: { [number]: Engine } = {}
+    local function engines_step(dt: number, here: { [number]: boolean })
+        for p, e in engines do
+            if not (driving[p] and here[p]) then
+                core.sound_loop_stop(e.id)
+                engines[p] = nil
+            end
+        end
+        for p in driving do
+            local x, y, z = core.player_pos(p)
+            if here[p] and x and y and z then
+                local e = engines[p]
+                local speed, step = 0, 1
+                if e then
+                    local got = if dt > 0 then math.sqrt((x - e.x) ^ 2 + (z - e.z) ^ 2) / dt else 0
+                    speed = e.speed + (math.min(got, 40) - e.speed) * math.min(1, dt * 4)
+                    step = if speed > 10 then 3 elseif speed > 4 then 2 else 1
+                    -- and only one step at a time, back down a little later
+                    if step < e.step and speed > (if e.step == 3 then 8 else 3) then step = e.step end
+                end
+                if e == nil or step ~= e.step then
+                    if e then core.sound_loop_stop(e.id) end
+                    local id = core.sound_loop("rewards:engine", x, y + 0.5, z, 28, ENGINE_GAIN[step])
+                    engines[p] = if id ~= 0 then { id = id, step = step, x = x, z = z, speed = speed } else nil
+                else
+                    core.sound_loop_move(e.id, x, y + 0.5, z)
+                    e.x, e.z, e.speed = x, z, speed
+                end
+            end
+        end
+    end
+
     local roped: { [number]: boolean } = {}
     core.event.on("core:tick", function(ev)
         local t = core.time_of_day()
@@ -263,6 +301,7 @@ if serving then
                 if pr then close(pr.blue); close(pr.orange); pairs_of[p] = nil end
             end
         end
+        engines_step(ev.dt, here)
     end)
 end
 

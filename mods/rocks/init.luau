@@ -139,6 +139,70 @@ core.event.on("core:tick", function(ev)
     end
 end)
 
+-- Lava heard (core.sound_loop, tools/make_loop_sounds.py): round each player,
+-- at the nearest lava within LAVA_NEAR, looked for once a second and moved
+-- there. One loop a player and not one a pool: loops of one name are one
+-- voice, as loud as the nearest, and a world has 64 of them. The Inferno's
+-- lava and the tracks' are lava too, found by name once they are registered.
+local LAVA_NEAR = 12
+local LAVAS = { "rocks:lava", "inferno:lava", "track_core:lava", "assault_core:lava" }
+local lava_heard: { [number]: { id: number, x: number, y: number, z: number } } = {}
+local lava_look = 0
+local function nearest_lava(x: number, y: number, z: number): (number?, number?, number?)
+    local bx, by, bz, best = nil, nil, nil, math.huge
+    for _, name in LAVAS do
+        if core.node_id(name) ~= 0 then
+            local found = core.find_nodes(x - LAVA_NEAR, y - LAVA_NEAR, z - LAVA_NEAR,
+                                          x + LAVA_NEAR, y + LAVA_NEAR, z + LAVA_NEAR, name)
+            for i = 1, #found - 2, 3 do
+                local d = (found[i] - x) ^ 2 + (found[i + 1] - y) ^ 2 + (found[i + 2] - z) ^ 2
+                if d < best then
+                    bx, by, bz, best = found[i], found[i + 1], found[i + 2], d
+                end
+            end
+        end
+    end
+    return bx, by, bz
+end
+core.event.on("core:tick", function(ev)
+    lava_look += ev.dt
+    if lava_look < 1 then
+        return
+    end
+    lava_look = 0
+    local here: { [number]: boolean } = {}
+    for _, p in core.players() do
+        here[p] = true
+        local x, y, z = core.player_pos(p)
+        local lx, ly, lz
+        if x and y and z then
+            lx, ly, lz = nearest_lava(math.floor(x), math.floor(y), math.floor(z))
+        end
+        local l = lava_heard[p]
+        if lx and ly and lz then
+            local cx, cy, cz = lx + 0.5, ly + 0.5, lz + 0.5
+            if l == nil then
+                local id = core.sound_loop("rocks:lava", cx, cy, cz, 16, 0.7)
+                if id ~= 0 then
+                    lava_heard[p] = { id = id, x = cx, y = cy, z = cz }
+                end
+            elseif l.x ~= cx or l.y ~= cy or l.z ~= cz then
+                core.sound_loop_move(l.id, cx, cy, cz)
+                l.x, l.y, l.z = cx, cy, cz
+            end
+        elseif l then
+            core.sound_loop_stop(l.id)
+            lava_heard[p] = nil
+        end
+    end
+    for p, l in lava_heard do
+        if not here[p] then
+            core.sound_loop_stop(l.id)
+            lava_heard[p] = nil
+        end
+    end
+end)
+
 -- ---------------------------------------------------------------- where it lies
 
 local function mul32(a: number, b: number): number
