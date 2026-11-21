@@ -380,7 +380,7 @@ inline constexpr uint16_t kProtocol    = 129; // 129 ChatWords, what Tab finishe
 // (kMaxOpenings, Portals::present 64 bits where a 115 client reads 32) of
 // which 28 mouths (kMaxMouths), four more onto the room of pocket halls
 // (mods/pocket). And bit 4 of a Player's second flags byte: drawn as a block
-// (core.body_block, the arena's prop hunt), its id after the dressed pieces,
+// (core.body_block), its id after the dressed pieces,
 // which a 115 client refuses.
 // 117 gives every opening in Portals its velocity (core.portal_move), three
 // floats after its colour, which a 116 client reads as the next opening; and

@@ -2856,8 +2856,8 @@ int host_player_clip(void *ud, int player, const char *clip, double dx, double d
     return 1;
 }
 
-// The block a body is drawn as (core.body_block), sent with it: a hider in the
-// arena's prop hunt. Air takes it off. The client's copy is host_body_block in
+// The block a body is drawn as (core.body_block), sent with it: a player
+// hiding as a block. Air takes it off. The client's copy is host_body_block in
 // src/client/main.cpp.
 int host_body_block(void *ud, int player, int block)
 {
@@ -9341,7 +9341,7 @@ int serve_room(int argc, char **argv)
                         // generation above them, and a body whose slot had been
                         // used before (a player who joined after somebody left)
                         // came out as 4294967809: no player to body_player, and
-                        // a prop hunt's blow found nobody.
+                        // a blow at them found nobody.
                         script_field fields[4] = {
                             {"player", SCRIPT_V_NUMBER, (double)ev.peer, nullptr, 0},
                             {"target", SCRIPT_V_NUMBER, (double)(uint32_t)a.hit_target, nullptr, 0},

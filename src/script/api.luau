@@ -1566,7 +1566,7 @@ local api: { Fn } = {
            .. "cube of that block's tiles, or its boxes for a block made of boxes (a slab is half "
            .. "a cube), its bottom at their feet and square with the grid whichever way they "
            .. "face. They are aimed at and struck (a blow, an arrow) in that block and nowhere "
-           .. "else: not in the air over it. What a hider in a prop hunt is (mods/arena). The "
+           .. "else: not in the air over it. The "
            .. "box they walk in stays the engine's, so "
            .. "they walk and are stopped as ever, and what they hold and wear is not drawn. "
            .. "On a player's machine only their own id, which their own drawing of the body "

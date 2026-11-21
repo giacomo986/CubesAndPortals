@@ -862,7 +862,7 @@ struct Session {
     // (a kart while it drives); 0 is what the world dresses players in.
     ModelId own_body_model = kNoModel;
     // And the block it is drawn as instead, when core.body_block said so here
-    // (a hider in the arena's prop hunt); 0 for none.
+    // (a player hiding as a block); 0 for none.
     uint16_t own_body_block = 0;
     // And what the world dresses players in, off its welcome (0 in a local
     // world, which dresses nobody): what first-person arms are looked up by.

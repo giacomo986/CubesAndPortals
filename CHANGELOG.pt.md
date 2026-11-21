@@ -65,13 +65,12 @@ rede.
   segundo.
 - **Os portões de um mundo de sobrevivência** liberam os portais de que ninguém está perto, para que
   ali também os portais entre salas construídos à mão tenham bocas para pegar emprestadas.
-- **O golpe do prop hunt sempre acha quem se esconde**: não achava ninguém quando o corpo de quem
-  se escondia tinha um id já usado (alguém que entrou depois que outro saiu). Para quem escreve
-  mods: o `target` de `core:hit` é o id que todas as outras chamadas recebem, como
-  `core.spawn_mob` o dá, e não mais um número que `core.body_player` não sabia ler.
-- **Quem se esconde no prop hunt é atingido onde está o seu bloco**: acabaram os golpes que acertam o
-  ar vazio acima dele ou erram a sua borda de baixo, e quem está disfarçado de laje, escada ou cerca
-  é desenhado com essa forma, não como um cubo inteiro.
+- **O prop hunt foi removido** do gongo da arena, que agora só inicia a luta.
+- Para quem escreve mods: o `target` de `core:hit` é o id que todas as outras chamadas recebem,
+  como `core.spawn_mob` o dá, e não mais um número que `core.body_player` não sabia ler (um corpo
+  com um id já usado não era ninguém); um corpo desenhado como bloco (`core.body_block`) é atingido
+  onde está o bloco, e uma laje, uma escada ou uma cerca é desenhada com essa forma, não como um
+  cubo inteiro.
 - **As pilhas de itens no chão são salvas com o mundo**: depois de reiniciar elas estão onde
   estavam, inclusive as gastas, encantadas e coloridas, com o resto dos seus cinco minutos pela
   frente.

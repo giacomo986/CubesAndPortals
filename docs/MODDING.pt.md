@@ -1732,8 +1732,7 @@ a pé e entra num kart estacionado: `games/track`.
   Ele é mirado e atingido (um golpe, uma flecha) naquele bloco e em nenhum outro lugar, não no ar
   acima dele; 0 põe o modelo de volta. A caixa com que ele anda continua sendo a do motor, e o que ele
   segura e veste não é desenhado. Como para `core.body_model`, o código
-  do cliente chama `core.body_block(0, id)` para o próprio desenho. O esconde-esconde de objetos de
-  `mods/arena` é feito disso.
+  do cliente chama `core.body_block(0, id)` para o próprio desenho.
 * **Rodas que giram e viram.** Um modelo com esqueleto as anima sozinho, pelo nome do osso: `steer_*`
   vira em torno do próprio eixo, `wheel_*` rola em torno do seu (filho de um `steer_*`, também vira),
   `steering_wheel` gira um quarto de volta com tudo virado. "O próprio eixo" é o Y do osso, ou seja,

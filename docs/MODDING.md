@@ -1711,7 +1711,7 @@ on foot and get into a parked kart: `games/track`.
   their feet -- or the block's own model, a chest -- always square with the grid. It is aimed at
   and struck (a blow, an arrow) in that block and nowhere else, not in the air above it; 0 puts the
   model back. The box it walks in stays the engine's, and what it holds and wears is not drawn. As for `core.body_model`, the client's code calls `core.body_block(0, id)` for
-  its own drawing. `mods/arena`'s prop hunt is made of it.
+  its own drawing.
 * **Wheels that turn and steer.** A model with a skeleton animates them by itself, by bone name:
   `steer_*` steers about its own axis, `wheel_*` rolls about its own (child of a `steer_*`, steers
   too), `steering_wheel` turns a quarter turn at full lock. "Its own axis" is the bone's Y, that is

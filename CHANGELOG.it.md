@@ -66,13 +66,12 @@ sono nuovi in rete.
   secondi mentre si caricava una stanza dell'inferno, ora al più un quarto di secondo circa.
 - **I cancelli di un mondo survival** lasciano liberi i portali vicino a cui non c'è nessuno, così
   anche lì i portali tra stanze costruiti a mano hanno bocche da prendere in prestito.
-- **Il colpo del prop hunt trova sempre chi si nasconde**: non trovava nessuno quando il corpo di
-  chi si nascondeva aveva un id già usato (chi è entrato dopo che un altro era uscito). Per chi
-  scrive mod: il `target` di `core:hit` è l'id che prendono tutte le altre chiamate, come lo dà
-  `core.spawn_mob`, e non più un numero che `core.body_player` non sapeva leggere.
-- **Chi si nasconde nel prop hunt è colpito dove è il suo blocco**: niente più colpi che vanno a
-  segno nell'aria vuota sopra o che mancano il suo bordo basso, e chi è travestito da lastra, scala
-  o recinto è disegnato con quella forma, non come un cubo intero.
+- **Il prop hunt non c'è più** nel gong dell'arena, che ora avvia solo la sfida.
+- Per chi scrive mod: il `target` di `core:hit` è l'id che prendono tutte le altre chiamate, come
+  lo dà `core.spawn_mob`, e non più un numero che `core.body_player` non sapeva leggere (un corpo
+  con un id già usato non era nessuno); un corpo disegnato come blocco (`core.body_block`) è
+  colpito dove è il blocco, e una lastra, una scala o un recinto è disegnato con quella forma, non
+  come un cubo intero.
 - **Gli oggetti a terra si salvano con il mondo**: dopo un riavvio sono dove erano, anche quelli
   consumati, incantati e colorati, con il resto dei loro cinque minuti ancora da passare.
 - **Un kart parcheggiato tiene la vernice e i pezzi del suo ultimo pilota** per tutti, anche dopo un

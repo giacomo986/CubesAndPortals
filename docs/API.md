@@ -1435,7 +1435,7 @@ Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
 core.body_block(player: number, block: number?) -> boolean
 ```
 
-Draws ONE player's body as a block instead of their model, for everybody else: a cube of that block's tiles, or its boxes for a block made of boxes (a slab is half a cube), its bottom at their feet and square with the grid whichever way they face. They are aimed at and struck (a blow, an arrow) in that block and nowhere else: not in the air over it. What a hider in a prop hunt is (mods/arena). The box they walk in stays the engine's, so they walk and are stopped as ever, and what they hold and wear is not drawn. On a player's machine only their own id, which their own drawing of the body (core.view) wears. Protocol 116. Returns 1, or 0 for a player who is not here or no such block.
+Draws ONE player's body as a block instead of their model, for everybody else: a cube of that block's tiles, or its boxes for a block made of boxes (a slab is half a cube), its bottom at their feet and square with the grid whichever way they face. They are aimed at and struck (a blow, an arrow) in that block and nowhere else: not in the air over it. The box they walk in stays the engine's, so they walk and are stopped as ever, and what they hold and wear is not drawn. On a player's machine only their own id, which their own drawing of the body (core.view) wears. Protocol 116. Returns 1, or 0 for a player who is not here or no such block.
 
 Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
 

@@ -69,14 +69,6 @@ what is built, and three or four structural fixes that each close many entries.
   - bees' harvest: a right click, not a left one (every bees action is):
     --use-at on a full nest: emptied, stung 20 -> 18 without smoke, the notice
     and the sting heard. The sting peaks at -0.2 dBFS, at the edge of clipping.
-  - prop hunt's blow: two clients and a scratch arena that strikes its own gong
-    (3 s to hide): found 3 of 3 after the fix below; before it, 1 in 2.
-    Fixed: core:hit's target was the whole 64-bit entity id, and a body in a
-    slot used before (generation 1: 4294967809) read as nobody to
-    core.body_player (a 32-bit int in the binding) -- the blow landed and found
-    nobody. Now the low 32 bits, as core.spawn_mob gives them, on the server
-    and in the local loop; villagers, animals, helpers and garden compare
-    ev.target with spawn_mob's ids too.
 - Audio: done 2026-11-19. `--record-audio FILE.wav` opens the device in a timed
   run and writes the mix (stereo, 48 kHz, before the options' volume), saying
   where in the file the run starts; `tools/null_sink.sh` runs it on a sink
@@ -122,8 +114,6 @@ Sandbox:
 - Pocket hut bought from the mayor and built; a fifth hall wanted at once.
 - Rewards after the ending: rope gun, portal gun, kart anywhere.
 - Bees: net, apiary upgrades, press (harvest and sting by script, 2026-11-20).
-- Prop hunt: changing block, put back on the edge (a blow finding a hider by
-  script, 2026-11-20).
 - Museum plinths filled; `core:arrived` on a real crossing between servers;
   friend bag copy between two servers; /mute with a muted player.
 - Melon and pumpkin from seed; a chess variant played through; a pony or a kart

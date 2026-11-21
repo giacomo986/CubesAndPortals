@@ -380,7 +380,7 @@ struct Posed {
 };
 
 // The block a person is drawn as instead of their model (core.body_block): a
-// hider in the arena's prop hunt. Drawn by everybody else; never air.
+// player hiding as a block. Drawn by everybody else; never air.
 struct Disguised {
     uint16_t block = 0;
 };

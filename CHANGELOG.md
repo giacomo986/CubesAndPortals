@@ -61,13 +61,11 @@ on the wire.
   three seconds while an inferno room loaded, now for about a quarter of a second at most.
 - **A survival world's gates** let go of the portals nobody is near, so portals between rooms
   built by hand have mouths to borrow there too.
-- **A prop hunt's blow finds the hider every time**: it found nobody when the hider's body had
-  an id used before (somebody who joined after another left). For mod writers: `core:hit`'s
-  `target` is the id every other call takes, as `core.spawn_mob` gives it, and no longer a number
-  `core.body_player` could not read.
-- **A prop hunt's hider is struck where their block is**: no more blows landing on the empty air
-  above it or missing its lower edge, and a hider disguised as a slab, a stair or a fence is drawn
-  that shape, not a whole cube.
+- **The prop hunt is gone** from the arena's gong, which starts only the fight now.
+- For mod writers: `core:hit`'s `target` is the id every other call takes, as `core.spawn_mob`
+  gives it, and no longer a number `core.body_player` could not read (a body whose id had been
+  used before was nobody); a body drawn as a block (`core.body_block`) is struck where the block
+  is, and a slab, a stair or a fence is drawn that shape, not a whole cube.
 - **Stacks lying on the ground are saved with the world**: after a restart they are where they
   were, worn, enchanted and coloured things included, with the rest of their five minutes to run.
 - **A parked kart keeps its last driver's paint and parts** for everybody, past a restart too, and

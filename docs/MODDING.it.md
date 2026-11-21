@@ -1907,7 +1907,7 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   cammina resta quella del motore, e quello che tiene in mano e indossa non si
   disegna. Come per
   `core.body_model`, il codice del client chiama `core.body_block(0, id)` per il
-  proprio disegno. Il prop hunt di `mods/arena` è fatto così.
+  proprio disegno.
 * **Ruote che girano e sterzano.** Un modello con uno scheletro le anima da
   solo, per nome degli ossi: `steer_*` sterza attorno al proprio asse,
   `wheel_*` rotola attorno al proprio (figlio di uno `steer_*`, sterza anche),
