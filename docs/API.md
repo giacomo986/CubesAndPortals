@@ -3615,10 +3615,10 @@ Returns NOTHING for a player who is not in this world or has not moved yet.
 ## `core.player_launch`
 
 ```luau
-core.player_launch(player: number, vx: number, vy: number, vz: number, seconds: number?) -> boolean
+core.player_launch(player: number, vx: number, vy: number, vz: number, seconds: number?, add: boolean?) -> boolean
 ```
 
-Throws a player: their body's speed becomes that, whatever it was (protocol 84), and for `seconds` the server lets them move as fast and as high as a crossing's grace does -- an launch plate. Returns 1, or 0 for a player with no body here or a speed out of range.
+Throws a player: their body's speed becomes that, whatever it was (protocol 84), and for `seconds` the server lets them move as fast and as high as a crossing's grace does -- an launch plate. A body in a kart too: its chassis is put down afresh where it is at that speed, along the ground (a kart's bump into another, games/track). Returns 1, or 0 for a player with no body here or a speed out of range.
 
 Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
 
@@ -3629,6 +3629,7 @@ Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
 | `vy` | number | — | m/s, up positive; at most 16 on any axis. |
 | `vz` | number | — |  |
 | `seconds` | number | `2` | How long the server lets the body fly faster and higher than it could, 0..10. |
+| `add` | boolean | `false` | Adds that to the body's speed instead: a bump, not a throw. |
 
 ## `core.player_place`
 

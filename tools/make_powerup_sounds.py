@@ -9,6 +9,7 @@
   bolt     lightning: a crack and a deep falling zap, 1 s
   ink      a wet splat
   rattle   the roulette of a box turning, 1 s (track_game plays it with box)
+  bump     two karts knocking together: a dull thud and a plastic knock
 
 The backrooms torch's beam too, into games/backrooms/mods/backrooms_hand:
 
@@ -120,6 +121,19 @@ def ink(rng):
     return out
 
 
+def bump(rng):
+    out, ph, lp = [], 0.0, 0.0
+    length = 0.35
+    for i in range(n(length)):
+        t = i / RATE
+        ph += (95 * math.exp(-t * 5) + 45) / RATE
+        thud = math.sin(2 * math.pi * ph) * math.exp(-t * 11)
+        lp += (rng.uniform(-1, 1) - lp) * 0.35
+        knock = lp * math.exp(-t * 40)
+        out.append((0.9 * thud + 0.8 * knock) * env(t, length, 0.002, 0.1))
+    return out
+
+
 def beam(rng):
     out, ph = [], 0.0
     length = 0.6
@@ -143,6 +157,7 @@ if __name__ == "__main__":
         "spin": spin(random.Random(6)),
         "bolt": bolt(random.Random(7)),
         "ink": ink(random.Random(8)),
+        "bump": bump(random.Random(10)),
     }.items():
         write(samples, os.path.join(TRACK, name + ".ogg"))
     write(beam(random.Random(9)), os.path.join(BACKROOMS, "beam.ogg"))

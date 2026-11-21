@@ -577,8 +577,8 @@ declare core: {
     --
     -- Returns NOTHING for a player who is not in this world or has not moved yet.
     player_look: (player: number) -> (number?, number, number),
-    -- Throws a player: their body's speed becomes that, whatever it was (protocol 84), and for `seconds` the server lets them move as fast and as high as a crossing's grace does -- an launch plate. Returns 1, or 0 for a player with no body here or a speed out of range.
-    player_launch: (player: number, vx: number, vy: number, vz: number, seconds: number?) -> boolean,
+    -- Throws a player: their body's speed becomes that, whatever it was (protocol 84), and for `seconds` the server lets them move as fast and as high as a crossing's grace does -- an launch plate. A body in a kart too: its chassis is put down afresh where it is at that speed, along the ground (a kart's bump into another, games/track). Returns 1, or 0 for a player with no body here or a speed out of range.
+    player_launch: (player: number, vx: number, vy: number, vz: number, seconds: number?, add: boolean?) -> boolean,
     -- Moves a player's body and turns it, the way a portal does: the server puts them there and gives them a second in which their movement is not checked, for the frames before their client knows. Getting into a parked kart is this call -- the body goes where the kart stood, facing the way it faced. Returns 1, or 0 for a player who is not in this world or somebody only watching.
     --
     -- On a server the move goes out at the end of the tick, after the blocks the mods changed in it: a body put where a block was just taken away arrives to find it gone. Nothing checks the place is clear: put a body where it fits.
@@ -748,7 +748,7 @@ declare core: {
         box: (x: number, y: number, z: number, w: number?, h: number?, d: number?,
               r: number?, g: number?, b: number?, a: number?) -> boolean,
         model: (model: number, x: number, y: number, z: number, yaw: number?, scale: number?,
-                pitch: number?, roll: number?, gone: number?) -> boolean,
+                pitch: number?, roll: number?, gone: number?, alpha: number?, tint: number?) -> boolean,
         fx: (kind: string, x: number, y: number, z: number, size: number?, r: number?, g: number?,
              b: number?, a: number?, t: number?, x2: number?, y2: number?, z2: number?) -> boolean,
         camera: (id: number, x: number, y: number, z: number, yaw: number?, pitch: number?,

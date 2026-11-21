@@ -894,9 +894,12 @@ int l_render_model(lua_State *L)
     const double pitch = luaL_optnumber(L, 7, 0.0);
     const double roll  = luaL_optnumber(L, 8, 0.0);
     const double gone  = luaL_optnumber(L, 9, 0.0);
+    const double alpha = luaL_optnumber(L, 10, 1.0);
+    const int    tint  = (int)luaL_optinteger(L, 11, 0);
 
     const int ok = (vm && vm->host.render_model)
-                       ? vm->host.render_model(vm->host.ud, model, x, y, z, yaw, scale, pitch, roll, gone)
+                       ? vm->host.render_model(vm->host.ud, model, x, y, z, yaw, scale, pitch, roll, gone,
+                                               alpha, tint)
                        : 0;
     lua_pushboolean(L, ok);
     return 1;

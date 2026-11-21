@@ -2156,7 +2156,7 @@ int host_render_box(void *ud, double x, double y, double z, double w, double h, 
 // core.render.model: one of the world's models at rest, inside a pass, as a
 // block's model is drawn (wire_model_draw).
 int host_render_model(void *ud, int model, double x, double y, double z, double yaw, double scale,
-                      double pitch, double roll, double dissolve)
+                      double pitch, double roll, double dissolve, double alpha, int tint)
 {
     Scene *s = static_cast<Scene *>(ud);
     if (!s->in_pass) {
@@ -2165,7 +2165,7 @@ int host_render_model(void *ud, int model, double x, double y, double z, double 
     }
     if (model <= 0 || model > 0xffff || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) ||
         !std::isfinite(yaw) || !std::isfinite(pitch) || !std::isfinite(roll) || !(scale > 0.0) ||
-        scale > 16.0 || !std::isfinite(dissolve))
+        scale > 16.0 || !std::isfinite(dissolve) || !std::isfinite(alpha))
         return 0;
     ModelStore::Entry *e = s->act().models.entry((uint16_t)model);
     if (e == nullptr) return 0;
@@ -2173,7 +2173,10 @@ int host_render_model(void *ud, int model, double x, double y, double z, double 
                                      mat4_rotate_z((float)roll));
     const Mat4 place = mat4_multiply(mat4_multiply(mat4_translate(Vec3{(float)x, (float)y, (float)z}), turn),
                                      mat4_scale(Vec3{(float)scale, (float)scale, (float)scale}));
-    e->renderer.draw(s->pass_projection, s->pass_view, place, e->model.bind_pose, gfx_texture{0}, 1.0f, 1.0f, 0,
+    // Seen through at under 1 (a kart's ghost), and never quite gone: a
+    // model drawn at 0 is one a mod meant to stop drawing.
+    e->renderer.draw(s->pass_projection, s->pass_view, place, e->model.bind_pose, gfx_texture{0}, 1.0f,
+                     (float)std::clamp(alpha, 0.05, 1.0), (uint32_t)std::max(tint, 0),
                      (float)std::clamp(dissolve, 0.0, 1.0));
     return 1;
 }
@@ -8313,8 +8316,11 @@ uint64_t aimed_body(const net::ClientSession &conn, const ModelStore &models, co
 
         // A person drawn as a block (116) is aimed at in that block, as the
         // server strikes them (ecs::disguised_box): not in the air over it.
+        // And somebody in a kart by the kart, about as wide as it is: a
+        // click on its bonnet asks for the seat in it (games/track).
         const AABB box = (p.kind == net::EntityKind::Mob) ? creature_box(models, p.model, Vec3{p.x, p.y, p.z}, p.scale)
                          : p.as_block != kAir ? ecs::disguised_box(reg, p.as_block, p.x, p.y, p.z)
+                         : p.chassis          ? body_box(Vec3{p.x, p.y, p.z}, 0.9f)
                                               : body_box(Vec3{p.x, p.y, p.z}, conn.welcome().movement.width * 0.5f);
 
         float t = 0.0f;
@@ -14300,6 +14306,10 @@ struct ScriptLeft {
     float  fx = -1.0f, fy = -1.0f;
 };
 std::vector<ScriptLeft> g_lefts;
+// --right-at "t": t seconds into a timed run (counted as --left-at's are), one
+// right click wherever the player looks -- a use on whatever body or block is
+// aimed at, as a real click is: a seat in somebody's kart (games/track).
+double g_right_at = -1.0;
 
 // --fly-down N: in a timed single-process run, fly N nodes up and come back
 // down to the ground with nobody at the keyboard, then say what the landing
@@ -16691,6 +16701,8 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
     size_t left_next     = 0;
     bool   left_told     = false;
     float  script_fx = -1.0f, script_fy = -1.0f;
+    bool   script_right = false;   // --right-at's click, held this frame
+    bool   right_told   = false;
     bool         dropped  = false;
     long         frames   = 0;
 
@@ -16702,6 +16714,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
     while (!plat_should_close()) {
         // Every frame, so a press is one frame's edge and a release another's.
         plat_script_mouse(PLAT_MOUSE_LEFT, script_left);
+        plat_script_mouse(PLAT_MOUSE_RIGHT, script_right);
         plat_script_cursor(script_point ? script_fx * (float)gfx_screen_width() : -1.0f,
                            script_point ? script_fy * (float)gfx_screen_height() : -1.0f);
         window_keys(show_debug);
@@ -17381,6 +17394,13 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 script_point = false;
                 std::printf("left button up, %.1f s into the run\n", now - started);
             }
+        }
+        // --right-at: one right click, held 0.15 s, where the player looks.
+        script_right = g_right_at >= 0.0 && now >= left_base + g_right_at &&
+                       now < left_base + g_right_at + 0.15;
+        if (script_right && !right_told) {
+            right_told = true;
+            std::printf("right button down, %.1f s into the run\n", now - started);
         }
         const bool clicked = click_done;
 
@@ -19691,16 +19711,27 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         // nothing this side works out. A maximum of zero until the first
         // message, which is what says "nobody has told us yet" -- drawn as
         // empty it would tell everybody who just joined that they are dying.
-        // A blow's knock, into the body's speed; its physics spends it. Not
-        // into a kart, whose chassis the server steps from its keys alone.
-        if (net::Push push; conn->take_push(push) && !player.vehicle && !player.hanging) {
-            // A launch sets the speed: a second launch plate throws as hard
-            // as the first, whatever the body brought onto it.
-            if (push.set) player.velocity.x = 0.0f, player.velocity.z = 0.0f, player.velocity.y = 0.0f;
-            player.velocity.x += push.x;
-            player.velocity.z += push.z;
-            player.velocity.y = std::max(player.velocity.y, push.y);
-            if (push.y > 0.0f) player.on_ground = false;
+        // A blow's knock, into the body's speed; its physics spends it. Into
+        // a kart along the ground, by putting its chassis down afresh where it
+        // is at the new speed: the server steps its copy from what the client
+        // did, and a put is one of those things (a bump between karts,
+        // games/track; the server allows the put the push's speed).
+        if (net::Push push; conn->take_push(push) && !player.hanging) {
+            if (player.vehicle) {
+                Vec3 v = push.set ? Vec3{} : player.velocity;
+                v.x += push.x;
+                v.z += push.z;
+                player.velocity = v;
+                player.vehicle.reset();
+            } else {
+                // A launch sets the speed: a second launch plate throws as
+                // hard as the first, whatever the body brought onto it.
+                if (push.set) player.velocity.x = 0.0f, player.velocity.z = 0.0f, player.velocity.y = 0.0f;
+                player.velocity.x += push.x;
+                player.velocity.z += push.z;
+                player.velocity.y = std::max(player.velocity.y, push.y);
+                if (push.y > 0.0f) player.on_ground = false;
+            }
         }
 
         if (conn->has_vitals()) {
@@ -22471,6 +22502,8 @@ int client_main(int argc, char **argv)
                                  [](const ScriptLeft &a, const ScriptLeft &b) { return a.at < b.at; });
             }
         }
+        if (std::strcmp(argv[i], "--right-at") == 0 && i + 1 < argc)
+            g_right_at = std::atof(argv[++i]);
         if (std::strcmp(argv[i], "--use-at") == 0 && i + 1 < argc)
             g_use_at = std::sscanf(argv[++i], "%d,%d,%d", &g_use_x, &g_use_y, &g_use_z) == 3;
         if (std::strcmp(argv[i], "--first-person") == 0) {
