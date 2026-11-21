@@ -1756,6 +1756,54 @@ if serving then
         tell(ev.player, `pick {ev.text}`)
     end, nil)
 
+    -- The engines (core.sound_loop): one going round each kart driven, moved
+    -- with it every tick (tools/make_loop_sounds.py). A loop keeps the gain it
+    -- was started with, so a kart that speeds up or slows down past a step has
+    -- its loop started again louder or quieter in the same tick -- the same
+    -- voice, since loops of one name are one voice, as loud as the nearest
+    -- kart. Stopped when the driver gets out or goes.
+    local ENGINE_GAIN = { 0.22, 0.38, 0.55 }   -- standing, under way, flat out
+    local ENGINE_UP = { 3, 15 }                -- m/s into the next step up...
+    local ENGINE_DOWN = { 2, 12 }              -- ...and back down, apart so it does not flicker
+    type Engine = { id: number, step: number, x: number, z: number, speed: number }
+    local engines: { [number]: Engine } = {}
+    local function engines_step(dt: number)
+        for p, e in engines do
+            local s = players[p]
+            if s == nil or not s.driving then
+                core.sound_loop_stop(e.id)
+                engines[p] = nil
+            end
+        end
+        for p, s in players do
+            local x, y, z = core.player_pos(p)
+            if s.driving and x and y and z then
+                local e = engines[p]
+                local speed, step = 0, 1
+                if e then
+                    -- How fast over the ground, eased: a crossing that puts
+                    -- the kart somewhere else is not a burst of speed.
+                    local got = if dt > 0 then math.sqrt((x - e.x) ^ 2 + (z - e.z) ^ 2) / dt else 0
+                    speed = e.speed + (math.min(got, 40) - e.speed) * math.min(1, dt * 4)
+                    step = e.step
+                    if step < 3 and speed > ENGINE_UP[step] then
+                        step += 1
+                    elseif step > 1 and speed < ENGINE_DOWN[step - 1] then
+                        step -= 1
+                    end
+                end
+                if e == nil or step ~= e.step then
+                    if e then core.sound_loop_stop(e.id) end
+                    local id = core.sound_loop(SND .. "engine", x, y + 0.5, z, 28, ENGINE_GAIN[step])
+                    engines[p] = if id ~= 0 then { id = id, step = step, x = x, z = z, speed = speed } else nil
+                else
+                    core.sound_loop_move(e.id, x, y + 0.5, z)
+                    e.x, e.z, e.speed = x, z, speed
+                end
+            end
+        end
+    end
+
     function server_step(dt: number)
         local present = {}
         for _, p in core.players() do
@@ -1981,6 +2029,7 @@ if serving then
                 players[p] = nil
             end
         end
+        engines_step(dt)
         items_step(dt)
     end
 end
