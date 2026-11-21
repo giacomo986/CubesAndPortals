@@ -256,6 +256,7 @@ struct ServerState {
         net::PeerId player = 0;
         Vec3        vel;
         double      seconds = 0.0;
+        bool        add     = false;   // a bump: onto the body's speed, not instead of it
     };
     std::vector<ModLaunch> mod_launches;
 
@@ -2616,7 +2617,7 @@ int host_ride(void *ud, int player, int host, double x, double y, double z)
     return 1;
 }
 
-int host_player_launch(void *ud, int player, double vx, double vy, double vz, double seconds)
+int host_player_launch(void *ud, int player, double vx, double vy, double vz, double seconds, int add)
 {
     ServerState      *s    = static_cast<ServerState *>(ud);
     const std::string name = asking_mod();
@@ -2635,7 +2636,7 @@ int host_player_launch(void *ud, int player, double vx, double vy, double vz, do
                     "grace outside 0..10 s\n", who, (double)m);
         return 0;
     }
-    s->mod_launches.push_back({(net::PeerId)player, Vec3{(float)vx, (float)vy, (float)vz}, seconds});
+    s->mod_launches.push_back({(net::PeerId)player, Vec3{(float)vx, (float)vy, (float)vz}, seconds, add != 0});
     return 1;
 }
 
@@ -10390,7 +10391,7 @@ int serve_room(int argc, char **argv)
                 for (const ServerState::ModLaunch &l : s.mod_launches) {
                     if (sessions.launch(l.player, l.vel, seconds_since(t_start), l.seconds))
                         transport.send(l.player, net::Channel::Event,
-                                       net::Push{l.vel.x, l.vel.y, l.vel.z, true}.encode(), true);
+                                       net::Push{l.vel.x, l.vel.y, l.vel.z, !l.add}.encode(), true);
                 }
                 s.mod_launches.clear();
 

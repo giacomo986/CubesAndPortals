@@ -96,6 +96,11 @@ struct DriveShadow {
     float pending_yaw       = 0.0f;
     bool  pending_yaw_known = false;   // a correction on foot leaves the client its own
 
+    // A launch's speed (core.player_launch): a kart bumped by a mod puts its
+    // chassis down afresh that much faster than it was going, until then.
+    float  pushed       = 0.0f;
+    double pushed_until = -1.0;
+
     // The number of the next record (Move::first_drive), unknown after a
     // placement until the first claim that follows it says.
     uint32_t next       = 0;
@@ -858,7 +863,9 @@ public:
     int cross_mobs(double now);
 
     // A launch (core.player_launch): the body is sent that speed and the
-    // server lets it move as a crossing's grace allows, `seconds` long.
+    // server lets it move as a crossing's grace allows, `seconds` long. A
+    // body in a kart puts its chassis down afresh at the speed it is sent,
+    // and for a moment the server lets a put be that much faster.
     bool launch(PeerId peer, Vec3 vel, double now, double seconds);
 
     // Who is driving the body with this id on the wire, or nothing.

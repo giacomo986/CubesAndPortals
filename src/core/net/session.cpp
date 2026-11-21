@@ -1329,6 +1329,17 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
                     a.used_mob     = (uint32_t)req.target;
                     a.used_held    = held.empty() ? kNoItem : held.item;
                 }
+            } else if (const Session *other = driver_of(req.target);
+                       other != nullptr && other != &s && s.scope == Scope::Enter && other->avatar.is_alive() &&
+                       other->avatar.try_get<ecs::Position>() != nullptr &&
+                       in_reach(s, other->avatar, *other->avatar.try_get<ecs::Position>(), why)) {
+                // Another player: nothing the engine does, a mod's to answer
+                // as for a creature (a seat in their kart, games/track), who
+                // by core.body_player of the target.
+                const ItemStack &held = s.bag().at(req.slot < Inventory::kHotbar ? req.slot : 0);
+                a.has_used_mob = true;
+                a.used_mob     = (uint32_t)req.target;
+                a.used_held    = held.empty() ? kNoItem : held.item;
             } else if (use_body(s, req.target, req.slot, now, why)) {
                 a.reply_channel = (uint8_t)Channel::Event;
                 a.reply         = inventory_message(peer);
@@ -2422,8 +2433,13 @@ bool ServerSessions::launch(PeerId peer, Vec3 vel, double now, double seconds)
 {
     Session *s = find_mutable(peer);
     if (s == nullptr || !s->authority().valid) return false;
-    (void)vel;
     s->authority().grace_until = std::max(s->authority().grace_until, now + seconds);
+    // A kart's client puts its chassis down afresh at the new speed, a round
+    // trip from now: a second for it, and as hard as the strongest push in it.
+    DriveShadow &d = s->drive;
+    const float  v = std::sqrt(vel.x * vel.x + vel.z * vel.z);
+    d.pushed       = now <= d.pushed_until ? std::max(d.pushed, v) : v;
+    d.pushed_until = now + 1.0;
     return true;
 }
 
@@ -3240,7 +3256,9 @@ bool ServerSessions::put_fits(Session &s, const DriveEvent &e, double now, std::
             why = buf;
             return false;
         }
-        if (length(e.vel) > length(d.body.velocity) + kPutSlop) {
+        // Faster by a mod's push (core.player_launch), a bump, for a moment.
+        const float pushed = now <= d.pushed_until ? d.pushed : 0.0f;
+        if (length(e.vel) > length(d.body.velocity) + kPutSlop + pushed) {
             std::snprintf(buf, sizeof buf, "a kart put down at %.1f m/s when it was going %.1f",
                           (double)length(e.vel), (double)length(d.body.velocity));
             why = buf;

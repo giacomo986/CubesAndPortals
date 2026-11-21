@@ -174,6 +174,7 @@ local heard: (string) -> () = function(_) end
 local get_out: (number) -> () = function(_) end
 local respawn: (number) -> () = function(_) end
 local use_item: (number, boolean) -> () = function(_, _) end
+local seat_off: (number) -> () = function(_) end
 
 local function tell(player: number, text: string)
     if drawing then
@@ -476,7 +477,15 @@ if serving then
     type Racer = { x: number, y: number, z: number, track: number?, next: number, lapping: boolean,
                    started: number, name: string, held: number, driving: boolean, off: number, skip: number,
                    items: { Item }, boost: number, star: number, spin: number, slow: number, speeds: string?,
-                   yaw: number?, alt: { track: number, started: number }? }
+                   yaw: number?, alt: { track: number, started: number }?,
+                   -- the race order (race_order): laps done since getting in, the place
+                   -- in it and how many are in it, 0 0 for none
+                   laps: number, place: number, of: number,
+                   -- a passenger's seat (the driver it sits behind), a driver's passenger
+                   seat: number?, passenger: number?,
+                   -- how fast it was seen going, for a bump; when it was last recorded
+                   -- for a ghost, and which ghost its machine has
+                   vx: number, vz: number, rec_at: number, ghost_sent: string? }
     local function dress_kart(p: number, s: Racer)
         local tint, parts = kart_look(kart_of(s.name))
         local worn = {}
@@ -644,7 +653,7 @@ if serving then
         core.player_place(p, x + CORNER[f][1], y, z + CORNER[f][2], NOSE[f][1], 0, NOSE[f][2])
         hold(p)
         s.driving, s.held = true, COUNTDOWN
-        s.next, s.lapping, s.off, s.skip = 1, false, 0, 0
+        s.next, s.lapping, s.off, s.skip, s.laps = 1, false, 0, 0, 0
         s.speeds = `{KART.walk} {KART.sprint} {KART.accel}`   -- what release puts back at zero
         tell(p, "kart 1")
         dress_kart(p, s)
@@ -1128,7 +1137,7 @@ if serving then
     -- same click would also build whatever is in hand on top of it.
     core.event.on("core:used", function(ev)
         local s = players[ev.player]
-        if ev.id ~= KART_NODE or KART_NODE == 0 or s == nil or s.driving then
+        if ev.id ~= KART_NODE or KART_NODE == 0 or s == nil or s.driving or s.seat ~= nil then
             return
         end
         ev.cancel = true
@@ -1209,10 +1218,17 @@ if serving then
     core.ecs.component(THING, { "t" })
 
     -- What a box gives, and how often: the more a power-up does, the rarer.
-    -- ponytail: the same odds for everybody; kart racers give the last ones
-    -- the strong ones, which wants a race order this game has no laps for.
-    local ROLL: { { any } } = { { "boost", 20 }, { "boost3", 9 }, { "banana", 20 }, { "shell", 18 },
-                   { "homing", 12 }, { "ink", 10 }, { "star", 6 }, { "bolt", 5 } }
+    -- As kart racers have it, by the order of the race (race_order, below):
+    -- the leader is given what defends a lead -- bananas and green shells --
+    -- and never a star or the lightning, the last what catches up -- the
+    -- triple boost, the homing shell, the star, the lightning -- and those
+    -- between are given odds between the two. A kart lapping alone (a time
+    -- trial) gets the first column, as everybody did before there was an
+    -- order.
+    --                                  alone first last
+    local ROLL: { { any } } = { { "boost",  20, 20, 10 }, { "boost3", 9,  2, 18 }, { "banana", 20, 35,  4 },
+                                { "shell",  18, 28,  6 }, { "homing", 12, 5, 18 }, { "ink",    10,  6, 12 },
+                                { "star",    6,  0, 16 }, { "bolt",    5, 0, 12 } }
     local USES: { [string]: number } = { boost3 = 3 }
     local HOLD = 2   -- power-ups a kart carries: the first is used, the second waits
 
@@ -1431,6 +1447,51 @@ if serving then
         return out
     end
 
+    -- The order of the race: everybody on a lap of the same track, by how far
+    -- round they are -- whole laps since they got in, then the lines crossed
+    -- on this one, then how near the next line is -- the leader first. Each
+    -- player's place in it and how many are in it go on their Racer, and to
+    -- their machine when they change ("pos place of", "pos 0 0" for none).
+    -- ponytail: per room; on the Inferno track those in the other room are
+    -- not counted until they come back.
+    local function race_order(on: { [number]: Racer })
+        local by: { [number]: { { p: number, ahead: number } } } = {}
+        for p, s in on do
+            local ti = s.track
+            if ti ~= nil and s.lapping then
+                local gates = TRACKS[ti].gates
+                local g = gates[s.next]
+                local passed = if s.next == 1 then #gates else s.next - 1
+                local left = 0
+                if g ~= nil and here(g) then
+                    local x, _, z = core.player_pos(p)
+                    if x ~= nil then
+                        left = math.abs((if g.axis == "x" then x else z) - (g.at + 0.5))
+                    end
+                end
+                by[ti] = by[ti] or {}
+                -- A line is worth more than any distance on a track.
+                table.insert(by[ti], { p = p, ahead = (s.laps * #gates + passed) * 100000 - left })
+            end
+        end
+        local place: { [number]: { number } } = {}
+        for _, list in by do
+            table.sort(list, function(a: { p: number, ahead: number }, b: { p: number, ahead: number }): boolean
+                return a.ahead > b.ahead
+            end)
+            for i, e in list do
+                place[e.p] = { i, #list }
+            end
+        end
+        for p, s in on do
+            local pl = place[p] or { 0, 0 }
+            if pl[1] ~= s.place or pl[2] ~= s.of then
+                s.place, s.of = pl[1], pl[2]
+                tell(p, `pos {pl[1]} {pl[2]}`)
+            end
+        end
+    end
+
     local function remove(id: number)
         things[id] = nil
         core.ecs.kill(id)
@@ -1539,12 +1600,22 @@ if serving then
         core.log(`track_game: {s.name} used {item}`)
     end
 
-    local function roll(): string
+    -- A power-up's weight for a kart `place` of `of` in the race (1 the
+    -- leader), or lapping alone (of 1).
+    local function weight(r: { any }, place: number, of: number): number
+        if of <= 1 then
+            return r[2]
+        end
+        local f = (place - 1) / (of - 1)   -- 0 the leader, 1 the last
+        return r[3] + (r[4] - r[3]) * f
+    end
+
+    local function roll(place: number, of: number): string
         local sum = 0
-        for _, r in ROLL do sum += r[2] end
+        for _, r in ROLL do sum += weight(r, place, of) end
         local k = math.random() * sum
         for _, r in ROLL do
-            k -= r[2]
+            k -= weight(r, place, of)
             if k <= 0 then return r[1] end
         end
         return ROLL[1][1]
@@ -1579,6 +1650,7 @@ if serving then
         end
 
         local on = drivers()
+        race_order(on)
         for p, s in on do
             local x, y, z = core.player_pos(p)
             if x == nil then
@@ -1605,7 +1677,8 @@ if serving then
                     b.back = BOX_BACK
                     core.ecs.set(b.id, "y", b.y :: number - 40)   -- out of sight at once; hidden would take seconds
                     if #s.items < HOLD then
-                        local what = roll()
+                        local what = roll(s.place, s.of)
+                        core.log(`track_game: {s.name} took a box at {s.place} of {s.of}: {what}`)
                         -- Ready once the roulette has turned on the player's screen.
                         table.insert(s.items, { what = what, uses = USES[what] or 1, ready = clock + 1 })
                         tell_items(p, s)
@@ -1705,9 +1778,276 @@ if serving then
         end
     end
 
+    -- ------------------------------------------------------------ ghosts
+    --
+    -- As time trials have it: a see-through kart that drives the track's
+    -- record lap beside you, started with your lap, so you see where you
+    -- gain and lose on it. Every lap is recorded here as it is driven -- where
+    -- the kart is and which way it points, ten times a second, by the time
+    -- since its line -- and one that beats the track's board is kept in the
+    -- store as its ghost. The player's machine is sent the ghost of the
+    -- track it laps and draws it (the half below).
+    --
+    -- On the Inferno track the ghost is the ENGINEER's (ENGINEER, the time
+    -- the key's trial asks you to beat): the record's line, paced to finish
+    -- on that time -- beat it and you beat the trial's lap.
+    --
+    -- And in two rooms: each room records and keeps the part of a lap driven
+    -- in it. The room with the start line knows a record when the lap ends,
+    -- and says so in the shared store ("ghost:<track>"); the other keeps its
+    -- part of each driver's last lap (`pending`) until it reads that, and
+    -- then keeps it too.
+    local GHOST_EVERY = 0.1   -- seconds between two places recorded
+    local GHOST_CHUNK = 100   -- places in one value of the store (4096 bytes at most)
+    local GHOST_SEND  = 12    -- places in one message to a player's machine: up to 36 bytes each, of 512
+    type Rec = { track: number, last: number, samples: { string } }
+    type Ghost = { name: string, lap: number, samples: { string } }
+    local ghosts: { [number]: Ghost | false } = {}   -- track -> its ghost here, false for none
+    local rec: { [string]: Rec } = {}       -- name -> this room's part of the lap they drive
+    local pending: { [string]: Rec } = {}   -- name -> its part of their last lap, gone on
+
+    local function spans(ti: number): boolean
+        for _, g in TRACKS[ti].gates do
+            if not here(g) then return true end
+        end
+        return false
+    end
+
+    -- A track's ghost, read from the store the first time it is wanted.
+    local function ghost_of(ti: number): Ghost?
+        local g = ghosts[ti]
+        if g == nil then
+            local head = string.split(core.storage_get(stored(ti, "ghost")), " ")
+            local n = tonumber(head[3]) or 0
+            local samples = {}
+            for k = 1, n do
+                for _, line in string.split(core.storage_get(`{stored(ti, "ghost")}:{k}`), ";") do
+                    if line ~= "" then table.insert(samples, line) end
+                end
+            end
+            g = if #samples > 0 then { name = head[1], lap = tonumber(head[2]) or 0, samples = samples } else false
+            ghosts[ti] = g
+        end
+        return if g then g else nil
+    end
+
+    local function keep_ghost(ti: number, name: string, lap: number, samples: { string })
+        local n = 0
+        for k = 1, #samples, GHOST_CHUNK do
+            n += 1
+            core.storage_set(`{stored(ti, "ghost")}:{n}`,
+                             table.concat(samples, ";", k, math.min(k + GHOST_CHUNK - 1, #samples)))
+        end
+        core.storage_set(stored(ti, "ghost"), string.format("%s %.3f %d", name, lap, n))
+        ghosts[ti] = { name = name, lap = lap, samples = samples }
+        core.log(string.format("track_game: %s's %.3f s is the ghost of %s, %d places here", name, lap,
+                               if TRACKS[ti].key == "" then "the loop" else TRACKS[ti].key, #samples))
+    end
+
+    -- Where a kart on a lap is now, into its lap's record.
+    local function record(p: number, s: Racer)
+        if clock - s.rec_at < GHOST_EVERY or s.track == nil then
+            return
+        end
+        local x, y, z = core.player_pos(p)
+        local lx, _, lz = core.player_look(p)
+        if x == nil or lx == nil then
+            return
+        end
+        s.rec_at = clock
+        local t = clock - s.started
+        local r = rec[s.name]
+        -- Another track, or time gone back: another lap.
+        if r == nil or r.track ~= s.track or t < r.last then
+            r = { track = s.track :: number, last = t, samples = {} }
+            rec[s.name] = r
+        end
+        r.last = t
+        table.insert(r.samples, string.format("%.2f %.1f %.2f %.1f %.2f", t, x, y, z, math.atan2(lx, lz)))
+    end
+
+    -- A lap finished, before the board hears of it: a record is the ghost
+    -- now, when this room recorded it from its start.
+    local function lap_done(ti: number, name: string, lap: number)
+        local r = rec[name]
+        rec[name] = nil
+        for _, t in bests[ti] do
+            if t <= lap then return end
+        end
+        local first = r and tonumber(string.split(r.samples[1] or "", " ")[1])
+        if r == nil or r.track ~= ti or first == nil or first > 1 then
+            return
+        end
+        keep_ghost(ti, name, lap, r.samples)
+        if spans(ti) then
+            core.shared_storage_set(`ghost:{TRACKS[ti].key}`, string.format("%s %.3f", name, lap))
+        end
+    end
+
+    -- The other room's part: a record said by the room with the start line.
+    local said: { [number]: string } = {}
+    local ghost_every = 0
+    local function ghosts_step(dt: number)
+        ghost_every -= dt
+        if ghost_every > 0 then
+            return
+        end
+        ghost_every = 1
+        for ti, tr in TRACKS do
+            if #tr.gates == 0 or here(tr.gates[1]) or not spans(ti) then
+                continue
+            end
+            local now = core.shared_storage_get(`ghost:{tr.key}`)
+            if now ~= said[ti] then
+                said[ti] = now
+                local w = string.split(now, " ")
+                local r = pending[w[1]]
+                if r ~= nil and r.track == ti then
+                    pending[w[1]] = nil
+                    keep_ghost(ti, w[1], tonumber(w[2]) or 0, r.samples)
+                end
+            end
+        end
+    end
+
+    -- A driver's machine, told the ghost of the track it laps when that
+    -- changes: "ghost off", or "ghost <name> <lap> <pace> <tint>" and the
+    -- places in "gh" lines after it. The pace is how much faster than the
+    -- record the ghost goes: 1, or on the Inferno track the engineer's.
+    local function send_ghost(p: number, s: Racer)
+        local g = if s.driving and s.track ~= nil then ghost_of(s.track) else nil
+        if g == nil then
+            if s.ghost_sent ~= nil and s.ghost_sent ~= "off" then
+                tell(p, "ghost off")
+            end
+            s.ghost_sent = "off"
+            return
+        end
+        local ti = s.track :: number
+        local name, pace, tint = g.name, 1, 0
+        if TRACKS[ti].key == "inferno" then
+            name, pace = "engineer", g.lap / (beat[s.name] or ENGINEER)
+        else
+            tint = kart_look(kart_of(g.name))
+        end
+        local head = string.format("ghost %s %.3f %.4f %d", name, g.lap, pace, tint)
+        if head == s.ghost_sent then
+            return
+        end
+        s.ghost_sent = head
+        tell(p, head)
+        for k = 1, #g.samples, GHOST_SEND do
+            tell(p, "gh " .. table.concat(g.samples, ";", k, math.min(k + GHOST_SEND - 1, #g.samples)))
+        end
+    end
+
+    -- ------------------------------------------------------------ bumps
+    --
+    -- Two karts do not meet in the engine: each is a chassis of its own,
+    -- stepped on its own machine and copied on the server. So the server
+    -- looks: two karts closer than a kart's width are pushed apart along
+    -- the line between them, each as hard as they were closing (and a
+    -- little more, so two at a standstill come apart too), the push onto
+    -- their speed (core.player_launch's `add`). Once in a while for a pair,
+    -- the push being a round trip away.
+    local BUMP_REACH = 1.9    -- metres between their middles
+    local BUMP_MIN   = 3      -- m/s each, at the least
+    local BUMP_MAX   = 12
+    local BUMP_AGAIN = 0.4    -- seconds before the same two bump again
+    local bumped: { [string]: number } = {}   -- "p q" -> when
+    local function bumps(_dt: number)
+        local on = drivers()
+        for p, s in on do
+            for q, o in on do
+                if q <= p then
+                    continue
+                end
+                local key = `{p} {q}`
+                if bumped[key] ~= nil and clock - bumped[key] < BUMP_AGAIN then
+                    continue
+                end
+                local px, py, pz = core.player_pos(p)
+                local qx, qy, qz = core.player_pos(q)
+                if px == nil or qx == nil or math.abs(py - qy) > 1.2 then
+                    continue
+                end
+                local dx, dz = qx - px, qz - pz
+                local d = math.sqrt(dx * dx + dz * dz)
+                if d >= BUMP_REACH then
+                    continue
+                end
+                if d < 0.01 then
+                    dx, dz, d = 1, 0, 1
+                end
+                local nx, nz = dx / d, dz / d   -- from p towards q
+                local closing = (s.vx - o.vx) * nx + (s.vz - o.vz) * nz
+                local push = math.clamp(BUMP_MIN + 0.6 * math.max(0, closing), BUMP_MIN, BUMP_MAX)
+                core.player_launch(p, -nx * push, 0, -nz * push, 0.5, true)
+                core.player_launch(q, nx * push, 0, nz * push, 0.5, true)
+                bumped[key] = clock
+                core.play_sound(SND .. "bump", (px + qx) / 2, py + 0.5, (pz + qz) / 2)
+                core.log(string.format("track_game: %s and %s bump, %.1f apart, %.1f m/s each",
+                                       s.name, o.name, d, push))
+            end
+        end
+    end
+
+    -- ------------------------------------------------------------ a passenger
+    --
+    -- A right click on somebody driving (core:used_mob, a player's body) is
+    -- a seat behind them (core.ride): carried round, looking about, the keys
+    -- moving nothing. One a kart. F gets off, and so does getting out of the
+    -- kart; the engine lets them off when the driver leaves the room.
+    local SEAT = { 0, 0.55, -0.95 }   -- to the driver's right, up, to the front
+    local function off_seat(p: number, s: Racer)
+        local host = s.seat
+        if host == nil then
+            return
+        end
+        core.ride(p, 0)
+        s.seat = nil
+        local h = players[host]
+        if h ~= nil and h.passenger == p then
+            h.passenger = nil
+        end
+        tell(p, "seat 0")
+        core.log(`track_game: {s.name} gets off`)
+    end
+    seat_off = function(p: number)
+        local s = players[p]
+        if s ~= nil then
+            off_seat(p, s)
+        end
+    end
+    core.event.on("core:used_mob", function(ev)
+        local host = core.body_player(ev.target)
+        local s, h = players[ev.player], players[host]
+        if host == 0 or s == nil or h == nil or s.driving or not h.driving or s.seat ~= nil then
+            return
+        end
+        if h.passenger ~= nil then
+            core.chat(ev.player, `{h.name}'s kart has somebody in the seat already`)
+            return
+        end
+        if core.ride(ev.player, host, SEAT[1], SEAT[2], SEAT[3]) then
+            s.seat, h.passenger = host, ev.player
+            tell(ev.player, "seat 1")
+            core.chat(host, `{s.name} rides with you`)
+            core.log(`track_game: {s.name} rides in {h.name}'s kart`)
+        end
+    end)
+
     core.event.on("core:net_message", function(ev)
-        if ev.text == "off" then
+        local s = players[ev.player :: number]
+        if ev.text == "off" and s ~= nil and s.seat ~= nil then
+            off_seat(ev.player :: number, s)
+        elseif ev.text == "off" then
+            -- Out of the kart, and whoever sat behind off it too.
+            local passenger = s and s.passenger
             get_out(ev.player :: number)
+            if passenger ~= nil and players[passenger] ~= nil and s ~= nil and not s.driving then
+                off_seat(passenger, players[passenger] :: Racer)
+            end
         elseif ev.text == "respawn" then
             respawn(ev.player :: number)
         elseif ev.text == "use" or ev.text == "use back" then
@@ -1823,7 +2163,8 @@ if serving then
                 players[p] = { x = x, y = y, z = z, track = nil, next = 1, lapping = false,
                                started = 0, name = name, held = 0, driving = false, off = 0, skip = 0,
                                items = {}, boost = 0, star = 0, spin = 0, slow = 0,
-                               speeds = `{KART.walk} {KART.sprint} {KART.accel}` }
+                               speeds = `{KART.walk} {KART.sprint} {KART.accel}`,
+                               laps = 0, place = 0, of = 0, vx = 0, vz = 0, rec_at = -1 }
                 tell_looks(p)
 
                 -- Driven in from the other room, still in the kart and on a
@@ -1850,6 +2191,7 @@ if serving then
                         racer.next = math.clamp(tonumber(c[3]) or 1, 1, #gates)
                         racer.lapping = c[4] == "1"
                         racer.started = clock - (tonumber(c[5]) or 0)
+                        racer.laps = tonumber(c[7]) or 0
                         tell_track(p, ti, name)
                         if racer.lapping then
                             local passed = if racer.next == 1 then #gates - 1 else racer.next - 2
@@ -1912,7 +2254,7 @@ if serving then
                         local f = if i ~= (s.track or 0) and #tr.gates > 0 and here(tr.gates[1])
                             then crossed(tr.gates[1], s.x, s.z, x, z) else nil
                         if f ~= nil and not s.lapping then
-                            s.track, s.next, s.alt = i, 1, nil
+                            s.track, s.next, s.alt, s.laps = i, 1, nil, 0
                             tell_track(p, i, s.name)
                         elseif f ~= nil then
                             s.alt = { track = i, started = clock - dt + dt * f }
@@ -1931,6 +2273,8 @@ if serving then
                         if s.lapping then
                             local lap  = t - s.started
                             local best = bests[ti][s.name]
+                            s.laps += 1
+                            lap_done(ti, s.name, lap)
                             if best == nil or lap < best then
                                 bests[ti][s.name] = lap
                                 best = lap
@@ -1948,6 +2292,7 @@ if serving then
                         end
                         s.lapping = true
                         s.started = t
+                        rec[s.name] = nil   -- a new lap is recorded from here
                     else
                         tell(p, string.format("cp %d %d %.3f", s.next - 1, #gates - 1,
                                               t - s.started))
@@ -1962,7 +2307,7 @@ if serving then
                 local g2 = a and TRACKS[a.track].gates[2]
                 if moved < 20 and a and g2 ~= nil and here(g2) and crossed(g2, s.x, s.z, x, z) ~= nil then
                     local ag = TRACKS[a.track].gates
-                    s.track, s.started, s.alt = a.track, a.started, nil
+                    s.track, s.started, s.alt, s.laps = a.track, a.started, nil, 0
                     s.next = if #ag >= 3 then 3 else 1
                     tell_track(p, a.track, s.name)
                     tell(p, string.format("run %.3f %d", clock - s.started, 1))
@@ -1995,7 +2340,20 @@ if serving then
                         end
                     end
                 end
+                -- How fast it goes, smoothed: a claim comes twenty times a
+                -- second and a step may see none or two.
+                if dt > 0 and moved < 20 then
+                    s.vx = s.vx * 0.7 + 0.3 * (x - s.x) / dt
+                    s.vz = s.vz * 0.7 + 0.3 * (z - s.z) / dt
+                end
                 s.x, s.y, s.z = x, y, z
+                if s.lapping then
+                    record(p, s)
+                end
+            end
+            local g = players[p]
+            if g ~= nil then
+                send_ghost(p, g)
             end
 
             -- What goes with a kart driven into the other room: its lap.
@@ -2004,9 +2362,9 @@ if serving then
                 -- and what it holds (what:uses,...), or an item was lost crossing
                 local held = {}
                 for _, it in d.items do table.insert(held, `{it.what}:{it.uses}`) end
-                core.player_carry(p, string.format("kart %d %d %d %.3f %s", d.track or 0, d.next,
+                core.player_carry(p, string.format("kart %d %d %d %.3f %s %d", d.track or 0, d.next,
                                                    if d.lapping then 1 else 0, clock - d.started,
-                                                   if #held > 0 then table.concat(held, ",") else "-"))
+                                                   if #held > 0 then table.concat(held, ",") else "-", d.laps))
             elseif d ~= nil and core.player_carried(p) ~= "" and string.sub(core.player_carried(p), 1, 5) == "kart " then
                 -- On foot the line goes along too now: not a lap any more.
                 core.player_carry(p, "")
@@ -2025,12 +2383,23 @@ if serving then
                                            s.name, s.x, s.z))
                 elseif s.driving then
                     core.log(`track_game: {s.name} drove into another room, and the kart went too`)
+                    -- Its part of this lap, kept in case the lap is a record.
+                    pending[s.name], rec[s.name] = rec[s.name], nil
+                end
+                if s.passenger ~= nil and players[s.passenger] ~= nil then
+                    (players[s.passenger] :: Racer).seat = nil
+                    tell(s.passenger, "seat 0")
+                end
+                if s.seat ~= nil and players[s.seat] ~= nil then
+                    (players[s.seat] :: Racer).passenger = nil
                 end
                 players[p] = nil
             end
         end
         engines_step(dt)
         items_step(dt)
+        bumps(dt)
+        ghosts_step(dt)
     end
 end
 
@@ -2096,6 +2465,19 @@ if drawing then
                       star = { 255, 230, 80 }, bolt = { 120, 200, 255 } }
     local ORDER = { "boost", "banana", "shell", "homing", "ink", "star", "bolt", "boost3" }
 
+    -- The place in the race (the server's "pos"), 0 for none, of how many.
+    local place, of = 0, 0
+    -- In the seat behind somebody (the server's "seat").
+    local riding = false
+    -- The ghost of the track being lapped (the server's "ghost" and "gh"):
+    -- its places, { t, x, y, z, yaw } by the time into its lap, how much
+    -- faster than they were driven it plays them, its colours, and how far
+    -- into its lap it is -- started with this kart's lap.
+    type Mark = { t: number, x: number, y: number, z: number, yaw: number }
+    local ghost: { Mark } = {}
+    local ghost_name, ghost_pace, ghost_tint, ghost_t = "", 1, 0, 0
+    local GHOST_ALPHA = 0.35
+
     local function clock_text(t: number): string
         return string.format("%d:%05.2f", t // 60, t % 60)
     end
@@ -2142,10 +2524,11 @@ if drawing then
                 table.insert(board, { name = w[i], t = tonumber(w[i + 1]) or 0 })
             end
         elseif w[1] == "go" then
-            running, time, passed = true, 0, 0
+            running, time, passed, ghost_t = true, 0, 0, 0
         elseif w[1] == "run" then
             -- A lap driven in from the other room, so far.
             running, time, passed = true, tonumber(w[2]) or 0, tonumber(w[3]) or 0
+            ghost_t = time * ghost_pace
         elseif w[1] == "cp" then
             passed = tonumber(w[2]) or passed
             flash = `CHECKPOINT {w[2]}   {clock_text(tonumber(w[4]) or 0)}`
@@ -2165,6 +2548,7 @@ if drawing then
             if not driving then
                 running, count = false, -1
                 slots = {}
+                place, of = 0, 0
             end
         elseif w[1] == "dress" then
             -- The kart this machine draws its own body in (the server's
@@ -2219,8 +2603,27 @@ if drawing then
                     flash, flash_left = "STAR", 1.0
                 end
             end
+        elseif w[1] == "pos" then
+            place, of = tonumber(w[2]) or 0, tonumber(w[3]) or 0
+        elseif w[1] == "seat" then
+            riding = w[2] == "1"
+        elseif w[1] == "ghost" then
+            ghost = {}
+            ghost_name = if w[2] == "off" then "" else w[2]
+            ghost_pace = math.max(tonumber(w[4]) or 1, 0.1)
+            ghost_tint = tonumber(w[5]) or 0
+        elseif w[1] == "gh" then
+            for _, m in string.split(string.sub(text, 4), ";") do
+                local f = string.split(m, " ")
+                if #f >= 5 then
+                    table.insert(ghost, { t = tonumber(f[1]) or 0, x = tonumber(f[2]) or 0,
+                                          y = tonumber(f[3]) or 0, z = tonumber(f[4]) or 0,
+                                          yaw = tonumber(f[5]) or 0 })
+                end
+            end
         elseif w[1] == "lap" then
             last, best = tonumber(w[2]) or 0, tonumber(w[3]) or 0
+            ghost_t = 0
             running, time, passed = true, 0, 0
             flash = `LAP {clock_text(last)}`
             flash_left = 2.5
@@ -2269,6 +2672,13 @@ if drawing then
             end
         elseif ev.action == "mouse_right" and driving then
             ev.cancel = true
+        elseif ev.action == "key_f" and riding then
+            ev.cancel = true
+            if serving then
+                seat_off(ev.player :: number)
+            else
+                core.net.send(0, "off")
+            end
         elseif ev.action == "key_f" and driving then
             ev.cancel = true
             if serving then
@@ -2336,8 +2746,20 @@ if drawing then
                     0.025, 1, 255, 255, 255, 255)
             end
         end
+        if riding then
+            core.hud.text(0.5, 0.22, "F  GET OFF", 0.03, 1, 220, 220, 220, 255)
+        end
         if total < 0 then
             return
+        end
+        -- The place in the race, when there is somebody to race.
+        if of >= 2 and place > 0 then
+            local th = if place == 1 then "ST" elseif place == 2 then "ND" elseif place == 3 then "RD" else "TH"
+            core.hud.text(0.03, 0.22, `{place}{th}`, 0.08, 0, 255, 255, 255, 255)
+            core.hud.text(0.03, 0.29, `OF {of}`, 0.03, 0, 200, 200, 200, 255)
+        end
+        if ghost_name ~= "" and #ghost > 0 and running then
+            core.hud.text(0.97, 0.17, `GHOST  {string.upper(ghost_name)}`, 0.022, 2, 170, 210, 255, 255)
         end
         if count > 0 then
             core.hud.text(0.5, 0.3, `{count}`, 0.12, 1, 255, 210, 80, 255)
@@ -2346,7 +2768,8 @@ if drawing then
             core.hud.text(0.5, 0.28, `CHECKPOINT {passed} / {total}`, 0.03, 1, 220, 220, 220, 255)
             core.hud.text(0.5, 0.32, "CTRL  DRIFT    R  BACK TO THE LAST CHECKPOINT    F  GET OUT", 0.018, 1, 180, 180, 180, 255)
         elseif not driving then
-            if picking == "" then
+            -- Not to a passenger, who is in one already (F GET OFF, above).
+            if picking == "" and not riding then
                 core.hud.text(0.5, 0.22, "RIGHT CLICK A KART TO GET IN", 0.04, 1, 255, 255, 255, 255)
             end
         else
@@ -2435,9 +2858,39 @@ if drawing then
         end
     end)
 
+    -- The ghost: where its lap had it this far in, between the two places
+    -- recorded either side, as the kart model seen through.
+    local function ghost_at(t: number): Mark?
+        local n = #ghost
+        if n < 2 or t < ghost[1].t or t > ghost[n].t then
+            return nil
+        end
+        local lo, hi = 1, n
+        while hi - lo > 1 do
+            local mid = (lo + hi) // 2
+            if ghost[mid].t <= t then lo = mid else hi = mid end
+        end
+        local a, b = ghost[lo], ghost[hi]
+        local f = if b.t > a.t then (t - a.t) / (b.t - a.t) else 0
+        local turn = (b.yaw - a.yaw + math.pi) % (2 * math.pi) - math.pi
+        return { t = t, x = a.x + (b.x - a.x) * f, y = a.y + (b.y - a.y) * f, z = a.z + (b.z - a.z) * f,
+                 yaw = a.yaw + turn * f }
+    end
+    core.render.pass("track_game:ghost", 100, function()
+        if not running or not driving or ghost_name == "" then
+            return
+        end
+        local m = ghost_at(ghost_t)
+        local kart = core.model_id("track_core:kart")
+        if m ~= nil and kart ~= 0 then
+            core.render.model(kart, m.x, m.y, m.z, m.yaw, 1, 0, 0, 0, GHOST_ALPHA, ghost_tint)
+        end
+    end)
+
     function client_step(dt: number)
         if running then
             time += dt
+            ghost_t += dt * ghost_pace
         end
         if flash_left > 0 then
             flash_left -= dt

@@ -397,7 +397,7 @@ typedef struct script_host {
     const char *(*rule)(void *ud, const char *name);
     int (*set_rule)(void *ud, const char *name, const char *value);
     int (*mob_leave)(void *ud, const char *name, double x, double y, double z);
-    int (*player_launch)(void *ud, int player, double vx, double vy, double vz, double seconds);
+    int (*player_launch)(void *ud, int player, double vx, double vy, double vz, double seconds, int add);
     // A worker sent after one player (0: called off), as its kind fights.
     int (*mob_hunt)(void *ud, int id, int player);
     int (*mob_attack)(void *ud, int id, int mob);
@@ -704,9 +704,12 @@ typedef struct script_host {
     // (a cube in the player's hands). Then tipped by `pitch` about its own
     // x and `roll` about its own z, before the yaw: a card held up in a hand.
     // `dissolve` 0..1: how much of it is eaten away, in patches with burning
-    // edges (a cube dissolved by a field).
+    // edges (a cube dissolved by a field). `alpha` under 1 blends it over
+    // what is behind it, seen through (a kart's ghost); `tint` is its
+    // tint_1..3 colours, as a worn piece's (core.player_wear).
     int (*render_model)(void *ud, int model, double x, double y, double z, double yaw,
-                        double scale, double pitch, double roll, double dissolve);
+                        double scale, double pitch, double roll, double dissolve, double alpha,
+                        int tint);
     // And an effect of light (core.render.fx): a kind by name ("glow", "flame",
     // "ring", "frost", "bolt", "slash", "sparks", "vortex", "jet", "streak",
     // "aurora", "smoke", "aura"), where and how big, its colour, how far through its life it is

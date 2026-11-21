@@ -3050,7 +3050,7 @@ int l_player_look(lua_State *L)
     return 3;
 }
 
-// core.player_launch(player: number, vx: number, vy: number, vz: number, seconds: number?) -> boolean
+// core.player_launch(player: number, vx: number, vy: number, vz: number, seconds: number?, add: boolean?) -> boolean
 int l_player_launch(lua_State *L)
 {
     VmState *vm = host_of(L);
@@ -3059,7 +3059,8 @@ int l_player_launch(lua_State *L)
     const float vy = (float)luaL_checknumber(L, 3);
     const float vz = (float)luaL_checknumber(L, 4);
     const float seconds = (float)luaL_optnumber(L, 5, 2);
-    const int result = (vm && vm->host.player_launch) ? vm->host.player_launch(vm->host.ud, player, vx, vy, vz, seconds) : (int)0;
+    const int add = lua_isnoneornil(L, 6) ? 0 : (lua_toboolean(L, 6) ? 1 : 0);
+    const int result = (vm && vm->host.player_launch) ? vm->host.player_launch(vm->host.ud, player, vx, vy, vz, seconds, add) : (int)0;
     if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
     else lua_pushinteger(L, result);
     return 1;

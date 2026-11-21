@@ -3606,11 +3606,15 @@ local api: { Fn } = {
             { name = "vz", type = "float" },
             { name = "seconds", type = "float", default = 2.0,
               doc = "How long the server lets the body fly faster and higher than it could, 0..10." },
+            { name = "add", type = "bool", default = false,
+              doc = "Adds that to the body's speed instead: a bump, not a throw." },
         },
         doc = "Throws a player: their body's speed becomes that, whatever it was (protocol 84), "
            .. "and for `seconds` the server lets them move as fast and as high as a crossing's "
-           .. "grace does -- an launch plate. Returns 1, or 0 for a player with no body "
-           .. "here or a speed out of range.",
+           .. "grace does -- an launch plate. A body in a kart too: its chassis is put down "
+           .. "afresh where it is at that speed, along the ground (a kart's bump into another, "
+           .. "games/track). Returns 1, or 0 for a player with no body here or a speed out of "
+           .. "range.",
     },
     {
         name = "player_place",
