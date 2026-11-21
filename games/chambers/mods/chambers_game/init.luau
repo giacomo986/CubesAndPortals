@@ -32,6 +32,13 @@
 --       (4.10) and in reach from two stacked (4.82) -- and two stacked are
 --       too high to jump onto (1.44 against 1.28), so the third is a step
 --       up to them; three vents, a stair down to the door
+--   16  a light bridge: its emitter lays one across the near floor into the
+--       north wall; a portal there and one in the west wall lay it over the
+--       pit instead
+--   17  gels: blue poured where it lands by the door, unless a portal under
+--       the stream and one in the ceiling over the foot of a wall four high
+--       pour it there to be thrown over; then orange before a pit seven wide,
+--       a run on it that jumps it
 --
 -- Trigger zones (TRIGGERS): a box that, when a body comes into it, does what
 -- it lists -- opens a door, opens a linked pair of portals, wakes a room's
@@ -51,6 +58,8 @@
 --
 -- `side = both`: the server runs the first half, a player's machine the
 -- second, and a process that is its own server runs both.
+
+local Devices = require("@self/devices")
 
 local side    = core.side()
 local serving = side ~= "client"
@@ -109,6 +118,8 @@ if serving then
     local SHELL_LOW, SHELL_HIGH, SHELL_ONE = id("shell_low"), id("shell_high"), id("shell_one")
     local SHELL_FLAT = id("shell_flat")
     local EMITTER, TARGET = id("emitter"), id("target")
+    local BRIDGE_EMITTER, DISPENSE_BOUNCE, DISPENSE_SPEED = id("bridge_emitter"), id("dispenser_bounce"),
+        id("dispenser_speed")
     -- A face's index as a wallmounted cell's byte means it: +X -X +Y -Y +Z -Z.
     local function face_byte(nx: number, ny: number, nz: number): number
         return if nx > 0 then 0 elseif nx < 0 then 1 elseif ny > 0 then 2 elseif ny < 0 then 3
@@ -138,10 +149,11 @@ if serving then
         { x0 = 297, x1 = 320, h = 14, name = "Test chamber 13: the dissolving field" },
         { x0 = 324, x1 = 355, h = 14, name = "Test chamber 14: the steps" },
         { x0 = 359, x1 = 380, h = 12, name = "Test chamber 15: three cubes" },
-        { x0 = 384, x1 = 391, h = 5,
+        { x0 = 384, x1 = 407, h = 8, name = "Test chamber 16: the light bridge" },
+        { x0 = 411, x1 = 436, h = 12, name = "Test chamber 17: gels" },
+        { x0 = 440, x1 = 447, h = 5,
           name = "Testing complete. The portal home is on the west wall; the button, more chambers." },
     }
-    local Z1 = 11
     local DZ0, DZ1 = 5, 6   -- the doors' cells across
 
     -- The world's two openings (tools/chambers.sh starts it with --portals):
@@ -159,8 +171,14 @@ if serving then
     -- Along x, where build() writes: 0 for the chambers, a site's copy's
     -- start for its copy (CH0 + slot * CHW, below).
     local OFF = 0
+    -- And whether it is mirrored across the room, z to Z1 - z (a site's
+    -- chamber may be): the doors in the middle stay where they are, a wall's
+    -- things go to the other long wall.
+    local MIR = false
+    local Z1 = 11
     local function put(x: number, y: number, z: number, b: number)
         x += OFF
+        if MIR then z = Z1 - z end
         local m = making
         if m == nil or (x >= m.min_x and x <= m.max_x and z >= m.min_z and z <= m.max_z) then
             core.set_block(x, y, z, b)
@@ -175,6 +193,11 @@ if serving then
     local turned_later: { { number } } = {}
     local function put_turned(x: number, y: number, z: number, b: number, f: number)
         x += OFF
+        if MIR then
+            z = Z1 - z
+            -- Facing +Z is facing -Z (wallmounted 4 and 5); a door is never mirrored.
+            f = if f == 4 then 5 elseif f == 5 then 4 else f
+        end
         local m = making
         if m ~= nil then
             if x >= m.min_x and x <= m.max_x and z >= m.min_z and z <= m.max_z then
@@ -203,6 +226,7 @@ if serving then
 
     local function fill(x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, b: number)
         x0, x1 = x0 + OFF, x1 + OFF
+        if MIR then z0, z1 = Z1 - z1, Z1 - z0 end
         local m = making
         if m ~= nil then
             x0 = math.max(x0, m.min_x)
@@ -387,7 +411,7 @@ if serving then
     local timers: { [number]: number } = {}   -- seconds left, by door
     -- The last room's push button: the next level of the series past chamber
     -- 15 (levels of zones, below).
-    local MORE_X, MORE_Z = 389, 2
+    local MORE_X, MORE_Z = 445, 2
 
     -- Trigger zones: a box (cells x0..x1, z0..z1 inclusive, y0..y1 in
     -- metres) in a room; the first body to come into it does its actions, once
@@ -429,6 +453,32 @@ if serving then
     end
     local TURRETS: { Turret } = { turret(287.5, 2.5, 13), turret(290.5, 5.5, 13), turret(287.5, 9.5, 13) }
     local fields_told: () -> () = function() end   -- set with the fields' code, below
+    -- The devices (devices.luau): light bridges' emitters, in a wall, and the
+    -- way they lay; gel dispensers, in a ceiling, their gel and how far round
+    -- where it lands they paint.
+    type Device = { kind: string, x: number, y: number, z: number, dx: number?, dz: number?, room: number,
+                    gel: string?, spread: number? }
+    local DEVICES: { Device } = {
+        { kind = "bridge", x = 387, y = FL, z = -1, dx = 0, dz = 1, room = 17 },        -- 16
+        { kind = "dispenser", x = 413, y = FL + 12, z = 2, gel = "bounce", spread = 1, room = 18 },   -- 17
+        { kind = "dispenser", x = 424, y = FL + 12, z = 5, gel = "speed", spread = 2, room = 18 },
+    }
+    local cubes: { [number]: boolean } = {}   -- every cube there is
+    local D = Devices.server(tell, cubes)
+    -- A device at its place: in the chambers as it is, in a site's copy moved
+    -- along x by o, mirrored across the room or not, in the room keyed `room`.
+    local function add_device(d: Device, o: number, mir: boolean, room: number)
+        local z = if mir then Z1 - d.z else d.z
+        local dz = if mir then -(d.dz or 0) else (d.dz or 0)
+        if d.kind == "bridge" then
+            D.bridge({ x = d.x + o, y = d.y, z = z, dx = d.dx or 0, dz = dz, room = room })
+        else
+            D.dispenser({ x = d.x + o, y = d.y, z = z, kind = d.gel, spread = d.spread, room = room })
+        end
+    end
+    for _, d in DEVICES do
+        add_device(d, 0, false, d.room)
+    end
     -- Come by a survival site (mods/keys' keys:level), a push button holds its
     -- door 1.2 - 0.04 d of its time (d 1 116%, d 10 80%); the last to come sets it.
     local hold = 1.0
@@ -437,42 +487,44 @@ if serving then
     end)
 
     -- A floor button, two by two from its lower corner (x, z), which wears it.
+    -- A thing two by two drawn whole from its lower corner (x, z): mirrored,
+    -- that corner is the cell z + 1 was.
+    local function corner(z: number): number
+        return if MIR then z + 1 else z
+    end
     local function button(x: number, y: number, z: number)
         fill(x, x + 1, y, y, z, z + 1, BUTTON_PART)
-        put(x, y, z, BUTTON)
+        put(x, y, corner(z), BUTTON)
     end
 
-    local function build()
-        for _, r in ROOMS do
-            room(r)
-        end
-        -- Doorways and corridors between rooms, and the exit doors.
-        for k = 1, #ROOMS - 1 do
-            local a, b = ROOMS[k], ROOMS[k + 1]
-            local cx = a.x1 + 2
-            fill(cx, cx, FL - 1, FL - 1, DZ0 - 1, DZ1 + 1, FLOOR)
-            fill(cx, cx, FL + 2, FL + 2, DZ0 - 1, DZ1 + 1, METAL)
-            put(cx, FL + 2, DZ0, LIGHT)
-            fill(cx, cx, FL, FL + 1, DZ0 - 1, DZ0 - 1, METAL)
-            fill(cx, cx, FL, FL + 1, DZ1 + 1, DZ1 + 1, METAL)
-            fill(cx, cx, FL, FL + 1, DZ0, DZ1, 0)
-            fill(b.x0 - 1, b.x0 - 1, FL, FL + 1, DZ0, DZ1, 0)   -- the next room's doorway
-            door_cells(a.x1 + 1, false)
-            -- A green sign over each exit.
-            fill(a.x1 + 1, a.x1 + 1, FL + 2, FL + 2, DZ0, DZ1, EXIT)
-        end
+    -- A pit with a white bottom and its ends shut: the long fall (11, 13).
+    local function deep_pit(x0: number, x1: number)
+        pit(x0, x1)
+        fill(x0, x1, FL - 10, FL - 10, 0, Z1, PANEL)
+        fill(x0 - 1, x0 - 1, FL - 9, FL - 2, 0, Z1, METAL)
+        fill(x1 + 1, x1 + 1, FL - 9, FL - 2, 0, Z1, METAL)
+    end
 
+    -- Each chamber's own things, built over its room (build_row, below) with
+    -- OFF and MIR set for wherever it goes; by the room's index in ROOMS.
+    local PIECES: { [number]: () -> () } = {}
+
+    PIECES[2] = function()
         -- 01: the closed room behind a metal wall, and the fixed pair's rims.
         fill(21, 21, FL, FL + 7, 0, Z1, METAL)
         rim(16, -1, FL, true, RIM_BLUE)
         rim(24, -1, FL, true, RIM_ORANGE)
         recess(16, -1, FL, 4)
         recess(24, -1, FL, 4)
+    end
 
+    PIECES[3] = function()
         -- 02: the vent in the ceiling, the button on the floor.
         put(33, FL + 8, 3, VENT)
         button(40, FL, 8)
+    end
 
+    PIECES[4] = function()
         -- 03: the pedestal, white panels on both long walls before the
         -- chasm, the chasm, and the orange portal's rim past it.
         put(51, FL, 2, PEDESTAL)
@@ -481,7 +533,9 @@ if serving then
         pit(57, 61)
         rim(64, Z1 + 1, FL, true, RIM_ORANGE)
         recess(64, Z1 + 1, FL, 5)
+    end
 
+    PIECES[5] = function()
         -- 04: the pedestal; a white floor before the ledge; the ledge in the
         -- north-east corner, four high, its button; white panels on the north
         -- wall over it and on the walls round the floor; the vent.
@@ -492,7 +546,9 @@ if serving then
         fill(81, 86, FL + 4, FL + 8, Z1 + 1, Z1 + 1, PANEL)
         fill(72, 78, FL, FL + 5, -1, -1, PANEL)
         put(74, FL + 9, 9, VENT)
+    end
 
+    PIECES[6] = function()
         -- 05: the pit with an island in it, the plates.
         pit(96, 100)
         pit(104, 108)
@@ -503,9 +559,11 @@ if serving then
         for k = 1, 2 do
             local p = plates[k]
             fill(p.x, p.x + 1, FL - 1, FL - 1, p.z, p.z + 1, PLATE_PART)
-            put(p.x, FL - 1, p.z, PLATE)   -- drawn whole from here
+            put(p.x, FL - 1, corner(p.z), PLATE)   -- drawn whole from here
         end
+    end
 
+    PIECES[7] = function()
         -- 06: the push button, the clock over the exit, a pit between, white
         -- panels on each side of it.
         put(PUSHES[1].x, PUSHES[1].y, PUSHES[1].z, PUSH)
@@ -514,7 +572,9 @@ if serving then
         fill(117, 120, FL, FL + 4, -1, -1, PANEL)
         fill(130, 133, FL, FL + 4, Z1 + 1, Z1 + 1, PANEL)
         fill(130, 133, FL, FL + 4, -1, -1, PANEL)
+    end
 
+    PIECES[8] = function()
         -- 07: the cube's room behind glass three high in the south-west
         -- corner, its vent; a white panel high on its south wall, seen over
         -- the glass, and one low on its west wall for the way out; white on
@@ -530,7 +590,9 @@ if serving then
         fill(150, 156, FL, FL + 3, 8, Z1, METAL)
         button(154, FL + 4, 9)
         fill(151, 155, FL + 4, FL + 8, Z1 + 1, Z1 + 1, PANEL)
+    end
 
+    PIECES[9] = function()
         -- 08: two vents on the near side, a button there and one past a pit,
         -- white on the south wall before it and the north wall after.
         put(162, FL + 8, 2, VENT)
@@ -540,7 +602,9 @@ if serving then
         pit(169, 173)
         fill(161, 166, FL, FL + 3, -1, -1, PANEL)
         fill(175, 179, FL, FL + 3, Z1 + 1, Z1 + 1, PANEL)
+    end
 
+    PIECES[10] = function()
         -- 09: 05's plates, pits and island, then a pit six wide, white on
         -- the south wall before it and the north wall past it.
         pit(188, 192)
@@ -552,12 +616,14 @@ if serving then
         for k = 3, 4 do
             local pl = plates[k]
             fill(pl.x, pl.x + 1, FL - 1, FL - 1, pl.z, pl.z + 1, PLATE_PART)
-            put(pl.x, FL - 1, pl.z, PLATE)
+            put(pl.x, FL - 1, corner(pl.z), PLATE)
         end
         pit(205, 210)
         fill(201, 204, FL, FL + 3, -1, -1, PANEL)
         fill(211, 214, FL, FL + 3, Z1 + 1, Z1 + 1, PANEL)
+    end
 
+    PIECES[11] = function()
         -- 10: the push button, a pit to the far side, white by the button
         -- and by the door, the clock over the door.
         put(220, FL, 2, PUSH)
@@ -565,21 +631,19 @@ if serving then
         fill(219, 221, FL, FL + 3, -1, -1, PANEL)
         fill(238, 241, FL, FL + 3, Z1 + 1, Z1 + 1, PANEL)
         fill(ROOMS[11].x1 + 1, ROOMS[11].x1 + 1, FL + 3, FL + 3, DZ0, DZ1, CLOCK)
+    end
 
+    PIECES[12] = function()
         -- 11: a pit six wide, its bottom white, its ends shut; on the far side
         -- a white patch of floor beside a ledge five high along the north
         -- wall, a target on it.
-        local function deep_pit(x0: number, x1: number)
-            pit(x0, x1)
-            fill(x0, x1, FL - 10, FL - 10, 0, Z1, PANEL)
-            fill(x0 - 1, x0 - 1, FL - 9, FL - 2, 0, Z1, METAL)
-            fill(x1 + 1, x1 + 1, FL - 9, FL - 2, 0, Z1, METAL)
-        end
         deep_pit(251, 256)
         fill(259, 262, FL - 1, FL - 1, 6, 7, PANEL)
         fill(259, 266, FL, FL + 5, 8, Z1, METAL)
         fill(263, 264, FL + 5, FL + 5, 9, 10, TARGET)
+    end
 
+    PIECES[13] = function()
         -- 12: a screen three high past the way in and two low walls to hide
         -- behind, white on the south wall by the way in and on the north wall
         -- behind the turrets (seen over the low walls), the vent.
@@ -589,7 +653,9 @@ if serving then
         fill(271, 274, FL, FL + 3, -1, -1, PANEL)
         fill(289, 293, FL, FL + 3, Z1 + 1, Z1 + 1, PANEL)
         put(271, FL + 8, 9, VENT)
+    end
 
+    PIECES[14] = function()
         -- 13: the vent by the way in, white on the south wall either side of
         -- the field, the field's emitters in both long walls, a deep pit, a
         -- white patch beside a ledge along the south wall with the button on
@@ -605,7 +671,9 @@ if serving then
         button(317, FL + 6, 1)
         rim(321, 1, FL + 6, false, RIM_BLUE)
         rim(321, 9, FL, false, RIM_ORANGE)
+    end
 
+    PIECES[15] = function()
         -- 14: the steps. Two metal walls four high across the whole room, the
         -- second on top of the first. A jump takes the hands to an edge 3.38
         -- over the feet (player.cpp: 1.28 of jump, the hands 2.1 over the
@@ -622,7 +690,9 @@ if serving then
         for _, v in { { 327, 3 }, { 327, 8 }, { 333, 3 }, { 333, 8 } } do
             put(v[1], FL + 14, v[2], VENT)
         end
+    end
 
+    PIECES[16] = function()
         -- 15: three cubes. A metal wall four high and a slab on it across the
         -- room: its edge 4.5 up, past what the hands take from one cube's top
         -- (4.10) and within what they take from two stacked (4.82). Two
@@ -639,21 +709,93 @@ if serving then
         for _, v in { { 361, 2 }, { 363, 9 }, { 366, 4 } } do
             put(v[1], FL + 12, v[2], VENT)
         end
+    end
 
+    PIECES[17] = function()
+        -- 16: the light bridge's emitter low in the south wall, two white
+        -- panels across from it in the north wall where its light meets it
+        -- and two low in the west wall by the way in; a pit ten wide.
+        put(387, FL, -1, BRIDGE_EMITTER)
+        fill(387, 387, FL, FL + 1, Z1 + 1, Z1 + 1, PANEL)
+        fill(383, 383, FL, FL + 1, 2, 3, PANEL)
+        pit(392, 401)
+    end
+
+    PIECES[18] = function()
+        -- 17: the blue dispenser over a white patch of floor by the way in; a
+        -- wall four high across the room, two thick, and a white patch of
+        -- ceiling over its foot; the orange dispenser over the floor before
+        -- a pit seven wide.
+        put(413, FL + 12, 2, DISPENSE_BOUNCE)
+        fill(412, 414, FL - 1, FL - 1, 1, 3, PANEL)
+        fill(420, 421, FL, FL + 3, 0, Z1, METAL)
+        fill(417, 419, FL + 12, FL + 12, 3, 8, PANEL)
+        put(424, FL + 12, 5, DISPENSE_SPEED)
+        pit(427, 433)
+    end
+
+    PIECES[#ROOMS] = function()
         -- The last room: the way home's rim, and the button for more.
         rim(ROOMS[#ROOMS].x0 - 1, 9, FL, false, RIM_BLUE)
         recess(ROOMS[#ROOMS].x0 - 1, 9, FL, 0)
         put(MORE_X, FL, MORE_Z, PUSH)
     end
 
+    -- The rooms of a row, each placed at its offset along x and mirrored
+    -- across the room or not: all the rooms first, then the doorways and
+    -- corridors between each and the next (a room's walls would shut them),
+    -- then each one's own things.
+    type Place = { k: number, o: number, mir: boolean }
+    local function build_row(row: { Place })
+        for _, pl in row do
+            OFF = pl.o
+            room(ROOMS[pl.k])
+        end
+        -- Doorways and corridors between rooms, and the exit doors.
+        for i = 1, #row - 1 do
+            local a, b = ROOMS[row[i].k], ROOMS[row[i + 1].k]
+            OFF = row[i].o
+            local cx = a.x1 + 2
+            fill(cx, cx, FL - 1, FL - 1, DZ0 - 1, DZ1 + 1, FLOOR)
+            fill(cx, cx, FL + 2, FL + 2, DZ0 - 1, DZ1 + 1, METAL)
+            put(cx, FL + 2, DZ0, LIGHT)
+            fill(cx, cx, FL, FL + 1, DZ0 - 1, DZ0 - 1, METAL)
+            fill(cx, cx, FL, FL + 1, DZ1 + 1, DZ1 + 1, METAL)
+            fill(cx, cx, FL, FL + 1, DZ0, DZ1, 0)
+            door_cells(a.x1 + 1, false)
+            -- A green sign over each exit.
+            fill(a.x1 + 1, a.x1 + 1, FL + 2, FL + 2, DZ0, DZ1, EXIT)
+            OFF = row[i + 1].o
+            fill(b.x0 - 1, b.x0 - 1, FL, FL + 1, DZ0, DZ1, 0)   -- the next room's doorway
+        end
+        for _, pl in row do
+            local piece = PIECES[pl.k]
+            if piece ~= nil then
+                OFF, MIR = pl.o, pl.mir
+                piece()
+            end
+        end
+        OFF, MIR = 0, false
+    end
+    local MAIN: { Place } = {}
+    for k = 1, #ROOMS do
+        table.insert(MAIN, { k = k, o = 0, mir = false })
+    end
+    local function build()
+        build_row(MAIN)
+    end
+
     -- The chambers are made as their columns are, a mapgen stage: lit with
     -- the column, there however far a player is.
-    -- A survival site's copy of the chambers (see "a site's chambers"): the
-    -- whole row again, CHW apart from CH0 on, slot by slot.
+    -- A survival site's chambers (see "a site's chambers"): a row of its own
+    -- made of the chambers picked and mirrored for it, CHW apart from CH0 on,
+    -- slot by slot, from x0 to x1.
     -- (Plan 9 made the row longer than 300: its copies moved from 20000 to
-    -- 40000, the old ones left where they were, out of the way.)
-    local CH0, CHW = 40000, 400
-    local copies: { [number]: boolean } = {}
+    -- 40000; plan 13 made a site's its own mix and moved them to 60000. The
+    -- old ones are left where they were, out of the way.)
+    local CH0, CHW = 60000, 400
+    type Layout = { row: { Place }, x0: number, x1: number }
+    local layouts: { [number]: Layout } = {}
     core.register_mapgen("chambers_game:chambers", function(ctx)
         if ctx.max_z < -2 or ctx.min_z > 13 then
             return
@@ -662,12 +804,9 @@ if serving then
         if not (ctx.max_x < -2 or ctx.min_x > ROOMS[#ROOMS].x1 + 2) then
             build()
         end
-        for slot in copies do
-            local o = CH0 + slot * CHW
-            if not (ctx.max_x < o - 4 or ctx.min_x > o + ROOMS[#ROOMS].x1 + 4) then
-                OFF = o
-                build()
-                OFF = 0
+        for _, lay in layouts do
+            if not (ctx.max_x < lay.x0 - 6 or ctx.min_x > lay.x1 + 4) then
+                build_row(lay.row)
             end
         end
         making = nil
@@ -685,7 +824,7 @@ if serving then
     -- doors of four blocks each drawing a whole door. The plan's version is
     -- kept, and a world behind it has the chambers built again over it, all
     -- of them, at its start (writes to columns not made yet wait for them).
-    local CHAMBERS = "12"
+    local CHAMBERS = "13"
     core.event.on("core:world_ready", function()
         if core.storage_get("chambers") ~= CHAMBERS then
             build()
@@ -701,6 +840,8 @@ if serving then
             end
         end
         core.storage_set("shells", "")
+        -- And what the devices laid, laid again from nothing as they work.
+        D.forget_saved()
     end)
 
     -- Nobody digs or builds in a test chamber.
@@ -722,29 +863,46 @@ if serving then
     local players: { [number]: P } = {}
 
     -- A room by its key: k in the chambers, k + 100 * slot in a site's copy.
-    local function copy_of(x: number): number
-        return if x >= CH0 - 4 then (x - CH0 + 4) // CHW else -1
-    end
+    -- A room by its key: k in the chambers, i + 100 * slot for the i-th room
+    -- of a site's row.
     local function room_of(x: number): number
-        local slot = copy_of(x)
-        local o = if slot >= 0 then CH0 + slot * CHW else 0
+        if x >= CH0 - 8 then
+            local slot = (x - CH0 + 8) // CHW
+            local lay = layouts[slot]
+            if lay ~= nil then
+                for i, pl in lay.row do
+                    local r = ROOMS[pl.k]
+                    if x - pl.o >= r.x0 - 1 and x - pl.o <= r.x1 + 2.5 then
+                        return i + 100 * slot
+                    end
+                end
+            end
+            return 0
+        end
         for k, r in ROOMS do
-            if x - o >= r.x0 - 1 and x - o <= r.x1 + 2.5 then
-                return if slot >= 0 then k + 100 * slot else k
+            if x >= r.x0 - 1 and x <= r.x1 + 2.5 then
+                return k
             end
         end
         return 0
     end
-    local function base_of(key: number): (number, number)   -- the room's k, its copy's offset
+    -- The chamber a room is (its index in ROOMS, 0 for none), how far along x
+    -- from the chambers' own, and whether mirrored.
+    local function base_of(key: number): (number, number, boolean)
         if key >= 100 then
-            return key % 100, CH0 + (key // 100) * CHW
+            local lay = layouts[key // 100]
+            local pl = if lay ~= nil then lay.row[key % 100] else nil
+            if pl == nil then
+                return 0, 0, false
+            end
+            return pl.k, pl.o, pl.mir
         end
-        return key, 0
+        return key, 0, false
     end
 
     local function start_of(key: number): (number, number, number)
         local k, o = base_of(key)
-        local r = ROOMS[k]
+        local r = ROOMS[math.max(k, 1)]
         return r.x0 + 1.5 + o, FL, 6.0
     end
 
@@ -762,8 +920,11 @@ if serving then
 
     -- --------------------------------------------------------- the portals
 
+    -- Solid to a portal wanting room in front of it: not a light bridge's
+    -- light, which goes where the beam does.
     local function solid(x: number, y: number, z: number): boolean
-        return core.node_solid(core.get_block(x, y, z))
+        local b = core.get_block(x, y, z)
+        return b ~= D.BRIDGE and core.node_solid(b)
     end
 
     -- Which face of cell (cx, cy, cz) a ray from o along d (of length 1) met
@@ -796,6 +957,13 @@ if serving then
         dx, dy, dz = dx / len, dy / len, dz / len
         local ox, oy, oz = x, y + EYE, z
         local cx, cy, cz, t = core.raycast(ox, oy, oz, dx, dy, dz, 80)
+        -- Gel lying on a floor is a skin the shot goes through to the panel
+        -- under it (devices.luau).
+        for _ = 1, 40 do
+            if cx == nil or not D.gel(core.get_block(cx, cy, cz)) then break end
+            ox, oy, oz = ox + dx * (t + 0.05), oy + dy * (t + 0.05), oz + dz * (t + 0.05)
+            cx, cy, cz, t = core.raycast(ox, oy, oz, dx, dy, dz, 80)
+        end
         if cx == nil then
             return nil, "nothing there"
         end
@@ -876,7 +1044,7 @@ if serving then
             end
         end
         if best ~= c3_linked then
-            core.portal_link(o, best)
+            D.link(o, best)
             c3_linked = best
         end
     end
@@ -888,9 +1056,9 @@ if serving then
         end
         local one = s.blue or s.orange
         if s.blue and s.orange then
-            core.portal_link(s.blue.idx, s.orange.idx)
+            D.link(s.blue.idx, s.orange.idx)
         elseif one ~= nil then
-            core.portal_link(one.idx, -1)
+            D.link(one.idx, -1)
         end
         -- Whatever 03's orange led to may have just been taken from it.
         if one ~= nil and (one.idx == c3_linked or (s.orange and s.orange.idx == c3_linked)) then
@@ -937,6 +1105,7 @@ if serving then
     local function close_shot(sh: Shot?)
         if sh ~= nil then
             core.portal_close(sh.x, sh.y, sh.z)
+            D.closed(sh.idx)
             for _, c in sh.at.cells do
                 core.set_block(c[1], c[2], c[3], PANEL)
                 shells[`{c[1]},{c[2]},{c[3]}`] = nil
@@ -970,6 +1139,9 @@ if serving then
             return
         end
         hollow(at)
+        -- Where it is for a beam or a stream to meet it: its cells, the way it faces.
+        D.opened(idx, at.cells, if at.axis == 1 then at.sign else 0, if at.axis == 2 then at.sign else 0,
+                 if at.axis == 0 then at.sign else 0)
         local sh = { x = at.x, y = at.y, z = at.z, idx = idx, at = at }
         if colour == "blue" then
             s.blue = sh
@@ -984,7 +1156,6 @@ if serving then
 
     -- ------------------------------------------------------------ the cubes
 
-    local cubes: { [number]: boolean } = {}   -- every cube there is
 
     local function dispense(v: Vent)
         if v.cube ~= 0 then
@@ -1313,6 +1484,7 @@ if serving then
             if t.room == k then t.fired = false end
         end
         reset_turrets(k)
+        D.room_starts(k)
     end
 
     -- ------------------------------------------------------- dissolving fields
@@ -1424,6 +1596,9 @@ if serving then
             more_pressed(p)
             return true
         end
+        if D.pushed(cx, cy, cz) then
+            return true
+        end
         for _, b in PUSHES do
             if b.x == cx and b.y == cy and b.z == cz then
                 local t = math.floor(b.time * hold + 0.5)
@@ -1488,17 +1663,22 @@ if serving then
                 f.idx = core.portal_open(f.x, f.y, f.z, f.axis, f.sign, 0, 0.5, 1.0)
                 if f.idx < 0 then
                     all = false
+                else
+                    -- Its two cells in the wall, under its middle and over.
+                    local cx, cz = math.floor(f.x), math.floor(f.z)
+                    D.opened(f.idx, { { cx, f.y - 1, cz }, { cx, f.y, cz } }, if f.axis == 1 then f.sign else 0, 0,
+                             if f.axis == 0 then f.sign else 0)
                 end
             end
         end
         if all then
             for _, f in fixed do
                 if f.pair then
-                    core.portal_link(f.idx, fixed[f.pair].idx)
+                    D.link(f.idx, fixed[f.pair].idx)
                 end
             end
             for _, f in fixed do
-                if not f.pair then core.portal_link(f.idx, -1) end
+                if not f.pair then D.link(f.idx, -1) end
             end
             fixed_open = true
         end
@@ -1506,74 +1686,188 @@ if serving then
 
     -- ------------------------------------------------- a site's chambers
     --
-    -- Come by a survival site (mods/keys' keys:level): a copy of the whole
-    -- row of chambers of its own, CHW apart from CH0 by slot, built by the
-    -- same build() moved along x, its buttons, vents, plates, pedestals, push
-    -- buttons, fixed portals and doors copied the same way into the tables
-    -- the tick walks. The level is a stretch of it: 2 + d / 2 chambers, further
-    -- along the harder it is (d 1 the first ones, d 10 the last), the guns its
-    -- first one needs in hand. Its way out is behind the west wall of the
-    -- first, under a dark lamp; the room past the last is the level done, and
-    -- a portal there leads back to the first.
+    -- Come by a survival site (mods/keys' keys:level): a row of chambers of
+    -- its own, CHW apart from CH0 by slot -- 2 + d / 2 of them, picked for
+    -- the site's d out of the chambers (POOL), in the order of how hard they
+    -- are, each the way it is or mirrored across the room. Built by the same
+    -- pieces moved along x, its buttons, vents, plates, pedestals, push
+    -- buttons, fixed portals, triggers, fields, turrets, devices and doors
+    -- copied the same way into the tables the tick walks. The whole gun is
+    -- given at its start. Its way out is behind the west wall of the first,
+    -- under a dark lamp; a plain room past the last is the level done, and a
+    -- portal there leads back to the first. A site keeps the row it was given
+    -- (storage "layout <slot>"), and so keeps its level after a restart.
+    --
+    -- The chambers a site's row is made of, each with how hard it is, 1 to
+    -- 8: not 01 (nothing to do) nor 03 (its fixed orange is the chambers').
+    local POOL: { { number } } = {
+        { 3, 1 }, { 5, 2 }, { 6, 2 }, { 7, 3 }, { 8, 3 }, { 9, 4 }, { 10, 4 }, { 11, 5 },
+        { 12, 6 }, { 13, 5 }, { 14, 7 }, { 15, 6 }, { 16, 8 }, { 17, 4 }, { 18, 6 },
+    }
     local base = { buttons = table.clone(buttons), vents = table.clone(vents), plates = table.clone(plates),
                    pedestals = table.clone(pedestals), pushes = table.clone(PUSHES), fixed = table.clone(fixed),
                    triggers = table.clone(TRIGGERS), fields = table.clone(FIELDS), turrets = table.clone(TURRETS) }
-    local function make_copy(slot: number)
-        if copies[slot] then return end
-        copies[slot] = true
-        local o = CH0 + slot * CHW
-        for k = 1, #ROOMS - 1 do
-            doors[k + 100 * slot] = { x = ROOMS[k].x1 + 1 + o, open = false, want = false, frame = 0, next = 0 }
-        end
-        for _, b in base.buttons do
-            table.insert(buttons, { x = b.x + o, y = b.y, z = b.z, door = b.door + 100 * slot, pressed = false })
-        end
-        for _, v in base.vents do
-            table.insert(vents, { x = v.x + o, z = v.z, top = v.top, room = v.room + 100 * slot, cube = 0 })
-        end
-        for _, pl in base.plates do
-            table.insert(plates, { x = pl.x + o, z = pl.z, vx = pl.vx, vy = pl.vy, vz = pl.vz })
-        end
-        for _, pd in base.pedestals do
-            table.insert(pedestals, { x = pd.x + o, z = pd.z, gives = pd.gives, takes = pd.takes, level = pd.level })
-        end
-        for _, b in base.pushes do
-            table.insert(PUSHES, { x = b.x + o, y = b.y, z = b.z, door = b.door + 100 * slot, time = b.time })
-        end
-        for name, f in base.fixed do
-            fixed[`{name}_{slot}`] = { x = f.x + o, y = f.y, z = f.z, axis = f.axis, sign = f.sign, idx = -1,
-                                       pair = if f.pair then `{f.pair}_{slot}` else nil }
-        end
-        for _, t in base.triggers do
-            local acts = {}
-            for _, a in t.actions do
-                local b = table.clone(a)
-                if b[1] == "door" or b[1] == "wake" then
-                    b[2] += 100 * slot
-                elseif b[1] == "portal" then
-                    b[2] += o
-                    b[5] += o
-                end
-                table.insert(acts, b)
+    -- Which of the chambers' rooms a thing at x is in.
+    local function chamber_at(x: number): number
+        for k, r in ROOMS do
+            if x >= r.x0 - 1 and x <= r.x1 + 2.5 then
+                return k
             end
-            table.insert(TRIGGERS, { room = t.room + 100 * slot, x0 = t.x0 + o, x1 = t.x1 + o, y0 = t.y0, y1 = t.y1,
-                                     z0 = t.z0, z1 = t.z1, actions = acts, fired = false })
         end
-        for _, f in base.fields do
-            table.insert(FIELDS, { x = f.x + o, room = f.room + 100 * slot, y0 = f.y0, y1 = f.y1, z0 = f.z0, z1 = f.z1 })
+        return 0
+    end
+
+    -- The row for a site at d, from a seed: the chambers nearest d's
+    -- hardness, with some luck in it, easiest first; the first never
+    -- mirrored (its west wall is the way out's), the others by a coin.
+    local function pick_row(d: number, seed: number): { number }
+        local state = seed % 2147483647
+        if state <= 0 then state += 2147483646 end
+        local function rand(): number
+            state = (state * 48271) % 2147483647
+            return state / 2147483647
         end
-        for _, t in base.turrets do
-            local c = turret(t.x + o, t.z, t.room + 100 * slot)
-            c.fx, c.fz = t.fx, t.fz
-            table.insert(TURRETS, c)
+        local count = math.clamp(2 + d // 2, 2, 7)
+        local want = 1 + (d - 1) * 7 / 9
+        type Pick = { k: number, rank: number, score: number }
+        local scored: { Pick } = {}
+        for _, c in POOL do
+            table.insert(scored, { k = c[1], rank = c[2], score = math.abs(c[2] - want) + rand() * 3 })
+        end
+        table.sort(scored, function(a: Pick, b: Pick): boolean return a.score < b.score end)
+        local chosen: { Pick } = {}
+        for i = 1, count do table.insert(chosen, scored[i]) end
+        table.sort(chosen, function(a: Pick, b: Pick): boolean return a.rank < b.rank or (a.rank == b.rank and a.k < b.k) end)
+        local out = {}
+        for i, c in chosen do
+            table.insert(out, c.k)
+            table.insert(out, if i > 1 and rand() < 0.5 then 1 else 0)
+        end
+        return out
+    end
+
+    -- A site's row laid out: each chamber four past the last one's end (a
+    -- wall, a corridor, a wall), then the lobby's plain room for the end.
+    local function lay_out(slot: number, picked: { number }): Layout
+        local row: { Place } = {}
+        local x = CH0 + slot * CHW + 8
+        local x0 = x
+        for i = 1, #picked - 1, 2 do
+            local k = picked[i]
+            local o = x - ROOMS[k].x0
+            table.insert(row, { k = k, o = o, mir = picked[i + 1] == 1 })
+            x = ROOMS[k].x1 + o + 4
+        end
+        table.insert(row, { k = 1, o = x - ROOMS[1].x0, mir = false })
+        return { row = row, x0 = x0, x1 = x + ROOMS[1].x1 - ROOMS[1].x0 }
+    end
+
+    local function make_copy(slot: number, picked: { number })
+        if layouts[slot] then return end
+        local lay = lay_out(slot, picked)
+        layouts[slot] = lay
+        for i, pl in lay.row do
+            local k, o, mir = pl.k, pl.o, pl.mir
+            local key = i + 100 * slot
+            -- A cell's z, a point's, and a two-by-two thing's lower corner's.
+            local function cz(z: number): number return if mir then Z1 - z else z end
+            local function pz(z: number): number return if mir then Z1 + 1 - z else z end
+            local function lz(z: number): number return if mir then Z1 - 1 - z else z end
+            local function here(x: number): boolean return chamber_at(x) == k end
+            if i < #lay.row then
+                doors[key] = { x = ROOMS[k].x1 + 1 + o, open = false, want = false, frame = 0, next = 0 }
+            end
+            for _, b in base.buttons do
+                if here(b.x) then
+                    table.insert(buttons, { x = b.x + o, y = b.y, z = lz(b.z), door = key, pressed = false })
+                end
+            end
+            for _, v in base.vents do
+                if here(v.x) then
+                    table.insert(vents, { x = v.x + o, z = cz(v.z), top = v.top, room = key, cube = 0 })
+                end
+            end
+            for _, p in base.plates do
+                if here(p.x) then
+                    table.insert(plates, { x = p.x + o, z = lz(p.z), vx = p.vx, vy = p.vy,
+                                           vz = if mir then -p.vz else p.vz })
+                end
+            end
+            for _, pd in base.pedestals do
+                if here(pd.x) then
+                    table.insert(pedestals, { x = pd.x + o, z = cz(pd.z), gives = pd.gives, takes = pd.takes,
+                                              level = pd.level })
+                end
+            end
+            for _, b in base.pushes do
+                if here(b.x) then
+                    table.insert(PUSHES, { x = b.x + o, y = b.y, z = cz(b.z), door = key, time = b.time })
+                end
+            end
+            for name, f in base.fixed do
+                if here(f.x) then
+                    fixed[`{name}_{slot}_{i}`] = { x = f.x + o, y = f.y, z = pz(f.z), axis = f.axis,
+                                                   sign = if mir and f.axis == 0 then -f.sign else f.sign, idx = -1,
+                                                   pair = if f.pair then `{f.pair}_{slot}_{i}` else nil }
+                end
+            end
+            for _, t in base.triggers do
+                if here(t.x0) then
+                    local acts = {}
+                    for _, a in t.actions do
+                        local b = table.clone(a)
+                        if b[1] == "door" or b[1] == "wake" then
+                            b[2] = key
+                        elseif b[1] == "portal" then
+                            b[2] += o
+                            b[4] = cz(b[4])
+                            b[5] += o
+                            b[7] = cz(b[7])
+                        end
+                        table.insert(acts, b)
+                    end
+                    table.insert(TRIGGERS, { room = key, x0 = t.x0 + o, x1 = t.x1 + o, y0 = t.y0, y1 = t.y1,
+                                             z0 = cz(if mir then t.z1 else t.z0), z1 = cz(if mir then t.z0 else t.z1),
+                                             actions = acts, fired = false })
+                end
+            end
+            for _, f in base.fields do
+                if here(f.x) then
+                    table.insert(FIELDS, { x = f.x + o, room = key, y0 = f.y0, y1 = f.y1,
+                                           z0 = pz(if mir then f.z1 else f.z0), z1 = pz(if mir then f.z0 else f.z1) })
+                end
+            end
+            for _, t in base.turrets do
+                if here(t.x) then
+                    local c = turret(t.x + o, pz(t.z), key)
+                    c.fx, c.fz = t.fx, if mir then -t.fz else t.fz
+                    table.insert(TURRETS, c)
+                end
+            end
+            for _, d in DEVICES do
+                if here(d.x) then
+                    add_device(d, o, mir, key)
+                end
+            end
         end
         fields_told()
         fixed_open = false
         -- Built now, the columns not made yet waiting for their writes; and by
         -- the stage for any made later.
-        OFF = o
-        build()
-        OFF = 0
+        build_row(lay.row)
+    end
+    -- A site's row as kept: "k m;k m;..." -- each chamber, mirrored or not.
+    local function kept_row(slot: number): { number }?
+        local text = core.storage_get(`layout {slot}`)
+        if text == "" then
+            return nil
+        end
+        local out = {}
+        for k, m in string.gmatch(text, "(%d+) (%d);") do
+            table.insert(out, tonumber(k) :: number)
+            table.insert(out, tonumber(m) :: number)
+        end
+        return out
     end
 
     type Level = { slot: number, first: number, done_at: number, done: boolean }
@@ -1582,38 +1876,45 @@ if serving then
         if lv.done then return end
         lv.done = true
         core.event.emit("keys:cleared", { player = p, slot = lv.slot })
-        local _, o = base_of(lv.done_at)
-        local r = ROOMS[lv.done_at % 100]
-        local f = ROOMS[lv.first % 100]
-        local a = core.portal_open(r.x0 + o + 1.5, FL + 1, 9.5, 1, 1, 0, 0.5, 1.0)
-        local b = core.portal_open(f.x0 + o + 1.5, FL + 1, 9.5, 1, 1, 0, 0.5, 1.0)
+        local rk, ro = base_of(lv.done_at)
+        local fk, fo = base_of(lv.first)
+        local r, f = ROOMS[rk], ROOMS[fk]
+        local a = core.portal_open(r.x0 + ro + 1.5, FL + 1, 9.5, 1, 1, 0, 0.5, 1.0)
+        local b = core.portal_open(f.x0 + fo + 1.5, FL + 1, 9.5, 1, 1, 0, 0.5, 1.0)
         if a >= 0 and b >= 0 then core.portal_link(a, b) end
         core.notice(p, "Prova superata. Un portale riporta alla prima camera: li' qualcosa si e' aperto.")
     end
-    -- A site's level as a stretch of a copy of the chambers: when the chambers
+    -- A site's level as a row of the chambers of its own: when the chambers
     -- have no zones to lay one of (levels of zones, below).
     local function site_by_copy(ev: { player: number, slot: number, d: number })
-        local known = core.storage_get("copies")
-        if not string.find(";" .. known, `;{ev.slot};`, 1, true) then
-            core.storage_set("copies", known .. `{ev.slot};`)
+        if layouts[ev.slot] == nil then
+            local picked = kept_row(ev.slot)
+            if picked == nil then
+                picked = pick_row(ev.d, ev.slot * 7919 + ev.d * 104729 + 17)
+                local parts = {}
+                for i = 1, #picked - 1, 2 do table.insert(parts, `{picked[i]} {picked[i + 1]};`) end
+                core.storage_set(`layout {ev.slot}`, table.concat(parts))
+                local known = core.storage_get("layouts")
+                core.storage_set("layouts", known .. `{ev.slot};`)
+            end
+            make_copy(ev.slot, picked :: { number })
         end
-        make_copy(ev.slot)
-        local count = math.clamp(2 + ev.d // 2, 2, 7)
-        local a = 2 + math.floor((ev.d - 1) * (13 - count) / 9)
-        local first, done_at = a + 100 * ev.slot, a + count + 100 * ev.slot
+        local lay = layouts[ev.slot]
+        local count = #lay.row - 1
+        local first, done_at = 1 + 100 * ev.slot, #lay.row + 100 * ev.slot
         level_of[ev.player] = { slot = ev.slot, first = first, done_at = done_at, done = false }
-        -- The guns the first chamber of the stretch wants: 03 gives the blue,
-        -- 04 both (rooms 4 and 5).
+        -- The whole gun: any chamber may want both portals.
         local s = players[ev.player]
-        if a >= 5 and core.bag_count(ev.player, "chambers_game:gun_blue") + core.bag_count(ev.player, "chambers_game:gun") == 0 then
-            core.give_item(ev.player, if a >= 6 then "chambers_game:gun" else "chambers_game:gun_blue", 1)
-            if s then s.level = if a >= 6 then 2 else 1 end
+        if core.bag_count(ev.player, "chambers_game:gun") == 0 then
+            local blue = core.bag_count(ev.player, "chambers_game:gun_blue")
+            if blue > 0 then core.take_item(ev.player, "chambers_game:gun_blue", blue) end
+            core.give_item(ev.player, "chambers_game:gun", 1)
+            if s then s.level = 2 end
         end
         -- The way out: a block of metal outside the west wall, its hole at
         -- (x0 - 2, FL, 9) facing +x, behind two cells of that wall.
-        local o = CH0 + ev.slot * CHW
-        local r = ROOMS[a]
-        local x0 = r.x0 + o
+        local pl = lay.row[1]
+        local x0 = ROOMS[pl.k].x0 + pl.o
         for x = x0 - 4, x0 - 2 do
             for z = 8, 10 do
                 for y = FL - 1, FL + 3 do core.set_block(x, y, z, METAL) end
@@ -1625,11 +1926,20 @@ if serving then
         core.player_place(ev.player, sx, sy, sz, 1, 0, 0)
         core.player_spawn(ev.player, sx, sy, sz, true)
         core.event.emit("keys:start", { player = ev.player, slot = ev.slot, ex = x0 - 2, ey = FL, ez = 9 })
-        core.notice(ev.player, `Camere di prova: {count}, dalla {ROOMS[a].name}.`)
-        core.log(`chambers_game: slot {ev.slot}, d {ev.d}: rooms {a} to {a + count - 1}`)
+        core.notice(ev.player, `Camere di prova: {count}, dalla {ROOMS[pl.k].name}.`)
+        local names = {}
+        for i = 1, count do
+            local p2 = lay.row[i]
+            table.insert(names, `{p2.k - 1}{if p2.mir then "m" else ""}`)
+        end
+        core.log(`chambers_game: slot {ev.slot}, d {ev.d}: chambers {table.concat(names, " ")}`)
     end
     core.event.on("core:world_ready", function()
-        for slot in string.gmatch(core.storage_get("copies"), "(%d+);") do make_copy(tonumber(slot) :: number) end
+        for slot in string.gmatch(core.storage_get("layouts"), "(%d+);") do
+            local n = tonumber(slot) :: number
+            local picked = kept_row(n)
+            if picked ~= nil then make_copy(n, picked) end
+        end
     end)
 
     -- ------------------------------------------------ levels of zones
@@ -2124,13 +2434,15 @@ if serving then
     end
 
     -- The doors that open as somebody comes up to them: the lobby's, and
-    -- those of the rooms with nothing to hold theirs open (01, 03, 05) and
-    -- the last.
-    local NEAR_DOORS = { 1, 2, 4, 6, 10, 15, 16 }
+    -- those of the rooms with nothing to hold theirs open (01, 03, 05, 09,
+    -- 14 to 17); in a site's row, those of the same chambers.
+    local NEAR_DOORS = { 1, 2, 4, 6, 10, 15, 16, 17, 18 }
     local function step_doors()
         local keys_near = table.clone(NEAR_DOORS)
-        for slot in copies do
-            for _, k in NEAR_DOORS do table.insert(keys_near, k + 100 * slot) end
+        for slot, lay in layouts do
+            for i, pl in lay.row do
+                if table.find(NEAR_DOORS, pl.k) then table.insert(keys_near, i + 100 * slot) end
+            end
         end
         for _, k in keys_near do
             local d = doors[k]
@@ -2308,6 +2620,7 @@ if serving then
                                level = tonumber(core.storage_get(`gun {name}`)) or 0, low = 0, said = 0 }
                 crosshair(p)
                 fields_told()
+                D.told()
                 for q, o in players do
                     if o.blue then rim_told(q, "blue", o.blue.at) end
                     if o.orange then rim_told(q, "orange", o.orange.at) end
@@ -2338,6 +2651,7 @@ if serving then
         step_pedestals()
         step_timer(dt)
         step_levels(dt)
+        D.step(dt)
     end
 end
 
@@ -2361,9 +2675,12 @@ if drawing then
     type Dying = { model: string, at: number, hand: boolean, x: number, y: number, z: number }
     local dying: { Dying } = {}
     local DYING = 0.9
+    local devices = Devices.client()
     heard = function(text: string)
         local w = string.split(text, " ")
-        if w[1] == "dissolve" then
+        if devices.heard(w) then
+            return
+        elseif w[1] == "dissolve" then
             if holding ~= "" then
                 table.insert(dying, { model = holding, at = now, hand = true, x = 0, y = 0, z = 0 })
             end
@@ -2592,6 +2909,7 @@ if drawing then
 
     function client_step(dt: number)
         now += dt
+        devices.step(dt)
         if clock_left > 0 then
             clock_left = math.max(0, clock_left - dt)
         end
