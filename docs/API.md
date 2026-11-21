@@ -1024,7 +1024,7 @@ Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
 ## `core.node_glass`
 
 ```luau
-core.node_glass(id: number, opacity: number?) -> boolean
+core.node_glass(id: number, opacity: number?, tint: boolean?) -> boolean
 ```
 
 Lets light through a block and shows what is behind it: ice, a pane, a cobweb. It still stops a body if it is solid. Returns 1, or 0 for an id that is not a block.
@@ -1035,6 +1035,7 @@ Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
 |---|---|---|---|
 | `id` | number | — | The block, by the id register_node returned. |
 | `opacity` | number | `160` | How much of what is behind it is hidden, 0..254: drawn in the alpha pass, as glass is (core:glass is 110). |
+| `tint` | boolean | `false` | Whether lamplight going through it takes the block's colour, as through stained glass. Daylight passes white. |
 
 ## `core.node_liquid`
 

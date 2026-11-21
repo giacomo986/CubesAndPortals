@@ -19,6 +19,11 @@ struct Glow {
     uint8_t tint;
 };
 
+// What a cell of the pass's `solid` grid says about it.
+constexpr uint8_t kClear  = 0;   // light goes through as it is
+constexpr uint8_t kOpaque = 1;   // light stops
+constexpr uint8_t kPane   = 2;   // and up: lamplight goes through coloured
+
 } // namespace
 
 namespace {
@@ -112,15 +117,38 @@ void light_box(World &world, const NodeRegistry &reg, int min_x, int min_y, int 
     };
 
     // What each block does to light, once per id rather than once per cell.
+    //
+    // `solid` holds more than whether a cell stops light: kClear, kOpaque, or
+    // for a pane that colours what goes through it (stained glass) kPane plus
+    // which of the colours in `panes` it is. The byte was already there and
+    // read at every step, so a pane costs the fill nothing until light gets
+    // to one -- a second grid of colours would be a second read per step for
+    // the worlds without a pane in them, which is nearly all of them.
     const size_t kinds = reg.size();
     static thread_local std::vector<uint8_t> opaque_of, emit_of, tint_of;
-    opaque_of.assign(kinds, 0);
+    static thread_local std::vector<uint8_t> panes;   // the colours, by kPane offset
+    opaque_of.assign(kinds, kClear);
     emit_of.assign(kinds, 0);
     tint_of.assign(kinds, kWhiteTint);
+    panes.clear();
     for (size_t id = 0; id < kinds; ++id) {
-        opaque_of[id] = reg.is_opaque((BlockId)id) ? 1 : 0;
         emit_of[id]   = reg.light_source((BlockId)id);
         tint_of[id]   = reg.light_tint((BlockId)id);
+        if (reg.is_opaque((BlockId)id)) {
+            opaque_of[id] = kOpaque;
+            continue;
+        }
+        const uint8_t filter = reg.light_filter((BlockId)id);
+        if (filter == kWhiteTint) continue;
+        // Sixteen colours of glass and their panes are sixteen entries, not
+        // three hundred: the same colour is the same entry.
+        size_t k = 0;
+        while (k < panes.size() && panes[k] != filter) ++k;
+        if (k == panes.size()) {
+            if (kPane + k > 255) continue;   // more colours than a byte holds: lets light by white
+            panes.push_back(filter);
+        }
+        opaque_of[id] = (uint8_t)(kPane + k);
     }
 
     // One chunk lookup per chunk crossed and not one per cell: the walk goes
@@ -131,6 +159,7 @@ void light_box(World &world, const NodeRegistry &reg, int min_x, int min_y, int 
     // second pass over every cell of the box for the handful that do.
     static thread_local std::vector<Glow> glowing;
     glowing.clear();
+    bool any_pane = false;
     {
         ChunkPos     at{INT_MIN, INT_MIN, INT_MIN};
         const Chunk *chunk = nullptr;
@@ -149,9 +178,10 @@ void light_box(World &world, const NodeRegistry &reg, int min_x, int min_y, int 
                         id = chunk->get(lx, ly, lz);
                     }
 
-                    const bool known = id < kinds;
-                    solid[idx(x, y, z)] =
-                        known ? opaque_of[id] : (reg.is_opaque(id) ? 1 : 0);
+                    const bool    known = id < kinds;
+                    const uint8_t pass  = known ? opaque_of[id] : (reg.is_opaque(id) ? kOpaque : kClear);
+                    solid[idx(x, y, z)] = pass;
+                    any_pane            = any_pane || pass >= kPane;
                     const uint8_t emit = known ? emit_of[id] : reg.light_source(id);
                     if (emit != 0) glowing.push_back(Glow{x, y, z, emit, known ? tint_of[id] : reg.light_tint(id)});
                 }
@@ -172,7 +202,7 @@ void light_box(World &world, const NodeRegistry &reg, int min_x, int min_y, int 
     for (int z = min_z; z <= max_z; ++z) {
         for (int x = min_x; x <= max_x; ++x) {
             for (int y = max_y; y >= min_y; --y) {
-                if (solid[idx(x, y, z)]) break;
+                if (solid[idx(x, y, z)] == kOpaque) break;
                 sun[idx(x, y, z)] = kMaxLight;
             }
         }
@@ -193,7 +223,7 @@ void light_box(World &world, const NodeRegistry &reg, int min_x, int min_y, int 
                 for (const auto &o : kNeighbours) {
                     const int nx = x + o[0], ny = y + o[1], nz = z + o[2];
                     if (!inside(nx, ny, nz)) continue;
-                    if (solid[idx(nx, ny, nz)]) continue;
+                    if (solid[idx(nx, ny, nz)] == kOpaque) continue;
                     if (sun[idx(nx, ny, nz)] >= kMaxLight - 1) continue;
                     queue.push_back(Node{x, y, z});
                     break;
@@ -215,7 +245,7 @@ void light_box(World &world, const NodeRegistry &reg, int min_x, int min_y, int 
         for (const auto &o : kOffsets) {
             const int nx = n.x + o[0], ny = n.y + o[1], nz = n.z + o[2];
             if (!inside(nx, ny, nz)) continue;
-            if (solid[idx(nx, ny, nz)]) continue;
+            if (solid[idx(nx, ny, nz)] == kOpaque) continue;
 
             const uint8_t next = (uint8_t)(level - 1);
             if (sun[idx(nx, ny, nz)] >= next) continue;
@@ -229,8 +259,9 @@ void light_box(World &world, const NodeRegistry &reg, int min_x, int min_y, int 
     // attenuate independently -- sunlight falls vertically for free, block
     // light does not, and merging them makes a torch light a shaft downward.
     queue.clear();
-    // The colour goes with the light, and only when some lamp here has one.
-    bool coloured = false;
+    // The colour goes with the light, and only when some lamp here has one or
+    // some pane here can give it one.
+    bool coloured = any_pane && !glowing.empty();
     for (const Glow &g : glowing) coloured = coloured || g.tint != kWhiteTint;
     if (coloured) tint.assign(cells, kWhiteTint);
     for (const Glow &g : glowing) {
@@ -251,17 +282,23 @@ void light_box(World &world, const NodeRegistry &reg, int min_x, int min_y, int 
         for (const auto &o : kSpread) {
             const int nx = n.x + o[0], ny = n.y + o[1], nz = n.z + o[2];
             if (!inside(nx, ny, nz)) continue;
-            if (solid[idx(nx, ny, nz)]) continue;
+            const uint8_t pass = solid[idx(nx, ny, nz)];
+            if (pass == kOpaque) continue;
 
             const uint8_t next = (uint8_t)(level - 1);
-            if (blk[idx(nx, ny, nz)] >= next) {
+            if (blk[idx(nx, ny, nz)] > next) continue;
+            // Into a pane, the light takes its colour; and every cell it
+            // reaches from there inherits that, as it inherits a lamp's.
+            const uint8_t colour = !coloured        ? kWhiteTint
+                                   : pass >= kPane ? filter_tint(tint[idx(n.x, n.y, n.z)], panes[pass - kPane])
+                                                   : tint[idx(n.x, n.y, n.z)];
+            if (blk[idx(nx, ny, nz)] == next) {
                 // Two lights as strong as each other here: their colours meet.
-                if (coloured && blk[idx(nx, ny, nz)] == next)
-                    tint[idx(nx, ny, nz)] = mix_tint(tint[idx(nx, ny, nz)], tint[idx(n.x, n.y, n.z)]);
+                if (coloured) tint[idx(nx, ny, nz)] = mix_tint(tint[idx(nx, ny, nz)], colour);
                 continue;
             }
             blk[idx(nx, ny, nz)] = next;
-            if (coloured) tint[idx(nx, ny, nz)] = tint[idx(n.x, n.y, n.z)];
+            if (coloured) tint[idx(nx, ny, nz)] = colour;
             queue.push_back(Node{nx, ny, nz});
         }
     }

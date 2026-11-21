@@ -31,4 +31,19 @@ inline uint8_t mix_tint(uint8_t a, uint8_t b)
                      (((a & 3) + (b & 3) + 1) / 2));
 }
 
+// Light through a coloured pane: each channel of the light times the pane's,
+// the way a red window lets only the red through. In the same 0.3..1 scale,
+// so a channel the pane takes most of comes out at the floor and not at a
+// black no lamp could make. Two panes in a row take twice.
+inline uint8_t filter_tint(uint8_t light, uint8_t pane)
+{
+    if (pane == kWhiteTint) return light;
+    const auto through = [&](int k, int steps) {
+        const float v = (tint_channel(light, k) * tint_channel(pane, k) - 0.3f) / 0.7f;
+        const int   q = (int)(v * (float)steps + 0.5f);
+        return q < 0 ? 0 : q > steps ? steps : q;
+    };
+    return (uint8_t)(through(0, 7) << 5 | through(1, 7) << 2 | through(2, 3));
+}
+
 } // namespace cnp

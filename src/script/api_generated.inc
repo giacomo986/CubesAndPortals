@@ -844,13 +844,14 @@ int l_node_falls(lua_State *L)
     return 1;
 }
 
-// core.node_glass(id: number, opacity: number?) -> boolean
+// core.node_glass(id: number, opacity: number?, tint: boolean?) -> boolean
 int l_node_glass(lua_State *L)
 {
     VmState *vm = host_of(L);
     const int id = (int)luaL_checkinteger(L, 1);
     const int opacity = (int)luaL_optinteger(L, 2, 160);
-    const int result = (vm && vm->host.node_glass) ? vm->host.node_glass(vm->host.ud, id, opacity) : (int)0;
+    const int tint = lua_isnoneornil(L, 3) ? 0 : (lua_toboolean(L, 3) ? 1 : 0);
+    const int result = (vm && vm->host.node_glass) ? vm->host.node_glass(vm->host.ud, id, opacity, tint) : (int)0;
     if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
     else lua_pushinteger(L, result);
     return 1;

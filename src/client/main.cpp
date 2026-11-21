@@ -3420,7 +3420,8 @@ int host_register_node(void *ud, const char *name, int r, int g, int b, int soli
     d.solid  = solid != 0;
     d.opaque = solid != 0;
     d.light_source = (uint8_t)light_source;
-    d.light_tint   = pack_tint((uint8_t)r, (uint8_t)g, (uint8_t)b);
+    // Only a lamp's light has its colour; a window's is core.node_glass's to give.
+    d.light_tint   = light_source > 0 ? pack_tint((uint8_t)r, (uint8_t)g, (uint8_t)b) : kWhiteTint;
     bool turn_ok   = true;
     d.turn         = node_turn_from_name(turn, &turn_ok);
     if (!turn_ok) {
@@ -4120,7 +4121,7 @@ int host_node_liquid(void *ud, int id_in, int opacity, int fill)
     return 1;
 }
 
-int host_node_glass(void *ud, int id_in, int opacity)
+int host_node_glass(void *ud, int id_in, int opacity, int tint)
 {
     Session      &sess = static_cast<Scene *>(ud)->act();
     const BlockId id   = (BlockId)id_in;
@@ -4128,6 +4129,8 @@ int host_node_glass(void *ud, int id_in, int opacity)
     NodeDef d = sess.registry.get(id);
     d.opaque  = false;
     d.opacity = (uint8_t)std::clamp(opacity, 0, 254);
+    if (d.light_source == 0)
+        d.light_tint = tint != 0 ? pack_tint(d.colour[0], d.colour[1], d.colour[2]) : kWhiteTint;
     sess.registry.register_node(d);
     return 1;
 }

@@ -188,7 +188,7 @@ declare core: {
     -- Makes a block fall, as the classic block game's sand and gravel do: whenever its cell or the cell under it is written -- a dig, a placing, a mod, a piston -- and nothing solid is under it, it lets go (core.fall), and a column of them goes together. Not while the world is generated. Returns 1, or 0 for an id that is not a block.
     node_falls: (id: number, on: boolean?) -> boolean,
     -- Lets light through a block and shows what is behind it: ice, a pane, a cobweb. It still stops a body if it is solid. Returns 1, or 0 for an id that is not a block.
-    node_glass: (id: number, opacity: number?) -> boolean,
+    node_glass: (id: number, opacity: number?, tint: boolean?) -> boolean,
     -- Makes a registered block a liquid: a body goes through it and swims in it -- it sinks slowly, rises while jump is held, and moves at half its pace -- light passes through it, it is drawn see-through, and nothing digs it out. Returns 1, or 0 for an id nobody registered.
     --
     -- Its surface ripples a little and its faces sway, a full column's too. Seen through, what lies behind it fades with how much of it is in the way: water to a blue murk, a liquid that gives light (lava) to its own colour and much sooner -- a node of it lets most through, eight hide all. Far from the eye a glowing one is drawn opaque.

@@ -122,6 +122,7 @@ size_t NodeRegistry::end_reload(const std::string &owner)
         d.solid     = true;
         d.opaque    = true;
         d.light_source = 0;
+        d.light_tint   = kWhiteTint;
         d.opacity      = 255;
         d.liquid       = false;
 

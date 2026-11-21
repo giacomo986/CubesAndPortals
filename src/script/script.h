@@ -354,7 +354,7 @@ typedef struct script_host {
                          int round);
     int (*repair_held)(void *ud, int player, int points);
     int (*node_falls)(void *ud, int id, int on);
-    int (*node_glass)(void *ud, int id, int opacity);
+    int (*node_glass)(void *ud, int id, int opacity, int tint);
     int (*blast)(void *ud, double x, double y, double z, double r, int damage);
     int (*push_mobs)(void *ud, int x, int y, int z, int dx, int dy, int dz);
     int (*monsters_near)(void *ud, double x, double y, double z, double r);

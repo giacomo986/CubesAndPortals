@@ -36,6 +36,9 @@ cnp_unit_test(portal_math     LIBS cnp_core)
 cnp_unit_test(portal_traverse LIBS cnp_core)
 cnp_unit_test(physics_box     LIBS cnp_core)
 
+# Lamplight through stained glass takes its colour, and what lighting costs.
+cnp_unit_test(light LIBS cnp_core)
+
 # One VM per mod, capabilities, and a runaway mod that dies alone. The timeout
 # matters: if the interrupt stops firing this test hangs instead of failing.
 cnp_unit_test(script_isolation LIBS cnp_script ARGS ${CMAKE_CURRENT_SOURCE_DIR}/mods)

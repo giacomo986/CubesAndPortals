@@ -96,7 +96,13 @@ struct NodeDef {
     // stop light and still be see-through.
     uint8_t opacity      = 255;
     uint8_t light_source = 0;       // 0..15, emitted block light
-    uint8_t light_tint   = kWhiteTint;   // the colour of that light (pack_tint of `colour`)
+    // The colour of that light (pack_tint of `colour`). On a block that gives
+    // none, the colour it turns the light passing through it -- stained glass,
+    // core.node_glass with its tint -- and white for every other block. One
+    // byte for both, because a block that does neither has no use for it, and
+    // a lamp is not also a window: what gets through a torch's cell is left
+    // alone (light_filter).
+    uint8_t light_tint   = kWhiteTint;
 
     // Water, and whatever else a mod makes one of (core.node_liquid): a body
     // goes through it and swims in it, light goes through it, and it is drawn
@@ -521,6 +527,12 @@ public:
     // And the light it gives (protocol 84): without it a client that relit
     // round a change counted a mod's lamp as dark, and a room went black.
     uint8_t light_tint(BlockId id) const { return id < m_defs.size() ? m_defs[id].light_tint : kWhiteTint; }
+    // The colour light takes going through this block, white for one that
+    // leaves it alone. Only a block that gives no light of its own filters.
+    uint8_t light_filter(BlockId id) const
+    {
+        return id < m_defs.size() && m_defs[id].light_source == 0 ? m_defs[id].light_tint : kWhiteTint;
+    }
     void    set_light_tint(BlockId id, uint8_t tint)
     {
         if (id < m_defs.size()) m_defs[id].light_tint = tint;

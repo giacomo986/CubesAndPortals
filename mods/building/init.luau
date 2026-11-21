@@ -234,7 +234,8 @@ if serving then
     local JOINS: { [number]: boolean } = {}   -- what a fence joins to besides solid blocks
 
     local function joined(prefix: string, rgb: { number }, secs: number, material: string,
-                          post: { number }, arm: (number) -> { { number } }, see: number?)
+                          post: { number }, arm: (number) -> { { number } }, see: number?,
+                          tint: boolean?)
         local variants: { number } = {}
         for mask = 0, 15 do
             local name = if mask == 0 then prefix else `{prefix}_{mask}`
@@ -246,7 +247,7 @@ if serving then
                 end
             end
             if see then
-                core.node_glass(id, see)
+                core.node_glass(id, see, tint)
             end
             variants[mask + 1] = id
         end
@@ -310,13 +311,14 @@ if serving then
         local c, rgb = entry[1] :: string, entry[2] :: { number }
         local dye = `colors:{c}_dye`
         local glass = node(`building:{c}_stained_glass`, rgb, true, "", 0.3, "glass")
-        core.node_glass(glass, 150)
+        -- Coloured, and so is the lamplight through it.
+        core.node_glass(glass, 150, true)
         core.recipe_shaped(`building:{c}_stained_glass`, 8,
             "core:glass core:glass core:glass",
             `core:glass {dye} core:glass`,
             "core:glass core:glass core:glass")
         joined(`building:{c}_stained_glass_pane`, rgb, 0.3, "glass", { 0.4375, 0, 0.4375, 0.5625, 1, 0.5625 },
-               reach(0.4375, 0.5625, { { 0, 1 } }), 150)
+               reach(0.4375, 0.5625, { { 0, 1 } }), 150, true)
         core.recipe_shaped(`building:{c}_stained_glass_pane`, 16,
             `building:{c}_stained_glass building:{c}_stained_glass building:{c}_stained_glass`,
             `building:{c}_stained_glass building:{c}_stained_glass building:{c}_stained_glass`)

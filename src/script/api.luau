@@ -1083,6 +1083,9 @@ local api: { Fn } = {
             { name = "opacity", type = "int", default = 160,
               doc = "How much of what is behind it is hidden, 0..254: drawn in the alpha pass, "
                  .. "as glass is (core:glass is 110)." },
+            { name = "tint", type = "bool", default = false,
+              doc = "Whether lamplight going through it takes the block's colour, as through "
+                 .. "stained glass. Daylight passes white." },
         },
         doc = "Lets light through a block and shows what is behind it: ice, a pane, a cobweb. It "
            .. "still stops a body if it is solid. Returns 1, or 0 for an id that is not a block.",

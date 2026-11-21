@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 127; // 127 a room of several entered with a ticket signed for it; 126 world code may be api 2 (yes/no calls answer true/false); 125 kSpawnOpening, arriving at a room's spawn; 124 a person's left hand (EntityState::off_item); 123 kMaxNodeShapes 2048; 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
+inline constexpr uint16_t kProtocol    = 128; // 128 a block's light_tint is white unless it gives light or colours it (stained glass); 127 a room of several entered with a ticket signed for it; 126 world code may be api 2 (yes/no calls answer true/false); 125 kSpawnOpening, arriving at a room's spawn; 124 a person's left hand (EntityState::off_item); 123 kMaxNodeShapes 2048; 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -403,7 +403,12 @@ inline constexpr uint16_t kProtocol    = 127; // 127 a room of several entered w
 // not the first takes nobody without one: a 126 client asks none for a room of
 // its own server and would be refused at every step into one, so it is not
 // let in at all.
-inline constexpr uint16_t kMinProtocol = 127;
+// 128 sends the colour of a block that gives no light only when the light
+// through it takes that colour (stained glass, core.node_glass's tint); a 127
+// server sends every block's own colour there, and a 128 client relighting
+// round an edit would turn the lamplight through every window, every leaf and
+// every lake the colour of the block.
+inline constexpr uint16_t kMinProtocol = 128;
 
 // What a player picked to look like (protocol 93): the three colours of their
 // model's tint_1..3 materials -- primary, secondary, accent -- five bits each,
@@ -1117,7 +1122,7 @@ struct NodeBodyDesc {
     bool    liquid  = false;
     uint8_t fill    = 8;   // eighths of a cell, for a liquid (protocol 40)
     uint8_t light   = 0;   // the light it gives, 0..15 (protocol 84)
-    uint8_t light_tint = kWhiteTint;   // its colour (protocol 122)
+    uint8_t light_tint = kWhiteTint;   // its colour (protocol 122), or the colour it lets through (128)
     bool    climbable = false;   // a ladder (protocol 53)
     float   conveyor        = 0.0f;   // a belt, m/s, and its top (protocol 78)
     float   conveyor_height = 1.0f;
