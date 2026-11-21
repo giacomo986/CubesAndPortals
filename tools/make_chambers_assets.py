@@ -156,4 +156,61 @@ d.ellipse([4, 4, 27, 27], outline=(230, 180, 20), width=3)
 d.ellipse([12, 12, 19, 19], fill=(230, 180, 20))
 save(img, "chambers_core_target")
 
+# The devices (chambers_game's devices.luau). A light bridge's emitter: dark
+# metal round a pale blue lens with a slot the light comes out of.
+img = noisy((60, 66, 74), 4)
+d = ImageDraw.Draw(img)
+d.rectangle([3, 3, 28, 28], outline=(40, 44, 50))
+d.ellipse([7, 7, 24, 24], fill=(120, 200, 255))
+d.rectangle([5, 14, 26, 17], fill=(225, 245, 255))
+save(img, "chambers_core_bridge_emitter")
+
+# Hard light: pale blue, brighter at its edges, faint lines across.
+img = noisy((140, 210, 255), 3)
+d = ImageDraw.Draw(img)
+d.rectangle([0, 0, 31, 31], outline=(225, 245, 255))
+for k in range(4, 31, 6):
+    d.line([(1, k), (30, k)], fill=(170, 225, 255))
+save(img, "chambers_core_bridge")
+
+# A funnel's emitter: a ring of blue round a dark middle.
+img = noisy((60, 66, 74), 4)
+d = ImageDraw.Draw(img)
+d.ellipse([3, 3, 28, 28], fill=(60, 120, 230))
+d.ellipse([9, 9, 22, 22], fill=(30, 34, 40))
+d.ellipse([13, 13, 18, 18], fill=(150, 200, 255))
+save(img, "chambers_core_funnel_emitter")
+
+# The gel dispensers: a nozzle in a ceiling plate, the gel's colour round it.
+for name, rgb in (("dispenser_bounce", (50, 110, 220)), ("dispenser_speed", (230, 120, 30))):
+    img = noisy((112, 118, 126), 4)
+    d = ImageDraw.Draw(img)
+    d.rectangle([0, 0, 31, 31], outline=(78, 82, 88))
+    d.ellipse([5, 5, 26, 26], fill=rgb)
+    d.ellipse([11, 11, 20, 20], fill=(30, 32, 36))
+    save(img, "chambers_core_" + name)
+
+# The gel on a floor: glossy blobs of its colour.
+for name, rgb in (("gel_bounce", (40, 120, 255)), ("gel_speed", (255, 130, 20))):
+    img = noisy(rgb, 10)
+    d = ImageDraw.Draw(img)
+    for _ in range(7):
+        x, y, r = rng.randint(2, 29), rng.randint(2, 29), rng.randint(2, 4)
+        d.ellipse([x - r, y - r, x + r, y + r], fill=tuple(min(255, c + 60) for c in rgb))
+    save(img, "chambers_core_" + name)
+
+# The angled panel: a white panel in a dark frame, a hinge bar along one side
+# and two chevrons the way it throws.
+img = noisy((214, 216, 220), 3)
+d = ImageDraw.Draw(img)
+d.rectangle([0, 0, 31, 31], outline=(60, 64, 70), width=2)
+d.rectangle([2, 2, 5, 29], fill=(90, 94, 100))
+for x0 in (12, 20):
+    d.line([(x0, 8), (x0 + 6, 16), (x0, 24)], fill=(230, 180, 20), width=3)
+save(img, "chambers_core_flip")
+img = noisy((214, 216, 220), 3)
+d = ImageDraw.Draw(img)
+d.rectangle([0, 0, 31, 31], outline=(60, 64, 70), width=2)
+save(img, "chambers_core_flip_part")
+
 print("chambers: textures in", TEX)

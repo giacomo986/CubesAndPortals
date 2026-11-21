@@ -59,6 +59,30 @@ node("target", { 230, 180, 20 })
 -- it a second is back at the level's start, a cube on it back in its vent.
 node("pit", { 70, 60, 58 })
 
+-- The devices (chambers_game's devices.luau). A light bridge's emitter in a
+-- wall, and the hard light it lays a cell at a time: a floor a sixteenth
+-- thick at the bottom of its cell, seen through, glowing.
+node("bridge_emitter", { 70, 150, 230 }, 7)
+local BRIDGE = core.register_node("chambers_core:bridge", 140, 210, 255, true, 9, "", 0, 0, "metal")
+core.node_box(BRIDGE, 0, 0, 0, 1, 1 / 16, 1)
+core.node_glass(BRIDGE, 150)
+-- A funnel's emitter (its beam is light the client draws).
+node("funnel_emitter", { 60, 120, 230 }, 7)
+-- Gel dispensers, in a ceiling, and the gel they lay: a skin on the floor a
+-- body walks in, not on -- the floor under it is what stands.
+node("dispenser_bounce", { 50, 110, 220 }, 4)
+node("dispenser_speed", { 230, 120, 30 }, 4)
+local function gel(name: string, r: number, g: number, b: number)
+    local id = core.register_node(`chambers_core:{name}`, r, g, b, false, 3, "", 0, 0, "metal")
+    core.node_box(id, 0, 0, 0, 1, 1 / 16, 1)
+end
+gel("gel_bounce", 40, 120, 255)
+gel("gel_speed", 255, 130, 20)
+-- The angled panel: two cells by two of the floor, hinged, drawn from its
+-- lower corner as the plate is; the other three cells floor that looks it.
+node("flip", { 214, 216, 220 })
+node("flip_part", { 214, 216, 220 })
+
 -- Flat things a body stands on or beside: the floor button (and pressed), the
 -- launch plate, the push button on its stalk, the pedestal.
 -- Their models are Blender's (tools/make_chambers_models.py).
