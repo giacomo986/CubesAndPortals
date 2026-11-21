@@ -485,6 +485,7 @@ The core uses the same bus, with the same schemas, with no privileged paths (DES
 | `core:arrived` | `player, from` | no — only on a server; a portal brought them in on a ticket of the friend server `from` (as /friend named it) |
 | `core:fed_message` | `server, mod, text` | no — only on a server, only to the mod of that name, in the first room; `core.fed_send` on the friend `server` |
 | `core:died` | `player, x, y, z` | no — only on a server; the body is already back at its bed or the spawn, x y z is where it died |
+| `core:hurt` | `player, damage` | no — on a server and in a world of one; a creature's blow or an arrow struck that player, `damage` before armour |
 | `core:burst` | `x, y, z, nx, ny, nz` | no — only on a server; a creature's fireball burst on the block at x y z, on the face with normal nx ny nz |
 
 `core:used` is a right click on a block within reach, **with anything in hand**. It names the block
@@ -653,7 +654,7 @@ core.net.send(player, text) -> bool              -- 0 = everybody in this world
 
 core.render.pass(name, order, fn)                -- only on a client
 core.render.box(x, y, z, w, h, d, r, g, b, a)    -- only inside a pass
-core.render.model(id, x, y, z, yaw?, scale?, pitch?, roll?, dissolve?, alpha?, tint?)   -- a model of the world, only inside a pass
+core.render.model(id, x, y, z, yaw?, scale?, pitch?, roll?, dissolve?, alpha?, tint?, clip?, time?)   -- a model of the world, only inside a pass; posed by a clip of it at that time
 core.render.fx(kind, x, y, z, size?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- a light effect, only inside a pass
 core.render.camera(id, x, y, z, yaw?, pitch?, fov?, still?)   -- a camera's picture, drawn now and then (still: once)
 core.render.camera_drop(id)                      -- and forgotten

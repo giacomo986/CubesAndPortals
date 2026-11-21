@@ -42,13 +42,16 @@ on the wire.
   sea; `--no-mod music` to do without).
 - **The cursed ghost** (`mods/ghost`): a new creature of the dark, by night and in caves, rare. From
   afar only a shimmer; if it reaches you it takes hold, walks you towards the nearest drop or other
-  monsters and throws things out of your bag, until five blows you swing break it.
+  monsters and throws things out of your bag, until five blows break it, yours or
+  other monsters'. It floats, reaches,
+  clutches and dies on a skeleton of its own.
 - **Karts**: an item box gives the leader what defends a lead and the last what catches up, and
   the HUD shows your place. A **ghost** drives the track's record lap beside you (on the Inferno
   track, the engineer's). Karts **bump** each other apart.
 - For mod writers: `core.node_glass(id, opacity, tint)` lets light through in the block's colour;
   `core.player_launch(..., add)` adds to the speed instead of setting it, and moves a kart too;
-  `core.render.model(..., alpha, tint)` draws a model seen through and tinted; `maps:route` takes
+  `core:hurt {player, damage}` says a creature's blow or an arrow struck a player;
+  `core.render.model(..., alpha, tint, clip, time)` draws a model seen through, tinted and posed by one of its clips; `maps:route` takes
   `~R;` before the points for an end reached within R.
 
 - **No more green flashes in the front's sky**: the far end of a window (the gallery's map over the

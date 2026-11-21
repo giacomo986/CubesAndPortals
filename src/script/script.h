@@ -706,10 +706,12 @@ typedef struct script_host {
     // `dissolve` 0..1: how much of it is eaten away, in patches with burning
     // edges (a cube dissolved by a field). `alpha` under 1 blends it over
     // what is behind it, seen through (a kart's ghost); `tint` is its
-    // tint_1..3 colours, as a worn piece's (core.player_wear).
+    // tint_1..3 colours, as a worn piece's (core.player_wear). `clip`, when
+    // not empty, poses it by that clip of its model at `time` seconds,
+    // wrapped round the clip's length (a creature a mod draws, mods/ghost).
     int (*render_model)(void *ud, int model, double x, double y, double z, double yaw,
                         double scale, double pitch, double roll, double dissolve, double alpha,
-                        int tint);
+                        int tint, const char *clip, double time);
     // And an effect of light (core.render.fx): a kind by name ("glow", "flame",
     // "ring", "frost", "bolt", "slash", "sparks", "vortex", "jet", "streak",
     // "aurora", "smoke", "aura"), where and how big, its colour, how far through its life it is

@@ -13,7 +13,8 @@
 --   * every few seconds throws one thing out of your bag, picked at random,
 --     onto the ground behind you.
 -- Every blow you swing while it holds you hurts it (10 health, 2 a blow:
--- five blows), and when it dies you are free. It lets go too if you die or
+-- five blows), and so does every blow or arrow another monster lands on you
+-- (core:hurt); when it dies you are free. It lets go too if you die or
 -- leave, and does not take you again for 8 seconds.
 --
 -- The engine moves it as a creature (core.register_mob, hovering) wearing
@@ -21,7 +22,9 @@
 -- (tools/make_ghost_body.py). What is seen is ghost.gltf (made from a Meshy
 -- model by tools/meshy_prop.py), drawn here on every machine with
 -- core.render.model, seen through by how far it is from that player, which
--- the server says; when it dies it comes apart in the model's dissolve.
+-- the server says, posed by its clips (idle, fly, hold, death; skeleton and
+-- clips by tools/make_ghost_rig.py); when it dies it comes apart in the
+-- model's dissolve while its death clip plays.
 
 local side = core.side()
 local serving = side ~= "client"
@@ -184,12 +187,8 @@ if serving then
     end
 
     -- A blow swung by somebody held: the ghost holding them is hurt.
-    local function swing(p: number)
-        local h = held[p]
-        if h == nil or clock - h.swung < 0.35 then
-            return
-        end
-        h.swung = clock
+    -- The ghost holding p loses a blow's worth.
+    local function strike(p: number, h: Held)
         h.hits += 1
         local x, _, z = core.player_pos(p)
         local hit = core.mob_hurt(h.ghost, BLOW, x or 0, z or 0)
@@ -198,6 +197,14 @@ if serving then
         else
             tell(p, `own 1 {math.max(0, HEALTH - BLOW * h.hits)}`)
         end
+    end
+    local function swing(p: number)
+        local h = held[p]
+        if h == nil or clock - h.swung < 0.35 then
+            return
+        end
+        h.swung = clock
+        strike(p, h)
     end
     core.event.on("core:net_message", function(ev)
         if ev.text == "swing" then
@@ -209,6 +216,15 @@ if serving then
             swing(p)
         end
     end
+
+    -- Another monster's blow or arrow on whoever it holds strikes it too.
+    core.event.on("core:hurt", function(ev)
+        local p = ev.player :: number
+        local h = held[p]
+        if h ~= nil then
+            strike(p, h)
+        end
+    end)
 
     core.event.on("core:died", function(ev)
         let_go(ev.player :: number)
@@ -413,7 +429,9 @@ if drawing then
             local t = math.clamp((clock - s.at) / 0.1, 0, 1)
             local x, y, z = s.fx + (s.x - s.fx) * t, s.fy + (s.y - s.fy) * t, s.fz + (s.z - s.fz) * t
             local bob = math.sin(clock * 2.1 + id) * 0.12
-            local sway = math.sin(clock * 1.3 + id) * 0.08
+            -- Its clip (tools/make_ghost_rig.py): clutching whoever it
+            -- holds, reaching as it comes for somebody, else floating.
+            local clip = if s.held > 0 then "hold" elseif s.d < 14 then "fly" else "idle"
             local a
             if s.held == 2 then
                 a = 0.25   -- at your own back: hardly in the way of the view
@@ -423,7 +441,7 @@ if drawing then
             else
                 a = 0.15 + 0.5 * math.clamp((FAR - s.d) / (FAR - 2), 0, 1)
             end
-            core.render.model(MODEL, x, y + bob, z, s.yaw, 1, 0, sway, 0, a)
+            core.render.model(MODEL, x, y + bob, z, s.yaw, 1, 0, 0, 0, a, 0, clip, clock + id * 0.37)
         end
         for i = #dying, 1, -1 do
             local d = dying[i]
@@ -431,7 +449,8 @@ if drawing then
             if t >= 1 then
                 table.remove(dying, i)
             else
-                core.render.model(MODEL, d[1], d[2] + t * 0.8, d[3], d[4], 1, 0, 0, t, 0.6 * (1 - t * 0.5))
+                core.render.model(MODEL, d[1], d[2] + t * 0.5, d[3], d[4], 1, 0, 0, t, 0.6 * (1 - t * 0.5), 0,
+                                  "death", math.min(t * 1.2, 1.19))
             end
         end
     end)

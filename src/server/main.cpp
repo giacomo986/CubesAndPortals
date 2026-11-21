@@ -7772,6 +7772,15 @@ int serve_room(int argc, char **argv)
             s.mods.events().define(died, err);
         }
         {
+            // A creature's blow or an arrow struck a player, for `damage`
+            // before armour (mods/ghost: a blow on whoever it holds hurts it).
+            EventSchema hurt;
+            hurt.name   = "core:hurt";
+            hurt.owner  = "core";
+            hurt.fields = {{"player", SCRIPT_V_NUMBER}, {"damage", SCRIPT_V_NUMBER}};
+            s.mods.events().define(hurt, err);
+        }
+        {
             // A player came in through a portal on a friend server's ticket:
             // `from` that friend, as /friend named it (mods/passport).
             EventSchema arrived;
@@ -9734,10 +9743,13 @@ int serve_room(int argc, char **argv)
                 sessions.ecs().set<cnp::ecs::MobBurst>({[&bursts](int x, int y, int z, int nx, int ny, int nz) {
                     if (bursts.size() < 64) bursts.push_back({x, y, z, nx, ny, nz});
                 }});
+                // Who was struck, told the mods after the walk (core:hurt).
+                std::vector<std::pair<uint32_t, uint16_t>> struck;
                 cnp::ecs::step_mobs(sessions.ecs(), s.world, s.registry, s.mob_kinds, targets,
                                     (float)kTickSeconds, mob_now,
                                     world_daylight(s, sessions.time_of_day()),
                                     [&](uint32_t peer, uint16_t amount, uint16_t bare, Vec3 push) {
+                                        if (struck.size() < 256) struck.push_back({peer, amount});
                                         sessions.hurt((net::PeerId)peer, blow_by_difficulty(s.difficulty, amount),
                                                       mob_now, blow_by_difficulty(s.difficulty, bare));
                                         transport.send((net::PeerId)peer, net::Channel::Event,
@@ -9764,6 +9776,15 @@ int serve_room(int argc, char **argv)
                                                                net::Push{v.x, v.y, v.z}.encode(), true);
                                         });
                 sessions.ecs().remove<cnp::ecs::MobBurst>();
+                for (const auto &[peer, amount] : struck) {
+                    script_field f[2] = {
+                        {"player", SCRIPT_V_NUMBER, (double)peer, nullptr, 0},
+                        {"damage", SCRIPT_V_NUMBER, (double)amount, nullptr, 0},
+                    };
+                    bool        ignored = false;
+                    std::string emit_err;
+                    s.mods.events().emit("core:hurt", f, 2, &ignored, emit_err);
+                }
                 for (const std::array<int, 6> &b : bursts) {
                     script_field f[6] = {
                         {"x", SCRIPT_V_NUMBER, (double)b[0], nullptr, 0},

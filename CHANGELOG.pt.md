@@ -45,13 +45,16 @@ rede.
   a terra (planície, deserto, frio, mar; `--no-mod music` para ficar sem).
 - **O fantasma amaldiçoado** (`mods/ghost`): uma nova criatura do escuro, à noite e nas cavernas,
   rara. De longe só um tremeluzir; se te alcança, se apossa de você, te leva ao precipício mais
-  próximo ou a outros monstros e joga no chão as coisas da sua bolsa, até cinco golpes o quebrarem.
+  próximo ou a outros monstros e joga no chão as coisas da sua bolsa, até cinco golpes, seus ou de outros
+  monstros, o quebrarem. Flutua, estica as garras, agarra e morre num esqueleto só seu.
 - **Karts**: uma caixa de itens dá a quem lidera o que defende a vantagem e ao último o que o faz
   alcançar, e o HUD mostra a sua posição. Um **fantasma** dirige ao seu lado a volta recorde da
   pista (na pista do Inferno, a do engenheiro). Os karts **se batem** e se afastam.
 - Para quem escreve mods: `core.node_glass(id, opacity, tint)` deixa passar a luz na cor do bloco;
   `core.player_launch(..., add)` soma à velocidade em vez de defini-la, e move também um kart;
-  `core.render.model(..., alpha, tint)` desenha um modelo transparente e tingido; `maps:route`
+  `core:hurt {player, damage}` diz que o golpe de uma criatura ou uma flecha atingiu
+  um jogador; `core.render.model(..., alpha, tint, clip, time)` desenha um modelo transparente, tingido e posado
+  por um clip dele; `maps:route`
   aceita `~R;` antes dos pontos para um fim alcançado dentro de R.
 
 - **Acabaram os clarões verdes no céu do front**: a ponta distante de uma janela (o mapa da galeria

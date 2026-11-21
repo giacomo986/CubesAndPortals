@@ -522,6 +522,7 @@ Il core usa lo stesso bus, con gli stessi schemi, senza percorsi privilegiati
 | `core:arrived` | `player, from` | no — solo su un server; un portale l'ha portato dentro con un biglietto del server amico `from` (col nome dato da /friend) |
 | `core:fed_message` | `server, mod, text` | no — solo su un server, solo al mod con quel nome, nella prima stanza; `core.fed_send` sull'amico `server` |
 | `core:died` | `player, x, y, z` | no — solo su un server; il corpo è già tornato al letto o allo spawn, x y z è dove è morto |
+| `core:hurt` | `player, damage` | no — su un server e in un mondo da soli; il colpo di una creatura o una freccia ha raggiunto quel giocatore, `damage` prima dell'armatura |
 | `core:burst` | `x, y, z, nx, ny, nz` | no — solo su un server; una palla di fuoco di una creatura è scoppiata sul blocco a x y z, sulla faccia con normale nx ny nz |
 
 `core:used` è un click destro su un blocco a portata, **con qualsiasi cosa in
@@ -704,7 +705,7 @@ core.net.send(player, testo) -> bool             -- 0 = tutti in questo mondo
 
 core.render.pass(nome, ordine, fn)               -- solo su un client
 core.render.box(x, y, z, w, h, d, r, g, b, a)    -- solo dentro un pass
-core.render.model(id, x, y, z, yaw?, scala?, pitch?, roll?, dissolve?, alpha?, tint?)   -- un modello del mondo, solo dentro un pass
+core.render.model(id, x, y, z, yaw?, scala?, pitch?, roll?, dissolve?, alpha?, tint?, clip?, tempo?)   -- un modello del mondo, solo dentro un pass; in posa da una sua clip a quel tempo
 core.render.fx(tipo, x, y, z, misura?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- un effetto di luce, solo dentro un pass
 core.render.camera(id, x, y, z, yaw?, pitch?, fov?, still?)   -- l'immagine di una telecamera, disegnata ogni tanto (still: una volta)
 core.render.camera_drop(id)                      -- e dimenticata

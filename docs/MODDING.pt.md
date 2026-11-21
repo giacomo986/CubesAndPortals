@@ -485,6 +485,7 @@ O núcleo usa o mesmo barramento, com os mesmos esquemas, sem caminhos privilegi
 | `core:arrived` | `player, from` | não — só num servidor; um portal o trouxe com um bilhete do servidor amigo `from` (com o nome dado por /friend) |
 | `core:fed_message` | `server, mod, text` | não — só num servidor, só para o mod com esse nome, na primeira sala; `core.fed_send` no amigo `server` |
 | `core:died` | `player, x, y, z` | não — só num servidor; o corpo já voltou para a cama ou para o spawn, x y z é onde morreu |
+| `core:hurt` | `player, damage` | não — num servidor e num mundo de um só; o golpe de uma criatura ou uma flecha atingiu esse jogador, `damage` antes da armadura |
 | `core:burst` | `x, y, z, nx, ny, nz` | não — só num servidor; a bola de fogo de uma criatura estourou no bloco em x y z, na face com normal nx ny nz |
 
 `core:used` é um clique direito num bloco ao alcance, **com qualquer coisa na mão**. Ele nomeia o
@@ -653,7 +654,7 @@ core.net.send(player, text) -> bool              -- 0 = todos neste mundo
 
 core.render.pass(name, order, fn)                -- só num cliente
 core.render.box(x, y, z, w, h, d, r, g, b, a)    -- só dentro de um pass
-core.render.model(id, x, y, z, yaw?, scale?, pitch?, roll?, dissolve?, alpha?, tint?)   -- um modelo do mundo, só dentro de um pass
+core.render.model(id, x, y, z, yaw?, scale?, pitch?, roll?, dissolve?, alpha?, tint?, clip?, time?)   -- um modelo do mundo, só dentro de um pass; posado por um clip dele naquele tempo
 core.render.fx(kind, x, y, z, size?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- um efeito de luz, só dentro de um pass
 core.render.camera(id, x, y, z, yaw?, pitch?, fov?, still?)   -- a imagem de uma câmera, desenhada de vez em quando (still: uma vez)
 core.render.camera_drop(id)                      -- e esquecida

@@ -338,7 +338,7 @@ stairway back up.
 
 **Creatures that climb** (`mods/mobs`). Zombies go up a wall after you when you stand above it, and a faster kind, the runner, sprints, climbs and dives at you from seven nodes away.
 
-**The cursed ghost** (`mods/ghost`). Rare, by night and in caves, and from afar only a shimmer in the air. If it reaches you it takes hold: it walks you towards the nearest drop or other monsters and throws things out of your bag, until you strike it off -- five blows.
+**The cursed ghost** (`mods/ghost`). Rare, by night and in caves, and from afar only a shimmer in the air. If it reaches you it takes hold: it walks you towards the nearest drop or other monsters and throws things out of your bag, until it is struck off -- five blows, yours or other monsters'.
 
 **Villages** (`mods/villages`, `mods/villagers`). A new world has cities (one to a cell of 2048 where the land allows it, up to 500 across, flats near the middle) joined by paved highways that cross mountains and bridge water, towns thick around the cities and villages thin in the wilderness; `/town city` takes you to the nearest. Villages and towns with a square, streets,
 houses, fields, a forge and lamps, joined into a network of winding paths -- gravel, sandstone,

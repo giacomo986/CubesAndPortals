@@ -2158,9 +2158,10 @@ int host_render_box(void *ud, double x, double y, double z, double w, double h, 
 }
 
 // core.render.model: one of the world's models at rest, inside a pass, as a
-// block's model is drawn (wire_model_draw).
+// block's model is drawn (wire_model_draw) -- or posed by one of its clips.
 int host_render_model(void *ud, int model, double x, double y, double z, double yaw, double scale,
-                      double pitch, double roll, double dissolve, double alpha, int tint)
+                      double pitch, double roll, double dissolve, double alpha, int tint, const char *clip,
+                      double time)
 {
     Scene *s = static_cast<Scene *>(ud);
     if (!s->in_pass) {
@@ -2169,17 +2170,27 @@ int host_render_model(void *ud, int model, double x, double y, double z, double 
     }
     if (model <= 0 || model > 0xffff || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) ||
         !std::isfinite(yaw) || !std::isfinite(pitch) || !std::isfinite(roll) || !(scale > 0.0) ||
-        scale > 16.0 || !std::isfinite(dissolve) || !std::isfinite(alpha))
+        scale > 16.0 || !std::isfinite(dissolve) || !std::isfinite(alpha) || !std::isfinite(time))
         return 0;
     ModelStore::Entry *e = s->act().models.entry((uint16_t)model);
     if (e == nullptr) return 0;
+    // Posed by a clip, its time wrapped round the clip's length; a name the
+    // model does not have is its bind pose.
+    const SkinnedModel &m = e->model;
+    const int           c = (clip != nullptr && clip[0] != '\0') ? m.clip(clip) : -1;
+    static std::vector<float> bones;
+    if (c >= 0) {
+        const float  d  = m.clips[(size_t)c].duration;
+        const ClipAt at = {c, d > 0.0f ? (float)std::fmod(std::max(time, 0.0), (double)d) : 0.0f, 1.0f};
+        pose(m, &at, 1, nullptr, nullptr, bones);
+    }
     const Mat4 turn  = mat4_multiply(mat4_multiply(mat4_rotate_y((float)yaw), mat4_rotate_x((float)pitch)),
                                      mat4_rotate_z((float)roll));
     const Mat4 place = mat4_multiply(mat4_multiply(mat4_translate(Vec3{(float)x, (float)y, (float)z}), turn),
                                      mat4_scale(Vec3{(float)scale, (float)scale, (float)scale}));
     // Seen through at under 1 (a kart's ghost), and never quite gone: a
     // model drawn at 0 is one a mod meant to stop drawing.
-    e->renderer.draw(s->pass_projection, s->pass_view, place, e->model.bind_pose, gfx_texture{0}, 1.0f,
+    e->renderer.draw(s->pass_projection, s->pass_view, place, c >= 0 ? bones : m.bind_pose, gfx_texture{0}, 1.0f,
                      (float)std::clamp(alpha, 0.05, 1.0), (uint32_t)std::max(tint, 0),
                      (float)std::clamp(dissolve, 0.0, 1.0));
     return 1;
@@ -5792,6 +5803,12 @@ void define_core_events(Scene &s)
                        {"z", SCRIPT_V_NUMBER}};
         if (!s.act().mods.events().define(died, err))
             std::fprintf(stderr, "core event 'core:died': %s\n", err.c_str());
+        EventSchema hurt;
+        hurt.name   = "core:hurt";
+        hurt.owner  = "core";
+        hurt.fields = {{"player", SCRIPT_V_NUMBER}, {"damage", SCRIPT_V_NUMBER}};
+        if (!s.act().mods.events().define(hurt, err))
+            std::fprintf(stderr, "core event 'core:hurt': %s\n", err.c_str());
         EventSchema burst;
         burst.name   = "core:burst";
         burst.owner  = "core";
@@ -21869,10 +21886,12 @@ int run_interactive(Scene &s, double seconds)
                     if (kind < kinds.size())
                         play_at(s, s.sounds.named(kinds[kind].voice_name() + "_" + what), at, s.active);
                 }});
+            std::vector<uint16_t> struck;   // told the mods after the walk (core:hurt)
             ecs::step_mobs(
                 demo_ecs, w.world, w.registry, w.mob_kinds, targets, dt, demo_clock,
                 daylight_at(w.time_of_day),
                 [&](uint32_t, uint16_t amount, uint16_t, Vec3 push) {
+                    if (struck.size() < 256) struck.push_back(amount);
                     hurt_local(&s, amount);
                     if (!player.vehicle && !player.hanging) {   // the networked client's rule
                         player.velocity.x += push.x;
@@ -21888,6 +21907,15 @@ int run_interactive(Scene &s, double seconds)
                                        host_set_facing(&s, bx, by, bz, (int)f);
                                    });
                 });
+            for (const uint16_t amount : struck) {
+                script_field f[2] = {
+                    {"player", SCRIPT_V_NUMBER, (double)ui::kLocalPlayer, nullptr, 0},
+                    {"damage", SCRIPT_V_NUMBER, (double)amount, nullptr, 0},
+                };
+                bool        ignored = false;
+                std::string hurt_err;
+                s.act().mods.events().emit("core:hurt", f, 2, &ignored, hurt_err);
+            }
             if (demo_clock >= demo_mobs_at) {
                 demo_mobs_at = demo_clock + 2.0;
                 const ecs::SpawnResult sr = ecs::spawn_and_despawn(

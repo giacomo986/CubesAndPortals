@@ -45,15 +45,18 @@ sono nuovi in rete.
   farne a meno).
 - **Il fantasma maledetto** (`mods/ghost`): una nuova creatura del buio, di notte e nelle grotte,
   rara. Da lontano solo un luccichio; se ti raggiunge si impossessa di te, ti porta verso il dirupo più
-  vicino o verso altri mostri e butta a terra le cose della tua borsa, finché cinque colpi non lo
-  spezzano.
+  vicino o verso altri mostri e butta a terra le cose della tua borsa, finché cinque colpi, tuoi o
+  degli altri mostri, non lo spezzano. Fluttua, allunga gli artigli, stringe e muore su uno scheletro
+  tutto suo.
 - **Kart**: una scatola oggetti dà a chi è in testa ciò che difende il vantaggio e all'ultimo ciò
   che fa recuperare, e l'HUD mostra la tua posizione. Un **fantasma** guida accanto a te il giro
   record della pista (sulla pista dell'Inferno, quello dell'ingegnere). I kart **si urtano** e si
   separano.
 - Per chi scrive mod: `core.node_glass(id, opacity, tint)` lascia passare la luce del colore del
   blocco; `core.player_launch(..., add)` aggiunge alla velocità invece di impostarla, e muove anche
-  un kart; `core.render.model(..., alpha, tint)` disegna un modello trasparente e tinto;
+  un kart; `core:hurt {player, damage}` dice che il colpo di una creatura o una freccia ha
+  raggiunto un giocatore; `core.render.model(..., alpha, tint, clip, time)` disegna un modello trasparente, tinto e in posa
+  da una sua clip;
   `maps:route` accetta `~R;` prima dei punti per un arrivo raggiunto entro R.
 
 - **Niente più lampi verdi nel cielo del fronte**: l'estremo lontano di una finestra (la mappa della

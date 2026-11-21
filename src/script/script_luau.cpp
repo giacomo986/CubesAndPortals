@@ -896,10 +896,12 @@ int l_render_model(lua_State *L)
     const double gone  = luaL_optnumber(L, 9, 0.0);
     const double alpha = luaL_optnumber(L, 10, 1.0);
     const int    tint  = (int)luaL_optinteger(L, 11, 0);
+    const char  *clip  = luaL_optstring(L, 12, "");
+    const double time  = luaL_optnumber(L, 13, 0.0);
 
     const int ok = (vm && vm->host.render_model)
                        ? vm->host.render_model(vm->host.ud, model, x, y, z, yaw, scale, pitch, roll, gone,
-                                               alpha, tint)
+                                               alpha, tint, clip, time)
                        : 0;
     lua_pushboolean(L, ok);
     return 1;
