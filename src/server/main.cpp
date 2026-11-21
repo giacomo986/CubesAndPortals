@@ -212,6 +212,11 @@ struct ServerState {
     // The /commands this world's mods declared (core.command).
     net::ChatCommands commands;
 
+    // The words each player's chat line was last told Tab finishes
+    // (net::ChatWords), as encoded: sent again only when they change.
+    std::unordered_map<net::PeerId, std::vector<uint8_t>> words_told;
+    double                                                words_at = 0.0;
+
     // The page each player has up (src/core/ui/page.h): what it says, so a
     // click can be read against the links it had, and a command run from it
     // can show it again with what changed.
@@ -6071,7 +6076,42 @@ void gone(ServerState &s, net::PeerId peer, const char *why)
         p && p->scope == net::Scope::Enter && !p->name.empty())
         admin::left(admin_who(*p), g_router.rooms[(size_t)g_room].name, why);
     s.said_at.erase(peer);
+    s.words_told.erase(peer);
     close_page(s, peer);
+}
+
+// What Tab finishes in each player's chat line: the /commands they may run
+// here (/help's list, as names) and who is in this world. Worked out again
+// now and then rather than at every join, leave, grant and mod reload --
+// there are more ways for those to change than places to remember to say so
+// -- and sent only to a player whose words did change.
+void tell_chat_words(ServerState &s, double now)
+{
+    if (!s.sessions || now - s.words_at < 1.0) return;
+    s.words_at = now;
+
+    std::vector<std::string> names;
+    for (const net::PeerId p : s.sessions->ready_peers())
+        if (const net::Session *o = s.sessions->find(p); o && o->scope == net::Scope::Enter)
+            names.push_back(o->name);
+
+    for (const net::PeerId p : s.sessions->ready_peers()) {
+        const net::Session *me = s.sessions->find(p);
+        if (!me || me->scope != net::Scope::Enter) continue;
+        const admin::Who caller = admin_who(*me);
+        net::ChatWords   w;
+        w.names    = names;
+        w.commands = {"help", "list", "page"};
+        if (admin::may(caller, "pages")) w.commands.push_back("admin");
+        for (const std::string &c : admin::command_names(caller)) w.commands.push_back(c);
+        for (const auto &[name, c] : s.commands)
+            if (c.perm.empty() || admin::may(caller, c.perm)) w.commands.push_back(name);
+        std::vector<uint8_t> msg = w.encode();
+        std::vector<uint8_t> &told = s.words_told[p];
+        if (msg == told) continue;
+        g_router.transport.send(p, net::Channel::Event, msg, true);
+        told = std::move(msg);
+    }
 }
 
 void say_to(ServerState &s, net::PeerId peer, const std::string &line)
@@ -10488,6 +10528,8 @@ int serve_room(int argc, char **argv)
             // And how a mod holds a body, to that body's own player (OwnPose).
             for (const net::PeerId peer : sessions.pose_to_send())
                 transport.send(peer, net::Channel::Event, sessions.pose_message(peer), true);
+            // And what Tab finishes in their chat lines, when that changed.
+            tell_chat_words(s, s.now);
 
             // And what time it is here. To OBSERVERS as well as to players:
             // somebody looking into this world through a portal is looking at

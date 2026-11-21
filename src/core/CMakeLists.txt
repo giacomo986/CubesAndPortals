@@ -18,6 +18,7 @@ add_library(cnp_core STATIC
     ecs/machine.cpp
     ui/panel.cpp
     ui/page.cpp
+    ui/text_edit.cpp
     ecs/mob.cpp
     item/container.cpp
     item/craft_grid.cpp

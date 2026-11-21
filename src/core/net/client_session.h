@@ -537,6 +537,11 @@ public:
     // The chat lines the server sent since the last call, oldest first.
     std::vector<std::string> take_chat() { return std::exchange(m_chat, {}); }
 
+    // What Tab finishes in the chat line here, as the server last said
+    // (net::ChatWords): empty lists until it has.
+    const std::vector<std::string> &chat_commands() const { return m_chat_words.commands; }
+    const std::vector<std::string> &chat_names() const { return m_chat_words.names; }
+
     // A button on the panel that is up, or Enter in one of its fields. The
     // panel's name and the element's id, both as the mod wrote them -- never a
     // coordinate and never an index -- and a field's text. See net::UiClick.
@@ -893,6 +898,7 @@ private:
     std::vector<BlockChange> m_block_changes;
     std::string              m_notice;
     std::vector<std::string> m_chat;
+    ChatWords                m_chat_words;
     std::unordered_set<Cell, CellHash> m_open_cells;
     std::string              m_edit_refusal;
     long                     m_edits_refused = 0;

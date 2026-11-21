@@ -19,6 +19,7 @@
 #include "core/item/item_registry.h"
 #include "core/registry/node_registry.h"
 #include "core/ui/panel.h"
+#include "core/ui/text_edit.h"
 
 #include <string>
 #include <vector>
@@ -123,15 +124,25 @@ struct ChatLine {
 struct Chat {
     std::vector<ChatLine>    lines;   // oldest first, kChatKeep at most
     bool                     open = false;
-    std::string              line;    // being typed
+    TextEdit                 line;    // being typed
+    TabCycle                 tab;     // what Tab last finished in it
     std::vector<std::string> sent;
     int                      back = -1;   // index into `sent` while walking it, else -1
 
     void add(const std::string &text, double now);
 };
 
+// A line with the keyboard, as a box draws it: its text, where the caret is in
+// it (bytes), and whether the caret is lit this frame -- it blinks, and the
+// client says when (lit right after a key, so a caret moved is seen at once).
+struct TypedLine {
+    const char *text  = "";
+    size_t      caret = 0;
+    bool        lit   = true;
+};
+
 // Bottom left, over the world and under a panel.
-void draw_chat(const Chat &c, double now, int screen_w, int screen_h);
+void draw_chat(const Chat &c, double now, int screen_w, int screen_h, bool caret_lit = true);
 
 // How far through a dig is, 0..1, under the middle of the screen.
 //
@@ -249,14 +260,14 @@ void draw_item_tooltip(const std::string &text, float mx, float my, int screen_w
 // draws none. A last square that is a bin (kRoleTrash) is drawn outside the
 // grid, right of its bottom row. `scroll_size` above 0 draws a scrollbar right
 // of the grid, its thumb at `scroll` (core.container_scroll). `search`, not
-// null, is a search box left of the top row holding that text, `typing` when
-// it has the keyboard (core.container_search).
+// null, is a search box left of the top row holding that text, `typing` the
+// line in it while it has the keyboard (core.container_search).
 PanelLayout draw_chest(const ItemStack *slots, int count, int dragged,
                        const ItemRegistry &items, const NodeRegistry &nodes,
                        const IconSource &icons, const PanelLayout &bag,
                        const uint8_t *roles = nullptr, float progress = -1.0f,
                        float scroll = 0.0f, float scroll_size = 0.0f,
-                       const char *search = nullptr, bool typing = false);
+                       const char *search = nullptr, const TypedLine *typing = nullptr);
 
 // A craft grid and the square it makes something in, ABOVE the bag.
 //
@@ -513,12 +524,12 @@ int hotbar_scroll(int selected, float notches, int count);
 // clicks twice to find out whether the first click landed.
 //
 // `typing` is the field that has the keyboard, or -1, and `typed` what it
-// holds now: drawn in place of the text the mod gave it, with a caret.
+// holds now: drawn in place of the text the mod gave it, with its caret.
 //
 // An Item element is drawn as a slot of the bag holding one of it, when the
 // caller hands over what to draw it with; without, as a button with its name.
 void draw_mod_panel(const Panel &p, const PanelPlacement &at, int hover, int screen_w,
-                    int screen_h, int typing = -1, const char *typed = nullptr,
+                    int screen_h, int typing = -1, const TypedLine *typed = nullptr,
                     const ItemRegistry *items = nullptr, const NodeRegistry *nodes = nullptr,
                     const IconSource *icons = nullptr);
 

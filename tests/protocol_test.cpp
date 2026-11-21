@@ -2077,6 +2077,39 @@ int main()
         check(!SoundLoops::decode(ro, out), "more than 64 loops is refused before reading them");
     }
 
+    std::printf("\nchat words (protocol 128)\n");
+    {
+        ChatWords in;
+        in.commands = {"help", "list", "tp"};
+        in.names    = {"Giacomo", "anna"};
+        const auto buf = in.encode();
+        ChatWords  out;
+        ByteReader r(buf);
+        check(ChatWords::decode(r, out) && out.commands == in.commands && out.names == in.names,
+              "the words Tab finishes come back as they went");
+
+        ChatWords odd;
+        odd.commands = {"", std::string(ChatWords::kMaxWord + 1, 'a'), "ok"};
+        const auto oddbuf = odd.encode();
+        ByteReader ro(oddbuf);
+        check(ChatWords::decode(ro, out) && out.commands == std::vector<std::string>{"ok"},
+              "an empty word or one too long is left out by the sender");
+
+        ChatWords ctl;
+        ctl.names = {std::string("a\nb")};
+        const auto ctlbuf = ctl.encode();
+        ByteReader rc(ctlbuf);
+        check(!ChatWords::decode(rc, out), "a word with a control character in it is refused");
+
+        bool truncated_ok = true;
+        for (size_t n = 0; n < buf.size(); ++n) {
+            std::vector<uint8_t> cut(buf.begin(), buf.begin() + (long)n);
+            ByteReader           rt(cut);
+            if (ChatWords::decode(rt, out)) truncated_ok = false;
+        }
+        check(truncated_ok, "every truncation of the words is refused");
+    }
+
     std::printf("\nrandom input\n");
     {
         Rng rng(0x5EED1234u);
@@ -2365,6 +2398,12 @@ int main()
                 Slain      out;
                 ByteReader r(buf);
                 if (Slain::decode(r, out)) ++parsed;
+                break;
+            }
+            case MsgType::ChatWords: {
+                ChatWords  out;
+                ByteReader r(buf);
+                if (ChatWords::decode(r, out)) ++parsed;
                 break;
             }
             case MsgType::Sound: {

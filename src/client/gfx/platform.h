@@ -90,6 +90,16 @@ void plat_text_input(bool on);
 // The next character typed this frame, as a Unicode code point, or 0.
 int plat_char_pressed(void);
 
+// The keys that move about a line being typed, pressed or repeating -- and
+// only while plat_text_input is on. Not slots of the Controls page: these are
+// the keys every text box in every program uses, and one rebound here would
+// be a text box that works nowhere else's way.
+typedef enum plat_edit_key {
+    PLAT_EDIT_LEFT = 0, PLAT_EDIT_RIGHT, PLAT_EDIT_HOME, PLAT_EDIT_END,
+    PLAT_EDIT_DELETE, PLAT_EDIT_TAB,
+} plat_edit_key;
+bool plat_edit_key_repeated(plat_edit_key key);
+
 // Mouse movement since the previous frame, in pixels.
 void plat_mouse_delta(float *dx, float *dy);
 

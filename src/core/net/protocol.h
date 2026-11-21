@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 127; // 127 a room of several entered with a ticket signed for it; 126 world code may be api 2 (yes/no calls answer true/false); 125 kSpawnOpening, arriving at a room's spawn; 124 a person's left hand (EntityState::off_item); 123 kMaxNodeShapes 2048; 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
+inline constexpr uint16_t kProtocol    = 128; // 128 ChatWords, what Tab finishes in the chat; 127 a room of several entered with a ticket signed for it; 126 world code may be api 2 (yes/no calls answer true/false); 125 kSpawnOpening, arriving at a room's spawn; 124 a person's left hand (EntityState::off_item); 123 kMaxNodeShapes 2048; 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -696,6 +696,12 @@ enum class MsgType : uint8_t {
     // "These monsters were killed" (protocol 122): a body missing from the
     // list may only have gone out of reach, and the client draws the two apart.
     Slain = 53,          // server -> client, channel 3
+
+    // "These are the words Tab finishes in your chat line" (protocol 128): the
+    // /commands this player may run here and who is in this world. Whole, each
+    // time either changes for that player -- a list that short is cheaper
+    // whole than a delta scheme is to get right.
+    ChatWords = 54,      // server -> client, channel 3
 };
 
 // Players per world, decided in DESIGN.md, and the reason the entity message
@@ -2262,6 +2268,18 @@ struct Slain {
 
     std::vector<uint8_t> encode() const;
     static bool decode(ByteReader &r, Slain &out);
+};
+
+struct ChatWords {
+    // Names without their '/', and players' names, as they are spelled.
+    std::vector<std::string> commands;
+    std::vector<std::string> names;
+
+    static constexpr size_t kMax     = 256;   // of each
+    static constexpr size_t kMaxWord = 64;
+
+    std::vector<uint8_t> encode() const;
+    static bool decode(ByteReader &r, ChatWords &out);
 };
 
 struct Seal {

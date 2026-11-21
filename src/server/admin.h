@@ -232,6 +232,9 @@ bool is_command(const std::string &name);
 // What /help adds: the admin commands this caller may use.
 std::vector<std::string> help(const Who &caller);
 
+// The same commands' names alone, without the '/', for Tab in the chat.
+std::vector<std::string> command_names(const Who &caller);
+
 // The administration pages, as page markup (src/core/ui/page.h): admin, bans,
 // whitelist, roles, perms. False for a name that is none of these. What a
 // viewer may not do is not on their page at all.

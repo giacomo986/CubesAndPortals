@@ -215,6 +215,37 @@ void draw_slot(float sx, float sy, float sw, float sh, const ItemStack &stack,
     frame(sx, sy, sw, sh, sw * 0.06f, border_rgba);
 }
 
+float width_of(const std::string &text, size_t from, size_t to, float size)
+{
+    return gfx_2d_text_width(text.substr(from, to - from).c_str(), size);
+}
+
+bool continuation(char c) { return ((uint8_t)c & 0xC0) == 0x80; }
+
+// A line being typed, its top left at (x, y), no wider than `width`: slid left
+// as far as it takes for the caret to be in the box, and cut at the box's
+// right edge, so a line longer than its box is read where it is being edited
+// rather than only at its end. The caret is a thin bar before the character
+// it stands at, the height of the text, in the text's colour.
+void draw_typed(const TypedLine &t, float x, float y, float size, float width, const float ink[4])
+{
+    const std::string text  = t.text ? t.text : "";
+    const size_t      caret = std::min(t.caret, text.size());
+    const float       room  = std::max(width - size * 0.3f, size);
+
+    size_t from = 0;
+    while (from < caret && width_of(text, from, caret, size) > room)
+        while (++from < caret && continuation(text[from])) {}
+    size_t to = text.size();
+    while (to > caret && width_of(text, from, to, size) > width)
+        while (--to > caret && continuation(text[to])) {}
+
+    gfx_2d_text(text.substr(from, to - from).c_str(), x, y, size, ink);
+    if (t.lit)
+        gfx_2d_rect(x + width_of(text, from, caret, size), y - size * 0.05f,
+                    std::max(1.0f, size * 0.09f), size * 1.1f, ink);
+}
+
 } // namespace
 
 void HotbarLayout::slot_rect(int i, float &out_x, float &out_y, float &out_w, float &out_h) const
@@ -408,7 +439,7 @@ void Chat::add(const std::string &text, double now)
     if (lines.size() > kChatKeep) lines.erase(lines.begin());
 }
 
-void draw_chat(const Chat &c, double now, int screen_w, int screen_h)
+void draw_chat(const Chat &c, double now, int screen_w, int screen_h, bool caret_lit)
 {
     const float shorter = (float)(screen_w < screen_h ? screen_w : screen_h);
     const float size    = shorter * 0.024f;
@@ -425,15 +456,11 @@ void draw_chat(const Chat &c, double now, int screen_w, int screen_h)
     float       y       = (float)screen_h - size * 2.0f;   // top of the input row
 
     if (c.open) {
-        const std::string shown = c.line + "_";
         const float bg[4]  = {0.0f, 0.0f, 0.0f, 0.55f};
         const float ink[4] = {1.0f, 1.0f, 1.0f, 1.0f};
         gfx_2d_rect(x - pad, y - pad * 0.5f, (float)screen_w - x * 2.0f + pad * 2.0f, row, bg);
-        // The end of a long line, which is where the typing is.
-        const char *from = shown.c_str();
-        while (*from && gfx_2d_text_width(from, size) > (float)screen_w - x * 2.0f)
-            while (((uint8_t)*++from & 0xC0) == 0x80) {}   // a whole character at a time
-        gfx_2d_text(from, x, y, size, ink);
+        draw_typed(TypedLine{c.line.text.c_str(), c.line.caret, caret_lit}, x, y, size,
+                   (float)screen_w - x * 2.0f, ink);
     }
     y -= row * 1.5f;
 
@@ -694,7 +721,7 @@ PanelLayout draw_chest(const ItemStack *slots, int count, int dragged,
                        const ItemRegistry &items, const NodeRegistry &nodes,
                        const IconSource &icons, const PanelLayout &bag, const uint8_t *roles,
                        float progress, float scroll, float scroll_size, const char *search,
-                       bool typing)
+                       const TypedLine *typing)
 {
     // Raw, fuel, product (SlotRole 1..3); a Store square is left as it is.
     static constexpr float kRole[4][4] = {{0, 0, 0, 0},
@@ -772,11 +799,15 @@ PanelLayout draw_chest(const ItemStack *slots, int count, int dragged,
         const float ts  = out.field_h * 0.55f;
         const float tx  = out.field_x + ts * 0.4f;
         const float ty  = out.field_y + (out.field_h - ts) * 0.5f;
-        std::string line = std::string(search) + (typing ? "_" : "");
-        while (!line.empty() && gfx_2d_text_width(line.c_str(), ts) > out.field_w - ts * 0.8f)
-            line.erase(0, 1);
-        if (line.empty() && !typing) gfx_2d_text(lang::tr("search"), tx, ty, ts, kHint);
-        else gfx_2d_text(line.c_str(), tx, ty, ts, kWhite);
+        if (typing) {
+            draw_typed(*typing, tx, ty, ts, out.field_w - ts * 0.8f, kWhite);
+        } else {
+            std::string line = search;
+            while (!line.empty() && gfx_2d_text_width(line.c_str(), ts) > out.field_w - ts * 0.8f)
+                line.erase(0, 1);
+            if (line.empty()) gfx_2d_text(lang::tr("search"), tx, ty, ts, kHint);
+            else gfx_2d_text(line.c_str(), tx, ty, ts, kWhite);
+        }
     }
 
     // The bin, outside: right of the backdrop, level with the bottom row.
@@ -1245,7 +1276,7 @@ const char *fit_text(const std::string &words, float room, float &size)
 } // namespace
 
 void draw_mod_panel(const Panel &p, const PanelPlacement &at, int hover, int screen_w,
-                    int screen_h, int typing, const char *typed, const ItemRegistry *items,
+                    int screen_h, int typing, const TypedLine *typed, const ItemRegistry *items,
                     const NodeRegistry *nodes, const IconSource *icons)
 {
     if (at.cell <= 0.0f || screen_w <= 0 || screen_h <= 0) return;
@@ -1308,9 +1339,11 @@ void draw_mod_panel(const Panel &p, const PanelPlacement &at, int hover, int scr
             frame(ex, ey, ew, eh, at.cell * 0.06f + 1.0f,
                   here || (int)i == hover ? kSelected : kBorder);
 
-            const float       size = at.cell * 0.34f;
-            const std::string line = here && typed ? std::string(typed) + "_" : e.text;
-            gfx_2d_text(line.c_str(), ex + at.cell * 0.15f, ey + (eh - size) * 0.5f, size, kWhite);
+            const float size = at.cell * 0.34f;
+            const float tx   = ex + at.cell * 0.15f;
+            const float ty   = ey + (eh - size) * 0.5f;
+            if (here && typed) draw_typed(*typed, tx, ty, size, ew - at.cell * 0.3f, kWhite);
+            else gfx_2d_text(e.text.c_str(), tx, ty, size, kWhite);
             break;
         }
 
