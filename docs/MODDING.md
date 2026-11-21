@@ -1283,6 +1283,7 @@ about a second. The server checks it when the creature is registered and writes
 | human, toad, mole (`mods/villagers`), helper robot (`mods/helpers`) | onto one side | `tools/make_villager_models.py` |
 | bacteria, smiler (`games/backrooms`) | the bacteria staggers and falls stiff forward; the smiler shuts its grin and sinks to the ground turning | `tools/make_backrooms_creatures.py` |
 | ant, ladybird, butterfly (`mods/garden`) | onto one side; the butterfly shuts its wings first | `tools/make_garden_insects.py` |
+| cursed ghost (`mods/ghost`) | its body is nothing to see; the mod draws the ghost rising as it comes apart (core.render.model's dissolve) | `tools/make_ghost_body.py`, the look from Meshy by `tools/meshy_prop.py` |
 
 In Blender the simplest is `tip_over(rig, [mesh])` from `tools/make_pet_models.py`: the creature
 goes onto one side, lifted half its width so it does not sink into the floor, with any rig; `drop=`

@@ -43,6 +43,9 @@ rede.
   sons; um mod que quebra leva os seus loops com ele. **Novos loops**: a lava que ronca, o motor de
   um kart dirigido (mais alto quanto mais rápido), o queimador do balão e uma música calma conforme
   a terra (planície, deserto, frio, mar; `--no-mod music` para ficar sem).
+- **O fantasma amaldiçoado** (`mods/ghost`): uma nova criatura do escuro, à noite e nas cavernas,
+  rara. De longe só um tremeluzir; se te alcança, se apossa de você, te leva ao precipício mais
+  próximo ou a outros monstros e joga no chão as coisas da sua bolsa, até cinco golpes o quebrarem.
 - **Karts**: uma caixa de itens dá a quem lidera o que defende a vantagem e ao último o que o faz
   alcançar, e o HUD mostra a sua posição. Um **fantasma** dirige ao seu lado a volta recorde da
   pista (na pista do Inferno, a do engenheiro). Os karts **se batem** e se afastam.

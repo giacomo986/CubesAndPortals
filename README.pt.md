@@ -352,6 +352,8 @@ minas abandonadas e criptas com baús, e uma escada de volta para cima.
 cima dela, e um tipo mais rápido, o corredor, dispara, escala e pula em você a sete blocos de
 distância.
 
+**O fantasma amaldiçoado** (`mods/ghost`). Raro, à noite e nas cavernas, e de longe só um tremeluzir no ar. Se te alcança, se apossa de você: te leva ao precipício mais próximo ou a outros monstros e joga no chão as coisas da sua bolsa, até você o tirar de cima a golpes -- cinco.
+
 **Vilas** (`mods/villages`, `mods/villagers`). Um mundo novo tem cidades (uma por célula de 2048
 onde o terreno permite, com até 500 de largura, prédios perto do centro) ligadas por rodovias
 pavimentadas que atravessam montanhas e fazem pontes sobre a água, cidadezinhas densas em volta

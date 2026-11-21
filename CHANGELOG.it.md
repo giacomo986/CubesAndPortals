@@ -43,6 +43,10 @@ sono nuovi in rete.
   motore di un kart guidato (più forte quanto più va veloce), il bruciatore della mongolfiera e una
   musica tranquilla a seconda della terra (pianura, deserto, freddo, mare; `--no-mod music` per
   farne a meno).
+- **Il fantasma maledetto** (`mods/ghost`): una nuova creatura del buio, di notte e nelle grotte,
+  rara. Da lontano solo un luccichio; se ti raggiunge si impossessa di te, ti porta verso il dirupo più
+  vicino o verso altri mostri e butta a terra le cose della tua borsa, finché cinque colpi non lo
+  spezzano.
 - **Kart**: una scatola oggetti dà a chi è in testa ciò che difende il vantaggio e all'ultimo ciò
   che fa recuperare, e l'HUD mostra la tua posizione. Un **fantasma** guida accanto a te il giro
   record della pista (sulla pista dell'Inferno, quello dell'ingegnere). I kart **si urtano** e si

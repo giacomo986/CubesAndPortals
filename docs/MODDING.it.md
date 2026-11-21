@@ -1414,6 +1414,7 @@ progetto:
 | umano, rospo, talpa (`mods/villagers`), robot aiutante (`mods/helpers`) | su un fianco | `tools/make_villager_models.py` |
 | bacteria, smiler (`games/backrooms`) | il bacteria barcolla e cade rigido in avanti; lo smiler chiude il ghigno e scende a terra girandosi | `tools/make_backrooms_creatures.py` |
 | formica, coccinella, farfalla (`mods/garden`) | su un fianco; la farfalla prima chiude le ali | `tools/make_garden_insects.py` |
+| fantasma maledetto (`mods/ghost`) | il suo corpo non si vede; la mod disegna il fantasma che sale mentre si dissolve (il dissolve di core.render.model) | `tools/make_ghost_body.py`, l'aspetto da Meshy con `tools/meshy_prop.py` |
 
 In Blender la più semplice è `tip_over(rig, [mesh])` di `tools/make_pet_models.py`:
 la creatura va su un fianco, sollevata di mezza larghezza perché non entri nel

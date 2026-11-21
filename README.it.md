@@ -345,6 +345,8 @@ abbandonate e cripte con le casse, e una scala per risalire.
 
 **Creature che si arrampicano** (`mods/mobs`). Gli zombie salgono un muro per raggiungerti quando stai più in alto, e un tipo più rapido, il corridore, scatta, si arrampica e si tuffa su di te da sette blocchi.
 
+**Il fantasma maledetto** (`mods/ghost`). Raro, di notte e nelle grotte, e da lontano solo un luccichio nell'aria. Se ti raggiunge si impossessa di te: ti porta verso il dirupo più vicino o verso altri mostri e butta a terra le cose della tua borsa, finché non te lo togli di dosso a colpi -- cinque.
+
 **Villaggi** (`mods/villages`, `mods/villagers`). Un mondo nuovo ha città (una per riquadro di 2048 dove il terreno lo permette, larghe fino a 500, palazzi al centro) unite da strade maestre lastricate che passano i monti e fanno ponti sull'acqua, cittadine fitte attorno alle città e villaggi radi nelle zone selvagge; `/town city` porta alla più vicina. Paesi e cittadine con piazza, vie, case, campi,
 fucina e lampioni, collegati da una rete di sentieri tortuosi -- ghiaia, arenaria, ciottoli o terra
 battuta secondo il terreno, con cartelli, pietre miliari, lanterne e ponti. Li abitano tre specie:

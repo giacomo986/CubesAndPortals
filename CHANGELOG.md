@@ -40,6 +40,9 @@ on the wire.
   that breaks takes its loops with it. **New loops**: lava rumbles, a driven kart's engine (louder
   as it goes faster), the balloon's burner, and quiet music by the land (plains, desert, cold,
   sea; `--no-mod music` to do without).
+- **The cursed ghost** (`mods/ghost`): a new creature of the dark, by night and in caves, rare. From
+  afar only a shimmer; if it reaches you it takes hold, walks you towards the nearest drop or other
+  monsters and throws things out of your bag, until five blows you swing break it.
 - **Karts**: an item box gives the leader what defends a lead and the last what catches up, and
   the HUD shows your place. A **ghost** drives the track's record lap beside you (on the Inferno
   track, the engineer's). Karts **bump** each other apart.

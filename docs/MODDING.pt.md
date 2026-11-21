@@ -1298,6 +1298,7 @@ projeto:
 | humano, sapo, toupeira (`mods/villagers`), robô ajudante (`mods/helpers`) | de lado | `tools/make_villager_models.py` |
 | bacteria, smiler (`games/backrooms`) | a bacteria cambaleia e cai dura para a frente; o smiler fecha o sorriso e desce ao chão girando | `tools/make_backrooms_creatures.py` |
 | formiga, joaninha, borboleta (`mods/garden`) | de lado; a borboleta fecha as asas antes | `tools/make_garden_insects.py` |
+| fantasma amaldiçoado (`mods/ghost`) | o seu corpo não se vê; o mod desenha o fantasma subindo enquanto se desfaz (o dissolve de core.render.model) | `tools/make_ghost_body.py`, o aspecto do Meshy com `tools/meshy_prop.py` |
 
 No Blender o mais simples é `tip_over(rig, [mesh])` de `tools/make_pet_models.py`: a criatura cai de
 lado, levantada metade da sua largura para não afundar no chão, com qualquer rig; `drop=` a faz
