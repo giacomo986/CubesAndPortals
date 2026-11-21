@@ -1109,14 +1109,18 @@ if drawing then
     local NORMAL = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } }
     local OUT = 0.12 / 16 + 0.003            -- the rim's height and a hair: where the words are, off the face
     local DARK = { spruce = true, dark_oak = true }
-    local SHOWN = 32
+    -- Read at a few metres; from FADE on the ink thins out, and past SHOWN it
+    -- is not drawn at all -- a board's letters are a few centimetres high,
+    -- and far off they would only be a shimmer of pixels.
+    local FADE, SHOWN = 20, 32
     core.render.pass("building:signs", 60, function()
         local me = core.players()[1]
         if me == nil then return end
         local px, py, pz = core.player_pos(me)
         if px == nil or py == nil or pz == nil then return end
         for _, s in world_signs do
-            if s.text ~= "" and (s.x + 0.5 - px) ^ 2 + (s.y + 0.5 - py) ^ 2 + (s.z + 0.5 - pz) ^ 2 < SHOWN * SHOWN then
+            local d2 = (s.x + 0.5 - px) ^ 2 + (s.y + 0.5 - py) ^ 2 + (s.z + 0.5 - pz) ^ 2
+            if s.text ~= "" and d2 < SHOWN * SHOWN then
                 local fx, fz, cx, cy, cz, mh = 0, 0, 0, 0, 0, 0
                 if s.kind == "wall" then
                     -- Its front out of the face it was put on (a wallmounted
@@ -1145,7 +1149,9 @@ if drawing then
                 -- Only from in front: its back is a plain board.
                 if (fx ~= 0 or fz ~= 0) and (px - cx) * fx + (pz - cz) * fz > 0 then
                     local ink = if DARK[s.wood] then { 240, 230, 206 } else { 22, 14, 6 }
-                    core.render.text(s.text, cx, cy, cz, math.atan2(-fx, fz), 0.1, ink[1], ink[2], ink[3], 255,
+                    local d = math.sqrt(d2)
+                    local alpha = if d <= FADE then 255 else math.floor(255 * (SHOWN - d) / (SHOWN - FADE))
+                    core.render.text(s.text, cx, cy, cz, math.atan2(-fx, fz), 0.1, ink[1], ink[2], ink[3], alpha,
                                      0.72, mh)
                 end
             end
