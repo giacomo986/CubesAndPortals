@@ -17,7 +17,9 @@
 -- A ROUTE marked for a player (maps:route, from a mod: mods/villagers'
 -- caravans tell the way to their village) is drawn on the map as a dotted
 -- red line to a flag, the land along it shown as seen; three at most, kept
--- per player ("routes:<name>"), each gone once its end is reached. A PIN
+-- per player ("routes:<name>"), each gone once its end is reached -- within
+-- 40 nodes, or within R for points that start "~R;" (an errand's place, which
+-- counts only when stood on) -- or sent again with no points. A PIN
 -- (maps:pin: mods/gates' portals, once seen) is a dot of its own colour, kept
 -- per player ("pins:<name>"), 64 at most, the oldest dropped first.
 
@@ -261,9 +263,10 @@ if serving then
         end
         return m
     end
-    local function ends_of(pts: string): (number?, number?)
+    -- A route's end and how near it counts as reached.
+    local function ends_of(pts: string): (number?, number?, number)
         local x, z = string.match(pts, "(-?%d+),(-?%d+)$")
-        return tonumber(x), tonumber(z)
+        return tonumber(x), tonumber(z), tonumber(string.match(pts, "^~(%d+);")) or 40
     end
     local reveal: (number, number, number) -> () = function(_, _, _) end
 
@@ -309,10 +312,32 @@ if serving then
         reveal(ev.player :: number, math.floor(ev.x / PIXEL), math.floor(ev.z / PIXEL))
     end)
 
+    -- A route that fits one message (512 bytes): every other point between
+    -- its ends dropped until it does -- a long way drawn with its dots wider
+    -- apart, rather than not sent at all.
+    local function fit(label: string, pts: string): string
+        while #pts + #label + 3 > 512 do
+            local kept, k = {}, 0
+            local all = string.split(pts, ";")
+            for i, t in all do
+                if not string.match(t, "^%-?%d+,%-?%d+$") or i == #all then
+                    table.insert(kept, t)
+                else
+                    k += 1
+                    if k % 2 == 1 then table.insert(kept, t) end
+                end
+            end
+            if #kept == #all then break end
+            pts = table.concat(kept, ";")
+        end
+        return pts
+    end
+
     core.event.on("maps:route", function(ev)
         local name = core.player_name(ev.player)
         local m = routes_of(name)
-        if m[ev.label] == nil then
+        local points = fit(ev.label, ev.points)
+        if m[ev.label] == nil and points ~= "" then
             local n = 0
             for _ in m do
                 n += 1
@@ -323,10 +348,11 @@ if serving then
                 send(ev.player, `r {first}|`)
             end
         end
-        m[ev.label] = ev.points
+        m[ev.label] = if points ~= "" then points else nil
         keep_routes(name)
-        send(ev.player, `r {ev.label}|{ev.points}`)
-        -- The land along it shown, 2 pixels either side.
+        send(ev.player, `r {ev.label}|{points}`)
+        -- The land along it shown, 2 pixels either side: all of it, the
+        -- points dropped above too.
         local lx, lz = nil, nil
         for x, z in string.gmatch(ev.points, "(-?%d+),(-?%d+)") do
             local px, pz = math.floor((tonumber(x) :: number) / PIXEL), math.floor((tonumber(z) :: number) / PIXEL)
@@ -397,8 +423,8 @@ if serving then
                 -- A route's end reached: off the map.
                 local m = routes_of(s.name)
                 for label, pts in m do
-                    local ex, ez = ends_of(pts)
-                    if ex and ez and (ex - x) ^ 2 + (ez - z) ^ 2 < 40 * 40 then
+                    local ex, ez, near = ends_of(pts)
+                    if ex and ez and (ex - x) ^ 2 + (ez - z) ^ 2 < near * near then
                         m[label] = nil
                         keep_routes(s.name)
                         send(p, `r {label}|`)
