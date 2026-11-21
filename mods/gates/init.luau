@@ -336,6 +336,8 @@ core.event.define("gates:ask", { fields = { x = "number", z = "number", r = "num
                                             player = "number" },
                                  cancellable = false })
 core.event.define("gates:sites", { fields = { tag = "string", list = "string" }, cancellable = false })
+-- Somebody back here through a gate from its world (mods/goals counts it).
+core.event.define("gates:back", { fields = { player = "number", room = "string" }, cancellable = false })
 
 if PLAZA then
     -- Where the gates past the first two stand, by room: round the spawn, which is
@@ -379,6 +381,46 @@ if PLAZA then
         for k = 17, 23 do
             if core.portal_room(k) ~= "" then core.portal_park(k) end
         end
+    end)
+
+    -- Back through a gate (gates:back): somebody who left this room standing
+    -- within 3 of a mouth -- gone through it -- and is here again. The plaza's
+    -- gates are the server's mouths, so nothing else says who went where.
+    local by_mouth: { [string]: string } = {}   -- by name: the room of the mouth they stand at
+    local away_to: { [string]: string } = {}    -- by name: the room they went to
+    local seen: { [number]: string } = {}       -- each player here, by name
+    local every = 0.0
+    core.event.on("core:tick", function(ev)
+        every += ev.dt
+        if every < 0.25 then return end
+        every = 0.0
+        local now: { [number]: string } = {}
+        for _, p in core.players() do
+            local name = core.player_name(p)
+            now[p] = name
+            if seen[p] == nil and away_to[name] then
+                core.event.emit("gates:back", { player = p, room = away_to[name] })
+                away_to[name] = nil
+            end
+            local x, y, z = core.player_pos(p)
+            local at: string? = nil
+            if x then
+                for k = 0, 16 do
+                    local room = core.portal_room(k)
+                    if room ~= "" and (core.get_portal(k, 0) - x) ^ 2 + (core.get_portal(k, 1) - (y :: number) - 1) ^ 2
+                        + (core.get_portal(k, 2) - (z :: number)) ^ 2 < 3 * 3 then
+                        at = room
+                    end
+                end
+            end
+            by_mouth[name] = at
+        end
+        for p, name in seen do
+            if now[p] == nil and by_mouth[name] then
+                away_to[name] = by_mouth[name]
+            end
+        end
+        seen = now
     end)
 
     -- The platform game and the arcade shooter are not rooms the server starts
@@ -781,6 +823,7 @@ core.event.on("core:tick", function(ev)
             end
             came_from[me] = gone
             away[me] = nil
+            if gone then core.event.emit("gates:back", { player = p, room = gone.room }) end
         end
         -- Every portal within 64, on the map (maps:pin; green once done).
         for _, s in sites_near(x, z, 64) do
