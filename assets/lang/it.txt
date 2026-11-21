@@ -260,6 +260,48 @@ a body out of a smaller hole may come out in its frame and be stuck = un corpo c
 
 # --- Cards ---
 Not hungry = Non ha fame
+# the cards as items (mods/cards), as the bag names them
+You keep a card of the hand: {} = Tieni una carta della mano: {}
+Ace of coins = Asso di denari
+Two of coins = Due di denari
+Three of coins = Tre di denari
+Four of coins = Quattro di denari
+Five of coins = Cinque di denari
+Six of coins = Sei di denari
+Seven of coins = Sette di denari
+Jack of coins = Fante di denari
+Knight of coins = Cavallo di denari
+King of coins = Re di denari
+Ace of cups = Asso di coppe
+Two of cups = Due di coppe
+Three of cups = Tre di coppe
+Four of cups = Quattro di coppe
+Five of cups = Cinque di coppe
+Six of cups = Sei di coppe
+Seven of cups = Sette di coppe
+Jack of cups = Fante di coppe
+Knight of cups = Cavallo di coppe
+King of cups = Re di coppe
+Ace of swords = Asso di spade
+Two of swords = Due di spade
+Three of swords = Tre di spade
+Four of swords = Quattro di spade
+Five of swords = Cinque di spade
+Six of swords = Sei di spade
+Seven of swords = Sette di spade
+Jack of swords = Fante di spade
+Knight of swords = Cavallo di spade
+King of swords = Re di spade
+Ace of clubs = Asso di bastoni
+Two of clubs = Due di bastoni
+Three of clubs = Tre di bastoni
+Four of clubs = Quattro di bastoni
+Five of clubs = Cinque di bastoni
+Six of clubs = Sei di bastoni
+Seven of clubs = Sette di bastoni
+Jack of clubs = Fante di bastoni
+Knight of clubs = Cavallo di bastoni
+King of clubs = Re di bastoni
 
 # --- Enchanting ---
 Level L costs L lapis and L levels = Il livello L costa L lapislazzuli e L livelli
