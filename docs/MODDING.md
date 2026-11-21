@@ -588,7 +588,7 @@ core.portal_link(a, b) -> bool       -- a and b lead to each other; b = -1 unlin
 core.portal_window(a, b) -> bool     -- a window, one way, for the eyes: a shows what b faces, b is drawn from nowhere, nothing crosses either (with portal_scale on both: a miniature)
 core.log(message)
 core.play_sound("mod:thing", x, y, z) -> bool  -- to everybody in the world; file mods/<mod>/<thing>.ogg on the client
-core.sound_loop("mod:thing", x, y, z, range?, gain?) -> id|0  -- going round until stopped; late joiners hear it too
+core.sound_loop("mod:thing", x, y, z, range?, gain?) -> id|0  -- going round until stopped; late joiners hear it too; heard through portals and windows the way core.play_sound is; stopped for everybody when the mod that started it errors, is reloaded or closes
 core.sound_loop_move(id, x, y, z) -> bool      core.sound_loop_stop(id) -> bool
 
 core.take_item(player, name, count?) -> taken    -- up to `count`, says how many
@@ -653,7 +653,7 @@ core.net.send(player, text) -> bool              -- 0 = everybody in this world
 
 core.render.pass(name, order, fn)                -- only on a client
 core.render.box(x, y, z, w, h, d, r, g, b, a)    -- only inside a pass
-core.render.model(id, x, y, z, yaw?, scale?, pitch?, roll?, dissolve?)   -- a model of the world, only inside a pass
+core.render.model(id, x, y, z, yaw?, scale?, pitch?, roll?, dissolve?, alpha?, tint?)   -- a model of the world, only inside a pass
 core.render.fx(kind, x, y, z, size?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- a light effect, only inside a pass
 core.render.camera(id, x, y, z, yaw?, pitch?, fov?, still?)   -- a camera's picture, drawn now and then (still: once)
 core.render.camera_drop(id)                      -- and forgotten
@@ -852,7 +852,9 @@ a player's hands in `games/chambers` (which the server does not send them, `core
 `dissolve`, 0 to 1, is how much of it is gone: the model's shader eats it away in patches of a
 noise fixed on the model, the edges burning electric blue and what is left turning blue, its
 inside showing through the holes -- the mod counts the time, as for `t` below (a cube a field takes
-apart in `games/chambers`). Returns false for a model this client does not have.
+apart in `games/chambers`). `alpha` under 1 draws it seen through (never under 0.05), and `tint`
+is its three tint colours as a worn piece's (`core.player_wear`): the ghost kart of `games/track`.
+Returns false for a model this client does not have.
 
 `core.render.fx(kind, x, y, z, size, r, g, b, a, t)` draws a **light effect** with the engine's
 shaders (`src/client/render/fx_render.cpp`): it adds to what is behind, walls cover it and it does

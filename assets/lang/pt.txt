@@ -847,6 +847,7 @@ Bell = Sino
 Bench = Banco
 Blue = Azul
 Board = Quadro
+{} got up: the game is yours if nobody sits there within {} seconds = {} se levantou: a partida é sua se ninguém sentar lá em {} segundos
 Bobber = Boia
 Bobber bite = Boia beliscada
 Bog = Pântano

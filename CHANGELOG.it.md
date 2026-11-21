@@ -5,11 +5,53 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
-## 0.20.0-alpha.1 — 2026-11-20
+## 0.20.0-alpha.1 — 2026-11-21
 
-**Non gioca con la 0.19.0-alpha.1** (protocollo 127): in una stanza di un server di più stanze,
+**Non gioca con la 0.19.0-alpha.1** (protocollo 129): in una stanza di un server di più stanze,
 dopo la prima, si entra solo con un biglietto firmato per quella stanza, che un client più vecchio
-non chiede.
+non chiede; e il colore della luce attraverso un blocco e le parole che Tab completa nella chat
+sono nuovi in rete.
+
+- **Il vetro colorato colora la luce delle lampade che lo attraversa**: una torcia o una lampada
+  dietro un vetro rosso illumina il pavimento di rosso. La luce del giorno passa ancora bianca.
+- **Scrivendo c'è il cursore**: la chat, i campi dei pannelli dei mod, quelli della schermata
+  iniziale e la ricerca del baule si muovono con Sinistra, Destra, Home, Fine e Canc. Nella chat
+  **Tab completa** un comando dopo una `/`, o il nome di un giocatore; Tab di nuovo passa agli
+  altri che ci stanno.
+- **Le scritte dei cartelli sfumano con la distanza** invece di sparire di colpo.
+- **La prima ora**: gli obiettivi ora fanno da guida -- un tronco, un piccone di legno, attraverso
+  un cancello e ritorno, una chiave, un letto, poi il resto -- e il prossimo si vede in piccolo a
+  sinistra con il suo suggerimento (`/goals hide`, `/goals show`).
+- **Le commissioni sono disegnate sulla mappa**: la strada di una consegna verso l'altro
+  villaggio, il posto di un'esplorazione e la strada per tornare dal sindaco.
+- **Ossa e carne servono a qualcosa**: due ossa fanno sei farine d'ossa, che fanno crescere subito
+  un raccolto di uno stadio; il contadino compra la farina d'ossa, il pescatore la carne per esca.
+- **Circuiti**: fili, fili isolati e cavi vanno anche su pareti e soffitti, e girano gli angoli;
+  le **porte di bus** (AND, OR, XOR, NOT) lavorano sui sedici canali di un cavo; il **banco dei
+  chip** salva un circuito costruito, con i suoi pin d'ingresso e d'uscita, come un chip che lo fa
+  funzionare dovunque lo si metta.
+- **Due nuove camere di prova**: la 16, un **ponte di luce** steso attraverso i portali sopra un
+  pozzo; la 17, i **gel** versati attraverso i portali -- il blu ti lancia oltre un muro,
+  l'arancione ti fa correre oltre un vuoto. Le camere di un sito della sopravvivenza ora sono una
+  fila tutta sua, scelta per la sua difficoltà e in parte specchiata, che resta dopo un riavvio.
+- **Le carte come oggetti**: chi vince una mano a un tavolo da gioco tiene una delle sue carte.
+  Ognuna delle quaranta ha la sua figura, si tiene in mano e si posa, e il museo del villaggio le
+  vuole tutte per i suoi piedistalli (il settebello paga di più). Un posto dietro un muro non viene
+  più offerto, e il ventaglio di carte sta sopra i pugni.
+- **I suoni in loop si sentono attraverso portali e finestre**, facendo il giro, come gli altri
+  suoni; un mod che si rompe si porta via i suoi loop. **Nuovi loop**: la lava che brontola, il
+  motore di un kart guidato (più forte quanto più va veloce), il bruciatore della mongolfiera e una
+  musica tranquilla a seconda della terra (pianura, deserto, freddo, mare; `--no-mod music` per
+  farne a meno).
+- **Kart**: una scatola oggetti dà a chi è in testa ciò che difende il vantaggio e all'ultimo ciò
+  che fa recuperare, e l'HUD mostra la tua posizione. Un **fantasma** guida accanto a te il giro
+  record della pista (sulla pista dell'Inferno, quello dell'ingegnere). I kart **si urtano** e si
+  separano, e un clic destro su chi guida **ti fa sedere dietro di lui**; F per scendere.
+- Per chi scrive mod: `core.node_glass(id, opacity, tint)` lascia passare la luce del colore del
+  blocco; `core.player_launch(..., add)` aggiunge alla velocità invece di impostarla, e muove anche
+  un kart; `core.render.model(..., alpha, tint)` disegna un modello trasparente e tinto;
+  `maps:route` accetta `~R;` prima dei punti per un arrivo raggiunto entro R.
+- **Per i test**: il client a tempo può fare clic destro dove guarda (`--right-at t`).
 
 - **Niente più lampi verdi nel cielo del fronte**: l'estremo lontano di una finestra (la mappa della
   galleria sopra il campo) non si disegna, e la sua apertura non si ripete più -- in cielo, a ogni

@@ -588,7 +588,7 @@ core.portal_link(a, b) -> bool       -- a e b levam uma à outra; b = -1 desliga
 core.portal_window(a, b) -> bool     -- uma janela, de mão única, só para os olhos: a mostra o que b encara, b não é desenhada em lugar nenhum, nada atravessa nenhuma das duas (com portal_scale nas duas: uma miniatura)
 core.log(message)
 core.play_sound("mod:thing", x, y, z) -> bool  -- para todos no mundo; arquivo mods/<mod>/<thing>.ogg no cliente
-core.sound_loop("mod:thing", x, y, z, range?, gain?) -> id|0  -- tocando sem parar até ser parado; quem chega depois também ouve
+core.sound_loop("mod:thing", x, y, z, range?, gain?) -> id|0  -- tocando sem parar até ser parado; quem chega depois também ouve; ouvido através de portais e janelas como core.play_sound; parado para todos quando o mod que o iniciou dá erro, é recarregado ou fecha
 core.sound_loop_move(id, x, y, z) -> bool      core.sound_loop_stop(id) -> bool
 
 core.take_item(player, name, count?) -> taken    -- até `count`, diz quantos
@@ -653,7 +653,7 @@ core.net.send(player, text) -> bool              -- 0 = todos neste mundo
 
 core.render.pass(name, order, fn)                -- só num cliente
 core.render.box(x, y, z, w, h, d, r, g, b, a)    -- só dentro de um pass
-core.render.model(id, x, y, z, yaw?, scale?, pitch?, roll?, dissolve?)   -- um modelo do mundo, só dentro de um pass
+core.render.model(id, x, y, z, yaw?, scale?, pitch?, roll?, dissolve?, alpha?, tint?)   -- um modelo do mundo, só dentro de um pass
 core.render.fx(kind, x, y, z, size?, r?, g?, b?, a?, t?, x2?, y2?, z2?)   -- um efeito de luz, só dentro de um pass
 core.render.camera(id, x, y, z, yaw?, pitch?, fov?, still?)   -- a imagem de uma câmera, desenhada de vez em quando (still: uma vez)
 core.render.camera_drop(id)                      -- e esquecida
@@ -852,7 +852,9 @@ cubo nas mãos de um jogador em `games/chambers` (que o servidor não envia a el
 `dissolve`, de 0 a 1, é quanto dele já sumiu: o shader do modelo o consome em manchas de um ruído
 fixo no modelo, com as bordas queimando em azul elétrico e o que sobra ficando azul, o interior
 aparecendo pelos buracos -- o mod conta o tempo, como para `t` abaixo (um cubo que um campo desfaz
-em `games/chambers`). Devolve false para um modelo que este cliente não tem.
+em `games/chambers`). `alpha` abaixo de 1 o desenha transparente (nunca abaixo de 0.05), e `tint`
+são as suas três cores de tinta como as de uma peça vestida (`core.player_wear`): o kart fantasma
+de `games/track`. Devolve false para um modelo que este cliente não tem.
 
 `core.render.fx(kind, x, y, z, size, r, g, b, a, t)` desenha um **efeito de luz** com os shaders do
 motor (`src/client/render/fx_render.cpp`): ele se soma ao que está atrás, as paredes o cobrem e ele

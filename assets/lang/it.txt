@@ -846,6 +846,7 @@ Bell = Campana
 Bench = Banco
 Blue = Blu
 Board = Scacchiera
+{} got up: the game is yours if nobody sits there within {} seconds = {} si è alzato: la partita è tua se nessuno si siede lì entro {} secondi
 Bobber = Galleggiante
 Bobber bite = Galleggiante che abbocca
 Bog = Palude

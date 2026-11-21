@@ -5,11 +5,54 @@
 Uma entrada para cada alfa distribuída, a mais nova no topo. Como elas são numeradas e como se faz
 uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
 
-## 0.20.0-alpha.1 — 2026-11-20
+## 0.20.0-alpha.1 — 2026-11-21
 
-**Não joga com a 0.19.0-alpha.1** (protocolo 127): numa sala de um servidor com várias, depois da
+**Não joga com a 0.19.0-alpha.1** (protocolo 129): numa sala de um servidor com várias, depois da
 primeira, só se entra com um tíquete assinado para aquela sala, que um cliente mais antigo não
-pede.
+pede; e a cor da luz através de um bloco e as palavras que o Tab completa no chat são novas na
+rede.
+
+- **O vitral colore a luz das lâmpadas que passa por ele**: uma tocha ou uma lâmpada atrás de um
+  vidro vermelho ilumina o chão de vermelho. A luz do dia continua passando branca.
+- **Escrevendo há um cursor**: o chat, os campos dos painéis dos mods, os da tela inicial e a busca
+  do baú se movem com Esquerda, Direita, Home, End e Delete. No chat, o **Tab completa** um comando
+  depois de uma `/`, ou o nome de um jogador; Tab de novo passa pelos outros que servem.
+- **As palavras das placas somem aos poucos com a distância** em vez de sumir de repente.
+- **A primeira hora**: os objetivos agora servem de guia -- um tronco, uma picareta de madeira,
+  atravessar um portão e voltar, uma chave, uma cama, depois o resto -- e o próximo aparece
+  pequeno à esquerda com a sua dica (`/goals hide`, `/goals show`).
+- **As tarefas aparecem no mapa**: o caminho de uma entrega até a outra aldeia, o lugar de uma
+  exploração e o caminho de volta ao prefeito.
+- **Ossos e carne servem para algo**: dois ossos fazem seis farinhas de osso, que fazem uma
+  plantação subir um estágio na hora; o fazendeiro compra farinha de osso, o pescador compra carne
+  para isca.
+- **Circuitos**: fios, fios isolados e cabos vão também em paredes e tetos, e dobram esquinas; as
+  **portas de barramento** (AND, OR, XOR, NOT) trabalham nos dezesseis canais de um cabo; a
+  **bancada de chips** guarda um circuito montado, com os seus pinos de entrada e saída, como um
+  chip que o faz funcionar onde for colocado.
+- **Duas novas câmaras de testes**: a 16, uma **ponte de luz** estendida através dos portais sobre
+  um poço; a 17, **géis** derramados através dos portais -- o azul te lança por cima de um muro, o
+  laranja te faz correr por cima de um vão. As câmaras de um sítio da sobrevivência agora são uma
+  fileira só dele, escolhida pela sua dificuldade e em parte espelhada, que fica depois de
+  reiniciar.
+- **As cartas como itens**: quem ganha uma mão numa mesa de cartas fica com uma das suas cartas.
+  Cada uma das quarenta tem a sua figura, pode ser segurada e posta no chão, e o museu da aldeia
+  quer todas para os seus pedestais (o sete de ouros paga mais). Um lugar atrás de uma parede não é
+  mais oferecido, e o leque de cartas fica acima dos punhos.
+- **Os sons em loop são ouvidos através de portais e janelas**, dando a volta, como os outros
+  sons; um mod que quebra leva os seus loops com ele. **Novos loops**: a lava que ronca, o motor de
+  um kart dirigido (mais alto quanto mais rápido), o queimador do balão e uma música calma conforme
+  a terra (planície, deserto, frio, mar; `--no-mod music` para ficar sem).
+- **Karts**: uma caixa de itens dá a quem lidera o que defende a vantagem e ao último o que o faz
+  alcançar, e o HUD mostra a sua posição. Um **fantasma** dirige ao seu lado a volta recorde da
+  pista (na pista do Inferno, a do engenheiro). Os karts **se batem** e se afastam, e um clique
+  direito em quem está dirigindo **te senta atrás dele**; F para descer.
+- Para quem escreve mods: `core.node_glass(id, opacity, tint)` deixa passar a luz na cor do bloco;
+  `core.player_launch(..., add)` soma à velocidade em vez de defini-la, e move também um kart;
+  `core.render.model(..., alpha, tint)` desenha um modelo transparente e tingido; `maps:route`
+  aceita `~R;` antes dos pontos para um fim alcançado dentro de R.
+- **Para testes**: o cliente cronometrado pode clicar com o botão direito onde olha
+  (`--right-at t`).
 
 - **Acabaram os clarões verdes no céu do front**: a ponta distante de uma janela (o mapa da galeria
   sobre o campo) não é desenhada, e a sua abertura não se repete mais -- no céu,

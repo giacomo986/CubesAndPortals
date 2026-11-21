@@ -103,7 +103,12 @@ The ending:
 - Lab: every phase by hand (generators, the climb, valves, torch, frost, the
   tunnel by kart); the pit's parkour route.
 
-Survival: the bounce pad; the Inferno's level; a chambers stretch.
+Survival: the bounce pad; the Inferno's level; a site's own row of chambers,
+mirrored ones included (built and walked by script only).
+
+New in 0.20.0-alpha.1, tried by script only: chambers 16 and 17 with the mouse;
+a chip saved on the bench and put down; a card kept from a hand and given to
+the museum; two karts racing (bumps, a ghost, the passenger's seat in a lap).
 
 Track: a drift (Ctrl); a loop and a tall loop; a wall ride; power-ups other
 than the banana (one used by a scripted click, 2026-11-20); the item box tool; the dragon pipes' flames in a lap; a kart got
@@ -131,10 +136,13 @@ Sandbox:
 Every synthesised sound: rain loop and thunder, village bell and music, oars,
 cart wheels, waystone, relic grind, garden insects, crypt, arpg props, track
 power-ups, torch beam, turrets, the backrooms' radio, the front's guns and
-engines, the Inferno's ambience, the chess blast, creatures' attack and shoot.
+engines, the Inferno's ambience, the chess blast, creatures' attack and shoot;
+and since 2026-11-21 the lava's rumble, the kart's engine and bump, the
+balloon's burner and the music by land (tools/make_loop_sounds.py; recorded and
+measured, no seams, never heard by a person).
 
 Missing: the assault's own sounds (it uses the front's), the yafps base, the
-poolrooms, the balloon's burner.
+poolrooms.
 
 Measured 2026-11-20 (every .ogg/.wav decoded): hard clipping, to be judged by
 ear and maybe made quieter -- assets/sounds/portal.ogg (159 samples at full
@@ -362,8 +370,6 @@ Seen by players first:
   6 fps), 18 s after arriving the ground to one side still had black patches
   and holes the sky showed through: the black-after-a-teleport below, or
   longer than its 4 s. Not looked into.
-- Cards: a seat behind a wall leaves the body where it stood and the fan at the
-  seat; the fists hide the fan's bottom edge.
 - Front: a craft of mass 2500 barely moves on the ground (800 is fine).
 - Windows: a crashed client kills its server unsaved.
 
@@ -376,11 +382,11 @@ Engine:
 - A moving mouth onto another world is not carried between messages; one moving
   opening is a Portals message a tick to everybody.
 - OPEN-38: the temporary file of a world with no file only grows.
-- A sound loop is not heard through a portal; a dead mod's loops go on. (The
-  hole of a frame each time round: fixed 2026-11-20, loops are Music streams;
-  a 0.25 s hum recorded at 9 fps had 25 holes in 8 s, now none in 14 s.)
+- A sound loop keeps the gain it was started with: a kart's engine steps
+  louder by starting again, it does not slide (no pitch either).
 - Coloured light: columns saved before it have none until relit; stained glass
-  does not filter; sky light is not tinted; cost not measured on the real GPU.
+  tints lamplight only, not daylight (a second colour byte a cell); cost not
+  measured on the real GPU.
 - A tumbling box asleep is woken only by a block changing within 3; one resting
   tilted is stood on as if flat.
 - The client's far-key check sits behind the ticket check.
@@ -393,8 +399,7 @@ Mods:
 - Sky: a meteorite can land in a cave under the player.
 - Garden: ants overlap in file; a creature wandering into the door far from
   players despawns.
-- Errands: the carry's goal and the explore's place are coordinates only, though
-  `maps:route` can draw them; the board shows and does not take.
+- Errands: the board shows and does not take.
 - Paths: a sign where a path ends on a bridge is left out.
 - Caravans: a new village sends none until its chests fill (kept so).
 - Helpers: no cap on columns all robots keep loaded (OPEN-58); the quarry is one
@@ -404,8 +409,10 @@ Mods:
 - Conveyor: ribs made for 1 m/s; a belt a mod writes reshapes late.
 - Circuits: a net stops at 4096 cells; insulated wire and gates are not read by
   doors; dust enters a wire only through a repeater or a buffer.
-- Track: the same item odds for everybody; shells do not climb loops; other
-  karts do not collide with yours; nobody rides as a passenger (OPEN-47).
+- Track: shells do not climb loops. Bumps are the server pushing two karts
+  apart, a round trip late, not a collision in the engine (OPEN-47).
+- Chambers: the funnel (a beam that carries) and the angled panel are written
+  (chambers_game/devices.luau) but no chamber uses them yet, so not tried.
 - Assault: tanks in the escape are behind the jeep when ripe.
 - Lizard man (Meshy, 2026-11-11, an add-on in `contrib/lizard`, not in the game):
   seen in a client, on the look pages (title and tools/track.sh's world, its
@@ -448,7 +455,6 @@ Mods:
 - Dragon knight (switched off): no styles, gear not refitted, the cape passes
   through the legs.
 - Arpg: weapons are the robot's on every species; nothing shows a ring.
-- Zombie flesh and bones have no use.
 
 ## Limits, kept until somebody reports them
 
@@ -475,8 +481,7 @@ Mods:
 - A far portal between servers is a mouth: 24 a room, not virtual.
 - Parkour: nobody else sees a rope, a backflip or a kick; a forged hook untried.
 - A crash loses up to 10 s. A world from before block names were kept is refused.
-- Identity: the first key seen is trusted and nothing shows it; fields have no
-  cursor; chat has no Tab completion.
+- Identity: the first key seen is trusted and nothing shows it.
 - Difficulty only in the sandbox room; world rules not on the title menu.
 - Worlds made before a change keep the old ground (paths, cities, waystones,
   chests, colour): `tools/track.sh --fresh`.
@@ -735,26 +740,13 @@ portal is loaded, let go when nobody can reach it. Built 2026-11-12 (4).
 
 ## Additions proposed (2026-11-09), none designed
 
-Small, on what exists:
-- Errands' places and carries drawn on the map (`maps:route`).
-- Bones to bone meal for crops, flesh to the pets or a trader.
-- Signs read on the board itself, not the HUD.
-- A cursor and Tab completion in chat and fields.
-- Stained glass colouring the light through it.
-- Loops in use: lava, kart engines, the balloon's burner, music by biome.
-- Item odds by race order on the track; a ghost of the engineer's lap.
-
-Medium:
-- The first hour: check what a new player is told about gates, keys and the
-  journal (`/story` and the 21 goals exist; not looked at in this review). If
-  little: order the first goals as a guide (first tool, first gate, first key)
-  and show the next one on the HUD.
-- Circuits' rest: wires on walls and ceilings, bus gates, the integrated-circuit
-  bench.
-- Chambers: light bridges, beams, gels, angled panels; survival's levels from
-  mixed and mirrored templates instead of a stretch of the row.
-- Cards as items, so the museum can show them.
-- Karts that collide, and a passenger seat (`core.ride` exists).
+The small and medium ones are built (2026-11-20/21, in 0.20.0-alpha.1): errands
+on the map, bone meal and flesh, signs on their boards, a caret and Tab, stained
+glass, loops in use, item odds and a ghost on the track, the first hour as a
+guide, circuits' rest (walls and ceilings, bus gates, the chip bench), chambers
+16 and 17 (light bridge, gels) and survival's own rows of chambers, cards as
+items for the museum, karts that bump and a passenger seat. Not done of them:
+the chambers' funnel and angled panel in a chamber (see Mods, above).
 
 Large, each wants questions first:
 - Front PvP as a mode of its own (see decisions).

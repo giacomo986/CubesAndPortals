@@ -5,11 +5,50 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
-## 0.20.0-alpha.1 — 2026-11-20
+## 0.20.0-alpha.1 — 2026-11-21
 
-**Does not play with 0.19.0-alpha.1** (protocol 127): a room of a server of several, past the
+**Does not play with 0.19.0-alpha.1** (protocol 129): a room of a server of several, past the
 first, is gone into only with a ticket signed for that room, which an older client does not ask
-for.
+for; and the colour of the light through a block, and the words Tab finishes in the chat, are new
+on the wire.
+
+- **Stained glass colours the lamplight through it**: a torch or a lamp behind red glass lights
+  the floor red. Daylight still comes through white.
+- **Typing has a caret**: the chat, the fields of mods' panels, the title screen's fields and the
+  chest's search box move with Left, Right, Home, End and Delete. In the chat, **Tab finishes** a
+  command after a `/`, or a player's name; Tab again goes through the others that fit.
+- **Signs' words fade out with distance** instead of popping.
+- **The first hour**: the goals now run as a guide -- a log, a wooden pick, through a gate and
+  back, a key, a bed, then the rest -- and the next one is shown small on the left with its hint
+  (`/goals hide`, `/goals show`).
+- **Errands are drawn on the map**: a carry's way to the other village, an explore's place and
+  the way back to the mayor.
+- **Bones and flesh have a use**: two bones make six bone meal, which puts a crop up a stage at
+  once; the farmer buys bone meal, the fisher buys flesh for bait.
+- **Circuits**: wires, insulated wires and cables go on walls and ceilings too, and round corners;
+  **bus gates** (AND, OR, XOR, NOT) work on a cable's sixteen channels; the **chip bench** saves a
+  built circuit, with its input and output pins, as a chip that runs it wherever it is put down.
+- **Two new test chambers**: 16, a **light bridge** laid through the portals over a pit; 17,
+  **gels** poured through the portals -- blue throws you over a wall, orange lets you run a gap.
+  A survival site's chambers are now a row of its own, picked for its hardness and some of them
+  mirrored, kept across restarts.
+- **Cards as items**: whoever wins a hand at a card table keeps one of its cards. Each of the forty
+  has its own picture, can be held and put down, and the village museum wants all of them for its
+  plinths (the seven of coins pays best). A seat behind a wall is no longer offered, and the fan
+  of cards sits above the fists.
+- **Sound loops are heard through portals and windows**, the way round, like other sounds; a mod
+  that breaks takes its loops with it. **New loops**: lava rumbles, a driven kart's engine (louder
+  as it goes faster), the balloon's burner, and quiet music by the land (plains, desert, cold,
+  sea; `--no-mod music` to do without).
+- **Karts**: an item box gives the leader what defends a lead and the last what catches up, and
+  the HUD shows your place. A **ghost** drives the track's record lap beside you (on the Inferno
+  track, the engineer's). Karts **bump** each other apart, and a right click on somebody driving
+  **seats you behind them**; F gets off.
+- For mod writers: `core.node_glass(id, opacity, tint)` lets light through in the block's colour;
+  `core.player_launch(..., add)` adds to the speed instead of setting it, and moves a kart too;
+  `core.render.model(..., alpha, tint)` draws a model seen through and tinted; `maps:route` takes
+  `~R;` before the points for an end reached within R.
+- **For testing**: the timed client can right click where it looks (`--right-at t`).
 
 - **No more green flashes in the front's sky**: the far end of a window (the gallery's map over the
   field) is drawn from nowhere, and its opening no longer played -- in the sky, at every change of
