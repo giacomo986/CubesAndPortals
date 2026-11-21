@@ -40,6 +40,8 @@ on the wire.
   that breaks takes its loops with it. **New loops**: lava rumbles, a driven kart's engine (louder
   as it goes faster), the balloon's burner, and quiet music by the land (plains, desert, cold,
   sea; `--no-mod music` to do without).
+- **Where a blow came from**: being hurt reddens the edge of the screen for a moment, deepest on
+  the side the blow or arrow came from, and all round, fainter, for a fall or a burn.
 - **The cursed ghost** (`mods/ghost`): a new creature of the dark, by night and in caves, rare. From
   afar only a shimmer; if it reaches you it takes hold, walks you towards the nearest drop or other
   monsters and throws things out of your bag, until five blows break it, yours or

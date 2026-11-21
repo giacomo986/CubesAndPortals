@@ -106,6 +106,9 @@ The cursed ghost (mods/ghost): by script on flat ground (taken, walked into a
 dug pit and towards a skeleton, things thrown out, freed by five clicks, or by two zombies' five blows through core:hurt); its clips (idle, fly,
 hold, death) seen in Xephyr only coming at you. Not yet a real cliff or a cave,
 nor seen on another player's back, nor its death clip in the game.
+The red edge of a hurt: seen in Xephyr with a zombie behind (bottom edge) and on
+the right (right edge); not yet a fall, lava or an arrow, nor in the Inferno's
+red light.
 
 Track: a drift (Ctrl); a loop and a tall loop; a wall ride; power-ups other
 than the banana (one used by a scripted click, 2026-11-20); the item box tool; the dragon pipes' flames in a lap; a kart got

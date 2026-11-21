@@ -43,6 +43,8 @@ rede.
   sons; um mod que quebra leva os seus loops com ele. **Novos loops**: a lava que ronca, o motor de
   um kart dirigido (mais alto quanto mais rápido), o queimador do balão e uma música calma conforme
   a terra (planície, deserto, frio, mar; `--no-mod music` para ficar sem).
+- **De onde vem um golpe**: ao ser ferido, a borda da tela fica vermelha por um instante, mais do
+  lado de onde veio o golpe ou a flecha, e em volta toda, mais fraca, numa queda ou queimadura.
 - **O fantasma amaldiçoado** (`mods/ghost`): uma nova criatura do escuro, à noite e nas cavernas,
   rara. De longe só um tremeluzir; se te alcança, se apossa de você, te leva ao precipício mais
   próximo ou a outros monstros e joga no chão as coisas da sua bolsa, até cinco golpes, seus ou de outros

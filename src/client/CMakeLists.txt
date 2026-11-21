@@ -7,6 +7,7 @@ add_executable(cnp_client
     render/body_render.cpp
     render/fx_render.cpp
     render/screen_render.cpp
+    render/hurt_render.cpp
     render/model_render.cpp
     render/model_store.cpp
     render/mod_pass.cpp

@@ -27,6 +27,7 @@
 #include "client/render/body_render.h"
 #include "client/render/fx_render.h"
 #include "client/render/screen_render.h"
+#include "client/render/hurt_render.h"
 #include "client/render/mod_pass.h"
 #include "client/render/portal_render.h"
 #include "client/render/selection.h"
@@ -1654,6 +1655,22 @@ struct Scene {
     const CameraFeed       *feeding    = nullptr;   // being drawn now: a screen of it shows snow
     ScreenRenderer          screen_render;
     int                     screen_ready = 0;
+    // Being hurt, on the edge of the screen (render/hurt_render.h): each
+    // recent hurt, when it came and from which way in the world (a unit
+    // vector on the ground, or none), and how hard; the last knock that came
+    // with a blow, whose opposite is where the blow came from; and the health
+    // last seen, to see it drop.
+    struct Hurt {
+        double at = 0.0;
+        float  x = 0.0f, z = 0.0f, strength = 0.0f;
+        bool   from_side = false;
+    };
+    HurtRenderer            hurt_render;
+    int                     hurt_ready = 0;
+    std::vector<Hurt>       hurts;
+    Vec3                    knock{};
+    double                  knock_at = -10.0;
+    int                     health_seen = -1;
     // Karts' nitro flames this pass, nozzle and tip (flames_of, draw_kart_fx).
     std::vector<std::pair<Vec3, Vec3>> kart_flames;
 
@@ -4699,6 +4716,67 @@ void sound_loops(Scene &s, const std::vector<LoopsFrom> &from)
         s.loops_on[name]      = voice;
         snd_loop(voice, l.heard.gain, l.heard.pan, l.heard.gain > 0.0f);
     }
+}
+
+// The health this body has now, every frame: a drop is a hurt to show on the
+// screen's edge, from the side opposite the knock that came with it within
+// the moment, or from no side.
+void note_health(Scene &s, int hp)
+{
+    const int was = s.health_seen;
+    s.health_seen = hp;
+    if (was < 0 || hp >= was) return;
+    Scene::Hurt h;
+    h.at       = plat_time();
+    h.strength = std::clamp(0.45f + (float)(was - hp) / 8.0f, 0.45f, 1.0f);
+    const float n = std::sqrt(s.knock.x * s.knock.x + s.knock.z * s.knock.z);
+    if (h.at - s.knock_at < 0.4 && n > 1e-3f) {
+        h.x = -s.knock.x / n, h.z = -s.knock.z / n;
+        h.from_side = true;
+    }
+    if (s.hurts.size() >= (size_t)HurtRenderer::kMarks) s.hurts.erase(s.hurts.begin());
+    s.hurts.push_back(h);
+}
+
+// A knock: kept for the next drop of health, and given to the last one if
+// it came just before it (the two travel apart, health and push).
+void note_knock(Scene &s, Vec3 push)
+{
+    s.knock    = push;
+    s.knock_at = plat_time();
+    const float n = std::sqrt(push.x * push.x + push.z * push.z);
+    if (!s.hurts.empty() && n > 1e-3f) {
+        Scene::Hurt &h = s.hurts.back();
+        if (!h.from_side && s.knock_at - h.at < 0.4) h.x = -push.x / n, h.z = -push.z / n, h.from_side = true;
+    }
+}
+
+// The hurts of the last moment on the screen's edge, turned with the view:
+// one from behind stays behind while the player turns to face it.
+void draw_hurts(Scene &s, Vec3 forward)
+{
+    constexpr double kLasts = 1.2;
+    const double     now    = plat_time();
+    std::erase_if(s.hurts, [&](const Scene::Hurt &h) { return now - h.at >= kLasts; });
+    if (s.hurts.empty()) return;
+    if (s.hurt_ready == 0) s.hurt_ready = s.hurt_render.init() ? 1 : -1;
+    if (s.hurt_ready < 0) return;
+    float fx = forward.x, fz = forward.z;
+    const float n = std::sqrt(fx * fx + fz * fz);
+    if (n > 1e-4f) fx /= n, fz /= n;
+    else fx = 0.0f, fz = 1.0f;
+    const float rx = -fz, rz = fx;   // facing +z, the right is -x
+    HurtRenderer::Mark marks[HurtRenderer::kMarks];
+    int count = 0;
+    for (const Scene::Hurt &h : s.hurts) {
+        HurtRenderer::Mark &m = marks[count++];
+        const float t = (float)((now - h.at) / kLasts);
+        m.strength  = h.strength * (1.0f - t) * (1.0f - t) * std::min(1.0f, t * 12.0f + 0.4f);
+        m.from_side = h.from_side;
+        m.x = h.x * rx + h.z * rz;
+        m.y = h.x * fx + h.z * fz;
+    }
+    s.hurt_render.draw(marks, count, gfx_screen_width(), gfx_screen_height());
 }
 
 void hurt_local(Scene *s, uint16_t amount, bool armoured = true, bool factored = true)
@@ -13416,6 +13494,9 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
     // through its own pipeline and has no business inside a capture.
     if (captured) gfx_rt_end();
 
+    // Being hurt: the screen's edge red on the side it came from, under the HUD.
+    if (!s.hide_hud) draw_hurts(s, forward);
+
     // The hotbar, always -- it is not the F3 overlay, it is part of the game.
     // Outside the capture for the same reason the debug text is: the portal
     // gates compare a captured frame against a reference render of the same
@@ -19860,6 +19941,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         // did, and a put is one of those things (a bump between karts,
         // games/track; the server allows the put the push's speed).
         if (net::Push push; conn->take_push(push) && !player.hanging) {
+            note_knock(s, Vec3{push.x, push.y, push.z});
             if (player.vehicle) {
                 Vec3 v = push.set ? Vec3{} : player.velocity;
                 v.x += push.x;
@@ -19879,6 +19961,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
 
         if (conn->has_vitals()) {
             s.hotbar.health     = conn->vitals().health;
+            note_health(s, s.hotbar.health);
             s.hotbar.health_max = conn->vitals().max;
         } else {
             s.hotbar.health     = 0;
@@ -21893,6 +21976,7 @@ int run_interactive(Scene &s, double seconds)
                 [&](uint32_t, uint16_t amount, uint16_t, Vec3 push) {
                     if (struck.size() < 256) struck.push_back(amount);
                     hurt_local(&s, amount);
+                    note_knock(s, push);
                     if (!player.vehicle && !player.hanging) {   // the networked client's rule
                         player.velocity.x += push.x;
                         player.velocity.z += push.z;
@@ -22082,6 +22166,7 @@ int run_interactive(Scene &s, double seconds)
         s.hotbar.selected   = bag.selected();
         s.hotbar.items      = &s.act().items;
         s.hotbar.health     = demo_health.hp;
+        note_health(s, s.hotbar.health);
         s.hotbar.health_max = demo_health.max;
 
         // And the chest, from the same place. Read rather than kept in step,

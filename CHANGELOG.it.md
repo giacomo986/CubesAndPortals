@@ -43,6 +43,9 @@ sono nuovi in rete.
   motore di un kart guidato (più forte quanto più va veloce), il bruciatore della mongolfiera e una
   musica tranquilla a seconda della terra (pianura, deserto, freddo, mare; `--no-mod music` per
   farne a meno).
+- **Da dove arriva un colpo**: quando sei ferito il bordo dello schermo si arrossa per un attimo, di
+  più dalla parte da cui è venuto il colpo o la freccia, e tutto intorno, più tenue, per una caduta o
+  una bruciatura.
 - **Il fantasma maledetto** (`mods/ghost`): una nuova creatura del buio, di notte e nelle grotte,
   rara. Da lontano solo un luccichio; se ti raggiunge si impossessa di te, ti porta verso il dirupo più
   vicino o verso altri mostri e butta a terra le cose della tua borsa, finché cinque colpi, tuoi o
