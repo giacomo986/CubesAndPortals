@@ -1821,8 +1821,9 @@ struct Scene {
     // far. Here and not on the panel: the panel is what the mod declared, and
     // what a player has half typed is nobody's until Enter. See type_in_field.
     struct Typing {
-        bool        on = false;
-        std::string panel, id, text;
+        bool         on = false;
+        std::string  panel, id;
+        ui::TextEdit line;
     } typing;
 
     Vec3  cam_warp;
@@ -5894,39 +5895,60 @@ std::string click_panel(Scene &s, const ui::Panel &p, float mx, float my)
     s.typing.on    = true;
     s.typing.panel = p.name;
     s.typing.id    = e.id;
-    s.typing.text  = e.text;
+    s.typing.line.set(e.text);
     plat_text_input(true);
     return "";
 }
 
-// This frame's typing and Backspace, into `line`. Latin-1 only, the characters
-// the HUD's font has -- enough for a name in Italian.
-void type_line(std::string &line, size_t cap)
+// When a key last did something to a line being typed: its caret is lit from
+// then for a while before it starts to blink, so a caret moved is seen where
+// it went rather than in the half second it happens to be dark.
+double g_caret_since = 0.0;
+
+bool caret_lit()
 {
+    const double t = plat_time() - g_caret_since;
+    return t < 0.5 || std::fmod(t - 0.5, 1.0) < 0.5;
+}
+
+// This frame's typing into `line`, at its caret, and the keys that move the
+// caret about it and rub out round it. Latin-1 only, the characters the HUD's
+// font has -- enough for a name in Italian.
+void type_line(ui::TextEdit &line, size_t cap)
+{
+    const std::string was = line.text;
+    const size_t      at  = line.caret;
     for (int c = plat_char_pressed(); c != 0; c = plat_char_pressed()) {
         if (!((c >= 32 && c < 127) || (c >= 160 && c < 256))) continue;
         const std::string ch = c < 128 ? std::string(1, (char)c)
                                        : std::string{(char)(0xC0 | (c >> 6)),
                                                      (char)(0x80 | (c & 0x3F))};
-        if (line.size() + ch.size() <= cap) line += ch;
+        line.insert(ch, cap);
     }
-    if (plat_key_repeated(PLAT_KEY_BACKSPACE) && !line.empty()) {
-        size_t cut = line.size() - 1;   // back over a whole character, not a byte of one
-        while (cut > 0 && ((uint8_t)line[cut] & 0xC0) == 0x80) --cut;
-        line.erase(cut);
-    }
+    if (plat_key_repeated(PLAT_KEY_BACKSPACE)) line.backspace();
+    if (plat_edit_key_repeated(PLAT_EDIT_DELETE)) line.erase_forward();
+    if (plat_edit_key_repeated(PLAT_EDIT_LEFT)) line.left();
+    if (plat_edit_key_repeated(PLAT_EDIT_RIGHT)) line.right();
+    if (plat_edit_key_repeated(PLAT_EDIT_HOME)) line.home();
+    if (plat_edit_key_repeated(PLAT_EDIT_END)) line.end();
+    if (line.text != was || line.caret != at) g_caret_since = plat_time();
 }
 
 // The chat's frame, for both loops. T or / opens it while the player holds the
 // world; open, it has the keyboard and the cursor is free, so nothing reaches
 // the world. ESC shuts it and is spent. True on Enter with something typed:
 // `out` is then the line to say.
-bool chat_frame(Scene &s, LookSettle &settle, bool &esc, std::string &out)
+//
+// Tab finishes the word at the caret: a /command's name from `commands`, any
+// other word from `names` (the players here).
+bool chat_frame(Scene &s, LookSettle &settle, bool &esc, std::string &out,
+                const std::vector<std::string> &commands, const std::vector<std::string> &names)
 {
     ui::Chat  &c    = s.chat;
     const auto shut = [&](bool regrab) {
         c.open = false;
-        c.line.clear();
+        c.line.set("");
+        c.tab.reset();
         c.back = -1;
         plat_text_input(false);
         if (regrab) {
@@ -5942,7 +5964,9 @@ bool chat_frame(Scene &s, LookSettle &settle, bool &esc, std::string &out)
         for (int ch = plat_char_pressed(); ch != 0; ch = plat_char_pressed()) {
             if (ch != 't' && ch != 'T' && ch != '/') continue;
             c.open = true;
-            c.line = ch == '/' ? "/" : "";
+            c.line.set(ch == '/' ? "/" : "");
+            c.tab.reset();
+            g_caret_since = plat_time();
             plat_text_input(true);
             plat_cursor_grab(false);
             while (plat_char_pressed() != 0) {}   // the rest of this frame's keys
@@ -5964,18 +5988,20 @@ bool chat_frame(Scene &s, LookSettle &settle, bool &esc, std::string &out)
     }
 
     type_line(c.line, net::kMaxChatLine);
+    if (plat_edit_key_repeated(PLAT_EDIT_TAB) && ui::tab_complete(c.line, c.tab, commands, names))
+        g_caret_since = plat_time();
     const int n = (int)c.sent.size();
     if (n > 0 && plat_key_repeated(PLAT_KEY_UP)) {
         c.back = c.back < 0 ? n - 1 : std::max(c.back - 1, 0);
-        c.line = c.sent[(size_t)c.back];
+        c.line.set(c.sent[(size_t)c.back]);
     }
     if (c.back >= 0 && plat_key_repeated(PLAT_KEY_DOWN)) {
         c.back = c.back + 1 < n ? c.back + 1 : -1;
-        c.line = c.back < 0 ? "" : c.sent[(size_t)c.back];
+        c.line.set(c.back < 0 ? "" : c.sent[(size_t)c.back]);
     }
     if (!plat_key_pressed(PLAT_KEY_ENTER)) return false;
 
-    std::string line = c.line;
+    std::string line = c.line.text;
     line.erase(0, line.find_first_not_of(' '));
     line.erase(line.find_last_not_of(' ') + 1);
     shut(true);
@@ -6089,6 +6115,14 @@ void local_page_click(Scene &s, const std::string &id, const std::string &text)
     }
 }
 
+// What Tab finishes after a '/' here: what local_chat answers.
+std::vector<std::string> local_chat_commands(const Scene &s)
+{
+    std::vector<std::string> out = {"help", "list", "page"};
+    for (const auto &[name, c] : s.chat_commands) out.push_back(name);
+    return out;
+}
+
 // A line the single-process player said: this process is its own server, so
 // it answers /help, /list, /page and a mod's command the way cnp_server does.
 void local_chat(Scene &s, const std::string &line)
@@ -6139,7 +6173,7 @@ bool chest_search(Scene &s, std::string &text)
             s.typing.on    = true;
             s.typing.panel = "core:chest";
             s.typing.id    = "search";
-            s.typing.text  = s.hotbar.chest_query;
+            s.typing.line.set(s.hotbar.chest_query);
             plat_text_input(true);
         }
         return false;
@@ -6149,10 +6183,10 @@ bool chest_search(Scene &s, std::string &text)
         stop_typing(s);
         return false;
     }
-    const std::string before = s.typing.text;
-    type_line(s.typing.text, 64);
-    if (s.typing.text == before) return false;
-    text                 = s.typing.text;
+    const std::string before = s.typing.line.text;
+    type_line(s.typing.line, 64);
+    if (s.typing.line.text == before) return false;
+    text                 = s.typing.line.text;
     s.hotbar.chest_query = text;   // shown now, not a round trip later
     return true;
 }
@@ -6175,11 +6209,11 @@ bool type_in_field(Scene &s, const ui::Panel *p, std::string &id, std::string &t
         return false;
     }
 
-    type_line(s.typing.text, ui::kMaxPanelText);
+    type_line(s.typing.line, ui::kMaxPanelText);
     if (!plat_key_pressed(PLAT_KEY_ENTER)) return false;
 
     id   = s.typing.id;
-    text = s.typing.text;
+    text = s.typing.line.text;
     stop_typing(s);
     return true;
 }
@@ -12120,10 +12154,22 @@ void draw_title(Scene &s, const TitleMenu &m, const ui::Panel &p)
     for (size_t i = 0; i < p.elements.size(); ++i)
         if (s.typing.on && p.elements[i].kind == ui::ElemKind::Field && p.elements[i].id == s.typing.id)
             typing = (int)i;
-    const std::string shown = s.typing.id == "password" ? std::string(s.typing.text.size(), '*')
-                                                        : s.typing.text;
+    // A password is stars, a star a character: its caret after as many stars
+    // as there are characters before it.
+    ui::TextEdit shown = s.typing.line;
+    if (s.typing.id == "password") {
+        size_t before = 0, all = 0;
+        for (size_t i = 0; i < shown.text.size(); ++i)
+            if (((uint8_t)shown.text[i] & 0xC0) != 0x80) {
+                ++all;
+                if (i < shown.caret) ++before;
+            }
+        shown.text  = std::string(all, '*');
+        shown.caret = before;
+    }
+    const ui::TypedLine typed{shown.text.c_str(), shown.caret, caret_lit()};
     ui::draw_mod_panel(p, at, at.button_at(p, mx, my), gfx_screen_width(), gfx_screen_height(),
-                       typing, shown.c_str());
+                       typing, &typed);
     draw_server_marks(m, p, at);
 
     if (m.page != MenuPage::NewWorld) draw_title_name();   // its panel needs the room
@@ -12171,7 +12217,7 @@ MenuChoice title_menu(Scene &s, TitleMenu &m, bool &debug)
         };
         std::string tid, ttext;
         if (type_in_field(s, &p, tid, ttext)) field(tid) = ttext;
-        if (s.typing.on) field(s.typing.id) = s.typing.text;
+        if (s.typing.on) field(s.typing.id) = s.typing.line.text;
 
         const bool capturing = m.page == MenuPage::Options && controls_capture(debug);
         if (!capturing && plat_key_pressed(PLAT_KEY_ESC)) {
@@ -13354,6 +13400,8 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
             // sheet over the whole screen and a grid drawn before it would be
             // under it.
             if (s.hotbar.chest_open && !s.hotbar.chest.empty()) {
+                const ui::TypedLine chest_typed{s.typing.line.text.c_str(), s.typing.line.caret,
+                                                caret_lit()};
                 s.hotbar.chest_panel = ui::draw_chest(
                     chest_shown, (int)s.hotbar.chest.size(),
                     lifted(ui::Grid::Chest), *s.hotbar.items,
@@ -13366,7 +13414,7 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
                                              s.hotbar.chest_rate * (float)(plat_time() - s.hotbar.chest_since)),
                     s.hotbar.chest_scroll, s.hotbar.chest_scroll_size,
                     s.hotbar.chest_search ? s.hotbar.chest_query.c_str() : nullptr,
-                    s.typing.on && s.typing.panel == "core:chest");
+                    s.typing.on && s.typing.panel == "core:chest" ? &chest_typed : nullptr);
             } else {
                 s.hotbar.chest_panel = ui::PanelLayout{};
             }
@@ -13499,7 +13547,7 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
 
     // The chat, over what the world's code drew and under a panel.
     gfx_2d_begin(gfx_screen_width(), gfx_screen_height());
-    ui::draw_chat(s.chat, s.notice_clock, gfx_screen_width(), gfx_screen_height());
+    ui::draw_chat(s.chat, s.notice_clock, gfx_screen_width(), gfx_screen_height(), caret_lit());
     gfx_2d_end();
 
     // A mod's panel, over everything the engine drew. Last, because a panel a
@@ -13523,9 +13571,10 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
         ui::IconSource icons;
         icons.atlas = s.act().world_render.atlas();
         icons.tiles = s.act().world_render.atlas_tiles();
-        const int hover = at.button_at(*panel, mx, my);
+        const int           hover = at.button_at(*panel, mx, my);
+        const ui::TypedLine typed{s.typing.line.text.c_str(), s.typing.line.caret, caret_lit()};
         ui::draw_mod_panel(*panel, at, hover, gfx_screen_width(), gfx_screen_height(), typing,
-                           s.typing.text.c_str(), s.hotbar.items, &s.act().registry, &icons);
+                           &typed, s.hotbar.items, &s.act().registry, &icons);
         // An item's picture says what it is under the pointer, as the bag's do.
         if (hover >= 0 && panel->elements[(size_t)hover].kind == ui::ElemKind::Item)
             ui::draw_item_tooltip(ui::item_display_name(panel->elements[(size_t)hover].text), mx, my,
@@ -17107,7 +17156,8 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             s.chat.add(line, s.notice_clock);
             std::printf("chat: %s\n", line.c_str());
         }
-        if (std::string said; chat_frame(s, look_settle, esc, said)) conn->send_chat(said);
+        if (std::string said; chat_frame(s, look_settle, esc, said, conn->chat_commands(), conn->chat_names()))
+            conn->send_chat(said);
         if (esc && s.hotbar.open) {
             esc            = false;
             s.hotbar.open  = false;
@@ -21218,7 +21268,8 @@ int run_interactive(Scene &s, double seconds)
             esc = false;
             stop_typing(s);
         }
-        if (std::string said; chat_frame(s, look_settle, esc, said)) local_chat(s, said);
+        if (std::string said; chat_frame(s, look_settle, esc, said, local_chat_commands(s), {g_self_name}))
+            local_chat(s, said);
         if (esc && s.hotbar.open) {
             esc = false;
             shut_bag(&s);

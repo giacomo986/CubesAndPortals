@@ -926,6 +926,12 @@ void ClientSession::handle(const std::vector<uint8_t> &data, double now, uint8_t
         break;
     }
 
+    case MsgType::ChatWords: {
+        ChatWords words;
+        if (ChatWords::decode(r, words)) m_chat_words = std::move(words);
+        break;
+    }
+
     case MsgType::SoundLoops: {
         SoundLoops loops;
         if (SoundLoops::decode(r, loops)) m_loops = std::move(loops.loops);

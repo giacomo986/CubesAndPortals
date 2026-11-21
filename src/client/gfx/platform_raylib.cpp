@@ -279,6 +279,14 @@ int plat_code_from_name(const char *name)
 void plat_text_input(bool on) { g_text_input = on; }
 int  plat_char_pressed(void)  { return GetCharPressed(); }
 
+bool plat_edit_key_repeated(plat_edit_key key)
+{
+    static const int kEdit[] = {KEY_LEFT, KEY_RIGHT, KEY_HOME, KEY_END, KEY_DELETE, KEY_TAB};
+    if (!g_text_input || key < 0 || key > PLAT_EDIT_TAB) return false;
+    const int code = kEdit[key];
+    return IsKeyPressed(code) || IsKeyPressedRepeat(code);
+}
+
 void plat_mouse_delta(float *dx, float *dy)
 {
     const Vector2 d = GetMouseDelta();

@@ -2006,6 +2006,14 @@ std::vector<std::string> help(const Who &caller)
     return out;
 }
 
+std::vector<std::string> command_names(const Who &caller)
+{
+    std::vector<std::string> out;
+    for (const Command &c : kCommands)
+        if (!c.perm || may(caller, c.perm)) out.push_back(c.name);
+    return out;
+}
+
 using ui::page_text;
 
 namespace {

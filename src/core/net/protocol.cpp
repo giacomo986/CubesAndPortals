@@ -1914,6 +1914,39 @@ bool Slain::decode(ByteReader &r, Slain &out)
     return r.done();
 }
 
+std::vector<uint8_t> ChatWords::encode() const
+{
+    ByteWriter w;
+    w.u8((uint8_t)MsgType::ChatWords);
+    for (const std::vector<std::string> *list : {&commands, &names}) {
+        std::vector<const std::string *> fit;
+        for (const std::string &word : *list)
+            if (fit.size() < kMax && !word.empty() && word.size() <= kMaxWord) fit.push_back(&word);
+        w.u16((uint16_t)fit.size());
+        for (const std::string *word : fit) w.str(*word);
+    }
+    return w.data();
+}
+
+bool ChatWords::decode(ByteReader &r, ChatWords &out)
+{
+    out = ChatWords{};
+    if (r.u8() != (uint8_t)MsgType::ChatWords) return false;
+    for (std::vector<std::string> *list : {&out.commands, &out.names}) {
+        const size_t n = r.u16();
+        if (n > kMax) return false;
+        for (size_t i = 0; i < n; ++i) {
+            std::string word;
+            if (!r.str(word, kMaxWord) || word.empty()) return false;
+            // A word on one line of printable text: it goes into a line typed.
+            for (const char c : word)
+                if ((uint8_t)c < 32 || c == 127) return false;
+            list->push_back(std::move(word));
+        }
+    }
+    return r.done();
+}
+
 std::vector<uint8_t> Seal::encode() const
 {
     ByteWriter w;
@@ -3042,6 +3075,7 @@ MsgType peek_type(const void *data, size_t size)
     case MsgType::OwnPose:
     case MsgType::Rope:
     case MsgType::SoundLoops:
+    case MsgType::ChatWords:
         return (MsgType)t;
     }
 
