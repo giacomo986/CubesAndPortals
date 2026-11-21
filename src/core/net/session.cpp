@@ -1329,17 +1329,6 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
                     a.used_mob     = (uint32_t)req.target;
                     a.used_held    = held.empty() ? kNoItem : held.item;
                 }
-            } else if (const Session *other = driver_of(req.target);
-                       other != nullptr && other != &s && s.scope == Scope::Enter && other->avatar.is_alive() &&
-                       other->avatar.try_get<ecs::Position>() != nullptr &&
-                       in_reach(s, other->avatar, *other->avatar.try_get<ecs::Position>(), why)) {
-                // Another player: nothing the engine does, a mod's to answer
-                // as for a creature (a seat in their kart, games/track), who
-                // by core.body_player of the target.
-                const ItemStack &held = s.bag().at(req.slot < Inventory::kHotbar ? req.slot : 0);
-                a.has_used_mob = true;
-                a.used_mob     = (uint32_t)req.target;
-                a.used_held    = held.empty() ? kNoItem : held.item;
             } else if (use_body(s, req.target, req.slot, now, why)) {
                 a.reply_channel = (uint8_t)Channel::Event;
                 a.reply         = inventory_message(peer);

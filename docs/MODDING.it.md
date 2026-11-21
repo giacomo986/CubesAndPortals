@@ -2503,7 +2503,7 @@ mezzanotte, niente sotto `core.world_sky`). Il grano cresce da 9 in su.
 
 **Seduti su un altro: `core.ride`.** `core.ride(player, host, x, y, z)` mette
 `player` sul corpo di `host`, a x alla sua destra, y in su e z davanti (ognuno
-entro 8), e ce lo tiene girando con lui: il passeggero di un kart. Il server lo
+entro 8), e ce lo tiene girando con lui: un giocatore sulle spalle di un altro. Il server lo
 rimette al posto a ogni tick e non guarda le sue posizioni; lui guarda, scava,
 costruisce e usa come sempre. `core.ride(player, 0)` lo fa scendere dov'è; scende
 da solo se `host` se ne va. Solo sul server (protocollo 63).

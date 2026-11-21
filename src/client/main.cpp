@@ -8426,11 +8426,8 @@ uint64_t aimed_body(const net::ClientSession &conn, const ModelStore &models, co
 
         // A person drawn as a block (116) is aimed at in that block, as the
         // server strikes them (ecs::disguised_box): not in the air over it.
-        // And somebody in a kart by the kart, about as wide as it is: a
-        // click on its bonnet asks for the seat in it (games/track).
         const AABB box = (p.kind == net::EntityKind::Mob) ? creature_box(models, p.model, Vec3{p.x, p.y, p.z}, p.scale)
                          : p.as_block != kAir ? ecs::disguised_box(reg, p.as_block, p.x, p.y, p.z)
-                         : p.chassis          ? body_box(Vec3{p.x, p.y, p.z}, 0.9f)
                                               : body_box(Vec3{p.x, p.y, p.z}, conn.welcome().movement.width * 0.5f);
 
         float t = 0.0f;
@@ -14431,10 +14428,6 @@ struct ScriptLeft {
     float  fx = -1.0f, fy = -1.0f;
 };
 std::vector<ScriptLeft> g_lefts;
-// --right-at "t": t seconds into a timed run (counted as --left-at's are), one
-// right click wherever the player looks -- a use on whatever body or block is
-// aimed at, as a real click is: a seat in somebody's kart (games/track).
-double g_right_at = -1.0;
 
 // --fly-down N: in a timed single-process run, fly N nodes up and come back
 // down to the ground with nobody at the keyboard, then say what the landing
@@ -16826,8 +16819,6 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
     size_t left_next     = 0;
     bool   left_told     = false;
     float  script_fx = -1.0f, script_fy = -1.0f;
-    bool   script_right = false;   // --right-at's click, held this frame
-    bool   right_told   = false;
     bool         dropped  = false;
     long         frames   = 0;
 
@@ -16839,7 +16830,6 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
     while (!plat_should_close()) {
         // Every frame, so a press is one frame's edge and a release another's.
         plat_script_mouse(PLAT_MOUSE_LEFT, script_left);
-        plat_script_mouse(PLAT_MOUSE_RIGHT, script_right);
         plat_script_cursor(script_point ? script_fx * (float)gfx_screen_width() : -1.0f,
                            script_point ? script_fy * (float)gfx_screen_height() : -1.0f);
         window_keys(show_debug);
@@ -17520,13 +17510,6 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
                 script_point = false;
                 std::printf("left button up, %.1f s into the run\n", now - started);
             }
-        }
-        // --right-at: one right click, held 0.15 s, where the player looks.
-        script_right = g_right_at >= 0.0 && now >= left_base + g_right_at &&
-                       now < left_base + g_right_at + 0.15;
-        if (script_right && !right_told) {
-            right_told = true;
-            std::printf("right button down, %.1f s into the run\n", now - started);
         }
         const bool clicked = click_done;
 
@@ -22646,8 +22629,6 @@ int client_main(int argc, char **argv)
                                  [](const ScriptLeft &a, const ScriptLeft &b) { return a.at < b.at; });
             }
         }
-        if (std::strcmp(argv[i], "--right-at") == 0 && i + 1 < argc)
-            g_right_at = std::atof(argv[++i]);
         if (std::strcmp(argv[i], "--use-at") == 0 && i + 1 < argc)
             g_use_at = std::sscanf(argv[++i], "%d,%d,%d", &g_use_x, &g_use_y, &g_use_z) == 3;
         if (std::strcmp(argv[i], "--first-person") == 0) {

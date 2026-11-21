@@ -638,7 +638,7 @@ local api: { Fn } = {
             { name = "z", type = "float", default = 0, doc = "To its front. Each within 8 nodes." },
         },
         doc = "A seat: puts `player` on `host`'s body and keeps them there, turning with it -- "
-           .. "a passenger in a kart, one player on another's shoulders. While seated their "
+           .. "one player on another's shoulders. While seated their "
            .. "keys move nothing; they look about, dig, build and use as ever. 0 for the host "
            .. "lets them off where they are, walking. Let off by itself when the host leaves "
            .. "or gets a seat of their own. Returns 1, or 0 refused: no such player, one on "

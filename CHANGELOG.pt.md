@@ -45,14 +45,11 @@ rede.
   a terra (planície, deserto, frio, mar; `--no-mod music` para ficar sem).
 - **Karts**: uma caixa de itens dá a quem lidera o que defende a vantagem e ao último o que o faz
   alcançar, e o HUD mostra a sua posição. Um **fantasma** dirige ao seu lado a volta recorde da
-  pista (na pista do Inferno, a do engenheiro). Os karts **se batem** e se afastam, e um clique
-  direito em quem está dirigindo **te senta atrás dele**; F para descer.
+  pista (na pista do Inferno, a do engenheiro). Os karts **se batem** e se afastam.
 - Para quem escreve mods: `core.node_glass(id, opacity, tint)` deixa passar a luz na cor do bloco;
   `core.player_launch(..., add)` soma à velocidade em vez de defini-la, e move também um kart;
   `core.render.model(..., alpha, tint)` desenha um modelo transparente e tingido; `maps:route`
   aceita `~R;` antes dos pontos para um fim alcançado dentro de R.
-- **Para testes**: o cliente cronometrado pode clicar com o botão direito onde olha
-  (`--right-at t`).
 
 - **Acabaram os clarões verdes no céu do front**: a ponta distante de uma janela (o mapa da galeria
   sobre o campo) não é desenhada, e a sua abertura não se repete mais -- no céu,

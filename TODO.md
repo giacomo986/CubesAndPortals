@@ -108,7 +108,8 @@ mirrored ones included (built and walked by script only).
 
 New in 0.20.0-alpha.1, tried by script only: chambers 16 and 17 with the mouse;
 a chip saved on the bench and put down; a card kept from a hand and given to
-the museum; two karts racing (bumps, a ghost, the passenger's seat in a lap).
+the museum; two karts racing (bumps, a ghost); power-ups kept to the track
+they are used on (a lightning, ink, a shell from a kart on another track).
 
 Track: a drift (Ctrl); a loop and a tall loop; a wall ride; power-ups other
 than the banana (one used by a scripted click, 2026-11-20); the item box tool; the dragon pipes' flames in a lap; a kart got
@@ -351,6 +352,11 @@ Arcade shooter:
 ## Defects
 
 Seen by players first:
+- Chamber 13, 2026-11-21: walking into a wall portal (south panel by the way
+  in) with the cube in hand, the crossing did not happen and the body was left
+  half in the wall at 299.84 20 0.01, refused as "inside a solid block" and
+  put back there. Fixed the trap (check_move puts a body already inside a wall
+  somewhere free); why the crossing stopped is not known, not reproduced.
 - Models at join: fixed 2026-11-19, looked at by eye 2026-11-20. A draw that
   misses a model queues it (ModelStore::entry) and the reading serves that
   queue before the table's order. Sandbox under Xephyr at about 9 fps, shots at
@@ -745,7 +751,7 @@ on the map, bone meal and flesh, signs on their boards, a caret and Tab, stained
 glass, loops in use, item odds and a ghost on the track, the first hour as a
 guide, circuits' rest (walls and ceilings, bus gates, the chip bench), chambers
 16 and 17 (light bridge, gels) and survival's own rows of chambers, cards as
-items for the museum, karts that bump and a passenger seat. Not done of them:
+items for the museum, karts that bump. Not done of them:
 the chambers' funnel and angled panel in a chamber (see Mods, above).
 
 Large, each wants questions first:

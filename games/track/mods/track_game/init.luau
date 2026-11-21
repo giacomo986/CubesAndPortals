@@ -174,7 +174,6 @@ local heard: (string) -> () = function(_) end
 local get_out: (number) -> () = function(_) end
 local respawn: (number) -> () = function(_) end
 local use_item: (number, boolean) -> () = function(_, _) end
-local seat_off: (number) -> () = function(_) end
 
 local function tell(player: number, text: string)
     if drawing then
@@ -481,8 +480,6 @@ if serving then
                    -- the race order (race_order): laps done since getting in, the place
                    -- in it and how many are in it, 0 0 for none
                    laps: number, place: number, of: number,
-                   -- a passenger's seat (the driver it sits behind), a driver's passenger
-                   seat: number?, passenger: number?,
                    -- how fast it was seen going, for a bump; when it was last recorded
                    -- for a ghost, and which ghost its machine has
                    vx: number, vz: number, rec_at: number, ghost_sent: string? }
@@ -1137,7 +1134,7 @@ if serving then
     -- same click would also build whatever is in hand on top of it.
     core.event.on("core:used", function(ev)
         local s = players[ev.player]
-        if ev.id ~= KART_NODE or KART_NODE == 0 or s == nil or s.driving or s.seat ~= nil then
+        if ev.id ~= KART_NODE or KART_NODE == 0 or s == nil or s.driving then
             return
         end
         ev.cancel = true
@@ -1255,7 +1252,9 @@ if serving then
     local BANANAS    = 24      -- the most on the road at once; the oldest goes
 
     type Box = { x: number, z: number, gy: number?, y: (number | false)?, id: number?, back: number, placed: boolean? }
-    type Thing = { kind: string, vx: number, vz: number, t: number, owner: number, bounces: number, target: number? }
+    -- `track`: the owner's track when it was used; it touches only karts on that one.
+    type Thing = { kind: string, vx: number, vz: number, t: number, owner: number, bounces: number, target: number?,
+                   track: number? }
     local boxes: { Box } = {}   -- { x, z, gy, y, id, back } a box; y nil until its road is found, false for none
     local things: { [number]: Thing } = {}   -- entity id -> { kind, vx, vz, t, owner, target, bounces }
     local peels: { number } = {}   -- the bananas' ids, oldest first
@@ -1425,6 +1424,12 @@ if serving then
 
     -- Hit by a banana, a shell, a star or the lightning: the kart stops and
     -- spins round once where it is. A star is hit by nothing.
+    -- Power-ups stay on the track they were used on: a kart is on the track
+    -- whose start line it crossed last, and one that crossed none is on none.
+    local function same_track(ti: number?, s: Racer): boolean
+        return ti ~= nil and s.track == ti
+    end
+
     local function hit(p: number, s: Racer, why: string)
         if s.star > 0 or s.spin > 0 or not s.driving or s.held > 0 then
             return
@@ -1510,7 +1515,8 @@ if serving then
         end
         core.ecs.visible(id, true)
         core.ecs.model(id, MODELS[kind])
-        things[id] = { kind = kind, vx = 0, vz = 0, t = 0, owner = owner, bounces = 0 }
+        local o = players[owner]
+        things[id] = { kind = kind, vx = 0, vz = 0, t = 0, owner = owner, bounces = 0, track = o and o.track }
         return id
     end
 
@@ -1545,8 +1551,10 @@ if serving then
             tell(p, `fx star {STAR}`)
             core.play_sound(SND .. "star", x, y + 1, z)
         elseif item == "bolt" or item == "ink" then
+            tell(p, `fx {item}go {s.name}`)
             for q, o in players do
-                if q ~= p and o.driving then
+                if q ~= p and o.driving and same_track(s.track, o) then
+                    tell(q, `fx {item}go {s.name}`)
                     if item == "bolt" then
                         if o.star <= 0 then
                             hit(q, o, `{s.name}'s lightning`)
@@ -1560,7 +1568,6 @@ if serving then
                     end
                 end
             end
-            tell(0, `fx {item}go {s.name}`)
             if item == "bolt" then core.play_sound(SND .. "bolt", x, y + 2, z) end
         elseif item == "banana" then
             core.play_sound(SND .. "throw", x, y + 1, z)
@@ -1584,9 +1591,9 @@ if serving then
                 t.vx, t.vz = lx * SHELL * d, lz * SHELL * d
                 if item == "homing" and not back then
                     local best = 100 * 100
-                    for q in drivers() do
+                    for q, o in drivers() do
                         local qx, _, qz = core.player_pos(q)
-                        if q ~= p and qx ~= nil then
+                        if q ~= p and qx ~= nil and same_track(s.track, o) then
                             local dx, dz = qx - x, qz - z
                             local d2 = dx * dx + dz * dz
                             if d2 < best and dx * lx + dz * lz > 0 then
@@ -1692,7 +1699,8 @@ if serving then
             if s.star > 0 then
                 for q, o in on do
                     local qx, qy, qz = core.player_pos(q)
-                    if q ~= p and qx ~= nil and (qx - x) ^ 2 + (qz - z) ^ 2 < 2.2 ^ 2 and math.abs(qy - y) < 2 then
+                    if q ~= p and qx ~= nil and same_track(s.track, o) and (qx - x) ^ 2 + (qz - z) ^ 2 < 2.2 ^ 2
+                            and math.abs(qy - y) < 2 then
                         hit(q, o, `{s.name}'s star`)
                     end
                 end
@@ -1753,7 +1761,7 @@ if serving then
             local gone = false
             for q, o in on do
                 local qx, qy, qz = core.player_pos(q)
-                if qx ~= nil and (qx - x) ^ 2 + (qz - z) ^ 2 < HIT * HIT and math.abs(qy - y) < 2
+                if qx ~= nil and same_track(t.track, o) and (qx - x) ^ 2 + (qz - z) ^ 2 < HIT * HIT and math.abs(qy - y) < 2
                         and not (q == t.owner and t.t < 0.6) then
                     hit(q, o, if t.kind == "banana" then "a banana" else "a shell")
                     gone = true
@@ -1762,7 +1770,7 @@ if serving then
             end
             if not gone and t.kind ~= "banana" then
                 for other, u in things do
-                    if other ~= id and u.kind == "banana" then
+                    if other ~= id and u.kind == "banana" and u.track == t.track then
                         local ox, oz = core.ecs.get(other, "x"), core.ecs.get(other, "z") :: number
                         if ox ~= nil and (ox - x) ^ 2 + (oz - z) ^ 2 < 1 then
                             remove(other)
@@ -1992,62 +2000,9 @@ if serving then
         end
     end
 
-    -- ------------------------------------------------------------ a passenger
-    --
-    -- A right click on somebody driving (core:used_mob, a player's body) is
-    -- a seat behind them (core.ride): carried round, looking about, the keys
-    -- moving nothing. One a kart. F gets off, and so does getting out of the
-    -- kart; the engine lets them off when the driver leaves the room.
-    local SEAT = { 0, 0.55, -0.95 }   -- to the driver's right, up, to the front
-    local function off_seat(p: number, s: Racer)
-        local host = s.seat
-        if host == nil then
-            return
-        end
-        core.ride(p, 0)
-        s.seat = nil
-        local h = players[host]
-        if h ~= nil and h.passenger == p then
-            h.passenger = nil
-        end
-        tell(p, "seat 0")
-        core.log(`track_game: {s.name} gets off`)
-    end
-    seat_off = function(p: number)
-        local s = players[p]
-        if s ~= nil then
-            off_seat(p, s)
-        end
-    end
-    core.event.on("core:used_mob", function(ev)
-        local host = core.body_player(ev.target)
-        local s, h = players[ev.player], players[host]
-        if host == 0 or s == nil or h == nil or s.driving or not h.driving or s.seat ~= nil then
-            return
-        end
-        if h.passenger ~= nil then
-            core.chat(ev.player, `{h.name}'s kart has somebody in the seat already`)
-            return
-        end
-        if core.ride(ev.player, host, SEAT[1], SEAT[2], SEAT[3]) then
-            s.seat, h.passenger = host, ev.player
-            tell(ev.player, "seat 1")
-            core.chat(host, `{s.name} rides with you`)
-            core.log(`track_game: {s.name} rides in {h.name}'s kart`)
-        end
-    end)
-
     core.event.on("core:net_message", function(ev)
-        local s = players[ev.player :: number]
-        if ev.text == "off" and s ~= nil and s.seat ~= nil then
-            off_seat(ev.player :: number, s)
-        elseif ev.text == "off" then
-            -- Out of the kart, and whoever sat behind off it too.
-            local passenger = s and s.passenger
+        if ev.text == "off" then
             get_out(ev.player :: number)
-            if passenger ~= nil and players[passenger] ~= nil and s ~= nil and not s.driving then
-                off_seat(passenger, players[passenger] :: Racer)
-            end
         elseif ev.text == "respawn" then
             respawn(ev.player :: number)
         elseif ev.text == "use" or ev.text == "use back" then
@@ -2386,13 +2341,6 @@ if serving then
                     -- Its part of this lap, kept in case the lap is a record.
                     pending[s.name], rec[s.name] = rec[s.name], nil
                 end
-                if s.passenger ~= nil and players[s.passenger] ~= nil then
-                    (players[s.passenger] :: Racer).seat = nil
-                    tell(s.passenger, "seat 0")
-                end
-                if s.seat ~= nil and players[s.seat] ~= nil then
-                    (players[s.seat] :: Racer).passenger = nil
-                end
                 players[p] = nil
             end
         end
@@ -2467,8 +2415,6 @@ if drawing then
 
     -- The place in the race (the server's "pos"), 0 for none, of how many.
     local place, of = 0, 0
-    -- In the seat behind somebody (the server's "seat").
-    local riding = false
     -- The ghost of the track being lapped (the server's "ghost" and "gh"):
     -- its places, { t, x, y, z, yaw } by the time into its lap, how much
     -- faster than they were driven it plays them, its colours, and how far
@@ -2605,8 +2551,6 @@ if drawing then
             end
         elseif w[1] == "pos" then
             place, of = tonumber(w[2]) or 0, tonumber(w[3]) or 0
-        elseif w[1] == "seat" then
-            riding = w[2] == "1"
         elseif w[1] == "ghost" then
             ghost = {}
             ghost_name = if w[2] == "off" then "" else w[2]
@@ -2672,13 +2616,6 @@ if drawing then
             end
         elseif ev.action == "mouse_right" and driving then
             ev.cancel = true
-        elseif ev.action == "key_f" and riding then
-            ev.cancel = true
-            if serving then
-                seat_off(ev.player :: number)
-            else
-                core.net.send(0, "off")
-            end
         elseif ev.action == "key_f" and driving then
             ev.cancel = true
             if serving then
@@ -2746,9 +2683,6 @@ if drawing then
                     0.025, 1, 255, 255, 255, 255)
             end
         end
-        if riding then
-            core.hud.text(0.5, 0.22, "F  GET OFF", 0.03, 1, 220, 220, 220, 255)
-        end
         if total < 0 then
             return
         end
@@ -2768,8 +2702,7 @@ if drawing then
             core.hud.text(0.5, 0.28, `CHECKPOINT {passed} / {total}`, 0.03, 1, 220, 220, 220, 255)
             core.hud.text(0.5, 0.32, "CTRL  DRIFT    R  BACK TO THE LAST CHECKPOINT    F  GET OUT", 0.018, 1, 180, 180, 180, 255)
         elseif not driving then
-            -- Not to a passenger, who is in one already (F GET OFF, above).
-            if picking == "" and not riding then
+            if picking == "" then
                 core.hud.text(0.5, 0.22, "RIGHT CLICK A KART TO GET IN", 0.04, 1, 255, 255, 255, 255)
             end
         else

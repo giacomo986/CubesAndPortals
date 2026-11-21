@@ -46,12 +46,11 @@ sono nuovi in rete.
 - **Kart**: una scatola oggetti dà a chi è in testa ciò che difende il vantaggio e all'ultimo ciò
   che fa recuperare, e l'HUD mostra la tua posizione. Un **fantasma** guida accanto a te il giro
   record della pista (sulla pista dell'Inferno, quello dell'ingegnere). I kart **si urtano** e si
-  separano, e un clic destro su chi guida **ti fa sedere dietro di lui**; F per scendere.
+  separano.
 - Per chi scrive mod: `core.node_glass(id, opacity, tint)` lascia passare la luce del colore del
   blocco; `core.player_launch(..., add)` aggiunge alla velocità invece di impostarla, e muove anche
   un kart; `core.render.model(..., alpha, tint)` disegna un modello trasparente e tinto;
   `maps:route` accetta `~R;` prima dei punti per un arrivo raggiunto entro R.
-- **Per i test**: il client a tempo può fare clic destro dove guarda (`--right-at t`).
 
 - **Niente più lampi verdi nel cielo del fronte**: l'estremo lontano di una finestra (la mappa della
   galleria sopra il campo) non si disegna, e la sua apertura non si ripete più -- in cielo, a ogni

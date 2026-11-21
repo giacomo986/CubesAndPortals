@@ -975,6 +975,15 @@ int main()
             check(off.accepted, "and stepping down off a block, across before down, is accepted");
             world.set_block(44, (int)ground, 38, air);
 
+            // Left half in a wall (an opening that let the body into it went):
+            // a claim there is put somewhere free, not back into the wall.
+            for (int dy = 0; dy < 3; ++dy) world.set_block(44, (int)ground + dy, 37, stone);
+            const MovementVerdict stuck =
+                check_move(standing(44.5f, ground, 38.01f), 44.5f, ground, 38.01f, 0.2, world, registry);
+            check(!stuck.accepted && !inside_solid(world, registry, stuck.x, stuck.y, stuck.z),
+                  "a body left inside a wall is put back somewhere free, not into the wall");
+            for (int dy = 0; dy < 3; ++dy) world.set_block(44, (int)ground + dy, 37, air);
+
             // The control: the first claim again, with nothing in the way. A
             // refusal here would be the check refusing distance, not walls.
             wall(air);

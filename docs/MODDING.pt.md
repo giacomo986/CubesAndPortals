@@ -2249,7 +2249,7 @@ trigo cresce de 9 para cima.
 
 **Andar em cima de outro: `core.ride`.** `core.ride(player, host, x, y, z)` põe `player` no corpo de
 `host`, a x à direita dele, y para cima e z à frente (cada um até 8), e o mantém ali girando com ele:
-o passageiro de um kart. O servidor o recoloca no lugar a cada tick e ignora as posições dele; ele
+um jogador nos ombros de outro. O servidor o recoloca no lugar a cada tick e ignora as posições dele; ele
 olha, cava, constrói e usa como sempre. `core.ride(player, 0)` o faz descer onde está; ele desce
 sozinho se `host` for embora. Só no servidor (protocolo 63).
 

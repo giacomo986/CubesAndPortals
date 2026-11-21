@@ -587,7 +587,7 @@ Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
 core.ride(player: number, host: number, x: number?, y: number?, z: number?) -> boolean
 ```
 
-A seat: puts `player` on `host`'s body and keeps them there, turning with it -- a passenger in a kart, one player on another's shoulders. While seated their keys move nothing; they look about, dig, build and use as ever. 0 for the host lets them off where they are, walking. Let off by itself when the host leaves or gets a seat of their own. Returns 1, or 0 refused: no such player, one on themselves, a host who is seated, a seat too far out. On a server; a world with one player has nobody to carry.
+A seat: puts `player` on `host`'s body and keeps them there, turning with it -- one player on another's shoulders. While seated their keys move nothing; they look about, dig, build and use as ever. 0 for the host lets them off where they are, walking. Let off by itself when the host leaves or gets a seat of their own. Returns 1, or 0 refused: no such player, one on themselves, a host who is seated, a seat too far out. On a server; a world with one player has nobody to carry.
 
 Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
 

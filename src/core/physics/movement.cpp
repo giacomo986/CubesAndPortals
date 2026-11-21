@@ -135,6 +135,30 @@ MovementVerdict check_move(const MovementState &last, float x, float y, float z,
         v.x = last.valid ? last.x : x;
         v.y = last.valid ? last.y : y;
         v.z = last.valid ? last.z : z;
+        // Put back where it was -- unless that is inside too (an opening that
+        // let the body into the wall round it went, or moved): then the
+        // nearest free place, a ring a twentieth wider at a time, or the body
+        // is put back into the wall at every claim and never moves again
+        // (chamber 13, crossing with a cube, 2026-11-21).
+        if (inside_solid(world, registry, v.x, v.y, v.z, exempt, exempt_count, limits.solid_half,
+                         limits.height)) {
+            bool found = false;
+            for (int ring = 1; ring <= 20 && !found; ++ring) {
+                const float d = 0.05f * (float)ring;
+                for (int k = 0; k < 16 && !found; ++k) {
+                    const float a = (float)k * 0.39269908f;   // a sixteenth of a turn
+                    const float cx = v.x + d * std::cos(a), cz = v.z + d * std::sin(a);
+                    for (const float dy : {0.0f, d}) {
+                        if (!inside_solid(world, registry, cx, v.y + dy, cz, exempt, exempt_count,
+                                          limits.solid_half, limits.height)) {
+                            v.x = cx, v.y += dy, v.z = cz;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
         // Where, in the sentence: a refusal that does not say which position
         // is one nobody can check, and the width is the world's.
         char where[128];

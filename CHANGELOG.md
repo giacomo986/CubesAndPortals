@@ -42,13 +42,11 @@ on the wire.
   sea; `--no-mod music` to do without).
 - **Karts**: an item box gives the leader what defends a lead and the last what catches up, and
   the HUD shows your place. A **ghost** drives the track's record lap beside you (on the Inferno
-  track, the engineer's). Karts **bump** each other apart, and a right click on somebody driving
-  **seats you behind them**; F gets off.
+  track, the engineer's). Karts **bump** each other apart.
 - For mod writers: `core.node_glass(id, opacity, tint)` lets light through in the block's colour;
   `core.player_launch(..., add)` adds to the speed instead of setting it, and moves a kart too;
   `core.render.model(..., alpha, tint)` draws a model seen through and tinted; `maps:route` takes
   `~R;` before the points for an end reached within R.
-- **For testing**: the timed client can right click where it looks (`--right-at t`).
 
 - **No more green flashes in the front's sky**: the far end of a window (the gallery's map over the
   field) is drawn from nowhere, and its opening no longer played -- in the sky, at every change of

@@ -334,11 +334,8 @@ CLICK A PIECE  TRY IT    W  KEEP IT    A / D  ANOTHER ONE THAT FITS    S  UNDO  
 CHECKPOINT {} / {} = CHECKPOINT {} / {}
 CTRL  DRIFT    R  BACK TO THE LAST CHECKPOINT    F  GET OUT = CTRL  DERAPATA    R  TORNA ALL'ULTIMO CHECKPOINT    F  SCENDI
 RIGHT CLICK A KART TO GET IN = CLIC DESTRO SU UN KART PER SALIRE
-F  GET OFF = F  SCENDI
 GHOST  {} = FANTASMA  {}
 OF {} = SU {}
-{} rides with you = {} viaggia con te
-{}'s kart has somebody in the seat already = Nel kart di {} c'è già qualcuno sul sedile
 CROSS THE LINE TO START = PASSA LA LINEA PER PARTIRE
 CTRL  DRIFT    F  GET OUT = CTRL  DERAPATA    F  SCENDI
 LAST {} = ULTIMO {}

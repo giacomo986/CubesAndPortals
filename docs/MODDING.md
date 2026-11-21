@@ -2206,8 +2206,8 @@ not let you sleep if one is within 8.
 the hour (full at noon, a fifth at midnight, none under `core.world_sky`). Wheat grows from 9 up.
 
 **Riding on another: `core.ride`.** `core.ride(player, host, x, y, z)` puts `player` on `host`'s
-body, at x to its right, y up and z ahead (each within 8), and keeps them there turning with it: a
-kart's passenger. The server puts them back in place every tick and ignores their positions; they
+body, at x to its right, y up and z ahead (each within 8), and keeps them there turning with it: one
+player on another's shoulders. The server puts them back in place every tick and ignores their positions; they
 look, dig, build and use as always. `core.ride(player, 0)` gets them off where they are; they get off
 by themselves if `host` leaves. Server only (protocol 63).
 
