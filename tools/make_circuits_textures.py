@@ -155,3 +155,53 @@ draw(INGOT, {"h": (250, 150, 110), "H": (225, 110, 80), "c": (170, 60, 44), "d":
     os.path.join(OUT, "circuits_alloy_ingot.png"))
 draw(BOARD, {"b": (40, 70, 52), "g": (62, 104, 74), "c": (220, 190, 90), "t": COPPER}).save(
     os.path.join(OUT, "circuits_plate.png"))
+
+
+# The blocks that came with walls, buses and chips: a top that says what it is,
+# flat sides, and the top as the icon (none of them is a cube worth drawing).
+def tile(stem, board, edge, label, ink, arrow=None, sub=None):
+    img = Image.new("RGB", (32, 32), board)
+    d = ImageDraw.Draw(img)
+    d.rectangle((0, 0, 31, 31), outline=edge)
+    if arrow:
+        d.polygon([(16, 2), (11, 8), (21, 8)], fill=arrow)
+    if sub:
+        w = d.textlength(sub, font=SMALL)
+        d.text(((32 - w) / 2, 21), sub, fill=ink, font=SMALL)
+    w = d.textlength(label, font=FONT)
+    d.text(((32 - w) / 2, 11 if sub else 13), label, fill=ink, font=FONT)
+    img.save(os.path.join(OUT, f"circuits_{stem}_top.png"))
+    flat = Image.new("RGB", (32, 32), edge)
+    for face in ("bottom", "side"):
+        flat.save(os.path.join(OUT, f"circuits_{stem}_{face}.png"))
+    return img
+
+
+SMALL = ImageFont.load_default(size=8)
+# A bus gate: blue where a gate is green, the arrow to its output, "BUS" under the name.
+for name in ("and", "or", "xor", "not"):
+    for on in (False, True):
+        img = tile(f"bus_gate_{'on_' if on else ''}{name}", (52, 72, 104) if not on else (80, 110, 150), (32, 44, 70),
+                   name.upper(), (225, 230, 245) if not on else (255, 240, 120),
+                   (120, 30, 24) if not on else (255, 70, 40), "BUS")
+        if not on:
+            img.save(os.path.join(OUT, f"circuits_bus_gate_{name}.png"))
+for stem, board, label in (("pin_in", (60, 140, 70), "IN"), ("pin_in_on", (120, 230, 120), "IN"),
+                           ("pin_out", (140, 70, 50), "OUT"), ("pin_out_on", (250, 140, 90), "OUT")):
+    img = tile(stem, board, tuple(c // 2 for c in board), label, (250, 250, 240))
+    if not stem.endswith("_on"):
+        img.save(os.path.join(OUT, f"circuits_{stem}.png"))
+for stem, board in (("chip_block", (40, 44, 50)), ("chip_block_on", (60, 66, 80))):
+    img = tile(stem, board, (24, 26, 30), "IC", (230, 230, 230) if stem == "chip_block" else (255, 240, 120))
+    d = ImageDraw.Draw(img)
+    for i in range(4, 29, 6):    # legs all round, as a chip has
+        for x, y in ((i, 0), (i, 30), (0, i), (30, i)):
+            d.rectangle((x, y, x + 1, y + 1), fill=(200, 200, 205))
+    img.save(os.path.join(OUT, f"circuits_{stem}_top.png"))
+    if stem == "chip_block":
+        img.save(os.path.join(OUT, "circuits_chip.png"))
+        blank = img.copy()
+        ImageDraw.Draw(blank).rectangle((8, 10, 23, 21), fill=(40, 44, 50))
+        blank.save(os.path.join(OUT, "circuits_blank_chip.png"))
+bench = tile("chip_bench", (120, 100, 80), (80, 62, 46), "IC", (40, 30, 20), sub="BENCH")
+bench.save(os.path.join(OUT, "circuits_chip_bench.png"))
