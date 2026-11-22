@@ -765,7 +765,7 @@ one exists is in [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 | Network | ENet 1.3.18, zstd 1.5.7, Monocypher 4.0.3 |
 | Physics | Jolt (vehicles) and the engine's own (bodies, blocks, portals) |
 | Storage | SQLite 3.54.1 |
-| ECS | Flecs 4.1.6 |
+| ECS | Flecs 4.2.0 |
 
 ## Documentation
 

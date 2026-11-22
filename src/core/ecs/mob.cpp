@@ -1349,10 +1349,13 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
     std::vector<Birth> births;
     std::vector<std::pair<flecs::entity_t, uint16_t>> new_hearts;   // made after the walk
 
-    // Deferred: the Working tag goes on and off inside the walk, and a tag is a
-    // table move that must not happen under the iterator.
-    w.defer_begin();
-    w.each([&](flecs::entity e, Position &p, Look &look, Brain &b, Health &health) {
+    // Walked through a stage: the Working tag goes on and off inside the walk,
+    // and a tag is a table move that must not happen under the iterator. Every
+    // change inside goes through e, which is bound to the stage and so queued
+    // until the merge; reads through w see the world as it was.
+    flecs::world stage = w.get_stage(0);
+    w.query<Position, Look, Brain, Health>().iter(stage).each(
+        [&](flecs::entity e, Position &p, Look &look, Brain &b, Health &health) {
         if (b.kind >= kinds.size()) return;
         if (e.has<Tumbling>()) return;   // a box of its own (step_tumbling)
         const MobKind &k = kinds[b.kind];
@@ -1988,7 +1991,7 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
         e.modified<Position>();
     });
 
-    w.defer_end();
+    stage.merge();
 
     for (const Shot &s : shots)
         loose_arrow(w, s.from, s.at, s.damage, s.model, now, s.fireball, s.bare, s.shooter);

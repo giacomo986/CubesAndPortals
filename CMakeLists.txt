@@ -109,7 +109,7 @@ target_include_directories(cnp_monocypher PUBLIC
     third_party/monocypher/src/optional)
 target_compile_options(cnp_monocypher PRIVATE -w)   # not our code; not our warnings
 
-# Flecs 4.1.6: the ECS DESIGN.md 6.1 names, vendored the way sqlite and
+# Flecs 4.2.0: the ECS DESIGN.md 6.1 names, vendored the way sqlite and
 # monocypher are -- from its own single-file distribution rather than through its
 # build system.
 #

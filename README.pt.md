@@ -805,7 +805,7 @@ existe está em [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 | Rede | ENet 1.3.18, zstd 1.5.7, Monocypher 4.0.3 |
 | Física | Jolt (veículos) e a do próprio motor (corpos, blocos, portais) |
 | Armazenamento | SQLite 3.54.1 |
-| ECS | Flecs 4.1.6 |
+| ECS | Flecs 4.2.0 |
 
 ## Documentação
 

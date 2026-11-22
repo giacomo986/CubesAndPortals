@@ -786,7 +786,7 @@ perché di ciascuno è in [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 | Rete | ENet 1.3.18, zstd 1.5.7, Monocypher 4.0.3 |
 | Fisica | Jolt (mezzi) e quella dell'engine (corpi, blocchi, portali) |
 | Salvataggio | SQLite 3.54.1 |
-| ECS | Flecs 4.1.6 |
+| ECS | Flecs 4.2.0 |
 
 ## Documentazione
 
