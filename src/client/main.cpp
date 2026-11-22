@@ -3990,7 +3990,7 @@ int host_command(void *ud, const char *name, const char *help, const char *)
     const auto        it    = s->chat_commands.find(name);
     if (it != s->chat_commands.end() && it->second.owner != owner) return 0;
 
-    s->chat_commands[name] = net::ChatCommand{owner, help ? help : ""};
+    s->chat_commands[name] = net::ChatCommand{owner, help ? help : "", ""};
     return 1;
 }
 
@@ -12744,7 +12744,11 @@ MenuChoice title_menu(Scene &s, TitleMenu &m, bool &debug)
             if (m.address.find_first_not_of(' ') == std::string::npos) {
                 m.error = "type an address, like 192.168.1.2 or 192.168.1.2:25301";
             } else {
-                m.servers.push_back(ServerRow{m.address});
+                {
+                    ServerRow row;
+                    row.address = m.address;
+                    m.servers.push_back(row);
+                }
                 save_servers(m.servers);
                 m.address.clear();
                 m.error.clear();
@@ -17324,7 +17328,8 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             }
             if (mr.version != w->media_version() + 1) {
                 const double waited = mr.offer_wait;   // the wait above is once a world, not once a reading
-                mr = ModelsRead{w->media_version() + 1};
+                mr         = ModelsRead{};
+                mr.version = w->media_version() + 1;
                 mr.offer_wait = waited;
                 store.clear();
             }

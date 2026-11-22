@@ -24,6 +24,10 @@
 #include <string>
 #include <vector>
 
+// The entity rows below give the fields a case is about and leave the rest at
+// their defaults on purpose; a new field on EntityState is not a test to edit.
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+
 using namespace cnp;
 using namespace cnp::net;
 

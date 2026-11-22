@@ -1541,7 +1541,7 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
                     b.going = false;
                     b.path.clear();
                 } else {
-                    const Target there{0, 0, (float)c.x + 0.5f, (float)c.y, (float)c.z + 0.5f};
+                    const Target there{0, 0, (float)c.x + 0.5f, (float)c.y, (float)c.z + 0.5f, {}, 1.0f};
                     const bool on_way = walk_the_way(world, reg, k, b, e.id(), p, there, now, way);
                     if (!b.way_reached && flat > 1.5f && flat < 48.0f) {
                         // No way there -- into a block, behind a wall, up
@@ -1625,7 +1625,7 @@ void step_mobs(flecs::world &w, const World &world, const NodeRegistry &reg,
                 b.shade_at  = now + 2.0;
             }
             const Target cool{0, 0, (float)b.shade.x + 0.5f, (float)b.shade.y,
-                              (float)b.shade.z + 0.5f};
+                              (float)b.shade.z + 0.5f, {}, 1.0f};
             if (b.has_shade && walk_the_way(world, reg, k, b, e.id(), p, cool, now, way)) {
                 want_x   = way.x;
                 want_z   = way.z;

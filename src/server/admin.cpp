@@ -1855,11 +1855,15 @@ int report(const std::string &path, int64_t since, bool json)
     // Text for a person, or one JSON object for a program (--json): the same
     // numbers either way. `j` gathers the object's members.
     std::string j  = "{\"file\":" + json_text(path) + ",\"since_seconds\":" + std::to_string(since);
+    // Every fmt is a literal at its call; the lambda hides that from the checker.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
     const auto  tx = [&](const char *fmt, auto... v) {
         if (json) return;
         if constexpr (sizeof...(v) == 0) std::fputs(fmt, stdout);
         else std::printf(fmt, v...);
     };
+#pragma GCC diagnostic pop
     const int64_t     t = now(), from_t = since > 0 ? t - since : 0;
     const std::string from = std::to_string(from_t), to = std::to_string(t);
     const char       *secs = "(CASE WHEN left = 0 THEN ?2 ELSE left END) - joined";
