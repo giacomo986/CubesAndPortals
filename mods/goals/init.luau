@@ -22,14 +22,25 @@ local drawing = side ~= "server"
 
 local KEYS = { "keys:pista", "keys:inferno", "keys:arena", "keys:arpg", "keys:chambers", "keys:backrooms", "keys:parkour" }
 
-type Goal = { id: string, title: string, hint: string, items: { string }?, pin: number?, bed: boolean?, gate: boolean? }
+-- `also`: a step on the way to that goal, done too once that one is (a player
+-- who made the pick before the steps were split out is not sent back for planks).
+type Goal = { id: string, title: string, hint: string, items: { string }?, pin: number?, bed: boolean?, gate: boolean?,
+              also: string? }
 
 local GOALS: { Goal } = {
     { id = "wood", title = "Wood", hint = "Break a tree's log with your hands.",
       -- Every tree's: the plain one is trees:trunk, not timber:log.
       items = { "trees:trunk", "timber:log", "timber:mossy_log", "woods:birch_log", "woods:spruce_log",
                 "woods:jungle_log", "woods:acacia_log", "woods:dark_oak_log" } },
-    { id = "pick", title = "A wooden pick", hint = "Logs make planks, planks make sticks (E); four planks make a crafting table, and the pick is made on it.", items = { "tools:wood_pick" } },
+    { id = "planks", title = "Planks", hint = "Open the bag (E) and put a log in the crafting grid: four planks.", also = "pick",
+      items = { "timber:planks", "woods:birch_planks", "woods:spruce_planks", "woods:jungle_planks",
+                "woods:acacia_planks", "woods:dark_oak_planks" } },
+    { id = "sticks", title = "Sticks", hint = "Two planks one above the other in the grid (E): four sticks.", also = "pick",
+      items = { "timber:stick" } },
+    { id = "table", title = "A crafting table", hint = "Four planks in a square (E); put it down and right click it.", also = "pick",
+      items = { "craft:table" } },
+    { id = "pick", title = "A wooden pick", hint = "On the crafting table: three planks along the top, two sticks down the middle.",
+      items = { "tools:wood_pick" } },
     { id = "gate", title = "Through a gate", hint = "A gate, on the plaza or out on the land, opens onto a world: walk through one, and come back.",
       gate = true },
     { id = "key", title = "A key", hint = "Pass a world's trial: its key waits by the way out. /journal reads it.",
@@ -140,10 +151,14 @@ local function of(name: string): { [string]: boolean }
     return r
 end
 
+local function done(r: { [string]: boolean }, g: Goal): boolean
+    return r[g.id] == true or (g.also ~= nil and r[g.also :: string] == true)
+end
+
 local function count(r: { [string]: boolean }): number
     local n = 0
     for _, g in GOALS do
-        if r[g.id] then
+        if done(r, g) then
             n += 1
         end
     end
@@ -153,7 +168,7 @@ end
 -- The first goal in the list not reached yet, or nil.
 local function first_left(r: { [string]: boolean }): Goal?
     for _, g in GOALS do
-        if not r[g.id] then
+        if not done(r, g) then
             return g
         end
     end
@@ -174,7 +189,7 @@ end
 local function reach(p: number, g: Goal)
     local name = core.player_name(p)
     local r = of(name)
-    if r[g.id] then
+    if done(r, g) then
         return
     end
     r[g.id] = true
@@ -215,7 +230,7 @@ core.event.on("core:tick", function(ev)
             end
         end
         for _, g in GOALS do
-            if not r[g.id] and g.items then
+            if not done(r, g) and g.items then
                 for _, item in g.items :: { string } do
                     if core.bag_count(p, item) > 0 then
                         reach(p, g)
@@ -261,7 +276,7 @@ local function show_page(p: number)
     local page = { "# Goals", `{count(r)} of {#GOALS} reached.`, "" }
     local hinted = 0
     for _, g in GOALS do
-        if r[g.id] then
+        if done(r, g) then
             table.insert(page, `| {g.title} | reached |`)
         elseif hinted < 3 then
             -- The next few say how; the rest wait.
