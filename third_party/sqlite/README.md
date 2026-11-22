@@ -3,9 +3,9 @@
 `sqlite3.c`, `sqlite3.h` and `sqlite3ext.h`, exactly as published, from the
 official amalgamation:
 
-- version **3.50.4**
-- <https://www.sqlite.org/2025/sqlite-amalgamation-3500400.zip>
-- sha256 of that zip: `1d3049dd0f830a025a53105fc79fd2ab9431aea99e137809d064d8ee8356b032`
+- version **3.54.1**
+- <https://www.sqlite.org/2026/sqlite-amalgamation-3540100.zip>
+- sha256 of that zip: `0a9c8e34352dad46006aa82836d5383bff9dc6bc9ce5a60553c05aa30e6ad1f9`
 
 ## Why a copy and not a submodule
 

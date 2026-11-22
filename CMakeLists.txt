@@ -64,7 +64,7 @@ set(ZSTD_BUILD_STATIC   ON  CACHE BOOL "" FORCE)
 set(ZSTD_LEGACY_SUPPORT OFF CACHE BOOL "" FORCE)
 add_subdirectory(third_party/zstd/build/cmake EXCLUDE_FROM_ALL)
 
-# SQLite 3.50.4, the amalgamation, compiled here rather than as a subproject
+# SQLite 3.54.1, the amalgamation, compiled here rather than as a subproject
 # because it is one C file. See third_party/sqlite/README.md for why this one is
 # a copy and the others are submodules.
 #

@@ -764,7 +764,7 @@ one exists is in [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 | Languages | C++20 for the engine, Luau 0.733 for scripting |
 | Network | ENet 1.3.18, zstd 1.5.7, Monocypher 4.0.3 |
 | Physics | Jolt (vehicles) and the engine's own (bodies, blocks, portals) |
-| Storage | SQLite 3.50.4 |
+| Storage | SQLite 3.54.1 |
 | ECS | Flecs 4.1.6 |
 
 ## Documentation

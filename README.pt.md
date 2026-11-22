@@ -804,7 +804,7 @@ existe está em [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 | Linguagens | C++20 para o motor, Luau 0.733 para os scripts |
 | Rede | ENet 1.3.18, zstd 1.5.7, Monocypher 4.0.3 |
 | Física | Jolt (veículos) e a do próprio motor (corpos, blocos, portais) |
-| Armazenamento | SQLite 3.50.4 |
+| Armazenamento | SQLite 3.54.1 |
 | ECS | Flecs 4.1.6 |
 
 ## Documentação

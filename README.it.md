@@ -785,7 +785,7 @@ perché di ciascuno è in [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 | Linguaggi | C++20 per l'engine, Luau 0.733 per lo scripting |
 | Rete | ENet 1.3.18, zstd 1.5.7, Monocypher 4.0.3 |
 | Fisica | Jolt (mezzi) e quella dell'engine (corpi, blocchi, portali) |
-| Salvataggio | SQLite 3.50.4 |
+| Salvataggio | SQLite 3.54.1 |
 | ECS | Flecs 4.1.6 |
 
 ## Documentazione
