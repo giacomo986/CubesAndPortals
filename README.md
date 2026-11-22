@@ -760,7 +760,7 @@ one exists is in [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 
 | | |
 |---|---|
-| Graphics | raylib 6.0 behind a thin `gfx_*` interface, OpenGL 3.3 core |
+| Graphics | raylib 6.2 behind a thin `gfx_*` interface, OpenGL 3.3 core |
 | Languages | C++20 for the engine, Luau 0.733 for scripting |
 | Network | ENet 1.3.18, zstd 1.5.7, Monocypher 4.0.3 |
 | Physics | Jolt (vehicles) and the engine's own (bodies, blocks, portals) |

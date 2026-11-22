@@ -781,7 +781,7 @@ perché di ciascuno è in [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 
 | | |
 |---|---|
-| Grafica | raylib 6.0 dietro un'interfaccia `gfx_*` sottile, OpenGL 3.3 core |
+| Grafica | raylib 6.2 dietro un'interfaccia `gfx_*` sottile, OpenGL 3.3 core |
 | Linguaggi | C++20 per l'engine, Luau 0.733 per lo scripting |
 | Rete | ENet 1.3.18, zstd 1.5.7, Monocypher 4.0.3 |
 | Fisica | Jolt (mezzi) e quella dell'engine (corpi, blocchi, portali) |

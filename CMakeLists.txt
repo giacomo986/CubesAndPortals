@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)   # raylib 6.0 asks for 3.25
+cmake_minimum_required(VERSION 3.25)   # add_subdirectory(... SYSTEM) asks for 3.25
 project(cubes_and_portals LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
