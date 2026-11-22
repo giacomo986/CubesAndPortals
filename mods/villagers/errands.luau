@@ -282,14 +282,25 @@ E.board = function(p: number, rk: string)
         core.ui_label(name, 0.4, 0.3 + (i - 1) * 1.1, n)
     end
     core.ui_label(name, 0.4, 0.3 + top, `The village's errands. The treasury holds {ems(treasury(rk))}.`)
+    -- One not taken is a button: taken from the board as from its giver's
+    -- panel (handed in at the giver's still).
+    local me = core.player_name(p)
     for i, e in l do
-        local who = if e.taker == "" then `ask the {e.giver}` else `taken by {e.taker}`
-        core.ui_label(name, 0.4, 0.2 + top + i * 1.1, `{E.said(e)}: {ems(e.pay)} ({who})`)
+        local y = 0.2 + top + i * 1.1
+        if e.taker == "" then
+            core.ui_button(name, `e {e.id}`, 0.4, y, 14.2, 1.0, `Take: {E.said(e)} -- {ems(e.pay)} (from the {e.giver})`)
+        else
+            local who = if e.taker == me then `yours: hand in to the {e.giver}` else `taken by {e.taker}`
+            core.ui_label(name, 0.4, y, `{E.said(e)}: {ems(e.pay)} ({who})`)
+        end
     end
     if #l == 0 then
         core.ui_label(name, 0.4, 1.3 + top, "Nothing today.")
     end
     core.ui_button(name, "close", 0.4, low, 14.2, 1.1, "Close")
+    E.talking = E.talking or {}
+    local _, mine_rk = E.mine(me)
+    E.talking[p] = { rk = rk, mine_rk = mine_rk }
     core.ui_show(name, true, p)
 end
 
@@ -565,6 +576,10 @@ end)
 core.event.on("core:ui_click", function(ev)
     if ev.panel == panel_of(ev.player, "board") then
         core.ui_show(ev.panel, false, ev.player)
+        local id = tonumber(string.match(ev.id, "^e (%d+)$") or "")
+        if id then
+            E.click(ev.player, id)
+        end
     elseif ev.panel == panel_of(ev.player, "errands") then
         core.ui_show(ev.panel, false, ev.player)
         local id = tonumber(string.match(ev.id, "^e (%d+)$") or "")

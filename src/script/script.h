@@ -153,6 +153,7 @@ typedef struct script_host {
     int (*node_drop_item)(void *ud, int id, const char *item);
     int (*node_alias)(void *ud, const char *old_name, const char *name);
     int (*node_solid)(void *ud, int id);
+    int (*is_liquid)(void *ud, int id);
     int (*node_colour)(void *ud, int id);   // its colour, 0xRRGGBB
     int (*node_turns)(void *ud, int id);
     int (*loaded)(void *ud, int x, int y, int z);   // 1 if that cell's blocks are in memory

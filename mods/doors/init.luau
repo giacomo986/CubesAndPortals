@@ -97,6 +97,10 @@ end)
 -- hand still opens and shuts it while the power stays as it is. What is ON
 -- is looked up the first time, so this mod need not load after cinnabar.
 local ON: { [number]: boolean }? = nil
+-- Lit gates of mods/circuits: they give power out of their front only (the
+-- way their facing points), so a door is opened by one that faces it.
+local GATE_ON: { [number]: boolean } = {}
+local GATE_FRONT = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } }
 local function powered(x: number, y: number, z: number): boolean
     if ON == nil then
         local on: { [number]: boolean } = {}
@@ -115,19 +119,47 @@ local function powered(x: number, y: number, z: number): boolean
                 on[id] = true
             end
         end end end end
-        -- Alloy wire that is lit, in every shape (mods/circuits).
-        for _, s in { "none", "end", "line", "corner", "tee", "cross", "riser" } do
+        -- Alloy wire and insulated wire that is lit, in every shape and
+        -- colour (mods/circuits).
+        local shapes = { "none", "end", "line", "corner", "tee", "cross" }
+        for _, s in shapes do
             local id = core.node_id(`circuits:alloy_on_{s}`)
             if id ~= 0 then
                 on[id] = true
+            end
+            for _, c in { "white", "orange", "magenta", "light_blue", "yellow", "lime", "pink", "gray",
+                          "light_gray", "cyan", "purple", "blue", "brown", "green", "red", "black" } do
+                local wid = core.node_id(`circuits:wire_{c}_on_{s}`)
+                if wid ~= 0 then
+                    on[wid] = true
+                end
+            end
+        end
+        local riser = core.node_id("circuits:alloy_on_riser")
+        if riser ~= 0 then
+            on[riser] = true
+        end
+        for _, g in { "buffer", "not", "or", "nor", "and", "nand", "xor", "xnor", "rs_latch", "toggle",
+                      "d_latch", "pulse", "timer", "counter", "random", "light" } do
+            local id = core.node_id(`circuits:gate_on_{g}`)
+            if id ~= 0 then
+                GATE_ON[id] = true
             end
         end
         ON = on
     end
     local on = ON :: { [number]: boolean }
     for _, d in { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } } do
-        if on[core.get_block(x + d[1], y + d[2], z + d[3])] then
+        local nx, ny, nz = x + d[1], y + d[2], z + d[3]
+        local id = core.get_block(nx, ny, nz)
+        if on[id] then
             return true
+        end
+        if GATE_ON[id] and d[2] == 0 then
+            local f = GATE_FRONT[core.get_facing(nx, ny, nz) % 4 + 1]
+            if nx + f[1] == x and nz + f[2] == z then
+                return true
+            end
         end
     end
     return false

@@ -90,9 +90,18 @@ if serving then
         end
     end
 
-    -- The top of the ground at a column, near y: the first solid cell down.
+    -- The top of the ground at a column: the first solid cell down from well
+    -- over both the player and the generator's ground, so that a player in a
+    -- cave does not have one come down on the cave's floor beside them. A
+    -- column whose first cell looked at is already solid (a mountain past the
+    -- reach, a tower) has no top found here.
     local function ground(x: number, y: number, z: number): number?
-        for gy = y + 40, y - 40, -1 do
+        local top = math.max(y, math.floor(core.terrain_height(x, z))) + 40
+        local first = core.get_block(x, top, z)
+        if first ~= 0 and core.node_solid(first) then
+            return nil
+        end
+        for gy = top - 1, math.min(y, top - 40) - 40, -1 do
             local id = core.get_block(x, gy, z)
             if id ~= 0 and core.node_solid(id) then
                 return gy

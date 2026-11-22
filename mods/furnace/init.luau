@@ -321,11 +321,44 @@ local function stop(x: number, y: number, z: number)
     core.container_progress(x, y, z, 0)
 end
 
+-- A furnace from before its rows took only their own may hold fuel in the
+-- ore row or ore in the fuel row, where it was never smelted nor burned. Put
+-- right the first time it ticks: each such stack into the row it belongs in,
+-- and what is neither (or does not fit) put on top of the furnace for its
+-- owner to pick up. Squares 1-3 are the ore row, 4-6 the fuel row.
+local function sort_rows(x: number, y: number, z: number)
+    if core.meta_get(x, y, z, "rows") == "1" then
+        return
+    end
+    core.meta_set(x, y, z, "rows", "1")
+    local is_fuel, is_raw = {}, {}
+    for _, f in fuel_ids do is_fuel[f[1]] = true end
+    for _, sm in smelt_ids do is_raw[sm[1]] = true end
+    local function move(item: number, from: string, to: string?)
+        local n = core.container_take(x, y, z, item, 1000000, from)
+        local left = if to then core.container_add(x, y, z, item, n, to) else n
+        if left > 0 then
+            core.drop_item(x, y + 1, z, item, left)
+        end
+    end
+    for slot = 1, 6 do
+        local item = core.container_item(x, y, z, slot)
+        if item ~= 0 then
+            if slot <= 3 and not is_raw[item] then
+                move(item, "raw", if is_fuel[item] then "fuel" else nil)
+            elseif slot >= 4 and not is_fuel[item] then
+                move(item, "fuel", if is_raw[item] then "raw" else nil)
+            end
+        end
+    end
+end
+
 core.register_abm("furnace:burn", { "furnace:furnace", "furnace:lit" }, 0.25, 1, function(cell)
     if not resolve() then
         return
     end
     local x, y, z = cell.x, cell.y, cell.z
+    sort_rows(x, y, z)
     local ends = tonumber(core.meta_get(x, y, z, "cook"))
     -- A clock that started again (a restart): the smelt starts again too.
     if ends and ends > clock + COOK then

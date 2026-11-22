@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -44,6 +45,23 @@ struct PendingWrite {
     BlockId id          = kAir;
     uint8_t facing      = 0;
     bool    facing_only = false;
+};
+
+// Where bytes go in a file that columns are written to and let go of again:
+// the first hole big enough, or the end. Holes side by side are one hole, and
+// one that reaches the end gives the end back.
+struct SpillSpace {
+    std::map<long, long> holes;   // where -> how long
+    long                 end = 0;
+
+    long place(long length);
+    void free(long at, long length);
+    long free_bytes() const
+    {
+        long n = 0;
+        for (const auto &[at, len] : holes) n += len;
+        return n;
+    }
 };
 
 class ColumnKeeper {
@@ -169,14 +187,26 @@ private:
     std::unordered_map<ColumnPos, std::vector<std::vector<uint8_t>>, ColumnPosHash> m_kept;
     size_t                                                                          m_kept_bytes = 0;
     // Past kKeptInMemory the columns go to a file of this process's own, which
-    // the system takes away with it.
-    // ponytail: append-only; a column let go again leaves its old bytes behind.
+    // the system takes away with it (TODO.md OPEN-38). A column let go again
+    // gives its old bytes back as a hole, and the next column that fits is
+    // written into the first hole big enough; holes side by side are one. So
+    // the file is as big as the most that was ever kept in it at once, not as
+    // big as every column ever written.
     struct Spilled {
         long                  at = 0;
         std::vector<uint32_t> sizes;
+        long                  length() const
+        {
+            long n = 0;
+            for (const uint32_t s : sizes) n += (long)s;
+            return n;
+        }
     };
     std::unordered_map<ColumnPos, Spilled, ColumnPosHash> m_spilled;
     std::unique_ptr<std::FILE, int (*)(std::FILE *)>      m_spill{nullptr, &std::fclose};
+    SpillSpace                                            m_space;
+    void                                                  unspill(ColumnPos c);
+
 
     std::unordered_set<ColumnPos, ColumnPosHash> m_from_store;   // read back, not generated
     std::unordered_map<ColumnPos, std::vector<PendingWrite>, ColumnPosHash> m_pending;

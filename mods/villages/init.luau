@@ -1093,12 +1093,12 @@ local function path_between(a: Village, b: Village, seed: number): Path?
         if PATHS_V >= 2 then
             -- What stands beside it, to its right going from a to b, 2.6 out.
             local deco = found.deco
-            local function beside(k: number, kind: string, text: string, back: boolean)
+            local function beside(k: number, kind: string, text: string, back: boolean): boolean
                 local p, q = line[math.max(1, k - 1)], line[math.min(#line, k + 1)]
                 local ux, uz = q[1] - p[1], q[2] - p[2]
                 local l = math.sqrt(ux * ux + uz * uz)
                 if l < 0.01 then
-                    return
+                    return false
                 end
                 local nx, nz = -uz / l, ux / l
                 if back then
@@ -1109,17 +1109,35 @@ local function path_between(a: Village, b: Village, seed: number): Path?
                 local on = if knots then { 0, 0, (knots :: { number })[k] }
                            else cells[`{math.floor(line[k][1])},{math.floor(line[k][2])}`]
                 if cells[`{sx},{sz}`] or on == nil then
-                    return
+                    return false
+                end
+                -- A signpost where it can stand (the test the placing below
+                -- makes): not over water, not over a drop, so that a path
+                -- ending on a bridge has its sign where the bridge lands.
+                if kind == "sign" and (wet(sx, sz) or math.abs(core.terrain_height(sx, sz) - on[3]) > 4) then
+                    return false
                 end
                 -- Facing the way, as a sign is turned to whoever put it up.
                 local facing = if math.abs(nx) > math.abs(nz) then (if nx > 0 then 3 else 1)
                                else (if nz > 0 then 2 else 0)
                 table.insert(deco, { sx, sz, kind, text, facing, on[3] })
+                return true
             end
             local n = #line
             if n >= 6 then
-                beside(3, "sign", `To {said_of(b)}: {math.floor(len)} nodes`, false)
-                beside(n - 2, "sign", `To {said_of(a)}: {math.floor(len)} nodes`, true)
+                -- Nearest the end that can hold one, no further in than a
+                -- third of the way.
+                local reach = math.max(3, math.floor(n / 3))
+                for k = 3, reach do
+                    if beside(k, "sign", `To {said_of(b)}: {math.floor(len)} nodes`, false) then
+                        break
+                    end
+                end
+                for k = n - 2, n + 1 - reach, -1 do
+                    if beside(k, "sign", `To {said_of(a)}: {math.floor(len)} nodes`, true) then
+                        break
+                    end
+                end
             end
             for k = 2, n - 1 do
                 local at = line[k][3]

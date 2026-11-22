@@ -581,6 +581,20 @@ Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
 |---|---|---|---|
 | `id` | number | — | A block id. |
 
+## `core.is_liquid`
+
+```luau
+core.is_liquid(id: number) -> boolean
+```
+
+1 if that block is a liquid (core.node_liquid), 0 if not or no block: a cell the dark's creatures do not come out in.
+
+Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
+
+| argument | type | default | notes |
+|---|---|---|---|
+| `id` | number | — | A block id. |
+
 ## `core.ride`
 
 ```luau
@@ -621,7 +635,7 @@ Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
 core.keep_loaded(x: number, z: number, r: number?) -> number
 ```
 
-Keeps the columns over that square in memory for thirty seconds, made or read back if they are not, with nobody near: ask again to keep them longer. What a robot working far from every player stands on and walks to. Returns how many columns; 0 where nothing is let go (the single-process client).
+Keeps the columns over that square in memory for thirty seconds, made or read back if they are not, with nobody near: ask again to keep them longer. What a robot working far from every player stands on and walks to. All the mods of a server together keep at most 256 columns: past that a column already kept is kept on and a new one is not. Returns how many columns it keeps; 0 where nothing is let go (the single-process client), or where every column asked for is new and the 256 are taken.
 
 | argument | type | default | notes |
 |---|---|---|---|

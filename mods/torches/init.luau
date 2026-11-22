@@ -131,9 +131,13 @@ if core.side() ~= "server" then
         for x = bx - R, bx + R do
             for z = bz - R, bz + R do
                 for y = by - DOWN, by + UP do
+                    -- Open cells as the spawn has them (core/ecs/mob.cpp's
+                    -- open()): neither solid nor a liquid, so a lake's bed is
+                    -- not shown.
+                    local here, over = core.get_block(x, y, z), core.get_block(x, y + 1, z)
                     if core.node_solid(core.get_block(x, y - 1, z))
-                        and not core.node_solid(core.get_block(x, y, z))
-                        and not core.node_solid(core.get_block(x, y + 1, z))
+                        and not core.node_solid(here) and not core.is_liquid(here)
+                        and not core.node_solid(over) and not core.is_liquid(over)
                         and core.block_light(x, y, z) <= 7 then
                         table.insert(tiles, { x + 0.5, y + 0.02, z + 0.5, if core.light(x, y, z) <= 7 then 1 else 0 })
                     end

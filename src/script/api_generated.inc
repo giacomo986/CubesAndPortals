@@ -475,6 +475,17 @@ int l_node_solid(lua_State *L)
     return 1;
 }
 
+// core.is_liquid(id: number) -> boolean
+int l_is_liquid(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const int result = (vm && vm->host.is_liquid) ? vm->host.is_liquid(vm->host.ud, id) : (int)0;
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.ride(player: number, host: number, x: number?, y: number?, z: number?) -> boolean
 int l_ride(lua_State *L)
 {
@@ -3785,6 +3796,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "watch_cell");
     lua_pushcfunction(L, l_node_solid, "core.node_solid");
     lua_setfield(L, -2, "node_solid");
+    lua_pushcfunction(L, l_is_liquid, "core.is_liquid");
+    lua_setfield(L, -2, "is_liquid");
     lua_pushcfunction(L, l_ride, "core.ride");
     lua_setfield(L, -2, "ride");
     lua_pushcfunction(L, l_loaded, "core.loaded");

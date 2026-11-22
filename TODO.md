@@ -384,7 +384,14 @@ Engine:
 - More than 32 portals wanted at once: the farthest pair may be half live.
 - A moving mouth onto another world is not carried between messages; one moving
   opening is a Portals message a tick to everybody.
-- OPEN-38: the temporary file of a world with no file only grows.
+- OPEN-38: the temporary file of a world with no file only grew. Fixed
+  2026-11-21 (`SpillSpace` in core/storage/column_keeper): a column let go
+  again gives its bytes back as a hole, the next one goes in the first hole
+  that fits, holes side by side are one and one at the end gives the end back.
+  Checked by a scratch run of 200 000 random lets-go over 500 columns (1.6 MB
+  at most instead of about 520 MB; all freed, the file's end back at 0), not
+  in a game: the file itself is not cut shorter, it stops growing past the most
+  ever kept in it at once.
 - A sound loop keeps the gain it was started with: a kart's engine steps
   louder by starting again, it does not slide (no pitch either).
 - Coloured light: columns saved before it have none until relit; stained glass
@@ -399,19 +406,47 @@ Mods:
 - Blueprints: the ghost is sent whole on each change; a scaffold tower stays up
   if the server stops mid-build.
 - Passport: a letter to a friend server that is down is lost (no queue).
-- Sky: a meteorite can land in a cave under the player.
-- Garden: ants overlap in file; a creature wandering into the door far from
-  players despawns.
-- Errands: the board shows and does not take.
-- Paths: a sign where a path ends on a bridge is left out.
+- Sky: a meteorite could land in a cave under the player. Fixed 2026-11-21:
+  the ground is looked for from 40 over the higher of the player and
+  core.terrain_height, and a column already solid there is passed over. Not
+  seen in a game (/sky impact needs an admin the probe cannot be).
+- Garden: ants overlapped in file; a creature wandering into the door far
+  from players despawned. Fixed 2026-11-21, by script only (mods_play's probe
+  stands on the plaza): eight lanes, not five shared by two ants each; each ant
+  has its place round a flower and the nest; a walk is never aimed within 2 of
+  G and an ant's road does not go through it; a bug found outside the garden
+  all the same is taken back and comes out again in 2 s. Not looked at.
+- Errands: the board showed and did not take. Fixed 2026-11-21: an errand
+  nobody has is a button on the board and is taken there as at its giver's
+  panel; one's own says to whom to hand it in (handing in stays at the giver).
+  Not clicked in a client.
+- Paths: a sign where a path ends on a bridge was left out. Fixed
+  2026-11-21: the signpost goes to the point nearest the end, up to a third of
+  the way in, where it can stand (dry, within 4 of the path). Only for
+  ground generated from now: in a world already made, a sign whose new place
+  fell in a column already there is still missing. Not seen in a world.
 - Caravans: a new village sends none until its chests fill (kept so).
-- Helpers: no cap on columns all robots keep loaded (OPEN-58); the quarry is one
-  turn of stair, 24 deep, always east (OPEN-56); F8 shows water beds, and Light
-  up lights only the surface (OPEN-57).
-- Furnace: an old one keeps what is in a wrong row; no heat gauge.
+- Helpers, 2026-11-21, by build, typecheck and the tests only, not played:
+  - OPEN-58 fixed in the engine: core.keep_loaded keeps at most 256 columns
+    for all mods together (a column already kept is kept on, a new one is
+    refused and not counted; one line in the log when it fills).
+  - OPEN-56: the quarry winds down a turn every 24 layers, 96 deep at most,
+    and digs on the side of the base with nothing a player built in its ring
+    and the most ground (east when even), chosen once a base (storage `q<n>`).
+    Still: ground over the base's level is left standing.
+  - OPEN-57: F8 leaves out cells in a liquid as the spawn does (new
+    core.is_liquid, client and server). Still: Light up lights only the
+    surface, not caves.
+- Furnace: an old one kept what was in a wrong row. Fixed 2026-11-21: the
+  first tick of each furnace moves fuel out of the ore row and ore out of the
+  fuel row, and puts what is neither on top of it (meta "rows"). Not seen on
+  an old world. Still no heat gauge: a container has one bar
+  (core.container_progress); a second wants the engine.
 - Conveyor: ribs made for 1 m/s; a belt a mod writes reshapes late.
-- Circuits: a net stops at 4096 cells; insulated wire and gates are not read by
-  doors; dust enters a wire only through a repeater or a buffer.
+- Circuits: a net stops at 4096 cells; dust enters a wire only through a
+  repeater or a buffer. Doors read lit insulated wire (every colour) and a lit
+  gate whose front faces them since 2026-11-21 (not tried in a client; bus
+  gates and cable, sixteen channels, still not).
 - Track: shells do not climb loops. Bumps are the server pushing two karts
   apart, a round trip late, not a collision in the engine (OPEN-47).
 - Chambers: the funnel (a beam that carries) and the angled panel are written
@@ -458,6 +493,15 @@ Mods:
 - Dragon knight (switched off): no styles, gear not refitted, the cape passes
   through the legs.
 - Arpg: weapons are the robot's on every species; nothing shows a ring.
+- Arpg, 2026-11-22 (icons, quests, buy back, materials, the Butcher, the Keeper
+  and the crypt's exit room; seen by script under Xephyr, not played by hand):
+  the eight materials only feed quests until crafting, enchanting and upgrading
+  exist; all gear is from Meshy now (held: tools/make_arpg_gear_meshy.py; worn,
+  fitted onto the old pieces per species: tools/make_arpg_armor_meshy.py), textured,
+  so unique and set no longer tint a trim, and a worn piece wrapped onto the body
+  looks a little crumpled; ~26 MB of gear models; the Butcher's and the Keeper's struck box is
+  their T-pose's (half-width 1.8 and 1.0), wide to hit; the Butcher's numbers
+  (hp 70, blow 10, 4.4 speed, level 3) are guesses. Meshy: 253 credits used (599 to 346).
 
 ## Limits, kept until somebody reports them
 
@@ -479,15 +523,6 @@ Mods:
 - OPEN-54: meshing twice as slow with the new light; one shadow map, no
   cascades; box bodies cast none; 256 casters at most.
 - OPEN-55: 16 dyes, not free colours.
-- Arpg, 2026-11-22 (icons, quests, buy back, materials, the Butcher, the Keeper
-  and the crypt's exit room; seen by script under Xephyr, not played by hand):
-  the eight materials only feed quests until crafting, enchanting and upgrading
-  exist; all gear is from Meshy now (held: tools/make_arpg_gear_meshy.py; worn,
-  fitted onto the old pieces per species: tools/make_arpg_armor_meshy.py), textured,
-  so unique and set no longer tint a trim, and a worn piece wrapped onto the body
-  looks a little crumpled; ~26 MB of gear models; the Butcher's and the Keeper's struck box is
-  their T-pose's (half-width 1.8 and 1.0), wide to hit; the Butcher's numbers
-  (hp 70, blow 10, 4.4 speed, level 3) are guesses. Meshy: 253 credits used (599 to 346).
 - A window once open streams until closed after 30 s unwanted; 70 MB of VRAM a
   window. Gates are 1 x 2: a kart does not fit.
 - A far portal between servers is a mouth: 24 a room, not virtual.

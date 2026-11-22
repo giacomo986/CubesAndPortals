@@ -426,6 +426,7 @@ struct ServerState {
     uint64_t column_clock  = 0;   // ticks, which is when a column was last used
     // Columns a mod asked to keep (core.keep_loaded), to the tick they may go.
     std::unordered_map<ColumnPos, uint64_t, ColumnPosHash> kept;
+    bool kept_full_said = false;   // the line that it is full, said once until it is not
     uint64_t chunks_let_go = 0;   // named in a ChunksGone, over every session
 
     // Server seconds, the same clock the sessions are told about. Here because
@@ -2244,6 +2245,11 @@ int host_node_solid(void *ud, int id)
     return id > 0 && static_cast<ServerState *>(ud)->registry.is_solid((BlockId)id) ? 1 : 0;
 }
 
+int host_is_liquid(void *ud, int id)
+{
+    return id > 0 && static_cast<ServerState *>(ud)->registry.is_liquid((BlockId)id) ? 1 : 0;
+}
+
 int host_node_colour(void *ud, int id)
 {
     const NodeRegistry &reg = static_cast<ServerState *>(ud)->registry;
@@ -2257,15 +2263,45 @@ int host_loaded(void *ud, int x, int y, int z)
     return static_cast<ServerState *>(ud)->world.find_chunk(World::chunk_of(x, y, z)) ? 1 : 0;
 }
 
+// How many columns all the mods together may keep in memory with nobody near
+// (TODO.md OPEN-58): every robot with an anchor asks for its own ground, its
+// base's and, lighting up, columns out to 100 from the base -- up to about 60
+// each -- and nothing else bounded how many robots that was. A column 32 x 32
+// of the world's height is about half a megabyte in memory; 256 of them is
+// four robots lighting up at once, or a dozen working round their bases.
+// Past it a column already kept is kept on and a new one is refused (and not
+// counted in what core.keep_loaded returns).
+constexpr size_t kKeptByModsMax = 256;
+
 int host_keep_loaded(void *ud, int x, int z, int r)
 {
     ServerState *s = static_cast<ServerState *>(ud);
     r              = std::clamp(r, 0, 48);
     const ColumnPos lo = column_of_cell(x - r, z - r), hi = column_of_cell(x + r, z + r);
-    int n = 0;
+    int  n       = 0;
+    bool refused = false;
     // Thirty seconds, as long as a column nobody touches stays anyway.
     for (int cx = lo.x; cx <= hi.x; ++cx)
-        for (int cz = lo.z; cz <= hi.z; ++cz, ++n) s->kept[ColumnPos{cx, cz}] = s->column_clock + 600;
+        for (int cz = lo.z; cz <= hi.z; ++cz) {
+            const ColumnPos c{cx, cz};
+            const auto      it = s->kept.find(c);
+            if (it != s->kept.end()) {
+                it->second = s->column_clock + 600;
+            } else if (s->kept.size() < kKeptByModsMax) {
+                s->kept[c] = s->column_clock + 600;
+            } else {
+                refused = true;
+                continue;
+            }
+            ++n;
+        }
+    if (refused && !s->kept_full_said) {
+        s->kept_full_said = true;
+        std::printf("server: core.keep_loaded is keeping %zu columns, its most; more are refused\n",
+                    s->kept.size());
+    } else if (!refused && s->kept.size() < kKeptByModsMax * 3 / 4) {
+        s->kept_full_said = false;
+    }
     return n;
 }
 
@@ -7625,6 +7661,7 @@ int serve_room(int argc, char **argv)
         host.node_drop_item = host_node_drop_item;
         host.node_alias     = host_node_alias;
         host.node_solid     = host_node_solid;
+        host.is_liquid      = host_is_liquid;
         host.node_colour  = host_node_colour;
         host.light          = host_light;
         host.block_light    = host_block_light;

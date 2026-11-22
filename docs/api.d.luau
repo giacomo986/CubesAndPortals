@@ -119,11 +119,13 @@ declare core: {
     watch_cell: (x: number, y: number, z: number, on: boolean?) -> boolean,
     -- 1 if that block stops bodies and light (register_node's solid), 0 if not or no block.
     node_solid: (id: number) -> boolean,
+    -- 1 if that block is a liquid (core.node_liquid), 0 if not or no block: a cell the dark's creatures do not come out in.
+    is_liquid: (id: number) -> boolean,
     -- A seat: puts `player` on `host`'s body and keeps them there, turning with it -- one player on another's shoulders. While seated their keys move nothing; they look about, dig, build and use as ever. 0 for the host lets them off where they are, walking. Let off by itself when the host leaves or gets a seat of their own. Returns 1, or 0 refused: no such player, one on themselves, a host who is seated, a seat too far out. On a server; a world with one player has nobody to carry.
     ride: (player: number, host: number, x: number?, y: number?, z: number?) -> boolean,
     -- 1 if the blocks of that cell are in memory, 0 if not: its column has not been made or read yet, or was let go. core.get_block reads such a cell as air, and this is how a mod tells that air from a real one.
     loaded: (x: number, y: number, z: number) -> boolean,
-    -- Keeps the columns over that square in memory for thirty seconds, made or read back if they are not, with nobody near: ask again to keep them longer. What a robot working far from every player stands on and walks to. Returns how many columns; 0 where nothing is let go (the single-process client).
+    -- Keeps the columns over that square in memory for thirty seconds, made or read back if they are not, with nobody near: ask again to keep them longer. What a robot working far from every player stands on and walks to. All the mods of a server together keep at most 256 columns: past that a column already kept is kept on and a new one is not. Returns how many columns it keeps; 0 where nothing is let go (the single-process client), or where every column asked for is new and the 256 are taken.
     keep_loaded: (x: number, z: number, r: number?) -> number,
     -- The colour a block was registered with, as 0xRRGGBB; 0 for none. What a player's machine may not know of a block only the server registers: a ghost's colour.
     node_colour: (id: number) -> number,

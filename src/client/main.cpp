@@ -3738,6 +3738,11 @@ int host_node_solid(void *ud, int id)
     return id > 0 && static_cast<Scene *>(ud)->act().registry.is_solid((BlockId)id) ? 1 : 0;
 }
 
+int host_is_liquid(void *ud, int id)
+{
+    return id > 0 && static_cast<Scene *>(ud)->act().registry.is_liquid((BlockId)id) ? 1 : 0;
+}
+
 int host_node_colour(void *ud, int id)
 {
     const NodeRegistry &reg = static_cast<Scene *>(ud)->act().registry;
@@ -22465,6 +22470,7 @@ script_host make_client_host(Scene &scene)
     host.node_drop_item = host_node_drop_item;
     host.node_alias     = host_node_alias;
     host.node_solid     = host_node_solid;
+    host.is_liquid      = host_is_liquid;
     host.node_colour  = host_node_colour;
     host.light          = host_light;
     host.block_light    = host_block_light;

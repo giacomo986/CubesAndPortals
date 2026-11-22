@@ -627,6 +627,16 @@ local api: { Fn } = {
         doc = "1 if that block stops bodies and light (register_node's solid), 0 if not or no block.",
     },
     {
+        name = "is_liquid",
+        host = "is_liquid",
+        ret  = "flag",
+        args = {
+            { name = "id", type = "int", doc = "A block id." },
+        },
+        doc = "1 if that block is a liquid (core.node_liquid), 0 if not or no block: a cell the "
+           .. "dark's creatures do not come out in.",
+    },
+    {
         name = "ride",
         host = "ride",
         ret  = "flag",
@@ -666,8 +676,11 @@ local api: { Fn } = {
         },
         doc = "Keeps the columns over that square in memory for thirty seconds, made or read "
            .. "back if they are not, with nobody near: ask again to keep them longer. What a "
-           .. "robot working far from every player stands on and walks to. Returns how many "
-           .. "columns; 0 where nothing is let go (the single-process client).",
+           .. "robot working far from every player stands on and walks to. All the mods of a "
+           .. "server together keep at most 256 columns: past that a column already kept is kept "
+           .. "on and a new one is not. Returns how many columns it keeps; 0 where nothing is "
+           .. "let go (the single-process client), or where every column asked for is new and "
+           .. "the 256 are taken.",
     },
     {
         name = "node_colour",

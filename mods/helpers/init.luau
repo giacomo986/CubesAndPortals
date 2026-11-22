@@ -20,8 +20,9 @@
 --                   over a tunnel is propped with a cobblestone, a cave under
 --                   it bridged with one, and it climbs out a cell at a time,
 --                   a cobblestone under its feet, as a player gets out of a hole
---   Quarry          with a pick: a pit five by five just east of its base,
---                   a layer at a time, 24 deep at most, and round it a stair
+--   Quarry          with a pick: a pit five by five beside its base (the
+--                   side clear of what a player built), a layer at a time,
+--                   96 deep at most, and round it a winding stair
 --                   a step down for each layer -- the way back up, for the
 --                   robot with its load and for whoever goes down after it
 --   Sort chests     puts each thing in the chest about its base that has most
@@ -644,24 +645,44 @@ WORK.ores = function(r: R): boolean
     return true
 end
 
--- A pit five by five east of the base, the cells x+2..x+6, z-2..z+2, its
--- layer k at the base's level less k. Round it, in the ring x+1..x+7,
--- z-3..z+3, a stair: step k is the k-th cell of the ring from the one beside
--- the base, its floor level with the pit's after layer k and three cells
--- clear over it, so the pit is never deeper than the stair. A step it may
--- not dig (water, lava, what a player built) is where the quarry stops.
--- ponytail: one turn of the stair, 24 layers; a second turn would need its
--- steps checked against the first one's headroom.
-local QUARRY = 24
+-- A pit five by five beside the base: facing east, the cells x+2..x+6,
+-- z-2..z+2, its layer k at the base's level less k. Round it, in the ring
+-- x+1..x+7, z-3..z+3, a stair: step k is the ((k-1) mod 24)+1-th cell of the
+-- ring from the one beside the base, its floor level with the pit's after
+-- layer k and three cells clear over it, so the pit is never deeper than the
+-- stair. The ring is 24 cells round, so the stair winds down a turn every 24
+-- layers, each turn's steps 24 under the last one's: a step's three cells of
+-- room and the floor of the step over it have 20 cells of ground between
+-- them. A step it may not dig (water, lava, what a player built, bedrock) is
+-- where the quarry stops, and so is QUARRY.
+--
+-- Which side of the base it digs on is chosen once, for that base: the side
+-- with nothing a player built in its ring from the base's level to three
+-- over, and of those the one with the most ground to take in its first layer
+-- (east first when two are as good). Kept in storage `q<n>` with the base it
+-- was chosen for; a robot given another base chooses again.
+local QUARRY = 96
 
-local function stair(r: R): { { number } }
-    local x0, x1, z0, z1 = r.bx + 1, r.bx + 7, r.bz - 3, r.bz + 3
+-- Where (dx, dz), laid out as for east, is on side d of the base: 0 east,
+-- 1 south, 2 west, 3 north.
+local function qcell(r: R, d: number, dx: number, dz: number): (number, number)
+    if d == 1 then return r.bx - dz, r.bz + dx end
+    if d == 2 then return r.bx - dx, r.bz - dz end
+    if d == 3 then return r.bx + dz, r.bz - dx end
+    return r.bx + dx, r.bz + dz
+end
+
+local function stair(r: R, d: number): { { number } }
     local out = {}
-    for z = r.bz, z1 do table.insert(out, { x0, z }) end
-    for x = x0 + 1, x1 do table.insert(out, { x, z1 }) end
-    for z = z1 - 1, z0, -1 do table.insert(out, { x1, z }) end
-    for x = x1 - 1, x0, -1 do table.insert(out, { x, z0 }) end
-    for z = z0 + 1, r.bz - 1 do table.insert(out, { x0, z }) end
+    local function add_cell(dx: number, dz: number)
+        local x, z = qcell(r, d, dx, dz)
+        table.insert(out, { x, z })
+    end
+    for dz = 0, 3 do add_cell(1, dz) end
+    for dx = 2, 7 do add_cell(dx, 3) end
+    for dz = 2, -3, -1 do add_cell(7, dz) end
+    for dx = 6, 1, -1 do add_cell(dx, -3) end
+    for dz = -2, -1 do add_cell(1, dz) end
     return out
 end
 
@@ -680,12 +701,59 @@ local function quarriable(x: number, y: number, z: number): boolean
     return true
 end
 
+-- The side of the base the pit is on (see above), chosen the first time.
+local function quarry_side(r: R): number
+    local kept = string.split(core.storage_get(`q{r.n}`), ",")
+    if #kept == 4 and tonumber(kept[2]) == r.bx and tonumber(kept[3]) == r.by and tonumber(kept[4]) == r.bz then
+        return tonumber(kept[1]) or 0
+    end
+    -- A pit already begun (a quarry from before the side was chosen, always
+    -- east, or storage lost): its first step and its middle dug out.
+    for d = 0, 3 do
+        local sx, sz = qcell(r, d, 1, 0)
+        local mx, mz = qcell(r, d, 4, 0)
+        if free(sx, r.by - 1, sz) and free(mx, r.by - 1, mz) and free(mx, r.by, mz)
+            and core.node_solid(core.get_block(sx, r.by - 2, sz)) then
+            core.storage_set(`q{r.n}`, `{d},{r.bx},{r.by},{r.bz}`)
+            return d
+        end
+    end
+    local best, side = -1, 0
+    for d = 0, 3 do
+        local built, ground = false, 0
+        for _, c in stair(r, d) do
+            for y = r.by, r.by + 3 do
+                if not diggable(core.get_block(c[1], y, c[2])) then
+                    built = true
+                end
+            end
+        end
+        for dx = 2, 6 do
+            for dz = -2, 2 do
+                local x, z = qcell(r, d, dx, dz)
+                if not diggable(core.get_block(x, r.by, z)) then
+                    built = true
+                end
+                if quarriable(x, r.by - 1, z) then
+                    ground += 1
+                end
+            end
+        end
+        if not built and ground > best then
+            best, side = ground, d
+        end
+    end
+    core.storage_set(`q{r.n}`, `{side},{r.bx},{r.by},{r.bz}`)
+    return side
+end
+
 WORK.quarry = function(r: R): boolean
     local pick = r.tools.pick or "tools:pick"
-    local steps = stair(r)
+    local d = quarry_side(r)
+    local steps = stair(r, d)
     local px, py, pz = where(r)
     for k = 1, QUARRY do
-        local s, y = steps[k], r.by - k
+        local s, y = steps[(k - 1) % #steps + 1], r.by - k
         -- The step first, top down, so the way up is always there.
         for h = 2, 0, -1 do
             if not free(s[1], y + h, s[2]) then
@@ -704,13 +772,14 @@ WORK.quarry = function(r: R): boolean
         -- Then the layer, the nearest cell first; the next layer only when
         -- nothing of this one is left to take.
         local left, best, cx, cz = false, math.huge, nil, nil
-        for x = r.bx + 2, r.bx + 6 do
-            for z = r.bz - 2, r.bz + 2 do
+        for dx = 2, 6 do
+            for dz = -2, 2 do
+                local x, z = qcell(r, d, dx, dz)
                 if quarriable(x, y, z) then
                     left = true
-                    local d = (x - px) ^ 2 + (y - py) ^ 2 + (z - pz) ^ 2
-                    if d < best and not failed(r, x, y, z) then
-                        best, cx, cz = d, x, z
+                    local dd = (x - px) ^ 2 + (y - py) ^ 2 + (z - pz) ^ 2
+                    if dd < best and not failed(r, x, y, z) then
+                        best, cx, cz = dd, x, z
                     end
                 end
             end

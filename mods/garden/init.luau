@@ -337,8 +337,10 @@ type Bug = { kind: string, id: number, wait: number, home: boolean,
              -- a butterfly's flight: from, to, how far along, how long
              fx: number, fy: number, fz: number, tx: number, ty: number, tz: number,
              t: number, len: number, flying: boolean,
-             -- an ant's lane: how far to one side of the straight road it keeps
-             lane: number }
+             -- an ant's lane: how far to one side of the straight road it keeps;
+             -- its place round a flower or the nest (an angle), so that two
+             -- at the same one stand side by side and not in each other
+             lane: number, ring: number }
 local bugs: { Bug } = {}
 local seed = 12345
 local function rand(): number   -- small and fixed, so a run is a run
@@ -351,11 +353,16 @@ end
 local function inside(x: number, z: number): boolean
     return x >= GX0 and x <= GX1 and z >= GZ0 and z <= GZ1
 end
+-- Round G (115, 43): no walk is aimed there, so that a creature does not
+-- stroll through the little door onto the plaza.
+local function by_door(x: number, z: number): boolean
+    return math.abs(x - 115) <= 2 and math.abs(z - 43) <= 2
+end
 
 local function spawn(b: Bug): boolean
     local x, y, z
     if b.kind == "garden:ant" then
-        x, y, z = NEST_X + 0.5, GY + 1, NEST_Z + 0.5
+        x, y, z = NEST_X + 0.5 + math.cos(b.ring) * 0.3, GY + 1, NEST_Z + 0.5 + math.sin(b.ring) * 0.3
     elseif b.kind == "garden:butterfly" then
         local f = bloom()
         x, y, z = f[1] + 0.5, GY + 1 + FLOWER_TOP, f[2] + 0.5
@@ -387,7 +394,9 @@ local function clear_road(x0: number, z0: number, x1: number, z1: number): boole
     for k = 0, math.ceil(d / 0.25) do
         local u = if d > 0 then math.min(1, k * 0.25 / d) else 1
         local x, z = math.floor(x0 + (x1 - x0) * u), math.floor(z0 + (z1 - z0) * u)
-        if BLOCKS_ANT[core.get_block(x, GY + 1, z)] or core.get_block(x, GY, z) == WATER then return false end
+        if BLOCKS_ANT[core.get_block(x, GY + 1, z)] or core.get_block(x, GY, z) == WATER or (x == 115 and z == 43) then
+            return false
+        end
     end
     return true
 end
@@ -400,9 +409,10 @@ local function ant(b: Bug, dt: number)
         local tx, tz
         if b.home then
             local f = bloom()
-            tx, tz = f[1] + 0.5, f[2] + 0.5
+            tx, tz = f[1] + 0.5 + math.cos(b.ring) * 0.14, f[2] + 0.5 + math.sin(b.ring) * 0.14
         else
-            tx, tz = NEST_X + 0.5 + (rand() - 0.5) * 1.5, NEST_Z + 0.5 + (rand() - 0.5) * 1.5
+            local r = 0.25 + rand() * 0.5
+            tx, tz = NEST_X + 0.5 + math.cos(b.ring) * r, NEST_Z + 0.5 + math.sin(b.ring) * r
         end
         if not clear_road(x, z, tx, tz) then b.wait = 0.5; return end   -- another flower, soon
         b.fx, b.fz, b.tx, b.tz = x, z, tx, tz
@@ -439,7 +449,7 @@ local function walker(b: Bug, dt: number)
         if x == nil then return end
         local nx = math.floor(x + (rand() - 0.5) * 6)
         local nz = math.floor(z + (rand() - 0.5) * 6)
-        if inside(nx, nz) then core.mob_goto(b.id, nx, GY + 1, nz) end
+        if inside(nx, nz) and not by_door(nx, nz) then core.mob_goto(b.id, nx, GY + 1, nz) end
         b.wait = 2 + rand() * 6
     end
 end
@@ -489,13 +499,23 @@ core.event.on("core:tick", function(ev)
                 local first = if kind == "garden:ant" then (i - 1) * 3 else 0
                 table.insert(bugs, { kind = kind, id = 0, wait = first, home = true, fx = 0, fy = 0, fz = 0,
                                      tx = 0, ty = 0, tz = 0, t = 0, len = 1, flying = false,
-                                     lane = ((i - 1) % 5 - 2) * 0.035 })
+                                     lane = ((i - 1) - (n - 1) / 2) * 0.03,
+                                     ring = (i - 1) * 2 * math.pi / n })
             end
         end
     end
     for _, b in bugs do
         if b.id > 0 and core.mob_pos(b.id) == nil then
             b.id, b.wait = 0, RESPAWN   -- killed: back after a while
+        elseif b.id > 0 then
+            -- Out through the little door all the same (pushed, knocked):
+            -- taken away before it wanders off on the plaza and is let go far
+            -- from everybody, and back in the garden soon.
+            local x, _, z = core.mob_pos(b.id)
+            if x and z and not inside(math.floor(x), math.floor(z)) then
+                core.mob_remove(b.id)
+                b.id, b.wait = 0, 2
+            end
         end
         if b.id == 0 then
             b.wait -= ev.dt

@@ -222,13 +222,16 @@ void ColumnKeeper::release(const std::vector<ColumnPos> &columns)
             for (const std::vector<uint8_t> &b : it->second) m_kept_bytes -= b.size();
             m_kept.erase(it);
         }
-        m_spilled.erase(c);
+        unspill(c);
         if (m_kept_bytes > kKeptInMemory) {
             if (!m_spill) m_spill.reset(std::tmpfile());
-            if (m_spill && std::fseek(m_spill.get(), 0, SEEK_END) == 0) {
+            long length = 0;
+            for (const std::vector<uint8_t> &b : blobs) length += (long)b.size();
+            const long at = m_spill ? m_space.place(length) : -1;
+            if (at >= 0 && std::fseek(m_spill.get(), at, SEEK_SET) == 0) {
                 Spilled sp;
-                sp.at   = std::ftell(m_spill.get());
-                bool ok = sp.at >= 0;
+                sp.at   = at;
+                bool ok = true;
                 for (const std::vector<uint8_t> &b : blobs) {
                     ok = ok && std::fwrite(b.data(), 1, b.size(), m_spill.get()) == b.size();
                     sp.sizes.push_back((uint32_t)b.size());
@@ -237,6 +240,9 @@ void ColumnKeeper::release(const std::vector<ColumnPos> &columns)
                     m_spilled[c] = std::move(sp);
                     continue;
                 }
+                m_space.free(at, length);
+            } else if (at >= 0) {
+                m_space.free(at, length);
             }
         }
         for (const std::vector<uint8_t> &b : blobs) m_kept_bytes += b.size();
@@ -248,6 +254,60 @@ void ColumnKeeper::release(const std::vector<ColumnPos> &columns)
         if (!m_db->save_chunks(m_world, to_save, err))
             std::printf("world: could not keep the columns it let go of: %s\n", err.c_str());
     }
+}
+
+long SpillSpace::place(long length)
+{
+    if (length <= 0) return end;
+    for (auto it = holes.begin(); it != holes.end(); ++it) {
+        if (it->second < length) continue;
+        const long at   = it->first;
+        const long left = it->second - length;
+        holes.erase(it);
+        if (left > 0) holes[at + length] = left;
+        return at;
+    }
+    const long at = end;
+    end += length;
+    return at;
+}
+
+void SpillSpace::free(long at, long length)
+{
+    if (length <= 0) return;
+    // The file's own end comes back rather than staying a hole.
+    if (at + length == end) {
+        end = at;
+        // and a hole that now touches the end goes with it.
+        while (!holes.empty()) {
+            auto last = std::prev(holes.end());
+            if (last->first + last->second != end) break;
+            end = last->first;
+            holes.erase(last);
+        }
+        return;
+    }
+    auto next = holes.lower_bound(at);
+    if (next != holes.end() && at + length == next->first) {
+        length += next->second;
+        next = holes.erase(next);
+    }
+    if (next != holes.begin()) {
+        auto prev = std::prev(next);
+        if (prev->first + prev->second == at) {
+            prev->second += length;
+            return;
+        }
+    }
+    holes[at] = length;
+}
+
+void ColumnKeeper::unspill(ColumnPos c)
+{
+    const auto it = m_spilled.find(c);
+    if (it == m_spilled.end()) return;
+    m_space.free(it->second.at, it->second.length());
+    m_spilled.erase(it);
 }
 
 void ColumnKeeper::make_lit(ColumnPos c, uint64_t now)
