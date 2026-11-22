@@ -1238,8 +1238,8 @@ void main()
 
 // A model's outline (ModelRenderer::draw_outline): the same skinning, every
 // vertex pushed out along its normal as the normal falls on the screen, by a
-// width in pixels whatever the distance; drawn with the front faces culled, so
-// what is left of this swollen hull round the model is a rim of one colour.
+// width in pixels whatever the distance; drawn before the model and writing no
+// depth, so the model covers its inside and a rim of one colour is left.
 inline constexpr const char *kOutlineVS = R"(#version 330 core
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNormal;

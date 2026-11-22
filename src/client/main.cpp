@@ -5314,21 +5314,6 @@ int host_cursor_ray(void *ud, float *ox, float *oy, float *oz, float *dx, float 
     return 1;
 }
 
-void host_walk(void *ud, double dx, double dz, double speed)
-{
-    Session     &s = static_cast<Scene *>(ud)->act();
-    const double l = std::isfinite(dx) && std::isfinite(dz) ? std::hypot(dx, dz) : 0.0;
-    s.mod_walk = l > 1e-6;
-    if (!s.mod_walk) return;
-    s.mod_walk_x     = (float)(dx / l);
-    s.mod_walk_z     = (float)(dz / l);
-    s.mod_walk_speed = (float)std::clamp(std::isfinite(speed) ? speed : 1.0, 0.0, 1.0);
-}
-
-// A model this machine's mods declared, or else one the world it is connected
-// to sent: world code that runs here names the world's models too.
-int host_model_id(void *ud, const char *name)
-{
 // The rims mods ask for round creatures (core.outline), by the low 32 bits of
 // a body's id -- what a server's core.mob_ids gives -- each for a fifth of a
 // second after it was asked, so a mod that stops asking stops seeing it.
@@ -5392,6 +5377,21 @@ void host_outline(void *ud, double id, int r, int g, int b, double px, int a)
     o.until   = outline_clock() + 0.2;
 }
 
+void host_walk(void *ud, double dx, double dz, double speed)
+{
+    Session     &s = static_cast<Scene *>(ud)->act();
+    const double l = std::isfinite(dx) && std::isfinite(dz) ? std::hypot(dx, dz) : 0.0;
+    s.mod_walk = l > 1e-6;
+    if (!s.mod_walk) return;
+    s.mod_walk_x     = (float)(dx / l);
+    s.mod_walk_z     = (float)(dz / l);
+    s.mod_walk_speed = (float)std::clamp(std::isfinite(speed) ? speed : 1.0, 0.0, 1.0);
+}
+
+// A model this machine's mods declared, or else one the world it is connected
+// to sent: world code that runs here names the world's models too.
+int host_model_id(void *ud, const char *name)
+{
     Scene            &s    = *static_cast<Scene *>(ud);
     Session          &w    = s.act();
     const std::string want = name ? name : "";
@@ -8124,6 +8124,11 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
         if (b.sliding || w.mark_last.count(b.id)) leave_marks(w, e->model, b, place);
     } else if (e->model.skinned()) {
         wheel_pose(e->model, b, posed);
+        // The rim first, writing no depth, and the model over it: what the
+        // model covers of it is gone, so only the rim round the whole body
+        // is left -- not one round each of its pieces.
+        if (const Outline *o = b.slain > 0.0f ? nullptr : outline_of(b.id))
+            e->renderer.draw_outline(projection, view, place, posed, o->rgba, o->px);
         e->renderer.draw(projection, view, place, posed, gfx_texture{0}, light, b.alpha, livery_tag(b.livery), b.slain,
                          b.slain > 0.0f);
         if (!b.arms_only) {   // nothing worn shows from inside the head
@@ -8137,6 +8142,8 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
                               gait);
         }
     } else {
+        if (const Outline *o = b.slain > 0.0f ? nullptr : outline_of(b.id))
+            e->renderer.draw_outline(projection, view, place, e->model.bind_pose, o->rgba, o->px);
         e->renderer.draw(projection, view, place, e->model.bind_pose, gfx_texture{0}, light, b.alpha, 0, b.slain,
                          b.slain > 0.0f);
     }
@@ -8152,8 +8159,6 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
         if (b.rider_headless) {
             const SkinnedModel &m = r->model;
             std::vector<char>   arm((size_t)m.joint_count, 0);   // an arm's bone, or under one
-        if (const Outline *o = b.slain > 0.0f ? nullptr : outline_of(b.id))
-            e->renderer.draw_outline(projection, view, place, posed, o->rgba, o->px);
             for (int j = 0; j < m.joint_count; ++j)
                 for (int k = j; k >= 0 && !arm[(size_t)j]; k = m.joint_parent[(size_t)k])
                     if (m.joint_names[(size_t)k].rfind("upper_arm_", 0) == 0) arm[(size_t)j] = 1;
@@ -8167,8 +8172,6 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
                     q[row * 4 + 3] = to;   // where the joint is posed: every vertex of it there
                 }
             }
-        if (const Outline *o = b.slain > 0.0f ? nullptr : outline_of(b.id))
-            e->renderer.draw_outline(projection, view, place, e->model.bind_pose, o->rgba, o->px);
         }
         r->renderer.draw(projection, view, place, posed, gfx_texture{0}, 1.0f, 1.0f, livery_tag(b.livery));
         if (!b.rider_headless) {
@@ -22359,6 +22362,8 @@ script_host make_client_host(Scene &scene)
     host.top_view       = host_top_view;
     host.top_view_at    = host_top_view_at;
     host.cursor_ray     = host_cursor_ray;
+    host.cursor_creature = host_cursor_creature;
+    host.outline        = host_outline;
     host.walk           = host_walk;
     host.mobs_near      = host_mobs_near;
     host.mob_ids        = host_mob_ids;
@@ -22390,8 +22395,6 @@ script_host make_client_host(Scene &scene)
     host.mob_sight      = host_mob_sight;
     host.mob_climbs     = host_mob_climbs;
     host.mob_say_every  = host_mob_say_every;
-    host.cursor_creature = host_cursor_creature;
-    host.outline        = host_outline;
     host.mob_lunge      = host_mob_lunge;
     host.mob_share      = host_mob_share;
     host.arms_clip      = host_arms_clip;

@@ -26,6 +26,9 @@ core.register_node("arpg_core:roof", 92, 44, 36)
 local STASH = core.register_node("arpg_core:stash", 170, 130, 50, true, 6)
 local COFFER = core.register_node("arpg_core:coffer", 150, 110, 40, true, 5)
 local COFFER_OPEN = core.register_node("arpg_core:coffer_open", 80, 64, 40)
+-- A lord's den shut while it lives (arpg_game, the Butcher's): a wall of red
+-- light across the way in, that nobody breaks.
+core.register_node("arpg_core:barrier", 200, 40, 30, true, 9, "", 9, 999, "stone")
 
 -- Loaded in a player's workshop too (mods/workshop, games/workshop/mods), for
 -- its blocks alone: what makes the arpg's world is left out there, and so are

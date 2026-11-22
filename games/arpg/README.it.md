@@ -48,7 +48,9 @@ Tasto sinistro: cammina, colpisci, parla, raccogli. Tasto destro: l'abilità sce
   chiama arciere d'ossa; il pannello della missione li elenca (CONTANO). Un signore già ucciso
   quando prendi la sua missione torna nella sua tana.
 - **Il Macellaio**: il signore della Desolazione grigia prima del suo signore, nella sua tana
-  (area b1, livello 3), con quattro morti: enorme, veloce, una mannaia che picchia duro.
+  (area b1, livello 3), con quattro morti: enorme, veloce, una mannaia che picchia duro. Se entri
+  nella sua tana mentre è vivo, un muro di luce rossa chiude la via del ritorno (niente portale
+  cittadino) finché non cade.
 - **La cripta**: tre piani giù per scale (mezzi gradini), ognuno sigillato finché i suoi morti non
   sono a terra. Il Custode aspetta al terzo; quando cade si spezza il sigillo a est del piano, e
   un corridoio porta a una stanza col soffitto dove la telecamera scende all'altezza degli occhi,

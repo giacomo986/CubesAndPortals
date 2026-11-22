@@ -88,9 +88,10 @@ public:
               float dissolve = 0.0f,  // 0..1, how much of it is eaten away (core.render.model)
               bool dissolve_red = false); // a monster killed: its edges red, not electric blue
 
-    // A rim of one colour round the model as `draw` just drew it: the same
-    // place and bones, `px` pixels wide on the screen (core.outline: the
-    // creature under the pointer, the one being fought).
+    // A rim of one colour round the model as `draw` will draw it next: the
+    // same place and bones, `px` pixels wide on the screen (core.outline: the
+    // creature under the pointer, the one being fought). Called BEFORE draw,
+    // which covers its inside.
     void draw_outline(const Mat4 &projection, const Mat4 &view, const Mat4 &model,
                       const std::vector<float> &bones, const float rgba[4], float px) const;
 

@@ -74,7 +74,7 @@ type Affix = { pre: boolean, name: string, stat: string, lvl: number, min: numbe
                only: string? }
 type Special = { name: string, base: string, lvl: number?, s: { [string]: number } }
 type SetDef = { name: string, items: { Special }, two: { [string]: number }, three: { [string]: number } }
-type MobDef = { hp: number, xp: number, names: { string }?, boss: string?, prop: boolean? }
+type MobDef = { hp: number, xp: number, names: { string }?, boss: string?, prop: boolean?, arena: boolean? }
 type PState = { name: string, cls: number, lvl: number, xp: number, gold: number, lpot: number, mpot: number,
                 tp: number, str: number, dex: number, vit: number, ene: number, sp: number, kp: number,
                 ranks: { number }, inv: { [number]: Item }, eq: { [number]: Item }, stash: { [number]: Item },
@@ -379,7 +379,7 @@ D.MOB = {
     ["arpg_core:grave_lord"] = { hp = 90, xp = 50, boss = "THE GRAVE LORD" },
     ["arpg_core:ember_wing"] = { hp = 96, xp = 60, boss = "EMBERWING" },
     ["arpg_crypt:custode"]   = { hp = 200, xp = 80, boss = "IL CUSTODE DELLE TOMBE" },
-    ["arpg_core:butcher"]    = { hp = 70, xp = 45, boss = "THE BUTCHER" },
+    ["arpg_core:butcher"]    = { hp = 70, xp = 45, boss = "THE BUTCHER", arena = true },
     -- What is broken for what is inside: no experience, a creature's drops.
     ["arpg_core:barrel"]     = { hp = 5, xp = 0, names = { "BARREL", "BARREL", "BARREL", "BARREL" }, prop = true },
     ["arpg_core:crate"]      = { hp = 6, xp = 0, names = { "CRATE", "CRATE", "CRATE", "CRATE" }, prop = true },
@@ -801,7 +801,16 @@ function L.corridor(n: number, a: any)
         end
     end
 end
-for n, a in L.AREAS do L.shape(n, a) end
+-- An area's own rooms (its main rectangle and bulges), apart from the corridor
+-- that joins it to the one before: a den is shut where that corridor leaves them.
+function L.rooms(n: number): { { number } }
+    local out = {}
+    for _, r in L.RECTS do
+        if r[5] == n then table.insert(out, r) end
+    end
+    return out
+end
+for n, a in L.AREAS do L.shape(n, a); a.rooms = L.rooms(n) end
 -- The cell of the town's arch (opening 0), in the high ground of its north edge.
 add_rect(L.OX, L.OZ - 21, L.OX, L.OZ - 21, 1)
 -- The corridors: from each area's middle to the middle of the one before it.
@@ -1017,6 +1026,7 @@ function L.add_level(slot: number, d: number, seed: number): number
         table.insert(L.AREAS, a)
         local n = #L.AREAS
         L.shape(n, a)
+        a.rooms = L.rooms(n)
         L.corridor(n, a)
         L.populate(n, a)
     end
@@ -2787,6 +2797,18 @@ if serving then
             SV.msg(p, "NO TOWN PORTAL SCROLLS")
             return
         end
+        -- Not out of a shut den by a scroll either.
+        local fx0, _, fz0 = core.player_pos(p)
+        for k, ar in SV.arenas do
+            if ar.shut and fx0 then
+                for _, r in L.AREAS[L.ENC[k].area].rooms do
+                    if fx0 >= r[1] and fx0 < r[3] + 1 and fz0 >= r[2] and fz0 < r[4] + 1 then
+                        SV.msg(p, "NO WAY OUT WHILE IT LIVES")
+                        return
+                    end
+                end
+            end
+        end
         local px, py, pz = core.player_pos(p)
         if px == nil then
             return
@@ -3435,6 +3457,9 @@ if serving then
         for id in SV.props do   -- a worker stays where it was put: take the unbroken away
             core.mob_remove(id)
         end
+        for k, ar in SV.arenas do
+            if ar.shut then SV.set_arena(k, L.ENC[k], false) end
+        end
         SV.enc, SV.mobs, SV.killed, SV.proj = {}, {}, {}, {}
         SV.props, SV.prop_st = {}, {}
         SV.ground, SV.portals = {}, {}
@@ -3507,6 +3532,101 @@ if serving then
             end
         end
     end
+
+    -- A den shut while its lord lives (D.MOB's arena: the Butcher): whoever
+    -- is in its rooms with the lord up and about cannot get out until it is
+    -- down -- a wall of red light across its corridor, one cell past the
+    -- rooms. Open again when it falls, and when nobody is left in the rooms
+    -- (a player killed there is back in town).
+    SV.arenas = {} :: { [number]: { cells: { { number } }, shut: boolean } }   -- by encounter
+    function SV.arena_cells(e: any): { { number } }
+        local a = L.AREAS[e.area]
+        local f = a.from and L.AREAS[L.BY_KEY[a.from]]
+        if f == nil then return {} end
+        local function in_rooms(x: number, z: number): boolean
+            for _, r in a.rooms do
+                if x >= r[1] and x <= r[3] and z >= r[2] and z <= r[4] then return true end
+            end
+            return false
+        end
+        local vertical = f.j ~= a.j
+        local dir = if vertical then math.sign(f.cz - a.cz) else math.sign(f.cx - a.cx)
+        local x, z = a.cx, a.cz
+        for _ = 1, 60 do
+            if not in_rooms(x, z) then break end
+            if vertical then z += dir else x += dir end
+        end
+        local cells = {}
+        for k = -2, 2 do
+            table.insert(cells, if vertical then { a.cx + k, z } else { x, a.cz + k })
+        end
+        return cells
+    end
+    function SV.set_arena(k: number, e: any, shut: boolean)
+        local ar = SV.arenas[k]
+        if ar == nil then
+            ar = { cells = SV.arena_cells(e), shut = false }
+            SV.arenas[k] = ar
+        end
+        if ar.shut == shut then return end
+        ar.shut = shut
+        local id = if shut then core.node_id("arpg_core:barrier") else 0
+        for _, c in ar.cells do
+            for y = GROUND, GROUND + 2 do core.set_block(c[1], y, c[2], id) end
+        end
+        local mid = ar.cells[3]
+        if mid then core.play_sound("arpg_crypt:seal", mid[1] + 0.5, GROUND + 1, mid[2] + 0.5) end
+    end
+    function SV.step_arenas()
+        for k, e in L.ENC do
+            local lord = e.members[1]
+            if not (lord and lord[2] == 3 and D.MOB[lord[1]] and D.MOB[lord[1]].arena) then continue end
+            local st = SV.enc[k]
+            local alive = false
+            if st and st.woke and not st.done then
+                for id, held in st.ids do
+                    if held.m[2] == 3 and core.mob_pos(id) ~= nil then alive = true end
+                end
+            end
+            local inside = {}
+            local a = L.AREAS[e.area]
+            for p, s in SV.players do
+                local x, _, z = core.player_pos(p)
+                if x and s.cls > 0 and core.health(p) > 0 then
+                    for _, r in a.rooms do
+                        if x >= r[1] and x < r[3] + 1 and z >= r[2] and z < r[4] + 1 then
+                            table.insert(inside, p)
+                            break
+                        end
+                    end
+                end
+            end
+            local shut = alive and #inside > 0
+            local was = SV.arenas[k] and SV.arenas[k].shut
+            SV.set_arena(k, e, shut)
+            if shut and not was then
+                for _, p in inside do SV.msg(p, `THE WAY BACK IS BARRED. {D.MOB[lord[1]].boss} MUST FALL`) end
+            elseif was and not shut and not alive then
+                for _, p in inside do SV.msg(p, "THE WAY BACK IS OPEN") end
+            end
+        end
+    end
+    -- A world stopped with a den shut has the wall in its ground: taken down
+    -- at the start.
+    core.event.on("core:world_ready", function()
+        for k, e in L.ENC do
+            local lord = e.members[1]
+            if lord and lord[2] == 3 and D.MOB[lord[1]] and D.MOB[lord[1]].arena then
+                for _, c in SV.arena_cells(e) do
+                    for y = GROUND, GROUND + 2 do
+                        if core.get_block(c[1], y, c[2]) == core.node_id("arpg_core:barrier") then
+                            core.set_block(c[1], y, c[2], 0)
+                        end
+                    end
+                end
+            end
+        end
+    end)
 
     local stat_at, time_at, save_at, enc_at, npc_at, foes_at = 0, 0, 0, 0, 0, 0
 
@@ -3597,6 +3717,7 @@ if serving then
         if clock >= enc_at then
             enc_at = clock + 0.5
             SV.step_encounters()
+            SV.step_arenas()
         end
         if clock >= foes_at then
             foes_at = clock + 5

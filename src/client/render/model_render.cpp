@@ -227,13 +227,19 @@ void ModelRenderer::draw_outline(const Mat4 &projection, const Mat4 &view, const
                            2.0f * px / (float)std::max(1, gfx_screen_height())};
     gfx_uniform_set_v2(loc_push, push);
     gfx_uniform_set_v4(loc_colour, rgba, 1);
+    // Every face, depth tested against the world but writing none: drawn
+    // BEFORE the model (draw_body_model), which then covers all of it that is
+    // inside its outline. Culling the front faces instead left a rim round
+    // every separate piece of a model (a Meshy body is many), lines across it.
     gfx_state state = gfx_state_default();
-    state.cull  = mirrored ? GFX_CULL_BACK : GFX_CULL_FRONT;
-    state.blend = rgba[3] < 1.0f ? GFX_BLEND_ALPHA : GFX_BLEND_NONE;
+    state.cull        = GFX_CULL_NONE;
+    state.depth_write = false;
+    state.blend       = rgba[3] < 1.0f ? GFX_BLEND_ALPHA : GFX_BLEND_NONE;
     gfx_state_set(&state);
     for (const Part &p : m_parts) gfx_draw(m_mesh, (int)p.index_count, (int)p.first_index);
-    state.cull  = GFX_CULL_BACK;
-    state.blend = GFX_BLEND_NONE;
+    state.cull        = GFX_CULL_BACK;
+    state.depth_write = true;
+    state.blend       = GFX_BLEND_NONE;
     gfx_state_set(&state);
 }
 
