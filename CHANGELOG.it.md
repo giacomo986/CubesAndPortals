@@ -5,12 +5,10 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
-## 0.20.0-alpha.1 — 2026-11-21
+## 0.21.0-alpha.1 — 2026-11-22
 
-**Non gioca con la 0.19.0-alpha.1** (protocollo 129): in una stanza di un server di più stanze,
-dopo la prima, si entra solo con un biglietto firmato per quella stanza, che un client più vecchio
-non chiede; e il colore della luce attraverso un blocco e le parole che Tab completa nella chat
-sono nuovi in rete.
+**Non gioca con la 0.20.0-alpha.1** (protocollo 129): il colore della luce attraverso un blocco
+e le parole che Tab completa nella chat sono nuovi in rete.
 
 - **Il vetro colorato colora la luce delle lampade che lo attraversa**: una torcia o una lampada
   dietro un vetro rosso illumina il pavimento di rosso. La luce del giorno passa ancora bianca.
@@ -61,6 +59,32 @@ sono nuovi in rete.
   raggiunto un giocatore; `core.render.model(..., alpha, tint, clip, time)` disegna un modello trasparente, tinto e in posa
   da una sua clip;
   `maps:route` accetta `~R;` prima dei punti per un arrivo raggiunto entro R.
+- **Il prop hunt non c'è più** nel gong dell'arena, che ora avvia solo la sfida.
+- **I kart sono monoposto**, e i potenziamenti valgono solo sulla pista dove si usano: il fulmine,
+  l'inchiostro, il bersaglio di un guscio a ricerca e il tocco di una stella raggiungono solo chi
+  corre su quella pista.
+- **Arpg**: figure dipinte nell'inventario in cinque rarità; una cintura di tre pozioni accanto
+  ai globi; i mercanti ricomprano le ultime dodici cose vendute; otto materiali da creature,
+  oggetti e bauli; quattordici missioni in quattro catene, con un segno sopra chi le dà; il
+  Macellaio e il Custode rifatti; armi, scudi e pezzi d'armatura nuovi per ogni specie; i bauli e
+  il deposito della città ora sono modelli; l'uscita della cripta è un corridoio sigillato con una
+  stanza tutta sua, e le sue scale sono a mezzi gradini.
+- **Correzioni**: un meteorite non cade più sul pavimento di una grotta accanto a un giocatore;
+  una commissione si prende dalla bacheca del villaggio; un sentiero che finisce su un ponte ha il
+  suo cartello; le formiche del giardino camminano affiancate e nessun insetto esce dalla
+  porticina; la cava di un robot aiutante scende a spirale oltre i 24 strati (fino a 96) dal lato
+  della base libero da costruzioni dei giocatori; F8 non segna più il fondo dei laghi; una fornace
+  vecchia rimette a posto le righe sbagliate; le porte si aprono con il filo isolato acceso e con
+  una porta logica accesa rivolta verso di loro; un mondo senza file non fa più crescere senza fine
+  il suo file temporaneo.
+- Per chi scrive mod: `core.is_liquid(id)`; `core.keep_loaded` tiene al massimo 256 colonne per
+  tutti i mod di un server insieme.
+
+## 0.20.0-alpha.1 — 2026-11-20
+
+**Non gioca con la 0.19.0-alpha.1** (protocollo 127): in una stanza di un server di più stanze,
+dopo la prima, si entra solo con un biglietto firmato per quella stanza, che un client più vecchio
+non chiede.
 
 - **Niente più lampi verdi nel cielo del fronte**: l'estremo lontano di una finestra (la mappa della
   galleria sopra il campo) non si disegna, e la sua apertura non si ripete più -- in cielo, a ogni
@@ -76,12 +100,13 @@ sono nuovi in rete.
   secondi mentre si caricava una stanza dell'inferno, ora al più un quarto di secondo circa.
 - **I cancelli di un mondo survival** lasciano liberi i portali vicino a cui non c'è nessuno, così
   anche lì i portali tra stanze costruiti a mano hanno bocche da prendere in prestito.
-- **Il prop hunt non c'è più** nel gong dell'arena, che ora avvia solo la sfida.
-- Per chi scrive mod: il `target` di `core:hit` è l'id che prendono tutte le altre chiamate, come
-  lo dà `core.spawn_mob`, e non più un numero che `core.body_player` non sapeva leggere (un corpo
-  con un id già usato non era nessuno); un corpo disegnato come blocco (`core.body_block`) è
-  colpito dove è il blocco, e una lastra, una scala o un recinto è disegnato con quella forma, non
-  come un cubo intero.
+- **Il colpo del prop hunt trova sempre chi si nasconde**: non trovava nessuno quando il corpo di
+  chi si nascondeva aveva un id già usato (chi è entrato dopo che un altro era uscito). Per chi
+  scrive mod: il `target` di `core:hit` è l'id che prendono tutte le altre chiamate, come lo dà
+  `core.spawn_mob`, e non più un numero che `core.body_player` non sapeva leggere.
+- **Chi si nasconde nel prop hunt è colpito dove è il suo blocco**: niente più colpi che vanno a
+  segno nell'aria vuota sopra o che mancano il suo bordo basso, e chi è travestito da lastra, scala
+  o recinto è disegnato con quella forma, non come un cubo intero.
 - **Gli oggetti a terra si salvano con il mondo**: dopo un riavvio sono dove erano, anche quelli
   consumati, incantati e colorati, con il resto dei loro cinque minuti ancora da passare.
 - **Un kart parcheggiato tiene la vernice e i pezzi del suo ultimo pilota** per tutti, anche dopo un

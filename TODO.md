@@ -21,10 +21,11 @@ what is built, and three or four structural fixes that each close many entries.
 
 ## Suggested order
 
-1. The next package: `kEngineVersion` raised to 0.20.0-alpha.1 on 2026-11-20
-   (0.19.0-alpha.1 was never tagged; the branch speaks protocol 127) and the
-   changelogs dated; the tag waits for Giacomo's word. The last tag is
-   v0.18.0-alpha.1.
+1. The next package: `kEngineVersion` raised to 0.21.0-alpha.1 on 2026-11-22
+   (protocol 129, so it does not play with 0.20.0-alpha.1, tagged at 8dcbb0e
+   with protocol 127): its changelog entry holds what came after that tag, and
+   the 0.20.0-alpha.1 entry is again what the tag holds. The tag waits for
+   Giacomo's word.
 2. The test rig (section below): done 2026-11-20 for the five left-click cases;
    the thirty "not heard" entries are still to go through one by one.
 3. Models at join (first defect below): done 2026-11-20, looked at by eye.
@@ -98,7 +99,7 @@ The ending:
 Survival: the bounce pad; the Inferno's level; a site's own row of chambers,
 mirrored ones included (built and walked by script only).
 
-New in 0.20.0-alpha.1, tried by script only: chambers 16 and 17 with the mouse;
+New in 0.21.0-alpha.1, tried by script only: chambers 16 and 17 with the mouse;
 a chip saved on the bench and put down; a card kept from a hand and given to
 the museum; two karts racing (bumps, a ghost); power-ups kept to the track
 they are used on (a lightning, ink, a shell from a kart on another track).
@@ -787,7 +788,7 @@ portal is loaded, let go when nobody can reach it. Built 2026-11-12 (4).
 
 ## Additions proposed (2026-11-09), none designed
 
-The small and medium ones are built (2026-11-20/21, in 0.20.0-alpha.1): errands
+The small and medium ones are built (2026-11-20/21, in 0.21.0-alpha.1): errands
 on the map, bone meal and flesh, signs on their boards, a caret and Tab, stained
 glass, loops in use, item odds and a ghost on the track, the first hour as a
 guide, circuits' rest (walls and ceilings, bus gates, the chip bench), chambers

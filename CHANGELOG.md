@@ -5,12 +5,10 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
-## 0.20.0-alpha.1 — 2026-11-21
+## 0.21.0-alpha.1 — 2026-11-22
 
-**Does not play with 0.19.0-alpha.1** (protocol 129): a room of a server of several, past the
-first, is gone into only with a ticket signed for that room, which an older client does not ask
-for; and the colour of the light through a block, and the words Tab finishes in the chat, are new
-on the wire.
+**Does not play with 0.20.0-alpha.1** (protocol 129): the colour of the light through a block,
+and the words Tab finishes in the chat, are new on the wire.
 
 - **Stained glass colours the lamplight through it**: a torch or a lamp behind red glass lights
   the floor red. Daylight still comes through white.
@@ -55,6 +53,29 @@ on the wire.
   `core:hurt {player, damage}` says a creature's blow or an arrow struck a player;
   `core.render.model(..., alpha, tint, clip, time)` draws a model seen through, tinted and posed by one of its clips; `maps:route` takes
   `~R;` before the points for an end reached within R.
+- **The prop hunt is gone** from the arena's gong, which starts only the fight now.
+- **Karts are single-seaters**, and power-ups act only on the track they are used on: lightning,
+  ink, a homing shell's target and a star's touch reach that track's drivers alone.
+- **Arpg**: painted inventory pictures in five rarities; a belt of three potions by the globes;
+  merchants buy back the last twelve things sold; eight materials from creatures, props and chests;
+  fourteen quests in four chains, with marks over who gives them; the Butcher and the Keeper remade;
+  weapons, shields and worn pieces made anew for every species; chests and the town's stash are
+  models now; the crypt's way out is a sealed corridor and a room of its own, its stairs half steps.
+- **Fixes**: a meteorite no longer comes down on a cave floor beside a player; an errand is taken
+  from the village board; a path that ends on a bridge has its signpost; the garden's ants walk
+  side by side and no insect strays out of the little door; a helper robot's quarry winds down
+  past 24 layers (96 at most) on the side of its base clear of what a player built; F8 no longer
+  shows a lake's bed; an old furnace sorts what was in its wrong rows; doors open for lit
+  insulated wire and for a lit gate facing them; a world with no file no longer grows its
+  temporary file without end.
+- For mod writers: `core.is_liquid(id)`; `core.keep_loaded` keeps at most 256 columns for all the
+  mods of a server together.
+
+## 0.20.0-alpha.1 — 2026-11-20
+
+**Does not play with 0.19.0-alpha.1** (protocol 127): a room of a server of several, past the
+first, is gone into only with a ticket signed for that room, which an older client does not ask
+for.
 
 - **No more green flashes in the front's sky**: the far end of a window (the gallery's map over the
   field) is drawn from nowhere, and its opening no longer played -- in the sky, at every change of
@@ -69,11 +90,13 @@ on the wire.
   three seconds while an inferno room loaded, now for about a quarter of a second at most.
 - **A survival world's gates** let go of the portals nobody is near, so portals between rooms
   built by hand have mouths to borrow there too.
-- **The prop hunt is gone** from the arena's gong, which starts only the fight now.
-- For mod writers: `core:hit`'s `target` is the id every other call takes, as `core.spawn_mob`
-  gives it, and no longer a number `core.body_player` could not read (a body whose id had been
-  used before was nobody); a body drawn as a block (`core.body_block`) is struck where the block
-  is, and a slab, a stair or a fence is drawn that shape, not a whole cube.
+- **A prop hunt's blow finds the hider every time**: it found nobody when the hider's body had
+  an id used before (somebody who joined after another left). For mod writers: `core:hit`'s
+  `target` is the id every other call takes, as `core.spawn_mob` gives it, and no longer a number
+  `core.body_player` could not read.
+- **A prop hunt's hider is struck where their block is**: no more blows landing on the empty air
+  above it or missing its lower edge, and a hider disguised as a slab, a stair or a fence is drawn
+  that shape, not a whole cube.
 - **Stacks lying on the ground are saved with the world**: after a restart they are where they
   were, worn, enchanted and coloured things included, with the rest of their five minutes to run.
 - **A parked kart keeps its last driver's paint and parts** for everybody, past a restart too, and
