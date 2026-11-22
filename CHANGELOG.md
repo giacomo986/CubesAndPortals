@@ -7,8 +7,8 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
 ## 0.21.0-alpha.1 — 2026-11-22
 
-**Does not play with 0.20.0-alpha.1** (protocol 129): the colour of the light through a block,
-and the words Tab finishes in the chat, are new on the wire.
+**Does not play with 0.20.0-alpha.1** (protocol 131): the colour of the light through a block,
+the words Tab finishes in the chat, a chest's tabs and a creature's clothes are new on the wire.
 
 - **Stained glass colours the lamplight through it**: a torch or a lamp behind red glass lights
   the floor red. Daylight still comes through white.
@@ -61,6 +61,14 @@ and the words Tab finishes in the chat, are new on the wire.
   fourteen quests in four chains, with marks over who gives them; the Butcher and the Keeper remade;
   weapons, shields and worn pieces made anew for every species; chests and the town's stash are
   models now; the crypt's way out is a sealed corridor and a room of its own, its stairs half steps.
+  A **helper** for warriors, hired at the gate warden: it follows, fights with the weapon it is
+  handed, wears eight pieces of gear, drinks your life potions and is raised at the warden when it
+  falls. **Traps** hide in most areas past the first (fire, shock, spikes, frost, gas, or a horde).
+  The creature under the pointer is **outlined**, the one being fought in gold; a kill quest's
+  count shows on every kill and its creatures come back if too few are left; the Butcher's den
+  shuts with a wall of red light while it lives; a drop into the crypt's lower floors puts you
+  back at the top of the steps.
+- **The creative catalogue has tabs** by kind of item, and a search box.
 - **Fixes**: a meteorite no longer comes down on a cave floor beside a player; an errand is taken
   from the village board; a path that ends on a bridge has its signpost; the garden's ants walk
   side by side and no insect strays out of the little door; a helper robot's quarry winds down
@@ -69,7 +77,11 @@ and the words Tab finishes in the chat, are new on the wire.
   insulated wire and for a lit gate facing them; a world with no file no longer grows its
   temporary file without end.
 - For mod writers: `core.is_liquid(id)`; `core.keep_loaded` keeps at most 256 columns for all the
-  mods of a server together.
+  mods of a server together; `core.mob_wear(id, slot, model, tint)` dresses a creature;
+  `core.container_tabs` gives a container tabs; `core.item_kind(name)`; `core.outline(id, r, g, b,
+  px, a)` draws a rim round a creature and `core.cursor_creature()` says which one is under the
+  pointer.
+- **Libraries updated**: raylib 6.2, Luau 0.748, Flecs 4.2.0, Jolt 5.7.0, SQLite 3.54.1.
 
 ## 0.20.0-alpha.1 — 2026-11-20
 

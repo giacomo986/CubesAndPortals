@@ -7,8 +7,9 @@ uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
 
 ## 0.21.0-alpha.1 — 2026-11-22
 
-**Não joga com a 0.20.0-alpha.1** (protocolo 129): a cor da luz através de um bloco e as
-palavras que o Tab completa no chat são novas na rede.
+**Não joga com a 0.20.0-alpha.1** (protocolo 131): a cor da luz através de um bloco, as
+palavras que o Tab completa no chat, as abas de um baú e as roupas de uma criatura são novas na
+rede.
 
 - **O vitral colore a luz das lâmpadas que passa por ele**: uma tocha ou uma lâmpada atrás de um
   vidro vermelho ilumina o chão de vermelho. A luz do dia continua passando branca.
@@ -66,6 +67,14 @@ palavras que o Tab completa no chat são novas na rede.
   o Guardião refeitos; armas, escudos e peças de armadura novas para cada espécie; os baús e o
   depósito da cidade agora são modelos; a saída da cripta é um corredor selado com uma sala só
   dela, e as suas escadas têm meios degraus.
+  Um **ajudante** para os guerreiros, contratado com o guardião do portão: segue você, luta com a
+  arma que recebe, veste oito peças de equipamento, bebe as suas poções de vida e o guardião o
+  levanta quando cai. **Armadilhas** escondidas na maioria das áreas depois da primeira (fogo,
+  choque, espinhos, gelo, gás, ou uma horda). A criatura sob o ponteiro tem um **contorno**, a que
+  você está enfrentando em dourado; a contagem de uma missão de abate aparece a cada morte e as
+  suas criaturas voltam se sobrarem poucas; o covil do Açougueiro se fecha com uma parede de luz
+  vermelha enquanto ele vive; quem cai nos andares de baixo da cripta volta ao topo da escada.
+- **O catálogo criativo tem abas** por tipo de item, e uma caixa de busca.
 - **Correções**: um meteorito não cai mais no chão de uma caverna ao lado de um jogador; uma
   tarefa se pega no quadro da aldeia; um caminho que termina numa ponte tem a sua placa; as
   formigas do jardim andam lado a lado e nenhum inseto sai pela portinha; a pedreira de um robô
@@ -74,7 +83,11 @@ palavras que o Tab completa no chat são novas na rede.
   fileiras erradas; as portas abrem com o fio isolado aceso e com uma porta lógica acesa voltada
   para elas; um mundo sem arquivo não faz mais crescer sem fim o seu arquivo temporário.
 - Para quem escreve mods: `core.is_liquid(id)`; `core.keep_loaded` mantém no máximo 256 colunas
-  para todos os mods de um servidor juntos.
+  para todos os mods de um servidor juntos; `core.mob_wear(id, slot, model, tint)` veste uma
+  criatura; `core.container_tabs` dá abas a um contêiner; `core.item_kind(name)`;
+  `core.outline(id, r, g, b, px, a)` desenha um contorno em volta de uma criatura e
+  `core.cursor_creature()` diz qual está sob o ponteiro.
+- **Bibliotecas atualizadas**: raylib 6.2, Luau 0.748, Flecs 4.2.0, Jolt 5.7.0, SQLite 3.54.1.
 
 ## 0.20.0-alpha.1 — 2026-11-20
 

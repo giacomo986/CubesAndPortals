@@ -7,8 +7,9 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
 ## 0.21.0-alpha.1 — 2026-11-22
 
-**Non gioca con la 0.20.0-alpha.1** (protocollo 129): il colore della luce attraverso un blocco
-e le parole che Tab completa nella chat sono nuovi in rete.
+**Non gioca con la 0.20.0-alpha.1** (protocollo 131): il colore della luce attraverso un blocco,
+le parole che Tab completa nella chat, le schede di un baule e i vestiti di una creatura sono
+nuovi in rete.
 
 - **Il vetro colorato colora la luce delle lampade che lo attraversa**: una torcia o una lampada
   dietro un vetro rosso illumina il pavimento di rosso. La luce del giorno passa ancora bianca.
@@ -69,6 +70,15 @@ e le parole che Tab completa nella chat sono nuovi in rete.
   Macellaio e il Custode rifatti; armi, scudi e pezzi d'armatura nuovi per ogni specie; i bauli e
   il deposito della città ora sono modelli; l'uscita della cripta è un corridoio sigillato con una
   stanza tutta sua, e le sue scale sono a mezzi gradini.
+  Un **aiutante** per i guerrieri, assunto dal guardiano del cancello: ti segue, combatte con
+  l'arma che gli dai, indossa otto pezzi di equipaggiamento, beve le tue pozioni di vita e il
+  guardiano lo rialza quando cade. **Trappole** nascoste nella maggior parte delle zone dopo la
+  prima (fuoco, scossa, spuntoni, gelo, gas, o un'orda). La creatura sotto il puntatore ha un
+  **contorno**, quella che stai combattendo in oro; il conteggio di una missione di uccisione si
+  aggiorna a ogni colpo mortale e le sue creature tornano se ne restano troppo poche; la tana del
+  Macellaio si chiude con un muro di luce rossa finché è vivo; chi salta nei piani bassi della
+  cripta torna in cima alle scale.
+- **Il catalogo creativo ha le schede** per tipo di oggetto, e una casella di ricerca.
 - **Correzioni**: un meteorite non cade più sul pavimento di una grotta accanto a un giocatore;
   una commissione si prende dalla bacheca del villaggio; un sentiero che finisce su un ponte ha il
   suo cartello; le formiche del giardino camminano affiancate e nessun insetto esce dalla
@@ -78,7 +88,11 @@ e le parole che Tab completa nella chat sono nuovi in rete.
   una porta logica accesa rivolta verso di loro; un mondo senza file non fa più crescere senza fine
   il suo file temporaneo.
 - Per chi scrive mod: `core.is_liquid(id)`; `core.keep_loaded` tiene al massimo 256 colonne per
-  tutti i mod di un server insieme.
+  tutti i mod di un server insieme; `core.mob_wear(id, slot, model, tint)` veste una creatura;
+  `core.container_tabs` dà le schede a un contenitore; `core.item_kind(name)`; `core.outline(id,
+  r, g, b, px, a)` disegna un contorno intorno a una creatura e `core.cursor_creature()` dice
+  quale è sotto il puntatore.
+- **Librerie aggiornate**: raylib 6.2, Luau 0.748, Flecs 4.2.0, Jolt 5.7.0, SQLite 3.54.1.
 
 ## 0.20.0-alpha.1 — 2026-11-20
 
