@@ -133,7 +133,7 @@ set(LUAU_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(LUAU_BUILD_WEB OFF CACHE BOOL "" FORCE)
 add_subdirectory(third_party/luau EXCLUDE_FROM_ALL)
 
-# Jolt Physics 5.6.0, for the bodies that are vehicles (core/physics/vehicle.h):
+# Jolt Physics 5.7.0, for the bodies that are vehicles (core/physics/vehicle.h):
 # wheels, suspension and tyres that grip and slide, which the player's own box
 # resolver has no business growing. The player stays on that resolver -- it is
 # the same rule the server validates with.
