@@ -1236,6 +1236,48 @@ void main()
 }
 )";
 
+// A model's outline (ModelRenderer::draw_outline): the same skinning, every
+// vertex pushed out along its normal as the normal falls on the screen, by a
+// width in pixels whatever the distance; drawn with the front faces culled, so
+// what is left of this swollen hull round the model is a rim of one colour.
+inline constexpr const char *kOutlineVS = R"(#version 330 core
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+layout(location = 3) in vec4 aJoints;
+layout(location = 4) in vec4 aWeights;
+
+uniform mat4 uMVP;
+uniform vec4 uBones[252];
+uniform vec2 uPush;   // the width, as a share of the screen's half width and half height
+
+void main()
+{
+    vec4 p = vec4(aPos, 1.0);
+    vec3 skinned = vec3(0.0);
+    vec3 normal  = vec3(0.0);
+    for (int i = 0; i < 4; ++i) {
+        float w = aWeights[i];
+        if (w <= 0.0) continue;
+        int b = int(aJoints[i] + 0.5) * 3;
+        vec4 r0 = uBones[b + 0];
+        vec4 r1 = uBones[b + 1];
+        vec4 r2 = uBones[b + 2];
+        skinned += w * vec3(dot(r0, p), dot(r1, p), dot(r2, p));
+        normal  += w * vec3(dot(r0.xyz, aNormal), dot(r1.xyz, aNormal), dot(r2.xyz, aNormal));
+    }
+    vec4 clip = uMVP * vec4(skinned, 1.0);
+    vec2 n = (uMVP * vec4(normal, 0.0)).xy;
+    if (dot(n, n) > 1e-12) clip.xy += normalize(n) * uPush * clip.w;
+    gl_Position = clip;
+}
+)";
+
+inline constexpr const char *kOutlineFS = R"(#version 330 core
+uniform vec4 uColour;
+out vec4 fragColour;
+void main() { fragColour = uColour; }
+)";
+
 // A model in the sun's shadow map: kModelVS for the place, this for the holes.
 inline constexpr const char *kModelDepthFS = R"(#version 330 core
 in vec2 vUV;

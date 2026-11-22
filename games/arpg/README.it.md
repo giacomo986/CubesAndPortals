@@ -40,6 +40,13 @@ Tasto sinistro: cammina, colpisci, parla, raccogli. Tasto destro: l'abilità sce
   il Macellaio. Un `!` sopra qualcuno vuol dire una missione da prendere, `?` una da consegnare;
   quelle prese sono elencate a sinistra. Una missione paga oro, esperienza e un oggetto almeno
   magico o raro.
+- **Contorni**: la creatura sotto il puntatore ha un bordo rosso (la gente del paese oro pallido),
+  quella che stai combattendo un bordo oro che pulsa: si vede cosa colpirà un clic e cosa stai
+  colpendo (`core.outline`, `core.cursor_creature`, una funzione del motore che ogni mondo può
+  usare).
+- **Missioni di uccisione**: contano tutti i nomi di un tipo, perché più avanti uno scheletro si
+  chiama arciere d'ossa; il pannello della missione li elenca (CONTANO). Un signore già ucciso
+  quando prendi la sua missione torna nella sua tana.
 - **Il Macellaio**: il signore della Desolazione grigia prima del suo signore, nella sua tana
   (area b1, livello 3), con quattro morti: enorme, veloce, una mannaia che picchia duro.
 - **La cripta**: tre piani giù per scale (mezzi gradini), ognuno sigillato finché i suoi morti non

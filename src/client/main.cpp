@@ -5329,6 +5329,69 @@ void host_walk(void *ud, double dx, double dz, double speed)
 // to sent: world code that runs here names the world's models too.
 int host_model_id(void *ud, const char *name)
 {
+// The rims mods ask for round creatures (core.outline), by the low 32 bits of
+// a body's id -- what a server's core.mob_ids gives -- each for a fifth of a
+// second after it was asked, so a mod that stops asking stops seeing it.
+struct Outline {
+    float  rgba[4];
+    float  px;
+    double until;
+};
+std::unordered_map<uint32_t, Outline> g_outlines;
+
+double outline_clock()
+{
+    return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
+const Outline *outline_of(uint64_t id)
+{
+    const auto it = g_outlines.find((uint32_t)id);
+    if (it == g_outlines.end()) return nullptr;
+    if (it->second.until < outline_clock()) {
+        g_outlines.erase(it);
+        return nullptr;
+    }
+    return &it->second;
+}
+
+AABB creature_box(const ModelStore &models, uint16_t model, Vec3 feet, float scale);
+
+// The creature the cursor's ray passes through first, in the box its model
+// stands in (creature_box, as a click aims): its id's low 32 bits, what a
+// server's core.mob_ids says, or 0.
+double host_cursor_creature(void *ud)
+{
+    Scene &s = *static_cast<Scene *>(ud);
+    float  ox, oy, oz, dx, dy, dz;
+    if (s.conn == nullptr || !host_cursor_ray(ud, &ox, &oy, &oz, &dx, &dy, &dz)) return 0.0;
+    uint32_t best   = 0;
+    float    best_t = 120.0f;
+    for (const net::RemotePlayer &p : s.conn->players()) {
+        if (p.kind != net::EntityKind::Mob || p.held) continue;
+        float t = 0.0f;
+        const AABB box = creature_box(s.act().models, p.model, Vec3{p.x, p.y, p.z}, p.scale);
+        if (ray_hits_box(box, Vec3{ox, oy, oz}, Vec3{dx, dy, dz}, best_t, t) && t < best_t) {
+            best_t = t;
+            best   = (uint32_t)p.id;
+        }
+    }
+    return (double)best;
+}
+
+void host_outline(void *ud, double id, int r, int g, int b, double px, int a)
+{
+    (void)ud;
+    if (!(id > 0.0) || id > 4294967295.0) return;
+    Outline &o = g_outlines[(uint32_t)id];
+    o.rgba[0] = std::clamp(r, 0, 255) / 255.0f;
+    o.rgba[1] = std::clamp(g, 0, 255) / 255.0f;
+    o.rgba[2] = std::clamp(b, 0, 255) / 255.0f;
+    o.rgba[3] = std::clamp(a, 0, 255) / 255.0f;
+    o.px      = (float)std::clamp(px, 0.0, 12.0);
+    o.until   = outline_clock() + 0.2;
+}
+
     Scene            &s    = *static_cast<Scene *>(ud);
     Session          &w    = s.act();
     const std::string want = name ? name : "";
@@ -8089,6 +8152,8 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
         if (b.rider_headless) {
             const SkinnedModel &m = r->model;
             std::vector<char>   arm((size_t)m.joint_count, 0);   // an arm's bone, or under one
+        if (const Outline *o = b.slain > 0.0f ? nullptr : outline_of(b.id))
+            e->renderer.draw_outline(projection, view, place, posed, o->rgba, o->px);
             for (int j = 0; j < m.joint_count; ++j)
                 for (int k = j; k >= 0 && !arm[(size_t)j]; k = m.joint_parent[(size_t)k])
                     if (m.joint_names[(size_t)k].rfind("upper_arm_", 0) == 0) arm[(size_t)j] = 1;
@@ -8102,6 +8167,8 @@ bool draw_body_model(Scene &s, Session &w, const Body &b, const Mat4 &projection
                     q[row * 4 + 3] = to;   // where the joint is posed: every vertex of it there
                 }
             }
+        if (const Outline *o = b.slain > 0.0f ? nullptr : outline_of(b.id))
+            e->renderer.draw_outline(projection, view, place, e->model.bind_pose, o->rgba, o->px);
         }
         r->renderer.draw(projection, view, place, posed, gfx_texture{0}, 1.0f, 1.0f, livery_tag(b.livery));
         if (!b.rider_headless) {
@@ -22323,6 +22390,8 @@ script_host make_client_host(Scene &scene)
     host.mob_sight      = host_mob_sight;
     host.mob_climbs     = host_mob_climbs;
     host.mob_say_every  = host_mob_say_every;
+    host.cursor_creature = host_cursor_creature;
+    host.outline        = host_outline;
     host.mob_lunge      = host_mob_lunge;
     host.mob_share      = host_mob_share;
     host.arms_clip      = host_arms_clip;

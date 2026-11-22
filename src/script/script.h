@@ -301,6 +301,10 @@ typedef struct script_host {
                         double seconds);
     int (*cursor_ray)(void *ud, float *ox, float *oy, float *oz, float *dx, float *dy, float *dz);
     void (*walk)(void *ud, double dx, double dz, double speed);
+    // The creature under the cursor's ray (core.cursor_creature), 0 for none;
+    // and a rim round one for a moment (core.outline).
+    double (*cursor_creature)(void *ud);
+    void (*outline)(void *ud, double id, int r, int g, int b, double px, int a);
     void (*engine_hud)(void *ud, int on);
     int (*engine_hud_on)(void *ud);
     void (*arms_clip)(void *ud, const char *clip);

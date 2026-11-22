@@ -1577,6 +1577,31 @@ core.cursor_ray() -> (number?, number, number, number, number, number)
 
 The ray under the mouse cursor -- through the middle of the screen, the crosshair, while the game holds the mouse: where it starts (the camera) and its direction, length 1. With core.raycast it finds the cell clicked. NOTHING when there is no camera yet. For a world's code on a player's machine.
 
+## `core.cursor_creature`
+
+```luau
+core.cursor_creature() -> number
+```
+
+The creature under the mouse cursor (core.cursor_ray's ray, the nearest it passes through, in the box its model stands in): its id as a server's core.mob_ids gives it, or 0 for none. For a world's code on a player's machine.
+
+## `core.outline`
+
+```luau
+core.outline(id: number, r: number?, g: number?, b: number?, px: number?, a: number?) -> ()
+```
+
+Draws a rim of one colour round that creature's model, the same width wherever it stands: the one under the cursor, the one being fought. Lasts a fifth of a second, so a mod calls it every frame it wants it (core.hud.pass); a second call for the same creature replaces the first. For a world's code on a player's machine.
+
+| argument | type | default | notes |
+|---|---|---|---|
+| `id` | number | — | A creature, by the id core.mob_ids and core.cursor_creature give. |
+| `r` | number | `255` |  |
+| `g` | number | `255` |  |
+| `b` | number | `255` |  |
+| `px` | number | `3` | How wide the rim is on the screen, in pixels (at most 12). |
+| `a` | number | `255` |  |
+
 ## `core.walk`
 
 ```luau

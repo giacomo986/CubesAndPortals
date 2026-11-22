@@ -37,6 +37,12 @@ Botão esquerdo: andar, golpear, falar, apanhar. Botão direito: a habilidade es
   campeões, ou os que têm nome), juntar tanto de um material (entregue), ou o Açougueiro. Um `!`
   sobre alguém é uma missão a aceitar, `?` uma a entregar; as aceites aparecem à esquerda. Uma
   missão paga ouro, experiência e um item pelo menos mágico ou raro.
+- **Contornos**: a criatura sob o ponteiro tem uma borda vermelha (o povo da cidade, dourado
+  pálido), a que está a ser combatida uma borda dourada que pulsa (`core.outline`,
+  `core.cursor_creature`).
+- **Missões de matar** contam todos os nomes de um tipo (um esqueleto é um arqueiro de ossos mais
+  adiante); o painel lista-os (CONTAM). Um senhor já morto quando a sua missão é aceite volta ao
+  covil.
 - **O Açougueiro**: o senhor do Ermo cinzento antes do seu senhor, no seu covil (área b1, nível
   3), com quatro mortos: enorme, rápido, um cutelo que bate forte.
 - **A cripta**: três pisos descendo escadas (meios degraus), cada um selado até os seus mortos

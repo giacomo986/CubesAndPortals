@@ -1289,6 +1289,29 @@ int l_cursor_ray(lua_State *L)
     return 6;
 }
 
+// core.cursor_creature() -> number
+int l_cursor_creature(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const float result = (vm && vm->host.cursor_creature) ? vm->host.cursor_creature(vm->host.ud) : (float)0;
+    lua_pushnumber(L, result);
+    return 1;
+}
+
+// core.outline(id: number, r: number?, g: number?, b: number?, px: number?, a: number?) -> ()
+int l_outline(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const float id = (float)luaL_checknumber(L, 1);
+    const int r = (int)luaL_optinteger(L, 2, 255);
+    const int g = (int)luaL_optinteger(L, 3, 255);
+    const int b = (int)luaL_optinteger(L, 4, 255);
+    const float px = (float)luaL_optnumber(L, 5, 3);
+    const int a = (int)luaL_optinteger(L, 6, 255);
+    if (vm && vm->host.outline) vm->host.outline(vm->host.ud, id, r, g, b, px, a);
+    return 0;
+}
+
 // core.walk(dx: number?, dz: number?, speed: number?) -> ()
 int l_walk(lua_State *L)
 {
@@ -3949,6 +3972,10 @@ void register_generated_api(lua_State *L)
     lua_pushcfunction(L, l_ghost_clear, "core.ghost_clear");
     lua_setfield(L, -2, "ghost_clear");
     lua_pushcfunction(L, l_cell_look, "core.cell_look");
+    lua_pushcfunction(L, l_cursor_creature, "core.cursor_creature");
+    lua_setfield(L, -2, "cursor_creature");
+    lua_pushcfunction(L, l_outline, "core.outline");
+    lua_setfield(L, -2, "outline");
     lua_setfield(L, -2, "cell_look");
     lua_pushcfunction(L, l_night_sight, "core.night_sight");
     lua_setfield(L, -2, "night_sight");

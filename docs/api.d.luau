@@ -289,6 +289,10 @@ declare core: {
     top_view_at: (x: number, y: number, z: number, distance: number?, yaw: number?, fov: number?, seconds: number?) -> (),
     -- The ray under the mouse cursor -- through the middle of the screen, the crosshair, while the game holds the mouse: where it starts (the camera) and its direction, length 1. With core.raycast it finds the cell clicked. NOTHING when there is no camera yet. For a world's code on a player's machine.
     cursor_ray: () -> (number?, number, number, number, number, number),
+    -- The creature under the mouse cursor (core.cursor_ray's ray, the nearest it passes through, in the box its model stands in): its id as a server's core.mob_ids gives it, or 0 for none. For a world's code on a player's machine.
+    cursor_creature: () -> number,
+    -- Draws a rim of one colour round that creature's model, the same width wherever it stands: the one under the cursor, the one being fought. Lasts a fifth of a second, so a mod calls it every frame it wants it (core.hud.pass); a second call for the same creature replaces the first. For a world's code on a player's machine.
+    outline: (id: number, r: number?, g: number?, b: number?, px: number?, a: number?) -> (),
     -- Walks this machine's body that way, as if a key were held, and turns it to face where it goes, until said otherwise; dx and dz both 0 stops it and gives the body back to the keys. A click-to-move world calls it every frame towards where it was clicked. For a world's code on a player's machine.
     walk: (dx: number?, dz: number?, speed: number?) -> (),
     -- false hides the engine's hotbar, health and armour bars in THIS world, for a world that draws its own (core.hud.pass); the bag still opens. Per world. For a world's code on a player's machine.

@@ -35,6 +35,12 @@ Left button: walk, strike, talk, pick up. Right button: the skill 1-4 chose. **Q
   named ones), collect so many of a material (handed over), or the Butcher. A `!` over a giver
   means a quest to take, `?` one to hand in; the quests taken are listed on the left. A quest
   pays gold, experience and an item of at least magic or rare.
+- **Outlines**: the creature under the pointer has a red rim (a town's person a pale gold one),
+  the one being fought a gold rim that beats: plain what a click will strike and what is being
+  struck (`core.outline`, `core.cursor_creature`, an engine feature any world may use).
+- **Kill quests** count every name of a kind: a skeleton is a bone archer further on, and the
+  quest's panel lists them (COUNTS). A lord already killed when its quest is taken comes back to
+  its lair.
 - **The Butcher**: the Grey Waste's lord before its lord, in its den (area b1, level 3), with four
   of the dead: huge, quick, a cleaver that hits hard.
 - **The crypt**: three floors down stairs (half steps), each sealed until its dead are down. The

@@ -212,6 +212,31 @@ void ModelRenderer::set_bones(int location, const std::vector<float> &bones) con
     }
 }
 
+void ModelRenderer::draw_outline(const Mat4 &projection, const Mat4 &view, const Mat4 &model,
+                                 const std::vector<float> &bones, const float rgba[4], float px) const
+{
+    static gfx_shader shader = gfx_shader_create(shaders::kOutlineVS, shaders::kOutlineFS);
+    if (shader.id == 0 || m_index_count == 0 || px <= 0.0f) return;
+    static const int loc_mvp = gfx_uniform_location(shader, "uMVP"), loc_bones = gfx_uniform_location(shader, "uBones"),
+                     loc_push = gfx_uniform_location(shader, "uPush"),
+                     loc_colour = gfx_uniform_location(shader, "uColour");
+    gfx_shader_bind(shader);
+    gfx_uniform_set_mat4(loc_mvp, mat4_multiply(mat4_multiply(projection, view), model).m);
+    set_bones(loc_bones, bones);
+    const float push[2] = {2.0f * px / (float)std::max(1, gfx_screen_width()),
+                           2.0f * px / (float)std::max(1, gfx_screen_height())};
+    gfx_uniform_set_v2(loc_push, push);
+    gfx_uniform_set_v4(loc_colour, rgba, 1);
+    gfx_state state = gfx_state_default();
+    state.cull  = mirrored ? GFX_CULL_BACK : GFX_CULL_FRONT;
+    state.blend = rgba[3] < 1.0f ? GFX_BLEND_ALPHA : GFX_BLEND_NONE;
+    gfx_state_set(&state);
+    for (const Part &p : m_parts) gfx_draw(m_mesh, (int)p.index_count, (int)p.first_index);
+    state.cull  = GFX_CULL_BACK;
+    state.blend = GFX_BLEND_NONE;
+    gfx_state_set(&state);
+}
+
 void ModelRenderer::begin_casters(Vec3 eye)
 {
     caster_eye   = eye;

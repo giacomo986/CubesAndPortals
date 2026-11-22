@@ -1755,6 +1755,32 @@ local api: { Fn } = {
            .. "camera yet. For a world's code on a player's machine.",
     },
     {
+        name = "cursor_creature",
+        host = "cursor_creature",
+        ret = "float",
+        args = {},
+        doc = "The creature under the mouse cursor (core.cursor_ray's ray, the nearest it passes "
+           .. "through, in the box its model stands in): its id as a server's core.mob_ids "
+           .. "gives it, or 0 for none. For a world's code on a player's machine.",
+    },
+    {
+        name = "outline",
+        host = "outline",
+        args = {
+            { name = "id", type = "float", doc = "A creature, by the id core.mob_ids and core.cursor_creature give." },
+            { name = "r", type = "int", default = 255 },
+            { name = "g", type = "int", default = 255 },
+            { name = "b", type = "int", default = 255 },
+            { name = "px", type = "float", default = 3.0,
+              doc = "How wide the rim is on the screen, in pixels (at most 12)." },
+            { name = "a", type = "int", default = 255 },
+        },
+        doc = "Draws a rim of one colour round that creature's model, the same width wherever "
+           .. "it stands: the one under the cursor, the one being fought. Lasts a fifth of a "
+           .. "second, so a mod calls it every frame it wants it (core.hud.pass); a second call "
+           .. "for the same creature replaces the first. For a world's code on a player's machine.",
+    },
+    {
         name = "walk",
         host = "walk",
         args = {

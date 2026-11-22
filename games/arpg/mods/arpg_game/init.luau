@@ -2686,6 +2686,11 @@ if serving then
                (def.what == info.kind or (def.what == "rank1" and info.rank >= 1) or
                 (def.what == "rank2" and info.rank >= 2)) then
                 q[3] += 1
+                -- Told each time: quest_check tells only a change of state,
+                -- and a kill quest's count is its own (the tracker stood at 0
+                -- until the last one).
+                s.dirty = true
+                SV.tell_quest(p, s, g)
             end
         end
         SV.quest_check(p, s)
@@ -2698,6 +2703,19 @@ if serving then
             return
         end
         q[2], q[3] = 1, 0
+        -- A lord asked for that is already down (killed before the quest was
+        -- taken) comes back to its lair, or the quest could not be done until
+        -- the world is empty again.
+        if def.kind == "kill" and D.MOB[def.what] and D.MOB[def.what].boss then
+            for k, e in L.ENC do
+                local st = SV.enc[k]
+                if st and st.done then
+                    for _, m in e.members do
+                        if m[1] == def.what then SV.enc[k] = nil end
+                    end
+                end
+            end
+        end
         SV.msg(p, `QUEST TAKEN: {def.name}`)
         s.dirty = true
         SV.quest_check(p, s)
@@ -3403,8 +3421,8 @@ if serving then
         if id and core.mob_pos(id) ~= nil then
             info = info or SV.info(id)
             if info then
-                tell(p, string.format("tgt %.3f %d %s", math.clamp(1 - info.taken / info.real, 0, 1), info.rank,
-                                      info.name))
+                tell(p, string.format("tgt %.3f %d %d %s", math.clamp(1 - info.taken / info.real, 0, 1), info.rank,
+                                      id, info.name))
             end
         else
             s.last_hit = nil
@@ -3578,6 +3596,7 @@ if drawing then
     C.sold = {} :: { [number]: { price: number, code: string, it: Item? } }
     C.tab = "buy"     -- the shop's: "buy", "back" (what was sold, to buy back) or "quest"
     C.used = { life = 0, mana = 0, tp = 0 }   -- when a belt slot was last used, for its flash
+    C.target_id = 0   -- the creature being fought (or last struck), by the server's id
 
     local function decoded(code: string?): Item?
         return code and IT.decode(code)
@@ -3694,7 +3713,8 @@ if drawing then
                                          tonumber(q[4]) or 1 })
             end
         elseif what == "tgt" then
-            C.target = if #w >= 4 then { n[1], n[2], table.concat(w, " ", 4) } else nil
+            C.target = if #w >= 5 then { n[1], n[2], table.concat(w, " ", 5) } else nil
+            C.target_id = if C.target then n[3] else 0
         elseif what == "chase" then
             C.chase, C.chase_left = { n[1], n[2], n[3] }, 0.4
             C.chase_stop = n[4] or (D.REACH - 0.6)
@@ -4035,9 +4055,16 @@ if drawing then
             core.hud.image(D.pic(D.MAT[def.what].key), x0 + (LEFT_W - 0.1) / aspect, y0 + 0.27,
                            0.06, 0.06, 255)
         end
+        -- What counts: a kind is called by other names as the zones deepen
+        -- (a skeleton is a bone archer further on), and all of them count.
+        local kin = def.kind == "kill" and D.MOB[def.what] and D.MOB[def.what].names
+        if kin then
+            core.hud.text(tx, y0 + 0.292, `COUNTS: {table.concat(kin :: { string }, ", ")}`, 0.0125, 0, 170, 190,
+                          220, 255)
+        end
         local gold, xp = D.quest_pay(def)
         local r = D.RARITY[def.rar]
-        core.hud.text(tx, y0 + 0.31, `REWARD: {gold} GOLD, {xp} EXPERIENCE, A {r[1]} ITEM`, 0.0145, 0, 240, 200,
+        core.hud.text(tx, y0 + 0.32, `REWARD: {gold} GOLD, {xp} EXPERIENCE, A {r[1]} ITEM`, 0.0145, 0, 240, 200,
                       60, 255)
         local bx, by = x0 + LEFT_W / 2 / aspect, y0 + 0.37
         if q[2] == 0 then
@@ -4402,6 +4429,20 @@ if drawing then
         eye = if ox then { ox, oy, oz } else nil
         C.regions = {}
         placed = {}
+        -- Rims round creatures (core.outline): the one being fought in gold,
+        -- the one under the pointer in red (a town's person in pale gold),
+        -- so it is plain what a click will strike and what is being struck.
+        local under = if C.picking or C.hall then 0 else core.cursor_creature()
+        if C.target_id ~= 0 then
+            core.outline(C.target_id, 255, 200, 60, 3.5 + math.sin(clock * 8) * 0.8)
+        end
+        if under ~= 0 and under ~= C.target_id then
+            if C.npcs[under] then
+                core.outline(under, 240, 225, 150, 2.5)
+            else
+                core.outline(under, 255, 70, 50, 3)
+            end
+        end
         local s = C.stat
         local mx, my = core.hud.mouse()
 
