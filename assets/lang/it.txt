@@ -644,6 +644,7 @@ Weather: {}, {} min left. = Meteo: {}, ancora {} min.
 "Our village is {} nodes to the {}, at {} {}. = "Il nostro villaggio è a {} blocchi verso {}, a {} {}.
 "{}, {} nodes to the {}, at {} {}. I have marked it on your map." = "{}, a {} blocchi verso {}, a {} {}. L'ho segnato sulla tua mappa."
 A board, but no village here to post errands on it. = Una bacheca, ma qui non c'è un villaggio che ci appenda commissioni.
+Take: {} -- {} (from the {}) = Prendi: {} -- {} (da {})
 A caravan from the village at {} {} has come in, with {}. = È arrivata una carovana dal villaggio a {} {}, con {}.
 A caravan leaves for the village at {} {}, with {}. Escort it and be paid when it gets there. = Una carovana parte per il villaggio a {} {}, con {}. Scortala e sarai pagato all'arrivo.
 Done: {}. Thank you. = Fatto: {}. Grazie.
