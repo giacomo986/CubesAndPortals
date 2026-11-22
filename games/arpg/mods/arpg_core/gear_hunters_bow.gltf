@@ -1,6 +1,6 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v5.2.39",
+		"generator":"Khronos glTF Blender I/O v5.3.43",
 		"version":"2.0"
 	},
 	"scene":0,
@@ -538,111 +538,49 @@
 	"materials":[
 		{
 			"doubleSided":true,
-			"name":"leather.008",
+			"name":"gear_hunters_bow",
 			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.4000000059604645,
-					0.23999999463558197,
-					0.12999999523162842,
-					1
-				],
-				"metallicFactor":0,
-				"roughnessFactor":0.699999988079071
-			}
-		},
-		{
-			"doubleSided":true,
-			"name":"dark_wood.004",
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.27000001072883606,
-					0.17000000178813934,
-					0.09000000357627869,
-					1
-				],
-				"metallicFactor":0,
-				"roughnessFactor":0.800000011920929
-			}
-		},
-		{
-			"doubleSided":true,
-			"name":"tint_1.015",
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.30000001192092896,
-					0.44999998807907104,
-					0.25,
-					1
-				],
-				"metallicFactor":0.6000000238418579,
-				"roughnessFactor":0.44999998807907104
-			}
-		},
-		{
-			"doubleSided":true,
-			"name":"string.003",
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.8500000238418579,
-					0.8199999928474426,
-					0.7400000095367432,
-					1
-				],
-				"metallicFactor":0,
-				"roughnessFactor":0.8999999761581421
+				"baseColorTexture":{
+					"index":0
+				},
+				"metallicFactor":0
 			}
 		}
 	],
 	"meshes":[
 		{
-			"name":"gear_hunters_bow",
+			"name":"Mesh_0.034",
 			"primitives":[
 				{
 					"attributes":{
 						"POSITION":0,
 						"NORMAL":1,
-						"JOINTS_0":2,
-						"WEIGHTS_0":3
+						"TEXCOORD_0":2,
+						"JOINTS_0":3,
+						"WEIGHTS_0":4
 					},
-					"indices":4,
+					"indices":5,
 					"material":0
-				},
-				{
-					"attributes":{
-						"POSITION":5,
-						"NORMAL":6,
-						"JOINTS_0":7,
-						"WEIGHTS_0":8
-					},
-					"indices":9,
-					"material":1
-				},
-				{
-					"attributes":{
-						"POSITION":10,
-						"NORMAL":11,
-						"JOINTS_0":12,
-						"WEIGHTS_0":13
-					},
-					"indices":14,
-					"material":2
-				},
-				{
-					"attributes":{
-						"POSITION":15,
-						"NORMAL":16,
-						"JOINTS_0":17,
-						"WEIGHTS_0":18
-					},
-					"indices":19,
-					"material":3
 				}
 			]
 		}
 	],
+	"textures":[
+		{
+			"sampler":0,
+			"source":0
+		}
+	],
+	"images":[
+		{
+			"mimeType":"image/png",
+			"name":"gear_hunters_bow",
+			"uri":"gear_hunters_bow.png"
+		}
+	],
 	"skins":[
 		{
-			"inverseBindMatrices":20,
+			"inverseBindMatrices":6,
 			"joints":[
 				23,
 				22,
@@ -676,165 +614,51 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":96,
+			"count":4142,
 			"max":[
-				-0.24300001561641693,
-				0.6290000081062317,
-				0.06000000610947609
+				-0.24229958653450012,
+				0.6290001273155212,
+				0.6317532658576965
 			],
 			"min":[
-				-0.28700003027915955,
-				0.5790000557899475,
-				-0.06000000610947609
+				-0.28807249665260315,
+				0.34490734338760376,
+				-0.6317532062530518
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":96,
+			"count":4142,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
-			"componentType":5121,
-			"count":96,
-			"type":"VEC4"
+			"componentType":5126,
+			"count":4142,
+			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
-			"componentType":5126,
-			"count":96,
+			"componentType":5121,
+			"count":4142,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
-			"componentType":5123,
-			"count":132,
-			"type":"SCALAR"
+			"componentType":5126,
+			"count":4142,
+			"type":"VEC4"
 		},
 		{
 			"bufferView":5,
-			"componentType":5126,
-			"count":1728,
-			"max":[
-				-0.24005848169326782,
-				0.6206772923469543,
-				0.6317533254623413
-			],
-			"min":[
-				-0.28994154930114746,
-				0.4763511121273041,
-				-0.6317533254623413
-			],
-			"type":"VEC3"
+			"componentType":5123,
+			"count":4200,
+			"type":"SCALAR"
 		},
 		{
 			"bufferView":6,
-			"componentType":5126,
-			"count":1728,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":7,
-			"componentType":5121,
-			"count":1728,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":8,
-			"componentType":5126,
-			"count":1728,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":9,
-			"componentType":5123,
-			"count":2448,
-			"type":"SCALAR"
-		},
-		{
-			"bufferView":10,
-			"componentType":5126,
-			"count":192,
-			"max":[
-				-0.25300002098083496,
-				0.6190000176429749,
-				0.5950000882148743
-			],
-			"min":[
-				-0.2770000100135803,
-				0.5890000462532043,
-				-0.5950000882148743
-			],
-			"type":"VEC3"
-		},
-		{
-			"bufferView":11,
-			"componentType":5126,
-			"count":192,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":12,
-			"componentType":5121,
-			"count":192,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":13,
-			"componentType":5126,
-			"count":192,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":14,
-			"componentType":5123,
-			"count":264,
-			"type":"SCALAR"
-		},
-		{
-			"bufferView":15,
-			"componentType":5126,
-			"count":78,
-			"max":[
-				-0.26350000500679016,
-				0.6155000329017639,
-				0.5750000476837158
-			],
-			"min":[
-				-0.2665000259876251,
-				0.612500011920929,
-				-0.5750000476837158
-			],
-			"type":"VEC3"
-		},
-		{
-			"bufferView":16,
-			"componentType":5126,
-			"count":78,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":17,
-			"componentType":5121,
-			"count":78,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":18,
-			"componentType":5126,
-			"count":78,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":19,
-			"componentType":5123,
-			"count":132,
-			"type":"SCALAR"
-		},
-		{
-			"bufferView":20,
 			"componentType":5126,
 			"count":24,
 			"type":"MAT4"
@@ -843,133 +667,55 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":1152,
+			"byteLength":49704,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1152,
-			"byteOffset":1152,
+			"byteLength":49704,
+			"byteOffset":49704,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":384,
-			"byteOffset":2304,
+			"byteLength":33136,
+			"byteOffset":99408,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1536,
-			"byteOffset":2688,
+			"byteLength":16568,
+			"byteOffset":132544,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":264,
-			"byteOffset":4224,
-			"target":34963
-		},
-		{
-			"buffer":0,
-			"byteLength":20736,
-			"byteOffset":4488,
+			"byteLength":66272,
+			"byteOffset":149112,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":20736,
-			"byteOffset":25224,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":6912,
-			"byteOffset":45960,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":27648,
-			"byteOffset":52872,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":4896,
-			"byteOffset":80520,
-			"target":34963
-		},
-		{
-			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":85416,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":87720,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":768,
-			"byteOffset":90024,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":3072,
-			"byteOffset":90792,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":528,
-			"byteOffset":93864,
-			"target":34963
-		},
-		{
-			"buffer":0,
-			"byteLength":936,
-			"byteOffset":94392,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":936,
-			"byteOffset":95328,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":312,
-			"byteOffset":96264,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":1248,
-			"byteOffset":96576,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":264,
-			"byteOffset":97824,
+			"byteLength":8400,
+			"byteOffset":215384,
 			"target":34963
 		},
 		{
 			"buffer":0,
 			"byteLength":1536,
-			"byteOffset":98088
+			"byteOffset":223784
+		}
+	],
+	"samplers":[
+		{
+			"magFilter":9728,
+			"minFilter":9984
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":99624,
+			"byteLength":225320,
 			"uri":"gear_hunters_bow.bin"
 		}
 	]

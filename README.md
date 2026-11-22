@@ -224,7 +224,10 @@ or any world started from the title menu):
 - **The wastes** (`games/arpg`): a point-and-click isometric action RPG. A town with merchants and
   a stash, three zones of areas and corridors, waypoints and a town portal, three classes with
   four skills each, levels, and normal, magic, rare, unique and set items that show on the
-  character, with their animations.
+  character, with their animations; a painted picture for every item, richer the rarer it is;
+  materials, quests from the town's people, buying back what was sold; the Butcher, and the
+  crypt's Keeper with its way out in a room of its own. Guide in
+  [`games/arpg/README.md`](games/arpg/README.md).
 - **The test chambers** (`games/chambers`): six portal puzzle chambers, a portal gun that grows
   with you, cubes, buttons and launch pads.
 - **The backrooms** (`games/backrooms`): three endless levels with stairs, pits, pools, slides

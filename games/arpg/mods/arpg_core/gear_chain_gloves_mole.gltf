@@ -1,6 +1,6 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v5.2.39",
+		"generator":"Khronos glTF Blender I/O v5.3.43",
 		"version":"2.0"
 	},
 	"scene":0,
@@ -538,63 +538,49 @@
 	"materials":[
 		{
 			"doubleSided":true,
-			"name":"chain.007",
+			"name":"gear_chain_gloves",
 			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.5799999833106995,
-					0.6000000238418579,
-					0.6200000047683716,
-					1
-				],
-				"metallicFactor":0.8999999761581421,
-				"roughnessFactor":0.6499999761581421
-			}
-		},
-		{
-			"doubleSided":true,
-			"name":"tint_1.074",
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.4000000059604645,
-					0.23999999463558197,
-					0.12999999523162842,
-					1
-				],
-				"metallicFactor":0.6000000238418579,
-				"roughnessFactor":0.44999998807907104
+				"baseColorTexture":{
+					"index":0
+				},
+				"metallicFactor":0
 			}
 		}
 	],
 	"meshes":[
 		{
-			"name":"gear_chain_gloves_mole",
+			"name":"Mesh_0.061",
 			"primitives":[
 				{
 					"attributes":{
 						"POSITION":0,
 						"NORMAL":1,
-						"JOINTS_0":2,
-						"WEIGHTS_0":3
+						"TEXCOORD_0":2,
+						"JOINTS_0":3,
+						"WEIGHTS_0":4
 					},
-					"indices":4,
+					"indices":5,
 					"material":0
-				},
-				{
-					"attributes":{
-						"POSITION":5,
-						"NORMAL":6,
-						"JOINTS_0":7,
-						"WEIGHTS_0":8
-					},
-					"indices":9,
-					"material":1
 				}
 			]
 		}
 	],
+	"textures":[
+		{
+			"sampler":0,
+			"source":0
+		}
+	],
+	"images":[
+		{
+			"mimeType":"image/png",
+			"name":"gear_chain_gloves",
+			"uri":"gear_chain_gloves.png"
+		}
+	],
 	"skins":[
 		{
-			"inverseBindMatrices":10,
+			"inverseBindMatrices":6,
 			"joints":[
 				23,
 				22,
@@ -628,85 +614,51 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":384,
+			"count":4451,
 			"max":[
-				0.3324746787548065,
-				0.7867308855056763,
-				0.092894047498703
+				0.34872475266456604,
+				0.8007310628890991,
+				0.10689407587051392
 			],
 			"min":[
-				-0.3321935534477234,
-				0.475675106048584,
-				-0.13031317293643951
+				-0.3461936116218567,
+				0.4616751968860626,
+				-0.14431314170360565
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":384,
+			"count":4451,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
-			"componentType":5121,
-			"count":384,
-			"type":"VEC4"
+			"componentType":5126,
+			"count":4451,
+			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
-			"componentType":5126,
-			"count":384,
+			"componentType":5121,
+			"count":4451,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
-			"componentType":5123,
-			"count":528,
-			"type":"SCALAR"
+			"componentType":5126,
+			"count":4451,
+			"type":"VEC4"
 		},
 		{
 			"bufferView":5,
-			"componentType":5126,
-			"count":192,
-			"max":[
-				0.33472469449043274,
-				0.6814072728157043,
-				0.070205919444561
-			],
-			"min":[
-				-0.3344435691833496,
-				0.6555123329162598,
-				-0.07451778650283813
-			],
-			"type":"VEC3"
-		},
-		{
-			"bufferView":6,
-			"componentType":5126,
-			"count":192,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":7,
-			"componentType":5121,
-			"count":192,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":8,
-			"componentType":5126,
-			"count":192,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":9,
 			"componentType":5123,
-			"count":264,
+			"count":4896,
 			"type":"SCALAR"
 		},
 		{
-			"bufferView":10,
+			"bufferView":6,
 			"componentType":5126,
 			"count":24,
 			"type":"MAT4"
@@ -715,73 +667,55 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":4608,
+			"byteLength":53412,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":4608,
-			"byteOffset":4608,
+			"byteLength":53412,
+			"byteOffset":53412,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1536,
-			"byteOffset":9216,
+			"byteLength":35608,
+			"byteOffset":106824,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":6144,
-			"byteOffset":10752,
+			"byteLength":17804,
+			"byteOffset":142432,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1056,
-			"byteOffset":16896,
-			"target":34963
-		},
-		{
-			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":17952,
+			"byteLength":71216,
+			"byteOffset":160236,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":20256,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":768,
-			"byteOffset":22560,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":3072,
-			"byteOffset":23328,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":528,
-			"byteOffset":26400,
+			"byteLength":9792,
+			"byteOffset":231452,
 			"target":34963
 		},
 		{
 			"buffer":0,
 			"byteLength":1536,
-			"byteOffset":26928
+			"byteOffset":241244
+		}
+	],
+	"samplers":[
+		{
+			"magFilter":9728,
+			"minFilter":9984
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":28464,
+			"byteLength":242780,
 			"uri":"gear_chain_gloves_mole.bin"
 		}
 	]

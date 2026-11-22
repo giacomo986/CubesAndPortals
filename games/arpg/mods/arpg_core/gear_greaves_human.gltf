@@ -1,6 +1,6 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v5.2.39",
+		"generator":"Khronos glTF Blender I/O v5.3.43",
 		"version":"2.0"
 	},
 	"scene":0,
@@ -538,62 +538,49 @@
 	"materials":[
 		{
 			"doubleSided":true,
-			"name":"steel.017",
+			"name":"gear_greaves",
 			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.7200000286102295,
-					0.7400000095367432,
-					0.7799999713897705,
-					1
-				],
-				"roughnessFactor":0.3199999928474426
-			}
-		},
-		{
-			"doubleSided":true,
-			"name":"tint_1.060",
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.800000011920929,
-					0.6200000047683716,
-					0.2199999988079071,
-					1
-				],
-				"metallicFactor":0.6000000238418579,
-				"roughnessFactor":0.44999998807907104
+				"baseColorTexture":{
+					"index":0
+				},
+				"metallicFactor":0
 			}
 		}
 	],
 	"meshes":[
 		{
-			"name":"gear_greaves_human",
+			"name":"Mesh_0.085",
 			"primitives":[
 				{
 					"attributes":{
 						"POSITION":0,
 						"NORMAL":1,
-						"JOINTS_0":2,
-						"WEIGHTS_0":3
+						"TEXCOORD_0":2,
+						"JOINTS_0":3,
+						"WEIGHTS_0":4
 					},
-					"indices":4,
+					"indices":5,
 					"material":0
-				},
-				{
-					"attributes":{
-						"POSITION":5,
-						"NORMAL":6,
-						"JOINTS_0":7,
-						"WEIGHTS_0":8
-					},
-					"indices":4,
-					"material":1
 				}
 			]
 		}
 	],
+	"textures":[
+		{
+			"sampler":0,
+			"source":0
+		}
+	],
+	"images":[
+		{
+			"mimeType":"image/png",
+			"name":"gear_greaves",
+			"uri":"gear_greaves.png"
+		}
+	],
 	"skins":[
 		{
-			"inverseBindMatrices":9,
+			"inverseBindMatrices":6,
 			"joints":[
 				23,
 				22,
@@ -627,79 +614,51 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":384,
+			"count":6313,
 			"max":[
-				0.19598308205604553,
-				0.3993750810623169,
-				0.09313119202852249
+				0.20998314023017883,
+				0.4133753180503845,
+				0.1071312353014946
 			],
 			"min":[
-				-0.19471052289009094,
-				-0.0037963618524372578,
-				-0.19548872113227844
+				-0.20871056616306305,
+				-0.017796188592910767,
+				-0.20948870480060577
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":384,
+			"count":6313,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
-			"componentType":5121,
-			"count":384,
-			"type":"VEC4"
+			"componentType":5126,
+			"count":6313,
+			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
-			"componentType":5126,
-			"count":384,
+			"componentType":5121,
+			"count":6313,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
-			"componentType":5123,
-			"count":528,
-			"type":"SCALAR"
+			"componentType":5126,
+			"count":6313,
+			"type":"VEC4"
 		},
 		{
 			"bufferView":5,
-			"componentType":5126,
-			"count":384,
-			"max":[
-				0.20038671791553497,
-				0.4160327911376953,
-				0.08620629459619522
-			],
-			"min":[
-				-0.1989978551864624,
-				0.31388989090919495,
-				-0.10137476027011871
-			],
-			"type":"VEC3"
+			"componentType":5123,
+			"count":6600,
+			"type":"SCALAR"
 		},
 		{
 			"bufferView":6,
-			"componentType":5126,
-			"count":384,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":7,
-			"componentType":5121,
-			"count":384,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":8,
-			"componentType":5126,
-			"count":384,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":9,
 			"componentType":5126,
 			"count":24,
 			"type":"MAT4"
@@ -708,67 +667,55 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":4608,
+			"byteLength":75756,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":4608,
-			"byteOffset":4608,
+			"byteLength":75756,
+			"byteOffset":75756,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1536,
-			"byteOffset":9216,
+			"byteLength":50504,
+			"byteOffset":151512,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":6144,
-			"byteOffset":10752,
+			"byteLength":25252,
+			"byteOffset":202016,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1056,
-			"byteOffset":16896,
+			"byteLength":101008,
+			"byteOffset":227268,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":13200,
+			"byteOffset":328276,
 			"target":34963
 		},
 		{
 			"buffer":0,
-			"byteLength":4608,
-			"byteOffset":17952,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":4608,
-			"byteOffset":22560,
-			"target":34962
-		},
-		{
-			"buffer":0,
 			"byteLength":1536,
-			"byteOffset":27168,
-			"target":34962
-		},
+			"byteOffset":341476
+		}
+	],
+	"samplers":[
 		{
-			"buffer":0,
-			"byteLength":6144,
-			"byteOffset":28704,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":1536,
-			"byteOffset":34848
+			"magFilter":9728,
+			"minFilter":9984
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":36384,
+			"byteLength":343012,
 			"uri":"gear_greaves_human.bin"
 		}
 	]

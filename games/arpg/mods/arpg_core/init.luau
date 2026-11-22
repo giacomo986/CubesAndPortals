@@ -87,7 +87,13 @@ core.register_mob("arpg_core:imp",        IMP,      1000, 3.2, "archer", 3,  12,
 -- Their sounds are their kin's (links beside this file).
 core.register_mob("arpg_core:grave_lord", ZOMBIE,   1000, 2.6, "melee",  7,  2.0,  1.4, "", 1, 0,       false, 0,    false, NEVER)
 core.register_mob("arpg_core:ember_wing", IMP,      1000, 3.6, "archer", 8,  14,   2.0, "", 1, IMPFIRE, false, 0,    true,  NEVER)
-for _, n in { "zombie", "skeleton", "imp", "grave_lord", "ember_wing" } do
+-- The Butcher, the Grey Waste's lord before its lord (tools/make_butcher.py,
+-- a body from Meshy on its own skeleton): huge, quick on its feet for its
+-- size, a cleaver that takes a third of a new character's life. Its voice is
+-- a zombie's taken down (butcher_*.ogg).
+core.register_mob("arpg_core:butcher", core.register_model("arpg_core:butcher", "butcher.gltf"),
+                                          1000, 4.4, "melee",  10, 2.4,  1.3, "", 1, 0,       false, 0,    false, NEVER)
+for _, n in { "zombie", "skeleton", "imp", "grave_lord", "ember_wing", "butcher" } do
     core.mob_sight(`arpg_core:{n}`, 16)
 end
 
@@ -128,3 +134,4 @@ for _, kind in { "barrel", "crate", "urn" } do
     core.register_mob(`arpg_core:{kind}`, core.register_model(`arpg_core:{kind}`, `prop_{kind}.gltf`), 1000, 0,
                       "worker", 0, 1.0, 1.0, "", 1, 0, false)
 end
+

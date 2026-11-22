@@ -82,7 +82,9 @@ type PState = { name: string, cls: number, lvl: number, xp: number, gold: number
                 st: { [string]: any }, lreg_acc: number, ls_acc: number, ms_acc: number, evade_until: number,
                 tp_cool: number, restock: boolean, stock: { [string]: { { code: string, price: number } } },
                 zone: number, dirty: boolean, factors: string, target: number?, pending: number?, goal: any,
-                shop: string?, stash_open: boolean?, at_wp: number?, clip_until: number?, last_hit: number? }
+                shop: string?, stash_open: boolean?, at_wp: number?, clip_until: number?, last_hit: number?,
+                mats: { number }, q: { [string]: { number } }, sold: { { code: string, price: number } },
+                full_said: number? }
 type MobInfo = { kind: string, lvl: number, rank: number, real: number, taken: number, name: string }
 type Proj = { id: number, kind: string, owner: number, x: number, y: number, z: number, vx: number, vz: number,
               t: number, life: number, dmg: number, hit: { [number]: boolean }, pierce: any, burst: any }
@@ -377,6 +379,7 @@ D.MOB = {
     ["arpg_core:grave_lord"] = { hp = 90, xp = 50, boss = "THE GRAVE LORD" },
     ["arpg_core:ember_wing"] = { hp = 96, xp = 60, boss = "EMBERWING" },
     ["arpg_crypt:custode"]   = { hp = 200, xp = 80, boss = "IL CUSTODE DELLE TOMBE" },
+    ["arpg_core:butcher"]    = { hp = 70, xp = 45, boss = "THE BUTCHER" },
     -- What is broken for what is inside: no experience, a creature's drops.
     ["arpg_core:barrel"]     = { hp = 5, xp = 0, names = { "BARREL", "BARREL", "BARREL", "BARREL" }, prop = true },
     ["arpg_core:crate"]      = { hp = 6, xp = 0, names = { "CRATE", "CRATE", "CRATE", "CRATE" }, prop = true },
@@ -579,10 +582,119 @@ function IT.loose(code: string): (string?, number)
         return ({ l = "lpot", m = "mpot", t = "tp" })[string.sub(code, 2, 2)], 1
     elseif c == "@" then
         return if string.sub(code, 2, 2) == "l" then "life" else "mana", 1
+    elseif c == "%" then
+        local k = tonumber(string.sub(code, 2)) or 0
+        return if D.MAT[k] then "mat" else nil, k
     end
     return nil, 0
 end
 D.LOOSE_NAME = { lpot = "LIFE POTION", mpot = "MANA POTION", tp = "TOWN PORTAL SCROLL" } :: { [string]: string }
+
+-- The pictures (mods arpg_icons, tools/make_arpg_icons.py): served as the
+-- files of the model arpg_icons:all. An item's is its base's for its rarity,
+-- the rarer the richer.
+function D.pic(name: string): string
+    return `model.arpg_icons_all.icon_{name}.png`
+end
+function D.file(b: number): string
+    return (string.gsub(string.gsub(string.lower(D.BASES[b].name), "'", ""), " ", "_"))
+end
+function D.icon(it: Item): string
+    return D.pic(`{D.file(it.b)}_{math.clamp(it.r, 0, 4)}`)
+end
+
+-- The materials: what creatures, things broken and chests leave besides
+-- items, kept in a pouch by count (none of them takes a square of the bag),
+-- for the smith's and the others' crafts, enchantments and upgrades to come,
+-- and asked for by the town's quests. "%k" on the ground. Appended only.
+D.MAT = {
+    { key = "iron_ore", name = "IRON ORE" },
+    { key = "leather_hide", name = "LEATHER HIDE" },
+    { key = "bone", name = "BONE" },
+    { key = "arcane_dust", name = "ARCANE DUST" },
+    { key = "ruby", name = "RUBY" },
+    { key = "soul_shard", name = "SOUL SHARD" },
+    { key = "ember_essence", name = "EMBER ESSENCE" },
+    { key = "drake_scale", name = "DRAKE SCALE" },
+}
+D.POUCH = 99   -- of each, at most
+-- What each kind leaves, and how often: { material, chance }.
+D.MAT_DROP = {
+    ["arpg_core:zombie"] = { { 2, 0.12 }, { 3, 0.14 } },
+    ["arpg_core:skeleton"] = { { 3, 0.28 } },
+    ["arpg_core:imp"] = { { 7, 0.18 }, { 4, 0.10 } },
+    ["arpg_core:barrel"] = { { 1, 0.30 }, { 2, 0.10 } },
+    ["arpg_core:crate"] = { { 1, 0.35 }, { 2, 0.12 } },
+    ["arpg_core:urn"] = { { 4, 0.35 }, { 3, 0.12 } },
+} :: { [string]: { { number } } }
+-- And the lords, every time: { material, how many }.
+D.MAT_BOSS = {
+    ["arpg_core:butcher"] = { { 2, 3 }, { 3, 3 }, { 6, 1 } },
+    ["arpg_core:grave_lord"] = { { 5, 1 }, { 6, 1 } },
+    ["arpg_core:ember_wing"] = { { 8, 2 }, { 7, 2 }, { 6, 1 } },
+    ["arpg_crypt:custode"] = { { 6, 3 }, { 5, 2 } },
+} :: { [string]: { { number } } }
+
+-- The town's quests, a chain for each of its people, one at a time: talked
+-- to, they offer the next of theirs once a character is of its level; done,
+-- they pay for it. kill: n of a kind ("rank1" any champion or better,
+-- "rank2" a named one or a lord); collect: n of a material, handed over.
+-- Appended only, per giver: a character's place in each chain is saved.
+type Quest = { name: string, text: string, kind: string, what: any, n: number, lvl: number, rar: number }
+D.QUESTS = {
+    guard = {
+        { name = "THE RESTLESS DEAD", text = "THE DEAD WALK THE GREY WASTE. PUT TWELVE OF THEM BACK IN THE GROUND.",
+          kind = "kill", what = "arpg_core:zombie", n = 12, lvl = 1, rar = 1 },
+        { name = "THE BUTCHER", text = "SOMETHING HUGE CARVES UP WHOEVER GOES NORTH OF THE OLD ROAD. KILL IT.",
+          kind = "kill", what = "arpg_core:butcher", n = 1, lvl = 2, rar = 2 },
+        { name = "BONES THAT WALK", text = "THE SKELETONS SHOOT AT OUR CARTS. BREAK TWENTY OF THEM.",
+          kind = "kill", what = "arpg_core:skeleton", n = 20, lvl = 4, rar = 1 },
+        { name = "FIRE IN THE BARROWS", text = "IMPS BURN THE BARROWS' GRASS. PUT OUT TWENTY.",
+          kind = "kill", what = "arpg_core:imp", n = 20, lvl = 6, rar = 2 },
+        { name = "CHAMPIONS OF DEATH", text = "THE STRONGEST OF THE DEAD LEAD THE OTHERS. SLAY TEN CHAMPIONS.",
+          kind = "kill", what = "rank1", n = 10, lvl = 8, rar = 2 },
+    },
+    smith = {
+        { name = "ORE FOR THE FORGE", text = "MY FORGE IS COLD. BRING ME SIX IRON ORE FROM THE WASTE'S BARRELS AND CRATES.",
+          kind = "collect", what = 1, n = 6, lvl = 1, rar = 1 },
+        { name = "HIDES FOR STRAPS", text = "STRAPS DON'T MAKE THEMSELVES. SIX LEATHER HIDES.",
+          kind = "collect", what = 2, n = 6, lvl = 3, rar = 1 },
+        { name = "SCALES OF THE WING", text = "EMBERWING'S SCALES TAKE A TEMPER LIKE NOTHING ELSE. BRING ME TWO.",
+          kind = "collect", what = 8, n = 2, lvl = 8, rar = 2 },
+    },
+    jeweler = {
+        { name = "RED STONES", text = "THE CHAMPIONS OF THE DEAD CARRY RUBIES. THREE, IF YOU PLEASE.",
+          kind = "collect", what = 5, n = 3, lvl = 3, rar = 1 },
+        { name = "THE NAMED ONES", text = "THE DEAD THAT HAVE NAMES WEAR THE BEST RINGS. SLAY FOUR OF THEM.",
+          kind = "kill", what = "rank2", n = 4, lvl = 5, rar = 2 },
+        { name = "SHARDS OF SOULS", text = "THE LORDS' SOULS HARDEN INTO SHARDS WHEN THEY FALL. BRING ME TWO.",
+          kind = "collect", what = 6, n = 2, lvl = 6, rar = 2 },
+    },
+    alchemist = {
+        { name = "BONE MEAL", text = "MY TONICS NEED BONE. EIGHT, FROM THE DEAD OUT EAST.",
+          kind = "collect", what = 3, n = 8, lvl = 1, rar = 1 },
+        { name = "ARCANE DUST", text = "THE BARROWS' URNS HOLD ARCANE DUST. EIGHT MEASURES.",
+          kind = "collect", what = 4, n = 8, lvl = 5, rar = 1 },
+        { name = "EMBERS IN A JAR", text = "AN IMP'S EMBER, BOTTLED, IS WORTH ITS WEIGHT IN GOLD. SIX OF THEM.",
+          kind = "collect", what = 7, n = 6, lvl = 6, rar = 2 },
+    },
+} :: { [string]: { Quest } }
+D.GIVERS = { "guard", "smith", "jeweler", "alchemist" }
+D.GIVER_NAME = { smith = "THE SMITH", jeweler = "THE JEWELLER", alchemist = "THE ALCHEMIST",
+                 guard = "THE GATE WARDEN" } :: { [string]: string }
+-- What a quest pays: gold and experience by its level, and an item of at
+-- least its rarity at the character's level.
+function D.quest_pay(q: Quest): (number, number)
+    return 80 * q.lvl + 40, math.floor(D.next_xp(q.lvl) * 0.4)
+end
+function D.quest_line(q: Quest, c: number): string
+    if q.kind == "collect" then
+        return `{D.MAT[q.what].name}  {math.min(c, q.n)}/{q.n}`
+    end
+    local what = if q.what == "rank1" then "CHAMPIONS" elseif q.what == "rank2" then "NAMED ONES"
+                 else (D.MOB[q.what] and (D.MOB[q.what].boss or (D.MOB[q.what].names :: { string })[1] .. "S")) or "?"
+    return `{what}  {math.min(c, q.n)}/{q.n}`
+end
 
 -- ==================================================================== layout
 -- Cells of a grid G wide round the town at OX, OZ. Each area sits in one
@@ -600,7 +712,10 @@ L.AREAS = {
     { key = "town", i = 0, j = 0, zone = 0, level = 1, kind = "town" },
     { key = "a1", i = 1, j = 0, zone = 1, level = 1, from = "town", waypoint = true },
     { key = "a2", i = 2, j = 0, zone = 1, level = 2, from = "a1" },
-    { key = "b1", i = 2, j = 1, zone = 1, level = 3, from = "a2", kind = "branch" },
+    -- The Butcher's den: a branch (its shape is a branch's: worlds made before
+    -- it was there keep their ground), the Butcher and four of the dead in it.
+    { key = "b1", i = 2, j = 1, zone = 1, level = 3, from = "a2", kind = "branch", boss = "arpg_core:butcher",
+      minion = "arpg_core:zombie" },
     { key = "a3", i = 2, j = -1, zone = 1, level = 3, from = "a2" },
     { key = "a4", i = 3, j = -1, zone = 1, level = 4, from = "a3" },
     { key = "b2", i = 3, j = -2, zone = 1, level = 5, from = "a4", kind = "branch" },
@@ -735,6 +850,13 @@ function L.in_hall(x: number, y: number, z: number): boolean
     local h = L.HALL
     return x >= h[1] and x < h[3] + 1 and z >= h[2] and z < h[4] and y < GROUND + 4
 end
+-- The crypt's way out (arpg_crypt): a corridor and a room under a roof east
+-- of its third floor, below the high ground. The camera comes down to the eye
+-- there, as in the hall.
+function L.in_exit(x: number, y: number, z: number): boolean
+    return x >= L.CRYPT_DX + 164 and x < L.CRYPT_DX + 180 and z >= L.CRYPT_DZ + 52 and z < L.CRYPT_DZ + 67 and
+           y < GROUND - 1 and y > 8
+end
 L.SPAWN = { L.TX + 0.5, GROUND, L.TZ + 4.5 }
 L.NPCS = {
     { kind = "smith", name = "THE SMITH", x = L.TX - 12, z = L.TZ - 9 },
@@ -826,7 +948,7 @@ function L.populate(n: number, a: any)
         end
         table.insert(L.ENC, e)
     end
-    if a.kind == "lair" then
+    if a.boss then
         local e: any = { area = n, x = a.cx, z = a.cz, members = { { a.boss, 3 } }, name = D.MOB[a.boss].boss,
                     slot = a.slot }
         for _ = 1, 4 do
@@ -1406,7 +1528,7 @@ if serving then
                  str = 0, dex = 0, vit = 0, ene = 0, sp = 0, kp = 0, ranks = { 0, 0, 0, 0 }, inv = {}, eq = {},
                  stash = {}, wps = 1, mana = 0, next_blow = 0, way_at = 0, way_to = { 0, 0, 0 }, st = {},
                  lreg_acc = 0, ls_acc = 0, ms_acc = 0, evade_until = 0, tp_cool = 0, restock = true, stock = {},
-                 zone = -1, dirty = true, factors = "" }
+                 zone = -1, dirty = true, factors = "", mats = { 0, 0, 0, 0, 0, 0, 0, 0 }, q = {}, sold = {} }
     end
 
     local function pack(list: {any}, n: number): string
@@ -1441,6 +1563,12 @@ if serving then
         core.storage_set(`i:{s.name}`, pack(s.inv, D.BAG))
         core.storage_set(`e:{s.name}`, pack(s.eq, 10))
         core.storage_set(`s:{s.name}`, pack(s.stash, D.STASH))
+        core.storage_set(`m:{s.name}`, table.concat(s.mats, " "))
+        local qs = {}
+        for g, q in s.q do
+            table.insert(qs, `{g}:{q[1]}:{q[2]}:{q[3]}`)
+        end
+        core.storage_set(`q:{s.name}`, table.concat(qs, ";"))
         s.dirty = false
     end
 
@@ -1459,6 +1587,14 @@ if serving then
         unpack_into(s.inv, core.storage_get(`i:{s.name}`))
         unpack_into(s.eq, core.storage_get(`e:{s.name}`))
         unpack_into(s.stash, core.storage_get(`s:{s.name}`))
+        for k, v in string.split(core.storage_get(`m:{s.name}`), " ") do
+            if D.MAT[k] then s.mats[k] = math.clamp(tonumber(v) or 0, 0, D.POUCH) end
+        end
+        for g, i, st, c in string.gmatch(core.storage_get(`q:{s.name}`), "(%a+):(%d+):(%d+):(%d+)") do
+            if D.QUESTS[g] then
+                s.q[g] = { tonumber(i) :: number, tonumber(st) :: number, tonumber(c) :: number }
+            end
+        end
         return s
     end
 
@@ -1651,7 +1787,11 @@ if serving then
         local a = math.random() * 2 * math.pi
         local d = 0.4 + math.random() * 1.1
         x, z = x + math.cos(a) * d, z + math.sin(a) * d
-        y = math.floor(y + 0.5)
+        -- On the floor under where it fell: what a flying imp drops fell from
+        -- a node or two up, and was left in the air, out of reach of the feet
+        -- that walk over potions and gold to take them.
+        local _, _, _, down = core.raycast(x, y + 0.5, z, 0, -1, 0, 12)
+        y = if down then math.floor(y + 0.5 - down + 0.5) else math.floor(y + 0.5)
         SV.ground[id] = { code = code, x = x, y = y, z = z }
         tell(0, string.format("gi %d %.2f %d %.2f %s", id, x, y, z, code))
     end
@@ -1672,6 +1812,27 @@ if serving then
                 SV.give_xp(q, s, xp)
                 if q == p then
                     mf, gf = s.st.mf or 0, s.st.gf or 0
+                end
+            end
+        end
+        -- Materials: what its kind leaves now and then, a ruby from the
+        -- strong, and from a lord its own every time.
+        for _, md in (D.MAT_DROP[info.kind] or {}) do
+            if math.random() < md[2] then SV.drop(`%{md[1]}`, x, y, z) end
+        end
+        if info.rank == 1 and math.random() < 0.25 or info.rank == 2 and math.random() < 0.5 then
+            SV.drop("%5", x, y, z)
+        end
+        if info.rank == 2 and math.random() < 0.2 then SV.drop("%6", x, y, z) end
+        if info.rank == 1 and info.kind == "arpg_core:imp" and math.random() < 0.15 then SV.drop("%8", x, y, z) end
+        for _, md in (D.MAT_BOSS[info.kind] or {}) do
+            for _ = 1, md[2] do SV.drop(`%{md[1]}`, x, y, z) end
+        end
+        if not mob.prop then
+            for q, s in SV.players do
+                local qx, _, qz = core.player_pos(q)
+                if qx and s.cls > 0 and (qx - x) ^ 2 + (qz - z) ^ 2 < 1600 then
+                    SV.quest_kill(q, s, info)
                 end
             end
         end
@@ -2276,8 +2437,22 @@ if serving then
             s.gold += n
             tell(p, `got gold {n}`)
             return true
+        elseif what == "mat" then
+            if s.mats[n] >= D.POUCH then
+                return false
+            end
+            s.mats[n] += 1
+            tell(p, `got mat {n}`)
+            tell(p, `mt {table.concat(s.mats, " ")}`)
+            SV.quest_check(p, s)
+            return true
         elseif what == "lpot" or what == "mpot" or what == "tp" then
             if (s :: any)[what] >= D.BELT then
+                -- Said once in a while, not every tick it is stood on.
+                if clock >= (s.full_said or 0) then
+                    s.full_said = clock + 3
+                    SV.msg(p, "THE BELT IS FULL")
+                end
                 return false
             end
             (s :: any)[what] += 1
@@ -2352,11 +2527,22 @@ if serving then
         s.restock = false
     end
 
+    function SV.tell_sold(p: number, s: PState)
+        tell(p, "bb -")
+        for k, w in s.sold do
+            tell(p, `bb {k} {w.price} {w.code}`)
+        end
+    end
+
     function SV.open_shop(p: number, s: PState, kind: string)
+        SV.tell_quest(p, s, kind)
         if kind == "guard" then
-            SV.msg(p, "THE WAY EAST IS NOT SAFE. MIND THE DEAD.")
+            -- No wares: what the warden has to say, and his quests.
+            s.shop = kind
+            tell(p, `shop {kind}`)
             return
         end
+        SV.tell_sold(p, s)
         if s.restock then
             SV.restock(s)
         end
@@ -2412,12 +2598,142 @@ if serving then
         if it == nil or s.shop == nil then
             return
         end
+        if s.shop == "guard" then
+            return
+        end
         local price = math.max(1, IT.value(it) // 4)
         s.gold += price
         s.inv[k] = nil
         tell(p, `iv {k}`)
+        -- Kept to be bought back at what was paid for it, the last twelve,
+        -- until the character leaves the world.
+        table.insert(s.sold, 1, { code = IT.encode(it), price = price })
+        if #s.sold > 12 then
+            table.remove(s.sold)
+        end
+        SV.tell_sold(p, s)
         SV.msg(p, `SOLD FOR {price} GOLD`)
         s.dirty = true
+        tell(p, SV.stat_line(p, s))
+    end
+
+    function SV.rebuy(p: number, s: PState, k: number)
+        local w = s.sold[k]
+        if w == nil or s.shop == nil or s.shop == "guard" then
+            return
+        end
+        if s.gold < w.price then
+            SV.msg(p, "NOT ENOUGH GOLD")
+            return
+        end
+        local slot = free_slot(s.inv, D.BAG)
+        if slot == nil then
+            SV.msg(p, "THE BAG IS FULL")
+            return
+        end
+        s.inv[slot] = IT.decode(w.code)
+        tell(p, `iv {slot} {w.code}`)
+        table.remove(s.sold, k)
+        s.gold -= w.price
+        s.dirty = true
+        SV.tell_sold(p, s)
+        tell(p, SV.stat_line(p, s))
+    end
+
+    -- ------------------------------------------------------------ quests
+
+    -- A character's place in a giver's chain: { quest, state, count }, state
+    -- 0 offered (or not yet, by level), 1 taken, 2 done and waiting to be paid.
+    function SV.quest_of(s: PState, g: string): { number }
+        local q = s.q[g]
+        if q == nil then
+            q = { 1, 0, 0 }
+            s.q[g] = q
+        end
+        return q
+    end
+
+    function SV.tell_quest(p: number, s: PState, g: string)
+        local q = SV.quest_of(s, g)
+        tell(p, `q {g} {q[1]} {q[2]} {q[3]}`)
+    end
+
+    -- A collecting quest's count is what the pouch holds; done when enough.
+    function SV.quest_check(p: number, s: PState)
+        for _, g in D.GIVERS do
+            local q = SV.quest_of(s, g)
+            local def = D.QUESTS[g][q[1]]
+            if def and q[2] >= 1 then
+                local c = if def.kind == "collect" then s.mats[def.what] else q[3]
+                local st = if c >= def.n then 2 else 1
+                if c ~= q[3] or st ~= q[2] then
+                    if st == 2 and q[2] ~= 2 then
+                        SV.msg(p, `QUEST DONE: {def.name}. BACK TO {D.GIVER_NAME[g]}`)
+                    end
+                    q[3], q[2] = c, st
+                    s.dirty = true
+                    SV.tell_quest(p, s, g)
+                end
+            end
+        end
+    end
+
+    function SV.quest_kill(p: number, s: PState, info: MobInfo)
+        for _, g in D.GIVERS do
+            local q = SV.quest_of(s, g)
+            local def = D.QUESTS[g][q[1]]
+            if def and q[2] == 1 and def.kind == "kill" and
+               (def.what == info.kind or (def.what == "rank1" and info.rank >= 1) or
+                (def.what == "rank2" and info.rank >= 2)) then
+                q[3] += 1
+            end
+        end
+        SV.quest_check(p, s)
+    end
+
+    function SV.quest_accept(p: number, s: PState, g: string)
+        local q = SV.quest_of(s, g)
+        local def = D.QUESTS[g] and D.QUESTS[g][q[1]]
+        if def == nil or q[2] ~= 0 or s.lvl < def.lvl or s.shop ~= g then
+            return
+        end
+        q[2], q[3] = 1, 0
+        SV.msg(p, `QUEST TAKEN: {def.name}`)
+        s.dirty = true
+        SV.quest_check(p, s)
+        SV.tell_quest(p, s, g)
+    end
+
+    function SV.quest_turn_in(p: number, s: PState, g: string)
+        local q = SV.quest_of(s, g)
+        local def = D.QUESTS[g] and D.QUESTS[g][q[1]]
+        if def == nil or q[2] ~= 2 or s.shop ~= g then
+            return
+        end
+        if def.kind == "collect" then
+            if s.mats[def.what] < def.n then
+                return
+            end
+            s.mats[def.what] -= def.n
+            tell(p, `mt {table.concat(s.mats, " ")}`)
+        end
+        local gold, xp = D.quest_pay(def)
+        s.gold += gold
+        local it = SV.roll(math.max(s.lvl, def.lvl) + 1, 100, nil, def.rar)
+        local k = free_slot(s.inv, D.BAG)
+        local px, py, pz = core.player_pos(p)
+        if k then
+            s.inv[k] = it
+            tell(p, `iv {k} {IT.encode(it)}`)
+        elseif px then
+            SV.drop_item(it, px, py, pz)
+        end
+        q[1], q[2], q[3] = q[1] + 1, 0, 0
+        tell(p, `qdone {gold} {xp} {IT.encode(it)}`)
+        SV.give_xp(p, s, xp)
+        s.dirty = true
+        SV.quest_check(p, s)
+        SV.tell_quest(p, s, g)
         tell(p, SV.stat_line(p, s))
     end
 
@@ -2681,6 +2997,12 @@ if serving then
             SV.buy(p, s, tonumber(w[2]) or 0)
         elseif cmd == "sell" then
             SV.sell(p, s, tonumber(w[2]) or 0)
+        elseif cmd == "rebuy" then
+            SV.rebuy(p, s, tonumber(w[2]) or 0)
+        elseif cmd == "qaccept" then
+            SV.quest_accept(p, s, w[2] or "")
+        elseif cmd == "qturn" then
+            SV.quest_turn_in(p, s, w[2] or "")
         elseif cmd == "stash" or cmd == "unstash" then
             if not s.stash_open then
                 return
@@ -2820,6 +3142,9 @@ if serving then
             SV.drop_item(SV.roll(c.level, mf + 50), c.x + 0.5, GROUND, c.z + 0.5)
         end
         SV.drop(`${math.random(10, 30) * c.level}`, c.x + 0.5, GROUND, c.z + 0.5)
+        for _, m in { 1, 4, 5 } do
+            if math.random() < (if m == 5 then 0.3 else 0.5) then SV.drop(`%{m}`, c.x + 0.5, GROUND, c.z + 0.5) end
+        end
     end
 
     -- Gold, potions and globes are taken by walking over them.
@@ -2988,7 +3313,7 @@ if serving then
             end
             s.zone = zone
         end
-        if n == 0 and core.health(p) > 0 then
+        if n == 0 and core.health(p) > 0 and not L.in_exit(px, py, pz) then
             -- On the high ground, or nowhere this world has: back to town.
             core.player_place(p, L.SPAWN[1], L.SPAWN[2], L.SPAWN[3])
         end
@@ -3161,6 +3486,10 @@ if serving then
                     tell(p, string.format("tp %d %.2f %.2f %.2f %.2f %.2f %.2f", q, t.fx, t.fy, t.fz, t.tx, t.ty, t.tz))
                 end
                 SV.tell_npcs(p)
+                tell(p, `mt {table.concat(s.mats, " ")}`)
+                for _, g in D.GIVERS do
+                    SV.tell_quest(p, s, g)
+                end
                 if s.cls == 0 then
                     tell(p, "pick")
                 end
@@ -3244,6 +3573,11 @@ if drawing then
     C.hover = nil :: Region?       -- the region under the mouse
     C.anim_left = nil :: number?
     C.hall = nil :: boolean?
+    C.mats = { 0, 0, 0, 0, 0, 0, 0, 0 }
+    C.q = {} :: { [string]: { number } }      -- giver -> { quest, state, count }
+    C.sold = {} :: { [number]: { price: number, code: string, it: Item? } }
+    C.tab = "buy"     -- the shop's: "buy", "back" (what was sold, to buy back) or "quest"
+    C.used = { life = 0, mana = 0, tp = 0 }   -- when a belt slot was last used, for its flash
 
     local function decoded(code: string?): Item?
         return code and IT.decode(code)
@@ -3279,13 +3613,38 @@ if drawing then
         elseif what == "sx" then
             C.stash[n[1]] = decoded(w[3])
         elseif what == "shop" then
+            local was = C.shop
             C.shop = if w[2] == "-" then nil else w[2]
             C.stock = {}
             if C.shop then
-                C.bag_open = true
+                C.bag_open = C.shop ~= "guard"
+                if C.shop ~= was then
+                    -- The quest's tab first when there is one to take or hand in.
+                    local q = C.q[C.shop :: string]
+                    local def = q and D.QUESTS[C.shop :: string][q[1]]
+                    C.tab = if C.shop == "guard" or (def and (q[2] == 2 or (q[2] == 0 and C.stat.level >= def.lvl)))
+                            then "quest" else "buy"
+                end
             end
         elseif what == "sp" then
             C.stock[n[1]] = { price = n[2], code = w[4], it = decoded(w[4]) }
+        elseif what == "bb" then
+            if w[2] == "-" then
+                C.sold = {}
+            else
+                C.sold[n[1]] = { price = n[2], code = w[4], it = decoded(w[4]) }
+            end
+        elseif what == "mt" then
+            for k = 1, #D.MAT do
+                C.mats[k] = n[k] or 0
+            end
+        elseif what == "q" then
+            C.q[w[2]] = { n[2], n[3], n[4] }
+        elseif what == "qdone" then
+            local it = decoded(w[4])
+            C.banner, C.banner_left = "QUEST COMPLETE", 2.5
+            C.notice, C.notice_left = `+{w[2]} GOLD  +{w[3]} EXPERIENCE  {if it then IT.name(it) else ""}`, 3
+            table.insert(C.fx, { kind = "levelup", on_me = true, left = 1.4, life = 1.4 })
         elseif what == "stash" then
             C.stash_open = n[1] == 1
             if C.stash_open then
@@ -3311,6 +3670,9 @@ if drawing then
                 if it then
                     C.notice, C.notice_left = IT.name(it), 1.5
                 end
+            elseif w[2] == "mat" then
+                local m = D.MAT[n[2]]
+                C.notice, C.notice_left = if m then `+1 {m.name}` else "", 1.2
             else
                 C.notice, C.notice_left = D.LOOSE_NAME[w[2]] or w[2], 1.2
             end
@@ -3380,6 +3742,7 @@ if drawing then
             C.nomana_left = 1
         elseif what == "drank" then
             C.notice, C.notice_left = if w[2] == "life" then "+ LIFE" else "+ MANA", 0.8
+            C.used[w[2]] = clock
             table.insert(C.fx, { kind = "drank_" .. w[2], on_me = true, left = 0.7, life = 0.7 })
         end
     end
@@ -3462,14 +3825,29 @@ if drawing then
         return rc[2], rc[3], rc[4]
     end
 
-    -- An item's square: its rarity's border, its kind's letters.
+    -- An item's square: its picture for its rarity (framed and glowing the
+    -- rarer it is), its kind's letters if the picture is not there.
     local function item_square(it: Item, cx: number, cy: number, size: number, dim: boolean)
+        if core.hud.image(D.icon(it), cx, cy, size, size, if dim then 110 else 255) then
+            return
+        end
         local r, g, b = rarity_colour(it)
         core.hud.rect(cx, cy, size, size, r // 3, g // 3, b // 3, 255)
         core.hud.rect(cx, cy, size * 0.86, size * 0.86, 30, 26, 22, 255)
         local cat = D.CAT[D.BASES[it.b].cat]
         local k = if dim then 0.45 else 1
         core.hud.text(cx, cy, cat.icon, size * 0.36, 1, math.floor(r * k), math.floor(g * k), math.floor(b * k), 255)
+    end
+
+    -- What is not an item (a potion, the scroll, a material), on its square.
+    local LOOSE_ICON = { lpot = "lpot", mpot = "mpot", tp = "tp", gold = "gold" } :: { [string]: string }
+    local function loose_square(code: string, cx: number, cy: number, size: number)
+        local what, n = IT.loose(code)
+        local file = if what == "mat" then D.MAT[n].key else LOOSE_ICON[what or ""]
+        core.hud.rect(cx, cy, size, size, 34, 29, 24, 255)
+        if file then
+            core.hud.image(D.pic(file), cx, cy, size, size, 255)
+        end
     end
 
     local function panel_box(x0: number, y0: number, w: number, h: number, title: string)
@@ -3494,11 +3872,7 @@ if drawing then
                 if item then
                     item_square(item, cx, cy, cell * 0.9, false)
                 elseif it.code then
-                    -- The alchemist's potions and scrolls.
-                    local what = IT.loose(it.code)
-                    local col3 = if what == "lpot" then { 220, 40, 40 } elseif what == "mpot" then { 50, 80, 240 }
-                                 else { 200, 180, 120 }
-                    core.hud.rect(cx, cy, cell * 0.5, cell * 0.6, col3[1], col3[2], col3[3], 255)
+                    loose_square(it.code, cx, cy, cell * 0.9)   -- the alchemist's potions and scrolls
                 end
                 region(cx, cy, cell, cell, function() act(k) end, { item = item, code = it.code, price = it.price })
             end
@@ -3551,7 +3925,7 @@ if drawing then
     local function draw_bag()
         local x0 = 0.98 - BAG_W / aspect
         local y0 = 0.1
-        panel_box(x0, y0, BAG_W, 0.66, "INVENTORY")
+        panel_box(x0, y0, BAG_W, 0.76, "INVENTORY")
         -- The paper doll.
         local slots = { { 0.1, 0.2, 0.1, 0.16 }, { 0.52, 0.2, 0.1, 0.16 }, { 0.31, 0.1, 0.08, 0.08 },
                         { 0.31, 0.22, 0.1, 0.13 }, { 0.1, 0.36, 0.08, 0.08 }, { 0.52, 0.36, 0.08, 0.08 },
@@ -3585,8 +3959,21 @@ if drawing then
                 r.tip.sell = true
             end
         end
-        core.hud.text(x0 + 0.03 / aspect, y0 + 0.64, `GOLD  {C.stat.gold}`, 0.02, 0, 240, 200, 60, 255)
-        core.hud.text(x0 + (BAG_W - 0.02) / aspect, y0 + 0.64, "CLICK: WEAR / SELL   CTRL+CLICK: DROP", 0.012, 2,
+        -- The pouch: each material, how many.
+        local mcell = 0.06
+        for k, m in D.MAT do
+            local cx = x0 + (0.04 + (k - 0.5) * mcell * 1.2) / aspect
+            local cy = y0 + 0.69
+            core.hud.rect(cx, cy, mcell, mcell, 34, 29, 24, 255)
+            core.hud.image(D.pic(m.key), cx, cy, mcell, mcell, if C.mats[k] > 0 then 255 else 70)
+            if C.mats[k] > 0 then
+                core.hud.text(cx + mcell * 0.3 / aspect, cy + mcell * 0.32, tostring(C.mats[k]), 0.014, 2, 255, 255,
+                              255, 255)
+            end
+            region(cx, cy, mcell, mcell, function() end, { text = { m.name, "A MATERIAL. QUESTS ASK FOR IT." } })
+        end
+        core.hud.text(x0 + 0.03 / aspect, y0 + 0.745, `GOLD  {C.stat.gold}`, 0.02, 0, 240, 200, 60, 255)
+        core.hud.text(x0 + (BAG_W - 0.02) / aspect, y0 + 0.745, "CLICK: WEAR / SELL   CTRL+CLICK: DROP", 0.012, 2,
                       170, 160, 150, 255)
     end
 
@@ -3595,13 +3982,101 @@ if drawing then
         return 0.02
     end
 
-    local SHOP_NAME = { smith = "THE SMITH", jeweler = "THE JEWELLER", alchemist = "THE ALCHEMIST" }
+    -- Lines of text no wider than `width` characters.
+    local function wrap(text: string, width: number): { string }
+        local out: { string } = {}
+        local line: string = ""
+        for _, word in string.split(text, " ") do
+            if #line + #word + 1 > width and line ~= "" then
+                table.insert(out, line)
+                line = word
+            else
+                line = if line == "" then word else line .. " " .. word
+            end
+        end
+        if line ~= "" then table.insert(out, line) end
+        return out
+    end
+
+    local function button(cx: number, cy: number, w: number, h: number, text: string, lit: boolean, act: () -> ())
+        core.hud.rect(cx, cy, w, h, if lit then 120 else 50, if lit then 90 else 42, if lit then 40 else 34, 255)
+        core.hud.rect(cx, cy, w - 0.006, h - 0.006, if lit then 90 else 36, if lit then 66 else 30,
+                      if lit then 30 else 24, 255)
+        core.hud.text(cx, cy, text, 0.016, 1, if lit then 255 else 200, if lit then 230 else 190,
+                      if lit then 160 else 170, 255)
+        region(cx, cy, w, h, act, nil)
+    end
+
+    -- A giver's quest: what they ask, how far it has come, what it pays, and
+    -- the button to take it or hand it in.
+    local function draw_quest(x0: number, y0: number, g: string)
+        local tx = x0 + 0.04 / aspect
+        local q = C.q[g] or { 1, 0, 0 }
+        local def = D.QUESTS[g] and D.QUESTS[g][q[1]]
+        if def == nil then
+            core.hud.text(tx, y0 + 0.1, if g == "guard" then "THE WAY EAST IS NOT SAFE. MIND THE DEAD."
+                          else "I HAVE NOTHING MORE TO ASK OF YOU. THANK YOU.", 0.016, 0, 210, 200, 180, 255)
+            return
+        end
+        if C.stat.level < def.lvl then
+            core.hud.text(tx, y0 + 0.1, "COME BACK WHEN YOU ARE STRONGER.", 0.016, 0, 210, 200, 180, 255)
+            core.hud.text(tx, y0 + 0.135, `(LEVEL {def.lvl})`, 0.014, 0, 160, 150, 140, 255)
+            return
+        end
+        core.hud.text(tx, y0 + 0.095, def.name, 0.022, 0, 255, 215, 90, 255)
+        for i, l in wrap(def.text, 44) do
+            core.hud.text(tx, y0 + 0.11 + i * 0.026, l, 0.0155, 0, 215, 205, 185, 255)
+        end
+        local c = if def.kind == "collect" then C.mats[def.what] else q[3]
+        local line = D.quest_line(def, if q[2] == 0 and def.kind ~= "collect" then 0 else c)
+        core.hud.text(tx, y0 + 0.27, line, 0.018, 0, if q[2] == 2 then 120 else 230, if q[2] == 2 then 255 else 230,
+                      if q[2] == 2 then 120 else 230, 255)
+        if def.kind == "collect" then
+            core.hud.image(D.pic(D.MAT[def.what].key), x0 + (LEFT_W - 0.1) / aspect, y0 + 0.27,
+                           0.06, 0.06, 255)
+        end
+        local gold, xp = D.quest_pay(def)
+        local r = D.RARITY[def.rar]
+        core.hud.text(tx, y0 + 0.31, `REWARD: {gold} GOLD, {xp} EXPERIENCE, A {r[1]} ITEM`, 0.0145, 0, 240, 200,
+                      60, 255)
+        local bx, by = x0 + LEFT_W / 2 / aspect, y0 + 0.37
+        if q[2] == 0 then
+            button(bx, by, 0.26, 0.05, "ACCEPT", true, function() ask(`qaccept {g}`) end)
+        elseif q[2] == 2 then
+            button(bx, by, 0.26, 0.05, "COMPLETE", true, function() ask(`qturn {g}`) end)
+        else
+            core.hud.text(bx, by, "IN PROGRESS", 0.017, 1, 170, 170, 190, 255)
+        end
+    end
+
     local function draw_shop()
         local x0, y0 = left_x0(), 0.1
-        panel_box(x0, y0, LEFT_W, 0.5, SHOP_NAME[C.shop] or "")
-        item_grid(C.stock, 24, 8, x0 + 0.04 / aspect, y0 + 0.08, 0.068, function(k) ask(`buy {k}`) end, true)
-        core.hud.text(x0 + LEFT_W / 2 / aspect, y0 + 0.47, "CLICK TO BUY - CLICK YOUR ITEMS TO SELL", 0.014, 1, 190,
-                      180, 160, 255)
+        local g = C.shop :: string
+        panel_box(x0, y0, LEFT_W, 0.5, D.GIVER_NAME[g] or "")
+        -- The tabs: the wares, what was sold here (to buy back), the quest.
+        local tabs = if g == "guard" then { { "quest", "QUEST" } }
+                     else { { "buy", "BUY" }, { "back", "BUY BACK" }, { "quest", "QUEST" } }
+        if g == "guard" then C.tab = "quest" end
+        for i, t in tabs do
+            local cx = x0 + (0.04 + (i - 0.5) * 0.18) / aspect
+            local q = C.q[g]
+            local def = q and D.QUESTS[g] and D.QUESTS[g][q[1]]
+            local mark = t[1] == "quest" and def and
+                         (if q[2] == 2 then " ?" elseif q[2] == 0 and C.stat.level >= def.lvl then " !" else "")
+            button(cx, y0 + 0.075, 0.17, 0.04, t[2] .. (mark or ""), C.tab == t[1], function() C.tab = t[1] end)
+        end
+        if C.tab == "quest" then
+            draw_quest(x0, y0 + 0.02, g)
+        elseif C.tab == "back" then
+            item_grid(C.sold, 12, 8, x0 + 0.04 / aspect, y0 + 0.12, 0.068, function(k) ask(`rebuy {k}`) end, true)
+            core.hud.text(x0 + LEFT_W / 2 / aspect, y0 + 0.47,
+                          if next(C.sold) then "CLICK TO BUY BACK WHAT YOU SOLD" else "NOTHING SOLD YET", 0.014, 1,
+                          190, 180, 160, 255)
+        else
+            item_grid(C.stock, 24, 8, x0 + 0.04 / aspect, y0 + 0.12, 0.068, function(k) ask(`buy {k}`) end, true)
+            core.hud.text(x0 + LEFT_W / 2 / aspect, y0 + 0.47, "CLICK TO BUY - CLICK YOUR ITEMS TO SELL", 0.014, 1,
+                          190, 180, 160, 255)
+        end
     end
 
     local function draw_stash()
@@ -3730,6 +4205,9 @@ if drawing then
         end
     end
 
+    -- A material on the ground: a small stone of its colour.
+    local MAT_COLOUR = { { 130, 125, 120 }, { 150, 90, 50 }, { 225, 215, 185 }, { 170, 90, 255 }, { 230, 30, 50 },
+                         { 90, 190, 255 }, { 255, 170, 40 }, { 40, 40, 50 } } :: { { number } }
     core.render.pass("arpg_game:world", 100, function()
         for _, m in C.marks do
             ring(m.x, m.y + 0.05, m.z, 0.2 + (0.5 - m.left), 10, 0.08, 120, 255, 120)
@@ -3765,6 +4243,9 @@ if drawing then
             elseif what == "gold" then
                 core.render.box(g.x, g.y + 0.06, g.z, 0.3, 0.12, 0.3, 240, 200, 50, 255)
                 core.render.box(g.x + 0.1, g.y + 0.16, g.z - 0.05, 0.15, 0.1, 0.15, 255, 225, 90, 255)
+            elseif what == "mat" then
+                local c = MAT_COLOUR[select(2, IT.loose(g.code))] or { 200, 200, 200 }
+                core.render.box(g.x, g.y + 0.12 + bob * 0.3, g.z, 0.2, 0.2, 0.2, c[1], c[2], c[3], 255)
             elseif what then
                 local r, gg, b = 200, 180, 120
                 if what == "lpot" then
@@ -3941,6 +4422,9 @@ if drawing then
                                 C.dest = { g.x, g.y, g.z } end, nil)
                         elseif what == "gold" then
                             label(sx, sy, `{select(2, IT.loose(g.code))} GOLD`, 0.014, 240, 200, 60, nil, nil)
+                        elseif what == "mat" then
+                            local m = D.MAT[select(2, IT.loose(g.code))]
+                            label(sx, sy, m.name, 0.014, 255, 160, 90, nil, nil)
                         end
                     end
                 end
@@ -3962,8 +4446,14 @@ if drawing then
             for _, n in C.npcs do
                 local sx, sy = project(n.x, n.y + 2.3, n.z)
                 if sx and (n.x - px) ^ 2 + (n.z - pz) ^ 2 < 900 then
-                    local name = ({ smith = "THE SMITH", jeweler = "THE JEWELLER", alchemist = "THE ALCHEMIST",
-                                    guard = "THE GATE WARDEN" })[n.kind] or ""
+                    local name = D.GIVER_NAME[n.kind] or ""
+                    local q = C.q[n.kind]
+                    local def = q and D.QUESTS[n.kind] and D.QUESTS[n.kind][q[1]]
+                    if def and q[2] == 2 then
+                        label(sx, sy - 0.035, "?", 0.03, 120, 255, 120, nil, nil)
+                    elseif def and q[2] == 0 and C.stat.level >= def.lvl then
+                        label(sx, sy - 0.035, "!", 0.03, 255, 215, 60, nil, nil)
+                    end
                     label(sx, sy, name, 0.016, 220, 220, 160, nil, nil)
                 end
             end
@@ -4006,9 +4496,48 @@ if drawing then
         globe(rx, gy, r, math.clamp(s.mana / math.max(1, s.max_mana), 0, 1), 40, 70, 230)
         core.hud.text(lx, gy - r - 0.03, `{s.hp} / {s.max_hp}`, 0.024, 1, 255, 200, 190, 255)
         core.hud.text(rx, gy - r - 0.03, `{s.mana} / {s.max_mana}`, 0.024, 1, 190, 210, 255, 255)
-        core.hud.text(lx, gy - r - 0.062, `Q  {s.lpot} LIFE`, 0.016, 1, 255, 150, 140, 255)
-        core.hud.text(rx, gy - r - 0.062, `R  {s.mpot} MANA`, 0.016, 1, 150, 170, 255, 255)
-        core.hud.text(rx, gy - r - 0.088, `B  {s.tp} TOWN PORTAL`, 0.016, 1, 200, 220, 255, 255)
+        -- The belt: a slot for each of the quick things, its key, how many,
+        -- lit when used, the life potion's beating when life runs low.
+        local function belt_slot(cx: number, cy: number, icon: string, key: string, n: number, used: number,
+                                 cr: number, cg: number, cb: number, warn: boolean)
+            local side = 0.08
+            local flash = math.clamp(1 - (clock - used) / 0.4, 0, 1)
+            local beat = if warn and n > 0 then 0.5 + 0.5 * math.sin(clock * 9) else 0
+            local k = math.max(flash, beat)
+            core.hud.rect(cx, cy, side + 0.012, side + 0.012, math.floor(60 + (cr - 60) * (0.35 + 0.65 * k)),
+                          math.floor(50 + (cg - 50) * (0.35 + 0.65 * k)), math.floor(40 + (cb - 40) * (0.35 + 0.65 * k)),
+                          255)
+            core.hud.rect(cx, cy, side, side, 22, 18, 15, 245)
+            core.hud.image(D.pic(icon), cx, cy, side * 0.92, side * 0.92, if n > 0 then 255 else 60)
+            core.hud.rect(cx - side * 0.34 / aspect, cy - side * 0.34, 0.026, 0.026, 12, 10, 8, 230)
+            core.hud.text(cx - side * 0.34 / aspect, cy - side * 0.34, key, 0.017, 1, 255, 235, 170, 255)
+            core.hud.text(cx + side * 0.36 / aspect, cy + side * 0.3, tostring(n), 0.022, 2,
+                          if n > 0 then 255 else 150, if n > 0 then 255 else 80, if n > 0 then 255 else 80, 255)
+            region(cx, cy, side, side, function()
+                ask(if key == "Q" then "drink life" elseif key == "R" then "drink mana" else "town")
+            end, nil)
+        end
+        local low = s.hp < s.max_hp * 0.35
+        local by = gy + r - 0.045
+        belt_slot(lx + (r + 0.06) / aspect, by, "lpot", "Q", s.lpot, C.used.life, 255, 70, 60, low)
+        belt_slot(rx - (r + 0.06) / aspect, by, "mpot", "R", s.mpot, C.used.mana, 80, 120, 255, false)
+        belt_slot(rx - (r + 0.155) / aspect, by, "tp", "B", s.tp, C.used.tp, 200, 220, 255, false)
+
+        -- The quests taken, under the zone's name: what each still wants
+        -- (not under a panel on the left).
+        local qy = 0.075
+        for _, g in (if C.shop or C.stash_open or C.wp_open or C.panel then {} else D.GIVERS) do
+            local q = C.q[g]
+            local def = q and D.QUESTS[g][q[1]]
+            if def and q[2] >= 1 then
+                local c = if def.kind == "collect" then C.mats[def.what] else q[3]
+                core.hud.text(0.02, qy, def.name, 0.016, 0, 255, 215, 90, 255)
+                core.hud.text(0.02, qy + 0.022, if q[2] == 2 then `DONE - BACK TO {D.GIVER_NAME[g]}`
+                              else D.quest_line(def, c), 0.014, 0, if q[2] == 2 then 140 else 220,
+                              if q[2] == 2 then 255 else 220, if q[2] == 2 then 140 else 220, 255)
+                qy += 0.052
+            end
+        end
 
         -- The skills, the chosen one lit.
         local c = D.CLASS[s.cls]
@@ -4180,6 +4709,7 @@ if drawing then
             ask("drink mana")
         elseif a == "key_b" then
             ask("town")
+            C.used.tp = clock
         elseif a == "key_i" then
             C.bag_open = not C.bag_open
             if not C.bag_open and (C.shop or C.stash_open) then
@@ -4206,7 +4736,7 @@ if drawing then
     function client_step(dt: number)
         do
             local x, y, z = core.player_pos(C.me)
-            local inside = x ~= nil and L.in_hall(x, y, z)
+            local inside = x ~= nil and (L.in_hall(x, y, z) or L.in_exit(x, y, z))
             if inside ~= hall_was then
                 local first = hall_was == nil
                 hall_was = inside

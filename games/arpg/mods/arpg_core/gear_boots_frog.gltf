@@ -1,6 +1,6 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v5.2.39",
+		"generator":"Khronos glTF Blender I/O v5.3.43",
 		"version":"2.0"
 	},
 	"scene":0,
@@ -538,87 +538,49 @@
 	"materials":[
 		{
 			"doubleSided":true,
-			"name":"dark_leather.016",
+			"name":"gear_boots",
 			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.2199999988079071,
-					0.14000000059604645,
-					0.09000000357627869,
-					1
-				],
-				"metallicFactor":0,
-				"roughnessFactor":0.75
-			}
-		},
-		{
-			"doubleSided":true,
-			"name":"leather.030",
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.4000000059604645,
-					0.23999999463558197,
-					0.12999999523162842,
-					1
-				],
-				"metallicFactor":0,
-				"roughnessFactor":0.699999988079071
-			}
-		},
-		{
-			"doubleSided":true,
-			"name":"tint_1.094",
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.550000011920929,
-					0.36000001430511475,
-					0.18000000715255737,
-					1
-				],
-				"metallicFactor":0.6000000238418579,
-				"roughnessFactor":0.44999998807907104
+				"baseColorTexture":{
+					"index":0
+				},
+				"metallicFactor":0
 			}
 		}
 	],
 	"meshes":[
 		{
-			"name":"gear_boots_frog",
+			"name":"Mesh_0.075",
 			"primitives":[
 				{
 					"attributes":{
 						"POSITION":0,
 						"NORMAL":1,
-						"JOINTS_0":2,
-						"WEIGHTS_0":3
+						"TEXCOORD_0":2,
+						"JOINTS_0":3,
+						"WEIGHTS_0":4
 					},
-					"indices":4,
+					"indices":5,
 					"material":0
-				},
-				{
-					"attributes":{
-						"POSITION":5,
-						"NORMAL":6,
-						"JOINTS_0":7,
-						"WEIGHTS_0":8
-					},
-					"indices":4,
-					"material":1
-				},
-				{
-					"attributes":{
-						"POSITION":9,
-						"NORMAL":10,
-						"JOINTS_0":11,
-						"WEIGHTS_0":12
-					},
-					"indices":4,
-					"material":2
 				}
 			]
 		}
 	],
+	"textures":[
+		{
+			"sampler":0,
+			"source":0
+		}
+	],
+	"images":[
+		{
+			"mimeType":"image/png",
+			"name":"gear_boots",
+			"uri":"gear_boots.png"
+		}
+	],
 	"skins":[
 		{
-			"inverseBindMatrices":13,
+			"inverseBindMatrices":6,
 			"joints":[
 				23,
 				22,
@@ -652,113 +614,51 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":192,
+			"count":6012,
 			"max":[
-				0.22292010486125946,
-				0.11566594243049622,
-				0.08918837457895279
+				0.23692014813423157,
+				0.28370794653892517,
+				0.10477286577224731
 			],
 			"min":[
-				-0.22302863001823425,
-				-0.0007942990632727742,
-				-0.2551558017730713
+				-0.23702870309352875,
+				-0.014794138260185719,
+				-0.2691557705402374
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":192,
+			"count":6012,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
-			"componentType":5121,
-			"count":192,
-			"type":"VEC4"
+			"componentType":5126,
+			"count":6012,
+			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
-			"componentType":5126,
-			"count":192,
+			"componentType":5121,
+			"count":6012,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
-			"componentType":5123,
-			"count":264,
-			"type":"SCALAR"
+			"componentType":5126,
+			"count":6012,
+			"type":"VEC4"
 		},
 		{
 			"bufferView":5,
-			"componentType":5126,
-			"count":192,
-			"max":[
-				0.21335995197296143,
-				0.26970773935317993,
-				0.0907728299498558
-			],
-			"min":[
-				-0.21335351467132568,
-				0.13158485293388367,
-				-0.08889881521463394
-			],
-			"type":"VEC3"
+			"componentType":5123,
+			"count":6600,
+			"type":"SCALAR"
 		},
 		{
 			"bufferView":6,
-			"componentType":5126,
-			"count":192,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":7,
-			"componentType":5121,
-			"count":192,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":8,
-			"componentType":5126,
-			"count":192,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":9,
-			"componentType":5126,
-			"count":192,
-			"max":[
-				0.21815240383148193,
-				0.26970773935317993,
-				0.09567421674728394
-			],
-			"min":[
-				-0.218144491314888,
-				0.24373586475849152,
-				-0.09377042204141617
-			],
-			"type":"VEC3"
-		},
-		{
-			"bufferView":10,
-			"componentType":5126,
-			"count":192,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":11,
-			"componentType":5121,
-			"count":192,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":12,
-			"componentType":5126,
-			"count":192,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":13,
 			"componentType":5126,
 			"count":24,
 			"type":"MAT4"
@@ -767,91 +667,55 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":2304,
+			"byteLength":72144,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":2304,
+			"byteLength":72144,
+			"byteOffset":72144,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":768,
-			"byteOffset":4608,
+			"byteLength":48096,
+			"byteOffset":144288,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":3072,
-			"byteOffset":5376,
+			"byteLength":24048,
+			"byteOffset":192384,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":528,
-			"byteOffset":8448,
+			"byteLength":96192,
+			"byteOffset":216432,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":13200,
+			"byteOffset":312624,
 			"target":34963
 		},
 		{
 			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":8976,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":11280,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":768,
-			"byteOffset":13584,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":3072,
-			"byteOffset":14352,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":17424,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":19728,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":768,
-			"byteOffset":22032,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":3072,
-			"byteOffset":22800,
-			"target":34962
-		},
-		{
-			"buffer":0,
 			"byteLength":1536,
-			"byteOffset":25872
+			"byteOffset":325824
+		}
+	],
+	"samplers":[
+		{
+			"magFilter":9728,
+			"minFilter":9984
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":27408,
+			"byteLength":327360,
 			"uri":"gear_boots_frog.bin"
 		}
 	]

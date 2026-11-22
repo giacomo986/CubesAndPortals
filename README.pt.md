@@ -227,7 +227,10 @@ mundo atrás dele (`mods/gates`), levam a sete mundos, todos salas do mesmo serv
 - **As terras devastadas** (`games/arpg`): um RPG de ação isométrico de apontar e clicar. Uma
   cidade com mercadores e um baú, três zonas de áreas e corredores, pontos de teleporte e um
   portal da cidade, três classes com quatro habilidades cada, níveis, e itens normais, mágicos,
-  raros, únicos e de conjunto que aparecem no personagem, com suas animações.
+  raros, únicos e de conjunto que aparecem no personagem, com suas animações; um ícone pintado
+  para cada item, mais rico quanto mais raro; materiais, missões do povo da cidade, recomprar o
+  que se vendeu; o Açougueiro, e o Guardião da cripta com a saída numa sala própria. Guia em
+  [`games/arpg/README.pt.md`](games/arpg/README.pt.md).
 - **As câmaras de testes** (`games/chambers`): seis câmaras de quebra-cabeça com portais, uma arma
   de portais que cresce com você, cubos, botões e plataformas de lançamento.
 - **Os backrooms** (`games/backrooms`): três níveis infinitos com escadas, poços, piscinas,

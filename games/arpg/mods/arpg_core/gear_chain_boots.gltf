@@ -1,6 +1,6 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v5.2.39",
+		"generator":"Khronos glTF Blender I/O v5.3.43",
 		"version":"2.0"
 	},
 	"scene":0,
@@ -538,87 +538,49 @@
 	"materials":[
 		{
 			"doubleSided":true,
-			"name":"dark_leather.002",
+			"name":"gear_chain_boots",
 			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.2199999988079071,
-					0.14000000059604645,
-					0.09000000357627869,
-					1
-				],
-				"metallicFactor":0,
-				"roughnessFactor":0.75
-			}
-		},
-		{
-			"doubleSided":true,
-			"name":"chain.002",
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.5799999833106995,
-					0.6000000238418579,
-					0.6200000047683716,
-					1
-				],
-				"metallicFactor":0.8999999761581421,
-				"roughnessFactor":0.6499999761581421
-			}
-		},
-		{
-			"doubleSided":true,
-			"name":"tint_1.037",
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.4000000059604645,
-					0.23999999463558197,
-					0.12999999523162842,
-					1
-				],
-				"metallicFactor":0.6000000238418579,
-				"roughnessFactor":0.44999998807907104
+				"baseColorTexture":{
+					"index":0
+				},
+				"metallicFactor":0
 			}
 		}
 	],
 	"meshes":[
 		{
-			"name":"gear_chain_boots",
+			"name":"Mesh_0.078",
 			"primitives":[
 				{
 					"attributes":{
 						"POSITION":0,
 						"NORMAL":1,
-						"JOINTS_0":2,
-						"WEIGHTS_0":3
+						"TEXCOORD_0":2,
+						"JOINTS_0":3,
+						"WEIGHTS_0":4
 					},
-					"indices":4,
+					"indices":5,
 					"material":0
-				},
-				{
-					"attributes":{
-						"POSITION":5,
-						"NORMAL":6,
-						"JOINTS_0":7,
-						"WEIGHTS_0":8
-					},
-					"indices":4,
-					"material":1
-				},
-				{
-					"attributes":{
-						"POSITION":9,
-						"NORMAL":10,
-						"JOINTS_0":11,
-						"WEIGHTS_0":12
-					},
-					"indices":4,
-					"material":2
 				}
 			]
 		}
 	],
+	"textures":[
+		{
+			"sampler":0,
+			"source":0
+		}
+	],
+	"images":[
+		{
+			"mimeType":"image/png",
+			"name":"gear_chain_boots",
+			"uri":"gear_chain_boots.png"
+		}
+	],
 	"skins":[
 		{
-			"inverseBindMatrices":13,
+			"inverseBindMatrices":6,
 			"joints":[
 				23,
 				22,
@@ -652,113 +614,51 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":192,
+			"count":5358,
 			"max":[
-				0.20500002801418304,
-				0.15000002086162567,
-				0.10300001502037048
+				0.21900007128715515,
+				0.39400026202201843,
+				0.11700005829334259
 			],
 			"min":[
-				-0.20500002801418304,
-				-0.005000000353902578,
-				-0.20500002801418304
+				-0.21900007128715515,
+				-0.01899982988834381,
+				-0.21900001168251038
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":192,
+			"count":5358,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
-			"componentType":5121,
-			"count":192,
-			"type":"VEC4"
+			"componentType":5126,
+			"count":5358,
+			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
-			"componentType":5126,
-			"count":192,
+			"componentType":5121,
+			"count":5358,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
-			"componentType":5123,
-			"count":264,
-			"type":"SCALAR"
+			"componentType":5126,
+			"count":5358,
+			"type":"VEC4"
 		},
 		{
 			"bufferView":5,
-			"componentType":5126,
-			"count":192,
-			"max":[
-				0.19700002670288086,
-				0.3800000548362732,
-				0.08300000429153442
-			],
-			"min":[
-				-0.19700002670288086,
-				0.14000001549720764,
-				-0.10000001639127731
-			],
-			"type":"VEC3"
+			"componentType":5123,
+			"count":6600,
+			"type":"SCALAR"
 		},
 		{
 			"bufferView":6,
-			"componentType":5126,
-			"count":192,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":7,
-			"componentType":5121,
-			"count":192,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":8,
-			"componentType":5126,
-			"count":192,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":9,
-			"componentType":5126,
-			"count":192,
-			"max":[
-				0.20100003480911255,
-				0.3800000548362732,
-				0.08800000697374344
-			],
-			"min":[
-				-0.20100003480911255,
-				0.3500000238418579,
-				-0.10500001162290573
-			],
-			"type":"VEC3"
-		},
-		{
-			"bufferView":10,
-			"componentType":5126,
-			"count":192,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":11,
-			"componentType":5121,
-			"count":192,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":12,
-			"componentType":5126,
-			"count":192,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":13,
 			"componentType":5126,
 			"count":24,
 			"type":"MAT4"
@@ -767,91 +667,55 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":2304,
+			"byteLength":64296,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":2304,
+			"byteLength":64296,
+			"byteOffset":64296,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":768,
-			"byteOffset":4608,
+			"byteLength":42864,
+			"byteOffset":128592,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":3072,
-			"byteOffset":5376,
+			"byteLength":21432,
+			"byteOffset":171456,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":528,
-			"byteOffset":8448,
+			"byteLength":85728,
+			"byteOffset":192888,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":13200,
+			"byteOffset":278616,
 			"target":34963
 		},
 		{
 			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":8976,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":11280,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":768,
-			"byteOffset":13584,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":3072,
-			"byteOffset":14352,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":17424,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":19728,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":768,
-			"byteOffset":22032,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":3072,
-			"byteOffset":22800,
-			"target":34962
-		},
-		{
-			"buffer":0,
 			"byteLength":1536,
-			"byteOffset":25872
+			"byteOffset":291816
+		}
+	],
+	"samplers":[
+		{
+			"magFilter":9728,
+			"minFilter":9984
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":27408,
+			"byteLength":293352,
 			"uri":"gear_chain_boots.bin"
 		}
 	]

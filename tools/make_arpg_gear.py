@@ -1,3 +1,6 @@
+# 2026-11-22: what this writes is now the REFERENCE the Meshy gear is fitted to
+# (assets/meshy/arpg/fit_ref); the game's gear_*.gltf are written over by
+# tools/make_arpg_gear_meshy.py (held) and tools/make_arpg_armor_meshy.py (worn).
 # Builds what a character of games/arpg wears and holds -- every base but the
 # ring, one model each -- on the robot's own rig, and exports each one.
 #

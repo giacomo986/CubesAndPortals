@@ -1,0 +1,116 @@
+{
+ "rows": {
+  "helms": [
+   "cap",
+   "helm",
+   "great_helm",
+   "hood"
+  ],
+  "torsos": [
+   "quilted_armor",
+   "leather_armor",
+   "chain_mail",
+   "plate_mail"
+  ],
+  "gloves": [
+   "leather_gloves",
+   "chain_gloves",
+   "gauntlets"
+  ],
+  "boots": [
+   "boots",
+   "chain_boots",
+   "greaves"
+  ],
+  "waist": [
+   "sash",
+   "belt",
+   "heavy_belt",
+   "amulet"
+  ]
+ },
+ "spans": {
+  "helms": [
+   [
+    92,
+    360
+   ],
+   [
+    453,
+    721
+   ],
+   [
+    814,
+    1082
+   ],
+   [
+    1175,
+    1443
+   ]
+  ],
+  "torsos": [
+   [
+    92,
+    360
+   ],
+   [
+    453,
+    721
+   ],
+   [
+    814,
+    1082
+   ],
+   [
+    1175,
+    1443
+   ]
+  ],
+  "gloves": [
+   [
+    115,
+    473
+   ],
+   [
+    589,
+    947
+   ],
+   [
+    1062,
+    1420
+   ]
+  ],
+  "boots": [
+   [
+    115,
+    473
+   ],
+   [
+    589,
+    947
+   ],
+   [
+    1062,
+    1420
+   ]
+  ],
+  "waist": [
+   [
+    92,
+    360
+   ],
+   [
+    453,
+    721
+   ],
+   [
+    814,
+    1082
+   ],
+   [
+    1175,
+    1443
+   ]
+  ]
+ }
+}

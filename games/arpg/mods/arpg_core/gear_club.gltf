@@ -1,6 +1,6 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v5.2.39",
+		"generator":"Khronos glTF Blender I/O v5.3.43",
 		"version":"2.0"
 	},
 	"scene":0,
@@ -538,63 +538,49 @@
 	"materials":[
 		{
 			"doubleSided":true,
-			"name":"wood.002",
+			"name":"gear_club",
 			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.44999998807907104,
-					0.28999999165534973,
-					0.15000000596046448,
-					1
-				],
-				"metallicFactor":0,
-				"roughnessFactor":0.800000011920929
-			}
-		},
-		{
-			"doubleSided":true,
-			"name":"tint_1.008",
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.4000000059604645,
-					0.23999999463558197,
-					0.12999999523162842,
-					1
-				],
-				"metallicFactor":0.6000000238418579,
-				"roughnessFactor":0.44999998807907104
+				"baseColorTexture":{
+					"index":0
+				},
+				"metallicFactor":0
 			}
 		}
 	],
 	"meshes":[
 		{
-			"name":"gear_club",
+			"name":"Mesh_0.021",
 			"primitives":[
 				{
 					"attributes":{
 						"POSITION":0,
 						"NORMAL":1,
-						"JOINTS_0":2,
-						"WEIGHTS_0":3
+						"TEXCOORD_0":2,
+						"JOINTS_0":3,
+						"WEIGHTS_0":4
 					},
-					"indices":4,
+					"indices":5,
 					"material":0
-				},
-				{
-					"attributes":{
-						"POSITION":5,
-						"NORMAL":6,
-						"JOINTS_0":7,
-						"WEIGHTS_0":8
-					},
-					"indices":9,
-					"material":1
 				}
 			]
 		}
 	],
+	"textures":[
+		{
+			"sampler":0,
+			"source":0
+		}
+	],
+	"images":[
+		{
+			"mimeType":"image/png",
+			"name":"gear_club",
+			"uri":"gear_club.png"
+		}
+	],
 	"skins":[
 		{
-			"inverseBindMatrices":10,
+			"inverseBindMatrices":6,
 			"joints":[
 				23,
 				22,
@@ -628,85 +614,51 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":240,
+			"count":3504,
 			"max":[
-				0.31235939264297485,
-				0.6525604128837585,
+				0.33302509784698486,
+				0.6697684526443481,
 				0.12999999523162842
 			],
 			"min":[
-				0.21764063835144043,
-				0.5554396510124207,
-				-0.4200000464916229
+				0.19697503745555878,
+				0.5382319092750549,
+				-0.42000001668930054
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":240,
+			"count":3504,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
-			"componentType":5121,
-			"count":240,
-			"type":"VEC4"
+			"componentType":5126,
+			"count":3504,
+			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
-			"componentType":5126,
-			"count":240,
+			"componentType":5121,
+			"count":3504,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
-			"componentType":5123,
-			"count":348,
-			"type":"SCALAR"
+			"componentType":5126,
+			"count":3504,
+			"type":"VEC4"
 		},
 		{
 			"bufferView":5,
-			"componentType":5126,
-			"count":240,
-			"max":[
-				0.28972747921943665,
-				0.6287639737129211,
-				0.1300000101327896
-			],
-			"min":[
-				0.24027255177497864,
-				0.5792360901832581,
-				0.08000000566244125
-			],
-			"type":"VEC3"
-		},
-		{
-			"bufferView":6,
-			"componentType":5126,
-			"count":240,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":7,
-			"componentType":5121,
-			"count":240,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":8,
-			"componentType":5126,
-			"count":240,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":9,
 			"componentType":5123,
-			"count":348,
+			"count":3582,
 			"type":"SCALAR"
 		},
 		{
-			"bufferView":10,
+			"bufferView":6,
 			"componentType":5126,
 			"count":24,
 			"type":"MAT4"
@@ -715,73 +667,55 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":2880,
+			"byteLength":42048,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":2880,
-			"byteOffset":2880,
+			"byteLength":42048,
+			"byteOffset":42048,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":960,
-			"byteOffset":5760,
+			"byteLength":28032,
+			"byteOffset":84096,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":3840,
-			"byteOffset":6720,
+			"byteLength":14016,
+			"byteOffset":112128,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":696,
-			"byteOffset":10560,
-			"target":34963
-		},
-		{
-			"buffer":0,
-			"byteLength":2880,
-			"byteOffset":11256,
+			"byteLength":56064,
+			"byteOffset":126144,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":2880,
-			"byteOffset":14136,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":960,
-			"byteOffset":17016,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":3840,
-			"byteOffset":17976,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":696,
-			"byteOffset":21816,
+			"byteLength":7164,
+			"byteOffset":182208,
 			"target":34963
 		},
 		{
 			"buffer":0,
 			"byteLength":1536,
-			"byteOffset":22512
+			"byteOffset":189372
+		}
+	],
+	"samplers":[
+		{
+			"magFilter":9728,
+			"minFilter":9984
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":24048,
+			"byteLength":190908,
 			"uri":"gear_club.bin"
 		}
 	]

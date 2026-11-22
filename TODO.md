@@ -479,6 +479,15 @@ Mods:
 - OPEN-54: meshing twice as slow with the new light; one shadow map, no
   cascades; box bodies cast none; 256 casters at most.
 - OPEN-55: 16 dyes, not free colours.
+- Arpg, 2026-11-22 (icons, quests, buy back, materials, the Butcher, the Keeper
+  and the crypt's exit room; seen by script under Xephyr, not played by hand):
+  the eight materials only feed quests until crafting, enchanting and upgrading
+  exist; all gear is from Meshy now (held: tools/make_arpg_gear_meshy.py; worn,
+  fitted onto the old pieces per species: tools/make_arpg_armor_meshy.py), textured,
+  so unique and set no longer tint a trim, and a worn piece wrapped onto the body
+  looks a little crumpled; ~26 MB of gear models; the Butcher's and the Keeper's struck box is
+  their T-pose's (half-width 1.8 and 1.0), wide to hit; the Butcher's numbers
+  (hp 70, blow 10, 4.4 speed, level 3) are guesses. Meshy: 253 credits used (599 to 346).
 - A window once open streams until closed after 30 s unwanted; 70 MB of VRAM a
   window. Gates are 1 x 2: a kart does not fit.
 - A far portal between servers is a mouth: 24 a room, not virtual.

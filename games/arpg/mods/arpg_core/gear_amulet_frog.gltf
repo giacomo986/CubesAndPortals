@@ -1,11 +1,8 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v5.2.39",
+		"generator":"Khronos glTF Blender I/O v5.3.43",
 		"version":"2.0"
 	},
-	"extensionsUsed":[
-		"KHR_materials_emissive_strength"
-	],
 	"scene":0,
 	"scenes":[
 		{
@@ -541,96 +538,49 @@
 	"materials":[
 		{
 			"doubleSided":true,
-			"name":"bronze.003",
+			"name":"gear_amulet",
 			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.699999988079071,
-					0.46000000834465027,
-					0.2199999988079071,
-					1
-				],
-				"roughnessFactor":0.4000000059604645
-			}
-		},
-		{
-			"doubleSided":true,
-			"name":"tint_1.100",
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.8500000238418579,
-					0.6499999761581421,
-					0.20000000298023224,
-					1
-				],
-				"metallicFactor":0.6000000238418579,
-				"roughnessFactor":0.44999998807907104
-			}
-		},
-		{
-			"doubleSided":true,
-			"emissiveFactor":[
-				0.3499999940395355,
-				0.6499999761581421,
-				1
-			],
-			"extensions":{
-				"KHR_materials_emissive_strength":{
-					"emissiveStrength":2
-				}
-			},
-			"name":"glow_blue.006",
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.3499999940395355,
-					0.6499999761581421,
-					1,
-					1
-				],
-				"metallicFactor":0,
-				"roughnessFactor":0.20000000298023224
+				"baseColorTexture":{
+					"index":0
+				},
+				"metallicFactor":0
 			}
 		}
 	],
 	"meshes":[
 		{
-			"name":"gear_amulet_frog",
+			"name":"Mesh_0.112",
 			"primitives":[
 				{
 					"attributes":{
 						"POSITION":0,
 						"NORMAL":1,
-						"JOINTS_0":2,
-						"WEIGHTS_0":3
+						"TEXCOORD_0":2,
+						"JOINTS_0":3,
+						"WEIGHTS_0":4
 					},
-					"indices":4,
+					"indices":5,
 					"material":0
-				},
-				{
-					"attributes":{
-						"POSITION":5,
-						"NORMAL":6,
-						"JOINTS_0":7,
-						"WEIGHTS_0":8
-					},
-					"indices":9,
-					"material":1
-				},
-				{
-					"attributes":{
-						"POSITION":10,
-						"NORMAL":11,
-						"JOINTS_0":12,
-						"WEIGHTS_0":13
-					},
-					"indices":14,
-					"material":2
 				}
 			]
 		}
 	],
+	"textures":[
+		{
+			"sampler":0,
+			"source":0
+		}
+	],
+	"images":[
+		{
+			"mimeType":"image/png",
+			"name":"gear_amulet",
+			"uri":"gear_amulet.png"
+		}
+	],
 	"skins":[
 		{
-			"inverseBindMatrices":15,
+			"inverseBindMatrices":6,
 			"joints":[
 				23,
 				22,
@@ -664,125 +614,51 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":480,
+			"count":6592,
 			"max":[
-				0.09982960671186447,
-				1.332104206085205,
-				-0.14892931282520294
+				0.1003299281001091,
+				1.3262245655059814,
+				-0.15586574375629425
 			],
 			"min":[
-				-0.10022781044244766,
-				1.1367219686508179,
-				-0.2034153938293457
+				-0.0991874486207962,
+				1.0254547595977783,
+				-0.2530478537082672
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":480,
+			"count":6592,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
-			"componentType":5121,
-			"count":480,
-			"type":"VEC4"
+			"componentType":5126,
+			"count":6592,
+			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
-			"componentType":5126,
-			"count":480,
+			"componentType":5121,
+			"count":6592,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
-			"componentType":5123,
-			"count":672,
-			"type":"SCALAR"
+			"componentType":5126,
+			"count":6592,
+			"type":"VEC4"
 		},
 		{
 			"bufferView":5,
-			"componentType":5126,
-			"count":96,
-			"max":[
-				0.0335543267428875,
-				1.139554738998413,
-				-0.18875686824321747
-			],
-			"min":[
-				-0.03377741202712059,
-				1.03014075756073,
-				-0.2145175039768219
-			],
-			"type":"VEC3"
+			"componentType":5123,
+			"count":6600,
+			"type":"SCALAR"
 		},
 		{
 			"bufferView":6,
-			"componentType":5126,
-			"count":96,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":7,
-			"componentType":5121,
-			"count":96,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":8,
-			"componentType":5126,
-			"count":96,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":9,
-			"componentType":5123,
-			"count":132,
-			"type":"SCALAR"
-		},
-		{
-			"bufferView":10,
-			"componentType":5126,
-			"count":292,
-			"max":[
-				0.018184570595622063,
-				1.1108053922653198,
-				-0.19906112551689148
-			],
-			"min":[
-				-0.018407655879855156,
-				1.0588901042938232,
-				-0.24027812480926514
-			],
-			"type":"VEC3"
-		},
-		{
-			"bufferView":11,
-			"componentType":5126,
-			"count":292,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":12,
-			"componentType":5121,
-			"count":292,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":13,
-			"componentType":5126,
-			"count":292,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":14,
-			"componentType":5123,
-			"count":348,
-			"type":"SCALAR"
-		},
-		{
-			"bufferView":15,
 			"componentType":5126,
 			"count":24,
 			"type":"MAT4"
@@ -791,103 +667,55 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":5760,
+			"byteLength":79104,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":5760,
-			"byteOffset":5760,
+			"byteLength":79104,
+			"byteOffset":79104,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1920,
-			"byteOffset":11520,
+			"byteLength":52736,
+			"byteOffset":158208,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":7680,
-			"byteOffset":13440,
+			"byteLength":26368,
+			"byteOffset":210944,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1344,
-			"byteOffset":21120,
-			"target":34963
-		},
-		{
-			"buffer":0,
-			"byteLength":1152,
-			"byteOffset":22464,
+			"byteLength":105472,
+			"byteOffset":237312,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1152,
-			"byteOffset":23616,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":384,
-			"byteOffset":24768,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":1536,
-			"byteOffset":25152,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":264,
-			"byteOffset":26688,
-			"target":34963
-		},
-		{
-			"buffer":0,
-			"byteLength":3504,
-			"byteOffset":26952,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":3504,
-			"byteOffset":30456,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":1168,
-			"byteOffset":33960,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":4672,
-			"byteOffset":35128,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":696,
-			"byteOffset":39800,
+			"byteLength":13200,
+			"byteOffset":342784,
 			"target":34963
 		},
 		{
 			"buffer":0,
 			"byteLength":1536,
-			"byteOffset":40496
+			"byteOffset":355984
+		}
+	],
+	"samplers":[
+		{
+			"magFilter":9728,
+			"minFilter":9984
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":42032,
+			"byteLength":357520,
 			"uri":"gear_amulet_frog.bin"
 		}
 	]

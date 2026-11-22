@@ -1,6 +1,6 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v5.2.39",
+		"generator":"Khronos glTF Blender I/O v5.3.43",
 		"version":"2.0"
 	},
 	"scene":0,
@@ -538,85 +538,49 @@
 	"materials":[
 		{
 			"doubleSided":true,
-			"name":"steel.016",
+			"name":"gear_gauntlets",
 			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.7200000286102295,
-					0.7400000095367432,
-					0.7799999713897705,
-					1
-				],
-				"roughnessFactor":0.3199999928474426
-			}
-		},
-		{
-			"doubleSided":true,
-			"name":"tint_1.057",
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.800000011920929,
-					0.6200000047683716,
-					0.2199999988079071,
-					1
-				],
-				"metallicFactor":0.6000000238418579,
-				"roughnessFactor":0.44999998807907104
-			}
-		},
-		{
-			"doubleSided":true,
-			"name":"dark_steel.013",
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.36000001430511475,
-					0.3799999952316284,
-					0.41999998688697815,
-					1
-				],
-				"roughnessFactor":0.4000000059604645
+				"baseColorTexture":{
+					"index":0
+				},
+				"metallicFactor":0
 			}
 		}
 	],
 	"meshes":[
 		{
-			"name":"gear_gauntlets_human",
+			"name":"Mesh_0.066",
 			"primitives":[
 				{
 					"attributes":{
 						"POSITION":0,
 						"NORMAL":1,
-						"JOINTS_0":2,
-						"WEIGHTS_0":3
+						"TEXCOORD_0":2,
+						"JOINTS_0":3,
+						"WEIGHTS_0":4
 					},
-					"indices":4,
+					"indices":5,
 					"material":0
-				},
-				{
-					"attributes":{
-						"POSITION":5,
-						"NORMAL":6,
-						"JOINTS_0":7,
-						"WEIGHTS_0":8
-					},
-					"indices":9,
-					"material":1
-				},
-				{
-					"attributes":{
-						"POSITION":10,
-						"NORMAL":11,
-						"JOINTS_0":12,
-						"WEIGHTS_0":13
-					},
-					"indices":9,
-					"material":2
 				}
 			]
 		}
 	],
+	"textures":[
+		{
+			"sampler":0,
+			"source":0
+		}
+	],
+	"images":[
+		{
+			"mimeType":"image/png",
+			"name":"gear_gauntlets",
+			"uri":"gear_gauntlets.png"
+		}
+	],
 	"skins":[
 		{
-			"inverseBindMatrices":14,
+			"inverseBindMatrices":6,
 			"joints":[
 				23,
 				22,
@@ -650,119 +614,51 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":384,
+			"count":6597,
 			"max":[
-				0.331569641828537,
-				0.83768630027771,
-				0.06745623797178268
+				0.3455697000026703,
+				0.8516864776611328,
+				0.081456258893013
 			],
 			"min":[
-				-0.3318096697330475,
-				0.5420598387718201,
-				-0.09081947058439255
+				-0.3458097279071808,
+				0.5280599594116211,
+				-0.10481943935155869
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":384,
+			"count":6597,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
-			"componentType":5121,
-			"count":384,
-			"type":"VEC4"
+			"componentType":5126,
+			"count":6597,
+			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
-			"componentType":5126,
-			"count":384,
+			"componentType":5121,
+			"count":6597,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
-			"componentType":5123,
-			"count":528,
-			"type":"SCALAR"
+			"componentType":5126,
+			"count":6597,
+			"type":"VEC4"
 		},
 		{
 			"bufferView":5,
-			"componentType":5126,
-			"count":192,
-			"max":[
-				0.3338196575641632,
-				0.6686241030693054,
-				0.06970623135566711
-			],
-			"min":[
-				-0.3340596854686737,
-				0.6430355310440063,
-				-0.06995898485183716
-			],
-			"type":"VEC3"
-		},
-		{
-			"bufferView":6,
-			"componentType":5126,
-			"count":192,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":7,
-			"componentType":5121,
-			"count":192,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":8,
-			"componentType":5126,
-			"count":192,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":9,
 			"componentType":5123,
-			"count":264,
+			"count":6597,
 			"type":"SCALAR"
 		},
 		{
-			"bufferView":10,
-			"componentType":5126,
-			"count":192,
-			"max":[
-				0.3224292993545532,
-				0.6589027047157288,
-				0.028816403821110725
-			],
-			"min":[
-				-0.3223802447319031,
-				0.5595736503601074,
-				-0.07091310620307922
-			],
-			"type":"VEC3"
-		},
-		{
-			"bufferView":11,
-			"componentType":5126,
-			"count":192,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":12,
-			"componentType":5121,
-			"count":192,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":13,
-			"componentType":5126,
-			"count":192,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":14,
+			"bufferView":6,
 			"componentType":5126,
 			"count":24,
 			"type":"MAT4"
@@ -771,97 +667,55 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":4608,
+			"byteLength":79164,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":4608,
-			"byteOffset":4608,
+			"byteLength":79164,
+			"byteOffset":79164,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1536,
-			"byteOffset":9216,
+			"byteLength":52776,
+			"byteOffset":158328,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":6144,
-			"byteOffset":10752,
+			"byteLength":26388,
+			"byteOffset":211104,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1056,
-			"byteOffset":16896,
+			"byteLength":105552,
+			"byteOffset":237492,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":13194,
+			"byteOffset":343044,
 			"target":34963
 		},
 		{
 			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":17952,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":20256,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":768,
-			"byteOffset":22560,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":3072,
-			"byteOffset":23328,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":528,
-			"byteOffset":26400,
-			"target":34963
-		},
-		{
-			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":26928,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":29232,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":768,
-			"byteOffset":31536,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":3072,
-			"byteOffset":32304,
-			"target":34962
-		},
-		{
-			"buffer":0,
 			"byteLength":1536,
-			"byteOffset":35376
+			"byteOffset":356240
+		}
+	],
+	"samplers":[
+		{
+			"magFilter":9728,
+			"minFilter":9984
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":36912,
+			"byteLength":357776,
 			"uri":"gear_gauntlets_human.bin"
 		}
 	]

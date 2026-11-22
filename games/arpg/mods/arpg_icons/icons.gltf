@@ -1,0 +1,750 @@
+{
+ "asset": {
+  "version": "2.0",
+  "generator": "tools/make_arpg_icons.py"
+ },
+ "scene": 0,
+ "scenes": [
+  {
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "mesh": 0,
+   "name": "icons"
+  }
+ ],
+ "meshes": [
+  {
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 0
+     }
+    }
+   ]
+  }
+ ],
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 3,
+   "type": "VEC3",
+   "min": [
+    0,
+    0,
+    0
+   ],
+   "max": [
+    0.01,
+    0.01,
+    0
+   ]
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 36
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 36,
+   "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAACtcjPAAAAAAAAAAAAAAAAArXIzwAAAAA"
+  }
+ ],
+ "images": [
+  {
+   "uri": "icon_amulet_0.png"
+  },
+  {
+   "uri": "icon_amulet_1.png"
+  },
+  {
+   "uri": "icon_amulet_2.png"
+  },
+  {
+   "uri": "icon_amulet_3.png"
+  },
+  {
+   "uri": "icon_amulet_4.png"
+  },
+  {
+   "uri": "icon_arcane_dust.png"
+  },
+  {
+   "uri": "icon_battle_axe_0.png"
+  },
+  {
+   "uri": "icon_battle_axe_1.png"
+  },
+  {
+   "uri": "icon_battle_axe_2.png"
+  },
+  {
+   "uri": "icon_battle_axe_3.png"
+  },
+  {
+   "uri": "icon_battle_axe_4.png"
+  },
+  {
+   "uri": "icon_battle_staff_0.png"
+  },
+  {
+   "uri": "icon_battle_staff_1.png"
+  },
+  {
+   "uri": "icon_battle_staff_2.png"
+  },
+  {
+   "uri": "icon_battle_staff_3.png"
+  },
+  {
+   "uri": "icon_battle_staff_4.png"
+  },
+  {
+   "uri": "icon_belt_0.png"
+  },
+  {
+   "uri": "icon_belt_1.png"
+  },
+  {
+   "uri": "icon_belt_2.png"
+  },
+  {
+   "uri": "icon_belt_3.png"
+  },
+  {
+   "uri": "icon_belt_4.png"
+  },
+  {
+   "uri": "icon_bone.png"
+  },
+  {
+   "uri": "icon_bone_wand_0.png"
+  },
+  {
+   "uri": "icon_bone_wand_1.png"
+  },
+  {
+   "uri": "icon_bone_wand_2.png"
+  },
+  {
+   "uri": "icon_bone_wand_3.png"
+  },
+  {
+   "uri": "icon_bone_wand_4.png"
+  },
+  {
+   "uri": "icon_boots_0.png"
+  },
+  {
+   "uri": "icon_boots_1.png"
+  },
+  {
+   "uri": "icon_boots_2.png"
+  },
+  {
+   "uri": "icon_boots_3.png"
+  },
+  {
+   "uri": "icon_boots_4.png"
+  },
+  {
+   "uri": "icon_broad_sword_0.png"
+  },
+  {
+   "uri": "icon_broad_sword_1.png"
+  },
+  {
+   "uri": "icon_broad_sword_2.png"
+  },
+  {
+   "uri": "icon_broad_sword_3.png"
+  },
+  {
+   "uri": "icon_broad_sword_4.png"
+  },
+  {
+   "uri": "icon_buckler_0.png"
+  },
+  {
+   "uri": "icon_buckler_1.png"
+  },
+  {
+   "uri": "icon_buckler_2.png"
+  },
+  {
+   "uri": "icon_buckler_3.png"
+  },
+  {
+   "uri": "icon_buckler_4.png"
+  },
+  {
+   "uri": "icon_cap_0.png"
+  },
+  {
+   "uri": "icon_cap_1.png"
+  },
+  {
+   "uri": "icon_cap_2.png"
+  },
+  {
+   "uri": "icon_cap_3.png"
+  },
+  {
+   "uri": "icon_cap_4.png"
+  },
+  {
+   "uri": "icon_chain_boots_0.png"
+  },
+  {
+   "uri": "icon_chain_boots_1.png"
+  },
+  {
+   "uri": "icon_chain_boots_2.png"
+  },
+  {
+   "uri": "icon_chain_boots_3.png"
+  },
+  {
+   "uri": "icon_chain_boots_4.png"
+  },
+  {
+   "uri": "icon_chain_gloves_0.png"
+  },
+  {
+   "uri": "icon_chain_gloves_1.png"
+  },
+  {
+   "uri": "icon_chain_gloves_2.png"
+  },
+  {
+   "uri": "icon_chain_gloves_3.png"
+  },
+  {
+   "uri": "icon_chain_gloves_4.png"
+  },
+  {
+   "uri": "icon_chain_mail_0.png"
+  },
+  {
+   "uri": "icon_chain_mail_1.png"
+  },
+  {
+   "uri": "icon_chain_mail_2.png"
+  },
+  {
+   "uri": "icon_chain_mail_3.png"
+  },
+  {
+   "uri": "icon_chain_mail_4.png"
+  },
+  {
+   "uri": "icon_cleaver.png"
+  },
+  {
+   "uri": "icon_club_0.png"
+  },
+  {
+   "uri": "icon_club_1.png"
+  },
+  {
+   "uri": "icon_club_2.png"
+  },
+  {
+   "uri": "icon_club_3.png"
+  },
+  {
+   "uri": "icon_club_4.png"
+  },
+  {
+   "uri": "icon_dagger_0.png"
+  },
+  {
+   "uri": "icon_dagger_1.png"
+  },
+  {
+   "uri": "icon_dagger_2.png"
+  },
+  {
+   "uri": "icon_dagger_3.png"
+  },
+  {
+   "uri": "icon_dagger_4.png"
+  },
+  {
+   "uri": "icon_drake_scale.png"
+  },
+  {
+   "uri": "icon_ember_essence.png"
+  },
+  {
+   "uri": "icon_eye_orb_0.png"
+  },
+  {
+   "uri": "icon_eye_orb_1.png"
+  },
+  {
+   "uri": "icon_eye_orb_2.png"
+  },
+  {
+   "uri": "icon_eye_orb_3.png"
+  },
+  {
+   "uri": "icon_eye_orb_4.png"
+  },
+  {
+   "uri": "icon_gauntlets_0.png"
+  },
+  {
+   "uri": "icon_gauntlets_1.png"
+  },
+  {
+   "uri": "icon_gauntlets_2.png"
+  },
+  {
+   "uri": "icon_gauntlets_3.png"
+  },
+  {
+   "uri": "icon_gauntlets_4.png"
+  },
+  {
+   "uri": "icon_gold.png"
+  },
+  {
+   "uri": "icon_great_axe_0.png"
+  },
+  {
+   "uri": "icon_great_axe_1.png"
+  },
+  {
+   "uri": "icon_great_axe_2.png"
+  },
+  {
+   "uri": "icon_great_axe_3.png"
+  },
+  {
+   "uri": "icon_great_axe_4.png"
+  },
+  {
+   "uri": "icon_great_helm_0.png"
+  },
+  {
+   "uri": "icon_great_helm_1.png"
+  },
+  {
+   "uri": "icon_great_helm_2.png"
+  },
+  {
+   "uri": "icon_great_helm_3.png"
+  },
+  {
+   "uri": "icon_great_helm_4.png"
+  },
+  {
+   "uri": "icon_greaves_0.png"
+  },
+  {
+   "uri": "icon_greaves_1.png"
+  },
+  {
+   "uri": "icon_greaves_2.png"
+  },
+  {
+   "uri": "icon_greaves_3.png"
+  },
+  {
+   "uri": "icon_greaves_4.png"
+  },
+  {
+   "uri": "icon_hand_axe_0.png"
+  },
+  {
+   "uri": "icon_hand_axe_1.png"
+  },
+  {
+   "uri": "icon_hand_axe_2.png"
+  },
+  {
+   "uri": "icon_hand_axe_3.png"
+  },
+  {
+   "uri": "icon_hand_axe_4.png"
+  },
+  {
+   "uri": "icon_heavy_belt_0.png"
+  },
+  {
+   "uri": "icon_heavy_belt_1.png"
+  },
+  {
+   "uri": "icon_heavy_belt_2.png"
+  },
+  {
+   "uri": "icon_heavy_belt_3.png"
+  },
+  {
+   "uri": "icon_heavy_belt_4.png"
+  },
+  {
+   "uri": "icon_helm_0.png"
+  },
+  {
+   "uri": "icon_helm_1.png"
+  },
+  {
+   "uri": "icon_helm_2.png"
+  },
+  {
+   "uri": "icon_helm_3.png"
+  },
+  {
+   "uri": "icon_helm_4.png"
+  },
+  {
+   "uri": "icon_hood_0.png"
+  },
+  {
+   "uri": "icon_hood_1.png"
+  },
+  {
+   "uri": "icon_hood_2.png"
+  },
+  {
+   "uri": "icon_hood_3.png"
+  },
+  {
+   "uri": "icon_hood_4.png"
+  },
+  {
+   "uri": "icon_hunters_bow_0.png"
+  },
+  {
+   "uri": "icon_hunters_bow_1.png"
+  },
+  {
+   "uri": "icon_hunters_bow_2.png"
+  },
+  {
+   "uri": "icon_hunters_bow_3.png"
+  },
+  {
+   "uri": "icon_hunters_bow_4.png"
+  },
+  {
+   "uri": "icon_iron_ore.png"
+  },
+  {
+   "uri": "icon_kite_shield_0.png"
+  },
+  {
+   "uri": "icon_kite_shield_1.png"
+  },
+  {
+   "uri": "icon_kite_shield_2.png"
+  },
+  {
+   "uri": "icon_kite_shield_3.png"
+  },
+  {
+   "uri": "icon_kite_shield_4.png"
+  },
+  {
+   "uri": "icon_kris_0.png"
+  },
+  {
+   "uri": "icon_kris_1.png"
+  },
+  {
+   "uri": "icon_kris_2.png"
+  },
+  {
+   "uri": "icon_kris_3.png"
+  },
+  {
+   "uri": "icon_kris_4.png"
+  },
+  {
+   "uri": "icon_leather_armor_0.png"
+  },
+  {
+   "uri": "icon_leather_armor_1.png"
+  },
+  {
+   "uri": "icon_leather_armor_2.png"
+  },
+  {
+   "uri": "icon_leather_armor_3.png"
+  },
+  {
+   "uri": "icon_leather_armor_4.png"
+  },
+  {
+   "uri": "icon_leather_gloves_0.png"
+  },
+  {
+   "uri": "icon_leather_gloves_1.png"
+  },
+  {
+   "uri": "icon_leather_gloves_2.png"
+  },
+  {
+   "uri": "icon_leather_gloves_3.png"
+  },
+  {
+   "uri": "icon_leather_gloves_4.png"
+  },
+  {
+   "uri": "icon_leather_hide.png"
+  },
+  {
+   "uri": "icon_long_bow_0.png"
+  },
+  {
+   "uri": "icon_long_bow_1.png"
+  },
+  {
+   "uri": "icon_long_bow_2.png"
+  },
+  {
+   "uri": "icon_long_bow_3.png"
+  },
+  {
+   "uri": "icon_long_bow_4.png"
+  },
+  {
+   "uri": "icon_long_sword_0.png"
+  },
+  {
+   "uri": "icon_long_sword_1.png"
+  },
+  {
+   "uri": "icon_long_sword_2.png"
+  },
+  {
+   "uri": "icon_long_sword_3.png"
+  },
+  {
+   "uri": "icon_long_sword_4.png"
+  },
+  {
+   "uri": "icon_lpot.png"
+  },
+  {
+   "uri": "icon_mpot.png"
+  },
+  {
+   "uri": "icon_orb_0.png"
+  },
+  {
+   "uri": "icon_orb_1.png"
+  },
+  {
+   "uri": "icon_orb_2.png"
+  },
+  {
+   "uri": "icon_orb_3.png"
+  },
+  {
+   "uri": "icon_orb_4.png"
+  },
+  {
+   "uri": "icon_plate_mail_0.png"
+  },
+  {
+   "uri": "icon_plate_mail_1.png"
+  },
+  {
+   "uri": "icon_plate_mail_2.png"
+  },
+  {
+   "uri": "icon_plate_mail_3.png"
+  },
+  {
+   "uri": "icon_plate_mail_4.png"
+  },
+  {
+   "uri": "icon_pouch.png"
+  },
+  {
+   "uri": "icon_quilted_armor_0.png"
+  },
+  {
+   "uri": "icon_quilted_armor_1.png"
+  },
+  {
+   "uri": "icon_quilted_armor_2.png"
+  },
+  {
+   "uri": "icon_quilted_armor_3.png"
+  },
+  {
+   "uri": "icon_quilted_armor_4.png"
+  },
+  {
+   "uri": "icon_ring_0.png"
+  },
+  {
+   "uri": "icon_ring_1.png"
+  },
+  {
+   "uri": "icon_ring_2.png"
+  },
+  {
+   "uri": "icon_ring_3.png"
+  },
+  {
+   "uri": "icon_ring_4.png"
+  },
+  {
+   "uri": "icon_ruby.png"
+  },
+  {
+   "uri": "icon_sash_0.png"
+  },
+  {
+   "uri": "icon_sash_1.png"
+  },
+  {
+   "uri": "icon_sash_2.png"
+  },
+  {
+   "uri": "icon_sash_3.png"
+  },
+  {
+   "uri": "icon_sash_4.png"
+  },
+  {
+   "uri": "icon_short_bow_0.png"
+  },
+  {
+   "uri": "icon_short_bow_1.png"
+  },
+  {
+   "uri": "icon_short_bow_2.png"
+  },
+  {
+   "uri": "icon_short_bow_3.png"
+  },
+  {
+   "uri": "icon_short_bow_4.png"
+  },
+  {
+   "uri": "icon_short_sword_0.png"
+  },
+  {
+   "uri": "icon_short_sword_1.png"
+  },
+  {
+   "uri": "icon_short_sword_2.png"
+  },
+  {
+   "uri": "icon_short_sword_3.png"
+  },
+  {
+   "uri": "icon_short_sword_4.png"
+  },
+  {
+   "uri": "icon_soul_shard.png"
+  },
+  {
+   "uri": "icon_staff_0.png"
+  },
+  {
+   "uri": "icon_staff_1.png"
+  },
+  {
+   "uri": "icon_staff_2.png"
+  },
+  {
+   "uri": "icon_staff_3.png"
+  },
+  {
+   "uri": "icon_staff_4.png"
+  },
+  {
+   "uri": "icon_tower_shield_0.png"
+  },
+  {
+   "uri": "icon_tower_shield_1.png"
+  },
+  {
+   "uri": "icon_tower_shield_2.png"
+  },
+  {
+   "uri": "icon_tower_shield_3.png"
+  },
+  {
+   "uri": "icon_tower_shield_4.png"
+  },
+  {
+   "uri": "icon_tp.png"
+  },
+  {
+   "uri": "icon_wand_0.png"
+  },
+  {
+   "uri": "icon_wand_1.png"
+  },
+  {
+   "uri": "icon_wand_2.png"
+  },
+  {
+   "uri": "icon_wand_3.png"
+  },
+  {
+   "uri": "icon_wand_4.png"
+  },
+  {
+   "uri": "icon_war_bow_0.png"
+  },
+  {
+   "uri": "icon_war_bow_1.png"
+  },
+  {
+   "uri": "icon_war_bow_2.png"
+  },
+  {
+   "uri": "icon_war_bow_3.png"
+  },
+  {
+   "uri": "icon_war_bow_4.png"
+  },
+  {
+   "uri": "icon_war_hammer_0.png"
+  },
+  {
+   "uri": "icon_war_hammer_1.png"
+  },
+  {
+   "uri": "icon_war_hammer_2.png"
+  },
+  {
+   "uri": "icon_war_hammer_3.png"
+  },
+  {
+   "uri": "icon_war_hammer_4.png"
+  },
+  {
+   "uri": "icon_war_sword_0.png"
+  },
+  {
+   "uri": "icon_war_sword_1.png"
+  },
+  {
+   "uri": "icon_war_sword_2.png"
+  },
+  {
+   "uri": "icon_war_sword_3.png"
+  },
+  {
+   "uri": "icon_war_sword_4.png"
+  }
+ ]
+}

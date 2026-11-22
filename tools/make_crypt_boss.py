@@ -1,3 +1,5 @@
+# SUPERSEDED 2026-11-22: custode.gltf is now tools/make_meshy_boss.py's (a body from Meshy);
+# this procedural one is kept for its history and is no longer run.
 # The Custode delle tombe, the crypt's last creature under the waste
 # (games/arpg/mods/arpg_crypt, the trial for the Chiave della Cripta,
 # mods/keys): a tall robed figure with a skull for a face, a crown of iron,

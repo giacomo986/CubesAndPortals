@@ -130,3 +130,6 @@ La ricompensa e' nella cassa accanto al portale{} = The reward is in the chest b
 Camere di prova: {}, fatte nelle officine. = Test chambers: {}, made in the workshops.
 Prova superata. Un portale porta all'uscita. = Test passed. A portal leads to the way out.
 Terre nuove, fatte nelle officine. Il loro signore aspetta in fondo. = New lands, made in the workshops. Their lord waits at the far end.
+
+# --- Action RPG: the crypt's way out (2026-11-22) ---
+Il Custode e' caduto. Il sigillo a est si spezza: di la' la via d'uscita. = The Keeper has fallen. The seal to the east breaks: the way out lies beyond it.

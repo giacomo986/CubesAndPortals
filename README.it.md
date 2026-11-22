@@ -225,7 +225,10 @@ mondo che c'è dietro (`mods/gates`), portano a sette mondi, tutti stanze dello 
 - **La landa** (`games/arpg`): un action RPG isometrico punta e clicca. Un paese con mercanti e
   forziere, tre zone di aree e corridoi, waypoint e portale cittadino, tre classi con quattro
   abilità ciascuna, livelli, e oggetti normali, magici, rari, unici e di set che si vedono
-  addosso, con le loro animazioni.
+  addosso, con le loro animazioni; un'icona dipinta per ogni oggetto, più ricca quanto più è
+  raro; materiali, missioni della gente del paese, il riacquisto di ciò che si è venduto; il
+  Macellaio, e il Custode della cripta con l'uscita in una stanza a sé. Guida in
+  [`games/arpg/README.it.md`](games/arpg/README.it.md).
 - **Le camere di prova** (`games/chambers`): sei camere con i puzzle a portali, una portal gun che
   cresce con chi gioca, cubi, pulsanti e pedane di lancio.
 - **Le backrooms** (`games/backrooms`): tre livelli infiniti con scale, buchi, piscine, scivoli e

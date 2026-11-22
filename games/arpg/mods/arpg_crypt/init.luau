@@ -5,7 +5,7 @@
 -- looks down from above, as everywhere in this world. A floor wakes when
 -- somebody comes down into it: its dead rise, and the seal on the way down
 -- to the next floor stays until they are all down again. On the third floor
--- waits the Custode delle tombe (tools/make_crypt_boss.py), who calls up
+-- waits the Custode delle tombe (tools/make_meshy_boss.py, a lich from Meshy), who calls up
 -- skeletons while it stands; its death gives the key to everybody who came
 -- down to it. With nobody left in the world the crypt sleeps again.
 
@@ -13,6 +13,14 @@ local id = core.node_id
 local COBBLE, MOSSY, ROCK = id("arpg_core:cobble"), id("arpg_core:mossy"), id("arpg_core:rock")
 local GLOW, FIRE, GRAVE = id("arpg_core:waystone"), id("arpg_core:brazier"), id("arpg_core:grave")
 local SEAL = core.register_node("arpg_crypt:seal", 70, 110, 200, true, 9, "", 9, 999, "stone")
+-- A stair of the crypt's cobble: its low step the whole floor of the cell, its
+-- high step the half towards -x -- every stair here goes down along +x, so it
+-- is built already turned (no facing to set). Laid on each cell where the way
+-- down drops, it splits the drop into two half steps a body walks down, where
+-- before each cell was a whole block lower than the last.
+local STAIR = core.register_node("arpg_crypt:stair", 110, 106, 100, true, 0, "", 0, 1.2, "stone")
+core.node_box(STAIR, 0.0, 0.0, 0.0, 1.0, 0.5, 1.0)
+core.node_box(STAIR, 0.0, 0.5, 0.0, 0.5, 1.0, 1.0)
 
 local FIREBALL = core.register_model("arpg_crypt:fireball", "fireball.gltf")
 --                  name                    model                                                hp  speed fight    dmg reach every drop n shot      doors hover fire  spawn_on
@@ -60,14 +68,22 @@ for k, f in FLOORS do
     end
 end
 -- The stairs: from the ground into the first floor, and from each floor to
--- the next, a cell down at a time, walled, the seal at the top.
+-- the next, a cell down at a time, walled, the seal at the top. A cell that
+-- drops has a STAIR on its floor, its high step level with the cell before.
+-- Kept (STAIRS) too: a world made before the stairs has them written in once.
+local STAIRS: { { number } } = {}
 local function stair(xa: number, ya: number, xb: number, yb: number)
     -- From x xa at floor ya to x xb at floor yb, ya > yb, one down a cell.
     local y = ya
     for x = xa, xb do
-        if y > yb then y -= 1 end
+        local drops = y > yb
+        if drops then y -= 1 end
         box(x, y, SZ0, x, y, SZ1, COBBLE)
         box(x, y + 1, SZ0, x, GROUND - 1, SZ1, 0)
+        if drops then
+            box(x, y + 1, SZ0, x, y + 1, SZ1, STAIR)
+            table.insert(STAIRS, { x, y + 1 })
+        end
         box(x, y, SZ0 - 1, x, GROUND - 1, SZ0 - 1, MOSSY)
         box(x, y, SZ1 + 1, x, GROUND - 1, SZ1 + 1, MOSSY)
     end
@@ -82,29 +98,79 @@ for _, z in { SZ0 - 2, SZ1 + 2 } do
 end
 box(DX + 77, GROUND + 3, SZ0 - 1, DX + 77, GROUND + 3, SZ1 + 1, MOSSY)
 
--- The world's way home (its second opening) moved down here, in a frame of
--- cobble near the third floor's east wall: out after the Custode, not back
--- up the steps. Its back to the east and facing -x, turned so at the start
--- (core.portal_place): the camera looks from -x -z and sees its front.
-local OUT = { DX + 160, FLOORS[3].fy + 1, DZ + 60 }
-for y = OUT[2], OUT[2] + 3 do
-    box(OUT[1] + 1, y, OUT[3] - 1, OUT[1] + 1, y, OUT[3] + 1, COBBLE)
-    box(OUT[1], y, OUT[3] - 1, OUT[1], y, OUT[3] - 1, MOSSY)
-    box(OUT[1], y, OUT[3] + 1, OUT[1], y, OUT[3] + 1, MOSSY)
+-- The way out, after the Custode: east of the third floor a corridor through
+-- its wall, shut by a seal while the Custode stands, into a room under a
+-- roof -- the camera comes down to the eye's there (arpg_game, L.in_exit) --
+-- lit by fires, and in its east wall the world's way home (its second
+-- opening) in a frame of cobble, facing -x. Before, the frame stood in the
+-- third floor itself, and the Custode, backing away from a body, went into it.
+-- Written by the mapgen in a new world; in one made before, once at its start.
+local F3 = FLOORS[3]
+local EX0, EX1, EZ0, EZ1 = DX + 168, DX + 178, DZ + 53, DZ + 65   -- the room inside
+local EH = 5                                                       -- standing room under its roof
+local EXIT_SEAL_X = F3.x1 + 1                                      -- the gap in the third floor's wall
+local ROOM: { { number } } = {}
+local function rbox(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, b: number)
+    local r = { math.min(x0, x1), math.min(y0, y1), math.min(z0, z1), math.max(x0, x1), math.max(y0, y1),
+                math.max(z0, z1), b }
+    table.insert(ROOM, r)
+    table.insert(BOXES, r)
 end
-box(OUT[1], OUT[2] + 2, OUT[3], OUT[1], OUT[2] + 2, OUT[3], GLOW)
-box(OUT[1], OUT[2] + 3, OUT[3], OUT[1], OUT[2] + 3, OUT[3], COBBLE)
+-- solid from the floor to the ground, then hollowed: the corridor and the room
+rbox(EXIT_SEAL_X, F3.fy, SZ0 - 1, EX1 + 1, GROUND - 1, SZ1 + 1, MOSSY)
+rbox(EX0 - 1, F3.fy, EZ0 - 1, EX1 + 1, GROUND - 1, EZ1 + 1, COBBLE)
+rbox(EXIT_SEAL_X, F3.fy + 1, SZ0, EX0 - 1, F3.fy + 3, SZ1, 0)
+rbox(EX0, F3.fy + 1, EZ0, EX1, F3.fy + EH, EZ1, 0)
+rbox(EX0, F3.fy, EZ0, EX1, F3.fy, EZ1, ROCK)
+-- fires along its walls, a row of graves either side of the way to the frame
+for x = EX0 + 1, EX1 - 1, 4 do
+    rbox(x, F3.fy + 3, EZ0 - 1, x, F3.fy + 3, EZ0 - 1, FIRE)
+    rbox(x, F3.fy + 3, EZ1 + 1, x, F3.fy + 3, EZ1 + 1, FIRE)
+end
+for x = EX0 + 2, EX1 - 3, 3 do
+    rbox(x, F3.fy + 1, SZ0 - 3, x, F3.fy + 1, SZ0 - 3, GRAVE)
+    rbox(x, F3.fy + 1, SZ1 + 3, x, F3.fy + 1, SZ1 + 3, GRAVE)
+end
+-- the frame, its back to the east wall
+local OUT = { EX1 - 1, F3.fy + 1, DZ + 59 }
+for y = OUT[2], OUT[2] + 3 do
+    rbox(OUT[1] + 1, y, OUT[3] - 1, OUT[1] + 1, y, OUT[3] + 1, COBBLE)
+    rbox(OUT[1], y, OUT[3] - 1, OUT[1], y, OUT[3] - 1, MOSSY)
+    rbox(OUT[1], y, OUT[3] + 1, OUT[1], y, OUT[3] + 1, MOSSY)
+end
+rbox(OUT[1], OUT[2] + 2, OUT[3], OUT[1], OUT[2] + 2, OUT[3], GLOW)
+rbox(OUT[1], OUT[2] + 3, OUT[3], OUT[1], OUT[2] + 3, OUT[3], COBBLE)
 core.set_portal(1, OUT[1] + 0.4, OUT[2] + 1, OUT[3] + 0.5)
 core.event.on("core:world_ready", function()
-    if core.side() ~= "client" then
-        core.portal_place(1, OUT[1] + 0.4, OUT[2] + 1, OUT[3] + 0.5, 1, -1, 0.5, 1.0)
-        -- A world made with the frame's back to the west: turned round.
-        for y = OUT[2], OUT[2] + 3 do
-            for z = OUT[3] - 1, OUT[3] + 1 do
-                if core.get_block(OUT[1] - 1, y, z) == COBBLE then core.set_block(OUT[1] - 1, y, z, 0) end
-                core.set_block(OUT[1] + 1, y, z, COBBLE)
+    if core.side() == "client" then
+        return
+    end
+    core.portal_place(1, OUT[1] + 0.4, OUT[2] + 1, OUT[3] + 0.5, 1, -1, 0.5, 1.0)
+    if core.storage_get("exit_room") ~= "1" then
+        -- A world made before the room: the old frame out of the third floor
+        -- (x DX + 160..161, z 59..61, either way round), the room written in.
+        for x = DX + 159, DX + 161 do
+            for y = F3.fy + 1, F3.fy + 4 do
+                for z = DZ + 59, DZ + 61 do core.set_block(x, y, z, 0) end
             end
         end
+        for _, b in ROOM do
+            for x = b[1], b[4] do
+                for y = b[2], b[5] do
+                    for z = b[3], b[6] do core.set_block(x, y, z, b[7]) end
+                end
+            end
+        end
+        core.storage_set("exit_room", "1")
+    end
+    if core.storage_get("stairs") ~= "1" then
+        -- A world made before the stairs: each drop given its stair.
+        for _, c in STAIRS do
+            for z = SZ0, SZ1 do
+                if core.get_block(c[1], c[2], z) == 0 then core.set_block(c[1], c[2], z, STAIR) end
+            end
+        end
+        core.storage_set("stairs", "1")
     end
 end)
 
@@ -122,11 +188,21 @@ core.register_mapgen("arpg_crypt:crypt", function(ctx)
     end
 end)
 
+local function set_exit_seal(shut: boolean)
+    for z = SZ0, SZ1 do
+        for y = F3.fy + 1, F3.fy + 3 do core.set_block(EXIT_SEAL_X, y, z, if shut then SEAL else 0) end
+    end
+end
+
 local function set_seal(f: Floor, shut: boolean)
     if f.sx == nil then return end
     for z = SZ0, SZ1 do
-        -- The stair's first cell is one below the floor: a body there stands at fy.
-        for y = f.fy, f.fy + 2 do core.set_block(f.sx :: number, y, z, if shut then SEAL else 0) end
+        -- The stair's first cell drops: its STAIR is at fy, level with the
+        -- floor at its back half. Shut, the seal stands there; open, the
+        -- stair is put back.
+        for y = f.fy, f.fy + 2 do
+            core.set_block(f.sx :: number, y, z, if shut then SEAL elseif y == f.fy then STAIR else 0)
+        end
     end
 end
 
@@ -198,6 +274,7 @@ core.event.on("core:tick", function(ev)
         if anybody_was then
             -- Nobody left: the crypt sleeps, the seals close.
             for _, f in FLOORS do set_seal(f, true) end
+            set_exit_seal(true)
             for _, id in airs do core.sound_loop_stop(id) end
             woke, risen, cleared, below, airs = {}, {}, {}, {}, {}
             custode, anybody_was = 0, false
@@ -207,6 +284,7 @@ core.event.on("core:tick", function(ev)
     if not anybody_was then
         anybody_was = true
         for _, f in FLOORS do set_seal(f, true) end
+        set_exit_seal(true)
     end
     for _, p in players do
         local x, y, z = core.player_pos(p)
@@ -230,9 +308,11 @@ core.event.on("core:tick", function(ev)
         local cx, cy, cz = core.mob_pos(custode)
         if cx == nil then
             custode = 0
+            set_exit_seal(false)
+            core.play_sound("arpg_crypt:seal", EXIT_SEAL_X, F3.fy + 1, (SZ0 + SZ1) / 2)
             for _, p in players do
                 if below[p] then
-                    core.notice(p, "Il Custode e' caduto.")
+                    core.notice(p, "Il Custode e' caduto. Il sigillo a est si spezza: di la' la via d'uscita.")
                     core.event.emit("keys:earned", { player = p, key = "arpg" })
                 end
             end
