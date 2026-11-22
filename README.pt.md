@@ -801,7 +801,7 @@ existe está em [`tests/CMakeLists.txt`](tests/CMakeLists.txt).
 | | |
 |---|---|
 | Gráficos | raylib 6.2 atrás de uma interface `gfx_*` fina, OpenGL 3.3 core |
-| Linguagens | C++20 para o motor, Luau 0.733 para os scripts |
+| Linguagens | C++20 para o motor, Luau 0.748 para os scripts |
 | Rede | ENet 1.3.18, zstd 1.5.7, Monocypher 4.0.3 |
 | Física | Jolt (veículos) e a do próprio motor (corpos, blocos, portais) |
 | Armazenamento | SQLite 3.54.1 |
