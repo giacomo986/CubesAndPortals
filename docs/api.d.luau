@@ -781,6 +781,7 @@ declare core: {
         rect: (x: number, y: number, w: number, h: number,
                r: number?, g: number?, b: number?, a: number?) -> boolean,
         aspect: () -> number,
+        scale: () -> number,
         image: (name: string, x: number, y: number, w: number, h: number, a: number?) -> boolean,
         item: (name: string, x: number, y: number, side: number) -> boolean,
         mouse: () -> (number?, number?),

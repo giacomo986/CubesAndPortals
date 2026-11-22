@@ -702,6 +702,7 @@ dois, e o que faltar nele também aparece na lista. Rode depois de mudar o texto
 | `--day-length S` `--time T` | Duração do dia em segundos, hora inicial (0..1) |
 | `--dual` `--facing` `--oriented` | Cenas de teste: dois mundos, dois portais frente a frente, um portal deitado |
 | `--recursion N` `--portal-scale F` `--portal-config ARQUIVO` | Profundidade da recursão (0-3), resolução dos render targets, forma do portal ([`config/portal.cfg`](config/portal.cfg)) |
+| `--ui-size N` | Tamanho da interface nesta partida: 0 auto, 1 pequena, 2 normal, 3 grande (Opções > Vídeo guarda a do jogador) |
 | `--log-view` | Registrar a vista em volta de cada travessia |
 | `--bench` `--dual-bench` `--soak S` | Medições: FPS e custo dos scripts, custo do segundo mundo, voo automático |
 | `--verify` | O teste de continuidade dos portais (rodado pelo `ctest`) |

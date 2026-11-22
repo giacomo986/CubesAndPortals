@@ -395,6 +395,7 @@ local function gen_dluau(): string
     w("        rect: (x: number, y: number, w: number, h: number,")
     w("               r: number?, g: number?, b: number?, a: number?) -> boolean,")
     w("        aspect: () -> number,")
+    w("        scale: () -> number,")
     w("        image: (name: string, x: number, y: number, w: number, h: number, a: number?) -> boolean,")
     w("        item: (name: string, x: number, y: number, side: number) -> boolean,")
     w("        mouse: () -> (number?, number?),")

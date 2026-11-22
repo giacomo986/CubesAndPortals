@@ -764,6 +764,7 @@ typedef struct script_host {
     int (*hud_text)(void *ud, double x, double y, const char *text, double size, int align,
                     int r, int g, int b, int a);
     double (*hud_aspect)(void *ud);   // the screen's width over its height; 0 with no screen
+    double (*hud_scale)(void *ud);    // the interface's size factor (Options > Video); 1 normal
     int (*hud_rect)(void *ud, double x, double y, double w, double h, int r, int g, int b,
                     int a);
     // A picture from this world's media (a mod's textures), by file name.

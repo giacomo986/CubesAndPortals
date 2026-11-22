@@ -11,7 +11,7 @@ languages: [MODDING.md](MODDING.md), [MODDING.it.md](MODDING.it.md),
 **What is not here.** The calls that take tables or functions are written
 by hand in `src/script/script_luau.cpp` and documented in
 [MODDING.md](MODDING.md); the generator refuses to run if one is missing there.
-They are: `core.register_mapgen`, `core.register_abm`, `core.register_lbm`, `core.event.define`, `core.event.on`, `core.event.emit`, `core.ecs.component`, `core.ecs.phase`, `core.ecs.system`, `core.ecs.spawn`, `core.ecs.set`, `core.ecs.get`, `core.ecs.kill`, `core.ecs.visible`, `core.ecs.model`, `core.ecs.health`, `core.ecs.clip`, `core.ecs.box`, `core.ecs.count`, `core.craft.make`, `core.craft.keys`, `core.craft.pose`, `core.craft.push`, `core.craft.mount`, `core.craft.aim`, `core.craft.seat`, `core.net.open`, `core.net.send`, `core.render.pass`, `core.render.box`, `core.render.model`, `core.render.fx`, `core.render.camera`, `core.render.camera_drop`, `core.render.screen`, `core.render.text`, `core.render.camera_read`, `core.render.photo`, `core.hud.pass`, `core.hud.text`, `core.hud.rect`, `core.hud.aspect`, `core.hud.image`, `core.hud.item`, `core.hud.mouse`.
+They are: `core.register_mapgen`, `core.register_abm`, `core.register_lbm`, `core.event.define`, `core.event.on`, `core.event.emit`, `core.ecs.component`, `core.ecs.phase`, `core.ecs.system`, `core.ecs.spawn`, `core.ecs.set`, `core.ecs.get`, `core.ecs.kill`, `core.ecs.visible`, `core.ecs.model`, `core.ecs.health`, `core.ecs.clip`, `core.ecs.box`, `core.ecs.count`, `core.craft.make`, `core.craft.keys`, `core.craft.pose`, `core.craft.push`, `core.craft.mount`, `core.craft.aim`, `core.craft.seat`, `core.net.open`, `core.net.send`, `core.render.pass`, `core.render.box`, `core.render.model`, `core.render.fx`, `core.render.camera`, `core.render.camera_drop`, `core.render.screen`, `core.render.text`, `core.render.camera_read`, `core.render.photo`, `core.hud.pass`, `core.hud.text`, `core.hud.rect`, `core.hud.aspect`, `core.hud.scale`, `core.hud.image`, `core.hud.item`, `core.hud.mouse`.
 
 ## `core.set_block`
 
@@ -2760,7 +2760,7 @@ Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
 |---|---|---|---|
 | `name` | string | — | Namespaced, like a block: 'mymod:menu'. |
 | `w` | number | — | Width in cells. A cell is a hotbar slot; a panel is at most 30 across. |
-| `h` | number | — | Height in cells. |
+| `h` | number | — | Height in cells. A panel too big for the screen is drawn with smaller cells until it fits. |
 
 ## `core.ui_label`
 

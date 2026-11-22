@@ -1,5 +1,7 @@
 #include "core/ui/panel.h"
 
+#include <algorithm>
+
 namespace cnp::ui {
 
 namespace {
@@ -45,12 +47,24 @@ int PanelPlacement::button_at(const Panel &p, float px, float py) const
     return -1;
 }
 
+namespace {
+float g_size_factor = 1.0f;
+}
+
+void  set_size_factor(float k) { g_size_factor = std::clamp(k, 0.5f, 2.0f); }
+float size_factor() { return g_size_factor; }
+
 PanelPlacement place_panel(const Panel &p, int screen_w, int screen_h)
 {
     PanelPlacement out;
     if (screen_w <= 0 || screen_h <= 0) return out;
 
-    out.cell = (float)screen_h * kCellOfHeight;
+    // A cell is a fixed share of the height, unless the panel would then not
+    // fit: a tall one (the robot's, 15.6 cells) ran off a 1080 screen. Then
+    // the cells shrink until it fits, with its 0.2-cell rim on each side and
+    // 0.3 of a cell of the game showing past it.
+    out.cell = std::min({(float)screen_h * kCellOfHeight * g_size_factor, (float)screen_h / (p.h + 1.0f),
+                         (float)screen_w / (p.w + 1.0f)});
     out.x    = ((float)screen_w - p.w * out.cell) * 0.5f;
     out.y    = ((float)screen_h - p.h * out.cell) * 0.5f;
     return out;

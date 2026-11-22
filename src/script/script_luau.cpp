@@ -1028,6 +1028,17 @@ int l_hud_aspect(lua_State *L)
     return 1;
 }
 
+// core.hud.scale() -- the interface's size the player picked (Options > Video),
+// as the factor the engine's bars and slots are grown by: 1 normal, 0.8 small,
+// 1.25 large, between them on auto. A mod sizing itself against the bars
+// multiplies the engine's measures by it. 1 where there is no screen.
+int l_hud_scale(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    lua_pushnumber(L, (vm && vm->host.hud_scale) ? vm->host.hud_scale(vm->host.ud) : 1.0);
+    return 1;
+}
+
 // --------------------------------------------------------------------- net
 // core.net.open and core.net.send. Hand-written beside core.event and core.ecs
 // rather than generated, because open takes no arguments and answers with
@@ -1177,6 +1188,8 @@ void register_api(lua_State *L)
     lua_setfield(L, -2, "rect");
     lua_pushcfunction(L, l_hud_aspect, "core.hud.aspect");
     lua_setfield(L, -2, "aspect");
+    lua_pushcfunction(L, l_hud_scale, "core.hud.scale");
+    lua_setfield(L, -2, "scale");
     lua_pushcfunction(L, l_hud_image, "core.hud.image");
     lua_setfield(L, -2, "image");
     lua_pushcfunction(L, l_hud_item, "core.hud.item");

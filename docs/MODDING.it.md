@@ -2322,6 +2322,13 @@ quanto la hotbar, e il centro di ogni tacca va in `0.5 + dx / aspect`. Le misure
 del motore sono in `src/client/ui/hud.cpp` (uno slot è 0.075 dell'altezza, lo
 spazio fra due 0.0075, una barra alta 0.0165).
 
+`core.hud.scale()` è la dimensione dell'interfaccia scelta dal giocatore in
+Opzioni > Video, come il fattore per cui crescono gli slot e le barre del motore:
+1 normale, 0.8 piccola, 1.25 grande, una via di mezzo su auto (1 dove non c'è
+schermo). Le misure qui sopra sono a 1: un mod allineato alle barre le
+moltiplica per questo, come fa `mods/hunger`. Il margine sotto la hotbar (0.02)
+non cresce.
+
 `core.view(distanza)` mette la camera di questo mondo **dietro** il giocatore, a
 quella distanza in nodi (0 è l'occhio, al massimo 16), con il suo corpo disegnato
 nel modello di `core.player_model`. Vale per il mondo che la chiede: tornare in

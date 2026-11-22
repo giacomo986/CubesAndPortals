@@ -511,7 +511,7 @@ core.event.on("core:ui_click", function(ev)
     end
     local p = ev.player
     local d = draft(p)
-    if ev.id == "close" then
+    if ev.id == "close" or ev.id == "core:esc" then
         core.ui_show(ev.panel, false, p)
         return
     elseif ev.id == "name" then
@@ -594,7 +594,7 @@ core.event.on("core:ui_click", function(ev)
     end
     local p = ev.player
     local d = draft(p)
-    if ev.id == "close" then
+    if ev.id == "close" or ev.id == "core:esc" then
         core.ui_show(ev.panel, false, p)
         return
     elseif ev.id == "world" then

@@ -126,6 +126,15 @@ struct PanelPlacement {
 
 PanelPlacement place_panel(const Panel &p, int screen_w, int screen_h);
 
+// The interface's size (Options > Video): a factor on every size the engine's
+// interface works out from the screen -- a panel's cell, the bag's and the
+// bar's slots, the chat's and the notices' text -- and never on where those
+// sit, so a bigger interface is bigger things in the same places. 1 is normal.
+// A mod's HUD pass is not touched: it lays itself out in fractions of the
+// screen, and its sizes and gaps would stop agreeing.
+void  set_size_factor(float k);
+float size_factor();
+
 // What a client sends as a click's id when the player pressed ESC with a mod's
 // panel up: the panel comes off their screen, and its mod hears core:ui_click
 // with this id to forget whatever it kept for them. No element may have it.

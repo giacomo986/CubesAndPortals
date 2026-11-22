@@ -177,6 +177,23 @@ int render_height();
 // the hole. Both halves are measured by --dual-bench.
 float g_portal_scale = 1.0f;
 
+// The interface's size (Options > Video): 0 auto, 1 small, 2 normal, 3 large.
+// Auto is made for a window about 30 cm tall (a 24-inch monitor) and grows on a
+// smaller one, shrinks on a bigger one, within small and large; normal where
+// the monitor does not say its size. Read again every frame drawn: the window
+// can change size or monitor.
+int g_ui_size = 2;   // normal: a timed run, which reads no options, draws as it always has
+constexpr const char *kUiSizes[] = {"Interface: auto", "Interface: small", "Interface: normal", "Interface: large"};
+void refresh_ui_size()
+{
+    float k = g_ui_size == 1 ? 0.8f : g_ui_size == 3 ? 1.25f : 1.0f;
+    if (g_ui_size == 0) {
+        const float mm = plat_window_height_mm();
+        if (mm >= 50.0f && mm <= 2000.0f) k = std::clamp(300.0f / mm, 0.8f, 1.25f);   // else not believed
+    }
+    ui::set_size_factor(k);
+}
+
 // How deep portal images go, as main() was asked for it. A global only because
 // the bench rebuilds the target pool at other resolutions and has to rebuild it
 // the size it was, not the size the default would give.
@@ -603,6 +620,7 @@ void load_options(bool &debug)
         else if (key == "fov") g_fov_y = g_fov_base = std::clamp(value, 60.0f, 110.0f) * kPi / 180.0f;
         else if (key == "portal_detail") g_portal_scale = std::clamp(value, 0.1f, 1.0f);
         else if (key == "update_check") g_update_check = value != 0.0f;
+        else if (key == "ui_size") g_ui_size = std::clamp((int)value, 0, 3);
         // Under 2^24, so a float holds it whole.
         else if (key == "livery" && value >= 0.0f && value < (float)net::kLiveryMax)
             net::g_client_livery = (uint32_t)value;
@@ -628,6 +646,7 @@ void save_options(bool debug)
         << "\nplain_storm " << (WorldRenderer::plain_storm ? 1 : 0)
         << "\nfov " << std::lround(g_fov_base * 180.0f / kPi)
         << "\nportal_detail " << g_portal_scale << "\nupdate_check " << (g_update_check ? 1 : 0)
+        << "\nui_size " << g_ui_size
         << "\nlivery " << net::g_client_livery << "\n";
     // Only the keys moved, each a number, before the words: an older build
     // skips a line it does not know as long as it is "key number".
@@ -2531,6 +2550,8 @@ int host_hud_text(void *ud, double x, double y, const char *text, double size, i
 }
 
 // (x, y) is the middle of the rectangle.
+double host_hud_scale(void *) { return ui::size_factor(); }
+
 double host_hud_aspect(void *)
 {
     const int h = gfx_screen_height();
@@ -10987,7 +11008,7 @@ ui::Panel video_panel()
 
     ui::Panel p;
     p.w = 9.0f;
-    p.h = 8.6f;
+    p.h = 9.8f;
     panel_label(p, "Video", 0.5f, 0.0f);
     panel_button(p, "back", "Back", 4.6f, 0.0f, 3.9f);
     float y = 1.2f;
@@ -11013,6 +11034,8 @@ ui::Panel video_panel()
     panel_label(p, bright, 0.5f, y);
     panel_button(p, "darker", "-", 5.8f, y, 1.2f);
     panel_button(p, "brighter", "+", 7.3f, y, 1.2f);
+    y += 1.2f;
+    panel_button(p, "ui_size", kUiSizes[g_ui_size], 0.5f, y, 3.9f);
     return p;
 }
 
@@ -11538,6 +11561,7 @@ bool options_click(const std::string &id, bool &debug)
         g_portal_detail_changed = true;
     }
     else if (id == "storm") WorldRenderer::plain_storm = !WorldRenderer::plain_storm;
+    else if (id == "ui_size") g_ui_size = (g_ui_size + 1) % 4;
     else if (id == "darker" || id == "brighter")
         g_brightness = std::clamp(std::round(g_brightness * 10.0f + (id == "brighter" ? 1.0f : -1.0f)) / 10.0f, 0.0f, 1.0f);
     else if (id == "updates") {
@@ -12415,6 +12439,7 @@ void draw_server_marks(const TitleMenu &m, const ui::Panel &p, const ui::PanelPl
 void draw_title(Scene &s, const TitleMenu &m, const ui::Panel &p)
 {
     gfx_begin_frame();
+    refresh_ui_size();
     gfx_clear(0.0f, 0.0f, 0.0f, 1.0f, true);
     gfx_2d_begin(gfx_screen_width(), gfx_screen_height());
     draw_title_backdrop();
@@ -13174,6 +13199,7 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
     const Mat4  view       = mat4_look_to(eye, forward, up);
 
     gfx_begin_frame();
+    refresh_ui_size();
 
     for (int i = 0; i < s.count(); ++i) {
         s.at(i).world_render.set_shadow_size(g_shadow_size);
@@ -22474,6 +22500,7 @@ script_host make_client_host(Scene &scene)
     host.hud_item      = host_hud_item;
     host.hud_mouse     = host_hud_mouse;
     host.hud_aspect    = host_hud_aspect;
+    host.hud_scale     = host_hud_scale;
     host.player_look   = host_player_look;
     host.craft_make    = host_craft_make_here;
     host.craft_keys    = host_craft_keys_here;
@@ -22766,6 +22793,8 @@ int client_main(int argc, char **argv)
         if (std::strcmp(argv[i], "--dual-bench") == 0) dual_bench = true;
         if (std::strcmp(argv[i], "--dual") == 0) dual_scene = true;
         if (std::strcmp(argv[i], "--oriented") == 0) oriented_scene = true;
+        if (std::strcmp(argv[i], "--ui-size") == 0 && i + 1 < argc)   // 0 auto, 1 small, 2 normal, 3 large
+            g_ui_size = std::clamp(std::atoi(argv[++i]), 0, 3);
         if (std::strcmp(argv[i], "--portal-scale") == 0 && i + 1 < argc)
             g_portal_scale = std::clamp((float)std::atof(argv[++i]), 0.1f, 1.0f);
         if (std::strcmp(argv[i], "--log-view") == 0) {

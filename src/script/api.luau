@@ -2804,7 +2804,7 @@ local api: { Fn } = {
         args = {
             { name = "name", type = "string", doc = "Namespaced, like a block: 'mymod:menu'." },
             { name = "w", type = "float", doc = "Width in cells. A cell is a hotbar slot; a panel is at most 30 across." },
-            { name = "h", type = "float", doc = "Height in cells." },
+            { name = "h", type = "float", doc = "Height in cells. A panel too big for the screen is drawn with smaller cells until it fits." },
         },
         doc = "Declares a panel, empty. Declaring the same name again starts it empty again, which is what a reload wants. Returns 1, or 0 with the reason in the log. A panel belongs to the mod that declared it and no other mod may touch it.",
     },

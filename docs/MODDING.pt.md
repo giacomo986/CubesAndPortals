@@ -2088,6 +2088,11 @@ algo **alinhado com as barras do motor**, cujos tamanhos são frações da altur
 tamanhos do motor estão em `src/client/ui/hud.cpp` (um slot é 0,075 da altura, o espaço entre dois
 0,0075, uma barra 0,0165 de altura).
 
+`core.hud.scale()` é o tamanho da interface que o jogador escolheu em Opções > Vídeo, como o fator
+pelo qual crescem os slots e as barras do motor: 1 normal, 0,8 pequena, 1,25 grande, algo no meio
+em auto (1 onde não há tela). Os tamanhos acima são a 1: um mod alinhado com as barras os
+multiplica por ele, como faz `mods/hunger`. A margem sob a hotbar (0,02) não cresce.
+
 `core.view(distance)` põe a câmera deste mundo **atrás** do jogador, a essa distância em nós (0 é o
 olho, no máximo 16), com o seu corpo desenhado no modelo de `core.player_model`. Vale para o mundo que
 pede: voltar a um mundo que não disse nada volta para o olho. A tecla V faz o mesmo à mão.

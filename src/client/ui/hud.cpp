@@ -278,7 +278,7 @@ HotbarLayout draw_hotbar(const ItemStack *slots, int count, int selected,
     const int n = count < Inventory::kHotbar ? count : Inventory::kHotbar;
     if (n <= 0 || screen_w <= 0 || screen_h <= 0) return out;
 
-    const float side  = (float)screen_h * kSlotOfHeight;
+    const float side  = (float)screen_h * kSlotOfHeight * size_factor();
     const float pad   = side * kPadOfSlot;
     const float total = (float)n * side + (float)(n - 1) * pad;
 
@@ -412,14 +412,14 @@ void draw_notice(const std::string &text, float alpha, int screen_w, int screen_
     if (alpha <= 0.0f || text.empty()) return;
 
     const float shorter = (float)(screen_w < screen_h ? screen_w : screen_h);
-    const float size    = shorter * 0.035f;
+    const float size    = shorter * 0.035f * size_factor();
     const float tw      = gfx_2d_text_width(text.c_str(), size);
 
     // Above the bar, which is where a player's eyes already are when they have
     // just clicked. The offset is the bar's own height plus a gap, computed
     // from the same fractions the bar uses rather than from a number that would
     // drift away from it.
-    const float slot = shorter * kSlotOfHeight;
+    const float slot = shorter * kSlotOfHeight * size_factor();
     const float y    = (float)screen_h - shorter * kBottomMargin - slot * 1.20f - size * 2.2f;
     const float x    = ((float)screen_w - tw) * 0.5f;
 
@@ -442,14 +442,14 @@ void Chat::add(const std::string &text, double now)
 void draw_chat(const Chat &c, double now, int screen_w, int screen_h, bool caret_lit)
 {
     const float shorter = (float)(screen_w < screen_h ? screen_w : screen_h);
-    const float size    = shorter * 0.024f;
+    const float size    = shorter * 0.024f * size_factor();
     const float row     = size * 1.25f;
     const float pad     = size * 0.3f;
     const float x       = size * 0.5f;
 
     // Left of the hotbar and the bars over it, as draw_hotbar lays them out;
     // on a screen too narrow for that, over them.
-    const float side  = (float)screen_h * kSlotOfHeight;
+    const float side  = (float)screen_h * kSlotOfHeight * size_factor();
     const float bar   = ((float)Inventory::kHotbar + 3.2f) * side * (1.0f + kPadOfSlot);   // and the left hand's
     const float room  = ((float)screen_w - bar) * 0.5f - x - pad * 3.0f;
     const float width = std::min(size * 32.0f, room >= size * 12.0f ? room : (float)screen_w - x * 2.0f);
@@ -511,8 +511,8 @@ void draw_dig_progress(float t, int screen_w, int screen_h)
     if (t > 1.0f) t = 1.0f;
 
     const float shorter = (float)(screen_w < screen_h ? screen_w : screen_h);
-    const float w       = shorter * 0.16f;
-    const float h       = shorter * 0.012f;
+    const float w       = shorter * 0.16f * size_factor();
+    const float h       = shorter * 0.012f * size_factor();
     const float x       = ((float)screen_w - w) * 0.5f;
     const float y       = (float)screen_h * 0.5f + shorter * 0.045f;
 
@@ -528,7 +528,7 @@ void draw_dig_progress(float t, int screen_w, int screen_h)
 void draw_crosshair(int screen_w, int screen_h)
 {
     const float shorter = (float)(screen_w < screen_h ? screen_w : screen_h);
-    const float arm     = std::max(5.0f, std::floor(shorter * 0.012f));
+    const float arm     = std::max(5.0f, std::floor(shorter * 0.012f * size_factor()));
     const float thick   = 2.0f;
     const float cx      = std::floor((float)screen_w * 0.5f);
     const float cy      = std::floor((float)screen_h * 0.5f);
@@ -566,7 +566,7 @@ void draw_item_tooltip(const std::string &said, float mx, float my, int screen_w
     const std::string text = lang::tr(said);
 
     const float shorter = (float)(screen_w < screen_h ? screen_w : screen_h);
-    const float size    = (float)screen_h * 0.026f;
+    const float size    = (float)screen_h * 0.026f * size_factor();
     const float tw      = gfx_2d_text_width(text.c_str(), size);
     const float pad     = size * 0.40f;
     const float w       = tw + pad * 2.0f;
@@ -670,7 +670,7 @@ PanelLayout draw_bag(const ItemStack *slots, int count, int hand, int dragged,
     out.cols  = Inventory::kHotbar;
     out.slots = count;
     out.rows  = (grid + out.cols - 1) / out.cols;
-    out.slot  = (float)screen_h * kPanelSlotOfHeight;
+    out.slot  = (float)screen_h * kPanelSlotOfHeight * size_factor();
     out.pad   = out.slot * kPadOfSlot;
     if (out.rows > 1) out.hotbar_gap = out.pad * 3.0f;
 
@@ -1135,7 +1135,7 @@ HealthLayout draw_health(int health, int max, int screen_w, int screen_h)
     if (health < 0) health = 0;
     if (health > max) health = max;
 
-    const float side = (float)screen_h * kSlotOfHeight;
+    const float side = (float)screen_h * kSlotOfHeight * size_factor();
     const float pad  = side * kPadOfSlot;
 
     // One segment per two points, which is the ten hearts a player of this kind

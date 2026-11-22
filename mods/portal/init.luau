@@ -670,7 +670,7 @@ core.event.on("core:ui_click", function(ev)
     end
 
     local f = shown
-    if ev.id == "close" or f == nil or ev.id == "workshop" then
+    if ev.id == "close" or ev.id == "core:esc" or f == nil or ev.id == "workshop" then
         core.ui_show(PANEL, false, ev.player)
         if viewer == ev.player then
             viewer = 0
@@ -1326,7 +1326,7 @@ core.event.on("core:ui_click", function(ev)
         return
     end
     local f = sshown
-    if ev.id == "close" or f == nil or not core.has_perm(ev.player, "admin") then
+    if ev.id == "close" or ev.id == "core:esc" or f == nil or not core.has_perm(ev.player, "admin") then
         core.ui_show(SPANEL, false, ev.player)
         if sviewer == ev.player then
             sviewer = 0

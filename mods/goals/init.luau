@@ -25,21 +25,24 @@ local KEYS = { "keys:pista", "keys:inferno", "keys:arena", "keys:arpg", "keys:ch
 type Goal = { id: string, title: string, hint: string, items: { string }?, pin: number?, bed: boolean?, gate: boolean? }
 
 local GOALS: { Goal } = {
-    { id = "wood", title = "Wood", hint = "Break a tree's log with your hands.", items = { "timber:log" } },
-    { id = "pick", title = "A wooden pick", hint = "Craft one from planks and sticks (E).", items = { "tools:wood_pick" } },
+    { id = "wood", title = "Wood", hint = "Break a tree's log with your hands.",
+      -- Every tree's: the plain one is trees:trunk, not timber:log.
+      items = { "trees:trunk", "timber:log", "timber:mossy_log", "woods:birch_log", "woods:spruce_log",
+                "woods:jungle_log", "woods:acacia_log", "woods:dark_oak_log" } },
+    { id = "pick", title = "A wooden pick", hint = "Logs make planks, planks make sticks (E); four planks make a crafting table, and the pick is made on it.", items = { "tools:wood_pick" } },
     { id = "gate", title = "Through a gate", hint = "A gate, on the plaza or out on the land, opens onto a world: walk through one, and come back.",
       gate = true },
     { id = "key", title = "A key", hint = "Pass a world's trial: its key waits by the way out. /journal reads it.",
       items = KEYS },
-    { id = "bed", title = "A night in bed", hint = "Craft a bed and sleep in it: it is your home then.", bed = true },
+    { id = "bed", title = "A night in bed", hint = "Three wool over three planks; sleep in it and it is your home.", bed = true },
     { id = "bread", title = "Bread", hint = "Grow wheat on tilled soil by water, then craft it.", items = { "farm:bread" } },
     { id = "iron", title = "Iron", hint = "Smelt iron ore in a furnace.", items = { "furnace:iron_ingot" } },
-    { id = "fish", title = "A fish", hint = "Fish in a lake, a river or the sea.",
+    { id = "fish", title = "A fish", hint = "A rod is three sticks corner to corner; fish in a lake, a river or the sea.",
       items = { "pets:fish", "pets:carp", "pets:trout", "pets:cod", "pets:eel", "pets:tuna", "pets:goldfish" } },
     { id = "map", title = "A map", hint = "Eight paper round a compass.", items = { "maps:map" } },
     { id = "village", title = "A village", hint = "Follow a path, or ask the way at a waystone.", pin = 4 },
     { id = "boat", title = "A boat", hint = "Five planks; right click water with it.", items = { "boats:boat" } },
-    { id = "cart", title = "A cart", hint = "Iron round a chest; it goes on a rail.", items = { "carts:cart" } },
+    { id = "cart", title = "A cart", hint = "Five iron ingots in a U; it goes on a rail.", items = { "carts:cart" } },
     { id = "diamond", title = "A diamond", hint = "Deep down, near the bedrock.", items = { "ore:diamond" } },
     { id = "relic", title = "A relic", hint = "A temple in the desert, a wreck on a shore, a ruin in the hills.", pin = 3 },
     { id = "heart", title = "The guardian's heart", hint = "Deep down, in a hollow walled in bedrock: its altar.", items = { "deep:heart" } },
@@ -85,6 +88,25 @@ if drawing then
         say(y, "Next goal:", 0.019, 200, 190, 150)
         say(y + 0.026, next_title, 0.023, 245, 235, 200)
         say(y + 0.054, next_hint, 0.018, 220, 220, 220)
+        -- ponytail: the starting key; a player who moved it in Controls sees J still.
+        say(y + 0.078, "J: all the goals", 0.015, 170, 170, 160)
+    end)
+end
+
+-- Set further down where the server half is: one machine playing alone has both.
+local show_page_here: (number) -> () = function(_) end
+
+if drawing then
+    core.register_key("goals:page", "J", "All the goals")
+    core.event.on("core:input", function(ev)
+        if ev.action ~= "key_goals:page" then
+            return
+        end
+        if serving then
+            show_page_here(ev.player :: number)
+        else
+            core.net.send(0, "page")
+        end
     end)
 end
 
@@ -234,11 +256,8 @@ end)
 
 core.page_register("goals", "Goals")
 
-core.event.on("core:page_open", function(ev)
-    if ev.page ~= "goals" then
-        return
-    end
-    local r = of(core.player_name(ev.player))
+local function show_page(p: number)
+    local r = of(core.player_name(p))
     local page = { "# Goals", `{count(r)} of {#GOALS} reached.`, "" }
     local hinted = 0
     for _, g in GOALS do
@@ -256,7 +275,22 @@ core.event.on("core:page_open", function(ev)
     table.insert(page, "/goals hide or /goals show: the next goal on the left of the screen.")
     table.insert(page, "")
     table.insert(page, "[World](page:world)")
-    core.page_show(ev.player, "goals", table.concat(page, "\n"))
+    core.page_show(p, "goals", table.concat(page, "\n"))
+end
+
+show_page_here = show_page
+
+core.event.on("core:page_open", function(ev)
+    if ev.page == "goals" then
+        show_page(ev.player)
+    end
+end)
+
+-- J (the key below the next goal) asks for the page from the player's machine.
+core.event.on("core:net_message", function(ev)
+    if ev.text == "page" then
+        show_page(ev.player :: number)
+    end
 end)
 
 core.command("goals", "[hide|show] -- the diary of goals; the next one on the screen or not", "")

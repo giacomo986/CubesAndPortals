@@ -663,6 +663,7 @@ either of them; run it after changing a mod's text.
 | `--day-length S` `--time T` | Day length in seconds, starting time (0..1) |
 | `--dual` `--facing` `--oriented` | Test scenes: two worlds, two facing portals, a portal lying down |
 | `--recursion N` `--portal-scale F` `--portal-config FILE` | Recursion depth (0-3), render target resolution, portal shape ([`config/portal.cfg`](config/portal.cfg)) |
+| `--ui-size N` | Interface size for this run: 0 auto, 1 small, 2 normal, 3 large (Options > Video keeps the player's own) |
 | `--log-view` | Trace the view around every crossing |
 | `--bench` `--dual-bench` `--soak S` | Measurements: FPS and scripting cost, cost of the second world, automatic flight |
 | `--verify` | The portal continuity test (run by `ctest`) |

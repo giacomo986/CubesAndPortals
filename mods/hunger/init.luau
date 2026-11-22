@@ -247,13 +247,19 @@ if drawing then
     -- Ten drumsticks over the health bar and its armour row, the engine's own
     -- measures (client/ui/hud.cpp): a slot is 0.075 of the height, the bar
     -- nine slots and eight gaps of a tenth of one wide, 0.0165 tall.
-    local SLOT, PAD = 0.075, 0.0075
-    local WIDE = 9 * SLOT + 8 * PAD
-    local TALL = SLOT * 0.22
-    local HEALTH_TOP = 1 - SLOT - 0.02 - PAD * 2 - TALL
-    local Y = HEALTH_TOP - 2 * (TALL * 2) + TALL * 0.5   -- two bars up, centred
+    -- Grown with the interface's size (core.hud.scale), as the engine's are;
+    -- the margin under the bar is not.
+    local function bars(): (number, number, number, number)
+        local k = core.hud.scale()
+        local SLOT, PAD = 0.075 * k, 0.0075 * k
+        local WIDE = 9 * SLOT + 8 * PAD
+        local TALL = SLOT * 0.22
+        local HEALTH_TOP = 1 - SLOT - 0.02 - PAD * 2 - TALL
+        return WIDE, TALL, PAD, HEALTH_TOP - 2 * (TALL * 2) + TALL * 0.5   -- two bars up, centred
+    end
     core.hud.pass("hunger:bar", 50, function()
         local aspect = core.hud.aspect()
+        local WIDE, TALL, PAD, Y = bars()
         -- Beside the engine's bars, and hidden with them (a chess game).
         if aspect <= 0 or not core.engine_hud_on() then
             return

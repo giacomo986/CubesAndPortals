@@ -130,6 +130,15 @@ void plat_disable_default_exit_key(void)
 
 // Borderless and not exclusive: the monitor keeps its mode, so switching is
 // instant and alt-tab does not blank the screen.
+float plat_window_height_mm(void)
+{
+    const int m      = GetCurrentMonitor();
+    const int mon_h  = GetMonitorHeight(m);
+    const int phys_h = GetMonitorPhysicalHeight(m);
+    if (mon_h <= 0 || phys_h <= 0) return 0.0f;
+    return (float)GetScreenHeight() * (float)phys_h / (float)mon_h;
+}
+
 void plat_monitor_size(int *w, int *h)
 {
     const int m = GetCurrentMonitor();

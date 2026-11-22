@@ -233,7 +233,7 @@ if serving then
         if ev.panel ~= panel_of(p) then
             return
         end
-        if ev.id == "close" then
+        if ev.id == "close" or ev.id == "core:esc" then
             core.ui_show(ev.panel, false, p)
             return
         end
@@ -305,13 +305,19 @@ if drawing then
 
     -- The engine's measures (client/ui/hud.cpp), as mods/hunger reads them:
     -- one bar above the hunger row, the width of the hotbar.
-    local SLOT, PAD = 0.075, 0.0075
-    local WIDE = 9 * SLOT + 8 * PAD
-    local TALL = SLOT * 0.22
-    local HEALTH_TOP = 1 - SLOT - 0.02 - PAD * 2 - TALL
-    local Y = HEALTH_TOP - 3 * (TALL * 2) + TALL * 0.5
+    -- Grown with the interface's size (core.hud.scale), as the engine's are;
+    -- the margin under the bar is not.
+    local function bars(): (number, number, number, number)
+        local k = core.hud.scale()
+        local SLOT, PAD = 0.075 * k, 0.0075 * k
+        local WIDE = 9 * SLOT + 8 * PAD
+        local TALL = SLOT * 0.22
+        local HEALTH_TOP = 1 - SLOT - 0.02 - PAD * 2 - TALL
+        return WIDE, TALL, PAD, HEALTH_TOP - 3 * (TALL * 2) + TALL * 0.5
+    end
     core.hud.pass("enchant:xp", 50, function()
         local aspect = core.hud.aspect()
+        local WIDE, TALL, PAD, Y = bars()
         -- Beside the engine's bars, and hidden with them (a chess game).
         if aspect <= 0 or not core.engine_hud_on() then
             return

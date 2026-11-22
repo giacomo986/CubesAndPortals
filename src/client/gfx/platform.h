@@ -138,6 +138,10 @@ void plat_script_cursor(float x, float y);
 // cursor is warped to the middle every frame and its position says nothing.
 void plat_mouse_position(float *x, float *y);
 
+// How tall the window is on the monitor it is on, in millimetres: 0 when the
+// monitor does not say its size (what the interface's auto size reads).
+float plat_window_height_mm(void);
+
 // How far the wheel turned since the last frame, in notches. Positive is away
 // from the person using it, which is the direction every desktop calls "up".
 // Fractional on a trackpad, so a caller that wants whole steps has to round.

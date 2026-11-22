@@ -378,7 +378,7 @@ if serving then
         if t == nil or ev.panel ~= panel_of(ev.player) then
             return
         end
-        if ev.id == "close" or by_tag[t.tag] ~= t then
+        if ev.id == "close" or ev.id == "core:esc" or by_tag[t.tag] ~= t then
             open_on[ev.player] = nil
             core.ui_show(ev.panel, false, ev.player)
             return

@@ -111,6 +111,10 @@ core.register_item("timber:stick", 64, "", 0, 1.0, "")
 -- of the same thing one above the other, which is not the same recipe as two
 -- side by side -- a shape is a picture and its mirror is a different shape.
 core.recipe_shapeless("timber:planks", 4, "timber:log")
+-- The trees out on the land are trees:trunk, and an old log goes mossy: both
+-- make the same planks, or a new player's first tree gives nothing to build with.
+core.recipe_shapeless("timber:planks", 4, "trees:trunk")
+core.recipe_shapeless("timber:planks", 4, "timber:mossy_log")
 core.recipe_shaped("timber:stick", 4, "timber:planks", "timber:planks")
 
 -- Seven sticks in an H make three ladders.

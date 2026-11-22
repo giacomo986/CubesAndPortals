@@ -30,6 +30,9 @@ for _, w in WOODS do
     core.recipe_shapeless(`woods:{w}_planks`, 4, `woods:{w}_log`)
     core.recipe_shaped("timber:stick", 4, `woods:{w}_planks`, `woods:{w}_planks`)
     core.recipe_shaped("craft:table", 1, `woods:{w}_planks woods:{w}_planks`, `woods:{w}_planks woods:{w}_planks`)
+    -- One for one into plain planks: the pick, the boat and the bed ask for those,
+    -- and a player whose first trees are birches was left with nothing to make them.
+    core.recipe_shapeless("timber:planks", 1, `woods:{w}_planks`)
 end
 core.recipe_shaped("craft:table", 1, "timber:planks timber:planks", "timber:planks timber:planks")
 

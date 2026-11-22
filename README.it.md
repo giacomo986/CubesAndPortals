@@ -684,6 +684,7 @@ manca dell'uno o dell'altro; va lanciato dopo aver cambiato i testi di un mod.
 | `--day-length S` `--time T` | Durata del giorno in secondi, ora di partenza (0..1) |
 | `--dual` `--facing` `--oriented` | Scene di prova: due mondi, due portali affacciati, un portale coricato |
 | `--recursion N` `--portal-scale F` `--portal-config FILE` | Profondità della ricorsione (0-3), risoluzione dei target, forma del portale ([`config/portal.cfg`](config/portal.cfg)) |
+| `--ui-size N` | Dimensione dell'interfaccia per questa partita: 0 auto, 1 piccola, 2 normale, 3 grande (Opzioni > Video tiene quella del giocatore) |
 | `--log-view` | Traccia della vista attorno a ogni attraversamento |
 | `--bench` `--dual-bench` `--soak S` | Misure: FPS e costo dello scripting, costo del secondo mondo, volo automatico |
 | `--verify` | Il test di continuità del portale (lo lancia `ctest`) |

@@ -2049,6 +2049,11 @@ putting something **aligned with the engine's bars**, whose sizes are fractions 
 `0.5 + dx / aspect`. The engine's sizes are in `src/client/ui/hud.cpp` (a slot is 0.075 of the
 height, the gap between two 0.0075, a bar 0.0165 high).
 
+`core.hud.scale()` is the interface's size the player picked in Options > Video, as the factor the
+engine's slots and bars are grown by: 1 normal, 0.8 small, 1.25 large, in between on auto (1 where
+there is no screen). The engine's measures above are at 1: a mod lined up with the bars multiplies
+them by it, as `mods/hunger` does. The margin under the hotbar (0.02) does not grow.
+
 `core.view(distance)` puts this world's camera **behind** the player, at that distance in nodes (0
 is the eye, at most 16), with their body drawn in `core.player_model`'s model. It holds for the world
 asking: going back to a world that said nothing returns to the eye. The V key does the same by hand.

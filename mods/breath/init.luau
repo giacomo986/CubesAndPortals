@@ -111,13 +111,19 @@ if drawing then
     end
 
     -- Over the hunger bar (mods/hunger), by the engine's measures.
-    local SLOT, PAD = 0.075, 0.0075
-    local WIDE = 9 * SLOT + 8 * PAD
-    local TALL = SLOT * 0.22
-    local HEALTH_TOP = 1 - SLOT - 0.02 - PAD * 2 - TALL
-    local Y = HEALTH_TOP - 4 * (TALL * 2) + TALL * 0.5
+    -- Grown with the interface's size (core.hud.scale), as the engine's are;
+    -- the margin under the bar is not.
+    local function bars(): (number, number, number, number)
+        local k = core.hud.scale()
+        local SLOT, PAD = 0.075 * k, 0.0075 * k
+        local WIDE = 9 * SLOT + 8 * PAD
+        local TALL = SLOT * 0.22
+        local HEALTH_TOP = 1 - SLOT - 0.02 - PAD * 2 - TALL
+        return WIDE, TALL, PAD, HEALTH_TOP - 4 * (TALL * 2) + TALL * 0.5
+    end
     core.hud.pass("breath:bubbles", 50, function()
         local aspect = core.hud.aspect()
+        local WIDE, TALL, PAD, Y = bars()
         if aspect <= 0 or not core.engine_hud_on() or shown >= MAX then
             return
         end

@@ -1629,7 +1629,7 @@ core.event.on("core:ui_click", function(ev)
     if r == nil or core.player_name(ev.player) ~= r.owner then
         return
     end
-    if ev.id == "close" then
+    if ev.id == "close" or ev.id == "core:esc" then   -- ESC: off their screen already
         core.ui_show(ev.panel, false, ev.player)
         return
     end
