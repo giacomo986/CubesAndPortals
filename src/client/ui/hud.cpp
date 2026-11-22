@@ -721,7 +721,7 @@ PanelLayout draw_chest(const ItemStack *slots, int count, int dragged,
                        const ItemRegistry &items, const NodeRegistry &nodes,
                        const IconSource &icons, const PanelLayout &bag, const uint8_t *roles,
                        float progress, float scroll, float scroll_size, const char *search,
-                       const TypedLine *typing)
+                       const TypedLine *typing, const char *tabs, int tab)
 {
     // Raw, fuel, product (SlotRole 1..3); a Store square is left as it is.
     static constexpr float kRole[4][4] = {{0, 0, 0, 0},
@@ -807,6 +807,34 @@ PanelLayout draw_chest(const ItemStack *slots, int count, int dragged,
                 line.erase(0, 1);
             if (line.empty()) gfx_2d_text(lang::tr("search"), tx, ty, ts, kHint);
             else gfx_2d_text(line.c_str(), tx, ty, ts, kWhite);
+        }
+    }
+
+    // The tabs, a column under the search box (or level with the top row
+    // without one), as wide as the box: as many as fit the grid's height.
+    if (tabs != nullptr && *tabs != '\0') {
+        std::vector<std::string> label(1);
+        for (const char *c = tabs; *c; ++c) {
+            if (*c == '|') label.emplace_back();
+            else label.back() += *c;
+        }
+        const float top = search != nullptr ? out.field_y + out.field_h + edge * 3.0f : out.y;
+        out.tab_n    = (int)label.size();
+        out.tab_w    = out.slot * 4.0f;
+        out.tab_x    = out.x - edge - out.slot * 0.5f - out.tab_w;
+        out.tab_y    = top;
+        out.tab_step = std::min(out.slot * 0.7f + edge * 2.0f, (out.y + h - top) / (float)out.tab_n);
+        out.tab_h    = out.tab_step - edge * 2.0f;
+        gfx_2d_rect(out.tab_x - edge, top - edge, out.tab_w + edge * 2.0f,
+                    out.tab_step * (float)out.tab_n, kBackdrop);
+        for (int i = 0; i < out.tab_n; ++i) {
+            const float ty = top + (float)i * out.tab_step;
+            const bool  on = i + 1 == tab;
+            gfx_2d_rect(out.tab_x, ty, out.tab_w, out.tab_h, on ? kBorder : kSlotFill);
+            frame(out.tab_x, ty, out.tab_w, out.tab_h, out.slot * 0.05f, on ? kSelected : kBorder);
+            const float ts = out.tab_h * 0.55f;
+            gfx_2d_text(lang::tr(label[(size_t)i]), out.tab_x + ts * 0.4f, ty + (out.tab_h - ts) * 0.5f,
+                        ts, kWhite);
         }
     }
 

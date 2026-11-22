@@ -249,6 +249,10 @@ int mob_going(flecs::world &w, uint32_t id);
 int mob_act(flecs::world &w, const std::vector<MobKind> &kinds, uint32_t id, const char *clip,
             ItemId held);
 int mob_face(flecs::world &w, uint32_t id, float x, float z);
+// A worker dressed in a model of a mod's own in slot 1..kDressSlots, as a
+// player is by core.player_wear (core.mob_wear, protocol 131); model 0 takes
+// it off. 1 if it was.
+int mob_wear(flecs::world &w, uint32_t id, int slot, uint16_t model, uint16_t tint);
 int mob_remove(flecs::world &w, uint32_t id);
 
 // For a herder's mod (mods/animals, mods/helpers), any creature by id:

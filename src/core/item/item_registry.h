@@ -218,4 +218,18 @@ private:
     std::vector<uint8_t> m_orphan;
 };
 
+// What sort of thing an item is, from what it does: a block it places, a
+// wearable piece, a weapon (it strikes harder than a hand), a tool (it digs),
+// or "item" for anything else.
+inline const char *item_kind_of(const ItemRegistry &items, int id)
+{
+    if (id <= 0 || (size_t)id >= items.size() || items.is_orphan((ItemId)id)) return "";
+    const ItemDef &d = items.get((ItemId)id);
+    if (d.places != kAir) return "block";
+    if (d.wear != 0) return "wear";
+    const bool digs = d.dig_level > 0 || !d.digs.empty() || d.dig_speed > 1.0f;
+    if (digs) return "tool";   // an axe strikes too, and is still a tool
+    return d.damage > 0 ? "weapon" : "item";
+}
+
 } // namespace cnp

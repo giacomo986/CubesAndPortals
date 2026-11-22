@@ -118,6 +118,13 @@ for kind, file in { smith = "crafter", jeweler = "merchant", alchemist = "mayor"
                       "worker", 0, 1.6, 1.0, "", 1, 0, false)
 end
 
+-- The warrior's hireling (arpg_game): the robot's body as a worker, walked,
+-- fought and dressed by arpg_game (core.mob_goto, core.mob_act, core.mob_wear)
+-- in what it is handed. Its death is arpg_game's too (it lies down, "sleep"),
+-- so the engine never kills it and wants no "death" clip of it.
+core.register_mob("arpg_core:helper", core.model_id("arpg_core:robot"), 1000, 4.6, "worker", 0, 1.6, 1.0, "", 1, 0,
+                  false)
+
 -- What a character wears and holds, one model for every base of arpg_game's
 -- items but the ring (tools/make_arpg_gear.py), on the robot's rig: arpg_game
 -- dresses a player in those of what they have equipped (core.player_wear).

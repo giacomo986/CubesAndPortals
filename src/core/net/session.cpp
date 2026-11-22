@@ -1420,8 +1420,10 @@ SessionAction ServerSessions::on_message(PeerId peer, uint8_t channel, const voi
         // engine's and no mod's panel: good only while that chest has one.
         if (req.panel == "core:chest") {
             std::string q;
-            if (s.scope == Scope::Enter && req.id == "search" && s.container_open && m_containers &&
-                m_containers->search(s.container, q)) {
+            int         t = 0;
+            if (s.scope == Scope::Enter && s.container_open && m_containers &&
+                ((req.id == "search" && m_containers->search(s.container, q)) ||
+                 (req.id == "tab" && m_containers->tabs(s.container, q, t)))) {
                 a.has_ui_click = true;
                 a.ui_click     = req;
             }
@@ -4750,6 +4752,7 @@ std::vector<uint8_t> ServerSessions::container_message(PeerId peer, double now) 
         m.scroll_size = size;
     }
     m.search = m_containers->search(s->container, m.query);
+    if (int tab = 0; m_containers->tabs(s->container, m.tabs, tab)) m.tab = (uint8_t)std::clamp(tab, 0, 255);
     return m.encode();
 }
 
@@ -4896,6 +4899,11 @@ std::vector<EntityState> ServerSessions::entities_for(PeerId peer, float radius)
             s.burning = e.has<ecs::Burning>();   // in the sun (55)
             s.held    = held;
             if (const ecs::Scaled *z = e.try_get<ecs::Scaled>()) s.scale = z->scale;   // a scaling portal's (118)
+            if (const ecs::Dressed *dressed = e.try_get<ecs::Dressed>())   // a worker dressed (131)
+                for (int k = 0; k < ecs::kDressSlots; ++k) {
+                    s.dress[k]      = dressed->model[k];
+                    s.dress_tint[k] = dressed->tint[k];
+                }
             if (const ecs::Act *act = e.try_get<ecs::Act>()) {   // a worker's (81)
                 s.item = act->held;
                 s.clip = act->clip;

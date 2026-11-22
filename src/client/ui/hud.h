@@ -209,6 +209,18 @@ struct PanelLayout {
                py < field_y + field_h;
     }
 
+    // A chest's tabs, a column left of the grid under the search box: `tab_n`
+    // of them, each tab_w by tab_h, `tab_step` apart downward from tab_x/tab_y.
+    float tab_x = 0.0f, tab_y = 0.0f, tab_w = 0.0f, tab_h = 0.0f, tab_step = 0.0f;
+    int   tab_n = 0;
+    // The tab under that point, from 1; 0 for none.
+    int tab_at(float px, float py) const
+    {
+        if (tab_n <= 0 || px < tab_x || px >= tab_x + tab_w || py < tab_y) return 0;
+        const int i = (int)((py - tab_y) / tab_step);
+        return i < tab_n && py - tab_y - (float)i * tab_step < tab_h ? i + 1 : 0;
+    }
+
     void slot_rect(int i, float &out_x, float &out_y, float &out_w, float &out_h) const;
 
     // Which slot is under that point, or -1. The panel's own arithmetic and not
@@ -261,13 +273,16 @@ void draw_item_tooltip(const std::string &text, float mx, float my, int screen_w
 // grid, right of its bottom row. `scroll_size` above 0 draws a scrollbar right
 // of the grid, its thumb at `scroll` (core.container_scroll). `search`, not
 // null, is a search box left of the top row holding that text, `typing` the
-// line in it while it has the keyboard (core.container_search).
+// line in it while it has the keyboard (core.container_search). `tabs`, not
+// null or empty, is a column of tabs under it, labels split by '|', the
+// `tab`th (from 1) lit (core.container_tabs).
 PanelLayout draw_chest(const ItemStack *slots, int count, int dragged,
                        const ItemRegistry &items, const NodeRegistry &nodes,
                        const IconSource &icons, const PanelLayout &bag,
                        const uint8_t *roles = nullptr, float progress = -1.0f,
                        float scroll = 0.0f, float scroll_size = 0.0f,
-                       const char *search = nullptr, const TypedLine *typing = nullptr);
+                       const char *search = nullptr, const TypedLine *typing = nullptr,
+                       const char *tabs = nullptr, int tab = 0);
 
 // A craft grid and the square it makes something in, ABOVE the bag.
 //

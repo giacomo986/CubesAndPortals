@@ -544,7 +544,8 @@ scopa e tresette, de dois a cinco jogadores, com a mesa jogando nos lugares vazi
 add-on, como o homem-lagarto em `contrib/lizard`), um estilo, três cores e dois acessórios, todos
 vistos por todo mundo. Nas costas: um jetpack para voar, uma mochila de couro com 27 espaços
 próprios, ou uma mochila de metal com dois braços articulados que seguram uma ferramenta cada. O
-catálogo criativo (C) tem uma caixa de busca. `/creative on` é o modo criativo: voar sem o jetpack,
+catálogo criativo (C) tem uma caixa de busca e abas por tipo (todos, blocos, ferramentas, armas,
+vestíveis, outros itens). `/creative on` é o modo criativo: voar sem o jetpack,
 sem dano, escavação rápida (livre num mundo só seu, admin num servidor). `/time` define a hora,
 `/kill` leva você de volta à cama ou ao spawn quando você está preso. Num mundo com uma prova,
 `/giveup` desiste dela: você morre e volta no sandbox, fora do portão do mundo. O que um pedestal ou

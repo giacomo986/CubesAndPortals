@@ -84,7 +84,12 @@ type PState = { name: string, cls: number, lvl: number, xp: number, gold: number
                 zone: number, dirty: boolean, factors: string, target: number?, pending: number?, goal: any,
                 shop: string?, stash_open: boolean?, at_wp: number?, clip_until: number?, last_hit: number?,
                 mats: { number }, q: { [string]: { number } }, sold: { { code: string, price: number } },
-                full_said: number?, slow_until: number? }
+                full_said: number?, slow_until: number?, helper: Helper }
+-- The warrior's hireling: hired at the gate warden, dressed in what is handed
+-- to it, fighting by its weapon; raised again there, dearly, once fallen.
+type Helper = { hired: boolean, alive: boolean, life: number, eq: { [number]: Item }, id: number,
+                next_blow: number, sip_at: number, act_until: number, walk_at: number, hits: { [number]: number },
+                dead_at: number, st: { [string]: any } }
 type MobInfo = { kind: string, lvl: number, rank: number, real: number, taken: number, name: string }
 type Proj = { id: number, kind: string, owner: number, x: number, y: number, z: number, vx: number, vz: number,
               t: number, life: number, dmg: number, hit: { [number]: boolean }, pierce: any, burst: any }
@@ -1552,7 +1557,9 @@ if serving then
                  str = 0, dex = 0, vit = 0, ene = 0, sp = 0, kp = 0, ranks = { 0, 0, 0, 0 }, inv = {}, eq = {},
                  stash = {}, wps = 1, mana = 0, next_blow = 0, way_at = 0, way_to = { 0, 0, 0 }, st = {},
                  lreg_acc = 0, ls_acc = 0, ms_acc = 0, evade_until = 0, tp_cool = 0, restock = true, stock = {},
-                 zone = -1, dirty = true, factors = "", mats = { 0, 0, 0, 0, 0, 0, 0, 0 }, q = {}, sold = {} }
+                 zone = -1, dirty = true, factors = "", mats = { 0, 0, 0, 0, 0, 0, 0, 0 }, q = {}, sold = {},
+                 helper = { hired = false, alive = false, life = 0, eq = {}, id = 0, next_blow = 0, sip_at = 0,
+                            act_until = 0, walk_at = 0, hits = {}, dead_at = 0, st = {} } }
     end
 
     local function pack(list: {any}, n: number): string
@@ -1593,6 +1600,9 @@ if serving then
             table.insert(qs, `{g}:{q[1]}:{q[2]}:{q[3]}`)
         end
         core.storage_set(`q:{s.name}`, table.concat(qs, ";"))
+        local h = s.helper
+        core.storage_set(`h:{s.name}`, string.format("%d %d %d|%s", if h.hired then 1 else 0, if h.alive then 1 else 0,
+                                                     math.floor(h.life), pack(h.eq, 8)))
         s.dirty = false
     end
 
@@ -1618,6 +1628,11 @@ if serving then
             if D.QUESTS[g] then
                 s.q[g] = { tonumber(i) :: number, tonumber(st) :: number, tonumber(c) :: number }
             end
+        end
+        local hired, alive, life, eq = string.match(core.storage_get(`h:{s.name}`), "^(%d) (%d) (%d+)|(.*)$")
+        if hired then
+            s.helper.hired, s.helper.alive, s.helper.life = hired == "1", alive == "1", tonumber(life) or 0
+            unpack_into(s.helper.eq, eq or "")
         end
         return s
     end
@@ -1955,7 +1970,7 @@ if serving then
     -- A blow of `dmg` real points from player p: the share of the creature's
     -- thousand it is, life and mana stolen, and the reward if it died.
     function SV.deal(p: number, s: PState, id: number, dmg: number, fx: number, fz: number, steal: boolean): boolean
-        if SV.npc[id] then
+        if SV.npc[id] or SV.helpers[id] then
             return false
         end
         local info = SV.info(id)
@@ -2561,8 +2576,12 @@ if serving then
     function SV.open_shop(p: number, s: PState, kind: string)
         SV.tell_quest(p, s, kind)
         if kind == "guard" then
-            -- No wares: what the warden has to say, and his quests.
+            -- No wares: what the warden has to say, his quests, the hireling.
             s.shop = kind
+            if s.cls == 1 then
+                SV.helper_stats(s)
+                SV.tell_helper(p, s)
+            end
             tell(p, `shop {kind}`)
             return
         end
@@ -2662,6 +2681,247 @@ if serving then
         s.dirty = true
         SV.tell_sold(p, s)
         tell(p, SV.stat_line(p, s))
+    end
+
+    -- ------------------------------------------------------------ the hireling
+    --
+    -- A warrior's helper (arpg_core:helper, a worker on the robot's body):
+    -- hired at the gate warden, it follows its master, wears what it is handed
+    -- (core.mob_wear, its eight squares: no rings) and fights by its weapon --
+    -- a blade or a club up close, a bow from afar, a staff or a wand with fire.
+    -- The creatures fight players, not it: what stands near it strikes it
+    -- here, as their blows would. Under two fifths of its life it drinks one of
+    -- its master's life potions. Fallen, it lies down and is gone; the warden
+    -- raises it again, at a price, in what it wore.
+    SV.helpers = {} :: { [number]: number }   -- its id -> its master
+    D.HELPER_HIRE = function(lvl: number): number return 150 + 20 * lvl end
+    D.HELPER_RAISE = function(lvl: number): number return 400 + 120 * lvl end
+    -- A creature's blow on it, at a zone of the first level (arpg_core's).
+    D.MOB_DMG = { ["arpg_core:zombie"] = 3, ["arpg_core:skeleton"] = 2, ["arpg_core:imp"] = 3,
+                  ["arpg_core:grave_lord"] = 7, ["arpg_core:ember_wing"] = 8, ["arpg_core:butcher"] = 10,
+                  ["arpg_crypt:custode"] = 6 } :: { [string]: number }
+    D.MOB_REACH = { ["arpg_core:skeleton"] = 12, ["arpg_core:imp"] = 11, ["arpg_core:ember_wing"] = 12,
+                    ["arpg_crypt:custode"] = 12 } :: { [string]: number }
+
+    function SV.helper_stats(s: PState)
+        local h = s.helper
+        local st: { [string]: any } = { str = 12 + 2 * s.lvl, def = 4 + s.lvl, life = 70 + 12 * s.lvl, dr = 0, ls = 0 }
+        for _, it in h.eq do
+            local add = IT.stats(it)
+            st.life += (add.life or 0) + (add.vit or 0) * 2
+            st.str += add.str or 0
+            st.dr += add.dr or 0
+            local _, _, d = IT.base_numbers(it)
+            st.def += d
+        end
+        local w = h.eq[1]
+        local dmin, dmax = 2, 5
+        st.spd, st.kind = 1, "melee"
+        if w then
+            dmin, dmax = IT.base_numbers(w)
+            local cat = D.BASES[w.b].cat
+            st.spd = D.BASES[w.b].spd
+            st.kind = if cat == "bow" then "bow" elseif cat == "staff" or cat == "wand" then "magic" else "melee"
+            st.fire = IT.stats(w).fire or 0
+        end
+        local m = 1 + st.str / 100
+        st.dmin = math.max(1, math.floor(dmin * m))
+        st.dmax = math.max(st.dmin, math.floor(dmax * m))
+        st.fire = st.fire or 0
+        st.dr = math.min(st.dr, 50)
+        h.st = st
+        h.life = math.min(h.life, st.life)
+    end
+
+    function SV.helper_dress(s: PState)
+        local h = s.helper
+        if h.id == 0 then return end
+        for k = 1, 8 do
+            local it = h.eq[k]
+            local model = 0
+            if it then model = core.model_id("arpg_core:gear_" .. D.file(it.b)) end
+            core.mob_wear(h.id, k, model, if model ~= 0 and it then D.GEAR_DYE[it.r] or 0 else 0)
+        end
+    end
+
+    function SV.tell_helper(p: number, s: PState)
+        local h = s.helper
+        tell(p, string.format("hq %d %d %d %d %d %d", if h.hired then 1 else 0, if h.alive then 1 else 0,
+                              math.floor(h.life), math.floor(h.st.life or 0), D.HELPER_HIRE(s.lvl), D.HELPER_RAISE(s.lvl)))
+        for k = 1, 8 do
+            tell(p, if h.eq[k] then `he {k} {IT.encode(h.eq[k])}` else `he {k}`)
+        end
+    end
+
+    function SV.helper_gone(s: PState)
+        local h = s.helper
+        if h.id ~= 0 then
+            SV.helpers[h.id] = nil
+            core.mob_remove(h.id)
+            h.id = 0
+        end
+    end
+
+    function SV.helper_command(p: number, s: PState, cmd: string, arg: number)
+        local h = s.helper
+        if s.cls ~= 1 or s.shop ~= "guard" then return end
+        if cmd == "hire" and not h.hired then
+            local cost = D.HELPER_HIRE(s.lvl)
+            if s.gold < cost then SV.msg(p, "NOT ENOUGH GOLD"); return end
+            s.gold -= cost
+            h.hired, h.alive = true, true
+            SV.helper_stats(s)
+            h.life = h.st.life
+            SV.msg(p, "A HELPER FOLLOWS YOU NOW")
+        elseif cmd == "hraise" and h.hired and not h.alive then
+            local cost = D.HELPER_RAISE(s.lvl)
+            if s.gold < cost then SV.msg(p, "NOT ENOUGH GOLD"); return end
+            s.gold -= cost
+            h.alive = true
+            SV.helper_stats(s)
+            h.life = h.st.life
+            SV.msg(p, "YOUR HELPER STANDS AGAIN")
+        elseif cmd == "hgive" and h.hired then
+            local it = s.inv[arg]
+            if it == nil then return end
+            local slot = D.CAT[D.BASES[it.b].cat].slot
+            local e = ({ weapon = 1, off = 2, head = 3, body = 4, hands = 5, feet = 6, waist = 7, neck = 8 })[slot]
+            if e == nil then SV.msg(p, "THE HELPER CANNOT WEAR THAT"); return end
+            if IT.req(it) > s.lvl then SV.msg(p, "TOO HIGH A LEVEL FOR YOUR HELPER"); return end
+            s.inv[arg], h.eq[e] = h.eq[e], it
+            tell(p, if s.inv[arg] then `iv {arg} {IT.encode(s.inv[arg])}` else `iv {arg}`)
+        elseif cmd == "htake" and h.eq[arg] then
+            local k = free_slot(s.inv, D.BAG)
+            if k == nil then SV.msg(p, "THE BAG IS FULL"); return end
+            s.inv[k], h.eq[arg] = h.eq[arg], nil
+            tell(p, `iv {k} {IT.encode(s.inv[k])}`)
+        else
+            return
+        end
+        SV.helper_stats(s)
+        SV.helper_dress(s)
+        s.dirty = true
+        SV.tell_helper(p, s)
+        tell(p, SV.stat_line(p, s))
+    end
+
+    -- Every tick: comes out beside its master, follows, fights, is struck,
+    -- drinks, falls.
+    function SV.step_helper(p: number, s: PState, dt: number, px: number, py: number, pz: number)
+        local h = s.helper
+        if not (h.hired and s.cls == 1) then return end
+        if not h.alive then
+            if h.id ~= 0 and clock >= h.dead_at then SV.helper_gone(s) end
+            return
+        end
+        if h.st.life == nil then SV.helper_stats(s) end
+        local mx, my, mz = nil, nil, nil
+        if h.id ~= 0 then mx, my, mz = core.mob_pos(h.id) end
+        local hx: number, hy: number, hz: number = mx or 0, my or 0, mz or 0
+        if h.id == 0 or mx == nil then
+            if h.id ~= 0 then SV.helpers[h.id] = nil end
+            h.id = core.spawn_mob("arpg_core:helper", px + 1.2, py, pz + 1.2)
+            if h.id == 0 then return end
+            SV.helpers[h.id] = p
+            SV.helper_dress(s)
+            hx, hy, hz = px + 1.2, py, pz + 1.2
+        end
+        -- Left behind (a waypoint, a portal, a floor down): put beside its master.
+        if (hx - px) ^ 2 + (hz - pz) ^ 2 > 22 * 22 or math.abs(hy - py) > 3 then
+            core.mob_place(h.id, px + 1, py, pz + 1)
+            hx, hy, hz = px + 1, py, pz + 1
+        end
+        local st = h.st
+        -- What to fight: its master's foe, else the nearest within 9 of it.
+        local tid: number?, tx: number, ty: number, tz: number = nil, 0, 0, 0
+        if s.target and not SV.npc[s.target] and not SV.props[s.target] then
+            local x, y, z = core.mob_pos(s.target)
+            if x and (x - hx) ^ 2 + (z - hz) ^ 2 < 14 * 14 then tid, tx, ty, tz = s.target, x, y :: number, z :: number end
+        end
+        if tid == nil then
+            local best = 81
+            for _, id in core.mob_ids(hx, hy, hz, 9) do
+                if not SV.npc[id] and not SV.props[id] and not SV.helpers[id] then
+                    local x, y, z = core.mob_pos(id)
+                    if x and (x - hx) ^ 2 + ((z :: number) - hz) ^ 2 < best then
+                        best = (x - hx) ^ 2 + ((z :: number) - hz) ^ 2
+                        tid, tx, ty, tz = id, x, y :: number, z :: number
+                    end
+                end
+            end
+        end
+        if tid then
+            local range = if st.kind == "bow" then 11 elseif st.kind == "magic" then 9 else 2.1
+            local d2 = (tx - hx) ^ 2 + (tz - hz) ^ 2
+            if d2 > range * range then
+                if clock >= h.walk_at then
+                    h.walk_at = clock + 0.4
+                    core.mob_goto(h.id, tx, ty, tz)
+                end
+            else
+                core.mob_face(h.id, tx, tz)
+                if clock >= h.next_blow then
+                    h.next_blow = clock + 1.05 * (st.spd or 1)
+                    local dmg = math.random(st.dmin, st.dmax) + st.fire
+                    local clip
+                    if st.kind == "bow" then
+                        clip = "bow_shoot"
+                        SV.shoot(p, "arrow", hx, hy + CHEST + 0.3, hz, tx - hx, tz - hz, 24, 0.75, dmg)
+                    elseif st.kind == "magic" then
+                        clip = "staff_cast"
+                        SV.shoot(p, "fire", hx, hy + 1.3, hz, tx - hx, tz - hz, 14, 1.1, dmg + 4 * s.lvl, { burst = 2.2 })
+                    else
+                        clip = "sword_slash"
+                        SV.deal(p, s, tid, dmg, hx, hz, false)
+                        tell(0, string.format("fx slash %.2f %.2f %.2f", tx, ty + CHEST, tz))
+                    end
+                    core.mob_act(h.id, clip)
+                    h.act_until = clock + (D.CLIP[clip] or 0.6)
+                end
+            end
+        elseif (hx - px) ^ 2 + (hz - pz) ^ 2 > 3.5 * 3.5 and clock >= h.walk_at then
+            h.walk_at = clock + 0.5
+            core.mob_goto(h.id, px + 1, py, pz + 1)
+        end
+        if h.act_until > 0 and clock >= h.act_until then
+            h.act_until = 0
+            core.mob_act(h.id, "")
+        end
+        -- Struck by what stands near it, each at its kind's pace.
+        for _, id in core.mob_ids(hx, hy, hz, 12) do
+            local info = SV.mobs[id]
+            if info and not SV.props[id] then
+                local x, _, z = core.mob_pos(id)
+                local reach = D.MOB_REACH[info.kind] or 2.4
+                if x and (x - hx) ^ 2 + (z - hz) ^ 2 < reach * reach and clock >= (h.hits[id] or 0) then
+                    h.hits[id] = clock + 1.8 * D.blow_every(info.lvl) + math.random()
+                    -- an archer hits it now and then; it is its master they shoot at
+                    if reach < 3 or math.random() < 0.35 then
+                        local red = st.def / (st.def + 20 + 8 * info.lvl)
+                        local dmg = (D.MOB_DMG[info.kind] or 3) * D.dmg_mult(info.lvl) * (if info.rank >= 1 then 1.5 else 1) *
+                                    (1 - math.min(0.75, red)) * (1 - st.dr / 100)
+                        h.life -= dmg
+                    end
+                end
+            end
+        end
+        -- A potion of its master's when low.
+        if h.life < st.life * 0.4 and s.lpot > 0 and clock >= h.sip_at and h.life > 0 then
+            s.lpot -= 1
+            h.sip_at = clock + 2.5
+            h.life = math.min(st.life, h.life + st.life * 0.45)
+            tell(0, string.format("fx drank_at %.2f %.2f %.2f", hx, hy, hz))
+            SV.msg(p, "YOUR HELPER DRINKS A LIFE POTION")
+            s.dirty = true
+        end
+        h.life = math.min(st.life, h.life + st.life * 0.004 * dt)   -- it heals slowly
+        if h.life <= 0 then
+            h.alive, h.life = false, 0
+            h.dead_at = clock + 2.5
+            core.mob_act(h.id, "sleep")
+            SV.msg(p, `YOUR HELPER HAS FALLEN. THE GATE WARDEN RAISES IT FOR {D.HELPER_RAISE(s.lvl)} GOLD`)
+            s.dirty = true
+        end
     end
 
     -- ------------------------------------------------------------ quests
@@ -3053,6 +3313,8 @@ if serving then
             SV.sell(p, s, tonumber(w[2]) or 0)
         elseif cmd == "rebuy" then
             SV.rebuy(p, s, tonumber(w[2]) or 0)
+        elseif cmd == "hire" or cmd == "hraise" or cmd == "hgive" or cmd == "htake" then
+            SV.helper_command(p, s, cmd, tonumber(w[2]) or 0)
         elseif cmd == "qaccept" then
             SV.quest_accept(p, s, w[2] or "")
         elseif cmd == "qturn" then
@@ -3438,6 +3700,7 @@ if serving then
         end
         if s.cls > 0 then
             SV.step_target(p, s, px, py, pz)
+            SV.step_helper(p, s, dt, px, py, pz)
             SV.step_goal(p, s, px, py, pz)
         end
     end
@@ -3467,6 +3730,15 @@ if serving then
         else
             s.last_hit = nil
             tell(p, "tgt")
+        end
+        local h = s.helper
+        local hx, hy, hz = nil, 0, 0
+        if h.id ~= 0 then hx, hy, hz = core.mob_pos(h.id) end
+        if hx and h.alive then
+            tell(p, string.format("hp %d %.2f %.2f %.2f %d %d", h.id, hx, hy, hz, math.floor(h.life),
+                                  math.floor(h.st.life or 1)))
+        else
+            tell(p, "hp")
         end
     end
 
@@ -3855,6 +4127,7 @@ if serving then
         end
         for p, s in SV.players do
             if not here[p] then
+                SV.helper_gone(s)
                 SV.save(s)
                 SV.close_portal(p)
                 SV.players[p] = nil
@@ -3931,6 +4204,9 @@ if drawing then
     C.tab = "buy"     -- the shop's: "buy", "back" (what was sold, to buy back) or "quest"
     C.used = { life = 0, mana = 0, tp = 0 }   -- when a belt slot was last used, for its flash
     C.target_id = 0   -- the creature being fought (or last struck), by the server's id
+    C.helper = nil :: { number }?   -- the hireling seen: { id, x, y, z, life, max }
+    C.hq = { 0, 0, 0, 0, 0, 0 }      -- hired, alive, life, max, the cost to hire, to raise
+    C.heq = {} :: { [number]: Item? }   -- what it wears, by square
 
     local function decoded(code: string?): Item?
         return code and IT.decode(code)
@@ -3970,7 +4246,7 @@ if drawing then
             C.shop = if w[2] == "-" then nil else w[2]
             C.stock = {}
             if C.shop then
-                C.bag_open = C.shop ~= "guard"
+                C.bag_open = C.shop ~= "guard" or C.stat.cls == 1
                 if C.shop ~= was then
                     -- The quest's tab first when there is one to take or hand in.
                     local q = C.q[C.shop :: string]
@@ -3987,6 +4263,12 @@ if drawing then
             else
                 C.sold[n[1]] = { price = n[2], code = w[4], it = decoded(w[4]) }
             end
+        elseif what == "hp" then
+            C.helper = if #w >= 7 then { n[1], n[2], n[3], n[4], n[5], n[6] } else nil
+        elseif what == "hq" then
+            C.hq = { n[1], n[2], n[3], n[4], n[5], n[6] }
+        elseif what == "he" then
+            C.heq[n[1]] = decoded(w[3])
         elseif what == "mt" then
             for k = 1, #D.MAT do
                 C.mats[k] = n[k] or 0
@@ -4322,6 +4604,8 @@ if drawing then
         item_grid(C.inv, D.BAG, 10, x0 + 0.02 / aspect, y0 + 0.42, cell, function(k)
             if C.ctrl then
                 ask(`drop {k}`)
+            elseif C.shop == "guard" and C.tab == "helper" then
+                ask(`hgive {k}`)
             elseif C.shop then
                 ask(`sell {k}`)
             elseif C.stash_open then
@@ -4432,14 +4716,49 @@ if drawing then
         end
     end
 
+    -- The warden's HELPER tab: the hireling, its squares, hire or raise it.
+    local function draw_helper(x0: number, y0: number)
+        local tx = x0 + 0.04 / aspect
+        local hq = C.hq
+        if hq[1] == 0 then
+            core.hud.text(tx, y0 + 0.1, "A SWORD FOR HIRE: IT FOLLOWS YOU, WEARS WHAT YOU HAND IT", 0.015, 0, 215, 205, 185, 255)
+            core.hud.text(tx, y0 + 0.13, "AND FIGHTS BY ITS WEAPON. IT DRINKS YOUR LIFE POTIONS.", 0.015, 0, 215, 205, 185, 255)
+            button(x0 + LEFT_W / 2 / aspect, y0 + 0.22, 0.34, 0.05, `HIRE ({hq[5]} GOLD)`, true, function() ask("hire") end)
+            return
+        end
+        local alive = hq[2] == 1
+        core.hud.text(tx, y0 + 0.095, if alive then `YOUR HELPER  LIFE {hq[3]} / {hq[4]}` else "YOUR HELPER HAS FALLEN",
+                      0.019, 0, if alive then 160 else 255, if alive then 230 else 90, if alive then 160 else 80, 255)
+        if not alive then
+            button(x0 + LEFT_W / 2 / aspect, y0 + 0.14, 0.34, 0.045, `RAISE ({hq[6]} GOLD)`, true, function() ask("hraise") end)
+        end
+        local names = { "WEAPON", "OFF HAND", "HEAD", "BODY", "HANDS", "FEET", "WAIST", "NECK" }
+        for e = 1, 8 do
+            local col, row = (e - 1) % 4, (e - 1) // 4
+            local cx = x0 + (0.04 + (col + 0.5) * 0.13) / aspect
+            local cy = y0 + 0.21 + row * 0.12
+            core.hud.rect(cx, cy, 0.1, 0.1, 40, 34, 28, 255)
+            local it = C.heq[e]
+            if it then
+                item_square(it, cx, cy, 0.095, false)
+                region(cx, cy, 0.1, 0.1, function() ask(`htake {e}`) end, { item = it })
+            else
+                core.hud.text(cx, cy, names[e], 0.011, 1, 120, 110, 100, 255)
+            end
+        end
+        core.hud.text(x0 + LEFT_W / 2 / aspect, y0 + 0.44, "CLICK YOUR ITEMS TO HAND THEM OVER - ITS SQUARES TO TAKE BACK",
+                      0.0125, 1, 190, 180, 160, 255)
+    end
+
     local function draw_shop()
         local x0, y0 = left_x0(), 0.1
         local g = C.shop :: string
         panel_box(x0, y0, LEFT_W, 0.5, D.GIVER_NAME[g] or "")
         -- The tabs: the wares, what was sold here (to buy back), the quest.
-        local tabs = if g == "guard" then { { "quest", "QUEST" } }
+        local tabs = if g == "guard" and C.stat.cls == 1 then { { "quest", "QUEST" }, { "helper", "HELPER" } }
+                     elseif g == "guard" then { { "quest", "QUEST" } }
                      else { { "buy", "BUY" }, { "back", "BUY BACK" }, { "quest", "QUEST" } }
-        if g == "guard" then C.tab = "quest" end
+        if g == "guard" and C.tab ~= "helper" then C.tab = "quest" end
         for i, t in tabs do
             local cx = x0 + (0.04 + (i - 0.5) * 0.18) / aspect
             local q = C.q[g]
@@ -4448,7 +4767,9 @@ if drawing then
                          (if q[2] == 2 then " ?" elseif q[2] == 0 and C.stat.level >= def.lvl then " !" else "")
             button(cx, y0 + 0.075, 0.17, 0.04, t[2] .. (mark or ""), C.tab == t[1], function() C.tab = t[1] end)
         end
-        if C.tab == "quest" then
+        if C.tab == "helper" then
+            draw_helper(x0, y0 + 0.02)
+        elseif C.tab == "quest" then
             draw_quest(x0, y0 + 0.02, g)
         elseif C.tab == "back" then
             item_grid(C.sold, 12, 8, x0 + 0.04 / aspect, y0 + 0.12, 0.068, function(k) ask(`rebuy {k}`) end, true)
@@ -4783,8 +5104,8 @@ if drawing then
             elseif e.kind == "ambush" then
                 FX.fx("ring", e.x, e.y + 0.05, e.z, 4 + 8 * k, { 255, 60, 40 }, k)
                 FX.fx("glow", e.x, e.y + 1, e.z, 3, { 255, 50, 30 }, k, 200)
-            elseif e.kind == "drank_life" or e.kind == "drank_mana" then
-                local c = if e.kind == "drank_life" then { 255, 70, 60 } else { 70, 110, 255 }
+            elseif e.kind == "drank_life" or e.kind == "drank_mana" or e.kind == "drank_at" then
+                local c = if e.kind == "drank_mana" then { 70, 110, 255 } else { 255, 70, 60 }
                 FX.fx("glow", e.x, e.y + 1, e.z, 1.3, c, k, 200)
                 FX.fx("ring", e.x, e.y, e.z, 1.2, c, k)
             end
@@ -4852,7 +5173,10 @@ if drawing then
         if C.target_id ~= 0 then
             core.outline(C.target_id, 255, 200, 60, 3.5 + math.sin(clock * 8) * 0.8)
         end
-        if under ~= 0 and under ~= C.target_id then
+        if C.helper then
+            core.outline(C.helper[1], 90, 230, 120, 2.5)
+        end
+        if under ~= 0 and under ~= C.target_id and not (C.helper and under == C.helper[1]) then
             if C.npcs[under] then
                 core.outline(under, 240, 225, 150, 2.5)
             else
@@ -4898,6 +5222,16 @@ if drawing then
                     local h = 0.9 / (d * math.tan(FOV / 2))   -- the body's 1.8 in the screen's height
                     core.hud.rect(sx, sy + h * 0.1, h * 0.3, h * 0.75, 140, 200, 255, 90)
                     core.hud.rect(sx, sy - h * 0.4, h * 0.2, h * 0.2, 140, 200, 255, 110)
+                end
+            end
+            if C.helper then
+                local hh = C.helper :: { number }
+                local sx, sy = project(hh[2], hh[3] + 2.1, hh[4])
+                if sx then
+                    local f = math.clamp(hh[5] / math.max(1, hh[6]), 0, 1)
+                    core.hud.rect(sx, sy, 0.09, 0.012, 40, 10, 10, 220)
+                    core.hud.rect(sx - 0.045 / aspect * (1 - f), sy, 0.09 * f, 0.012, 90, 220, 110, 255)
+                    core.hud.text(sx, sy - 0.018, "HELPER", 0.012, 1, 170, 240, 170, 255)
                 end
             end
             for _, n in C.npcs do

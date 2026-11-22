@@ -481,6 +481,8 @@ declare core: {
     container_scroll: (x: number, y: number, z: number, pos: number, size: number) -> boolean,
     -- A search box beside the container at that cell (mods/creative). What a player types in it comes back on every key as core:ui_click with panel "core:chest", id "search" and the text. Gone with the container (core.container_clear). Returns 1, or 0 for a cell with no container.
     container_search: (x: number, y: number, z: number, text: string) -> boolean,
+    -- A column of tabs beside the container at that cell, under its search box (mods/creative). A click on one comes back as core:ui_click with panel "core:chest", id "tab" and the tab's number from 1 as the text. Returns 1, or 0 for a cell with no container.
+    container_tabs: (x: number, y: number, z: number, labels: string, active: number?) -> boolean,
     -- A stack lying on this block does not grow older, and is not gone after five minutes as one on the ground is -- a sorter, where things wait their turn. One on a belt (core.node_conveyor) never grows older anyway. Returns 1, or 0 for an id that is not a block.
     node_keeps_drops: (id: number, on: boolean?) -> boolean,
     -- Opens the container at that cell on one player's screen, making it if there is not one. An existing container is never made smaller, and grows when asked for more (see container_make). The chest is at the CELL and not in the player: two people can have it open at once and both reach into it. `player` is the id the events carry, and 0 is nobody -- there is no chest for the world.
@@ -595,6 +597,8 @@ declare core: {
     player_clip: (player: number, clip: string?, dx: number?, dz: number?) -> boolean,
     -- Dresses a body in a model of a mod's own, drawn on their skeleton bone by bone as a worn piece is, for everybody to see (protocol 102): a sword bound whole to hand_R, a helm to head. Up to ten, apart from what the engine's bag has them wear; they stay until taken off or the player leaves. On a server everybody else sees them; on a player's machine (only their own id) its own drawing of the body wears them. A body of another species wears the world's "<model>_<species>" (human, mole, frog) when there is one, refitted to it. Returns 1, or 0 for a player who is not here, a slot out of range or a model nobody registered.
     player_wear: (player: number, slot: number, model: number?, tint: number?) -> boolean,
+    -- Dresses a worker as core.player_wear dresses a player, for everybody to see (protocol 131): a hireling in the armour it was handed. A body of another species is not a worker's, so the robot's piece is drawn. Returns 1, or 0 for one that is gone or not a worker, a slot out of range or a model nobody registered. On a server.
+    mob_wear: (id: number, slot: number, model: number?, tint: number?) -> boolean,
     -- Plays a sound at a place, for everybody in this world, quieter with distance and heard through a portal the way round. Each client turns the name into a file of its own: mods/<mod>/<thing>.ogg (or .wav) beside the mod's init.luau, then assets/sounds/<mod>_<thing>.ogg. A client without the file hears nothing. Returns 1, or 0 for a name that is not "mod:thing".
     play_sound: (name: string, x: number, y: number, z: number) -> boolean,
     -- Keeps a sound going round at a place for everybody in this world until core.sound_loop_stop (protocol 116): rain, lava, an engine, music in a hall. Found as core.play_sound finds its file; a player who comes in later hears it too. Several loops of one name are one voice, as loud as the nearest of them: a lake of lava in thirty places sounds like one lake. Up to 64 a world. Returns the loop's id, or 0 for a name that is not "mod:thing", a range or gain out of bounds or a 65th loop.
@@ -707,6 +711,8 @@ declare core: {
     item_name: (id: number) -> string,
     -- How many of that item fit in one slot -- 64 for most things, 1 for a tool. What a mod handing over a full stack has to ask, rather than writing 64 and being wrong about every tool.
     item_stack: (id: number) -> number,
+    -- What sort of thing the item is, from what it does: "block" (it places one), "wear" (it is worn), "tool" (it digs), "weapon" (it strikes and does not dig) or "item"; empty for no item or an orphan. What a catalogue sorts by.
+    item_kind: (id: number) -> string,
 
     -- Hand-written, not generated: these take tables or functions rather
     -- than scalars.

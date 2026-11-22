@@ -2197,6 +2197,13 @@ a ninguém, então andar de 1 até `item_count` pulando os vazios dá exatamente
 pode receber. `mods/creative` é o exemplo: um painel com um botão por item, e um clique dá uma pilha
 cheia -- `item_stack` e não 64, senão toda ferramenta estaria errada.
 
+`core.item_kind(id)` diz que tipo de coisa é um item, pelo que ele faz: `"block"`, `"wear"`,
+`"tool"` (cava), `"weapon"` (golpeia e não cava) ou `"item"`. O catálogo ordena as suas abas por
+ele: `core.container_tabs(x, y, z, "All|Blocks|Tools", active)` põe uma coluna de abas sob a
+caixa de busca, e um clique volta como `core:ui_click` com painel `"core:chest"`, id `"tab"` e o
+número da aba como texto. Os rótulos são desenhados traduzidos: escreva-os como chaves de
+`assets/lang/*.txt`.
+
 ### Contêineres, cinábrio e outras coisas acrescentadas em 2026-09-25
 
 Um resumo para quem escreve um mod; assinaturas e padrões em [API.md](API.md).

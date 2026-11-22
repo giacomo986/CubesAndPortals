@@ -46,6 +46,8 @@ Botão esquerdo: andar, golpear, falar, apanhar. Botão direito: a habilidade es
 - **O Açougueiro**: o senhor do Ermo cinzento antes do seu senhor, no seu covil (área b1, nível
   3), com quatro mortos: enorme, rápido, um cutelo que bate forte. Ao entrar no covil com ele
   vivo, um muro de luz vermelha fecha o caminho de volta (nem portal da cidade) até ele cair.
+- **O ajudante do guerreiro**: contratado ao guarda do portão (separador AJUDANTE), segue-te e
+  luta segundo a arma que lhe dás; bebe as tuas poções de vida; caído, o guarda ressuscita-o, caro.
 - **Armadilhas**: quase todas as áreas depois da primeira escondem uma, que dispara ao passar
   perto, uma vez até o mundo esvaziar: explosão de fogo, chão elétrico em manchas, onda de
   espigões em linha, névoa gelada (abranda a 40% por 4 s), nuvem de veneno, ou uma horda de

@@ -14,7 +14,8 @@
 -- copy and the square keeps it, and what is put back is gone; one square more,
 -- "trash", is a bin beside the grid for anything dropped on it. The wheel turns
 -- the rows, and a scrollbar says where they are; the search box left of the
--- grid (or /creative <text>) keeps only the items whose names hold the text.
+-- grid (or /creative <text>) keeps only the items whose names hold the text,
+-- and the tabs under it only one sort (core.item_kind), "All" every one.
 --
 -- `side = both`, for the keys: a key reaches only the player's machine
 -- (core:input), so that half asks the server over the mod's channel. A process
@@ -50,17 +51,33 @@ if serving then
     -- somebody reading the list would guess.
     local items: { number } = {}
 
+    -- The tabs: "All", then each sort some item is (core.item_kind), in this
+    -- order. Labels in English, translated where they are drawn.
+    local SORTS = {
+        { kind = "block", label = "Blocks" },
+        { kind = "tool", label = "Tools" },
+        { kind = "weapon", label = "Weapons" },
+        { kind = "wear", label = "Wearables" },
+        { kind = "item", label = "Other items" },
+    }
+    local kinds: { string } = { "" }   -- per tab; "" is every sort
+    local labels = "All"
+    local kind_of: { [number]: string } = {}
+
     -- Each player's own: what they searched for, how far down they turned, and
     -- what their squares hold now (to be taken out before the next rows go in).
     local query: { [number]: string } = {}
     local row: { [number]: number } = {}
     local held: { [number]: { number } } = {}
+    local tab: { [number]: number } = {}
 
     local function shown(player: number): { number }
         local q = string.lower(query[player] or "")
+        local want = kinds[tab[player] or 1] or ""
         local out = {}
         for _, id in items do
-            if q == "" or string.find(string.lower(core.item_name(id)), q, 1, true) then
+            if (want == "" or kind_of[id] == want)
+                and (q == "" or string.find(string.lower(core.item_name(id)), q, 1, true)) then
                 table.insert(out, id)
             end
         end
@@ -93,6 +110,7 @@ if serving then
         end
         held[player] = now
         core.container_search(player, Y, BOX, query[player] or "")
+        core.container_tabs(player, Y, BOX, labels, tab[player] or 1)
         core.container_scroll(player, Y, BOX, if #list > 0 then r * COLS / #list else 0,
                               if #list > SHOW then SHOW / #list else 0)
     end
@@ -117,9 +135,21 @@ if serving then
     -- else. core:world_ready is the event that says "everybody has registered".
     core.event.on("core:world_ready", function()
         items = {}
+        kind_of = {}
+        local has: { [string]: boolean } = {}
         for id = 1, core.item_count() - 1 do
             if core.item_name(id) ~= "" then
                 table.insert(items, id)
+                kind_of[id] = core.item_kind(id)
+                has[kind_of[id]] = true
+            end
+        end
+        kinds = { "" }
+        labels = "All"
+        for _, s in SORTS do
+            if has[s.kind] then
+                kinds[#kinds + 1] = s.kind
+                labels ..= "|" .. s.label
             end
         end
 
@@ -143,12 +173,19 @@ if serving then
         open_for(ev.player :: number)
     end)
 
-    -- The box beside the grid: narrowed on every key.
+    -- The box beside the grid, narrowed on every key, and the tabs under it.
     core.event.on("core:ui_click", function(ev)
-        if ev.panel ~= "core:chest" or ev.id ~= "search" or held[ev.player] == nil then
+        if ev.panel ~= "core:chest" or held[ev.player] == nil then
             return
         end
-        query[ev.player] = string.sub(ev.text, 1, 64)
+        if ev.id == "search" then
+            query[ev.player] = string.sub(ev.text, 1, 64)
+        elseif ev.id == "tab" then
+            local t = tonumber(ev.text) or 1
+            tab[ev.player] = if kinds[t] ~= nil then t else 1
+        else
+            return
+        end
         row[ev.player] = 0
         fill(ev.player)
     end)

@@ -529,7 +529,8 @@ tresette, da due a cinque giocatori, con il tavolo che gioca i posti vuoti.
 in `contrib/lizard`), uno stile,
 tre colori e due accessori, visti da tutti. Sulla schiena: un jetpack per volare, uno zaino di
 cuoio con 27 slot suoi, o uno zaino di metallo con due braccia snodate che tengono uno strumento
-ciascuna. Il catalogo creativo (C) ha una casella di ricerca. `/creative on` è la modalità creativa: volo
+ciascuna. Il catalogo creativo (C) ha una casella di ricerca e le schede per tipo (tutti, blocchi, attrezzi,
+armi, indossabili, altri oggetti). `/creative on` è la modalità creativa: volo
 senza jetpack, nessun danno, scavo veloce (libera in un mondo tuo, da admin su un server). `/time`
 cambia l'ora, `/kill` riporta al letto o allo spawn quando si resta bloccati. In un mondo con una
 prova, `/giveup` la abbandona: si muore e si torna nel sandbox, fuori dal portale del mondo. Ciò che un piedistallo o

@@ -2158,6 +2158,13 @@ anyone, so walking from 1 to `item_count` skipping the empties gives exactly the
 receive. `mods/creative` is the example: a panel with a button per item, and a click gives a full
 stack -- `item_stack` and not 64, otherwise every tool would be wrong.
 
+`core.item_kind(id)` says what sort of thing an item is, from what it does: `"block"`, `"wear"`,
+`"tool"` (it digs), `"weapon"` (it strikes and does not dig) or `"item"`. The catalogue sorts its
+tabs by it: `core.container_tabs(x, y, z, "All|Blocks|Tools", active)` puts a column of tabs under
+the search box, and a click comes back as `core:ui_click` with panel `"core:chest"`, id `"tab"`
+and the tab's number as the text. Labels are drawn translated, so write them as keys of
+`assets/lang/*.txt`.
+
 ### Containers, cinnabar and other things added on 2026-09-25
 
 A summary for whoever writes a mod; signatures and defaults in [API.md](API.md).

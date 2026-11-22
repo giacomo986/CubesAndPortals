@@ -141,4 +141,22 @@ bool ContainerSet::search(const ContainerAt &at, std::string &text) const
     return true;
 }
 
+void ContainerSet::set_tabs(const ContainerAt &at, const std::string &labels, int active)
+{
+    const auto it = m_map.find(at);
+    if (it == m_map.end()) return;
+    it->second.tabs = labels;
+    it->second.tab  = active;
+    ++it->second.rev;
+}
+
+bool ContainerSet::tabs(const ContainerAt &at, std::string &labels, int &active) const
+{
+    const auto it = m_map.find(at);
+    if (it == m_map.end() || it->second.tabs.empty()) return false;
+    labels = it->second.tabs;
+    active = it->second.tab;
+    return true;
+}
+
 } // namespace cnp

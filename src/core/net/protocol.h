@@ -45,7 +45,7 @@ inline constexpr uint32_t kMagic = 0x31504E43u;
 // Bumped when the wire format changes in a way an older parser gets wrong.
 // kMinProtocol is how far back we still speak: a range, not a number, because
 // "versioned" means nothing if the only accepted version is today's.
-inline constexpr uint16_t kProtocol    = 129; // 129 ChatWords, what Tab finishes in the chat; 128 a block's light_tint is white unless it gives light or colours it (stained glass); 127 a room of several entered with a ticket signed for it; 126 world code may be api 2 (yes/no calls answer true/false); 125 kSpawnOpening, arriving at a room's spawn; 124 a person's left hand (EntityState::off_item); 123 kMaxNodeShapes 2048; 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
+inline constexpr uint16_t kProtocol    = 131; // 131 a creature dressed (core.mob_wear, EntityState::dress for a Mob); 130 a container's tabs (core.container_tabs); 129 ChatWords, what Tab finishes in the chat; 128 a block's light_tint is white unless it gives light or colours it (stained glass); 127 a room of several entered with a ticket signed for it; 126 world code may be api 2 (yes/no calls answer true/false); 125 kSpawnOpening, arriving at a room's spawn; 124 a person's left hand (EntityState::off_item); 123 kMaxNodeShapes 2048; 122 Slain, a block's selection boxes and the colour of its light; 121 Welcome::world_depth; 120 windows: Portal::view
 //
 // And 24 is also as far back as this build speaks, which is the honest answer
 // rather than a range this code cannot keep. 22 grew every body on the Entity
@@ -2372,6 +2372,8 @@ struct ContainerState {
     float scroll_size = 0.0f;     // and how much of the list they are; 0 no scrollbar
     bool        search = false;   // a search box beside it, holding `query` (106)
     std::string query;
+    std::string tabs;             // tabs beside it, labels split by '|'; empty none (130)
+    uint8_t     tab = 0;          // the one lit, from 1; 0 none
 
     std::vector<uint8_t> encode() const;
     static bool decode(ByteReader &r, ContainerState &out);

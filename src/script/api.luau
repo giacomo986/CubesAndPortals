@@ -3038,6 +3038,22 @@ local api: { Fn } = {
            .. "Returns 1, or 0 for a cell with no container.",
     },
     {
+        name = "container_tabs",
+        host = "container_tabs",
+        ret  = "flag",
+        args = {
+            { name = "x", type = "int" },
+            { name = "y", type = "int" },
+            { name = "z", type = "int" },
+            { name = "labels", type = "string", doc = "The tabs' labels split by '|', as they are drawn (translated); empty for none." },
+            { name = "active", type = "int", default = 1, doc = "The one lit, from 1." },
+        },
+        doc = "A column of tabs beside the container at that cell, under its search box "
+           .. "(mods/creative). A click on one comes back as core:ui_click with panel "
+           .. "\"core:chest\", id \"tab\" and the tab's number from 1 as the text. Returns 1, "
+           .. "or 0 for a cell with no container.",
+    },
+    {
         name = "node_keeps_drops",
         host = "node_keeps_drops",
         ret  = "flag",
@@ -3742,6 +3758,23 @@ local api: { Fn } = {
            .. "for a player who is not here, a slot out of range or a model nobody registered.",
     },
     {
+        name = "mob_wear",
+        host = "mob_wear",
+        ret  = "flag",
+        args = {
+            { name = "id", type = "int", doc = "A worker, by the id core.spawn_mob gave." },
+            { name = "slot", type = "int", doc = "1 to 10, as core.player_wear's." },
+            { name = "model", type = "int", default = 0,
+              doc = "A model from register_model made on the worker's rig; 0 takes the piece off." },
+            { name = "tint", type = "int", default = 0, doc = "As core.player_wear's." },
+        },
+        doc = "Dresses a worker as core.player_wear dresses a player, for everybody to see "
+           .. "(protocol 131): a hireling in the armour it was handed. A body of another "
+           .. "species is not a worker's, so the robot's piece is drawn. Returns 1, or 0 for one "
+           .. "that is gone or not a worker, a slot out of range or a model nobody registered. "
+           .. "On a server.",
+    },
+    {
         name = "play_sound",
         host = "play_sound",
         ret  = "flag",
@@ -4393,6 +4426,17 @@ local api: { Fn } = {
         doc = "How many of that item fit in one slot -- 64 for most things, 1 for a tool. "
            .. "What a mod handing over a full stack has to ask, rather than writing 64 and "
            .. "being wrong about every tool.",
+    },
+    {
+        name = "item_kind",
+        host = "item_kind",
+        ret  = "string",
+        args = {
+            { name = "id", type = "int" },
+        },
+        doc = "What sort of thing the item is, from what it does: \"block\" (it places one), "
+           .. "\"wear\" (it is worn), \"tool\" (it digs), \"weapon\" (it strikes and does not "
+           .. "dig) or \"item\"; empty for no item or an orphan. What a catalogue sorts by.",
     },
 }
 

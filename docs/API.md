@@ -3014,6 +3014,24 @@ Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
 | `z` | number | — |  |
 | `text` | string | — | What the box holds. |
 
+## `core.container_tabs`
+
+```luau
+core.container_tabs(x: number, y: number, z: number, labels: string, active: number?) -> boolean
+```
+
+A column of tabs beside the container at that cell, under its search box (mods/creative). A click on one comes back as core:ui_click with panel "core:chest", id "tab" and the tab's number from 1 as the text. Returns 1, or 0 for a cell with no container.
+
+Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
+
+| argument | type | default | notes |
+|---|---|---|---|
+| `x` | number | — |  |
+| `y` | number | — |  |
+| `z` | number | — |  |
+| `labels` | string | — | The tabs' labels split by '|', as they are drawn (translated); empty for none. |
+| `active` | number | `1` | The one lit, from 1. |
+
 ## `core.node_keeps_drops`
 
 ```luau
@@ -3747,6 +3765,23 @@ Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
 | `model` | number | `0` | A model from register_model, made on the player model's rig; 0 takes the piece off. |
 | `tint` | number | `0` | Its tint_1..3 colours, five bits each from the lowest, 0 for the model's own or 1..16 a dye. |
 
+## `core.mob_wear`
+
+```luau
+core.mob_wear(id: number, slot: number, model: number?, tint: number?) -> boolean
+```
+
+Dresses a worker as core.player_wear dresses a player, for everybody to see (protocol 131): a hireling in the armour it was handed. A body of another species is not a worker's, so the robot's piece is drawn. Returns 1, or 0 for one that is gone or not a worker, a slot out of range or a model nobody registered. On a server.
+
+Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
+
+| argument | type | default | notes |
+|---|---|---|---|
+| `id` | number | — | A worker, by the id core.spawn_mob gave. |
+| `slot` | number | — | 1 to 10, as core.player_wear's. |
+| `model` | number | `0` | A model from register_model made on the worker's rig; 0 takes the piece off. |
+| `tint` | number | `0` | As core.player_wear's. |
+
 ## `core.play_sound`
 
 ```luau
@@ -4440,6 +4475,18 @@ core.item_stack(id: number) -> number
 ```
 
 How many of that item fit in one slot -- 64 for most things, 1 for a tool. What a mod handing over a full stack has to ask, rather than writing 64 and being wrong about every tool.
+
+| argument | type | default | notes |
+|---|---|---|---|
+| `id` | number | — |  |
+
+## `core.item_kind`
+
+```luau
+core.item_kind(id: number) -> string
+```
+
+What sort of thing the item is, from what it does: "block" (it places one), "wear" (it is worn), "tool" (it digs), "weapon" (it strikes and does not dig) or "item"; empty for no item or an orphan. What a catalogue sorts by.
 
 | argument | type | default | notes |
 |---|---|---|---|

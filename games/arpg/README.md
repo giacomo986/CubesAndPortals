@@ -44,6 +44,12 @@ Left button: walk, strike, talk, pick up. Right button: the skill 1-4 chose. **Q
 - **The Butcher**: the Grey Waste's lord before its lord, in its den (area b1, level 3), with four
   of the dead: huge, quick, a cleaver that hits hard. Step into its den with it alive and a wall of
   red light shuts the way back (no town portal either) until it falls.
+- **The warrior's helper**: hired at the gate warden (HELPER tab), it follows you and fights by the
+  weapon it is handed -- a blade up close, a bow from afar, a staff or a wand with fire. Click
+  items in your bag on that tab to hand them over (its eight squares, no rings, not above your
+  level); click its squares to take them back. It drinks your life potions under two fifths of
+  its life. Fallen, the warden raises it, dearly, in what it wore. It wears its gear for
+  everybody to see (`core.mob_wear`, an engine feature).
 - **Traps**: most areas past the first hide one, set off by walking near it, once until the world
   is empty: a burst of fire after a closing red ring (more than half a life), the floor gone
   electric in patches (step off in the first second's flicker), a wave of spikes along a line

@@ -51,6 +51,12 @@ Tasto sinistro: cammina, colpisci, parla, raccogli. Tasto destro: l'abilità sce
   (area b1, livello 3), con quattro morti: enorme, veloce, una mannaia che picchia duro. Se entri
   nella sua tana mentre è vivo, un muro di luce rossa chiude la via del ritorno (niente portale
   cittadino) finché non cade.
+- **L'aiutante del guerriero**: lo assumi dal guardiano del cancello (scheda AIUTANTE), ti segue e
+  combatte secondo l'arma che gli dai: una lama da vicino, un arco da lontano, un bastone o una
+  bacchetta col fuoco. Su quella scheda clicca gli oggetti della borsa per darglieli (i suoi otto
+  riquadri, niente anelli, non sopra il tuo livello); clicca i suoi riquadri per riprenderli.
+  Beve le tue pozioni di vita sotto due quinti della vita. Caduto, il guardiano lo resuscita, a
+  caro prezzo, con ciò che indossava. L'equipaggiamento si vede addosso (`core.mob_wear`).
 - **Trappole**: quasi ogni area dopo la prima ne nasconde una, che scatta passandoci vicino, una
   volta finché il mondo non si svuota: un'esplosione di fuoco dopo un anello rosso che si stringe
   (più di mezza vita), il pavimento elettrico a chiazze (spostati nel primo secondo di

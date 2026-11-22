@@ -1463,6 +1463,8 @@ struct Scene {
         float                  chest_scroll = 0.0f, chest_scroll_size = 0.0f;   // its scrollbar
         bool                   chest_search = false;   // and a search box, holding chest_query
         std::string            chest_query;
+        std::string            chest_tabs;      // tabs beside it, labels split by '|'
+        int                    chest_tab = 0;   // the one lit, from 1
         double                 chest_since    = 0.0;     // when that was said (the frame clock)
         bool                   chest_open = false;
         ContainerAt            chest_at;
@@ -3601,6 +3603,14 @@ int host_container_search(void *ud, int x, int y, int z, const char *text)
     return 1;
 }
 
+int host_container_tabs(void *ud, int x, int y, int z, const char *labels, int active)
+{
+    Scene *s = static_cast<Scene *>(ud);
+    if (s->act().containers.find(ContainerAt{x, y, z}) == nullptr) return 0;
+    s->act().containers.set_tabs(ContainerAt{x, y, z}, labels ? std::string(labels).substr(0, ui::kMaxPanelText) : "", active);
+    return 1;
+}
+
 int host_node_conveyor(void *ud, int id_in, float speed, float height, float rise, int rail)
 {
     NodeRegistry &R = static_cast<Scene *>(ud)->act().registry;
@@ -3930,6 +3940,11 @@ int host_item_stack(void *ud, int id)
     Scene *s = static_cast<Scene *>(ud);
     if (id <= 0 || (size_t)id >= s->act().items.size()) return 0;
     return (int)s->act().items.max_stack((ItemId)id);
+}
+
+const char *host_item_kind(void *ud, int id)
+{
+    return item_kind_of(static_cast<Scene *>(ud)->act().items, id);
 }
 
 // --- panels, from a mod's side ----------------------------------------------
@@ -6395,17 +6410,27 @@ void local_chat(Scene &s, const std::string &line)
 
 // The open chest's search box (core.container_search): a click in it takes the
 // keyboard, a click anywhere else or Enter lets go, and every change is sent at
-// once -- a catalogue narrows as it is typed. True with `text` to send.
-bool chest_search(Scene &s, std::string &text)
+// once -- a catalogue narrows as it is typed. And its tabs
+// (core.container_tabs): a click on one is sent as "tab" and its number. True
+// with `id` and `text` to send.
+bool chest_search(Scene &s, std::string &id, std::string &text)
 {
     const bool mine = s.typing.on && s.typing.panel == "core:chest";
-    if (!s.hotbar.open || !s.hotbar.chest_open || !s.hotbar.chest_search) {
+    if (!s.hotbar.open || !s.hotbar.chest_open || (mine && !s.hotbar.chest_search)) {
         if (mine) stop_typing(s);
-        return false;
+        if (!s.hotbar.open || !s.hotbar.chest_open) return false;
     }
     if (plat_mouse_pressed(PLAT_MOUSE_LEFT)) {
         float mx = 0.0f, my = 0.0f;
         plat_mouse_position(&mx, &my);
+        if (const int t = s.hotbar.chest_panel.tab_at(mx, my); t > 0) {
+            if (mine) stop_typing(s);
+            s.hotbar.chest_tab = t;   // lit now, not a round trip later
+            id   = "tab";
+            text = std::to_string(t);
+            return true;
+        }
+        if (!s.hotbar.chest_search) return false;
         if (!s.hotbar.chest_panel.in_field(mx, my)) {
             if (mine) stop_typing(s);
         } else if (!mine) {
@@ -6425,6 +6450,7 @@ bool chest_search(Scene &s, std::string &text)
     const std::string before = s.typing.line.text;
     type_line(s.typing.line, 64);
     if (s.typing.line.text == before) return false;
+    id                   = "search";
     text                 = s.typing.line.text;
     s.hotbar.chest_query = text;   // shown now, not a round trip later
     return true;
@@ -13663,7 +13689,8 @@ void render_frame(Scene &s, Vec3 eye, Vec3 forward, Vec3 up, bool hud, const cha
                                              s.hotbar.chest_rate * (float)(plat_time() - s.hotbar.chest_since)),
                     s.hotbar.chest_scroll, s.hotbar.chest_scroll_size,
                     s.hotbar.chest_search ? s.hotbar.chest_query.c_str() : nullptr,
-                    s.typing.on && s.typing.panel == "core:chest" ? &chest_typed : nullptr);
+                    s.typing.on && s.typing.panel == "core:chest" ? &chest_typed : nullptr,
+                    s.hotbar.chest_tabs.c_str(), s.hotbar.chest_tab);
             } else {
                 s.hotbar.chest_panel = ui::PanelLayout{};
             }
@@ -18272,6 +18299,12 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             body.model = p.kind == net::EntityKind::Player ? species_model(s.act().models, p.model, p.livery)
                                                            : p.model;
             if (!body.dropped) body.yaw = p.yaw;
+            // A worker a mod dressed (core.mob_wear, 131): its pieces, drawn
+            // on its skeleton as a person's are.
+            if (p.kind == net::EntityKind::Mob) {
+                std::copy(std::begin(p.dress), std::end(p.dress), std::begin(body.dress));
+                std::copy(std::begin(p.dress_tint), std::end(p.dress_tint), std::begin(body.dress_tint));
+            }
             // What they hold, off the server's item table: the tools shown
             // and a block in the hand, as for this machine's own body.
             if (p.kind == net::EntityKind::Player) {
@@ -18612,7 +18645,7 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
         } else if (s.typing.on && s.typing.panel != "core:chest") {
             stop_typing(s);
         }
-        if (std::string q; chest_search(s, q)) conn->send_ui_click("core:chest", "search", q);
+        if (std::string id, q; chest_search(s, id, q)) conn->send_ui_click("core:chest", id, q);
 
         // The bag, over the world. E opens it, E or ESC closes it, and while it
         // is open the cursor is free and nothing the player clicks reaches the
@@ -20066,6 +20099,8 @@ int run_network(Scene &s, net::ClientSessionSet &net_sessions, int self,
             s.hotbar.chest_scroll_size = cs->scroll_size;
             s.hotbar.chest_search      = cs->search;
             if (!(s.typing.on && s.typing.panel == "core:chest")) s.hotbar.chest_query = cs->query;
+            s.hotbar.chest_tabs = cs->tabs;
+            s.hotbar.chest_tab  = cs->tab;
             if (cs->progress != s.hotbar.chest_progress || cs->rate != s.hotbar.chest_rate) {
                 s.hotbar.chest_progress = cs->progress;
                 s.hotbar.chest_rate     = cs->rate;
@@ -21293,7 +21328,7 @@ int run_interactive(Scene &s, double seconds)
         // The bag, over the world. The same two keys as the networked client,
         // and the same rule while it is open: the cursor is free and nothing
         // reaches the world.
-        if (std::string q; chest_search(s, q)) emit_ui_click(s, "core:chest", "search", q);
+        if (std::string id, q; chest_search(s, id, q)) emit_ui_click(s, "core:chest", id, q);
         if (!s.pause.up && !s.typing.on && plat_key_pressed(PLAT_KEY_E)) {
             // In this process there is no message to send -- the container set
             // and the grid are right here -- but the rule is the networked one:
@@ -22262,6 +22297,8 @@ int run_interactive(Scene &s, double seconds)
                 std::string q;
                 s.hotbar.chest_search = s.act().containers.search(s.hotbar.chest_at, q);
                 if (!(s.typing.on && s.typing.panel == "core:chest")) s.hotbar.chest_query = q;
+                if (!s.act().containers.tabs(s.hotbar.chest_at, s.hotbar.chest_tabs, s.hotbar.chest_tab))
+                    s.hotbar.chest_tabs.clear();
                 s.hotbar.chest_since    = plat_time();
             } else {
                 // The block stopped being a chest under the player's hands.
@@ -22489,6 +22526,7 @@ script_host make_client_host(Scene &scene)
     host.item_count    = host_item_count;
     host.item_name     = host_item_name;
     host.item_stack    = host_item_stack;
+    host.item_kind     = host_item_kind;
     host.ui_define     = host_ui_define;
     host.ui_label      = host_ui_label;
     host.ui_button     = host_ui_button;
@@ -22567,6 +22605,7 @@ script_host make_client_host(Scene &scene)
     host.container_progress = host_container_progress;
     host.container_scroll   = host_container_scroll;
     host.container_search   = host_container_search;
+    host.container_tabs     = host_container_tabs;
     host.node_door     = host_node_door;
     host.node_piece    = host_node_piece;
     host.place_piece   = host_place_piece;

@@ -140,6 +140,13 @@ public:
     void set_search(const ContainerAt &at, const std::string &text);
     bool search(const ContainerAt &at, std::string &text) const;
 
+    // Tabs beside it (core.container_tabs): labels split by '|', and which one
+    // is lit. A click on one comes back as core:ui_click from panel
+    // "core:chest", id "tab", the tab's number from 1 as the text. Empty
+    // labels is no tabs. Changing them is a change to what is in it (touched).
+    void set_tabs(const ContainerAt &at, const std::string &labels, int active);
+    bool tabs(const ContainerAt &at, std::string &labels, int &active) const;
+
     // Every cell that has a container, in no particular order. For whoever has
     // to write them all down at once -- there is no other reason to walk a map
     // keyed by position, and a caller that wants one container has find().
@@ -158,6 +165,8 @@ private:
         float     scroll_pos = 0.0f, scroll_size = 0.0f;
         bool        searchable = false;
         std::string query;
+        std::string tabs;   // labels split by '|', empty for none
+        int         tab = 0;
 
         explicit Held(int slots) : bag(slots) {}
     };

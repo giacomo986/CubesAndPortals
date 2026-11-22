@@ -258,6 +258,7 @@ typedef struct script_host {
     int (*item_count)(void *ud);
     const char *(*item_name)(void *ud, int id);
     int (*item_stack)(void *ud, int id);
+    const char *(*item_kind)(void *ud, int id);
 
     // What the bodies in this world look like. A model is declared by name and
     // by the file it is in ON THIS MACHINE -- the name is what travels, the
@@ -300,11 +301,13 @@ typedef struct script_host {
     void (*top_view_at)(void *ud, double x, double y, double z, double distance, double yaw, double fov,
                         double seconds);
     int (*cursor_ray)(void *ud, float *ox, float *oy, float *oz, float *dx, float *dy, float *dz);
-    void (*walk)(void *ud, double dx, double dz, double speed);
     // The creature under the cursor's ray (core.cursor_creature), 0 for none;
     // and a rim round one for a moment (core.outline).
     double (*cursor_creature)(void *ud);
+    // A worker dressed (core.mob_wear), on a server.
+    int (*mob_wear)(void *ud, int id, int slot, int model, int tint);
     void (*outline)(void *ud, double id, int r, int g, int b, double px, int a);
+    void (*walk)(void *ud, double dx, double dz, double speed);
     void (*engine_hud)(void *ud, int on);
     int (*engine_hud_on)(void *ud);
     void (*arms_clip)(void *ud, const char *clip);
@@ -591,6 +594,7 @@ typedef struct script_host {
     int (*container_progress)(void *ud, int x, int y, int z, float seconds);
     int (*container_scroll)(void *ud, int x, int y, int z, float pos, float size);
     int (*container_search)(void *ud, int x, int y, int z, const char *text);
+    int (*container_tabs)(void *ud, int x, int y, int z, const char *labels, int active);
     int (*container_show)(void *ud, int x, int y, int z, int slots, int player);
     int (*container_close)(void *ud, int player);
     int (*container_count)(void *ud, int x, int y, int z, int item, const char *role);

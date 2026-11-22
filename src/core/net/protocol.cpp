@@ -1563,12 +1563,15 @@ std::vector<uint8_t> Entities::encode() const
         const bool clip    = (e.kind == EntityKind::Mob || e.kind == EntityKind::Thing) && !e.clip.empty();
         const bool posed   = e.kind == EntityKind::Player && !e.clip.empty();   // 92
         const bool livery  = e.kind == EntityKind::Player && e.livery != 0;      // 93
+        int        mob_pieces = 0;                                                // a worker dressed (131)
+        if (e.kind == EntityKind::Mob)
+            for (const uint16_t m : e.dress) mob_pieces += m != 0;
         w.u8((e.working || (e.kind == EntityKind::Drop && e.shown) ? 1 : 0) | (e.crouching || clip ? 2 : 0) | (e.burning || posed ? 4 : 0) |
              (dressed ? 8 : 0) | (chassis ? 16 : 0) |
              ((e.kind == EntityKind::Drop && e.falling) || livery ||
               (e.kind == EntityKind::Mob && e.scale != 1.0f) ? 32 : 0) |
              ((e.kind == EntityKind::Player && e.lying) || (e.kind == EntityKind::Mob && e.held) ? 64 : 0) |
-             (tinted ? 128 : 0));
+             (tinted || mob_pieces > 0 ? 128 : 0));
         if (e.kind == EntityKind::Player) {
             int pieces = 0;
             for (const uint16_t m : e.dress) pieces += m != 0;
@@ -1593,6 +1596,15 @@ std::vector<uint8_t> Entities::encode() const
             }
         }
         if (e.kind == EntityKind::Mob && e.scale != 1.0f) w.f32(e.scale);   // 118
+        if (mob_pieces > 0) {   // 131: as a person's list (102)
+            w.u8((uint8_t)mob_pieces);
+            for (int k = 0; k < 10; ++k)
+                if (e.dress[k] != 0) {
+                    w.u8((uint8_t)k);
+                    w.u16(e.dress[k]);
+                    w.u16(e.dress_tint[k]);
+                }
+        }
         if (dressed)
             for (const uint16_t id : e.worn) w.u16(id);
         if (dressed)
@@ -1702,7 +1714,19 @@ bool Entities::decode(ByteReader &r, Entities &out)
             e.scale = r.f32();
             if (!r.ok() || !(e.scale >= kMinBodyScale && e.scale <= kMaxBodyScale)) return false;
         }
-        if ((flags & 128) && e.kind != EntityKind::Player) return false;  // only a person holds (76)
+        if ((flags & 128) && e.kind == EntityKind::Mob) {   // a worker dressed (131): never an empty list
+            const uint8_t pieces = r.u8();
+            if (!r.ok() || pieces == 0 || pieces > 10) return false;
+            for (uint8_t piece = 0; piece < pieces; ++piece) {
+                const uint8_t k = r.u8();
+                if (!r.ok() || k >= 10 || e.dress[k] != 0) return false;
+                e.dress[k]      = r.u16();
+                e.dress_tint[k] = r.u16();
+                if (!r.ok() || e.dress[k] == 0) return false;
+            }
+        }
+        // Only a person holds (76), and a creature is dressed (131).
+        if ((flags & 128) && e.kind != EntityKind::Player && e.kind != EntityKind::Mob) return false;
         // Only a person lies (75), and only a creature is held (91).
         if ((flags & 64) && e.kind != EntityKind::Player && e.kind != EntityKind::Mob) return false;
         e.lying = (flags & 64) != 0 && e.kind == EntityKind::Player;
@@ -1745,7 +1769,7 @@ bool Entities::decode(ByteReader &r, Entities &out)
                 if (!(d >= -4.0f && d <= 4.0f)) return false;
         }
         if ((e.boosting || e.sliding) && !e.chassis) return false;   // only a kart (103)
-        if (flags & 128) e.item_tint = r.u16();
+        if ((flags & 128) && e.kind == EntityKind::Player) e.item_tint = r.u16();   // a creature's 128 is its dress (131)
         if (!r.ok()) return false;
         // On a creature flag 2 is a clip its mod named (81), and on a mod's
         // thing (88): a length and the name.
@@ -2946,6 +2970,8 @@ std::vector<uint8_t> ContainerState::encode() const
     w.f32(scroll_size);
     w.u8(search ? 1 : 0);
     w.str(query);
+    w.str(tabs);   // since protocol 130
+    w.u8(tab);
     return w.data();
 }
 
@@ -2997,6 +3023,9 @@ bool ContainerState::decode(ByteReader &r, ContainerState &out)
         return false;
     out.search = r.u8() != 0;
     if (!r.str(out.query, ui::kMaxPanelText)) return false;
+    if (!r.str(out.tabs, ui::kMaxPanelText)) return false;
+    out.tab = r.u8();
+    if (!r.ok()) return false;
 
     // A chest that is open and has no slots is not a chest. Closed, it has
     // none by construction, so the check belongs on this side of the flag.

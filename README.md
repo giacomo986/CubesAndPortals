@@ -513,7 +513,8 @@ two to five players, with the table playing the empty seats.
 `contrib/lizard`), a style, three colours and
 two accessories, all seen by everyone. On your back: a jetpack to fly, a leather backpack with
 27 slots of its own, or a metal backpack with two jointed arms that each hold a tool. The
-creative catalogue (C) has a search box. `/creative on` is creative mode: flying without the
+creative catalogue (C) has a search box and tabs by kind (all, blocks, tools, weapons,
+wearables, other items). `/creative on` is creative mode: flying without the
 jetpack, no damage, fast digging (free in a world of your own, admin on a server). `/time` sets
 the hour, `/kill` takes you back to your bed or the spawn when you are stuck. In a world with a
 trial, `/giveup` gives it up: you die and come back on the sandbox, outside the world's gate. What a pedestal or an

@@ -710,6 +710,17 @@ int mob_face(flecs::world &w, uint32_t id, float x, float z)
     return 1;
 }
 
+int mob_wear(flecs::world &w, uint32_t id, int slot, uint16_t model, uint16_t tint)
+{
+    flecs::entity e;
+    if (worker(w, id, e) == nullptr || slot < 1 || slot > kDressSlots) return 0;
+    Dressed d = e.has<Dressed>() ? e.get<Dressed>() : Dressed{};
+    d.model[slot - 1] = model;
+    d.tint[slot - 1]  = model != 0 ? tint : 0;
+    e.set<Dressed>(d);
+    return 1;
+}
+
 int mob_place(flecs::world &w, uint32_t id, float x, float y, float z)
 {
     flecs::entity e;

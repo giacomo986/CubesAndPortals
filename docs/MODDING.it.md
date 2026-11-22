@@ -2446,6 +2446,13 @@ giocatore può ricevere. `mods/creative` è l'esempio: un pannello con un pulsan
 per item, e un click dà una pila piena — `item_stack` e non 64, altrimenti ogni
 attrezzo sarebbe sbagliato.
 
+`core.item_kind(id)` dice che tipo di cosa è un item, da quello che fa: `"block"`, `"wear"`,
+`"tool"` (scava), `"weapon"` (colpisce e non scava) o `"item"`. Il catalogo ci ordina le sue
+schede: `core.container_tabs(x, y, z, "All|Blocks|Tools", active)` mette una colonna di schede
+sotto la casella di ricerca, e un click torna come `core:ui_click` con pannello `"core:chest"`,
+id `"tab"` e il numero della scheda come testo. Le etichette sono disegnate tradotte: scrivile
+come chiavi di `assets/lang/*.txt`.
+
 ### Contenitori, cinnabar e altre cose aggiunte il 2026-09-25
 
 Riassunto per chi scrive un mod; firme e default in [API.md](API.md).

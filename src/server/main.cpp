@@ -2187,6 +2187,14 @@ int host_container_search(void *ud, int x, int y, int z, const char *text)
     return 1;
 }
 
+int host_container_tabs(void *ud, int x, int y, int z, const char *labels, int active)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (s->containers.find(ContainerAt{x, y, z}) == nullptr) return 0;
+    s->containers.set_tabs(ContainerAt{x, y, z}, labels ? std::string(labels).substr(0, ui::kMaxPanelText) : "", active);
+    return 1;
+}
+
 int host_node_conveyor(void *ud, int id_in, float speed, float height, float rise, int rail)
 {
     NodeRegistry &R = static_cast<ServerState *>(ud)->registry;
@@ -2475,6 +2483,11 @@ int host_item_stack(void *ud, int id)
     ServerState *s = static_cast<ServerState *>(ud);
     if (id <= 0 || (size_t)id >= s->items.size()) return 0;
     return (int)s->items.max_stack((ItemId)id);
+}
+
+const char *host_item_kind(void *ud, int id)
+{
+    return item_kind_of(static_cast<ServerState *>(ud)->items, id);
 }
 
 // --- panels, from a mod's side ----------------------------------------------
@@ -5075,6 +5088,13 @@ int host_mob_voice(void *ud, const char *name, const char *voice)
     return name && voice ? cnp::ecs::mob_voice(static_cast<ServerState *>(ud)->mob_kinds, name, voice) : 0;
 }
 
+int host_mob_wear(void *ud, int id, int slot, int model, int tint)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (!s->sessions || model < 0 || (size_t)model > s->models.size() || tint < 0 || tint > 0x7FFF) return 0;
+    return cnp::ecs::mob_wear(s->sessions->ecs(), (uint32_t)id, slot, (uint16_t)model, (uint16_t)tint);
+}
+
 int host_mob_face(void *ud, int id, double x, double z)
 {
     ServerState *s = static_cast<ServerState *>(ud);
@@ -7448,6 +7468,7 @@ int serve_room(int argc, char **argv)
         host.mob_going      = host_mob_going;
         host.mob_act        = host_mob_act;
         host.mob_face       = host_mob_face;
+        host.mob_wear = host_mob_wear;
     host.mob_remove     = host_mob_remove;
     host.mob_kind       = host_mob_kind;
     host.body_player    = host_body_player;
@@ -7608,6 +7629,7 @@ int serve_room(int argc, char **argv)
         host.item_count    = host_item_count;
         host.item_name     = host_item_name;
         host.item_stack    = host_item_stack;
+        host.item_kind     = host_item_kind;
         host.ui_define     = host_ui_define;
         host.ui_label      = host_ui_label;
         host.ui_button     = host_ui_button;
@@ -7694,6 +7716,7 @@ int serve_room(int argc, char **argv)
         host.container_progress = host_container_progress;
         host.container_scroll   = host_container_scroll;
         host.container_search   = host_container_search;
+        host.container_tabs     = host_container_tabs;
         host.node_door     = host_node_door;
         host.node_piece    = host_node_piece;
         host.place_piece   = host_place_piece;

@@ -2507,6 +2507,21 @@ int l_container_search(lua_State *L)
     return 1;
 }
 
+// core.container_tabs(x: number, y: number, z: number, labels: string, active: number?) -> boolean
+int l_container_tabs(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int x = (int)luaL_checkinteger(L, 1);
+    const int y = (int)luaL_checkinteger(L, 2);
+    const int z = (int)luaL_checkinteger(L, 3);
+    const char *labels = (const char *)luaL_checkstring(L, 4);
+    const int active = (int)luaL_optinteger(L, 5, 1);
+    const int result = (vm && vm->host.container_tabs) ? vm->host.container_tabs(vm->host.ud, x, y, z, labels, active) : (int)0;
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.node_keeps_drops(id: number, on: boolean?) -> boolean
 int l_node_keeps_drops(lua_State *L)
 {
@@ -3162,6 +3177,20 @@ int l_player_wear(lua_State *L)
     return 1;
 }
 
+// core.mob_wear(id: number, slot: number, model: number?, tint: number?) -> boolean
+int l_mob_wear(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const int slot = (int)luaL_checkinteger(L, 2);
+    const int model = (int)luaL_optinteger(L, 3, 0);
+    const int tint = (int)luaL_optinteger(L, 4, 0);
+    const int result = (vm && vm->host.mob_wear) ? vm->host.mob_wear(vm->host.ud, id, slot, model, tint) : (int)0;
+    if (vm && vm->api >= 2) lua_pushboolean(L, result != 0);
+    else lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.play_sound(name: string, x: number, y: number, z: number) -> boolean
 int l_play_sound(lua_State *L)
 {
@@ -3742,6 +3771,16 @@ int l_item_stack(lua_State *L)
     return 1;
 }
 
+// core.item_kind(id: number) -> string
+int l_item_kind(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    const char *result = (vm && vm->host.item_kind) ? vm->host.item_kind(vm->host.ud, id) : nullptr;
+    lua_pushstring(L, result ? result : "");
+    return 1;
+}
+
 // Puts the generated functions on the table at the top of the stack.
 void register_generated_api(lua_State *L)
 {
@@ -3947,6 +3986,10 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "top_view_at");
     lua_pushcfunction(L, l_cursor_ray, "core.cursor_ray");
     lua_setfield(L, -2, "cursor_ray");
+    lua_pushcfunction(L, l_cursor_creature, "core.cursor_creature");
+    lua_setfield(L, -2, "cursor_creature");
+    lua_pushcfunction(L, l_outline, "core.outline");
+    lua_setfield(L, -2, "outline");
     lua_pushcfunction(L, l_walk, "core.walk");
     lua_setfield(L, -2, "walk");
     lua_pushcfunction(L, l_engine_hud, "core.engine_hud");
@@ -3972,10 +4015,6 @@ void register_generated_api(lua_State *L)
     lua_pushcfunction(L, l_ghost_clear, "core.ghost_clear");
     lua_setfield(L, -2, "ghost_clear");
     lua_pushcfunction(L, l_cell_look, "core.cell_look");
-    lua_pushcfunction(L, l_cursor_creature, "core.cursor_creature");
-    lua_setfield(L, -2, "cursor_creature");
-    lua_pushcfunction(L, l_outline, "core.outline");
-    lua_setfield(L, -2, "outline");
     lua_setfield(L, -2, "cell_look");
     lua_pushcfunction(L, l_night_sight, "core.night_sight");
     lua_setfield(L, -2, "night_sight");
@@ -4139,6 +4178,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "container_scroll");
     lua_pushcfunction(L, l_container_search, "core.container_search");
     lua_setfield(L, -2, "container_search");
+    lua_pushcfunction(L, l_container_tabs, "core.container_tabs");
+    lua_setfield(L, -2, "container_tabs");
     lua_pushcfunction(L, l_node_keeps_drops, "core.node_keeps_drops");
     lua_setfield(L, -2, "node_keeps_drops");
     lua_pushcfunction(L, l_container_show, "core.container_show");
@@ -4237,6 +4278,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "player_clip");
     lua_pushcfunction(L, l_player_wear, "core.player_wear");
     lua_setfield(L, -2, "player_wear");
+    lua_pushcfunction(L, l_mob_wear, "core.mob_wear");
+    lua_setfield(L, -2, "mob_wear");
     lua_pushcfunction(L, l_play_sound, "core.play_sound");
     lua_setfield(L, -2, "play_sound");
     lua_pushcfunction(L, l_sound_loop, "core.sound_loop");
@@ -4331,4 +4374,6 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "item_name");
     lua_pushcfunction(L, l_item_stack, "core.item_stack");
     lua_setfield(L, -2, "item_stack");
+    lua_pushcfunction(L, l_item_kind, "core.item_kind");
+    lua_setfield(L, -2, "item_kind");
 }
