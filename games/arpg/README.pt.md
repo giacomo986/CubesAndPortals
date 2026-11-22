@@ -50,7 +50,7 @@ Tudo do Meshy, depois Blender (`flatpak run org.blender.Blender --background --p
 fontes ficam em `assets/meshy/`. Ferramentas: `tools/make_arpg_icons.py` (ícones),
 `tools/make_arpg_gear_meshy.py` (armas, escudos, orbes, o cutelo), `tools/make_arpg_armor_strips.py`
 e `tools/make_arpg_armor_meshy.py` (peças vestidas, robô e cada espécie, ajustadas sobre
-`assets/meshy/arpg/fit_ref/`), `tools/make_meshy_boss.py -- butcher|custode` (os chefes). Os
+`assets/meshy/arpg/fit_ref/`), `tools/make_arpg_chests.py` (os baús das zonas e o do depósito), `tools/make_meshy_boss.py -- butcher|custode` (os chefes). Os
 detalhes estão no [README em inglês](README.md).
 
 ## Limites conhecidos

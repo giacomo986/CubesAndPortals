@@ -58,6 +58,7 @@ Blender (`flatpak run org.blender.Blender --background --python ...`). Le sorgen
 | Icone dell'inventario (`arpg_icons/icon_*.png`, `icons.gltf`) | `python3 tools/make_arpg_icons.py` | tavole dipinte `assets/meshy/arpg_icons/*.png` |
 | Armi, scudi e orb impugnati; la mannaia del Macellaio | `tools/make_arpg_gear_meshy.py` | `assets/meshy/arpg/sheet_*.glb` (image-to-3D delle tavole) |
 | Pezzi indossati, robot e ogni specie | `python3 tools/make_arpg_armor_strips.py`, poi `tools/make_arpg_armor_meshy.py` | `assets/meshy/arpg/<riga>.glb`, adattati su `assets/meshy/arpg/fit_ref/` |
+| I forzieri delle zone (chiusi, aperti) e il baule del deposito, come modelli dei loro blocchi | `tools/make_arpg_chests.py` | `assets/meshy/arpg/chests.glb` (image-to-3D di `chests.png`) |
 | Il Macellaio, il Custode | `tools/make_meshy_boss.py -- butcher\|custode` | `assets/meshy/<nome>/walk.glb`, `run.glb` (rig di Meshy) |
 
 - Le icone non sono item: gli item condividono l'atlante dei blocchi, la cui risoluzione la

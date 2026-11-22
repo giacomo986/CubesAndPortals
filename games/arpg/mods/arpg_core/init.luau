@@ -23,9 +23,9 @@ core.register_node("arpg_core:highland", 38, 46, 34)
 -- (shut and opened).
 core.register_node("arpg_core:flags", 132, 124, 112)
 core.register_node("arpg_core:roof", 92, 44, 36)
-core.register_node("arpg_core:stash", 170, 130, 50, true, 6)
-core.register_node("arpg_core:coffer", 150, 110, 40, true, 5)
-core.register_node("arpg_core:coffer_open", 80, 64, 40)
+local STASH = core.register_node("arpg_core:stash", 170, 130, 50, true, 6)
+local COFFER = core.register_node("arpg_core:coffer", 150, 110, 40, true, 5)
+local COFFER_OPEN = core.register_node("arpg_core:coffer_open", 80, 64, 40)
 
 -- Loaded in a player's workshop too (mods/workshop, games/workshop/mods), for
 -- its blocks alone: what makes the arpg's world is left out there, and so are
@@ -35,6 +35,16 @@ local OWN_WORLD = string.sub(core.room(), 1, 9) ~= "workshop-"
 if not OWN_WORLD then
     return
 end
+
+-- The chests drawn as chests (tools/make_arpg_chests.py, from Meshy): the
+-- zones' coffer shut and open, the town's stash a big iron-bound trunk. Their
+-- boxes: a body is stopped by the chest, not by the cell over it; the open one
+-- stops nobody, as before.
+for id, file in { [STASH] = "prop_stash", [COFFER] = "prop_coffer", [COFFER_OPEN] = "prop_coffer_open" } do
+    core.node_model(id, core.register_model(`arpg_core:{file}`, `{file}.gltf`))
+end
+core.node_box(STASH, 0.0, 0.0, 0.0, 1.0, 0.85, 1.0)
+core.node_box(COFFER, 0.2, 0.0, 0.0, 0.8, 0.5, 1.0)
 
 -- Nothing of the engine's terrain: the ground is arpg_game's alone.
 core.mapgen_core(false)

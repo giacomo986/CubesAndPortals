@@ -52,6 +52,7 @@ Blender (`flatpak run org.blender.Blender --background --python ...`). The sourc
 | Inventory pictures (`arpg_icons/icon_*.png`, `icons.gltf`) | `python3 tools/make_arpg_icons.py` | painted sheets `assets/meshy/arpg_icons/*.png` |
 | Held weapons, shields, orbs; the Butcher's cleaver | `tools/make_arpg_gear_meshy.py` | `assets/meshy/arpg/sheet_*.glb` (image-to-3D of the sheets) |
 | Worn pieces, robot and each species | `python3 tools/make_arpg_armor_strips.py`, then `tools/make_arpg_armor_meshy.py` | `assets/meshy/arpg/<row>.glb`, fitted onto `assets/meshy/arpg/fit_ref/` |
+| The zones' chests (shut, open) and the town's stash, as models of their blocks | `tools/make_arpg_chests.py` | `assets/meshy/arpg/chests.glb` (image-to-3D of `chests.png`) |
 | The Butcher, the Keeper | `tools/make_meshy_boss.py -- butcher\|custode` | `assets/meshy/<name>/walk.glb`, `run.glb` (Meshy's rig) |
 
 - The pictures are not items: items share the blocks' atlas, whose tile size the pictures vote
