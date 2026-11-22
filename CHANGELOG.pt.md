@@ -5,6 +5,22 @@
 Uma entrada para cada alfa distribuída, a mais nova no topo. Como elas são numeradas e como se faz
 uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
 
+## 0.21.0-alpha.2 — 2026-11-22
+
+Joga com a 0.21.0-alpha.1 (protocolo 131) e mantém os mundos dela.
+
+- **Tamanho da interface** em Opções > Vídeo: auto, pequena, normal ou grande. A barra, a
+  mochila, a vida, o chat, os avisos e todos os painéis crescem ou diminuem; auto escolhe pelo
+  tamanho real da tela.
+- **Os painéis cabem na tela**: um alto demais (o do robô) é desenhado menor em vez de sair dela.
+- **ESC fecha** os painéis do robô, da oficina, do portal e do território; o da mesa de
+  encantamento não quebra mais com ele.
+- **Os primeiros objetivos dão para fazer**: Madeira conta o tronco de qualquer árvore, qualquer
+  tronco dá tábuas, e as tábuas de cada madeira viram tábuas comuns, então a picareta de madeira,
+  o barco e a cama saem da primeira árvore. As dicas dizem as receitas certas, e **J** abre a
+  lista de todos os objetivos.
+- Para quem escreve mods: `core.hud.scale()`, o fator do tamanho da interface.
+
 ## 0.21.0-alpha.1 — 2026-11-22
 
 **Não joga com a 0.20.0-alpha.1** (protocolo 131): a cor da luz através de um bloco, as

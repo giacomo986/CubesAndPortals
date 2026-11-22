@@ -5,6 +5,23 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
+## 0.21.0-alpha.2 — 2026-11-22
+
+Gioca con la 0.21.0-alpha.1 (protocollo 131) e ne tiene i mondi.
+
+- **Dimensione dell'interfaccia** in Opzioni > Video: auto, piccola, normale o grande. La barra,
+  la borsa, la salute, la chat, gli avvisi e ogni pannello crescono o si rimpiccioliscono; auto
+  sceglie in base a quanto è grande davvero lo schermo.
+- **I pannelli stanno nello schermo**: uno troppo alto (quello del robot) viene disegnato più
+  piccolo invece di uscirne.
+- **ESC chiude** i pannelli del robot, del laboratorio, del portale e del territorio; quello del
+  tavolo degli incantesimi non si rompe più.
+- **I primi obiettivi si possono fare**: Legno conta il tronco di ogni albero, ogni tronco dà
+  assi, e le assi di ogni legno diventano assi normali, così piccone di legno, barca e letto si
+  fanno dal primo albero. I suggerimenti dicono le ricette vere, e **J** apre la lista di tutti
+  gli obiettivi.
+- Per chi scrive mod: `core.hud.scale()`, il fattore della dimensione dell'interfaccia.
+
 ## 0.21.0-alpha.1 — 2026-11-22
 
 **Non gioca con la 0.20.0-alpha.1** (protocollo 131): il colore della luce attraverso un blocco,

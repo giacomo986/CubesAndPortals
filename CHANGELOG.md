@@ -5,6 +5,20 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
+## 0.21.0-alpha.2 — 2026-11-22
+
+Plays with 0.21.0-alpha.1 (protocol 131) and keeps its worlds.
+
+- **Interface size** in Options > Video: auto, small, normal or large. The bar, the bag, health,
+  chat, notices and every panel grow or shrink; auto picks by how big the screen really is.
+- **Panels fit the screen**: one too tall (the robot's) is drawn smaller instead of running off it.
+- **ESC closes** the robot's, the workshop's, the portal's and the territory's panels; the
+  enchanting table's no longer breaks on it.
+- **The first goals can be done**: Wood counts every tree's log, any log makes planks, and each
+  wood's planks turn into plain ones, so the wooden pick, the boat and the bed can be made from
+  the first tree. The hints say the real recipes, and **J** opens the list of all the goals.
+- For mod writers: `core.hud.scale()`, the interface's size factor.
+
 ## 0.21.0-alpha.1 — 2026-11-22
 
 **Does not play with 0.20.0-alpha.1** (protocol 131): the colour of the light through a block,
