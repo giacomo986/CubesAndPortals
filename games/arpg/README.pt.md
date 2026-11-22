@@ -46,6 +46,10 @@ Botão esquerdo: andar, golpear, falar, apanhar. Botão direito: a habilidade es
 - **O Açougueiro**: o senhor do Ermo cinzento antes do seu senhor, no seu covil (área b1, nível
   3), com quatro mortos: enorme, rápido, um cutelo que bate forte. Ao entrar no covil com ele
   vivo, um muro de luz vermelha fecha o caminho de volta (nem portal da cidade) até ele cair.
+- **Armadilhas**: quase todas as áreas depois da primeira escondem uma, que dispara ao passar
+  perto, uma vez até o mundo esvaziar: explosão de fogo, chão elétrico em manchas, onda de
+  espigões em linha, névoa gelada (abranda a 40% por 4 s), nuvem de veneno, ou uma horda de
+  quatro campeões. Nenhuma no covil de um senhor.
 - **A cripta**: três pisos descendo escadas (meios degraus), cada um selado até os seus mortos
   caírem. O Guardião espera no terceiro; quando cai, quebra-se o selo a leste do piso e um
   corredor leva a uma sala com teto onde a câmara desce à altura dos olhos, com o portal para casa

@@ -51,8 +51,14 @@ Tasto sinistro: cammina, colpisci, parla, raccogli. Tasto destro: l'abilità sce
   (area b1, livello 3), con quattro morti: enorme, veloce, una mannaia che picchia duro. Se entri
   nella sua tana mentre è vivo, un muro di luce rossa chiude la via del ritorno (niente portale
   cittadino) finché non cade.
+- **Trappole**: quasi ogni area dopo la prima ne nasconde una, che scatta passandoci vicino, una
+  volta finché il mondo non si svuota: un'esplosione di fuoco dopo un anello rosso che si stringe
+  (più di mezza vita), il pavimento elettrico a chiazze (spostati nel primo secondo di
+  sfarfallio), un'onda di punte lungo una linea (attraversala, non seguirla), una nebbia gelida
+  (rallenta al 40% per 4 s), una nube velenosa, o un'orda di quattro campioni intorno a te.
+  Nessuna nella tana di un signore.
 - **La cripta**: tre piani giù per scale (mezzi gradini), ognuno sigillato finché i suoi morti non
-  sono a terra. Il Custode aspetta al terzo; quando cade si spezza il sigillo a est del piano, e
+  sono a terra; chi salta in un piano più basso dal terreno sopra i muri viene rimesso in cima alle scale. Il Custode aspetta al terzo; quando cade si spezza il sigillo a est del piano, e
   un corridoio porta a una stanza col soffitto dove la telecamera scende all'altezza degli occhi,
   col portale di casa nella parete est.
 

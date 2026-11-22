@@ -44,7 +44,13 @@ Left button: walk, strike, talk, pick up. Right button: the skill 1-4 chose. **Q
 - **The Butcher**: the Grey Waste's lord before its lord, in its den (area b1, level 3), with four
   of the dead: huge, quick, a cleaver that hits hard. Step into its den with it alive and a wall of
   red light shuts the way back (no town portal either) until it falls.
-- **The crypt**: three floors down stairs (half steps), each sealed until its dead are down. The
+- **Traps**: most areas past the first hide one, set off by walking near it, once until the world
+  is empty: a burst of fire after a closing red ring (more than half a life), the floor gone
+  electric in patches (step off in the first second's flicker), a wave of spikes along a line
+  (run across it), a freezing mist (slows to 40% for 4 s), a cloud of poison, or a horde of four
+  champions round you. None in a lord's den.
+- **The crypt**: three floors down stairs (half steps), each sealed until its dead are down;
+  dropping into a lower floor from the ground over the walls puts you back at the top of the steps. The
   Keeper waits on the third; when it falls the seal east of the floor breaks, and a corridor leads
   to a roofed room where the camera comes down to the eye, with the portal home in its east wall.
 

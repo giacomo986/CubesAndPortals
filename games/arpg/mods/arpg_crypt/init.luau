@@ -298,6 +298,15 @@ core.event.on("core:tick", function(ev)
         local x, y, z = core.player_pos(p)
         if x == nil then continue end
         local k = floor_of(x, y, z)
+        -- The floors are open to the sky, and a body could drop from the
+        -- ground into the third over the walls, past the first two and their
+        -- seals. Down in a floor whose way in is still sealed, it is put back
+        -- at the top of the steps.
+        if k > 1 and not cleared[k - 1] then
+            core.player_place(p, DX + 76.5, GROUND, DZ + 59.5)
+            core.notice(p, "Il sigillo ti respinge: i piani della cripta si scendono uno alla volta.")
+            continue
+        end
         if k ~= 0 then
             if not woke[k] then rise(k) end
             if k == #FLOORS then below[p] = true end

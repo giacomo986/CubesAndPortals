@@ -84,7 +84,7 @@ type PState = { name: string, cls: number, lvl: number, xp: number, gold: number
                 zone: number, dirty: boolean, factors: string, target: number?, pending: number?, goal: any,
                 shop: string?, stash_open: boolean?, at_wp: number?, clip_until: number?, last_hit: number?,
                 mats: { number }, q: { [string]: { number } }, sold: { { code: string, price: number } },
-                full_said: number? }
+                full_said: number?, slow_until: number? }
 type MobInfo = { kind: string, lvl: number, rank: number, real: number, taken: number, name: string }
 type Proj = { id: number, kind: string, owner: number, x: number, y: number, z: number, vx: number, vz: number,
               t: number, life: number, dmg: number, hit: { [number]: boolean }, pierce: any, burst: any }
@@ -901,6 +901,11 @@ L.ENC = {} :: { any }
 L.CHESTS = {} :: { { x: number, z: number, level: number, area: number } }
 -- what is broken for what is inside: { x, z, area, kind }
 L.PROPS = {} :: { { x: number, z: number, area: number, kind: string } }
+-- The traps: now and then a spot in an area that goes off when somebody steps
+-- near it, once a world: a burst of fire, the floor gone electric in patches,
+-- a wave of spikes along the floor, a freezing mist that slows, a cloud of
+-- poison, or a horde of champions. { x, z, area, kind, level }
+L.TRAPS = {} :: { { x: number, z: number, area: number, kind: string, level: number } }
 local KINDS = { [1] = { "zombie", "zombie", "skeleton" }, [2] = { "zombie", "skeleton", "imp", "imp" } } ::
     { [number]: { string } }
 function L.populate(n: number, a: any)
@@ -975,6 +980,15 @@ function L.populate(n: number, a: any)
         local x, z = free_spot(110 + j)
         table.insert(L.PROPS, { x = x, z = z, area = n,
                                 kind = "arpg_core:" .. kinds[1 + math.floor(hash(n, j, 120) * #kinds)] })
+    end
+    -- A trap in most areas past the first, none in a lord's lair (the lord is
+    -- enough): fire, shock, or -- rarer, and later -- a horde.
+    if a.kind ~= "lair" and not a.boss and a.level >= 2 and hash(n, 7, 130) < 0.75 then
+        local x, z = free_spot(140)
+        local r = hash(n, 8, 131)
+        local kind = if r < 0.24 then "fire" elseif r < 0.42 then "shock" elseif r < 0.58 then "spikes"
+                     elseif r < 0.72 then "frost" elseif r < 0.86 or a.level < 3 then "gas" else "horde"
+        table.insert(L.TRAPS, { x = x, z = z, area = n, kind = kind, level = a.level })
     end
 end
 for n, a in L.AREAS do L.populate(n, a) end
@@ -3363,7 +3377,11 @@ if serving then
         if clock < s.evade_until then
             hurt = 0
         end
-        local walk = 1 + s.st.frw / 100
+        local walk = (1 + s.st.frw / 100) * (if clock < (s.slow_until or 0) then 0.4 else 1)
+        if s.slow_until and clock >= s.slow_until then
+            s.slow_until = nil
+            s.factors = ""
+        end
         local regen = (s.st.life or 20) / 20 * 0.5
         local key = string.format("%.2f %.2f %.2f", walk, hurt, regen)
         if key ~= s.factors then
@@ -3462,6 +3480,7 @@ if serving then
         end
         SV.enc, SV.mobs, SV.killed, SV.proj = {}, {}, {}, {}
         SV.props, SV.prop_st = {}, {}
+        SV.traps, SV.trap_fx = {}, {}
         SV.ground, SV.portals = {}, {}
         blocks()
         for k in SV.chest_open do
@@ -3529,6 +3548,133 @@ if serving then
                         end
                     end
                 end
+            end
+        end
+    end
+
+    -- The traps (L.TRAPS), once each until the world is empty: stepped near
+    -- (2.2), a burst of fire 1.4 s after a warning ring (more than half a
+    -- life to whoever is still within 4.5), six patches of the floor gone
+    -- electric for 5 s after 1 s of flicker (a twelfth of a life each half
+    -- second in one), or four champions of the zone round whoever set it off.
+    SV.traps = {} :: { [number]: boolean }   -- by its place in L.TRAPS: gone off
+    SV.trap_fx = {} :: { any }                -- what is still to happen: { t, kind, ... }
+    function SV.trap_hurt(p: number, s: PState, share: number)
+        if clock < s.evade_until or core.health(p) <= 0 then return end
+        core.damage(p, math.max(1, math.floor((s.st.life or 20) * share * (1 - (s.st.dr or 0) / 100))))
+    end
+    function SV.step_traps()
+        for k, t in L.TRAPS do
+            if SV.traps[k] then continue end
+            for p, s in SV.players do
+                local x, y, z = core.player_pos(p)
+                if x and s.cls > 0 and core.health(p) > 0 and (x - t.x - 0.5) ^ 2 + (z - t.z - 0.5) ^ 2 < 2.2 * 2.2 and
+                   math.abs(y - GROUND) < 1.5 then
+                    SV.traps[k] = true
+                    local cx, cz = t.x + 0.5, t.z + 0.5
+                    if t.kind == "fire" then
+                        tell(0, string.format("trap fire %.2f %d %.2f", cx, GROUND, cz))
+                        table.insert(SV.trap_fx, { t = clock + 1.4, kind = "boom", x = cx, z = cz })
+                    elseif t.kind == "shock" then
+                        local pts = { { x, z } }
+                        for i = 1, 5 do
+                            local a, d = math.random() * 2 * math.pi, 1.5 + math.random() * 4
+                            local px, pz = cx + math.cos(a) * d, cz + math.sin(a) * d
+                            if L.at(px, pz) ~= 0 then table.insert(pts, { px, pz }) end
+                        end
+                        local parts = { "trap shock" }
+                        for _, q in pts do table.insert(parts, string.format("%.1f %.1f", q[1], q[2])) end
+                        tell(0, table.concat(parts, " "))
+                        table.insert(SV.trap_fx, { t = clock + 1.0, kind = "shock", pts = pts, until_t = clock + 6.0 })
+                    elseif t.kind == "spikes" then
+                        -- A line of spikes from the trap through whoever set it
+                        -- off, one patch after another: run across it, not along.
+                        local dx, dz = x - cx, z - cz
+                        local l = math.sqrt(dx * dx + dz * dz)
+                        if l < 0.3 then dx, dz, l = 1, 0, 1 end
+                        dx, dz = dx / l, dz / l
+                        tell(0, string.format("trap spikes %.2f %d %.2f %.3f %.3f", cx, GROUND, cz, dx, dz))
+                        for i = 0, 7 do
+                            table.insert(SV.trap_fx, { t = clock + 0.7 + i * 0.16, kind = "spike",
+                                                       x = cx + dx * i * 1.3, z = cz + dz * i * 1.3 })
+                        end
+                    elseif t.kind == "frost" then
+                        tell(0, string.format("trap frost %.2f %d %.2f", cx, GROUND, cz))
+                        table.insert(SV.trap_fx, { t = clock + 0.9, kind = "freeze", x = cx, z = cz })
+                    elseif t.kind == "gas" then
+                        tell(0, string.format("trap gas %.2f %d %.2f", cx, GROUND, cz))
+                        table.insert(SV.trap_fx, { t = clock + 0.6, kind = "gas", x = cx, z = cz, until_t = clock + 7.6 })
+                    else
+                        local zone = L.AREAS[t.area].zone
+                        local kinds = KINDS[zone] or KINDS[1]
+                        for i = 1, 4 do
+                            local a = i * math.pi / 2 + math.random()
+                            local mx, mz = x + math.cos(a) * 5, z + math.sin(a) * 5
+                            if not SV.standable(mx, GROUND, mz) then mx, mz = cx, cz end
+                            local kind = "arpg_core:" .. kinds[1 + math.random(0, #kinds - 1)]
+                            local id = core.spawn_mob(kind, mx, GROUND, mz)
+                            if id ~= 0 then
+                                SV.mobs[id] = SV.new_info(kind, L.level_at(mx, GROUND, mz), 1)
+                                core.mob_blow_every(id, D.blow_every(t.level))
+                            end
+                        end
+                        tell(0, string.format("trap horde %.2f %d %.2f", x, GROUND, z))
+                        SV.msg(p, "AN AMBUSH! CHAMPIONS ALL ROUND YOU")
+                    end
+                    break
+                end
+            end
+        end
+    end
+    function SV.step_trap_fx()
+        for i = #SV.trap_fx, 1, -1 do
+            local f: any = SV.trap_fx[i]
+            if clock < f.t then continue end
+            if f.kind == "boom" then
+                tell(0, string.format("trap boom %.2f %d %.2f", f.x :: number, GROUND, f.z :: number))
+                for p, s in SV.players do
+                    local x, _, z = core.player_pos(p)
+                    if x and (x - f.x) ^ 2 + (z - f.z) ^ 2 < 4.5 * 4.5 then SV.trap_hurt(p, s, 0.55) end
+                end
+                table.remove(SV.trap_fx, i)
+            elseif f.kind == "spike" then
+                for p, s in SV.players do
+                    local x, _, z = core.player_pos(p)
+                    if x and (x - f.x) ^ 2 + (z - f.z) ^ 2 < 1.1 * 1.1 then SV.trap_hurt(p, s, 0.22) end
+                end
+                table.remove(SV.trap_fx, i)
+            elseif f.kind == "freeze" then
+                for p, s in SV.players do
+                    local x, _, z = core.player_pos(p)
+                    if x and (x - f.x) ^ 2 + (z - f.z) ^ 2 < 5 * 5 then
+                        SV.trap_hurt(p, s, 0.15)
+                        s.slow_until = clock + 4
+                        s.factors = ""   -- told again: walking at 40%
+                        SV.msg(p, "FROZEN!")
+                    end
+                end
+                table.remove(SV.trap_fx, i)
+            elseif f.kind == "gas" then
+                for p, s in SV.players do
+                    local x, _, z = core.player_pos(p)
+                    if x and (x - f.x) ^ 2 + (z - f.z) ^ 2 < 4 * 4 then SV.trap_hurt(p, s, 0.045) end
+                end
+                f.t = clock + 0.5
+                if clock >= f.until_t then table.remove(SV.trap_fx, i) end
+            elseif f.kind == "shock" then
+                for p, s in SV.players do
+                    local x, _, z = core.player_pos(p)
+                    if x then
+                        for _, q in f.pts do
+                            if (x - q[1]) ^ 2 + (z - q[2]) ^ 2 < 1.4 * 1.4 then
+                                SV.trap_hurt(p, s, 0.085)
+                                break
+                            end
+                        end
+                    end
+                end
+                f.t = clock + 0.5
+                if clock >= f.until_t then table.remove(SV.trap_fx, i) end
             end
         end
     end
@@ -3718,12 +3864,14 @@ if serving then
             enc_at = clock + 0.5
             SV.step_encounters()
             SV.step_arenas()
+            SV.step_traps()
         end
         if clock >= foes_at then
             foes_at = clock + 5
             SV.quest_foes()
         end
         SV.keep_town_clear()
+        SV.step_trap_fx()
         SV.step_portals()
         SV.step_proj(dt)
         SV.step_ground()
@@ -3937,6 +4085,28 @@ if drawing then
                 C.dest, C.chase, C.path = nil, nil, {}
             else
                 table.insert(C.fx, { kind = kind, x = v[1], y = v[2], z = v[3], left = life, life = life })
+            end
+        elseif what == "trap" then
+            local kind = w[2]
+            if kind == "fire" then
+                table.insert(C.fx, { kind = "trapwarn", x = n[2], y = n[3], z = n[4], left = 1.4, life = 1.4 })
+            elseif kind == "boom" then
+                table.insert(C.fx, { kind = "boom", x = n[2], y = n[3], z = n[4], left = 0.9, life = 0.9 })
+            elseif kind == "horde" then
+                table.insert(C.fx, { kind = "ambush", x = n[2], y = n[3], z = n[4], left = 1.2, life = 1.2 })
+            elseif kind == "spikes" then
+                table.insert(C.fx, { kind = "spikes", x = n[2], y = n[3], z = n[4], dx = n[5], dz = n[6], left = 2.2,
+                                     life = 2.2 })
+            elseif kind == "frost" then
+                table.insert(C.fx, { kind = "frost", x = n[2], y = n[3], z = n[4], left = 1.8, life = 1.8 })
+            elseif kind == "gas" then
+                table.insert(C.fx, { kind = "gas", x = n[2], y = n[3], z = n[4], left = 7.6, life = 7.6 })
+            elseif kind == "shock" then
+                local pts: { { number } } = {}
+                for i = 2, #n - 1, 2 do table.insert(pts, { n[i], n[i + 1] }) end
+                local _, py = core.player_pos(C.me)
+                table.insert(C.fx, { kind = "shock", pts = pts, x = pts[1] and pts[1][1], y = py or GROUND,
+                                     z = pts[1] and pts[1][2], left = 6.0, life = 6.0 })
             end
         elseif what == "zap" then
             table.insert(C.fx, { kind = "zap", a = { n[1], n[2], n[3] }, b = { n[4], n[5], n[6] },
@@ -4553,6 +4723,66 @@ if drawing then
                 FX.fx("ring", e.x, e.y, e.z, 2.5, FX.gold, k)
                 FX.fx("vortex", e.x, e.y + 1, e.z, 1.3, FX.gold, k, 200)
                 FX.fx("sparks", e.x, e.y + 1, e.z, 1.8, { 255, 230, 140 }, k)
+            elseif e.kind == "trapwarn" then
+                -- A ring closing in, the ground glowing hotter: get out.
+                local beat = 0.5 + 0.5 * math.sin(clock * 18)
+                FX.fx("ring", e.x, e.y + 0.05, e.z, 9 * (1 - k * 0.5), { 255, 60, 30 }, 0.3 + 0.4 * beat)
+                FX.fx("glow", e.x, e.y + 0.2, e.z, 1 + 3 * k, { 255, 90, 20 }, 0.5, math.floor(120 + 120 * k))
+                FX.fx("flame", e.x, e.y + 0.1, e.z, 0.5 + k, FX.fire, (clock * 2) % 1)
+            elseif e.kind == "boom" then
+                FX.fx("flame", e.x, e.y + 0.5, e.z, 2 + k * 5, FX.fire, k)
+                FX.fx("ring", e.x, e.y + 0.05, e.z, 9, FX.fire, k)
+                FX.fx("sparks", e.x, e.y + 1, e.z, 6, { 255, 200, 80 }, k)
+                FX.fx("glow", e.x, e.y + 1.5, e.z, 5, { 255, 120, 30 }, k, 220)
+            elseif e.kind == "shock" then
+                -- The first second a faint flicker (step off), then crackling.
+                local on = e.life - e.left > 1.0
+                for i, q in e.pts do
+                    local flick = 0.5 + 0.5 * math.sin(clock * 25 + i * 1.7)
+                    if on then
+                        FX.fx("ring", q[1], e.y + 0.05, q[2], 2.8, FX.storm, (clock * 3 + i * 0.3) % 1)
+                        FX.fx("sparks", q[1], e.y + 0.3, q[2], 1.6, { 200, 225, 255 }, (clock * 4 + i * 0.2) % 1)
+                        FX.fx("glow", q[1], e.y + 0.2, q[2], 1.8, FX.storm, 0.5, math.floor(90 + 120 * flick))
+                    else
+                        FX.fx("ring", q[1], e.y + 0.05, q[2], 2.8, { 120, 160, 255 }, 0.5,
+                              math.floor(60 + 100 * flick))
+                    end
+                end
+            elseif e.kind == "spikes" then
+                -- A grey line warns for 0.7 s, then the spikes come up along
+                -- it one patch after another (the server's timing).
+                local age = e.life - e.left
+                for i = 0, 7 do
+                    local px, pz = e.x + e.dx * i * 1.3, e.z + e.dz * i * 1.3
+                    local at = age - 0.7 - i * 0.16
+                    if at < 0 then
+                        FX.fx("ring", px, e.y + 0.05, pz, 2.2, { 200, 200, 210 }, 0.5, math.floor(80 + 60 * math.sin(clock * 20)))
+                    elseif at < 0.4 then
+                        FX.fx("slash", px, e.y + 0.6, pz, 1.4, { 235, 235, 245 }, at / 0.4)
+                        FX.fx("sparks", px, e.y + 0.3, pz, 1.4, { 255, 255, 255 }, at / 0.4)
+                    end
+                end
+            elseif e.kind == "frost" then
+                local age = e.life - e.left
+                if age < 0.9 then
+                    FX.fx("ring", e.x, e.y + 0.05, e.z, 10, FX.ice, 0.4 + 0.3 * math.sin(clock * 16))
+                    FX.fx("glow", e.x, e.y + 0.3, e.z, 2 + age * 3, FX.ice, 0.5, 160)
+                else
+                    local q = (age - 0.9) / 0.9
+                    FX.fx("frost", e.x, e.y, e.z, 10, FX.ice, q)
+                    FX.fx("ring", e.x, e.y, e.z, 10, { 220, 245, 255 }, q)
+                end
+            elseif e.kind == "gas" then
+                for i = 0, 5 do
+                    local a = i * 1.05 + clock * 0.4
+                    local r = 1.2 + 1.8 * ((i * 0.37) % 1)
+                    FX.fx("glow", e.x + math.cos(a) * r, e.y + 0.6 + 0.3 * math.sin(clock + i), e.z + math.sin(a) * r,
+                          2.6, { 90, 220, 60 }, 0.5, math.floor(110 * math.min(1, e.left)))
+                end
+                FX.fx("ring", e.x, e.y + 0.05, e.z, 8, { 110, 230, 70 }, (clock * 0.7) % 1, 140)
+            elseif e.kind == "ambush" then
+                FX.fx("ring", e.x, e.y + 0.05, e.z, 4 + 8 * k, { 255, 60, 40 }, k)
+                FX.fx("glow", e.x, e.y + 1, e.z, 3, { 255, 50, 30 }, k, 200)
             elseif e.kind == "drank_life" or e.kind == "drank_mana" then
                 local c = if e.kind == "drank_life" then { 255, 70, 60 } else { 70, 110, 255 }
                 FX.fx("glow", e.x, e.y + 1, e.z, 1.3, c, k, 200)

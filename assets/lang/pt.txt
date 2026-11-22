@@ -1739,3 +1739,6 @@ THE WAY BACK IS BARRED. {} MUST FALL = O CAMINHO DE VOLTA ESTÁ BARRADO. {} TEM 
 THE WAY BACK IS OPEN = O CAMINHO DE VOLTA ESTÁ ABERTO
 NO WAY OUT WHILE IT LIVES = SEM SAÍDA ENQUANTO VIVER
 Barrier = Barreira
+AN AMBUSH! CHAMPIONS ALL ROUND YOU = UMA EMBOSCADA! CAMPEÕES À TUA VOLTA
+FROZEN! = CONGELADO!
+Il sigillo ti respinge: i piani della cripta si scendono uno alla volta. = O selo repele-te: os pisos da cripta descem-se um de cada vez.

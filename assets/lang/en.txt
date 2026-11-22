@@ -133,3 +133,4 @@ Terre nuove, fatte nelle officine. Il loro signore aspetta in fondo. = New lands
 
 # --- Action RPG: the crypt's way out (2026-11-22) ---
 Il Custode e' caduto. Il sigillo a est si spezza: di la' la via d'uscita. = The Keeper has fallen. The seal to the east breaks: the way out lies beyond it.
+Il sigillo ti respinge: i piani della cripta si scendono uno alla volta. = The seal throws you back: the crypt's floors are gone down one at a time.
