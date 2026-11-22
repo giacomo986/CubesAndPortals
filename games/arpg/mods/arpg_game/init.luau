@@ -3447,7 +3447,68 @@ if serving then
         core.log("arpg_game: nobody here; the zones are new again")
     end
 
-    local stat_at, time_at, save_at, enc_at, npc_at = 0, 0, 0, 0, 0
+    -- A kill quest that can still be done: what it asks for, when none of it
+    -- is left standing or waiting in the zones (killed before the quest was
+    -- taken, or the count asks for more than a world holds -- ten champions
+    -- where the Grey Waste has eight), comes back -- the packs that had it,
+    -- done, far from every player, so nothing appears in sight.
+    function SV.quest_foes()
+        local where = {}
+        for q in SV.players do
+            local x, _, z = core.player_pos(q)
+            if x then table.insert(where, { x, z }) end
+        end
+        for p, s in SV.players do
+            for _, g in D.GIVERS do
+                local q = SV.quest_of(s, g)
+                local def = D.QUESTS[g][q[1]]
+                if def and q[2] == 1 and def.kind == "kill" then
+                    local function wanted(m: { any }): boolean
+                        return m[1] == def.what or (def.what == "rank1" and m[2] >= 1) or
+                               (def.what == "rank2" and m[2] >= 2)
+                    end
+                    local left = 0
+                    for k, e in L.ENC do
+                        local a = L.AREAS[e.area]
+                        local st = SV.enc[k]
+                        if a and not a.slot and not (st and st.done) then
+                            for _, m in (if st and st.woke then {} else (st and st.left or e.members)) do
+                                if wanted(m) then left += 1 end
+                            end
+                            for id, held in (if st then st.ids else {}) do
+                                if wanted(held.m) and core.mob_pos(id) ~= nil then left += 1 end
+                            end
+                        end
+                    end
+                    if left == 0 then
+                        local back = 0
+                        for k, e in L.ENC do
+                            local a = L.AREAS[e.area]
+                            local st = SV.enc[k]
+                            local far = true
+                            for _, w in where do
+                                if (w[1] - e.x) ^ 2 + (w[2] - e.z) ^ 2 < 45 * 45 then far = false end
+                            end
+                            if a and not a.slot and st and st.done and far then
+                                for _, m in e.members do
+                                    if wanted(m) then
+                                        SV.enc[k] = nil
+                                        back += 1
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                        if back > 0 then
+                            SV.msg(p, "THE DEAD RISE AGAIN IN THE ZONES")
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    local stat_at, time_at, save_at, enc_at, npc_at, foes_at = 0, 0, 0, 0, 0, 0
 
     function server_step(dt: number)
         -- The sun held low, early in the morning: light enough to see the
@@ -3536,6 +3597,10 @@ if serving then
         if clock >= enc_at then
             enc_at = clock + 0.5
             SV.step_encounters()
+        end
+        if clock >= foes_at then
+            foes_at = clock + 5
+            SV.quest_foes()
         end
         SV.keep_town_clear()
         SV.step_portals()

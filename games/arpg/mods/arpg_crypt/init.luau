@@ -145,7 +145,6 @@ core.event.on("core:world_ready", function()
     if core.side() == "client" then
         return
     end
-    core.portal_place(1, OUT[1] + 0.4, OUT[2] + 1, OUT[3] + 0.5, 1, -1, 0.5, 1.0)
     if core.storage_get("exit_room") ~= "1" then
         -- A world made before the room: the old frame out of the third floor
         -- (x DX + 160..161, z 59..61, either way round), the room written in.
@@ -267,7 +266,16 @@ local function standing(ids: { number }): number
     return n
 end
 
+-- The way home turned to face -x, into the room: at the first tick, since
+-- core.portal_place is refused while the world is not running yet (it was
+-- called at core:world_ready, and the opening stayed facing +x, into the wall:
+-- nothing of the sandbox showed in it, nor of this room from the sandbox).
+local exit_turned = false
 core.event.on("core:tick", function(ev)
+    if not exit_turned and core.side() ~= "client" then
+        exit_turned = core.portal_place(1, OUT[1] + 0.4, OUT[2] + 1, OUT[3] + 0.5, 1, -1, 0.5, 1.0) == true
+        if exit_turned then core.log("arpg_crypt: the way home turned to face -x") end
+    end
     clock += ev.dt
     local players = core.players()
     if #players == 0 then
