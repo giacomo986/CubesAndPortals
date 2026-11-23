@@ -74,6 +74,8 @@ tudo o que está abaixo). `/perm` mostra e muda qual cargo uma permissão pede;
 | `/peaceful [on\|off]` | admin | `/difficulty peaceful`, ou normal de novo (`mods/rules`) |
 | `/rule [NOME on\|off]` | admin | As regras do mundo, entre reinícios (WORLD.rules): `keep_bag` (num mundo de sobrevivência a bolsa fica com você na morte, sem túmulo), `day_cycle` (o sol se move), `weather_cycle` (o tempo muda sozinho), `hunger` (fome). Sem palavra, a lista (`mods/rules`) |
 | `/goals` | qualquer um | Quantos objetivos do sandbox você alcançou; `/page goals` lista todos com dicas para os próximos (`mods/goals`) |
+| `/trophies` | qualquer um | Quantos troféus você ganhou; `/page trophies` lista todos, com dicas e para que lado ficam os portais escondidos (`mods/trophies`) |
+| `/trophies sites` `/trophies go ID [place] [NOME]` `/trophies home [NOME]` | admin | Onde estão os cinco portais escondidos e se cada um está construído; você ou NOME na frente de um (`well`, `summit`, `lake`, `hill`, `circle`) ou, com `place`, no lugar para onde leva; NOME (ou você) no próprio quarto, para ver a estante de troféus (`mods/trophies`) |
 | `/village siege\|feast\|caravan\|incoming` | admin | Começa agora um evento na vila em que você está: um cerco avisado agora e que chega ao anoitecer, a festa da colheita, uma caravana para a outra vila mais próxima, ou uma que chega de uma vila não visitada pelos caminhos (`mods/villagers`) |
 
 ### Jogadores

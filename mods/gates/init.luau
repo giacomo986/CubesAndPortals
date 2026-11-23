@@ -336,7 +336,7 @@ core.event.define("gates:ask", { fields = { x = "number", z = "number", r = "num
                                             player = "number" },
                                  cancellable = false })
 core.event.define("gates:sites", { fields = { tag = "string", list = "string" }, cancellable = false })
--- Somebody back here through a gate from its world (mods/goals counts it).
+-- Somebody back here through a gate from its world (mods/goals and mods/trophies count it).
 core.event.define("gates:back", { fields = { player = "number", room = "string" }, cancellable = false })
 
 if PLAZA then
@@ -386,6 +386,10 @@ if PLAZA then
     -- Back through a gate (gates:back): somebody who left this room standing
     -- within 3 of a mouth -- gone through it -- and is here again. The plaza's
     -- gates are the server's mouths, so nothing else says who went where.
+    -- The platform game's and the shooter's gates (below) are portals between
+    -- rooms, not mouths: one built is listed here, so going through it counts too.
+    local HOT = { { "platformer", 40.5, 26.5 }, { "shmup", 56.5, 26.5 } }
+    local hot_built: { [string]: boolean } = {}
     local by_mouth: { [string]: string } = {}   -- by name: the room of the mouth they stand at
     local away_to: { [string]: string } = {}    -- by name: the room they went to
     local seen: { [number]: string } = {}       -- each player here, by name
@@ -412,6 +416,14 @@ if PLAZA then
                         at = room
                     end
                 end
+                local hy = core.get_portal(0, 1)
+                for _, h in HOT do
+                    local room = h[1] :: string
+                    if hot_built[room] and ((h[2] :: number) - x) ^ 2 + (hy - (y :: number) - 1) ^ 2
+                        + ((h[3] :: number) - (z :: number)) ^ 2 < 3 * 3 then
+                        at = room
+                    end
+                end
             end
             by_mouth[name] = at
         end
@@ -432,7 +444,6 @@ if PLAZA then
     -- can be asked for; a server with no such room gets no gate.
     -- On the plaza's south edge, clear of the gates above and of the arches along
     -- the north one (mods/keys).
-    local HOT = { { "platformer", 40.5, 26.5 }, { "shmup", 56.5, 26.5 } }
     local hot = false
     core.event.on("core:tick", function(_)
         if hot then return end
@@ -453,6 +464,7 @@ if PLAZA then
                 local no = core.room_portal_link(name, room, "door")
                 if no == "" then
                     build(THEMES[room], math.floor(x), math.floor(y) - 1, math.floor(z), false)
+                    hot_built[room] = true
                     core.log(`gates: a gate to '{room}' at {math.floor(x)} {math.floor(y) - 1} {math.floor(z)}`)
                 else
                     core.room_portal_close(name)

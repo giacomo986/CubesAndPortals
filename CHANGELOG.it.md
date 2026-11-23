@@ -5,6 +5,19 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
+## Non ancora in un'alpha
+
+- **Trofei**: venti, per i mondi in cui vai, le sette chiavi e cinque portali nascosti nelle
+  terre. Le coppe stanno su una bacheca nella tua stanza personale; `/page trophies` li elenca, con
+  un indizio e la direzione dallo spawn di ogni portale nascosto.
+- **Cinque portali nascosti** nel sandbox, dove il terreno del seme ha posto: un vecchio pozzo con
+  una corda, un arco sul punto più alto, una cornice sul fondo di un lago profondo, una porta nel
+  fianco di una collina e un cerchio di pietre che si apre solo di notte. Ognuno porta a un'isola
+  nel cielo o a una grotta di cristalli, con un diamante e cinque rubini per chi arriva per primo.
+- Attraversare il portale del gioco a piattaforme o dello sparatutto da sala giochi conta come
+  essere andati in quel mondo.
+- Per gli admin: `/trophies sites`, `/trophies go ID [place] [NOME]`, `/trophies home [NOME]`.
+
 ## 0.21.0-alpha.2 — 2026-11-22
 
 Gioca con la 0.21.0-alpha.1 (protocollo 131) e ne tiene i mondi.

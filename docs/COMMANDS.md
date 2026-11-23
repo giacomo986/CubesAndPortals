@@ -74,6 +74,8 @@ everything below it). `/perm` shows and changes which role a permission wants;
 | `/peaceful [on\|off]` | admin | `/difficulty peaceful`, or normal again (`mods/rules`) |
 | `/rule [NAME on\|off]` | admin | The world's rules, across restarts (WORLD.rules): `keep_bag` (a survival world's bag kept on death, no grave), `day_cycle` (the sun moves), `weather_cycle` (the weather changes by itself), `hunger`. With no word, the list (`mods/rules`) |
 | `/goals` | anybody | How many of the sandbox's goals you have reached; `/page goals` lists them with hints for the next (`mods/goals`) |
+| `/trophies` | anybody | How many trophies you have won; `/page trophies` lists them, with hints and which way the hidden portals are (`mods/trophies`) |
+| `/trophies sites` `/trophies go ID [place] [NAME]` `/trophies home [NAME]` | admin | Where the five hidden portals are and whether each is built; you or NAME in front of one (`well`, `summit`, `lake`, `hill`, `circle`) or, with `place`, into the place it leads to; NAME (or you) into their own room, to see the trophy shelf (`mods/trophies`) |
 | `/village siege\|feast\|caravan\|incoming` | admin | Starts a village event now in the village you stand in: a siege warned of now and coming at nightfall, the harvest feast, a caravan to the nearest other village, or one coming from an unvisited village along the paths (`mods/villagers`) |
 
 ### Players

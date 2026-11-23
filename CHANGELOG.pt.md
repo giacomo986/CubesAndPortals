@@ -5,6 +5,19 @@
 Uma entrada para cada alfa distribuída, a mais nova no topo. Como elas são numeradas e como se faz
 uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
 
+## Ainda não numa alpha
+
+- **Troféus**: vinte, pelos mundos aonde você vai, as sete chaves e cinco portais escondidos pela
+  terra. As taças ficam numa estante no seu quarto; `/page trophies` lista todos, com uma dica e
+  para que lado do spawn fica cada portal escondido.
+- **Cinco portais escondidos** no sandbox, onde o terreno da semente tem lugar: um velho poço com
+  uma corda, um arco no ponto mais alto, uma moldura no fundo de um lago profundo, uma porta numa
+  encosta e um círculo de pedras que só abre à noite. Cada um leva a uma ilha no céu ou a uma
+  caverna de cristais, com um diamante e cinco rubis para quem chegar primeiro.
+- Passar pelo portal do jogo de plataformas ou do jogo de tiros de arcada conta como ir àquele
+  mundo.
+- Para admins: `/trophies sites`, `/trophies go ID [place] [NOME]`, `/trophies home [NOME]`.
+
 ## 0.21.0-alpha.2 — 2026-11-22
 
 Joga com a 0.21.0-alpha.1 (protocolo 131) e mantém os mundos dela.

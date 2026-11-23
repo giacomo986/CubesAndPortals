@@ -5,6 +5,18 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
+## Not in an alpha yet
+
+- **Trophies**: twenty, for the worlds you go to, the seven keys and five portals hidden out on
+  the land. Their cups stand on a shelf in your own room; `/page trophies` lists them, with a hint
+  and which way from the spawn each hidden portal is.
+- **Five hidden portals** in the sandbox, where the seed's ground has room: an old well with a
+  rope down it, an arch on the highest ground, a frame on the floor of a deep lake, a door in a
+  hillside and a ring of standing stones that opens only at night. Each leads to an island in the
+  sky or a cave of crystals, with a diamond and five rubies for whoever gets there first.
+- Going through the platform game's or the arcade shooter's gate counts as going to that world.
+- For admins: `/trophies sites`, `/trophies go ID [place] [NAME]`, `/trophies home [NAME]`.
+
 ## 0.21.0-alpha.2 — 2026-11-22
 
 Plays with 0.21.0-alpha.1 (protocol 131) and keeps its worlds.

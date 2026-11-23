@@ -297,6 +297,28 @@ changing, hunger. The pause menu's **World** button shows all of it, with the we
 the season, as buttons for an admin, and links the **goals**: 21 things to do, from the first wood
 to every world's key, told as they are reached (`/page goals`).
 
+### Trophies and the hidden portals
+
+Twenty **trophies**, kept for every player across the whole server (`mods/trophies`): one for
+each world behind a gate on the plaza, won coming back through it; one for each of five
+**portals hidden** out on the land; the seven keys, each held once; eight worlds (Explorer);
+and every hidden portal (Keeper of Secrets). `/page trophies` lists them, with a hint for those
+not won and, for a hidden portal, which way from the spawn it is and about how far; `/trophies`
+counts them.
+
+The hidden portals stand where the seed's ground has room for them, within a few hundred steps
+of the spawn: an **old well** with a rope down it and a tunnel at the bottom, an **arch on the
+highest ground** round about, a **frame with two lamps on the floor of a deep lake**, a **door
+dug into a hillside**, and a **ring of standing stones** whose arch opens only at night. Each
+leads to a place of its own straight over or under it -- an **island in the sky** where the
+ground is low, a **cave of crystals** at the bottom of the world where it is not -- and whoever
+gets there first wins its trophy, a diamond and five rubies. Their portal leads back.
+
+The cups stand on a **shelf in your own room** (`/myroom`): two rows of pedestals beside the
+spawn, a cup in its world's colour on each one won; a right click on one says which it is. An
+admin can send a player to a hidden portal or into their room to see it (`/trophies go`,
+`/trophies home`).
+
 ### Survival: the worlds scattered over the land
 
 "Mode: Survival" on the title menu's new-world page (`cnp_server --survival` on the sandbox room,

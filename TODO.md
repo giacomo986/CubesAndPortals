@@ -83,6 +83,26 @@ what is built, and three or four structural fixes that each close many entries.
 
 ## To play by hand (built, checked by script only)
 
+Trophies and the hidden portals (mods/trophies, 2026-11-23): type-checked,
+and run 2026-11-23 on a server of seed 1 (a sandbox, the pocket halls and the
+home-* rooms, in /tmp) with a client in Xephyr and cnp_join_probe as the owner;
+shots in bench/trofei/. Seen working: all five found and built (well -72 16
+136, summit -5 41 2 with a cave, lake -78 11 395 under water, hill 16 28 -60,
+circle -82 20 -199); walked through the summit's, the lake's (under water) and
+the hill's into their places and back; the trophy, a diamond and five rubies
+on arriving; Keeper of Secrets with the fifth; the circle open at midnight and
+shut at noon, its island's frame putting you back on the land by day; the
+shelf in a player's room with the three cups won. Fixed on the way: the
+hillside's doorway stood two above the ground in front (now steps of earth),
+the cave was dark (more lamps), `/trophies go` looked the wrong way.
+Still by hand:
+- The well: climbing down the rope and the fall if you jump in (the scripted
+  walk only went round its rim).
+- A world's trophy through gates:back, the platform game's and the shooter's
+  gates included (needs the full tools/track.sh).
+- `/trophies go ID [place] [NAME]` and `/trophies home [NAME]` are admin tools
+  for this; `/trophies sites` says where each is.
+
 The ending:
 - Parkour tower: seven stations, the chimneys' exits, the rope from a beam 13
   up; not re-climbed since ledges are grabbed there.

@@ -307,6 +307,28 @@ mostra tudo isso, com o tempo, a hora e a estação, como botões para um admin,
 **objetivos**: 21 coisas para fazer, da primeira madeira até a chave de cada mundo, anunciadas
 quando alcançadas (`/page goals`).
 
+### Troféus e portais escondidos
+
+Vinte **troféus**, guardados para cada jogador no servidor todo (`mods/trophies`): um para cada
+mundo atrás de um portal da praça, ganho ao voltar por ele; um para cada um dos cinco **portais
+escondidos** pela terra; as sete chaves, cada uma segurada uma vez; oito mundos (Explorador); e
+todos os portais escondidos (Guardião dos Segredos). `/page trophies` lista todos, com uma dica
+para os que faltam e, para um portal escondido, para que lado do spawn fica e a mais ou menos
+quantos passos; `/trophies` conta.
+
+Os portais escondidos ficam onde o terreno da semente tem lugar, a umas centenas de passos do
+spawn: um **velho poço** com uma corda a descer e um túnel no fundo, um **arco no ponto mais
+alto** das redondezas, uma **moldura com duas lâmpadas no fundo de um lago profundo**, uma
+**porta escavada na encosta de uma colina** e um **círculo de pedras** cujo arco só abre à
+noite. Cada um leva a um lugar seu, logo acima ou abaixo: uma **ilha no céu** onde o terreno é
+baixo, uma **caverna de cristais** no fundo do mundo onde não é. Quem chega primeiro ganha o
+troféu, um diamante e cinco rubis. O portal de lá leva de volta.
+
+As taças ficam numa **estante no seu quarto** (`/myroom`): duas filas de pedestais ao lado do
+spawn, uma taça na cor do seu mundo em cada um ganho; um clique direito diz qual é. Um admin
+pode mandar um jogador a um portal escondido ou ao quarto dele para ver (`/trophies go`,
+`/trophies home`).
+
 ### Sobrevivência: os mundos espalhados pela terra
 
 "Modo: Sobrevivência" na página de mundo novo do menu de título (`cnp_server --survival` na sala
