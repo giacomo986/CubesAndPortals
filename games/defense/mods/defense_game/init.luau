@@ -288,8 +288,8 @@ end
 
 -- ------------------------------------------------------------ state
 
-type Turret = { kind: Kind, lvl: number, x: number, y: number, z: number, wait: number }
-type Monster = { kind: string, foe: Foe, hunting: number, stop: number, hunt_left: number }
+type Turret = { kind: Kind, lvl: number, x: number, y: number, z: number, wait: number, mode: string? }
+type Monster = { kind: string, foe: Foe, hunting: number, stop: number, hunt_left: number, hp: number }
 
 local phase = "idle"       -- idle, wave, rest, over
 local wave = 0
@@ -504,6 +504,62 @@ local function foes_near(x: number, y: number, z: number, r: number): { number }
     return out
 end
 
+-- Whom a turret that picks one aims at, set in its panel: the nearest (the
+-- default), the furthest, the furthest along the way to the crystal, the
+-- furthest back, the one with most health left, the one with least. Health
+-- is counted here (core.mob_hurt and players' blows, core:hit): the engine
+-- has no call that reads it.
+local MODES = { { "near", "Nearest" }, { "far", "Furthest" }, { "first", "Furthest along" },
+                { "last", "Furthest back" }, { "strong", "Strongest" }, { "weak", "Weakest" } }
+local CHOOSES: { [string]: boolean } = { arrow = true, lightning = true, portal = true }
+
+-- How far along the way a monster is: its stop, less what is left to it.
+local function progress(id: number): number
+    local m = monsters[id]
+    local x, _, z = core.mob_pos(id)
+    if m == nil or x == nil then return 0 end
+    local st = route[m.stop]
+    local d = if st then math.sqrt((st[1] + 0.5 - x) ^ 2 + (st[3] + 0.5 - z) ^ 2) else 0
+    return m.stop * 1000 - d
+end
+
+-- The list (nearest first, as foes_near gives it) ordered as the mode wants.
+local function by_mode(list: { number }, mode: string?): { number }
+    if mode == nil or mode == "near" then return list end
+    local out = table.clone(list)
+    if mode == "far" then
+        for i = 1, #out // 2 do out[i], out[#out + 1 - i] = out[#out + 1 - i], out[i] end
+        return out
+    end
+    local val: { [number]: number } = {}
+    for _, id in out do
+        local m = monsters[id]
+        val[id] = if mode == "first" or mode == "last" then progress(id)
+                  elseif m then m.hp else 0
+    end
+    local high = mode == "first" or mode == "strong"
+    local rank: { [number]: number } = {}   -- equal ones: the nearer first
+    for i, id in out do rank[id] = i end
+    table.sort(out, function(a, b)
+        if val[a] == val[b] then return rank[a] < rank[b] end
+        if high then return val[a] > val[b] end
+        return val[a] < val[b]
+    end)
+    return out
+end
+
+-- A turret's blow: the engine's, and the count of health kept here.
+local function hurt(id: number, dmg: number, fx: number, fz: number)
+    core.mob_hurt(id, dmg, fx, fz)
+    local m = monsters[id]
+    if m then m.hp -= dmg end
+end
+
+core.event.on("core:hit", function(ev)
+    local m = monsters[ev.target]
+    if m then m.hp -= ev.damage end
+end)
+
 local DAMAGE = { arrow = { 5, 7, 10 }, brazier = { 3, 5, 7 }, lightning = { 9, 12, 16 } }
 local SLOW = { 0.55, 0.45, 0.35 }
 
@@ -513,6 +569,7 @@ local function fire(t: Turret)
     local near = foes_near(x, y, z, r)
     if #near == 0 then return false end
     local name = t.kind.name
+    if CHOOSES[name] then near = by_mode(near, t.mode) end
     local head = `F {name} {t.x} {t.y} {t.z}`
     local function at(id: number): string
         local mx, my, mz = core.mob_pos(id)
@@ -520,7 +577,7 @@ local function fire(t: Turret)
     end
     if name == "arrow" then
         tell(0, head .. at(near[1]))
-        core.mob_hurt(near[1], DAMAGE.arrow[t.lvl], x, z)
+        hurt(near[1], DAMAGE.arrow[t.lvl], x, z)
         sound("arrow", x, y + 1, z)
     elseif name == "brazier" then
         local msg = head .. at(near[1])
@@ -528,7 +585,7 @@ local function fire(t: Turret)
             if i <= 6 then msg ..= at(id) end
         end
         tell(0, msg)
-        for _, id in near do core.mob_hurt(id, DAMAGE.brazier[t.lvl], x, z) end
+        for _, id in near do hurt(id, DAMAGE.brazier[t.lvl], x, z) end
         sound("fire", x, y + 1, z)
     elseif name == "frost" then
         tell(0, head .. at(near[1]))
@@ -539,7 +596,7 @@ local function fire(t: Turret)
         -- quarters of the one before.
         local dmg, hit, cur = DAMAGE.lightning[t.lvl], { [near[1]] = true }, near[1]
         local msg = head .. at(cur)
-        core.mob_hurt(cur, dmg, x, z)
+        hurt(cur, dmg, x, z)
         for _ = 1, 2 + t.lvl do
             local ax, ay, az = core.mob_pos(cur)
             if ax == nil then break end
@@ -551,13 +608,13 @@ local function fire(t: Turret)
             dmg *= 0.75
             hit[nxt] = true
             msg ..= at(nxt)
-            core.mob_hurt(nxt, dmg, ax, az)
+            hurt(nxt, dmg, ax, az)
             cur = nxt
         end
         tell(0, msg)
         sound("zap", x, y + 1, z)
     elseif name == "portal" then
-        -- The nearest that is no boss goes back to the rift.
+        -- The first its mode picks that is no boss goes back to the rift.
         for _, id in near do
             local m = monsters[id]
             if m and not m.foe.boss then
@@ -610,14 +667,26 @@ local upgrading: { [number]: string } = {}
 
 local function show_turret(p: number, t: Turret)
     local name = `defense_game:turret{p}`
-    core.ui_define(name, 13, 4.2)
+    local choose = CHOOSES[t.kind.name] == true
+    core.ui_define(name, 13, if choose then 9.0 else 4.2)
     core.ui_label(name, 0.4, 0.3, `{t.kind.title}, level {t.lvl}`)
     if t.lvl < 3 then
         core.ui_button(name, "up", 0.4, 1.3, 12.2, 1.2, `Upgrade to level {t.lvl + 1}: {cost_text(t.kind.up[t.lvl])}`)
     else
         core.ui_label(name, 0.4, 1.5, "At its best.")
     end
-    core.ui_button(name, "close", 0.4, 2.8, 12.2, 1.1, "Close")
+    local y = 2.8
+    if choose then
+        -- Whom it aims at: six buttons, the one set marked.
+        -- (The titles alone on each, so each player's machine translates them.)
+        core.ui_label(name, 0.4, 2.8, "Aims at:")
+        for i, m in MODES do
+            if (t.mode or "near") == m[1] then core.ui_label(name, 4.4, 2.8, m[2]) end
+            core.ui_button(name, `mode:{m[1]}`, 0.4 + ((i - 1) % 2) * 6.2, 3.6 + ((i - 1) // 2) * 1.4, 6.0, 1.2, m[2])
+        end
+        y = 7.6
+    end
+    core.ui_button(name, "close", 0.4, y, 12.2, 1.1, "Close")
     core.ui_show(name, true, p)
 end
 
@@ -657,6 +726,15 @@ core.event.on("core:ui_click", function(ev)
                     core.notice(ev.player, `Not enough for that: {cost_text(k.build)}`)
                 end
             end
+        end
+        return
+    end
+    local mode = string.match(ev.id, "^mode:(%a+)$")
+    if mode then
+        local t = turrets[upgrading[ev.player] or ""]
+        if t then
+            t.mode = mode
+            show_turret(ev.player, t)
         end
         return
     end
@@ -821,7 +899,8 @@ core.event.on("core:tick", function(ev)
         local id = core.spawn_mob(`defense_game:{kind}`, GATE[1] + off + 0.5, GATE[2], GATE[3] + 0.5)
         if id ~= 0 then
             core.mob_health(id, math.floor(foe.hp * hp_scale))
-            local m = { kind = `defense_game:{kind}`, foe = foe, hunting = 0, stop = 1, hunt_left = -6 }
+            local m = { kind = `defense_game:{kind}`, foe = foe, hunting = 0, stop = 1, hunt_left = -6,
+                        hp = math.floor(foe.hp * hp_scale) }
             monsters[id] = m
             go(id, m)
         end

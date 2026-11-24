@@ -122,6 +122,9 @@ From docs/IDEE.it.md (2026-11-24), each checked by script on tools/track.sh:
   turning on a still base: four crossbows with fake targets four ways, seen
   from straight above, each bow towards its target. Not checked: the
   portal's two swirls in a shot.
+- Tower defense aim modes: in a wave, each of the six modes' pick logged
+  against the seven monsters in reach (distance, progress, health): all
+  right. The panel's buttons not clicked by hand.
 - The cloud world (games/skies, 2026-11-24 evening): islands without end, the
   sky road, villages, updrafts, the Manta at z 420. Checked with a client in
   Xephyr and scratch test blocks: shots of the road and of a village; the sea

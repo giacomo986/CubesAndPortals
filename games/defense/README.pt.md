@@ -43,6 +43,10 @@ parado ao meio-dia.
 * **Torres**: clique direito numa bancada, escolha uma; vai para a bolsa, e é colocada no campo
   como um bloco. Um clique direito numa mostra o nível e a melhora (até o 3). Quebrada, volta ao
   nível 1.
+* **Mira**: as torres de flechas, raio e portal escolhem um monstro. No painel delas se escolhe
+  qual: o mais perto (no começo), o mais longe, o mais adiantado rumo ao cristal, o mais atrasado,
+  o mais forte ou o mais fraco (o com mais ou menos vida restante, contada pelo jogo a cada golpe);
+  entre iguais, o mais perto. Braseiro e gelo atingem todos os monstros em volta.
 
 | torre | custa | melhoria (para 2, para 3) | o que faz (níveis 1/2/3) |
 |---|---|---|---|

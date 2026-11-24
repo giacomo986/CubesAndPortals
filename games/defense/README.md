@@ -43,6 +43,11 @@ its pedestal, two benches either side of the doorway. Day, always: the clock sta
 * **Turrets**: right click a bench, pick one; it goes into the bag, to be put down on the field like
   a block. A right click on one shows its level and upgrades it (up to 3). Broken, it comes back at
   level 1.
+* **Aim**: the arrow, lightning and portal turrets pick one monster. Their panel says whom: the
+  nearest (to begin with), the furthest, the one furthest along the way to the crystal, the one
+  furthest back, the strongest or the weakest (the most and the least health left, counted by the
+  game from every blow); between equals, the nearer. The brazier and the frost turret strike every
+  monster round them.
 
 | turret | costs | upgrade (to 2, to 3) | what it does (levels 1/2/3) |
 |---|---|---|---|

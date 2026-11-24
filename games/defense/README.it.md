@@ -44,6 +44,10 @@ l'orologio è fermo a mezzogiorno.
 * **Torrette**: clic destro su un banco, scegline una; finisce nella borsa, e si mette sul campo
   come un blocco. Un clic destro su una mostra il suo livello e la potenzia (fino al 3). Rotta,
   torna al livello 1.
+* **Mira**: le torrette a frecce, fulmine e portale scelgono un mostro. Nel loro pannello si
+  sceglie quale: il più vicino (all'inizio), il più lontano, il più avanzato verso il cristallo, il
+  più indietro, il più forte o il più debole (quello con più o meno salute rimasta, contata dal
+  gioco a ogni colpo); tra pari, il più vicino. Braciere e gelo colpiscono tutti i mostri intorno.
 
 | torretta | costa | potenziamento (al 2, al 3) | cosa fa (livelli 1/2/3) |
 |---|---|---|---|

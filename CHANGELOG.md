@@ -11,7 +11,8 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
   other worlds come through a rift and walk to a crystal; five turrets built at a bench out of what
   you mined (arrow, fire brazier, frost, lightning, portal), upgraded to level 3, barricades the
   monsters walk round, and a boss every fifth wave. The turrets turn to their targets and what
-  they fire is seen: arrows, fire, frost, lightning, portals. Every wave held gives materials to
+  they fire is seen: arrows, fire, frost, lightning, portals. Each aims at the nearest, furthest,
+  furthest along, furthest back, strongest or weakest monster, as its panel is set. Every wave held gives materials to
   keep; `/defense` shows the records.
 - **The cloud world**: a new world behind a gate on the plaza: islands without end over a sea of
   cloud, bridges, sky crystals, **owl men** in villages (they walk, glide between islands, trade
