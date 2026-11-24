@@ -665,6 +665,7 @@ core.render.photo(id, data)                      -- a camera made of such a pict
 core.overcast(how_much)                          -- grey sky and clouds, 0..1: the weather (mods/weather)
 core.sky_flash(how_much)                         -- a bolt's light on the land and the sky, this frame
 core.sky_eclipse(how_much)                       -- the sun black in a ring, the sky and the land dark, 0..1
+core.cloud_sea(base, top)                        -- the sky's clouds again between these heights: a sea under islands (games/skies)
 core.node_foliage(id, on?)                       -- a block that takes the season's colour
 core.foliage(r, g, b, how_much)                  -- the season's colour on the foliage, 0..1
 

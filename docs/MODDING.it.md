@@ -716,6 +716,7 @@ core.render.photo(id, dati)                      -- una telecamera fatta di quel
 core.overcast(quanto)                            -- cielo e nuvole grigi, 0..1: il meteo (mods/weather)
 core.sky_flash(quanto)                           -- la luce di un fulmine su terra e cielo, in questo frame
 core.sky_eclipse(quanto)                         -- il sole nero in un anello, cielo e terra scuri, 0..1
+core.cloud_sea(base, top)                        -- le nuvole del cielo di nuovo tra queste altezze: un mare sotto le isole (games/skies)
 core.node_foliage(id, on?)                       -- un blocco che prende il colore della stagione
 core.foliage(r, g, b, quanto)                    -- il colore della stagione sul fogliame, 0..1
 

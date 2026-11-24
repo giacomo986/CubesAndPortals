@@ -665,6 +665,7 @@ core.render.photo(id, data)                      -- uma câmera feita dessa imag
 core.overcast(how_much)                          -- céu e nuvens cinzentos, 0..1: o tempo (mods/weather)
 core.sky_flash(how_much)                         -- a luz de um raio na terra e no céu, neste frame
 core.sky_eclipse(how_much)                       -- o sol negro num anel, o céu e a terra escuros, 0..1
+core.cloud_sea(base, top)                        -- as nuvens do céu de novo entre essas alturas: um mar sob ilhas (games/skies)
 core.node_foliage(id, on?)                       -- um bloco que pega a cor da estação
 core.foliage(r, g, b, how_much)                  -- a cor da estação na folhagem, 0..1
 
