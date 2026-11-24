@@ -5,7 +5,7 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
-## Not in an alpha yet
+## 0.21.0-alpha.3 — 2026-11-24
 
 - **Tower defense**: a new world behind a gate on the plaza, alone or together. Monsters of the
   other worlds come through a rift and walk to a crystal; five turrets built at a bench out of what

@@ -21,7 +21,8 @@ what is built, and three or four structural fixes that each close many entries.
 
 ## Suggested order
 
-1. Packages: 0.21.0-alpha.2 is tagged (4c7843c). The next one gets a new
+1. Packages: 0.21.0-alpha.3 is tagged (2026-11-24: the tower defense, the cloud
+   world, map tiles, the backrooms' districts). The next one gets a new
    version, changelog entry and tag first.
 2. The test rig (section below): done 2026-11-20 for the five left-click cases;
    the thirty "not heard" entries are still to go through one by one.

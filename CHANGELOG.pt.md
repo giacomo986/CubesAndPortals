@@ -5,7 +5,7 @@
 Uma entrada para cada alfa distribuída, a mais nova no topo. Como elas são numeradas e como se faz
 uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
 
-## Ainda não numa alpha
+## 0.21.0-alpha.3 — 2026-11-24
 
 - **Tower defense**: um mundo novo atrás de um portão na praça, sozinho ou junto. Monstros dos
   outros mundos saem de uma fenda e andam até um cristal; cinco torres construídas numa bancada com

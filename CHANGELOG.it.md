@@ -5,7 +5,7 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
-## Non ancora in un'alpha
+## 0.21.0-alpha.3 — 2026-11-24
 
 - **Tower defense**: un mondo nuovo dietro un portone sulla piazza, da soli o insieme. Mostri
   degli altri mondi escono da una fenditura e camminano verso un cristallo; cinque torrette
