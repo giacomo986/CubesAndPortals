@@ -1060,8 +1060,11 @@ On the track (`games/track`) `/pieces` first gives three tools, read by `track_g
 
 - **start line**: right click on a road or a piece puts a start line across, as wide as the road (12
   a side at most), crossed going away from whoever clicked; white beam overhead. A new line is a new
-  track with its own board (`customN`). Clicked again, it removes it with the whole track.
-- **checkpoint**: the next checkpoint, yellow beam; clicked again, removes it.
+  track with its own board (`customN`), its own ghosts and an owner, whoever put it down; a world
+  holds as many as are put down, eight a player. Clicked again by its owner, it removes it with the
+  whole track; somebody else is told whose it is.
+- **checkpoint**: the next checkpoint of your latest track, yellow beam; clicked again by its owner,
+  removes it.
 - **offroad**: two clicks are two opposite corners of an area (256 a side at most) where during a
   lap the kart may be on anything; a glowing post at each corner, a click inside removes it.
 

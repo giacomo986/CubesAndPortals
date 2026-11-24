@@ -20,6 +20,9 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
   fantasma. `/ghost mine` corre contro il tuo, `/ghost NOME` contro quello di un amico, `/ghost
   record` contro il record della pista, `/ghost off` contro nessuno; `/laps` elenca il giro migliore
   di tutti sulla pista, non solo i cinque della bacheca.
+- **Più piste di pezzi in un mondo**: ogni linea di partenza messa è una pista a sé, con un
+  proprietario; solo lui ne toglie le linee, e un giocatore ne può avere otto. Prima una nuova linea
+  di partenza toglieva la pista di prima, chiunque l'avesse costruita.
 - Per gli admin: `/trophies sites`, `/trophies go ID [place] [NOME]`, `/trophies home [NOME]`.
 - Per gli admin: lo storico dei blocchi cambiati (`/inspect`, `/rollback`) si tiene solo con
   `--block-history`; senza, non si annota niente.

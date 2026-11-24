@@ -1729,3 +1729,5 @@ Ghost: {} = Fantasma: {}
 Ghost: {}. /ghost record, mine, a player's name or off = Fantasma: {}. /ghost record, mine, il nome di un giocatore oppure off
 No ghost of {} on this track = Nessun fantasma di {} su questa pista
 Nobody has lapped this track yet = Nessuno ha ancora fatto un giro di questa pista
+That line is {}'s = Quella linea è di {}
+You have {} tracks: take a start line away first = Hai già {} piste: togli prima una linea di partenza

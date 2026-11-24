@@ -34,7 +34,7 @@ local GROUND = 20
 -- own best laps and board -- the loop's under the keys it always had.
 type Gate = { axis: string, at: number, dir: number, from: number, to: number, inferno: boolean?, y: number? }
 type Track = { key: string, gates: { Gate }, paint: boolean?, custom: boolean?, level: number?, length: number?,
-               sx: number?, sz: number? }
+               sx: number?, sz: number?, owner: string? }
 local TRACKS: { Track } = {
     { key = "", gates = {
         { axis = "x", at = 40, dir = 1,  from = 17,  to = 23 },    -- south straight, running +x
@@ -77,12 +77,11 @@ local TRACKS: { Track } = {
         { axis = "x", at = -76, dir = 1, from = 88,   to = 103 },  -- over the tall loop to the left
         { axis = "z", at = 76, dir = 1,  from = -104, to = -89 },  -- over the tall loop to the right
     } },
-    -- A player's own: the start line and checkpoints put down with track_core's
-    -- tools, wherever the pieces were built. Kept in the store; `key` gets
-    -- the number of the start line it is, so a new one starts a new board.
-    { key = "custom", custom = true, gates = {} },
 }
-local CUSTOM = #TRACKS
+-- And the players' own, appended once the world file is read (below): the
+-- start line and checkpoints put down with track_core's tools, wherever the
+-- pieces were built. `key` is "custom<n>", n the start line it is, so each
+-- start line has a board of its own; `owner` the name of whoever put it down.
 
 -- The trial for the Chiave della Corsa (mods/keys): three laps of the Inferno
 -- track in a row, each faster than the engineer's. A lap over it starts the
@@ -846,9 +845,6 @@ if serving then
         core.storage_set(stored(i, "all"), fastest(i, 150))
     end
     core.event.on("core:world_ready", function()
-        -- A player's own track, as it was left: which start line it is (its
-        -- board's key) and its lines, "axis at dir from to y" each.
-        TRACKS[CUSTOM].key = `custom{core.storage_get("custom_n")}`
         for _, line in string.split(core.storage_get("areas"), ";") do
             local w = string.split(line, " ")
             if #w == 5 then
@@ -857,12 +853,35 @@ if serving then
                                       y = tonumber(w[5]) :: number })
             end
         end
-        for _, line in string.split(core.storage_get("custom_gates"), ";") do
-            local w = string.split(line, " ")
-            if #w == 6 then
-                table.insert(TRACKS[CUSTOM].gates, { axis = w[1], at = tonumber(w[2]) :: number,
-                                                     dir = tonumber(w[3]) :: number, from = tonumber(w[4]) :: number,
-                                                     to = tonumber(w[5]) :: number, y = tonumber(w[6]) })
+        -- The players' own tracks, as they were left: "customs" lists them,
+        -- "n owner" each, and "custom_gates:<n>" holds one's lines, "axis at
+        -- dir from to y" each. A world from before there were several had
+        -- one, under "custom_gates" and "custom_n", and nobody's.
+        local listed = core.storage_get("customs")
+        if listed == "" and core.storage_get("custom_gates") ~= "" then
+            local n = core.storage_get("custom_n")
+            core.storage_set(`custom_gates:{n}`, core.storage_get("custom_gates"))
+            listed = `{n} `
+            core.storage_set("customs", listed)
+            core.storage_set("custom_gates", "")
+        end
+        for _, item in string.split(listed, ";") do
+            local n, owner = string.match(item, "^(%d+) ?(%S*)$")
+            if n == nil then
+                continue
+            end
+            local gates: { Gate } = {}
+            for _, line in string.split(core.storage_get(`custom_gates:{n}`), ";") do
+                local w = string.split(line, " ")
+                if #w == 6 then
+                    table.insert(gates, { axis = w[1], at = tonumber(w[2]) :: number,
+                                          dir = tonumber(w[3]) :: number, from = tonumber(w[4]) :: number,
+                                          to = tonumber(w[5]) :: number, y = tonumber(w[6]) })
+                end
+            end
+            if #gates > 0 then
+                table.insert(TRACKS, { key = `custom{n}`, custom = true, gates = gates, owner = owner })
+                bests[#TRACKS] = {}
             end
         end
 
@@ -996,17 +1015,29 @@ if serving then
         return g
     end
 
-    local function custom_changed()
-        local tr  = TRACKS[CUSTOM]
+    -- How many tracks of their own a player may have at once.
+    local OWN_TRACKS = 8
+
+    -- Track ti's lines changed: kept, and whoever was lapping it starts again
+    -- from its start line. A track with no lines left is gone (it stays in
+    -- TRACKS, empty, so the others keep their places).
+    local function custom_changed(ti: number)
+        local list = {}
+        for _, tr in TRACKS do
+            if tr.custom and #tr.gates > 0 then
+                table.insert(list, `{string.sub(tr.key, 7)} {tr.owner or ""}`)
+            end
+        end
+        core.storage_set("customs", table.concat(list, ";"))
+        local tr  = TRACKS[ti]
         local out = {}
         for _, g in tr.gates do
             table.insert(out, `{g.axis} {g.at} {g.dir} {g.from} {g.to} {g.y}`)
         end
-        core.storage_set("custom_gates", table.concat(out, ";"))
+        core.storage_set(`custom_gates:{string.sub(tr.key, 7)}`, table.concat(out, ";"))
         rows_dirty = true
-        -- Whoever was lapping it starts again from its start line.
         for q, s in players do
-            if s.track == CUSTOM then
+            if s.track == ti then
                 s.next, s.lapping = 1, false
                 if #tr.gates == 0 then
                     s.track = nil
@@ -1016,6 +1047,18 @@ if serving then
         end
     end
 
+    -- The track a player puts checkpoints on: the last of their own they
+    -- put a start line down for, or nobody's (a world's one from before).
+    local function own_track(name: string): number?
+        local found = nil
+        for i, tr in TRACKS do
+            if tr.custom and #tr.gates > 0 and (tr.owner == name or tr.owner == "") then
+                found = i
+            end
+        end
+        return found
+    end
+
     core.event.on("core:used", function(ev)
         local start = ev.held == "track_core:start_line"
         -- A kart is got into whatever is in hand.
@@ -1023,25 +1066,35 @@ if serving then
             return
         end
         ev.cancel = true
-        local tr = TRACKS[CUSTOM]
+        local name = core.player_name(ev.player)
 
-        for k, g in tr.gates do
-            local a = if g.axis == "x" then ev.x else ev.z
-            local w = if g.axis == "x" then ev.z else ev.x
-            if (k == 1) == start and math.abs(a - g.at) <= 1 and w >= g.from and w <= g.to then
-                if start then
-                    for j, h in tr.gates do
-                        beam(h, if j == 1 then BEAM_START else BEAM_MARK, false)
+        -- On a line of a track of pieces: taken away, by whoever put it down.
+        for ti, tr in TRACKS do
+            if not tr.custom then
+                continue
+            end
+            for k, g in tr.gates do
+                local a = if g.axis == "x" then ev.x else ev.z
+                local w = if g.axis == "x" then ev.z else ev.x
+                if (k == 1) == start and math.abs(a - g.at) <= 1 and w >= g.from and w <= g.to then
+                    if tr.owner ~= "" and tr.owner ~= name then
+                        core.chat(ev.player, `That line is {tr.owner}'s`)
+                        return
                     end
-                    tr.gates = {}
-                    core.chat(ev.player, "Start line taken away, and the track with it")
-                else
-                    beam(g, BEAM_MARK, false)
-                    table.remove(tr.gates, k)
-                    core.chat(ev.player, `Checkpoint {k - 1} taken away`)
+                    if start then
+                        for j, h in tr.gates do
+                            beam(h, if j == 1 then BEAM_START else BEAM_MARK, false)
+                        end
+                        tr.gates = {}
+                        core.chat(ev.player, "Start line taken away, and the track with it")
+                    else
+                        beam(g, BEAM_MARK, false)
+                        table.remove(tr.gates, k)
+                        core.chat(ev.player, `Checkpoint {k - 1} taken away`)
+                    end
+                    custom_changed(ti)
+                    return
                 end
-                custom_changed()
-                return
             end
         end
 
@@ -1049,27 +1102,38 @@ if serving then
             core.chat(ev.player, "A line goes across a road: click the road")
             return
         end
-        if not start and #tr.gates == 0 then
+        local mine = own_track(name)
+        if not start and mine == nil then
             core.chat(ev.player, "Put the start line down first")
             return
         end
         local g = gate_from(ev.player, ev.x, ev.y, ev.z)
         if start then
-            for j, h in tr.gates do
-                beam(h, if j == 1 then BEAM_START else BEAM_MARK, false)
+            local have = 0
+            for _, tr in TRACKS do
+                if tr.custom and #tr.gates > 0 and tr.owner == name then
+                    have += 1
+                end
+            end
+            if have >= OWN_TRACKS then
+                core.chat(ev.player, `You have {OWN_TRACKS} tracks: take a start line away first`)
+                return
             end
             -- A new start line is a new track: a board of its own.
             local n = (tonumber(core.storage_get("custom_n")) or 0) + 1
             core.storage_set("custom_n", `{n}`)
-            tr.key, tr.gates, bests[CUSTOM] = `custom{n}`, { g }, {}
+            table.insert(TRACKS, { key = `custom{n}`, custom = true, gates = { g }, owner = name })
+            bests[#TRACKS] = {}
             beam(g, BEAM_START, true)
             core.chat(ev.player, `Start line down, {g.to - g.from + 1} wide`)
+            custom_changed(#TRACKS)
         else
+            local tr = TRACKS[mine :: number]
             table.insert(tr.gates, g)
             beam(g, BEAM_MARK, true)
             core.chat(ev.player, `Checkpoint {#tr.gates - 1} down, {g.to - g.from + 1} wide`)
+            custom_changed(mine :: number)
         end
-        custom_changed()
     end)
 
     -- The off-road tool: a right click on the ground is one corner of an area,

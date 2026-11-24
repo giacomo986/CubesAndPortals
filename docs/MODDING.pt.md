@@ -1068,9 +1068,11 @@ Na pista (`games/track`), `/pieces` dá primeiro três ferramentas, lidas por `t
 
 - **Linha de largada**: clique direito numa estrada ou numa peça põe uma linha de largada de través,
   da largura da estrada (12 de cada lado no máximo), cruzada indo para longe de quem clicou; uma viga
-  branca em cima. Uma linha nova é uma pista nova com o seu placar (`customN`). Clicada de novo, ela
-  é removida junto com a pista inteira.
-- **Checkpoint**: o próximo checkpoint, viga amarela; clicado de novo, é removido.
+  branca em cima. Uma linha nova é uma pista nova com o seu placar (`customN`), os seus fantasmas e
+  um dono, quem a pôs; um mundo guarda quantas forem postas, oito por jogador. Clicada de novo pelo
+  dono, ela é removida junto com a pista inteira; a outro jogador diz de quem é.
+- **Checkpoint**: o próximo checkpoint da sua última pista, viga amarela; clicado de novo pelo dono,
+  é removido.
 - **Fora de estrada**: dois cliques são dois cantos opostos de uma área (256 de lado no máximo) onde,
   durante uma volta, o kart pode estar em cima de qualquer coisa; um poste luminoso em cada canto, um
   clique dentro a remove.

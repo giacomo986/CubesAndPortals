@@ -18,6 +18,9 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 - **Ghosts of your own**: each player's best lap on a track is kept as a ghost too. `/ghost mine`
   races your own, `/ghost NAME` a friend's, `/ghost record` the track's record, `/ghost off` none;
   `/laps` lists everybody's best lap on the track, not only the five on the board.
+- **Several tracks of pieces in one world**: each start line put down is a track of its own, with
+  an owner; only the owner takes its lines away, and a player may have eight. Before, a new start
+  line took the previous track away, whoever had built it.
 - For admins: `/trophies sites`, `/trophies go ID [place] [NAME]`, `/trophies home [NAME]`.
 - For admins: the history of changed blocks (`/inspect`, `/rollback`) is kept only with
   `--block-history`; without it nothing is written down.

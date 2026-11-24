@@ -1156,10 +1156,12 @@ Sulla pista (`games/track`) `/pieces` dà per primi tre strumenti, letti da
 - **start line**: tasto destro su una strada o un pezzo mette una linea di
   partenza di traverso, larga quanto la strada (12 per lato al massimo),
   attraversata allontanandosi da chi ha cliccato; trave bianca sopra. Una nuova
-  linea è una pista nuova con la sua classifica (`customN`). Cliccata di nuovo,
-  la toglie con tutta la pista.
-- **checkpoint**: il checkpoint successivo, trave gialla; cliccato di nuovo, lo
-  toglie.
+  linea è una pista nuova con la sua classifica (`customN`), i suoi fantasmi e un
+  proprietario, chi l'ha messa; un mondo ne tiene quante se ne mettono, otto per
+  giocatore. Cliccata di nuovo dal proprietario, la toglie con tutta la pista; a
+  un altro dice di chi è.
+- **checkpoint**: il checkpoint successivo della tua ultima pista, trave gialla;
+  cliccato di nuovo dal proprietario, lo toglie.
 - **offroad**: due click sono due angoli opposti di un'area (256 per lato al
   massimo) dove durante un giro il kart può stare su qualunque cosa; un paletto
   luminoso a ogni angolo, un click dentro la toglie.
