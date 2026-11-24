@@ -68,7 +68,7 @@ CLI="$BUILD/src/client/cnp_client"
 mkdir -p "$HERE"
 if [ "$FRESH" = 1 ]; then
     rm -f "$HERE"/sandbox.world* "$HERE"/pista.world* "$HERE"/inferno.world* \
-          "$HERE"/arena.world* "$HERE"/arpg.world* "$HERE"/chambers.world* "$HERE"/backrooms.world* "$HERE"/backrooms_deep.world* "$HERE"/parkour.world* "$HERE"/laboratorio.world* "$HERE"/front.world* "$HERE"/platformer.world* "$HERE"/shmup.world* \
+          "$HERE"/arena.world* "$HERE"/arpg.world* "$HERE"/chambers.world* "$HERE"/backrooms.world* "$HERE"/backrooms_deep.world* "$HERE"/parkour.world* "$HERE"/laboratorio.world* "$HERE"/front.world* "$HERE"/platformer.world* "$HERE"/shmup.world* "$HERE"/defense.world* "$HERE"/skies.world* \
           "$HERE"/home-*.world* "$HERE"/workshop-*.world* "$HERE"/rooms.conf
     echo "== mondi salvati cancellati"
     # Proprietario del server: il permesso creative (moderatore in su) apre il
@@ -127,17 +127,20 @@ if [ ! -f "$HERE/rooms.conf" ]; then
     } > "$HERE/rooms.conf"
 fi
 
-# Il gioco a piattaforme e lo sparatutto da sala giochi (games/platformer,
-# games/shmup) non partono col server: stanno nel file delle stanze, e ognuno
-# si avvia quando qualcuno si avvicina al suo cancello sulla piazza (mods/gates)
-# e si ferma un minuto dopo che l'ultimo se n'è andato.
-for g in platformer shmup; do
+# Il gioco a piattaforme, lo sparatutto da sala giochi, il tower defense e le
+# isole sospese (games/platformer, shmup, defense, skies) non partono col
+# server: stanno nel file delle stanze, e ognuno si avvia quando qualcuno si
+# avvicina al suo cancello sulla piazza (mods/gates) e si ferma un minuto dopo
+# che l'ultimo se n'è andato. Gli ultimi due caricano le mod del sandbox, e ne
+# prendono anche le texture.
+for g in platformer shmup defense skies; do
     grep -q "^\[room $g\]" "$HERE/rooms.conf" || {
         echo ""
         echo "[room $g]"
         echo "world-file $HERE/$g.world"
         echo "mods $ROOT/games/$g/mods"
         echo "textures $ROOT/games/$g/textures"
+        case $g in defense|skies) echo "fallback-textures $ROOT/assets/textures" ;; esac
     } >> "$HERE/rooms.conf"
 done
 

@@ -7,6 +7,16 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
 ## Non ancora in un'alpha
 
+- **Tower defense**: un mondo nuovo dietro un portone sulla piazza, da soli o insieme. Mostri
+  degli altri mondi escono da una fenditura e camminano verso un cristallo; cinque torrette
+  costruite a un banco con quello che hai minato (frecce, braciere, gelo, fulmine, portale),
+  potenziabili fino al livello 3, barricate che i mostri aggirano, e un boss ogni cinque ondate.
+  Ogni ondata respinta dà materiali da tenere; `/defense` mostra i record.
+- **Isole sospese**: un mondo nuovo dietro un portone sulla piazza: sei isole sopra le nuvole,
+  ponti tra di loro, e la **Manta delle Nuvole**, un boss per uno o per più giocatori. I
+  parafulmini la abbattono, la si combatte sull'isola centrale, poi i ponti crollano e la si
+  finisce in volo. Dà il **deltaplano della tempesta**, che i venti della tempesta continuano a
+  sollevare, e funziona in ogni mondo.
 - **Backrooms**: due livelli nuovi, a distretti al posto dei vecchi: l'hotel (moquette rossa,
   corridoi di porte chiuse) e la festa (muri rosa, coriandoli, palloncini, torte). E le
   **backrooms profonde**, un mondo a sé dietro una porta rosa vicino all'entrata: più livelli

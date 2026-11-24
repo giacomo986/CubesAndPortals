@@ -237,9 +237,12 @@ mondo che c'è dietro (`mods/gates`), portano a sette mondi, tutti stanze dello 
 - **Il parkour** (`games/parkour`): corsa sui muri, rimbalzi, scivolate, capriole e rope gun.
   Guida in [`games/parkour/README.md`](games/parkour/README.it.md).
 
-Altri due giochi stanno nelle stanze `platformer` e `shmup`, con i loro portoni sulla piazza: un
-platform visto di lato (`games/platformer`) e uno sparatutto da sala giochi su un caccia visto
-dall'alto (`games/shmup`).
+Altri quattro giochi stanno nelle stanze `platformer`, `shmup`, `defense` e `skies`, con i loro
+portoni sulla piazza: un platform visto di lato (`games/platformer`), uno sparatutto da sala giochi
+su un caccia visto dall'alto (`games/shmup`), un tower defense contro ondate di mostri degli altri
+mondi, da soli o insieme, con torrette fatte di quello che hai minato (`games/defense`), e le isole
+sospese, dove la Manta delle Nuvole si abbatte con i parafulmini e dà il deltaplano della tempesta
+(`games/skies`).
 
 **Una casa più grande dentro** (`mods/pocket`). Una porta tascabile (una porta e un rubino in un
 anello di cornici di portale) messa in un muro diventa un vano su una sala tutta tua, quindici per
@@ -839,7 +842,8 @@ i link qui sotto portano a quello in italiano.
 - Le guide dei mondi: [l'assalto](games/assault/README.it.md),
   [le backrooms](games/backrooms/README.it.md), [il fronte](games/front/README.it.md),
   [l'Inferno](games/inferno/README.it.md), [il parkour](games/parkour/README.it.md),
-  [il platform](games/platformer/README.it.md), [lo sparatutto da sala giochi](games/shmup/README.it.md).
+  [il platform](games/platformer/README.it.md), [lo sparatutto da sala giochi](games/shmup/README.it.md),
+  [il tower defense](games/defense/README.it.md), [le isole sospese](games/skies/README.it.md).
 - [`contrib/README.md`](contrib/README.it.md): gli add-on tenuti fuori dal gioco, come l'uomo
   lucertola.
 - [`TODO.md`](TODO.md) (in inglese): cosa manca e cosa non va.

@@ -104,6 +104,23 @@ From docs/IDEE.it.md (2026-11-24), each checked by script on tools/track.sh:
   floor. Rooms wired (backrooms opening 2 to backrooms_deep). Not walked: the
   pink door in room (-6, 5) and back, a shift of the links at ten minutes,
   balloons and cakes (not in a shot). Nobody lives in the new levels yet.
+- Tower defense (games/defense): run on a server of its own with a client in
+  Xephyr and a scratch test block (turrets and a barricade wall set by the
+  test): waves 1 and 2 walk the route stop to stop, the turrets kill them, the
+  portal turret sends one back, a wall that shuts the way is refused; taken
+  away at 40 s, the monsters get to the crystal and it breaks at wave 3 (the
+  record kept, the field cleared). A monster that fought the test's idle player kept it busy behind
+  the crystal for minutes: now no fight within 4 of the crystal's way in, and
+  at most 10 s anywhere. Not tried by hand: the
+  benches' panel, an upgrade, putting a turret or a barricade down with real
+  keys, a boss wave, two players. Friends' ranking (from IDEE) not done: the
+  records are the field's and those of the players here.
+- Sky islands (games/skies): the same rig; a shot of the Manta circling over
+  the bridges; four rods, the low phase, the fall (a glider handed over), two
+  rods again, the Manta dead and the storm glider in the bag, by the test's
+  calls. Not tried by hand: a gust on a bridge, the gaps, fighting it low with
+  weapons, gliding in phase 3, the storm glider's lift, the reset a minute on.
+- The two new gates on the plaza (25.5 and 69.5 on the south edge): not seen.
 
 Trophies and the hidden portals (mods/trophies, 2026-11-23): type-checked,
 and run 2026-11-23 on a server of seed 1 (a sandbox, the pocket halls and the

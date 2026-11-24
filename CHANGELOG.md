@@ -7,6 +7,15 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
 ## Not in an alpha yet
 
+- **Tower defense**: a new world behind a gate on the plaza, alone or together. Monsters of the
+  other worlds come through a rift and walk to a crystal; five turrets built at a bench out of what
+  you mined (arrow, fire brazier, frost, lightning, portal), upgraded to level 3, barricades the
+  monsters walk round, and a boss every fifth wave. Every wave held gives materials to keep;
+  `/defense` shows the records.
+- **Sky islands**: a new world behind a gate on the plaza: six islands over the clouds, bridges
+  between them, and the **Cloud Manta**, a boss for one or several. Lightning rods bring it down,
+  it is fought on the centre island, then the bridges fall and it is finished gliding. It gives
+  the **storm glider**, a glider the storm's winds keep lifting, which works in every world.
 - **Backrooms**: two newer levels, district by district in place of the old ones: the hotel
   (red carpet, corridors of shut doors) and the party (pink walls, confetti, balloons, cakes). And
   the **deep backrooms**, a world of their own behind a pink door near the way in: more of the new

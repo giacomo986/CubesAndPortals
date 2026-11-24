@@ -68,6 +68,8 @@ local TROPHIES: { Trophy } = {
     { id = "w.assalto", title = "The Assault", hint = "Through its gate on the plaza, and back.", rgb = { 140, 60, 200 }, row = 1 },
     { id = "w.platformer", title = "The Platform Game", hint = "Through its gate on the plaza, and back.", rgb = { 60, 190, 70 }, row = 1 },
     { id = "w.shmup", title = "The Arcade Shooter", hint = "Through its gate on the plaza, and back.", rgb = { 230, 80, 180 }, row = 1 },
+    { id = "w.defense", title = "The Tower Defense", hint = "Through its gate on the plaza, and back.", rgb = { 90, 220, 255 }, row = 1 },
+    { id = "w.skies", title = "The Sky Islands", hint = "Through its gate on the plaza, and back.", rgb = { 150, 200, 250 }, row = 1 },
     { id = "h.well", title = "The Old Well", hint = "An old well with a rope down it. What is at the bottom?", rgb = { 110, 170, 230 }, row = 2 },
     { id = "h.summit", title = "The Summit", hint = "An arch on the highest ground round about. It opens in winter.", rgb = { 250, 250, 255 }, row = 2 },
     { id = "h.lake", title = "The Drowned Door", hint = "Two lamps on the floor of a deep lake.", rgb = { 40, 200, 190 }, row = 2 },

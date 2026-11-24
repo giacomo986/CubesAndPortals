@@ -288,6 +288,42 @@ local THEMES: { [string]: (Put) -> () } = {
         end
     end,
 
+    -- The tower defense: a stretch of stone wall, a crystal's light over the
+    -- hole, a violet rift's glow either side, trodden grass before it.
+    defense = function(put)
+        local CRYSTAL = id("colors:light_blue_concrete")
+        frame(put, function() return BRICKS end)
+        for v = -1, 4 do
+            for _, u in { -3, -2, 2, 3 } do put(u, v, 0, if v == 4 and math.abs(u) == 3 then id("colors:purple_concrete") else BRICKS) end
+        end
+        for u = -1, 1 do put(u, 3, 0, BRICKS) end
+        put(0, 4, 0, CRYSTAL)
+        put(0, 5, 0, LAMP)
+        for w = -4, 4 do
+            for u = -3, 3 do
+                if w ~= 0 or math.abs(u) >= 2 then put(u, -1, w, if (u * 3 + w) % 5 == 0 then COARSE else GREEN) end
+            end
+        end
+    end,
+
+    -- The sky islands: a white arch like a cloud, light blue sky in its
+    -- corners, planks before it as on a bridge.
+    skies = function(put)
+        local CLOUD = WHITE
+        frame(put, function() return CLOUD end)
+        for v = -1, 3 do
+            for _, u in { -3, -2, 2, 3 } do put(u, v, 0, if v == 3 and math.abs(u) == 3 then BLUE else CLOUD) end
+        end
+        for u = -2, 2 do put(u, 4, 0, CLOUD) end
+        for u = -1, 1 do put(u, 5, 0, CLOUD) end
+        put(0, 3, 0, LAMP)
+        for w = -4, 4 do
+            for u = -2, 2 do
+                if w ~= 0 or math.abs(u) == 2 then put(u, -1, w, id("timber:planks")) end
+            end
+        end
+    end,
+
     -- The arcade shooter: a cabinet -- black sides, a light blue marquee with
     -- a lamp in it, a yellow stripe down each side, a chequered floor.
     shmup = function(put)
@@ -388,7 +424,8 @@ if PLAZA then
     -- gates are the server's mouths, so nothing else says who went where.
     -- The platform game's and the shooter's gates (below) are portals between
     -- rooms, not mouths: one built is listed here, so going through it counts too.
-    local HOT = { { "platformer", 40.5, 26.5 }, { "shmup", 56.5, 26.5 } }
+    local HOT = { { "platformer", 40.5, 26.5 }, { "shmup", 56.5, 26.5 },
+                  { "defense", 25.5, 26.5 }, { "skies", 69.5, 26.5 } }
     local hot_built: { [string]: boolean } = {}
     local by_mouth: { [string]: string } = {}   -- by name: the room of the mouth they stand at
     local away_to: { [string]: string } = {}    -- by name: the room they went to

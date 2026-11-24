@@ -13016,16 +13016,20 @@ bool serve_world(Scene &s, TitleMenu &m, LocalServer &srv, const std::string &di
     const std::vector<std::string> mod_flags = world_mod_flags(dir);
     if (rooms) {
         write_home_template(rooms_file, dir, survival, depth_s, top_s, mod_flags, games, sandbox_tex);
-        // The platform game and the arcade shooter are rooms of that file too,
-        // not of the command line: each starts when somebody comes near its
-        // gate on the plaza (mods/gates, a portal between rooms) and stops a
-        // minute after the last one left. The sandbox has no mouth to spare.
-        for (const char *g : {"platformer", "shmup"}) {
+        // The platform game, the arcade shooter, the tower defense and the sky
+        // islands are rooms of that file too, not of the command line: each
+        // starts when somebody comes near its gate on the plaza (mods/gates, a
+        // portal between rooms) and stops a minute after the last one left. The
+        // sandbox has no mouth to spare. The last two load the sandbox's mods,
+        // so they draw its blocks and items with its textures.
+        for (const char *g : {"platformer", "shmup", "defense", "skies"}) {
             const std::string at = games + "/" + g;
             if (!std::filesystem::is_directory(at + "/mods", ec)) continue;
-            write_room_section(rooms_file, std::string("[room ") + g + "]",
-                               {"world-file " + dir + "/" + g + ".db", "mods " + at + "/mods",
-                                "textures " + at + "/textures"});
+            std::vector<std::string> lines = {"world-file " + dir + "/" + g + ".db", "mods " + at + "/mods",
+                                              "textures " + at + "/textures"};
+            if (std::strcmp(g, "defense") == 0 || std::strcmp(g, "skies") == 0)
+                lines.push_back("fallback-textures " + sandbox_tex);
+            write_room_section(rooms_file, std::string("[room ") + g + "]", lines);
         }
     }
     for (const char *room : {"sandbox", "pockets"}) {

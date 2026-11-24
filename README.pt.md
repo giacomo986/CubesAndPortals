@@ -239,9 +239,12 @@ mundo atrás dele (`mods/gates`), levam a sete mundos, todos salas do mesmo serv
 - **O percurso de parkour** (`games/parkour`): corrida na parede, quiques, deslizes, rolamentos e
   uma arma de corda. Guia em [`games/parkour/README.md`](games/parkour/README.pt.md).
 
-Mais dois jogos ficam nas salas `platformer` e `shmup`, com portões na praça: um jogo de
-plataforma visto de lado (`games/platformer`) e um shooter de fliperama visto de cima com um caça
-(`games/shmup`).
+Mais quatro jogos ficam nas salas `platformer`, `shmup`, `defense` e `skies`, com portões na
+praça: um jogo de plataforma visto de lado (`games/platformer`), um shooter de fliperama visto de
+cima com um caça (`games/shmup`), um tower defense contra ondas de monstros dos outros mundos,
+sozinho ou junto, com torres feitas do que você minerou (`games/defense`), e as ilhas suspensas,
+onde a Arraia das Nuvens é derrubada com para-raios e dá a asa-delta da tempestade
+(`games/skies`).
 
 **Uma casa maior por dentro** (`mods/pocket`). Uma porta de bolso (uma porta e um rubi num anel de
 molduras de portal) colocada numa parede vira uma passagem para um salão só seu, de quinze por
@@ -858,7 +861,8 @@ links abaixo levam ao em português.
   [os backrooms](games/backrooms/README.pt.md), [o front](games/front/README.pt.md),
   [o Inferno](games/inferno/README.pt.md), [o parkour](games/parkour/README.pt.md),
   [o jogo de plataforma](games/platformer/README.pt.md),
-  [o shooter de fliperama](games/shmup/README.pt.md).
+  [o shooter de fliperama](games/shmup/README.pt.md),
+  [o tower defense](games/defense/README.pt.md), [as ilhas suspensas](games/skies/README.pt.md).
 - [`contrib/README.md`](contrib/README.pt.md): os add-ons guardados fora do jogo, como o
   homem-lagarto.
 - [`TODO.md`](TODO.md) (inglês): o que falta e o que está quebrado.

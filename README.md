@@ -236,8 +236,11 @@ or any world started from the title menu):
 - **The parkour course** (`games/parkour`): wall runs, bounces, slides, rolls and a rope gun.
   Guide in [`games/parkour/README.md`](games/parkour/README.md).
 
-Two more games are in the rooms `platformer` and `shmup`, with gates on the plaza: a platform game
-seen from the side (`games/platformer`) and an arcade shooter flown from above (`games/shmup`).
+Four more games are in the rooms `platformer`, `shmup`, `defense` and `skies`, with gates on the
+plaza: a platform game seen from the side (`games/platformer`), an arcade shooter flown from above
+(`games/shmup`), a tower defense against waves of the other worlds' monsters, alone or together,
+with turrets made of what you mined (`games/defense`), and the sky islands, where the Cloud Manta
+is brought down with lightning rods and gives the storm glider (`games/skies`).
 
 **A house bigger inside** (`mods/pocket`). A pocket door (a door and a ruby in a ring of portal
 frames) put down in a wall becomes a doorway onto a hall of your own, fifteen by fifteen and six
@@ -814,7 +817,8 @@ links below go to the English one.
 - The worlds' guides: [the assault](games/assault/README.md),
   [the backrooms](games/backrooms/README.md), [the front](games/front/README.md),
   [the Inferno](games/inferno/README.md), [the parkour course](games/parkour/README.md),
-  [the platform game](games/platformer/README.md), [the arcade shooter](games/shmup/README.md).
+  [the platform game](games/platformer/README.md), [the arcade shooter](games/shmup/README.md),
+  [the tower defense](games/defense/README.md), [the sky islands](games/skies/README.md).
 - [`contrib/README.md`](contrib/README.md): add-ons kept outside the game, like the lizard man.
 - [`TODO.md`](TODO.md) (English): what is missing and what is broken.
 - [`docs/archive/`](docs/archive/README.md): the history, milestone by milestone, with the
