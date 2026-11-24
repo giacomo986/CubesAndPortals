@@ -21,11 +21,8 @@ what is built, and three or four structural fixes that each close many entries.
 
 ## Suggested order
 
-1. The next package: `kEngineVersion` raised to 0.21.0-alpha.1 on 2026-11-22
-   (protocol 129, so it does not play with 0.20.0-alpha.1, tagged at 8dcbb0e
-   with protocol 127): its changelog entry holds what came after that tag, and
-   the 0.20.0-alpha.1 entry is again what the tag holds. The tag waits for
-   Giacomo's word.
+1. Packages: 0.21.0-alpha.2 is tagged (4c7843c). The next one gets a new
+   version, changelog entry and tag first.
 2. The test rig (section below): done 2026-11-20 for the five left-click cases;
    the thirty "not heard" entries are still to go through one by one.
 3. Models at join (first defect below): done 2026-11-20, looked at by eye.
@@ -82,6 +79,23 @@ what is built, and three or four structural fixes that each close many entries.
   lines fall off (`Xephyr :5 -screen 1920x1080 -ac -br -noreset`).
 
 ## To play by hand (built, checked by script only)
+
+From docs/IDEE.it.md (2026-11-24), each checked by script on tools/track.sh:
+- Ghosts of your own, /ghost, /laps: a lap kept as ghost@racer (136 places,
+  20.241 s); `/ghost mine` sends the player's own ghost and not the record's.
+  The two commands were not typed by hand (no chat in a timed run).
+- Several tracks of pieces with owners: the old single track moved over as
+  nobody's (custom4). Putting lines down by hand, eight a player and "That line
+  is X's" not tried.
+- Shortcut portals: a pair on the loop's south straight, the kart went from
+  48.7 to 81.1 keeping its speed (about 20 before, 16-19 after). The tool's
+  clicks not tried by hand; a lap with it came out 21.08 s against 20.24
+  without (the scripted driver, not the crossing).
+- Minimap: drawn in survival (coast, snowy forest, the deep one's ores; fps 11
+  with and without in Xephyr). The seeking minimap's hidden-portal pins and the
+  recipes not tried.
+- The summit's portal only in winter: not run (/season winter, then summer).
+- --block-history off by default: not run.
 
 Trophies and the hidden portals (mods/trophies, 2026-11-23): type-checked,
 and run 2026-11-23 on a server of seed 1 (a sandbox, the pocket halls and the
