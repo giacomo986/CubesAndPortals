@@ -34,7 +34,11 @@
 local AIR = 0
 local C = 8          -- a room's side, wall to wall
 local REGION = 32    -- one chunk column; at most one portal pair in each
-local PORTAL_CHANCE = 330   -- of 1000 regions
+-- The deep backrooms: the same maze in a room of its own (backrooms_deep),
+-- more of it the newer levels, and its portals lead somewhere else each time
+-- the links shift.
+local DEEP = core.room() == "backrooms_deep"
+local PORTAL_CHANCE = if DEEP then 500 else 330   -- of 1000 regions
 
 local function node(name: string, rgb: { number }, light: number?, solid: boolean?): number
     local s = if solid == nil then true else solid
@@ -104,6 +108,23 @@ core.node_liquid(PUDDLE, 120, 1)
 -- A portal's doorway: dark, its lintel lit.
 local FRAME     = node("frame", { 44, 40, 36 })
 local GLOW      = node("glow", { 255, 250, 230 }, 9)
+-- The hotel (Level 0's place, in some districts): red carpet, cream damask,
+-- one warm lamp a room, and corridors lined with doors that do not open.
+local HOTEL_CARPET = node("hotel_carpet", { 132, 34, 44 })
+local HOTEL_WALL   = node("hotel_wall", { 214, 196, 158 })
+local HOTEL_CEIL   = node("hotel_ceiling", { 232, 224, 204 })
+local SCONCE       = node("sconce", { 255, 206, 140 }, 13)
+local SCONCE_OFF   = node("sconce_off", { 120, 100, 80 })
+local HOTEL_DOOR   = node("hotel_door", { 92, 58, 34 })
+-- The party (Level 1's place, in some districts): pink walls, a floor of
+-- confetti, pink lights, balloons under the ceiling and cakes nobody ate.
+local PARTY_WALL   = node("party_wall", { 232, 150, 190 })
+local PARTY_FLOOR  = node("party_floor", { 96, 74, 150 })
+local PARTY_CEIL   = node("party_ceiling", { 244, 232, 248 })
+local PARTY_LAMP   = node("party_lamp", { 255, 190, 240 }, 14)
+local BALLOONS = { node("balloon_red", { 220, 40, 50 }, 0, false), node("balloon_yellow", { 240, 210, 40 }, 0, false),
+                   node("balloon_blue", { 50, 110, 230 }, 0, false) }
+local CAKE = node("cake", { 245, 225, 230 })
 
 -- A stair: half a cell, and the back half of the cell over it; it climbs
 -- towards +z (facing 0), +x (1), -z (2) or -x (3). A body walks up it half a
@@ -117,6 +138,8 @@ end
 local STAIR_CARPET   = stair("stair_carpet", { 150, 128, 70 })
 local STAIR_TILE     = stair("stair_tile", { 232, 236, 238 })
 local STAIR_CONCRETE = stair("stair_concrete", { 120, 120, 116 })
+local STAIR_HOTEL    = stair("stair_hotel", { 132, 34, 44 })
+local STAIR_PARTY    = stair("stair_party", { 96, 74, 150 })
 
 -- Loaded in a player's workshop too (mods/workshop, games/workshop/mods), for
 -- its blocks alone: the maze, its creatures and the rest of the world are
@@ -147,6 +170,18 @@ local LEVELS: { Level } = {
 }
 local PAIRS = { { 1, 2 }, { 1, 3 }, { 2, 3 } }
 
+-- The newer levels, each in the place of one of the three, district by
+-- district: a district is 128 cells a side and is either. Their floors are
+-- the level's they stand for, so stairs, holes and portals meet them the same.
+local HOTEL: Level = { name = "The hotel", F = 21, h = 5, tall = 33, floor = HOTEL_CARPET, wall_block = HOTEL_WALL,
+    ceil = HOTEL_CEIL, wall = 900, corr = 520, hall = 40, lamp = SCONCE, lamp_off = SCONCE_OFF,
+    lamps = { { 4, 4 } }, dark = 80, stair = STAIR_HOTEL }
+local PARTY: Level = { name = "The party", F = 5, h = 6, tall = 19, floor = PARTY_FLOOR, wall_block = PARTY_WALL,
+    ceil = PARTY_CEIL, wall = 380, corr = 150, hall = 140, lamp = PARTY_LAMP,
+    lamps = { { 2, 2 }, { 6, 6 }, { 2, 6 }, { 6, 2 } }, dark = 0, stair = STAIR_PARTY }
+local ALT: { [number]: Level } = { [1] = HOTEL, [3] = PARTY }
+local DISTRICT = 128
+
 -- The level a body's feet are in, by height.
 local function level_at(y: number): number
     return if y >= 33 then 2 elseif y >= 17 then 1 else 3
@@ -166,6 +201,29 @@ local function hash(x: number, z: number, salt: number): number
     return mul32(h, 1274126177)
 end
 
+-- What level L is made of at (x, z). The districts round the way in and the
+-- exit (and the survival sites, far out at x 8192) are always the old ones;
+-- elsewhere three in ten are the newer level, in the deep backrooms two in
+-- three.
+local function theme(L: number, x: number, z: number): Level
+    local alt = ALT[L]
+    if alt == nil then
+        return LEVELS[L]
+    end
+    local dx, dz = x // DISTRICT, z // DISTRICT
+    if (dx >= -1 and dx <= 0 and dz >= -1 and dz <= 0) or (not DEEP and x >= 8000) then
+        return LEVELS[L]
+    end
+    return if hash(dx, dz, L * 977 + 3) % 1000 < (if DEEP then 650 else 300) then alt else LEVELS[L]
+end
+
+-- Rooms that stay plain rooms: the way in, and (not in the deep backrooms
+-- themselves) the room with the door to them, room (-6, 5) of Level 0.
+local DEEP_DOOR = { cx = -6, cz = 5 }
+local function special(cx: number, cz: number): boolean
+    return (cx == 0 and cz == 0) or (not DEEP and cx == DEEP_DOOR.cx and cz == DEEP_DOOR.cz)
+end
+
 -- The portal pair of a region, or nil: the room it is in and its two levels.
 -- Never in the room at the origin, where the way back to the sandbox is.
 type Site = { cx: number, cz: number, a: number, b: number, x: number, z: number }
@@ -177,7 +235,7 @@ local function site(rx: number, rz: number): Site?
     local per = REGION // C
     local cx = rx * per + bit32.rshift(h, 10) % per
     local cz = rz * per + bit32.rshift(h, 14) % per
-    if cx == 0 and cz == 0 then
+    if special(cx, cz) then
         return nil
     end
     local pair = PAIRS[bit32.rshift(h, 18) % 3 + 1]
@@ -202,7 +260,7 @@ local VERTICAL: { [string]: Vertical } = {
     hole_p   = { stairs = false, lo = 1, hi = 2 },   -- the poolrooms down to Level 0
 }
 local function vertical(cx: number, cz: number): string
-    if (cx == 0 and cz == 0) or site_room(cx, cz) then
+    if special(cx, cz) or site_room(cx, cz) then
         return ""
     end
     local r = hash(cx, cz, 7717) % 1000
@@ -215,13 +273,13 @@ end
 -- shafts are in the gap the hall takes).
 local function hall(L: number, cx: number, cz: number): boolean
     local bx, bz = cx - cx % 2, cz - cz % 2
-    if hash(bx, bz, L * 211 + 9) % 1000 >= LEVELS[L].hall then
+    if hash(bx, bz, L * 211 + 9) % 1000 >= theme(L, bx * C, bz * C).hall then
         return false
     end
     for dz = 0, 1 do
         for dx = 0, 1 do
             local x, z = bx + dx, bz + dz
-            if (x == 0 and z == 0) or site_room(x, z) or vertical(x, z) ~= "" then
+            if special(x, z) or site_room(x, z) or vertical(x, z) ~= "" then
                 return false
             end
         end
@@ -233,10 +291,10 @@ end
 -- "" a room. Never a room that goes up or down, a hall's, a portal's or the
 -- origin's.
 local function kind(L: number, cx: number, cz: number): string
-    if (cx == 0 and cz == 0) or vertical(cx, cz) ~= "" or site_room(cx, cz) or hall(L, cx, cz) then
+    if special(cx, cz) or vertical(cx, cz) ~= "" or site_room(cx, cz) or hall(L, cx, cz) then
         return ""
     end
-    local corr = LEVELS[L].corr
+    local corr = theme(L, cx * C, cz * C).corr
     if hash(cx // 4, cz, L * 13 + 1) % 1000 < corr then
         return "x"
     elseif hash(cx, cz // 4, L * 17 + 3) % 1000 < corr then
@@ -261,13 +319,19 @@ local function wall(L: number, cx: number, cz: number, across: number): (boolean
     end
     local h = hash(cx * 2 + across, cz, L * 7919)
     local d = 1 + bit32.rshift(h, 10) % 5
-    return h % 1000 < LEVELS[L].wall, d, d + 1
+    return h % 1000 < theme(L, cx * C, cz * C).wall, d, d + 1
 end
 
 -- What stands in a room, by a hash of it: "pool", "lap", "big", "slide",
--- "pillar", "puddle", or "".
+-- "pillar", "puddle", "balloons", "cake", or "".
 local function feature(L: number, cx: number, cz: number): string
     local r = hash(cx, cz, L * 104729 + 17) % 1000
+    local t = theme(L, cx * C, cz * C)
+    if t == PARTY then
+        return if r < 450 then "balloons" elseif r < 560 then "cake" else ""
+    elseif t == HOTEL then
+        return if r < 60 then "pillar" else ""
+    end
     if L == 2 then
         return if r < 120 then "slide" elseif r < 300 then "pool" elseif r < 380 then "lap"
             elseif r < 440 then "big" else ""
@@ -279,10 +343,10 @@ end
 
 -- A doorway with a portal in it, standing in a room: the hole one cell wide
 -- and two tall at (hx, F, hz), a back behind it and a frame round it, dressed
--- as level `to`. along_x: the opening runs along x and faces +z; otherwise it
--- runs along z and faces +x.
-local function doorway(F: number, hx: number, hz: number, along_x: boolean, to: number)
-    local dress = LEVELS[to].wall_block
+-- as level `to` there (or as `dress`). along_x: the opening runs along x and
+-- faces +z; otherwise it runs along z and faces +x.
+local function doorway(F: number, hx: number, hz: number, along_x: boolean, to: number, dress: number?)
+    local dress = dress or theme(to, hx, hz).wall_block
     local function put(u: number, v: number, w: number, b: number)
         if along_x then
             core.set_block(hx + u, F + v, hz + w, b)
@@ -337,7 +401,7 @@ end
 -- under, a ladder out of its -x end. In the poolrooms its shell is blue tile
 -- with lights in it under the water, and coping round its edge.
 local function pool(L: number, x1: number, z1: number, x2: number, z2: number, depth: number)
-    local lv = LEVELS[L]
+    local lv = theme(L, x1, z1)
     local F = lv.F
     local shell = if L == 2 then POOL_TILE else lv.wall_block
     core.replace_nodes(x1 - 1, F - 1 - depth, z1 - 1, x2 + 1, F - 2, z2 + 1, AIR, shell)
@@ -366,13 +430,13 @@ end
 -- y over (x, z) up `rise` cells: the first step at x + 1.
 local function flight(L: number, x: number, y: number, z: number, rise: number)
     for k = 1, rise do
-        turned(x + k, y + k - 1, z, LEVELS[L].stair, 1)
+        turned(x + k, y + k - 1, z, theme(L, x, z).stair, 1)
     end
 end
 
 -- One level over one column.
 local function make(L: number, ctx: any, here: Site?)
-    local lv = LEVELS[L]
+    local lv = theme(L, ctx.min_x, ctx.min_z)
     local F, h = lv.F, lv.h
     core.replace_nodes(ctx.min_x, F - 1, ctx.min_z, ctx.max_x, F - 1, ctx.max_z, AIR, lv.floor)
     core.replace_nodes(ctx.min_x, F + h, ctx.min_z, ctx.max_x, F + h, ctx.max_z, AIR, lv.ceil)
@@ -434,6 +498,16 @@ local function make(L: number, ctx: any, here: Site?)
                 _, a0, a1 = wall(L, if k == "x" then cx else cx + 1, if k == "x" then cz + 1 else cz, across)
                 box(a0, a1, 6, 7, lv.wall_block, AIR)
                 core.set_block(x0 + 4, F + h, z0 + 4, lv.lamp)
+                -- The hotel's: a door on each side, twice, shut for good.
+                if lv == HOTEL then
+                    for _, a in { 2, 5 } do
+                        for _, b in { 2, 6 } do
+                            local x = if k == "x" then x0 + a else x0 + b
+                            local z = if k == "x" then z0 + b else z0 + a
+                            core.replace_nodes(x, F, z, x, F + 1, z, lv.wall_block, HOTEL_DOOR)
+                        end
+                    end
+                end
                 if L == 2 then
                     if k == "x" then
                         pool(L, x0 + 1, z0 + 3, x0 + 7, z0 + 5, 2)
@@ -453,10 +527,20 @@ local function make(L: number, ctx: any, here: Site?)
                 end
             end
             local portal = here ~= nil and here.cx == cx and here.cz == cz and (here.a == L or here.b == L)
-            local what = if portal or k ~= "" or in_hall or vertical(cx, cz) ~= "" or (cx == 0 and cz == 0)
+            local what = if portal or k ~= "" or in_hall or vertical(cx, cz) ~= "" or special(cx, cz)
                 then "" else feature(L, cx, cz)
             if what == "pillar" then
                 core.replace_nodes(x0 + 3, F, z0 + 3, x0 + 4, top, z0 + 4, AIR, lv.wall_block)
+            elseif what == "balloons" then
+                local r = hash(cx, cz, 67)
+                for n = 0, 2 + r % 4 do
+                    local q = hash(cx * 7 + n, cz, 71)
+                    local bx, bz = x0 + 1 + q % 7, z0 + 1 + bit32.rshift(q, 4) % 7
+                    core.set_block(bx, top - bit32.rshift(q, 8) % 2, bz, BALLOONS[bit32.rshift(q, 12) % 3 + 1])
+                end
+            elseif what == "cake" then
+                core.replace_nodes(x0 + 3, F, z0 + 4, x0 + 5, F, z0 + 4, AIR, lv.wall_block)
+                core.set_block(x0 + 4, F + 1, z0 + 4, CAKE)
             elseif what == "puddle" then
                 local r = hash(cx, cz, 61)
                 local px, pz = x0 + 2 + r % 3, z0 + 2 + bit32.rshift(r, 4) % 3
@@ -493,7 +577,7 @@ local function make(L: number, ctx: any, here: Site?)
                 end
             end
             if what == "" and not portal and k == "" and not in_hall and vertical(cx, cz) == ""
-                and not (cx == 0 and cz == 0) and hash(cx, cz, L * 613 + 29) % 1000 < CHEST_CHANCE then
+                and not special(cx, cz) and hash(cx, cz, L * 613 + 29) % 1000 < CHEST_CHANCE then
                 turned(x0 + 6, F, z0 + 6, CHEST, hash(cx, cz, L * 613 + 31) % 4)
             end
             if portal and here then
@@ -510,7 +594,7 @@ end
 -- north for the next); lamps in the ceiling and in the galleries' floors,
 -- which light both ways. In the poolrooms, a pool in the middle.
 local function build_hall(L: number, bx: number, bz: number)
-    local lv = LEVELS[L]
+    local lv = theme(L, bx * C, bz * C)
     local F, h, top = lv.F, lv.h, lv.tall
     local x0, z0 = bx * C, bz * C
     local X1, Z1 = x0 + 2 * C, z0 + 2 * C
@@ -596,7 +680,7 @@ end
 -- flights the room is still a room: a body walks under them. Its stairs and
 -- landings are the lower level's.
 local function stairwell(x0: number, z0: number, lo: number, hi: number)
-    local L, U = LEVELS[lo], LEVELS[hi]
+    local L, U = theme(lo, x0, z0), theme(hi, x0, z0)
     local F, rise = L.F, U.F - L.F
     local roof = F + L.h
     for x = x0 + 1, x0 + 7 do
@@ -651,7 +735,7 @@ end
 -- A hole two by two in the floor of a room of level `hi`, walled down
 -- through the gap with a lamp halfway, into a pool in the same room of `lo`.
 local function hole(x0: number, z0: number, lo: number, hi: number)
-    local L, U = LEVELS[lo], LEVELS[hi]
+    local L, U = theme(lo, x0, z0), theme(hi, x0, z0)
     core.replace_nodes(x0 + 2, L.F + L.h + 1, z0 + 2, x0 + 5, U.F - 2, z0 + 5, AIR, U.wall_block)
     core.replace_nodes(x0 + 3, L.F + L.h + 1, z0 + 3, x0 + 4, U.F - 2, z0 + 4, U.wall_block, AIR)
     core.set_block(x0 + 2, (L.F + L.h + U.F) // 2, z0 + 3, U.lamp)
@@ -699,7 +783,7 @@ core.register_mapgen("backrooms:rooms", function(ctx)
             for _, n in { { cx - 1, cz, 0 }, { cx, cz - 1, 1 } } do
                 local w = VERTICAL[vertical(n[1], n[2])]
                 if w and w.stairs then
-                    local Lw, Uw = LEVELS[w.lo], LEVELS[w.hi]
+                    local Lw, Uw = theme(w.lo, n[1] * C, n[2] * C), theme(w.hi, n[1] * C, n[2] * C)
                     local x0, z0 = cx * C, cz * C
                     local x1, z1 = if n[3] == 0 then x0 else x0 + C, if n[3] == 0 then z0 + C else z0
                     core.replace_nodes(x0, Lw.F + Lw.h, z0, x1, Uw.F - 2, z1, AIR, Lw.wall_block)
@@ -711,10 +795,19 @@ core.register_mapgen("backrooms:rooms", function(ctx)
         doorway(LEVELS[1].F, P0.x, P0.z, true, 1)
         doorway(LEVELS[2].F, P1.x, P1.z, false, 2)
     end
+    local dx, dz = DEEP_DOOR.cx * C + 4, DEEP_DOOR.cz * C + 3
+    if not DEEP and ctx.min_x <= dx and ctx.max_x >= dx and ctx.min_z <= dz and ctx.max_z >= dz then
+        doorway(LEVELS[1].F, dx, dz, true, 1, PARTY_WALL)
+    end
 end)
 
 core.set_portal(0, P0.x + 0.5, LEVELS[1].F + 1, P0.z + 0.6)
 core.set_portal(1, P1.x + 0.6, LEVELS[2].F + 1, P1.z + 0.5)
+-- The door to the deep backrooms (a room of their own: --portal-to
+-- @backrooms_deep/0 as this world's third opening).
+if not DEEP then
+    core.set_portal(2, DEEP_DOOR.cx * C + 4.5, LEVELS[1].F + 1, DEEP_DOOR.cz * C + 3.6)
+end
 
 -- A player is the sandbox's robot (mods/robot, linked here as games/arpg's).
 core.player_model(core.register_model("backrooms:robot", "robot.gltf"))
@@ -770,10 +863,38 @@ end)
 -- ------------------------------------------------------------- the portals
 
 local NEAR = 40      -- a pair is open while somebody is this close, across
-local MAX_OPEN = 7   -- 16 openings, two of them the world's
-type Open = { s: Site, ya: number, yb: number }
-local open: { [string]: Open } = {}
-local where: { [number]: number } = {}   -- the level each player was last in
+local MAX_ENDS = 28  -- portal ends open at once, of the 40 openings
+-- An open end: its id and the key of the end it is linked to.
+type End = { x: number, y: number, z: number, id: number, to: string }
+local ends: { [string]: End } = {}
+local where: { [number]: string } = {}   -- the name of the level each player was last in
+
+-- The deep backrooms' links: every SHIFT seconds the sites of each block of
+-- BLOCK regions a side are shuffled and paired, and each site's two doorways
+-- lead to the other's two, crossed (its upper to the other's lower).
+local SHIFT = 600
+local BLOCK = 8
+local function partner(s: Site, epoch: number): Site?
+    local rx, rz = (s.cx * C) // REGION, (s.cz * C) // REGION
+    local bx, bz = rx // BLOCK, rz // BLOCK
+    local list: { { k: number, s: Site } } = {}
+    for z = bz * BLOCK, bz * BLOCK + BLOCK - 1 do
+        for x = bx * BLOCK, bx * BLOCK + BLOCK - 1 do
+            local t = site(x, z)
+            if t then
+                table.insert(list, { k = hash(x, z, epoch * 31 + 7), s = t })
+            end
+        end
+    end
+    table.sort(list, function(a, b) return a.k < b.k end)
+    for i, e in list do
+        if e.s.cx == s.cx and e.s.cz == s.cz then
+            local j = if i % 2 == 1 then i + 1 else i - 1
+            return if list[j] then list[j].s else nil
+        end
+    end
+    return nil
+end
 local wait = 0.0
 
 -- Whether a body is on the last piece of a slide -- the next cell down is
@@ -949,7 +1070,7 @@ local function flicker(dt: number)
     for key, f in flicks do
         if clock >= f.at then
             if core.get_block(f.x, f.y, f.z) == f.on then
-                core.set_block(f.x, f.y, f.z, LEVELS[level_at(f.y - 1)].lamp_off or f.on)
+                core.set_block(f.x, f.y, f.z, theme(level_at(f.y - 1), f.x, f.z).lamp_off or f.on)
                 f.at = clock + 0.08 + rand(30) / 100
             else
                 core.set_block(f.x, f.y, f.z, f.on)
@@ -972,7 +1093,7 @@ local function flicker(dt: number)
             continue
         end
         local L = level_at(y)
-        local lv = LEVELS[L]
+        local lv = theme(L, x, z)
         if lv.lamp_off == nil then
             continue
         end
@@ -992,7 +1113,7 @@ core.event.on("core:tick", function(ev)
         hum_at = clock + HUM
         for _, p in core.players() do
             local x, y, z = core.player_pos(p)
-            if x and y and z and level_at(y) == 1 then
+            if x and y and z and level_at(y) == 1 and theme(1, x, z) == LEVELS[1] then
                 core.play_sound("backrooms:hum", x, LEVELS[1].F + LEVELS[1].h - 1, z)
             end
         end
@@ -1013,20 +1134,19 @@ core.event.on("core:tick", function(ev)
     end
     wait = 0.5
     local wanted: { [string]: Site } = {}
-    local count = 0
     for _, p in core.players() do
         local x, y, z = core.player_pos(p)
         if x == nil or y == nil or z == nil then
             continue
         end
-        local L = level_at(y)
-        if where[p] ~= L then
+        local name = theme(level_at(y), x, z).name
+        if where[p] ~= name then
             if where[p] ~= nil then
-                core.notice(p, LEVELS[L].name)
+                core.notice(p, name)
             else
                 core.notice(p, "Si dice che qualcuno abbia lasciato delle casse, qui. E che le creature tengano i pezzi di una bussola.")
             end
-            where[p] = L
+            where[p] = name
         end
         local rx, rz = x // REGION, z // REGION
         for drz = -2, 2 do
@@ -1038,31 +1158,50 @@ core.event.on("core:tick", function(ev)
             end
         end
     end
-    for key, o in open do
-        if wanted[key] == nil then
-            core.portal_close(o.s.x, o.ya, o.s.z)
-            core.portal_close(o.s.x, o.yb, o.s.z)
-            open[key] = nil
+    -- The ends wanted and what each leads to: a site's two levels to each
+    -- other, or in the deep backrooms to its partner's two.
+    local want: { [string]: { x: number, y: number, z: number, to: string } } = {}
+    local n = 0
+    local epoch = clock // SHIFT
+    local function put(a: Site, la: number, b: Site, lb: number)
+        local ya, yb = LEVELS[la].F + 1, LEVELS[lb].F + 1
+        local ka, kb = `{a.x},{ya},{a.z}`, `{b.x},{yb},{b.z}`
+        if want[ka] == nil then n += 1 end
+        if want[kb] == nil then n += 1 end
+        want[ka] = { x = a.x, y = ya, z = a.z, to = kb }
+        want[kb] = { x = b.x, y = yb, z = b.z, to = ka }
+    end
+    for _, s in wanted do
+        if n + 4 > MAX_ENDS then
+            break
+        end
+        local t = if DEEP then partner(s, epoch) else nil
+        if t then
+            put(s, s.a, t, t.b)
+            put(s, s.b, t, t.a)
         else
-            count += 1
+            put(s, s.a, s, s.b)
         end
     end
-    for key, s in wanted do
-        if open[key] ~= nil or count >= MAX_OPEN then
-            continue
+    for key, e in ends do
+        if want[key] == nil then
+            core.portal_close(e.x, e.y, e.z)
+            ends[key] = nil
         end
-        local ya, yb = LEVELS[s.a].F + 1, LEVELS[s.b].F + 1
-        local ia = core.portal_open(s.x, ya, s.z, 0, 1, 0, 0.5, 1.0)
-        if ia < 0 then
-            continue   -- no world yet, or no opening free: next time
+    end
+    for key, w in want do
+        if ends[key] == nil then
+            local id = core.portal_open(w.x, w.y, w.z, 0, 1, 0, 0.5, 1.0)
+            if id >= 0 then
+                ends[key] = { x = w.x, y = w.y, z = w.z, id = id, to = "" }
+            end
         end
-        local ib = core.portal_open(s.x, yb, s.z, 0, 1, 0, 0.5, 1.0)
-        if ib < 0 then
-            core.portal_close(s.x, ya, s.z)
-            continue
+    end
+    for key, w in want do
+        local e, o = ends[key], ends[w.to]
+        if e and o and e.to ~= w.to then
+            core.portal_link(e.id, o.id)
+            e.to, o.to = w.to, key
         end
-        core.portal_link(ia, ib)
-        open[key] = { s = s, ya = ya, yb = yb }
-        count += 1
     end
 end)

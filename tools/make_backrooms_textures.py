@@ -152,3 +152,64 @@ save(img, "lamp_off")
 img = tiles((214, 228, 234), (176, 194, 202), 16)
 ImageDraw.Draw(img).line([(0, 30), (N - 1, 30)], fill=(70, 150, 200), width=2)
 save(img, "pool_edge")
+
+# The hotel: a red carpet with a gold lozenge, cream damask in stripes, the
+# ceiling's plaster, a warm sconce, a dark panelled door.
+img = noisy((132, 34, 44), 6)
+d = ImageDraw.Draw(img)
+for cx, cy in ((8, 8), (24, 24), (24, 8), (8, 24)):
+    d.polygon([(cx, cy - 5), (cx + 5, cy), (cx, cy + 5), (cx - 5, cy)], outline=(196, 150, 70))
+d.line([(0, 0), (N - 1, 0)], fill=(100, 24, 32))
+save(img, "hotel_carpet")
+img = noisy((214, 196, 158), 3)
+d = ImageDraw.Draw(img)
+for x in range(0, N, 8):
+    d.rectangle([x + 3, 0, x + 4, N - 1], fill=(200, 180, 140))
+    for y in range(4, N, 10):
+        d.ellipse([x + 1, y, x + 6, y + 5], outline=(190, 168, 126))
+save(img, "hotel_wall")
+save(noisy((232, 224, 204), 3), "hotel_ceiling")
+img = noisy((255, 206, 140), 3)
+ImageDraw.Draw(img).ellipse([6, 6, 25, 25], fill=(255, 240, 200))
+save(img, "sconce")
+img = noisy((120, 100, 80), 3)
+ImageDraw.Draw(img).ellipse([6, 6, 25, 25], fill=(140, 120, 96))
+save(img, "sconce_off")
+img = noisy((92, 58, 34), 5)
+d = ImageDraw.Draw(img)
+d.rectangle([4, 4, N - 5, 14], outline=(64, 38, 20), width=2)
+d.rectangle([4, 18, N - 5, N - 5], outline=(64, 38, 20), width=2)
+d.rectangle([24, 15, 26, 17], fill=(210, 170, 70))
+save(img, "hotel_door")
+stair((132, 34, 44), 6, (196, 150, 70), "stair_hotel")
+
+# The party: pink walls with paler stripes, a purple floor of confetti, a
+# pale ceiling, pink lights, balloons with a shine, a white iced cake.
+img = noisy((232, 150, 190), 4)
+d = ImageDraw.Draw(img)
+for x in range(0, N, 8):
+    d.rectangle([x, 0, x + 2, N - 1], fill=(244, 186, 214))
+save(img, "party_wall")
+img = noisy((96, 74, 150), 6)
+px = img.load()
+for _ in range(60):
+    x, y = rng.randrange(N), rng.randrange(N)
+    px[x, y] = rng.choice([(240, 210, 40), (220, 40, 50), (50, 200, 230), (255, 255, 255)])
+save(img, "party_floor")
+save(tiles((244, 232, 248), (220, 204, 228), 16), "party_ceiling")
+img = noisy((255, 190, 240), 3)
+ImageDraw.Draw(img).ellipse([5, 5, 26, 26], fill=(255, 230, 250))
+save(img, "party_lamp")
+for name, base in (("balloon_red", (220, 40, 50)), ("balloon_yellow", (240, 210, 40)),
+                   ("balloon_blue", (50, 110, 230))):
+    img = noisy(base, 4)
+    ImageDraw.Draw(img).ellipse([6, 5, 12, 11], fill=tuple(min(255, c + 70) for c in base))
+    save(img, name)
+img = noisy((245, 225, 230), 3)
+d = ImageDraw.Draw(img)
+d.rectangle([0, 0, N - 1, 5], fill=(250, 250, 250))
+for x in range(2, N, 6):
+    d.rectangle([x, 6, x + 2, 9], fill=(250, 250, 250))
+d.line([(0, 20), (N - 1, 20)], fill=(220, 120, 160), width=3)
+save(img, "cake")
+stair((96, 74, 150), 6, (244, 186, 214), "stair_party")

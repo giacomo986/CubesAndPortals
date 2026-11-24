@@ -7,6 +7,10 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
 ## Not in an alpha yet
 
+- **Backrooms**: two newer levels, district by district in place of the old ones: the hotel
+  (red carpet, corridors of shut doors) and the party (pink walls, confetti, balloons, cakes). And
+  the **deep backrooms**, a world of their own behind a pink door near the way in: more of the new
+  levels, and portals that lead somewhere else every ten minutes.
 - **Trophies**: twenty, for the worlds you go to, the seven keys and five portals hidden out on
   the land. Their cups stand on a shelf in your own room; `/page trophies` lists them, with a hint
   and which way from the spawn each hidden portal is.

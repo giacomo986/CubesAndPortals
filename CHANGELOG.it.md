@@ -7,6 +7,10 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
 ## Non ancora in un'alpha
 
+- **Backrooms**: due livelli nuovi, a distretti al posto dei vecchi: l'hotel (moquette rossa,
+  corridoi di porte chiuse) e la festa (muri rosa, coriandoli, palloncini, torte). E le
+  **backrooms profonde**, un mondo a sé dietro una porta rosa vicino all'entrata: più livelli
+  nuovi, e portali che ogni dieci minuti portano altrove.
 - **Trofei**: venti, per i mondi in cui vai, le sette chiavi e cinque portali nascosti nelle
   terre. Le coppe stanno su una bacheca nella tua stanza personale; `/page trophies` li elenca, con
   un indizio e la direzione dallo spawn di ogni portale nascosto.

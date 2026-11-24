@@ -96,6 +96,14 @@ From docs/IDEE.it.md (2026-11-24), each checked by script on tools/track.sh:
   recipes not tried.
 - The summit's portal only in winter: not run (/season winter, then summer).
 - --block-history off by default: not run.
+- --map-tiles: run on worlds/play's sandbox (4 tiles, 1.4 s), looked at; the
+  page's zoom and coordinates not tried in a browser.
+- Backrooms hotel and party, the deep backrooms: shots of both (themes forced
+  everywhere in a scratch copy); in the deep backrooms a doorway walked into
+  came out at its random partner's, 33 and 110 m away, both on the party's
+  floor. Rooms wired (backrooms opening 2 to backrooms_deep). Not walked: the
+  pink door in room (-6, 5) and back, a shift of the links at ten minutes,
+  balloons and cakes (not in a shot). Nobody lives in the new levels yet.
 
 Trophies and the hidden portals (mods/trophies, 2026-11-23): type-checked,
 and run 2026-11-23 on a server of seed 1 (a sandbox, the pocket halls and the

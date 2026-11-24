@@ -31,6 +31,34 @@ in the poolrooms.
 The level's name comes up on the screen as you enter it (`level_at`: from the feet, y ≥ 33
 poolrooms, ≥ 17 Level 0, below that Level 1). Nothing is dug and nothing is built.
 
+## The newer levels, by district
+
+The world is cut into districts of 128 x 128 cells. In three districts in ten a newer level
+stands in the place of one of the three, at the same height, so stairs, holes and portals meet it
+the same way (`theme` in `mods/backrooms/init.luau`). The districts round the way in and the exit,
+and the survival sites, always have the old levels.
+
+| level | in place of | what it is |
+|---|---|---|
+| The hotel | Level 0 | red carpet, cream damask, one warm lamp a room, long corridors lined with doors that do not open |
+| The party | Level 1 | pink walls, a floor of confetti, pink lights, never dark, balloons under the ceiling, cakes on tables |
+
+Its name comes up on the screen as you walk into it. Nobody lives in the newer levels yet: the
+creatures come out only on Level 0's carpet and Level 1's slabs.
+
+## The deep backrooms
+
+A world of its own (room `backrooms_deep`, the same mods without `keys` and `backrooms_exit`):
+the door is in room (-6, 5) of Level 0, 50 cells from the way in, a doorway dressed in party pink
+(this world's third opening, `--portal-to @backrooms_deep/0`). Both doorways in the room at the
+origin of the deep backrooms lead back to it.
+
+There two districts in three are a newer level, there are more portals (one column of chunks in
+two) and they do not lead up or down: every ten minutes the sites of each block of 8 x 8 regions
+(256 cells a side) are shuffled and paired, and each site's two doorways lead to the other's two,
+crossed. Walking through a doorway takes you up to 256 cells away, to another level, and the same
+doorway leads somewhere else later.
+
 ## How it is generated
 
 A mapgen stage (`backrooms:rooms`) a column of chunks (32×32). The plan is a function of x and z

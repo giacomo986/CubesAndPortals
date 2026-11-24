@@ -31,6 +31,34 @@ Poolrooms.
 O nome do nível aparece na tela quando você entra nele (`level_at`: pelos pés, y ≥ 33 Poolrooms,
 ≥ 17 Level 0, abaixo disso Level 1). Nada se cava e nada se constrói.
 
+## Os níveis novos, por distrito
+
+O mundo é dividido em distritos de 128 x 128 células. Em três distritos de cada dez um nível novo
+fica no lugar de um dos três, na mesma altura, então escadas, buracos e portais o encontram do
+mesmo jeito (`theme` em `mods/backrooms/init.luau`). Os distritos em volta da entrada e da saída,
+e os locais de sobrevivência, têm sempre os níveis antigos.
+
+| nível | no lugar de | como é |
+|---|---|---|
+| O hotel | Level 0 | carpete vermelho, damasco creme, uma lâmpada quente por sala, corredores longos cheios de portas que não abrem |
+| A festa | Level 1 | paredes rosa, chão de confete, luzes rosa, nunca escuro, balões sob o teto, bolos nas mesas |
+
+O nome aparece na tela quando você entra. Ninguém vive ainda nos níveis novos: as criaturas saem
+só no carpete do Level 0 e nas lajes do Level 1.
+
+## As backrooms profundas
+
+Um mundo à parte (sala `backrooms_deep`, os mesmos mods sem `keys` e `backrooms_exit`): a porta
+fica na sala (-6, 5) do Level 0, a 50 células da entrada, um vão vestido do rosa da festa (a
+terceira abertura deste mundo, `--portal-to @backrooms_deep/0`). Os dois vãos da sala na origem
+das backrooms profundas levam de volta.
+
+Lá dois distritos de cada três são um nível novo, há mais portais (uma coluna de chunks em duas) e
+eles não levam para cima ou para baixo: a cada dez minutos os locais de cada bloco de 8 x 8 regiões
+(256 células de lado) são embaralhados e emparelhados, e os dois vãos de um local levam aos dois do
+outro, cruzados. Passando por um vão você vai parar até 256 células adiante, em outro nível, e o
+mesmo vão mais tarde leva a outro lugar.
+
 ## Como é gerado
 
 Um estágio do mapgen (`backrooms:rooms`) por coluna de chunks (32×32). A planta é uma função só de

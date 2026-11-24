@@ -68,7 +68,7 @@ CLI="$BUILD/src/client/cnp_client"
 mkdir -p "$HERE"
 if [ "$FRESH" = 1 ]; then
     rm -f "$HERE"/sandbox.world* "$HERE"/pista.world* "$HERE"/inferno.world* \
-          "$HERE"/arena.world* "$HERE"/arpg.world* "$HERE"/chambers.world* "$HERE"/backrooms.world* "$HERE"/parkour.world* "$HERE"/laboratorio.world* "$HERE"/front.world* "$HERE"/platformer.world* "$HERE"/shmup.world* \
+          "$HERE"/arena.world* "$HERE"/arpg.world* "$HERE"/chambers.world* "$HERE"/backrooms.world* "$HERE"/backrooms_deep.world* "$HERE"/parkour.world* "$HERE"/laboratorio.world* "$HERE"/front.world* "$HERE"/platformer.world* "$HERE"/shmup.world* \
           "$HERE"/home-*.world* "$HERE"/workshop-*.world* "$HERE"/rooms.conf
     echo "== mondi salvati cancellati"
     # Proprietario del server: il permesso creative (moderatore in su) apre il
@@ -201,6 +201,10 @@ echo "== avvio il server (sandbox, pista, inferno, arena, arpg, camere di prova,
         --world-file "$HERE/chambers.world" --portal-to @sandbox/4 --portal-to @sandbox/12 \
     --room backrooms --mods "$ROOT/games/backrooms/mods" --textures "$ROOT/games/backrooms/textures" \
         --world-file "$HERE/backrooms.world" --portal-to @sandbox/5 --portal-to @sandbox/13 \
+        --portal-to @backrooms_deep/0 \
+    --room backrooms_deep --mods "$ROOT/games/backrooms/mods" --textures "$ROOT/games/backrooms/textures" \
+        --no-mod keys --no-mod backrooms_exit \
+        --world-file "$HERE/backrooms_deep.world" --portal-to @backrooms/2 --portal-to @backrooms/2 \
     --room parkour --mods "$ROOT/games/parkour/mods" --textures "$ROOT/games/parkour/textures" \
         --world-file "$HERE/parkour.world" --portal-to @sandbox/6 --portal-to @sandbox/14 \
     --room laboratorio --mods "$ROOT/games/lab/mods" --textures "$ROOT/games/lab/textures" \

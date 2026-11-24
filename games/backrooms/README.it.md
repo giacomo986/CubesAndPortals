@@ -34,6 +34,34 @@ Il nome del livello compare sullo schermo quando ci si entra
 (`level_at`: dai piedi, y ≥ 33 poolrooms, ≥ 17 Level 0, sotto Level 1).
 Niente si scava e niente si costruisce.
 
+## I livelli nuovi, a distretti
+
+Il mondo è diviso in distretti di 128 x 128 celle. In tre distretti su dieci un livello nuovo sta
+al posto di uno dei tre, alla stessa altezza, così scale, buchi e portali lo incontrano allo
+stesso modo (`theme` in `mods/backrooms/init.luau`). I distretti intorno all'entrata e all'uscita,
+e i siti survival, hanno sempre i livelli vecchi.
+
+| livello | al posto di | com'è |
+|---|---|---|
+| L'hotel | Level 0 | moquette rossa, damasco crema, una lampada calda per stanza, corridoi lunghi pieni di porte che non si aprono |
+| La festa | Level 1 | muri rosa, pavimento di coriandoli, luci rosa, mai buio, palloncini sotto il soffitto, torte sui tavoli |
+
+Il nome compare sullo schermo quando ci entri. Nei livelli nuovi non vive ancora nessuno: le
+creature escono solo sulla moquette del Level 0 e sulle lastre del Level 1.
+
+## Le backrooms profonde
+
+Un mondo a sé (stanza `backrooms_deep`, gli stessi mod senza `keys` e `backrooms_exit`): la porta
+è nella stanza (-6, 5) del Level 0, a 50 celle dall'entrata, un vano vestito del rosa della festa
+(la terza apertura di questo mondo, `--portal-to @backrooms_deep/0`). Tutti e due i vani della
+stanza all'origine delle backrooms profonde riportano qui.
+
+Lì due distretti su tre sono un livello nuovo, i portali sono di più (una colonna di chunk su due)
+e non portano su o giù: ogni dieci minuti i siti di ogni blocco di 8 x 8 regioni (256 celle di
+lato) vengono mescolati e accoppiati, e i due vani di un sito portano ai due dell'altro, incrociati.
+Attraversando un vano si finisce fino a 256 celle più in là, in un altro livello, e lo stesso vano
+più tardi porta altrove.
+
 ## Come si genera
 
 Uno stage di mapgen (`backrooms:rooms`) per colonna di chunk (32×32). La

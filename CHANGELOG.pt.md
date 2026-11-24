@@ -7,6 +7,10 @@ uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
 
 ## Ainda não numa alpha
 
+- **Backrooms**: dois níveis novos, por distrito no lugar dos antigos: o hotel (carpete
+  vermelho, corredores de portas fechadas) e a festa (paredes rosa, confete, balões, bolos). E as
+  **backrooms profundas**, um mundo à parte atrás de uma porta rosa perto da entrada: mais níveis
+  novos, e portais que a cada dez minutos levam a outro lugar.
 - **Troféus**: vinte, pelos mundos aonde você vai, as sete chaves e cinco portais escondidos pela
   terra. As taças ficam numa estante no seu quarto; `/page trophies` lista todos, com uma dica e
   para que lado do spawn fica cada portal escondido.
