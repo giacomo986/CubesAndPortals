@@ -214,6 +214,7 @@ webhook = https://example.org/hooks/server
 | `--no-update-check` | Do not ask GitHub whether a newer release is out |
 | `--restart-at HH:MM` | A restart every day at that local time, with ten minutes of warnings |
 | `--backup-every 6h` `--backup-keep N` | Backups while running; the newest N stay (5) |
+| `--block-history` | Write down every block a player changes, for `/inspect` and `/rollback` (off) |
 | `--max-per-address N` | At most N players from one address |
 | `--watchdog S` | A room stuck for S seconds aborts the server with its stack printed |
 | `--federation PORT` | Friend servers' TCP port, under the ticket key (`--ticket-key`, or WORLD.sign) |
@@ -316,9 +317,10 @@ With `--json` the same numbers come as one JSON object (`players`, `visits`,
 
 ## Blocks: inspect and rollback
 
-Every block a player breaks or places is written down: the room, the cell, what was there,
-what it became, who and when. They go to the file together every five seconds; a month is
-kept.
+Only with `--block-history` (`block-history = true` in server.conf): off by default, and then
+nothing is written down and `/inspect` and `/rollback` only say so. With it, every block a player
+breaks or places is written down: the room, the cell, what was there, what it became, who and
+when. They go to the file together every five seconds; a month is kept.
 
 `/rollback NAME 2h` puts each cell that player changed in the last two hours back to what it
 was before their first change in that time, unless somebody changed it after them: that
@@ -596,7 +598,7 @@ In the first room's world file (one store for every room), next to the world:
 | `admin` | One row a thing (`farportals`: the portals between servers and their links): `role`, `ban`, `mute`, `allow` (whitelist), `setting` (whitelist on, maintenance, message of the day, rules), `accepted` (which rules a player accepted), `perm`, `addr` (last address), `friend`, `fedskip` (a friend's ban lifted here), `bagaway` (whose bag went to which friend), `baggen` (how often a bag moved), `hidden` and `packs` (what a player carries that this world does not know, and what its backpacks hold) |
 | `admin_log` | Every admin action, start, stop, unclean stop, report, note, warning |
 | `sessions` | One row a visit |
-| `edits` | Every block a player changed, a month |
+| `edits` | Every block a player changed, a month (only with `--block-history`) |
 
 Bags themselves are in each room's world file, as they always were. Beside each room's world file,
 two small text files: WORLD.difficulty (its name, none for normal) and WORLD.rules (`name = value` a

@@ -126,7 +126,7 @@ tudo o que está abaixo). `/perm` mostra e muda qual cargo uma permissão pede;
 | Comando | Permissão | O que faz |
 |---|---|---|
 | `/inspect X Y Z [SALA]` | inspect (helper) | Os últimos dez jogadores que mudaram esse bloco, de quê para quê, quando |
-| `/rollback NOME DURAÇÃO [SALA]` | rollback (moderator) | Põe de volta todo bloco que esse jogador mudou nesse tempo |
+| `/rollback NOME DURAÇÃO [SALA]` | rollback (moderator) | Põe de volta todo bloco que esse jogador mudou nesse tempo (precisa de `--block-history`) |
 | `/oldbags NOME [N]` | oldbags (admin) | As cópias de uma bolsa que ficaram para trás entre servidores amigos; com N, devolve essa |
 
 ### Portais e servidores amigos

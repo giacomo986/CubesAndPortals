@@ -17,6 +17,8 @@ uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
 - Passar pelo portal do jogo de plataformas ou do jogo de tiros de arcada conta como ir àquele
   mundo.
 - Para admins: `/trophies sites`, `/trophies go ID [place] [NOME]`, `/trophies home [NOME]`.
+- Para admins: o histórico dos blocos mudados (`/inspect`, `/rollback`) só é guardado com
+  `--block-history`; sem ela, nada é anotado.
 
 ## 0.21.0-alpha.2 — 2026-11-22
 

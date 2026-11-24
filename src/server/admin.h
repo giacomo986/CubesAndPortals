@@ -187,6 +187,8 @@ void refused(const Who &who, const std::string &why);
 // SQLite's online backup on a thread of its own; the newest `keep` stay.
 // `every` seconds, 0 for only /backup.
 void set_backups(const std::vector<std::string> &files, int64_t every, int keep);
+// --block-history: write down every block a player changes (/inspect, /rollback). Off by default.
+void set_block_history(bool on);
 bool backup(std::string &err);
 
 // --report: what a world file remembers of its players, printed. Offline,

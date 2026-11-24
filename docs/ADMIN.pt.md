@@ -214,6 +214,7 @@ webhook = https://example.org/hooks/server
 | `--no-update-check` | Não perguntar ao GitHub se saiu uma versão mais nova |
 | `--restart-at HH:MM` | Um reinício todo dia nessa hora local, com dez minutos de avisos |
 | `--backup-every 6h` `--backup-keep N` | Backups com o servidor rodando; ficam os N mais novos (5) |
+| `--block-history` | Anota todo bloco que um jogador muda, para `/inspect` e `/rollback` (desligado) |
 | `--max-per-address N` | No máximo N jogadores de um mesmo endereço |
 | `--watchdog S` | Uma sala travada por S segundos derruba o servidor com a pilha impressa |
 | `--federation PORTA` | A porta TCP dos servidores amigos, sob a chave dos tickets (`--ticket-key`, ou WORLD.sign) |
@@ -319,8 +320,9 @@ para um programa ler.
 
 ## Blocos: inspeção e rollback
 
-Todo bloco que um jogador quebra ou coloca fica anotado: a sala, a célula, o que havia, o que
-virou, quem e quando. As anotações vão juntas para o arquivo a cada cinco segundos; um mês fica
+Só com `--block-history` (`block-history = true` no server.conf): desligado por padrão, e então
+nada é anotado e `/inspect` e `/rollback` só dizem isso. Com a flag, todo bloco que um jogador
+quebra ou coloca fica anotado: a sala, a célula, o que havia, o que virou, quem e quando. As anotações vão juntas para o arquivo a cada cinco segundos; um mês fica
 guardado.
 
 `/rollback NOME 2h` põe cada célula que esse jogador mudou nas últimas duas horas de volta como
@@ -608,7 +610,7 @@ No arquivo de mundo da primeira sala (um armazenamento para todas as salas), ao 
 | `admin` | Uma linha por coisa (`farportals`: os portais entre servidores e as ligações deles): `role`, `ban`, `mute`, `allow` (whitelist), `setting` (whitelist ligada, manutenção, mensagem do dia, regras), `accepted` (quais regras um jogador aceitou), `perm`, `addr` (último endereço), `friend`, `fedskip` (o banimento de um amigo tirado aqui), `bagaway` (a bolsa de quem foi para qual amigo), `baggen` (quantas vezes uma bolsa se moveu), `hidden` e `packs` (o que um jogador carrega que este mundo não conhece, e o que as mochilas dele guardam) |
 | `admin_log` | Toda ação de administração, início, parada, parada suja, denúncia, nota, advertência |
 | `sessions` | Uma linha por visita |
-| `edits` | Todo bloco que um jogador mudou, por um mês |
+| `edits` | Todo bloco que um jogador mudou, por um mês (só com `--block-history`) |
 
 As bolsas mesmo ficam no arquivo de mundo de cada sala, como sempre. Ao lado do arquivo de mundo
 de cada sala, dois pequenos arquivos de texto: WORLD.difficulty (o nome dela, nenhum para normal)

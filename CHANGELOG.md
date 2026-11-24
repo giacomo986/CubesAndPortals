@@ -16,6 +16,8 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
   sky or a cave of crystals, with a diamond and five rubies for whoever gets there first.
 - Going through the platform game's or the arcade shooter's gate counts as going to that world.
 - For admins: `/trophies sites`, `/trophies go ID [place] [NAME]`, `/trophies home [NAME]`.
+- For admins: the history of changed blocks (`/inspect`, `/rollback`) is kept only with
+  `--block-history`; without it nothing is written down.
 
 ## 0.21.0-alpha.2 — 2026-11-22
 

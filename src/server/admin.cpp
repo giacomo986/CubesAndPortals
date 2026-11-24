@@ -935,6 +935,7 @@ struct Edit {
     int64_t     at;
 };
 std::vector<Edit> g_edits;
+bool              g_block_history = false;   // --block-history: off, nothing is written down
 
 void flush_edits()
 {
@@ -964,6 +965,10 @@ void cmd_inspect(const Who &c, const Args &a, const Hooks &h, std::vector<std::s
         return;
     }
     const std::string room = a.words.size() > 3 ? a.words[3] : c.room;
+    if (!g_block_history) {
+        out.push_back("Block history is off: start the server with --block-history.");
+        return;
+    }
     flush_edits();
     query("SELECT name, old, new, at FROM edits WHERE room = ?1 AND x = ?2 AND y = ?3 AND z = ?4 "
           "ORDER BY at DESC, rowid DESC LIMIT 10",
@@ -1035,6 +1040,10 @@ void cmd_rollback(const Who &c, const Args &a, const Hooks &h, std::vector<std::
     const Who t = resolve(a.name, h);
     if (!outranks(c, t)) {
         out.push_back("You cannot roll back " + a.name + ".");
+        return;
+    }
+    if (!g_block_history) {
+        out.push_back("Block history is off: start the server with --block-history.");
         return;
     }
     flush_edits();
@@ -1600,7 +1609,7 @@ bool set_webhook(const std::string &url)
 void edited(const Who &who, const std::string &room, int x, int y, int z, int old_block, int old_facing,
             int new_block)
 {
-    if (old_block == new_block) return;
+    if (!g_block_history || old_block == new_block) return;
     g_edits.push_back({room, target_of(who), who.name, x, y, z, old_block, old_facing, new_block, now()});
 }
 
@@ -1771,6 +1780,8 @@ void refused(const Who &w, const std::string &why)
     query("INSERT INTO admin_log (at, by, action, target, detail) VALUES (?1, 'door', 'refused', ?2, ?3)",
           {std::to_string(now()), w.name + (w.address.empty() ? "" : " (" + w.address + ")"), why});
 }
+
+void set_block_history(bool on) { g_block_history = on; }
 
 void set_backups(const std::vector<std::string> &files, int64_t every, int keep)
 {

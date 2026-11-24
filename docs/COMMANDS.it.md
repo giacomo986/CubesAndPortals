@@ -126,7 +126,7 @@ quello sotto). `/perm` mostra e cambia quale ruolo chiede un permesso;
 | Comando | Permesso | Cosa fa |
 |---|---|---|
 | `/inspect X Y Z [STANZA]` | inspect (helper) | Gli ultimi dieci giocatori che hanno cambiato quel blocco, da cosa a cosa, quando |
-| `/rollback NOME DURATA [STANZA]` | rollback (moderator) | Rimette ogni blocco che quel giocatore ha cambiato in quel tempo |
+| `/rollback NOME DURATA [STANZA]` | rollback (moderator) | Rimette ogni blocco che quel giocatore ha cambiato in quel tempo (serve `--block-history`) |
 | `/oldbags NOME [N]` | oldbags (admin) | Le copie di una borsa rimaste indietro tra server amici; con N, restituisce quella |
 
 ### Portali e server amici

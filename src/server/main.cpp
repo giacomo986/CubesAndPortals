@@ -11247,6 +11247,7 @@ int main(int argc, char **argv)
         }
         const std::string keep = last_of(common, "--backup-keep");
         admin::set_backups(files, every, keep.empty() ? 5 : std::atoi(keep.c_str()));
+        admin::set_block_history(std::find(common.begin(), common.end(), "--block-history") != common.end());
         g_max_per_address = std::atoi(last_of(common, "--max-per-address").c_str());
 
         // Friend servers (/friend): signed lines on a TCP port of their own,

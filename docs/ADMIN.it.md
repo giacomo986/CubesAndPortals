@@ -215,6 +215,7 @@ webhook = https://example.org/hooks/server
 | `--no-update-check` | Non chiedere a GitHub se è uscita una release più nuova |
 | `--restart-at HH:MM` | Un riavvio ogni giorno a quell'ora locale, con dieci minuti di avvisi |
 | `--backup-every 6h` `--backup-keep N` | Backup mentre gira; restano gli ultimi N (5) |
+| `--block-history` | Annota ogni blocco cambiato da un giocatore, per `/inspect` e `/rollback` (spento) |
 | `--max-per-address N` | Al massimo N giocatori da un indirizzo |
 | `--watchdog S` | Una stanza bloccata per S secondi ferma il server stampando lo stack |
 | `--federation PORTA` | La porta TCP dei server amici, sotto la chiave dei ticket (`--ticket-key`, o WORLD.sign) |
@@ -320,8 +321,10 @@ stessi numeri arrivano come un oggetto JSON (`players`, `visits`, `seconds_playe
 
 ## Blocchi: ispezione e rollback
 
-Ogni blocco che un giocatore rompe o piazza si annota: la stanza, la cella, cosa c'era, cosa è
-diventato, chi e quando. Vanno nel file insieme ogni cinque secondi; si tiene un mese.
+Solo con `--block-history` (`block-history = true` in server.conf): spento di base, e allora non
+si annota niente e `/inspect` e `/rollback` lo dicono e basta. Con il flag, ogni blocco che un
+giocatore rompe o piazza si annota: la stanza, la cella, cosa c'era, cosa è diventato, chi e
+quando. Vanno nel file insieme ogni cinque secondi; si tiene un mese.
 
 `/rollback NOME 2h` rimette ogni cella che quel giocatore ha cambiato nelle ultime due ore com'era
 prima del suo primo cambio in quel tempo, a meno che qualcuno l'abbia cambiata dopo di lui: quel
@@ -607,7 +610,7 @@ Nel file di mondo della prima stanza (un archivio per tutte le stanze), accanto 
 | `admin` | Una riga per cosa (`farportals`: i portali fra server e i loro collegamenti): `role`, `ban`, `mute`, `allow` (whitelist), `setting` (whitelist accesa, manutenzione, messaggio del giorno, regole), `accepted` (quali regole ha accettato un giocatore), `perm`, `addr` (ultimo indirizzo), `friend`, `fedskip` (il ban di un amico tolto qui), `bagaway` (la borsa di chi è andata a quale amico), `baggen` (quante volte una borsa si è mossa), `hidden` e `packs` (quello che un giocatore porta che questo mondo non conosce, e cosa tengono i suoi zaini) |
 | `admin_log` | Ogni azione di amministrazione, avvio, arresto, arresto sporco, rapporto, nota, avvertimento |
 | `sessions` | Una riga per visita |
-| `edits` | Ogni blocco cambiato da un giocatore, un mese |
+| `edits` | Ogni blocco cambiato da un giocatore, un mese (solo con `--block-history`) |
 
 Le borse stesse stanno nel file di mondo di ogni stanza, come sempre. Accanto al file di mondo di
 ogni stanza, due piccoli file di testo: WORLD.difficulty (il suo nome, nessuno per normale) e

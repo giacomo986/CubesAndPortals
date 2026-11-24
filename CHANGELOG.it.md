@@ -17,6 +17,8 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 - Attraversare il portale del gioco a piattaforme o dello sparatutto da sala giochi conta come
   essere andati in quel mondo.
 - Per gli admin: `/trophies sites`, `/trophies go ID [place] [NOME]`, `/trophies home [NOME]`.
+- Per gli admin: lo storico dei blocchi cambiati (`/inspect`, `/rollback`) si tiene solo con
+  `--block-history`; senza, non si annota niente.
 
 ## 0.21.0-alpha.2 — 2026-11-22
 
