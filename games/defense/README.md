@@ -46,11 +46,11 @@ its pedestal, two benches either side of the doorway. Day, always: the clock sta
 
 | turret | costs | upgrade (to 2, to 3) | what it does (levels 1/2/3) |
 |---|---|---|---|
-| arrow | 4 planks, 2 iron, 4 cobblestone | 2 iron, 4 iron | the monster nearest the crystal within 10/11/12: 5/7/10 every 0.8/0.65/0.5 s |
+| arrow | 4 planks, 2 iron, 4 cobblestone | 2 iron, 4 iron | the nearest monster within 10/11/12: 5/7/10 every 0.8/0.65/0.5 s |
 | fire brazier | 6 cobblestone, 2 cinder rods, 2 iron | 2 cinder rods, 3 | every monster within 3.5/4/4.5: 3/5/7 a second |
 | frost | 4 ice, 2 iron | 3 ice, 5 | slows every monster within 6/7/8 to 55/45/35% of its pace |
 | lightning | 2 gold, 1 ruby, 2 iron | 1 ruby, 2 | 9/12/16 within 9/10/11, and on to 3/4/5 more within 4 of each, three quarters each time, every 1.6/1.4/1.2 s |
-| portal | 1 diamond, 1 gold, 4 cobblestone | 1 diamond, 2 | sends the monster nearest the crystal within 5/6/7 back to the rift, every 10/8/6 s; never a boss |
+| portal | 1 diamond, 1 gold, 4 cobblestone | 1 diamond, 2 | sends the nearest monster within 5/6/7 back to the rift, every 10/8/6 s; never a boss |
 
 * **Records**: the best wave of every player, and the field's with who held it. `/defense` or a
   right click on the crystal during a game shows them.
@@ -60,9 +60,12 @@ its pedestal, two benches either side of the doorway. Day, always: the clock sta
 
 `defense_game` runs on both sides (`side = both`). The block under a turret is seen through
 (`core.node_glass`): it is what stops bodies and takes the clicks. Each player's machine draws the
-turret's model on it (`core.render.model`), a little bigger at each level, turned towards its last
-target and easing round, kicked back as it fires; the arrow and lightning turrets look slowly round
-when nothing has come for a while. Each has a light of its own: the brazier's flame, the frost
+turret's model on it (`core.render.model`), a little bigger at each level. Every turret aims at
+the monster nearest it. The two that have a front stand on a base that stays still: the crossbow
+and the portal's ring turn on it towards the target, easing round, the crossbow kicked as it
+shoots and looking slowly round when nothing has come for a while (`tools/make_turret_parts.py`
+cut their models in two). The brazier, the frost and the lightning turret strike all round them
+and stand still. Each has a light of its own: the brazier's flame, the frost
 crystal's glow, the lightning turret's red sphere crackling, the portal's swirl. What they fire is
 seen on its way (`core.render.fx`): an arrow's streak and sparks where it strikes, a ring of fire
 and flames on every monster burnt, frost spreading on the ground, lightning leaping from monster to

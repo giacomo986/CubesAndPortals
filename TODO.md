@@ -118,8 +118,10 @@ From docs/IDEE.it.md (2026-11-24), each checked by script on tools/track.sh:
 - Tower defense turrets drawn alive (2026-11-24 night): a shot of five
   turrets with fake shots sent every 0.15 s (streak, fire ring and flames,
   frost, a lightning chain) and of one turned to a zombie during a wave.
-  Not checked: which end of the ballista leads (its model is nearly the same
-  fore and aft), the portal's two swirls in a shot.
+  Then aiming at the nearest monster, the crossbow and the portal's ring
+  turning on a still base: four crossbows with fake targets four ways, seen
+  from straight above, each bow towards its target. Not checked: the
+  portal's two swirls in a shot.
 - The cloud world (games/skies, 2026-11-24 evening): islands without end, the
   sky road, villages, updrafts, the Manta at z 420. Checked with a client in
   Xephyr and scratch test blocks: shots of the road and of a village; the sea

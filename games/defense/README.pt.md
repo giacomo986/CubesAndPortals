@@ -46,11 +46,11 @@ parado ao meio-dia.
 
 | torre | custa | melhoria (para 2, para 3) | o que faz (níveis 1/2/3) |
 |---|---|---|---|
-| flechas | 4 tábuas, 2 ferro, 4 pedregulhos | 2 ferro, 4 ferro | o monstro mais perto do cristal a até 10/11/12: 5/7/10 a cada 0,8/0,65/0,5 s |
+| flechas | 4 tábuas, 2 ferro, 4 pedregulhos | 2 ferro, 4 ferro | o monstro mais perto a até 10/11/12: 5/7/10 a cada 0,8/0,65/0,5 s |
 | braseiro | 6 pedregulhos, 2 bastões de brasa, 2 ferro | 2 bastões, 3 | todo monstro a até 3,5/4/4,5: 3/5/7 por segundo |
 | gelo | 4 gelo, 2 ferro | 3 gelo, 5 | deixa todo monstro a até 6/7/8 a 55/45/35% do passo |
 | raio | 2 ouro, 1 rubi, 2 ferro | 1 rubi, 2 | 9/12/16 a até 9/10/11, e em seguida em mais 3/4/5 a até 4 um do outro, três quartos a cada vez, a cada 1,6/1,4/1,2 s |
-| portal | 1 diamante, 1 ouro, 4 pedregulhos | 1 diamante, 2 | manda de volta à fenda o monstro mais perto do cristal a até 5/6/7, a cada 10/8/6 s; nunca um chefe |
+| portal | 1 diamante, 1 ouro, 4 pedregulhos | 1 diamante, 2 | manda de volta à fenda o monstro mais perto a até 5/6/7, a cada 10/8/6 s; nunca um chefe |
 
 * **Recordes**: a melhor onda de cada jogador, e a do campo com quem a segurou. `/defense` ou um
   clique direito no cristal durante uma partida os mostra.
@@ -60,9 +60,11 @@ parado ao meio-dia.
 
 `defense_game` roda dos dois lados (`side = both`). O bloco sob uma torre é transparente
 (`core.node_glass`): só para os corpos e recebe os cliques. A máquina de cada jogador desenha nele
-o modelo da torre (`core.render.model`), um pouco maior a cada nível, virado para o último alvo e
-girando suavemente, com um recuo quando atira; as torres de flechas e de raio olham em volta
-devagar quando ninguém aparece por um tempo. Cada uma tem uma luz sua: a chama do braseiro, o
+o modelo da torre (`core.render.model`), um pouco maior a cada nível. Cada torre mira no monstro
+mais perto dela. As duas que têm uma frente ficam sobre uma base que não se mexe: a besta e o anel
+do portal giram sobre ela para o alvo, suavemente, a besta com um recuo quando atira e olhando em
+volta devagar quando ninguém aparece por um tempo (`tools/make_turret_parts.py` dividiu os modelos
+delas em dois). Braseiro, gelo e raio atingem tudo em volta e ficam parados. Cada uma tem uma luz sua: a chama do braseiro, o
 brilho do cristal de gelo, a esfera vermelha do raio estalando, o redemoinho do portal. O que
 atiram se vê chegando (`core.render.fx`): o risco de uma flecha e faíscas onde acerta, um anel de
 fogo e chamas em cada monstro queimado, o gelo se espalhando no chão, o raio saltando de monstro em

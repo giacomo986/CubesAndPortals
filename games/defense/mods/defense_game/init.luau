@@ -54,9 +54,14 @@ if drawing then
     local shots: { Shot } = {}
     local clock = 0.0
     local models: { [string]: number } = {}
-    -- How far up each one's business end is, and its yaw at rest (the Meshy
-    -- models face their own way).
+    -- How far up each one's business end is.
     local TOP: { [string]: number } = { arrow = 1.2, brazier = 1.1, frost = 1.3, lightning = 1.35, portal = 0.85 }
+    -- The two that aim turn their top only, over a base that stands still
+    -- (tools/make_turret_parts.py), and how much more their top is turned than
+    -- the aim (both are drawn facing it; checked from above). The brazier,
+    -- the frost and the lightning turret strike all round them and stand
+    -- still, whole.
+    local TURNS: { [string]: number } = { arrow = 0, portal = 0 }
 
     local function nums(text: string): { number }
         local out = {}
@@ -100,8 +105,9 @@ if drawing then
         clock += ev.dt
         for _, t in seen_turrets do
             t.kick = math.max(0, t.kick - ev.dt * 5)
-            -- Turned to the last target, easing; long without one, it looks round.
-            if clock - t.last > 4 and (t.kind == "arrow" or t.kind == "lightning") then
+            -- Turned to the last target, easing; long without one, the crossbow
+            -- looks slowly round.
+            if clock - t.last > 4 and t.kind == "arrow" then
                 t.aim = t.aim + ev.dt * 0.4
             end
             local d = (t.aim - t.yaw + math.pi) % (2 * math.pi) - math.pi
@@ -110,9 +116,10 @@ if drawing then
     end)
 
     local function model(name: string): number
+        name = `defense_game:turret_{name}`
         local m = models[name]
         if m == nil or m == 0 then
-            m = core.model_id(`defense_game:turret_{name}`)
+            m = core.model_id(name)
             models[name] = m
         end
         return m :: number
@@ -123,8 +130,13 @@ if drawing then
             local x, y, z = t.x + 0.5, t.y, t.z + 0.5
             local top = y + (TOP[t.kind] or 1.2)
             local scale = 1 + 0.08 * (t.lvl - 1)
-            local bob = if t.kind == "frost" or t.kind == "portal" then math.sin(clock * 2 + x) * 0.03 else 0
-            core.render.model(model(t.kind), x, y + bob, z, t.yaw, scale, -0.18 * t.kick)
+            local turn = TURNS[t.kind]
+            if turn then
+                core.render.model(model(`{t.kind}_base`), x, y, z, 0, scale)
+                core.render.model(model(`{t.kind}_top`), x, y, z, t.yaw + turn, scale, -0.12 * t.kick)
+            else
+                core.render.model(model(t.kind), x, y, z, 0, scale)
+            end
             local pulse = 0.5 + 0.5 * math.sin(clock * 3 + z)
             if t.kind == "brazier" then
                 core.render.fx("flame", x, top, z, 0.35 + 0.1 * t.lvl + 0.3 * t.kick, 255, 140, 40, 230, (clock * 1.3 + x) % 1)
@@ -246,6 +258,12 @@ for _, k in KINDS do
     -- the block itself is seen through, only a body's stop and a click's aim.
     core.register_model(`defense_game:turret_{k.name}`, `turret_{k.name}.gltf`)
     core.node_glass(b, 0)
+    if k.name == "arrow" or k.name == "portal" then
+        -- Cut in two by tools/make_turret_parts.py: a base that stands still,
+        -- the crossbow or the ring over it that turns.
+        core.register_model(`defense_game:turret_{k.name}_base`, `turret_{k.name}_base.gltf`)
+        core.register_model(`defense_game:turret_{k.name}_top`, `turret_{k.name}_top.gltf`)
+    end
     core.node_box(b, 0.1, 0.0, 0.1, 0.9, 1.0, 0.9)
     KIND_OF[b] = k
 end
@@ -468,7 +486,7 @@ end
 
 -- ------------------------------------------------------------ turrets
 
--- The monsters within r of a cell, the nearest the crystal first.
+-- The monsters within r of a point, the nearest it first: what a turret aims at.
 local function foes_near(x: number, y: number, z: number, r: number): { number }
     local out: { number } = {}
     for id, m in monsters do
@@ -477,11 +495,12 @@ local function foes_near(x: number, y: number, z: number, r: number): { number }
             table.insert(out, id)
         end
     end
-    table.sort(out, function(a, b)
-        local _, _, az = core.mob_pos(a)
-        local _, _, bz = core.mob_pos(b)
-        return (az :: number) < (bz :: number)
-    end)
+    local d2: { [number]: number } = {}
+    for _, id in out do
+        local mx, _, mz = core.mob_pos(id)
+        d2[id] = ((mx :: number) - x) ^ 2 + ((mz :: number) - z) ^ 2
+    end
+    table.sort(out, function(a, b) return d2[a] < d2[b] end)
     return out
 end
 
@@ -538,7 +557,7 @@ local function fire(t: Turret)
         tell(0, msg)
         sound("zap", x, y + 1, z)
     elseif name == "portal" then
-        -- The one nearest the crystal that is no boss goes back to the rift.
+        -- The nearest that is no boss goes back to the rift.
         for _, id in near do
             local m = monsters[id]
             if m and not m.foe.boss then

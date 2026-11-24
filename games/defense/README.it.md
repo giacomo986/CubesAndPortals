@@ -47,11 +47,11 @@ l'orologio è fermo a mezzogiorno.
 
 | torretta | costa | potenziamento (al 2, al 3) | cosa fa (livelli 1/2/3) |
 |---|---|---|---|
-| frecce | 4 assi, 2 ferro, 4 ciottoli | 2 ferro, 4 ferro | il mostro più vicino al cristallo entro 10/11/12: 5/7/10 ogni 0,8/0,65/0,5 s |
+| frecce | 4 assi, 2 ferro, 4 ciottoli | 2 ferro, 4 ferro | il mostro più vicino entro 10/11/12: 5/7/10 ogni 0,8/0,65/0,5 s |
 | braciere | 6 ciottoli, 2 bacchette di brace, 2 ferro | 2 bacchette, 3 | ogni mostro entro 3,5/4/4,5: 3/5/7 al secondo |
 | gelo | 4 ghiaccio, 2 ferro | 3 ghiaccio, 5 | rallenta ogni mostro entro 6/7/8 al 55/45/35% del suo passo |
 | fulmine | 2 oro, 1 rubino, 2 ferro | 1 rubino, 2 | 9/12/16 entro 9/10/11, e poi su altri 3/4/5 entro 4 l'uno dall'altro, tre quarti ogni volta, ogni 1,6/1,4/1,2 s |
-| portale | 1 diamante, 1 oro, 4 ciottoli | 1 diamante, 2 | rimanda alla fenditura il mostro più vicino al cristallo entro 5/6/7, ogni 10/8/6 s; mai un boss |
+| portale | 1 diamante, 1 oro, 4 ciottoli | 1 diamante, 2 | rimanda alla fenditura il mostro più vicino entro 5/6/7, ogni 10/8/6 s; mai un boss |
 
 * **Record**: l'ondata migliore di ogni giocatore, e quella del campo con chi l'ha tenuta. `/defense`
   o un clic destro sul cristallo durante una partita li mostra.
@@ -62,9 +62,11 @@ l'orologio è fermo a mezzogiorno.
 `defense_game` gira su entrambi i lati (`side = both`). Il blocco sotto una torretta è
 trasparente (`core.node_glass`): serve solo a fermare i corpi e a ricevere i clic. La macchina di
 ogni giocatore ci disegna sopra il modello della torretta (`core.render.model`), un po' più grande
-a ogni livello, girato verso l'ultimo bersaglio e che ruota con dolcezza, con un rinculo quando
-spara; le torrette a frecce e fulmine si guardano intorno piano quando non arriva nessuno da un
-po'. Ognuna ha una luce sua: la fiamma del braciere, il bagliore del cristallo di gelo, la sfera
+a ogni livello. Ogni torretta mira al mostro più vicino a sé. Le due che hanno un davanti stanno su
+una base che resta ferma: la balestra e l'anello del portale ci ruotano sopra verso il bersaglio,
+con dolcezza, la balestra con un rinculo quando tira e che si guarda intorno piano quando non
+arriva nessuno da un po' (`tools/make_turret_parts.py` ha diviso in due i loro modelli). Braciere,
+gelo e fulmine colpiscono tutto intorno e restano fermi. Ognuna ha una luce sua: la fiamma del braciere, il bagliore del cristallo di gelo, la sfera
 rossa del fulmine che crepita, il vortice del portale. Quello che sparano si vede arrivare
 (`core.render.fx`): la scia di una freccia e le scintille dove colpisce, un anello di fuoco e
 fiamme su ogni mostro bruciato, il gelo che si allarga a terra, il fulmine che salta da un mostro
