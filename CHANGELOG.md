@@ -15,6 +15,9 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
   hillside and a ring of standing stones that opens only at night. Each leads to an island in the
   sky or a cave of crystals, with a diamond and five rubies for whoever gets there first.
 - Going through the platform game's or the arcade shooter's gate counts as going to that world.
+- **Ghosts of your own**: each player's best lap on a track is kept as a ghost too. `/ghost mine`
+  races your own, `/ghost NAME` a friend's, `/ghost record` the track's record, `/ghost off` none;
+  `/laps` lists everybody's best lap on the track, not only the five on the board.
 - For admins: `/trophies sites`, `/trophies go ID [place] [NAME]`, `/trophies home [NAME]`.
 - For admins: the history of changed blocks (`/inspect`, `/rollback`) is kept only with
   `--block-history`; without it nothing is written down.

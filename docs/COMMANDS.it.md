@@ -54,6 +54,8 @@ quello sotto). `/perm` mostra e cambia quale ruolo chiede un permesso;
 | Comando | Mondo | Permesso | Cosa fa |
 |---|---|---|---|
 | `/garage` | pista | chiunque | Apre il garage: i colori e i pezzi del tuo kart; un clic lo cambia subito, anche in pista, e resta |
+| `/ghost [record\|mine\|NOME\|off]` | pista | chiunque | Quale kart fantasma guida i tuoi giri: il record della pista (di base; quello dell'ingegnere sulla pista dell'Inferno), il tuo giro migliore, il giro migliore di un altro giocatore, o nessuno. Resta |
+| `/laps` | pista | chiunque | Il giro migliore di tutti sull'ultima pista che hai guidato: i primi dieci e il tuo posto, e chi ha un fantasma |
 | `/pieces` | pista | chiunque | Ti mette nella borsa una pila di ogni pezzo di pista, l'editor della pista (B con lui in mano sceglie da lontano il pezzo dopo), e gli strumenti linea di partenza, checkpoint, fuoripista e scatola degli oggetti |
 | `/vehicle <jeep\|tank\|heli\|plane\|bomber\|nest\|mortar\|howitzer\|aa>` | fronte, assalto | moderator | Mette quel mezzo sei nodi davanti a te, per le prove |
 

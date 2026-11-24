@@ -54,6 +54,8 @@ everything below it). `/perm` shows and changes which role a permission wants;
 | Command | World | Permission | What it does |
 |---|---|---|---|
 | `/garage` | track | anybody | Opens the garage: the colours and parts of your kart; a click changes it at once, on the road too, and it is kept |
+| `/ghost [record\|mine\|NAME\|off]` | track | anybody | Which ghost kart drives your laps: the track's record (the default; the engineer's on the Inferno track), your own best lap, another player's best lap, or none. Kept |
+| `/laps` | track | anybody | Everybody's best lap on the track you last drove: the first ten and your own place, and who has a ghost |
 | `/pieces` | track | anybody | Puts in your bag a stack of every track piece, the track editor (B with it in hand picks the next piece from afar), and the start line, checkpoint, off-road and item box tools |
 | `/vehicle <jeep\|tank\|heli\|plane\|bomber\|nest\|mortar\|howitzer\|aa>` | front, assault | moderator | Puts that machine six nodes in front of you, for testing |
 

@@ -16,6 +16,10 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
   nel cielo o a una grotta di cristalli, con un diamante e cinque rubini per chi arriva per primo.
 - Attraversare il portale del gioco a piattaforme o dello sparatutto da sala giochi conta come
   essere andati in quel mondo.
+- **Fantasmi personali**: il giro migliore di ogni giocatore su una pista resta anche come
+  fantasma. `/ghost mine` corre contro il tuo, `/ghost NOME` contro quello di un amico, `/ghost
+  record` contro il record della pista, `/ghost off` contro nessuno; `/laps` elenca il giro migliore
+  di tutti sulla pista, non solo i cinque della bacheca.
 - Per gli admin: `/trophies sites`, `/trophies go ID [place] [NOME]`, `/trophies home [NOME]`.
 - Per gli admin: lo storico dei blocchi cambiati (`/inspect`, `/rollback`) si tiene solo con
   `--block-history`; senza, non si annota niente.

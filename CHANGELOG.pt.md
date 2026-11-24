@@ -16,6 +16,10 @@ uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
   caverna de cristais, com um diamante e cinco rubis para quem chegar primeiro.
 - Passar pelo portal do jogo de plataformas ou do jogo de tiros de arcada conta como ir àquele
   mundo.
+- **Fantasmas próprios**: a melhor volta de cada jogador numa pista fica guardada também como
+  fantasma. `/ghost mine` corre contra a sua, `/ghost NOME` contra a de um amigo, `/ghost record`
+  contra o recorde da pista, `/ghost off` contra nenhum; `/laps` lista a melhor volta de todos na
+  pista, não só as cinco do quadro.
 - Para admins: `/trophies sites`, `/trophies go ID [place] [NOME]`, `/trophies home [NOME]`.
 - Para admins: o histórico dos blocos mudados (`/inspect`, `/rollback`) só é guardado com
   `--block-history`; sem ela, nada é anotado.

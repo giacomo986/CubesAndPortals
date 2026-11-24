@@ -54,6 +54,8 @@ tudo o que está abaixo). `/perm` mostra e muda qual cargo uma permissão pede;
 | Comando | Mundo | Permissão | O que faz |
 |---|---|---|---|
 | `/garage` | pista | qualquer um | Abre a garagem: as cores e as peças do seu kart; um clique muda na hora, também na pista, e fica salvo |
+| `/ghost [record\|mine\|NOME\|off]` | pista | qualquer um | Qual kart fantasma guia as suas voltas: o recorde da pista (o padrão; o do engenheiro na pista do Inferno), a sua melhor volta, a melhor volta de outro jogador, ou nenhum. Fica salvo |
+| `/laps` | pista | qualquer um | A melhor volta de todos na última pista que você guiou: os dez primeiros e o seu lugar, e quem tem fantasma |
 | `/pieces` | pista | qualquer um | Coloca na sua bolsa uma pilha de cada peça de pista, o editor de pista (B com ele na mão escolhe de longe a próxima peça), e as ferramentas de linha de largada, checkpoint, fora da pista e caixa de itens |
 | `/vehicle <jeep\|tank\|heli\|plane\|bomber\|nest\|mortar\|howitzer\|aa>` | front, assalto | moderator | Coloca essa máquina seis blocos à sua frente, para testes |
 

@@ -816,7 +816,7 @@ if serving then
 
     -- The fastest few of a track, as "name time name time ...". A name has no
     -- spaces in it (the handshake refuses one that does).
-    local function fastest(i: number): string
+    local function fastest(i: number, many: number?): string
         type Row = { name: string, t: number }
         local rows: { Row } = {}
         for name, t in bests[i] do
@@ -824,7 +824,7 @@ if serving then
         end
         table.sort(rows, function(a: Row, b: Row) return a.t < b.t end)
         local out = {}
-        for i = 1, math.min(BOARD, #rows) do
+        for i = 1, math.min(many or BOARD, #rows) do
             table.insert(out, string.format("%s %.3f", rows[i].name, rows[i].t))
         end
         return table.concat(out, " ")
@@ -842,6 +842,8 @@ if serving then
     local function keep_best(i: number, name: string)
         core.storage_set(`{stored(i, "best")}:{name}`, string.format("%.3f", bests[i][name]))
         core.storage_set(stored(i, "board"), fastest(i))
+        -- Everybody's, for /laps: a value holds 4096 bytes, some 150 names.
+        core.storage_set(stored(i, "all"), fastest(i, 150))
     end
     core.event.on("core:world_ready", function()
         -- A player's own track, as it was left: which start line it is (its
@@ -865,11 +867,13 @@ if serving then
         end
 
         for i = 1, #TRACKS do
-            local w = string.split(core.storage_get(stored(i, "board")), " ")
-            for k = 1, #w - 1, 2 do
-                local t = tonumber(w[k + 1])
-                if t ~= nil then
-                    bests[i][w[k]] = t
+            for _, what in { "board", "all" } do
+                local w = string.split(core.storage_get(stored(i, what)), " ")
+                for k = 1, #w - 1, 2 do
+                    local t = tonumber(w[k + 1])
+                    if t ~= nil then
+                        bests[i][w[k]] = t
+                    end
                 end
             end
         end
@@ -1821,32 +1825,74 @@ if serving then
         return false
     end
 
+    -- A ghost in the store under `base`: "name lap n" there, its places in
+    -- n values after it (base:1 .. base:n).
+    local function read_ghost(base: string): Ghost | false
+        local head = string.split(core.storage_get(base), " ")
+        local n = tonumber(head[3]) or 0
+        local samples = {}
+        for k = 1, n do
+            for _, line in string.split(core.storage_get(`{base}:{k}`), ";") do
+                if line ~= "" then table.insert(samples, line) end
+            end
+        end
+        return if #samples > 0 then { name = head[1], lap = tonumber(head[2]) or 0, samples = samples } else false
+    end
+    local function write_ghost(base: string, name: string, lap: number, samples: { string })
+        local n = 0
+        for k = 1, #samples, GHOST_CHUNK do
+            n += 1
+            core.storage_set(`{base}:{n}`, table.concat(samples, ";", k, math.min(k + GHOST_CHUNK - 1, #samples)))
+        end
+        -- A shorter lap than the one before: its places past n are left
+        -- behind, unread, until the store is cleared.
+        core.storage_set(base, string.format("%s %.3f %d", name, lap, n))
+    end
+
     -- A track's ghost, read from the store the first time it is wanted.
     local function ghost_of(ti: number): Ghost?
         local g = ghosts[ti]
         if g == nil then
-            local head = string.split(core.storage_get(stored(ti, "ghost")), " ")
-            local n = tonumber(head[3]) or 0
-            local samples = {}
-            for k = 1, n do
-                for _, line in string.split(core.storage_get(`{stored(ti, "ghost")}:{k}`), ";") do
-                    if line ~= "" then table.insert(samples, line) end
-                end
-            end
-            g = if #samples > 0 then { name = head[1], lap = tonumber(head[2]) or 0, samples = samples } else false
+            g = read_ghost(stored(ti, "ghost"))
             ghosts[ti] = g
         end
         return if g then g else nil
     end
 
-    local function keep_ghost(ti: number, name: string, lap: number, samples: { string })
-        local n = 0
-        for k = 1, #samples, GHOST_CHUNK do
-            n += 1
-            core.storage_set(`{stored(ti, "ghost")}:{n}`,
-                             table.concat(samples, ";", k, math.min(k + GHOST_CHUNK - 1, #samples)))
+    -- Each player's own best lap as a ghost too (`/ghost mine`, `/ghost
+    -- NAME`), under "ghost@<name>" of the track, for the last OWN_KEPT
+    -- players to better theirs on it: about 10 KB a lap of 30 s, so six
+    -- tracks of them stay well inside the store's 4 MiB. ponytail: only a
+    -- track that lies in this room; one that spans two would need each
+    -- room's part kept and joined, as the record's is.
+    local OWN_KEPT = 30
+    local own: { [string]: Ghost | false } = {}   -- "<track> <name>" -> their ghost, false for none
+    local function own_ghost(ti: number, name: string): Ghost?
+        local key = `{ti} {name}`
+        if own[key] == nil then
+            own[key] = read_ghost(`{stored(ti, "ghost")}@{name}`)
         end
-        core.storage_set(stored(ti, "ghost"), string.format("%s %.3f %d", name, lap, n))
+        local g = own[key]
+        return if g then g else nil
+    end
+    local function keep_own(ti: number, name: string, lap: number, samples: { string })
+        write_ghost(`{stored(ti, "ghost")}@{name}`, name, lap, samples)
+        own[`{ti} {name}`] = { name = name, lap = lap, samples = samples }
+        local names = {}
+        for _, n in string.split(core.storage_get(stored(ti, "ghosts")), " ") do
+            if n ~= "" and n ~= name then table.insert(names, n) end
+        end
+        table.insert(names, name)
+        while #names > OWN_KEPT do
+            local gone = table.remove(names, 1) :: string
+            core.storage_set(`{stored(ti, "ghost")}@{gone}`, "")
+            own[`{ti} {gone}`] = false
+        end
+        core.storage_set(stored(ti, "ghosts"), table.concat(names, " "))
+    end
+
+    local function keep_ghost(ti: number, name: string, lap: number, samples: { string })
+        write_ghost(stored(ti, "ghost"), name, lap, samples)
         ghosts[ti] = { name = name, lap = lap, samples = samples }
         core.log(string.format("track_game: %s's %.3f s is the ghost of %s, %d places here", name, lap,
                                if TRACKS[ti].key == "" then "the loop" else TRACKS[ti].key, #samples))
@@ -1879,12 +1925,16 @@ if serving then
     local function lap_done(ti: number, name: string, lap: number)
         local r = rec[name]
         rec[name] = nil
-        for _, t in bests[ti] do
-            if t <= lap then return end
-        end
         local first = r and tonumber(string.split(r.samples[1] or "", " ")[1])
         if r == nil or r.track ~= ti or first == nil or first > 1 then
             return
+        end
+        local mine = bests[ti][name]
+        if not spans(ti) and (mine == nil or lap < mine) then
+            keep_own(ti, name, lap, r.samples)
+        end
+        for _, t in bests[ti] do
+            if t <= lap then return end
         end
         keep_ghost(ti, name, lap, r.samples)
         if spans(ti) then
@@ -1922,8 +1972,24 @@ if serving then
     -- changes: "ghost off", or "ghost <name> <lap> <pace> <tint>" and the
     -- places in "gh" lines after it. The pace is how much faster than the
     -- record the ghost goes: 1, or on the Inferno track the engineer's.
+    -- Which ghost a player races (/ghost): "record" (the track's, as it
+    -- always was), "mine", a player's name, or "off". Kept by name.
+    local ghost_pick: { [string]: string } = {}
+    local function pick_of(name: string): string
+        if ghost_pick[name] == nil then
+            local v = core.storage_get(`ghostpick:{name}`)
+            ghost_pick[name] = if v == "" then "record" else v
+        end
+        return ghost_pick[name]
+    end
     local function send_ghost(p: number, s: Racer)
-        local g = if s.driving and s.track ~= nil then ghost_of(s.track) else nil
+        local pick = pick_of(s.name)
+        local g = nil
+        if s.driving and s.track ~= nil and pick ~= "off" then
+            g = if pick == "record" then ghost_of(s.track)
+                elseif pick == "mine" then own_ghost(s.track, s.name)
+                else own_ghost(s.track, pick)
+        end
         if g == nil then
             if s.ghost_sent ~= nil and s.ghost_sent ~= "off" then
                 tell(p, "ghost off")
@@ -1933,7 +1999,7 @@ if serving then
         end
         local ti = s.track :: number
         local name, pace, tint = g.name, 1, 0
-        if TRACKS[ti].key == "inferno" then
+        if TRACKS[ti].key == "inferno" and pick == "record" then
             name, pace = "engineer", g.lap / (beat[s.name] or ENGINEER)
         else
             tint = kart_look(kart_of(g.name))
@@ -2015,10 +2081,55 @@ if serving then
     -- The garage: the panel, and a click on it changes the kart at once --
     -- on the road too, for everybody to see -- and keeps it.
     core.command("garage", "-- the colours and the parts of your kart")
+    core.command("ghost", "[record|mine|NAME|off] -- which ghost kart drives your laps")
+    core.command("laps", "-- everybody's best lap on the track you last drove")
     core.event.on("core:command", function(ev)
         local s = players[ev.player]
-        if ev.name == "garage" and s ~= nil then
+        if s == nil then
+            return
+        end
+        if ev.name == "garage" then
             show_garage(ev.player, s)
+        elseif ev.name == "ghost" then
+            local word = string.match(ev.args, "^%s*(%S*)") or ""
+            local ti = s.track or 1
+            if word == "" then
+                core.chat(ev.player, `Ghost: {pick_of(s.name)}. /ghost record, mine, a player's name or off`)
+                return
+            end
+            local low = string.lower(word)
+            if low ~= "record" and low ~= "mine" and low ~= "off" then
+                if own_ghost(ti, word) == nil then
+                    core.chat(ev.player, `No ghost of {word} on this track`)
+                    return
+                end
+            else
+                word = low
+            end
+            ghost_pick[s.name] = word
+            core.storage_set(`ghostpick:{s.name}`, word)
+            if word == "mine" and own_ghost(ti, s.name) == nil then
+                core.chat(ev.player, "Ghost: mine, from your next best lap on this track")
+            else
+                core.chat(ev.player, `Ghost: {word}`)
+            end
+            send_ghost(ev.player, s)
+        elseif ev.name == "laps" then
+            local ti = s.track or 1
+            local w = string.split(fastest(ti, 150), " ")
+            if #w < 2 then
+                core.chat(ev.player, "Nobody has lapped this track yet")
+                return
+            end
+            -- The first ten, and the player's own place if further down.
+            for k = 1, #w - 1, 2 do
+                local n = (k + 1) // 2
+                if n > 10 and w[k] ~= s.name then
+                    continue
+                end
+                local ghost = if own_ghost(ti, w[k]) ~= nil then ", ghost" else ""
+                core.chat(ev.player, `{n}. {w[k]} {w[k + 1]} s{ghost}`)
+            end
         end
     end)
     core.event.on("core:ui_click", function(ev)
