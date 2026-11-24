@@ -58,7 +58,7 @@ everything below it). `/perm` shows and changes which role a permission wants;
 | `/laps` | track | anybody | Everybody's best lap on the track you last drove: the first ten and your own place, and who has a ghost |
 | `/pieces` | track | anybody | Puts in your bag a stack of every track piece, the track editor (B with it in hand picks the next piece from afar), and the start line, checkpoint, off-road, item box and portal tools |
 | `/defense` | tower defense | anybody | The tower defense's records: the field's best wave and who held it, and the best wave of each player here |
-| `/manta` | sky islands | anybody | How many times you have beaten the Cloud Manta |
+| `/manta` | cloud world | anybody | How many times you have beaten the Cloud Manta |
 | `/vehicle <jeep\|tank\|heli\|plane\|bomber\|nest\|mortar\|howitzer\|aa>` | front, assault | moderator | Puts that machine six nodes in front of you, for testing |
 
 ## For the staff

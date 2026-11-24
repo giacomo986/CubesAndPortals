@@ -12,11 +12,12 @@ then ffmpeg to a mono .ogg at 22050 Hz, as tools/make_imp_sounds.py does.
     squall_hurt   a pop of static, 0.3 s
     squall_death  a crackle that fizzles out, 0.8 s
 
-The thunder is mods/weather's, linked beside them as thunder.ogg.
+The thunder is mods/weather's, copied beside them as thunder.ogg.
 """
 import math
 import os
 import random
+import shutil
 import struct
 import subprocess
 import tempfile
@@ -97,11 +98,13 @@ def main():
     write("squall_say", crackle(0.6, 0.02, 0.3))
     write("squall_hurt", crackle(0.3, 0.08, 0.15))
     write("squall_death", crackle(0.8, 0.05, 0.6))
-    link = os.path.join(OUT, "thunder.ogg")
-    if os.path.lexists(link):
-        os.remove(link)
-    os.symlink("../../../../mods/weather/thunder.ogg", link)
-    print("sky sound: thunder (a link to mods/weather's)")
+    # A copy, not a link: a mod whose code goes to players (side = both) may
+    # not hold a link out of itself, or its code is not offered (mods_play).
+    out = os.path.join(OUT, "thunder.ogg")
+    if os.path.lexists(out):
+        os.remove(out)
+    shutil.copy(os.path.join(HERE, "..", "mods", "weather", "thunder.ogg"), out)
+    print("sky sound: thunder (mods/weather's, copied)")
 
 
 if __name__ == "__main__":

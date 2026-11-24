@@ -306,7 +306,7 @@ local THEMES: { [string]: (Put) -> () } = {
         end
     end,
 
-    -- The sky islands: a white arch like a cloud, light blue sky in its
+    -- The cloud world: a white arch like a cloud, light blue sky in its
     -- corners, planks before it as on a bridge.
     skies = function(put)
         local CLOUD = WHITE

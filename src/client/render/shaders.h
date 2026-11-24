@@ -542,12 +542,14 @@ uniform vec4  uFunnel[4];  // core.storm_funnel: x, ground y, z, and w 1 when th
 uniform float uRange;      // how far the world is drawn: a funnel past it would stand over nothing
 uniform float uOvercast;   // core.overcast: 0..1, the layer thicker and grey
 uniform float uEclipse;    // core.sky_eclipse: 0..1, the sun's disc black in a pale ring
-uniform int   uPart;       // 1 the layer, 2 the funnels, 3 both: each pass its own depth
+uniform int   uPart;       // 1 the layer, 2 the funnels, 3 both: each pass its own depth;
+                           // 4 more: a sea of cloud (core.cloud_sea), drawn without the sun
+uniform vec2  uLayer;      // the layer's bottom and top: 96..112, or the sea's
 
 out vec4 fragColor;
 )" CNP_WATER_GLSL R"(
-const float kBase = 96.0;
-const float kTop  = 112.0;
+float kBase = 96.0;   // uLayer's, set first thing in main()
+float kTop  = 112.0;
 const float kFar  = 420.0;   // gone into the haze by here
 
 float hash(ivec2 p)
@@ -627,6 +629,9 @@ float column(vec2 xz)
             }
         }
     }
+    // A sea of cloud (uPart 4) is nearly whole: a gap here and there, not a
+    // sky's scattered cumulus that a look down goes straight through.
+    if ((uPart & 4) != 0) return smoothstep(0.18, 0.42, s);
     return smoothstep(0.44 - 0.3 * uOvercast, 0.72 - 0.2 * uOvercast, s);
 }
 
@@ -785,8 +790,10 @@ void main()
     vec3 eye   = inverse(uView)[3].xyz;
     vec3 dir   = vNear - eye;
 
+    kBase = uLayer.x;
+    kTop  = uLayer.y;
     disc = vec4(0.0);
-    if (uSunShown > 0.5 && (uPart & 1) != 0) {
+    if (uSunShown > 0.5 && (uPart & 1) != 0 && (uPart & 4) == 0) {
         float c    = dot(normalize(dir), uSunDir);
         float edge = uMoon > 0.5 ? 0.99965 : 0.9992;
         float body = smoothstep(edge - 0.00004, edge + 0.00004, c);

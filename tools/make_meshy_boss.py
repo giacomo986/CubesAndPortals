@@ -2,7 +2,7 @@
 # auto-rig gave it (assets/meshy/<name>/walk.glb: the textured body, its
 # bones and a walk; run.glb: a run), with the rest of its clips made here:
 #
-#   flatpak run org.blender.Blender --background --python "$PWD/tools/make_meshy_boss.py" -- butcher|custode
+#   flatpak run org.blender.Blender --background --python "$PWD/tools/make_meshy_boss.py" -- butcher|custode|owlman
 #
 #   butcher  games/arpg/mods/arpg_core/butcher.gltf: a hulking brute 2.9 tall
 #            with the cleaver of tools/make_arpg_gear_meshy.py in its right
@@ -11,6 +11,11 @@
 #   custode  games/arpg/mods/arpg_crypt/custode.gltf: the crypt's lich, 2.6
 #            tall, a staff with a blue stone in its right hand; idle, walk,
 #            run, shoot (the staff thrust at the foe), attack, hurt, death
+#
+#   owlman   games/skies/mods/skies/owlman.gltf: the cloud world's owl men, 1.6
+#            tall, nothing in hand; idle (the head turning), wave, attack (both
+#            wings swept forward), glide, hurt, death. Its rig is read from
+#            ~/.cache/cnp_look/defsky/owlman (43 MB, kept out of the repo).
 #
 # A creature is drawn front +Y, feet on z = 0, so the body is turned half round
 # (Meshy's faces -Y) and sized; Meshy's clips carry translations in its own
@@ -43,6 +48,10 @@ D = math.radians
 BOSSES = {
     "butcher": {"height": 2.9, "out": ("games", "arpg", "mods", "arpg_core"), "held": "cleaver"},
     "custode": {"height": 2.6, "out": ("games", "arpg", "mods", "arpg_crypt"), "held": "staff"},
+    # The sky islands' people (games/skies): nothing in hand. Its Meshy rig
+    # (43 MB of walk.glb and run.glb) stays in the look cache, out of the repo.
+    "owlman": {"height": 1.6, "out": ("games", "skies", "mods", "skies"), "held": None,
+               "src": os.path.expanduser("~/.cache/cnp_look/defsky/owlman")},
 }
 
 
@@ -65,8 +74,8 @@ def select(objs, active=None):
     bpy.context.view_layer.objects.active = active or objs[0]
 
 
-def load(name, height):
-    src = os.path.join(ROOT, "assets", "meshy", name)
+def load(name, height, src=None):
+    src = src or os.path.join(ROOT, "assets", "meshy", name)
     objs = import_glb(os.path.join(src, "walk.glb"))
     arm = next(o for o in objs if o.type == "ARMATURE")
     body = next(o for o in objs if o.type == "MESH" and o.vertex_groups)
@@ -282,6 +291,8 @@ HANG = {
                 "LeftForeArm": [("z", -15)]},
     "custode": {"RightArm": [("y", 62), ("z", 25)], "RightForeArm": [("z", 55)], "LeftArm": [("y", -70)],
                 "LeftForeArm": [("z", -20)]},
+    "owlman": {"RightArm": [("y", 55)], "LeftArm": [("y", -55)], "RightForeArm": [("z", 10)],
+               "LeftForeArm": [("z", -10)]},
 }
 
 
@@ -320,6 +331,35 @@ def custode_clips(P):
     swing = merge({"RightArm": [("y", -40)], "RightForeArm": [("z", 40)], "Spine01": [("z", 20)]})
     down = merge({"RightArm": [("y", 70), ("z", 45)], "Spine01": [("z", -15), ("x", -18)]})
     clips.append(P.clip("attack", 0.9, [(0.0, hang, {}), (0.35, swing, {}), (0.6, down, {}), (1.0, hang, {})]))
+    flinch = merge(hang, {"Spine01": [("x", 12)], "Head": [("x", 20)]})
+    clips.append(P.clip("hurt", 0.35, [(0.0, hang, {}), (0.35, flinch, {}), (1.0, hang, {})]))
+    clips.append(death(P, hang))
+    return clips
+
+
+def owlman_clips(P):
+    """The owl man: its wings are its arms. idle (the head turns, as an owl's
+    does), wave (a hello, the right wing up), attack (both wings swept
+    forward), glide (wings spread, leant into the wind: played by the mod while
+    it flies between islands), hurt, death."""
+    hang = HANG["owlman"]
+    clips = []
+    left = merge(hang, {"Head": [("z", 35)], "Spine01": [("x", -2)]})
+    right = merge(hang, {"Head": [("z", -35)], "Spine01": [("x", -4)]})
+    clips.append(P.clip("idle", 4.0, [(0.0, hang, {}), (0.2, left, {}), (0.45, left, {}), (0.6, right, {}),
+                                      (0.85, right, {})], loop=True))
+    up = merge(hang, {"RightArm": [("y", -95)], "RightForeArm": [("z", 40)], "Head": [("z", -10)]})
+    up2 = merge(hang, {"RightArm": [("y", -95)], "RightForeArm": [("z", 75)], "Head": [("z", -10)]})
+    clips.append(P.clip("wave", 1.6, [(0.0, hang, {}), (0.2, up, {}), (0.4, up2, {}), (0.6, up, {}),
+                                      (0.8, up2, {}), (1.0, hang, {})]))
+    back = merge({"RightArm": [("y", -30), ("z", -50)], "LeftArm": [("y", 30), ("z", 50)], "Spine01": [("x", 10)]})
+    sweep = merge({"RightArm": [("y", 20), ("z", 70)], "LeftArm": [("y", -20), ("z", -70)],
+                   "Spine01": [("x", -20)], "Head": [("x", 10)]})
+    clips.append(P.clip("attack", 0.8, [(0.0, hang, {}), (0.35, back, {}), (0.6, sweep, {}), (1.0, hang, {})]))
+    spread = {"RightArm": [("y", -40)], "LeftArm": [("y", 40)], "Spine01": [("x", -25)], "Head": [("x", 20)],
+              "LeftUpLeg": [("x", 25)], "RightUpLeg": [("x", 25)]}
+    lift = merge(spread, {"RightArm": [("x", 8)], "LeftArm": [("x", 8)]})
+    clips.append(P.clip("glide", 2.0, [(0.0, spread, {}), (0.5, lift, {})], loop=True))
     flinch = merge(hang, {"Spine01": [("x", 12)], "Head": [("x", 20)]})
     clips.append(P.clip("hurt", 0.35, [(0.0, hang, {}), (0.35, flinch, {}), (1.0, hang, {})]))
     clips.append(death(P, hang))
@@ -408,7 +448,7 @@ def main():
     cfg = BOSSES[name]
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.context.scene.render.fps = FPS
-    arm, body, walk, run, lo = load(name, cfg["height"])
+    arm, body, walk, run, lo = load(name, cfg["height"], cfg.get("src"))
     # feet on the floor, the bones with them
     for v in body.data.vertices:
         v.co.z -= lo
@@ -419,13 +459,14 @@ def main():
         eb.tail.z -= lo
     bpy.ops.object.mode_set(mode="OBJECT")
 
-    held = held_part(cfg["held"], arm, HANG[name])
     # One mesh, one picture: the body and what it holds, baked together.
     high = body
     for m in list(high.modifiers):
         high.modifiers.remove(m)
-    select([high, held], high)
-    bpy.ops.object.join()
+    if cfg["held"]:
+        held = held_part(cfg["held"], arm, HANG[name])
+        select([high, held], high)
+        bpy.ops.object.join()
     low = low_poly(high, TRIS)
     out = os.path.join(ROOT, *cfg["out"])
     img = bake(high, low, name, TEX)
@@ -441,7 +482,7 @@ def main():
         pb.rotation_quaternion = (1, 0, 0, 0)
         pb.scale = (1, 1, 1)
     P = Poser(arm)
-    made = butcher_clips(P) if name == "butcher" else custode_clips(P)
+    made = {"butcher": butcher_clips, "custode": custode_clips, "owlman": owlman_clips}[name](P)
     acts = [walk, run] + made
     for act in (walk, run):
         act.use_fake_user = True

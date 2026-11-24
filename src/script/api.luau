@@ -1963,6 +1963,19 @@ local api: { Fn } = {
            .. "is 0.4 of the hour's, so the dark's creatures come out in a storm and do not burn.",
     },
     {
+        name = "cloud_sea",
+        host = "cloud_sea",
+        args = {
+            { name = "base", type = "float", doc = "The sea's flat bottom, in nodes" },
+            { name = "top", type = "float", doc = "Its tallest tops; at or under base, no sea" },
+        },
+        doc = "A sea of cloud under this world: the sky's own layer of cumulus drawn a second "
+           .. "time between these heights, drifting with the same wind, lit by the same sun, "
+           .. "hiding what is under it from above -- for a world of islands in the sky "
+           .. "(games/skies). Only drawn: it stops nothing. Kept until called again. For a "
+           .. "world's code on a player's machine.",
+    },
+    {
         name = "sky_flash",
         host = "sky_flash",
         args = {

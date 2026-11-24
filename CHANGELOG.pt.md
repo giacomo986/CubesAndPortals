@@ -12,11 +12,16 @@ uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
   o que você minerou (flechas, braseiro, gelo, raio, portal), melhoráveis até o nível 3,
   barricadas que os monstros contornam, e um chefe a cada quinta onda. Cada onda segurada dá
   materiais para guardar; `/defense` mostra os recordes.
-- **Ilhas suspensas**: um mundo novo atrás de um portão na praça: seis ilhas sobre as nuvens,
-  pontes entre elas, e a **Arraia das Nuvens**, um chefe para um ou vários. Para-raios a derrubam,
-  luta-se com ela na ilha central, depois as pontes caem e ela é finalizada planando. Dá a
-  **asa-delta da tempestade**, que os ventos da tempestade continuam levantando, e funciona em todo
-  mundo.
+- **O mundo das nuvens**: um mundo novo atrás de um portão na praça: ilhas sem fim sobre um mar
+  de nuvens, pontes, cristais do céu, **homens-coruja** em aldeias (andam, planam entre ilhas,
+  trocam e indicam o caminho) e **correntes ascendentes** que vagam devagar e te levam de volta
+  para cima depois de uma queda. No fim da estrada do céu a **Arraia das Nuvens**, um chefe para um
+  ou vários, com a vida na tela: suas rajadas se veem voando, para-raios a derrubam, homens-coruja
+  vêm ajudar, luta-se com ela na ilha central, depois as pontes caem e ela é finalizada planando.
+  Dá a **asa-delta da tempestade**, que os ventos da tempestade continuam levantando, e funciona
+  em todo mundo.
+- **Motor**: `core.cloud_sea(base, top)`, as nuvens do céu desenhadas uma segunda vez mais abaixo,
+  para um mundo de ilhas.
 - **Backrooms**: dois níveis novos, por distrito no lugar dos antigos: o hotel (carpete
   vermelho, corredores de portas fechadas) e a festa (paredes rosa, confete, balões, bolos). E as
   **backrooms profundas**, um mundo à parte atrás de uma porta rosa perto da entrada: mais níveis

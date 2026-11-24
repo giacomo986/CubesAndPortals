@@ -1048,6 +1048,7 @@ struct Session {
     float overcast = 0.0f;   // core.overcast: how grey the sky of the hour is, 0..1
     float flash    = 0.0f;   // core.sky_flash: a bolt's light this frame, 0..1
     float eclipse  = 0.0f;   // core.sky_eclipse: the moon over the sun, 0..1
+    float cloud_sea[2] = {0.0f, 0.0f};   // core.cloud_sea: a second layer's bottom and top
     // core.ghost_cell: blocks drawn seen-through where they would go (a
     // blueprint laid out), and their triangles by block, made again when one
     // changes.
@@ -5542,6 +5543,14 @@ void host_sky_eclipse(void *ud, double amount)
     if (std::isfinite(amount)) static_cast<Scene *>(ud)->act().eclipse = (float)std::clamp(amount, 0.0, 1.0);
 }
 
+void host_cloud_sea(void *ud, double base, double top)
+{
+    if (!std::isfinite(base) || !std::isfinite(top)) return;
+    float *c = static_cast<Scene *>(ud)->act().cloud_sea;
+    c[0] = (float)std::clamp(base, -4096.0, 4096.0);
+    c[1] = (float)std::clamp(top, -4096.0, 4096.0);
+}
+
 void host_overcast(void *ud, double amount)
 {
     if (!std::isfinite(amount)) return;
@@ -9231,6 +9240,7 @@ void apply_clocks(Scene &s)
                                   w.storm ? w.storm_rgb : nullptr);
         w.world_render.set_funnels(w.funnel);
         w.world_render.set_overcast(w.overcast);
+        w.world_render.set_cloud_sea(w.cloud_sea[0], w.cloud_sea[1]);
         w.world_render.set_eclipse(w.eclipse);
         w.world_render.set_foliage(w.foliage);
     }
@@ -22440,6 +22450,7 @@ script_host make_client_host(Scene &scene)
     host.overcast        = host_overcast;
     host.sky_flash       = host_sky_flash;
     host.sky_eclipse     = host_sky_eclipse;
+    host.cloud_sea       = host_cloud_sea;
     host.night_sight     = host_night_sight;
     host.ghost_cell      = host_ghost_cell;
     host.cell_look       = host_cell_look;

@@ -51,9 +51,12 @@ def build(name, scale, w0, w1, flap, beat, fast):
     if len(meshes) > 1:
         bpy.ops.object.join()
     mesh = bpy.context.view_layer.objects.active
-    mesh.rotation_euler.z += math.pi
-    mesh.scale = [s * scale for s in mesh.scale]
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    # Half round and to size on the vertices themselves: the importer leaves the
+    # object in quaternions, where a turn written to rotation_euler is not read
+    # (the Manta of 2026-11-24 flew tail first).
+    for v in mesh.data.vertices:
+        v.co.x, v.co.y, v.co.z = -v.co.x * scale, -v.co.y * scale, v.co.z * scale
     zs = [v.co.z for v in mesh.data.vertices]
     xs = [abs(v.co.x) for v in mesh.data.vertices]
     for v in mesh.data.vertices:

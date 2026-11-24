@@ -312,6 +312,9 @@ public:
 
     // Weather (core.overcast), 0..1: the clouds thicker and grey.
     void set_overcast(float o) { m_cloud_overcast = o; }
+    // A sea of cloud (core.cloud_sea): the sky's layer drawn again between
+    // these heights, under a world of islands. base >= top: none.
+    void set_cloud_sea(float base, float top) { m_cloud_sea[0] = base, m_cloud_sea[1] = top; }
     // An eclipse (core.sky_eclipse), 0..1: the sun's disc black in a pale ring.
     void set_eclipse(float e) { m_cloud_eclipse = e; }
     // core.night_sight, 0..1: no block drawn darker than this, nor any model.
@@ -603,6 +606,8 @@ private:
     float      m_cloud_storm[4]  = {0.0f, 0.0f, 0.0f, 0.0f};   // rgb, and 1 when a storm
     float      m_cloud_funnel[16] = {};                         // set_funnels
     float      m_cloud_overcast   = 0.0f;                       // set_overcast
+    float      m_cloud_sea[2]     = {0.0f, 0.0f};               // set_cloud_sea
+    int        m_loc_cloud_layer  = -1;
     float      m_cloud_eclipse    = 0.0f;                       // set_eclipse
     friend struct WaterUniforms;
 

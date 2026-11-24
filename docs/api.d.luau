@@ -323,6 +323,8 @@ declare core: {
     night_sight: (amount: number) -> (),
     -- Weather over this world's sky: the sky and its clouds go grey by this much, the sun's light on the ground weaker and its shadows fainter, the hours kept. 0 takes it away. Called as it changes, so a mod fades it in, on a player's machine. On a server it darkens the day the creatures and core.light read: at 1 the sun's share is 0.4 of the hour's, so the dark's creatures come out in a storm and do not burn.
     overcast: (amount: number) -> (),
+    -- A sea of cloud under this world: the sky's own layer of cumulus drawn a second time between these heights, drifting with the same wind, lit by the same sun, hiding what is under it from above -- for a world of islands in the sky (games/skies). Only drawn: it stops nothing. Kept until called again. For a world's code on a player's machine.
+    cloud_sea: (base: number, top: number) -> (),
     -- Lights this world as a bolt does, this frame: the land as bright as at noon and the sky towards a pale blue by this much, by night too. Called every frame it lasts. For a world's code on a player's machine.
     sky_flash: (amount: number) -> (),
     -- An eclipse over this world, by this much: the sun's disc goes black inside a pale ring, the sky towards a dusk blue, the sun's light and the sky's on the land nearly gone. Kept until called again, so a mod fades it in and out. Only what this machine draws: the server's day, which the creatures read, is core.overcast's. For a world's code on a player's machine.

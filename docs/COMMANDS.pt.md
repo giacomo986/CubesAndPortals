@@ -58,7 +58,7 @@ tudo o que está abaixo). `/perm` mostra e muda qual cargo uma permissão pede;
 | `/laps` | pista | qualquer um | A melhor volta de todos na última pista que você guiou: os dez primeiros e o seu lugar, e quem tem fantasma |
 | `/pieces` | pista | qualquer um | Coloca na sua bolsa uma pilha de cada peça de pista, o editor de pista (B com ele na mão escolhe de longe a próxima peça), e as ferramentas de linha de largada, checkpoint, fora da pista, caixa de itens e portal |
 | `/defense` | tower defense | qualquer um | Os recordes do tower defense: a melhor onda do campo e quem a segurou, e a melhor onda de cada jogador presente |
-| `/manta` | ilhas suspensas | qualquer um | Quantas vezes você derrotou a Arraia das Nuvens |
+| `/manta` | mundo das nuvens | qualquer um | Quantas vezes você derrotou a Arraia das Nuvens |
 | `/vehicle <jeep\|tank\|heli\|plane\|bomber\|nest\|mortar\|howitzer\|aa>` | front, assalto | moderator | Coloca essa máquina seis blocos à sua frente, para testes |
 
 ## Para a equipe

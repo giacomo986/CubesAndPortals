@@ -323,6 +323,7 @@ typedef struct script_host {
     void (*overcast)(void *ud, double amount);   // a grey sky over the hours, 0..1
     void (*sky_flash)(void *ud, double amount);  // a bolt lighting the land, this frame, 0..1
     void (*sky_eclipse)(void *ud, double amount);   // the moon over the sun, 0..1
+    void (*cloud_sea)(void *ud, double base, double top);   // the sky's clouds again, lower
     void (*night_sight)(void *ud, double amount);   // drawn no darker than this, 0..1
     int (*held_id)(void *ud, int player);   // core.held_id: the hand's stack's number
     int (*held_set_id)(void *ud, int player, int id);

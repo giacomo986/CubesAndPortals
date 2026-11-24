@@ -240,9 +240,9 @@ mondo che c'è dietro (`mods/gates`), portano a sette mondi, tutti stanze dello 
 Altri quattro giochi stanno nelle stanze `platformer`, `shmup`, `defense` e `skies`, con i loro
 portoni sulla piazza: un platform visto di lato (`games/platformer`), uno sparatutto da sala giochi
 su un caccia visto dall'alto (`games/shmup`), un tower defense contro ondate di mostri degli altri
-mondi, da soli o insieme, con torrette fatte di quello che hai minato (`games/defense`), e le isole
-sospese, dove la Manta delle Nuvole si abbatte con i parafulmini e dà il deltaplano della tempesta
-(`games/skies`).
+mondi, da soli o insieme, con torrette fatte di quello che hai minato (`games/defense`), e il mondo
+delle nuvole, isole senza fine con i villaggi degli uomini gufo e, in fondo alla strada del cielo,
+la Manta delle Nuvole, che dà il deltaplano della tempesta (`games/skies`).
 
 **Una casa più grande dentro** (`mods/pocket`). Una porta tascabile (una porta e un rubino in un
 anello di cornici di portale) messa in un muro diventa un vano su una sala tutta tua, quindici per
@@ -843,7 +843,7 @@ i link qui sotto portano a quello in italiano.
   [le backrooms](games/backrooms/README.it.md), [il fronte](games/front/README.it.md),
   [l'Inferno](games/inferno/README.it.md), [il parkour](games/parkour/README.it.md),
   [il platform](games/platformer/README.it.md), [lo sparatutto da sala giochi](games/shmup/README.it.md),
-  [il tower defense](games/defense/README.it.md), [le isole sospese](games/skies/README.it.md).
+  [il tower defense](games/defense/README.it.md), [il mondo delle nuvole](games/skies/README.it.md).
 - [`contrib/README.md`](contrib/README.it.md): gli add-on tenuti fuori dal gioco, come l'uomo
   lucertola.
 - [`TODO.md`](TODO.md) (in inglese): cosa manca e cosa non va.

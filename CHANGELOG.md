@@ -12,10 +12,15 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
   you mined (arrow, fire brazier, frost, lightning, portal), upgraded to level 3, barricades the
   monsters walk round, and a boss every fifth wave. Every wave held gives materials to keep;
   `/defense` shows the records.
-- **Sky islands**: a new world behind a gate on the plaza: six islands over the clouds, bridges
-  between them, and the **Cloud Manta**, a boss for one or several. Lightning rods bring it down,
-  it is fought on the centre island, then the bridges fall and it is finished gliding. It gives
-  the **storm glider**, a glider the storm's winds keep lifting, which works in every world.
+- **The cloud world**: a new world behind a gate on the plaza: islands without end over a sea of
+  cloud, bridges, sky crystals, **owl men** in villages (they walk, glide between islands, trade
+  and tell the way), and **updrafts** that wander slowly and throw you back up from a fall. At the
+  end of the sky road the **Cloud Manta**, a boss for one or several, its health on screen: its
+  gusts are seen flying, lightning rods bring it down, owl men fly in to help, it is fought on the
+  centre island, then the bridges fall and it is finished gliding. It gives the **storm glider**,
+  a glider the storm's winds keep lifting, which works in every world.
+- **Engine**: `core.cloud_sea(base, top)`, the sky's clouds drawn a second time lower down, for a
+  world of islands.
 - **Backrooms**: two newer levels, district by district in place of the old ones: the hotel
   (red carpet, corridors of shut doors) and the party (pink walls, confetti, balloons, cakes). And
   the **deep backrooms**, a world of their own behind a pink door near the way in: more of the new

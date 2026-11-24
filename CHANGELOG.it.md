@@ -12,11 +12,16 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
   costruite a un banco con quello che hai minato (frecce, braciere, gelo, fulmine, portale),
   potenziabili fino al livello 3, barricate che i mostri aggirano, e un boss ogni cinque ondate.
   Ogni ondata respinta dà materiali da tenere; `/defense` mostra i record.
-- **Isole sospese**: un mondo nuovo dietro un portone sulla piazza: sei isole sopra le nuvole,
-  ponti tra di loro, e la **Manta delle Nuvole**, un boss per uno o per più giocatori. I
-  parafulmini la abbattono, la si combatte sull'isola centrale, poi i ponti crollano e la si
-  finisce in volo. Dà il **deltaplano della tempesta**, che i venti della tempesta continuano a
-  sollevare, e funziona in ogni mondo.
+- **Il mondo delle nuvole**: un mondo nuovo dietro un portone sulla piazza: isole senza fine
+  sopra un mare di nuvole, ponti, cristalli del cielo, **uomini gufo** nei villaggi (camminano,
+  planano tra le isole, scambiano e indicano la strada) e **correnti ascensionali** che vagano
+  lentamente e ti riportano su da una caduta. In fondo alla strada del cielo la **Manta delle
+  Nuvole**, un boss per uno o per più giocatori, con la sua salute sullo schermo: le sue raffiche
+  si vedono volare, i parafulmini la abbattono, gli uomini gufo arrivano ad aiutare, la si combatte
+  sull'isola centrale, poi i ponti crollano e la si finisce in volo. Dà il **deltaplano della
+  tempesta**, che i venti della tempesta continuano a sollevare, e funziona in ogni mondo.
+- **Motore**: `core.cloud_sea(base, top)`, le nuvole del cielo disegnate una seconda volta più in
+  basso, per un mondo di isole.
 - **Backrooms**: due livelli nuovi, a distretti al posto dei vecchi: l'hotel (moquette rossa,
   corridoi di porte chiuse) e la festa (muri rosa, coriandoli, palloncini, torte). E le
   **backrooms profonde**, un mondo a sé dietro una porta rosa vicino all'entrata: più livelli

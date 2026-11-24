@@ -180,6 +180,7 @@ bool WorldRenderer::init(NodeRegistry &reg, const MediaSource &media)
     m_loc_cloud_funnel   = gfx_uniform_location(m_cloud_shader, "uFunnel");
     m_loc_cloud_range    = gfx_uniform_location(m_cloud_shader, "uRange");
     m_loc_cloud_overcast = gfx_uniform_location(m_cloud_shader, "uOvercast");
+    m_loc_cloud_layer    = gfx_uniform_location(m_cloud_shader, "uLayer");
     m_loc_cloud_eclipse  = gfx_uniform_location(m_cloud_shader, "uEclipse");
     m_loc_cloud_part     = gfx_uniform_location(m_cloud_shader, "uPart");
     m_cloud_water_u.locate(m_cloud_shader);
@@ -1455,6 +1456,15 @@ void WorldRenderer::draw(const Mat4 &projection, const Mat4 &view, bool cull)
         sky.cull      = GFX_CULL_NONE;
         sky.blend     = GFX_BLEND_ALPHA;
         gfx_state_set(&sky);
+        const float layer[2] = {96.0f, 112.0f};
+        gfx_uniform_set_v2(m_loc_cloud_layer, layer);
+        // The sea of cloud first: the sky's own layer, lower down, no sun.
+        if (m_cloud_sea[1] > m_cloud_sea[0]) {
+            gfx_uniform_set_v2(m_loc_cloud_layer, m_cloud_sea);
+            gfx_uniform_set_int(m_loc_cloud_part, 1 | 4);
+            gfx_draw(m_sky_mesh, 3, 0);
+            gfx_uniform_set_v2(m_loc_cloud_layer, layer);
+        }
         // With funnels about, the layer and the funnels in two passes, nearer
         // last, each writing its own depth so a hill hides each on its own.
         bool funnels = m_cloud_storm[3] > 0.5f && !plain_storm;

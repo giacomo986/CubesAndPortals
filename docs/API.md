@@ -1795,6 +1795,19 @@ Weather over this world's sky: the sky and its clouds go grey by this much, the 
 |---|---|---|---|
 | `amount` | number | — | 0 a clear sky .. 1 a heavy one; clamped |
 
+## `core.cloud_sea`
+
+```luau
+core.cloud_sea(base: number, top: number) -> ()
+```
+
+A sea of cloud under this world: the sky's own layer of cumulus drawn a second time between these heights, drifting with the same wind, lit by the same sun, hiding what is under it from above -- for a world of islands in the sky (games/skies). Only drawn: it stops nothing. Kept until called again. For a world's code on a player's machine.
+
+| argument | type | default | notes |
+|---|---|---|---|
+| `base` | number | — | The sea's flat bottom, in nodes |
+| `top` | number | — | Its tallest tops; at or under base, no sea |
+
 ## `core.sky_flash`
 
 ```luau

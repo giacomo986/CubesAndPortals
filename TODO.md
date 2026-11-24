@@ -115,11 +115,21 @@ From docs/IDEE.it.md (2026-11-24), each checked by script on tools/track.sh:
   benches' panel, an upgrade, putting a turret or a barricade down with real
   keys, a boss wave, two players. Friends' ranking (from IDEE) not done: the
   records are the field's and those of the players here.
-- Sky islands (games/skies): the same rig; a shot of the Manta circling over
-  the bridges; four rods, the low phase, the fall (a glider handed over), two
-  rods again, the Manta dead and the storm glider in the bag, by the test's
-  calls. Not tried by hand: a gust on a bridge, the gaps, fighting it low with
-  weapons, gliding in phase 3, the storm glider's lift, the reset a minute on.
+- The cloud world (games/skies, 2026-11-24 evening): islands without end, the
+  sky road, villages, updrafts, the Manta at z 420. Checked with a client in
+  Xephyr and scratch test blocks: shots of the road and of a village; the sea
+  of cloud (core.cloud_sea) seen under the islands; an updraft seen and its
+  lift (24 to 60 in 3.5 s); four rods, the low phase with the health bar and
+  three owl men circling, the fall with a glider handed over; owl men gliding
+  between islands and landing. The Manta now flies head first (the importer's
+  quaternions had ignored the half turn). Not tried by hand: a gust on a
+  bridge (its ball not caught in a shot), fighting it low with weapons,
+  gliding in phase 3, an owl man's panel and trades, the storm glider's lift.
+  Shot found: player_launch refuses more than 16 m/s an axis (17 did nothing).
+- ctest on :5 (2026-11-24): portal_continuity fails, 85-100% of pixels
+  differ at 6.5, 3 and 1.5 blocks; the same with the day's C++ changes stashed,
+  so not the cloud sea. Not looked into. mods_play passes (it caught the
+  thunder.ogg link that kept the cloud world's code from players).
 - The two new gates on the plaza (25.5 and 69.5 on the south edge): not seen.
 
 Trophies and the hidden portals (mods/trophies, 2026-11-23): type-checked,

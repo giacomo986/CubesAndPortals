@@ -1468,6 +1468,16 @@ int l_overcast(lua_State *L)
     return 0;
 }
 
+// core.cloud_sea(base: number, top: number) -> ()
+int l_cloud_sea(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const float base = (float)luaL_checknumber(L, 1);
+    const float top = (float)luaL_checknumber(L, 2);
+    if (vm && vm->host.cloud_sea) vm->host.cloud_sea(vm->host.ud, base, top);
+    return 0;
+}
+
 // core.sky_flash(amount: number) -> ()
 int l_sky_flash(lua_State *L)
 {
@@ -4039,6 +4049,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "night_sight");
     lua_pushcfunction(L, l_overcast, "core.overcast");
     lua_setfield(L, -2, "overcast");
+    lua_pushcfunction(L, l_cloud_sea, "core.cloud_sea");
+    lua_setfield(L, -2, "cloud_sea");
     lua_pushcfunction(L, l_sky_flash, "core.sky_flash");
     lua_setfield(L, -2, "sky_flash");
     lua_pushcfunction(L, l_sky_eclipse, "core.sky_eclipse");
