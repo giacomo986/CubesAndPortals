@@ -17,7 +17,7 @@
 -- spawn and kept (storage "site:ID"), built the first time a player comes
 -- near with the columns in memory, and opened again at every start:
 --   well    an old well with a rope down it; at the bottom, a tunnel;
---   summit  an arch on the highest ground round about;
+--   summit  an arch on the highest ground round about, open only in winter;
 --   lake    a frame with two lamps on the floor of a deep lake;
 --   hill    a door dug into the side of a hill;
 --   circle  a ring of standing stones, its arch open only at night.
@@ -69,7 +69,7 @@ local TROPHIES: { Trophy } = {
     { id = "w.platformer", title = "The Platform Game", hint = "Through its gate on the plaza, and back.", rgb = { 60, 190, 70 }, row = 1 },
     { id = "w.shmup", title = "The Arcade Shooter", hint = "Through its gate on the plaza, and back.", rgb = { 230, 80, 180 }, row = 1 },
     { id = "h.well", title = "The Old Well", hint = "An old well with a rope down it. What is at the bottom?", rgb = { 110, 170, 230 }, row = 2 },
-    { id = "h.summit", title = "The Summit", hint = "An arch on the highest ground round about.", rgb = { 250, 250, 255 }, row = 2 },
+    { id = "h.summit", title = "The Summit", hint = "An arch on the highest ground round about. It opens in winter.", rgb = { 250, 250, 255 }, row = 2 },
     { id = "h.lake", title = "The Drowned Door", hint = "Two lamps on the floor of a deep lake.", rgb = { 40, 200, 190 }, row = 2 },
     { id = "h.hill", title = "The Door in the Hill", hint = "A door dug into the side of a hill.", rgb = { 160, 110, 60 }, row = 2 },
     { id = "h.circle", title = "The Night Circle", hint = "A ring of standing stones. It wakes at night.", rgb = { 130, 90, 240 }, row = 2 },
@@ -763,9 +763,15 @@ if IS_LAND then
         local t = core.time_of_day()
         return t < 0.21 or t > 0.79
     end
+    -- The season, as mods/weather says it (farm:season); "" with no weather,
+    -- and then the summit is always open.
+    local season = ""
+    pcall(core.event.on, "farm:season", function(ev: EventPayload)
+        season = ev.name :: string
+    end, nil)
 
     -- The place's end first, kept open; the land's end opened and linked to it,
-    -- and for the circle closed again by day.
+    -- and for the circle closed again by day, for the summit out of winter.
     local function keep_open(s: Site)
         if s.b < 0 then
             local px, py, pz = place_hole(s)
@@ -773,7 +779,9 @@ if IS_LAND then
             if s.b < 0 then return end
             core.portal_link(s.b, -1)   -- unlinked it would lead to its id xor 1: somebody else's
         end
-        local want = s.id ~= "circle" or night()
+        local want = if s.id == "circle" then night()
+            elseif s.id == "summit" then season == "" or season == "winter"
+            else true
         if want and not s.open then
             s.a = core.portal_open(s.hx + 0.5, s.hy + 1.0, s.hz + 0.5, 0, 1, 0, 0.5, 1.0)
             if s.a < 0 then return end

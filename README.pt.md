@@ -318,7 +318,7 @@ quantos passos; `/trophies` conta.
 
 Os portais escondidos ficam onde o terreno da semente tem lugar, a umas centenas de passos do
 spawn: um **velho poço** com uma corda a descer e um túnel no fundo, um **arco no ponto mais
-alto** das redondezas, uma **moldura com duas lâmpadas no fundo de um lago profundo**, uma
+alto** das redondezas que só abre no inverno, uma **moldura com duas lâmpadas no fundo de um lago profundo**, uma
 **porta escavada na encosta de uma colina** e um **círculo de pedras** cujo arco só abre à
 noite. Cada um leva a um lugar seu, logo acima ou abaixo: uma **ilha no céu** onde o terreno é
 baixo, uma **caverna de cristais** no fundo do mundo onde não é. Quem chega primeiro ganha o

@@ -308,7 +308,7 @@ counts them.
 
 The hidden portals stand where the seed's ground has room for them, within a few hundred steps
 of the spawn: an **old well** with a rope down it and a tunnel at the bottom, an **arch on the
-highest ground** round about, a **frame with two lamps on the floor of a deep lake**, a **door
+highest ground** round about that opens only in winter, a **frame with two lamps on the floor of a deep lake**, a **door
 dug into a hillside**, and a **ring of standing stones** whose arch opens only at night. Each
 leads to a place of its own straight over or under it -- an **island in the sky** where the
 ground is low, a **cave of crystals** at the bottom of the world where it is not -- and whoever

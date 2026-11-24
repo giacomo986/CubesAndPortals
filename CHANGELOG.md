@@ -11,7 +11,7 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
   the land. Their cups stand on a shelf in your own room; `/page trophies` lists them, with a hint
   and which way from the spawn each hidden portal is.
 - **Five hidden portals** in the sandbox, where the seed's ground has room: an old well with a
-  rope down it, an arch on the highest ground, a frame on the floor of a deep lake, a door in a
+  rope down it, an arch on the highest ground that opens only in winter, a frame on the floor of a deep lake, a door in a
   hillside and a ring of standing stones that opens only at night. Each leads to an island in the
   sky or a cave of crystals, with a diamond and five rubies for whoever gets there first.
 - Going through the platform game's or the arcade shooter's gate counts as going to that world.

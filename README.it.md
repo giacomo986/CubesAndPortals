@@ -314,7 +314,7 @@ circa quanti passi; `/trophies` li conta.
 
 I portali nascosti stanno dove il terreno del seme ha posto, entro qualche centinaio di passi
 dallo spawn: un **vecchio pozzo** con una corda che scende e un tunnel sul fondo, un **arco sul
-punto più alto** dei dintorni, una **cornice con due lampade sul fondo di un lago profondo**, una
+punto più alto** dei dintorni che si apre solo d'inverno, una **cornice con due lampade sul fondo di un lago profondo**, una
 **porta scavata nel fianco di una collina** e un **cerchio di pietre** il cui arco si apre solo
 di notte. Ognuno porta a un posto suo, proprio sopra o sotto: un'**isola nel cielo** dove il
 terreno è basso, una **grotta di cristalli** in fondo al mondo dove non lo è. Chi ci arriva per

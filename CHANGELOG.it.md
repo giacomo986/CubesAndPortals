@@ -11,7 +11,7 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
   terre. Le coppe stanno su una bacheca nella tua stanza personale; `/page trophies` li elenca, con
   un indizio e la direzione dallo spawn di ogni portale nascosto.
 - **Cinque portali nascosti** nel sandbox, dove il terreno del seme ha posto: un vecchio pozzo con
-  una corda, un arco sul punto più alto, una cornice sul fondo di un lago profondo, una porta nel
+  una corda, un arco sul punto più alto che si apre solo d'inverno, una cornice sul fondo di un lago profondo, una porta nel
   fianco di una collina e un cerchio di pietre che si apre solo di notte. Ognuno porta a un'isola
   nel cielo o a una grotta di cristalli, con un diamante e cinque rubini per chi arriva per primo.
 - Attraversare il portale del gioco a piattaforme o dello sparatutto da sala giochi conta come

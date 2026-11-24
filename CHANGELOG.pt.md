@@ -11,7 +11,7 @@ uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
   terra. As taças ficam numa estante no seu quarto; `/page trophies` lista todos, com uma dica e
   para que lado do spawn fica cada portal escondido.
 - **Cinco portais escondidos** no sandbox, onde o terreno da semente tem lugar: um velho poço com
-  uma corda, um arco no ponto mais alto, uma moldura no fundo de um lago profundo, uma porta numa
+  uma corda, um arco no ponto mais alto que só abre no inverno, uma moldura no fundo de um lago profundo, uma porta numa
   encosta e um círculo de pedras que só abre à noite. Cada um leva a uma ilha no céu ou a uma
   caverna de cristais, com um diamante e cinco rubis para quem chegar primeiro.
 - Passar pelo portal do jogo de plataformas ou do jogo de tiros de arcada conta como ir àquele
