@@ -3579,6 +3579,19 @@ local api: { Fn } = {
            .. "no generator.",
     },
     {
+        name = "map_cell",
+        host = "map_cell",
+        rets = { "int", "int", "int", "int" },
+        args = {
+            { name = "x", type = "int" },
+            { name = "z", type = "int" },
+        },
+        doc = "What a map shows of one column, on a player's machine: the height of its highest "
+           .. "block (water counts, a grass tuft or a torch does not) and the mean colour of "
+           .. "that block's top, red, green and blue 0-255. Nothing for a column this machine "
+           .. "has not got, and on a server.",
+    },
+    {
         name = "plaza",
         host = "plaza",
         rets = { "int", "int" },

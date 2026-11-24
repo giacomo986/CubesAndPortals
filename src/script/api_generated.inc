@@ -3027,6 +3027,25 @@ int l_seed(lua_State *L)
     return 1;
 }
 
+// core.map_cell(x: number, z: number) -> (number?, number, number, number)
+int l_map_cell(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int x = (int)luaL_checkinteger(L, 1);
+    const int z = (int)luaL_checkinteger(L, 2);
+    int out1 = (int)0;
+    int out2 = (int)0;
+    int out3 = (int)0;
+    int out4 = (int)0;
+    const int answered = (vm && vm->host.map_cell) ? vm->host.map_cell(vm->host.ud, x, z, &out1, &out2, &out3, &out4) : 0;
+    if (!answered) return 0;
+    lua_pushinteger(L, out1);
+    lua_pushinteger(L, out2);
+    lua_pushinteger(L, out3);
+    lua_pushinteger(L, out4);
+    return 4;
+}
+
 // core.plaza() -> (number?, number)
 int l_plaza(lua_State *L)
 {
@@ -4256,6 +4275,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "world_spawn");
     lua_pushcfunction(L, l_seed, "core.seed");
     lua_setfield(L, -2, "seed");
+    lua_pushcfunction(L, l_map_cell, "core.map_cell");
+    lua_setfield(L, -2, "map_cell");
     lua_pushcfunction(L, l_plaza, "core.plaza");
     lua_setfield(L, -2, "plaza");
     lua_pushcfunction(L, l_player_name, "core.player_name");

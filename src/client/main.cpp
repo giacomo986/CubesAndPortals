@@ -4170,6 +4170,35 @@ int host_plaza(void *ud, int *lo, int *hi)
     return sess.mapgen_ctx && mapgen_plaza(*sess.mapgen_ctx->biomes, lo, hi) ? 1 : 0;
 }
 
+// core.map_cell: the highest block in a column this machine has, skipping
+// what a body walks through but water (grass tufts, torches), and the mean
+// colour of its top's tile. Nothing for a column with nothing loaded.
+int host_map_cell(void *ud, int x, int z, int *y, int *r, int *g, int *b)
+{
+    Session    &sess = static_cast<Scene *>(ud)->act();
+    const World &w   = sess.world;
+    const auto &rgb  = sess.world_render.tile_rgb();
+    for (int cy = w.highest_layer(); cy >= w.lowest_layer(); --cy) {
+        const ChunkPos cp = World::chunk_of(x, cy * kChunkSize, z);
+        if (!w.find_chunk(cp)) continue;
+        for (int ly = kChunkSize - 1; ly >= 0; --ly) {
+            const int     wy = cy * kChunkSize + ly;
+            const BlockId id = w.get_block(x, wy, z);
+            if (id == kAir) continue;
+            const NodeDef &def = sess.registry.get(id);
+            if (!def.solid && !def.liquid) continue;
+            const uint16_t t = def.tex[2];   // +Y
+            const std::array<uint8_t, 3> c = t < rgb.size() ? rgb[t] : std::array<uint8_t, 3>{128, 128, 128};
+            *y = wy;
+            *r = c[0];
+            *g = c[1];
+            *b = c[2];
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int host_terrain_height(void *ud, int x, int z)
 {
     Session &sess = static_cast<Scene *>(ud)->act();
@@ -22415,6 +22444,7 @@ script_host make_client_host(Scene &scene)
     host.water_level     = host_water_level;
     host.world_seed      = host_world_seed;
     host.plaza           = host_plaza;
+    host.map_cell        = host_map_cell;
     host.biome           = host_biome;
     host.node_liquid     = host_node_liquid;
     host.register_model = host_register_model;

@@ -420,6 +420,8 @@ public:
     // by the player" stops being a claim about the code and becomes a number.
     Vec3 last_sort_eye() const { return m_last_sort_eye; }
     size_t gpu_bytes()     const { return m_total_vertices * sizeof(Vertex); }
+    // Each atlas tile's mean colour (a map's colour of a block: core.map_cell).
+    const std::vector<std::array<uint8_t, 3>> &tile_rgb() const { return m_tile_rgb; }
 
 private:
     void bind_world(const Mat4 &projection, const Mat4 &view);   // this pass's shader and what it reads

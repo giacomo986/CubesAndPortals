@@ -1862,3 +1862,6 @@ No ghost of {} on this track = Nenhum fantasma de {} nesta pista
 Nobody has lapped this track yet = Ninguém deu uma volta nesta pista ainda
 That line is {}'s = Essa linha é de {}
 You have {} tracks: take a start line away first = Você já tem {} pistas: tire primeiro uma linha de partida
+Minimap = Minimapa
+Seeking minimap = Minimapa buscador
+Deep minimap = Minimapa profundo

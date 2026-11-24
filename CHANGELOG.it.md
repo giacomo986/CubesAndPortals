@@ -23,6 +23,12 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 - **Più piste di pezzi in un mondo**: ogni linea di partenza messa è una pista a sé, con un
   proprietario; solo lui ne toglie le linee, e un giocatore ne può avere otto. Prima una nuova linea
   di partenza toglieva la pista di prima, chiunque l'avesse costruita.
+- **Minimappa**: mappa, bussola e un lingotto d'oro; ovunque nella borsa, tiene in alto a destra
+  una piccola mappa del terreno attorno, com'è costruito, con portali e villaggi. Due potenziamenti:
+  la minimappa cercatrice (quattro lapislazzuli) segna i portali nascosti entro 128 blocchi, la
+  minimappa profonda (un diamante e due rubini) mostra diamanti, rubini e oro sottoterra.
+- Per chi scrive mod: `core.map_cell(x, z)` sulla macchina del giocatore, la cima di una colonna e
+  il suo colore.
 - Per gli admin: `/trophies sites`, `/trophies go ID [place] [NOME]`, `/trophies home [NOME]`.
 - Per gli admin: lo storico dei blocchi cambiati (`/inspect`, `/rollback`) si tiene solo con
   `--block-history`; senza, non si annota niente.

@@ -465,6 +465,11 @@ da contare e scavare, frammenti da rimettere sui piedistalli.
 
 **Mappa e bussola** (`mods/maps`). La bussola in mano punta a casa, al letto o allo spawn; la mappa
 in mano mostra il terreno attorno dove si è già stati, tenuto dal server fra una sessione e l'altra.
+Una **minimappa** (mappa, bussola e un lingotto d'oro) ovunque nella borsa tiene nell'angolo in alto
+a destra una piccola mappa del terreno attorno, com'è costruito, con portali e villaggi. La
+**minimappa cercatrice** (più quattro lapislazzuli) segna anche i portali nascosti entro 128
+blocchi; la **minimappa profonda** (più un diamante e due rubini) mostra diamanti, rubini e oro
+sotto di te.
 
 **Pietre del viaggio** (`mods/travel`). Ogni villaggio ne ha una accanto al pozzo, e una si
 fabbrica per il proprio territorio: toccarla la fa ricordare, e da qualunque pietra si paga un

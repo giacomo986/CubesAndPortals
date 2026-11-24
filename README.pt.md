@@ -480,6 +480,11 @@ um diário de bordo para contar e cavar, fragmentos para recolocar nos pedestais
 
 **Mapa e bússola** (`mods/maps`). Uma bússola na mão aponta para casa, sua cama ou o spawn; um mapa
 na mão mostra a terra em volta por onde você passou, guardado pelo servidor entre as sessões.
+Um **minimapa** (mapa, bússola e um lingote de ouro) em qualquer lugar da bolsa mantém no canto
+superior direito um pequeno mapa da terra em volta, como está construída, com portais e vilas. O
+**minimapa buscador** (mais quatro lápis-lazúlis) marca também os portais escondidos a até 128
+blocos; o **minimapa profundo** (mais um diamante e dois rubis) mostra diamante, rubi e ouro
+embaixo de você.
 
 **Pedras de caminho** (`mods/travel`). Uma pedra de caminho fica perto do poço de cada vila, e dá
 para fazer uma para um território: toque numa para memorizá-la, depois pague um rubi a cada 200

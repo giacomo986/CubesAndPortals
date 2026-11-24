@@ -3595,6 +3595,19 @@ core.seed() -> number
 
 This world's seed, its low 31 bits, anywhere and at any time -- a mapgen stage's ctx.seed is the whole of it. For a mod that places things as a function of the seed outside a stage, and wants the same answer every start. 0 where there is no generator.
 
+## `core.map_cell`
+
+```luau
+core.map_cell(x: number, z: number) -> (number?, number, number, number)
+```
+
+What a map shows of one column, on a player's machine: the height of its highest block (water counts, a grass tuft or a torch does not) and the mean colour of that block's top, red, green and blue 0-255. Nothing for a column this machine has not got, and on a server.
+
+| argument | type | default | notes |
+|---|---|---|---|
+| `x` | number | — |  |
+| `z` | number | — |  |
+
 ## `core.plaza`
 
 ```luau

@@ -493,6 +493,8 @@ typedef struct script_host {
     // core.seed and core.plaza: the generator's, 0 when there is none.
     int (*world_seed)(void *ud);
     int (*plaza)(void *ud, int *lo, int *hi);
+    // core.map_cell: the top of a column a map shows, and its colour (client).
+    int (*map_cell)(void *ud, int x, int z, int *y, int *r, int *g, int *b);
     // A mod's line about a body, which goes along when the body drives into
     // another room of the server (core.player_carry, core.player_carried).
     int         (*player_carry)(void *ud, int player, const char *text);

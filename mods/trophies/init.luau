@@ -407,6 +407,7 @@ if IS_LAND then
         return true
     end
 
+    local pinned: { [string]: boolean } = {}   -- "name id": a hidden portal put on that player's minimap
     type Site = {
         id: string,
         ax: number, ag: number, az: number,   -- where it was found: ground's first air
@@ -802,6 +803,17 @@ if IS_LAND then
         every = 0.0
         local players = core.players()
         for _, s in sites do
+            -- On the minimap of a player near it who carries a seeking or deep
+            -- one (mods/maps: a pin, kept by the map, so sent once a player).
+            for _, p in players do
+                local x, _, z = core.player_pos(p)
+                local name = core.player_name(p)
+                if x and not pinned[`{name} {s.id}`] and (x - s.ax) ^ 2 + (z - s.az) ^ 2 < 128 * 128
+                    and core.bag_count(p, "maps:seeking_minimap") + core.bag_count(p, "maps:deep_minimap") > 0 then
+                    pinned[`{name} {s.id}`] = true
+                    pcall(core.event.emit, "maps:pin", { player = p, label = `hidden {s.id}`, x = s.ax, z = s.az, colour = 5 })
+                end
+            end
             if not s.built then
                 for _, p in players do
                     local x, _, z = core.player_pos(p)

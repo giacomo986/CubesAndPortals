@@ -454,6 +454,10 @@ put back on their pedestals.
 
 **Map and compass** (`mods/maps`). A compass held points home, to your bed or the spawn; a map
 held shows the land round you where you have been, kept by the server across sessions.
+A **minimap** (a map, a compass and a gold ingot) anywhere in the bag keeps a small map of the
+land round you, as built, in the top right corner, with the portals and villages on it. A
+**seeking minimap** (four lapis more) also marks the hidden portals within 128 nodes; a **deep
+minimap** (a diamond and two rubies more) shows the diamond, ruby and gold under you.
 
 **Waystones** (`mods/travel`). A waystone stands by every village's well, and one can be made
 for a territory: touch one to remember it, then pay a ruby every 200 nodes to open a portal

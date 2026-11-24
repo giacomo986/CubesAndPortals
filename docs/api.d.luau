@@ -571,6 +571,8 @@ declare core: {
     world_spawn: () -> (number?, number, number),
     -- This world's seed, its low 31 bits, anywhere and at any time -- a mapgen stage's ctx.seed is the whole of it. For a mod that places things as a function of the seed outside a stage, and wants the same answer every start. 0 where there is no generator.
     seed: () -> number,
+    -- What a map shows of one column, on a player's machine: the height of its highest block (water counts, a grass tuft or a torch does not) and the mean colour of that block's top, red, green and blue 0-255. Nothing for a column this machine has not got, and on a server.
+    map_cell: (x: number, z: number) -> (number?, number, number, number),
     -- The flat square the portal gates stand on, as the lowest and highest x (and z) of it -- 20, 100 -- or nil in a world without one (--survival) or a process that does not generate the world. What a mod asks instead of which mode a world is in: something kept off the plaza, or built on it, follows the answer.
     plaza: () -> (number?, number),
     -- The name that player joined with, or an empty string for somebody who is not in this world. A label and not an identity -- two players may pick the same one -- but it is what a mod can show on a screen, and what it can keep a lap time under across a rejoin: the id is a connection's, and a rejoin is a new connection.

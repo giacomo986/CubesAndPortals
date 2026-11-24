@@ -23,6 +23,12 @@ uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
 - **Várias pistas de peças num mundo**: cada linha de largada posta é uma pista própria, com um
   dono; só o dono tira as linhas dela, e um jogador pode ter oito. Antes, uma linha de largada nova
   tirava a pista anterior, fosse de quem fosse.
+- **Minimapa**: mapa, bússola e um lingote de ouro; em qualquer lugar da bolsa, mantém no canto
+  superior direito um pequeno mapa da terra em volta, como está construída, com portais e vilas.
+  Duas melhorias: o minimapa buscador (quatro lápis-lazúlis) marca portais escondidos a até 128
+  blocos, o minimapa profundo (um diamante e dois rubis) mostra diamante, rubi e ouro no subsolo.
+- Para quem escreve mods: `core.map_cell(x, z)` na máquina do jogador, o topo de uma coluna e a
+  sua cor.
 - Para admins: `/trophies sites`, `/trophies go ID [place] [NOME]`, `/trophies home [NOME]`.
 - Para admins: o histórico dos blocos mudados (`/inspect`, `/rollback`) só é guardado com
   `--block-history`; sem ela, nada é anotado.

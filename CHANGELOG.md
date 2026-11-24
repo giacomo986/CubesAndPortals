@@ -21,6 +21,11 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 - **Several tracks of pieces in one world**: each start line put down is a track of its own, with
   an owner; only the owner takes its lines away, and a player may have eight. Before, a new start
   line took the previous track away, whoever had built it.
+- **Minimap**: a map, a compass and a gold ingot make one; anywhere in the bag, it keeps a small
+  map of the land round you in the top right corner, as built, with portals and villages. Two
+  upgrades: the seeking minimap (four lapis) marks hidden portals within 128 nodes, the deep
+  minimap (a diamond and two rubies) shows diamond, ruby and gold underground.
+- For mod writers: `core.map_cell(x, z)` on a player's machine, the top of a column and its colour.
 - For admins: `/trophies sites`, `/trophies go ID [place] [NAME]`, `/trophies home [NAME]`.
 - For admins: the history of changed blocks (`/inspect`, `/rollback`) is kept only with
   `--block-history`; without it nothing is written down.

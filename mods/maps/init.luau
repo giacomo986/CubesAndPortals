@@ -22,6 +22,16 @@
 -- counts only when stood on) -- or sent again with no points. A PIN
 -- (maps:pin: mods/gates' portals, once seen) is a dot of its own colour, kept
 -- per player ("pins:<name>"), 64 at most, the oldest dropped first.
+--
+-- A MINIMAP (a map, a compass and gold) in the bag, anywhere in it, keeps a
+-- small square of the land in the top right corner of the screen, north up,
+-- about a hundred nodes across: drawn by the player's machine from the blocks
+-- it has (core.map_cell), so it shows what is built, and with the pins on it.
+-- Two upgrades, each made of the one before: a SEEKING MINIMAP (four lapis)
+-- also pins the hidden portals out on the land within 128 nodes (mods/trophies,
+-- colour 5), and a DEEP MINIMAP (a diamond and two rubies) shows the rare ores
+-- -- diamond, ruby and gold -- in the ground under and round it.
+-- The server says which of the three a player carries ("l N").
 
 local side    = core.side()
 local serving = side ~= "client"
@@ -39,6 +49,15 @@ core.recipe_shaped("maps:map", 1,
     "cane:paper  cane:paper     cane:paper",
     "cane:paper  maps:compass   cane:paper",
     "cane:paper  cane:paper     cane:paper")
+-- The minimap and its two upgrades, best last: what the corner shows is the
+-- best one in the bag.
+local MINIMAPS = { "maps:minimap", "maps:seeking_minimap", "maps:deep_minimap" }
+core.register_item("maps:minimap", 1)
+core.register_item("maps:seeking_minimap", 1)
+core.register_item("maps:deep_minimap", 1)
+core.recipe_shapeless("maps:minimap", 1, "maps:map maps:compass furnace:gold_ingot")
+core.recipe_shapeless("maps:seeking_minimap", 1, "maps:minimap ore:lapis ore:lapis ore:lapis ore:lapis")
+core.recipe_shapeless("maps:deep_minimap", 1, "maps:seeking_minimap ore:diamond ore:ruby ore:ruby")
 
 local PIXEL = 8      -- nodes a pixel of the map
 local SEEN = 6       -- pixels round a player that they have seen
@@ -77,6 +96,7 @@ local seen: { [number]: number } = {}   -- this player's pixels, by pk: their co
 local home_x, home_z = 0, 0
 local routes: { [string]: { { number } } } = {}   -- this player's, by label: points x, z
 local pins: { [string]: { number } } = {}          -- this player's, by label: x, z, colour
+local mini = 0                                     -- the best minimap this player carries, 0 none
 local function pk(px: number, pz: number): number
     return (px + 32768) * 65536 + (pz + 32768)
 end
@@ -108,6 +128,8 @@ local function heard(text: string)
         if label then
             pins[label] = { tonumber(x) :: number, tonumber(z) :: number, tonumber(c) :: number }
         end
+    elseif kind == "l" then
+        mini = tonumber(rest) or 0
     elseif kind == "h" then
         local x, z = string.match(rest or "", "^(-?[%d.]+) (-?[%d.]+)$")
         home_x, home_z = tonumber(x) or 0, tonumber(z) or 0
@@ -119,7 +141,8 @@ end
 core.event.define("maps:route", { fields = { player = "number", label = "string", points = "string" },
                                   cancellable = false })
 -- A pin's colour: 1 violet (a portal), 2 green (a portal done), 3 gold (a
--- relic, mods/relics), 4 orange (a village, mods/villages).
+-- relic, mods/relics), 4 orange (a village, mods/villages), 5 cyan (a hidden
+-- portal, mods/trophies, for a seeking minimap).
 core.event.define("maps:pin", { fields = { player = "number", label = "string", x = "number", z = "number",
                                            colour = "number" },
                                 cancellable = false })
@@ -136,7 +159,7 @@ if serving then
     end
 
     type Seen = { tiles: { [string]: { number } }, names: { string }, dirty: { [string]: boolean },
-                  name: string }
+                  name: string, mini: number? }
 
     -- A pixel as built: the top block over its middle, if that column is in
     -- memory, as the nearest colour of the palette's built part; water as
@@ -417,6 +440,14 @@ if serving then
             here[p] = true
             local s = players[p] or join(p)
             players[p] = s
+            local level = 0
+            for k, m in MINIMAPS do
+                if core.bag_count(p, m) > 0 then level = k end
+            end
+            if level ~= s.mini then
+                s.mini = level
+                send(p, `l {level}`)
+            end
             local x, _, z = core.player_pos(p)
             if x and z then
                 see(p, s, math.floor(x / PIXEL), math.floor(z / PIXEL), SEEN)
@@ -490,6 +521,112 @@ if drawing then
             rad * 0.45, 1, 240, 230, 200, 255)
     end
 
+    -- The minimap: CELLS x CELLS squares of STEP nodes round the player, a
+    -- row of them read again each frame (core.map_cell), shaded by how far
+    -- above or below the player's feet the top is.
+    local CELLS, STEP = 48, 2
+    local MINI = 0.26   -- of the screen's height
+    local grid: { [number]: { number } } = {}   -- row * CELLS + col -> r, g, b, top
+    local next_row = 0
+    -- The rare ores (a deep minimap): found a slice of the box round the
+    -- player at a time, kept while the box holds them.
+    local RARE: { [number]: { number } } = {}
+    for name, rgb in { ["ore:diamond_ore"] = { 120, 230, 240 }, ["ore:ruby_ore"] = { 230, 60, 120 },
+                       ["ore:gold"] = { 240, 200, 60 } } do
+        local id = core.node_id(name)
+        if id ~= 0 then RARE[id] = rgb end
+    end
+    local ORE_R, ORE_DOWN, ORE_UP = 24, 20, 4
+    local ores: { [number]: { number } } = {}   -- pk-like key -> x, z, r, g, b, y
+    local ore_slice = -ORE_R
+    local function scan_ores(px: number, py: number, pz: number)
+        local x = px + ore_slice
+        for k, o in ores do   -- this slice is found again; what left the box goes
+            if o[1] == x or math.abs(o[1] - px) > ORE_R or math.abs(o[2] - pz) > ORE_R then ores[k] = nil end
+        end
+        for z = pz - ORE_R, pz + ORE_R do
+            for y = py - ORE_DOWN, py + ORE_UP do
+                local rgb = RARE[core.get_block(x, y, z)]
+                if rgb then
+                    ores[pk(x, z)] = { x, z, rgb[1], rgb[2], rgb[3], y }
+                    break
+                end
+            end
+        end
+        ore_slice = if ore_slice >= ORE_R then -ORE_R else ore_slice + 1
+    end
+
+    core.hud.pass("maps:mini", 89, function()
+        local held = core.held_item(1)
+        if mini <= 0 or held == "maps:map" then
+            return
+        end
+        local x, y, z = core.player_pos(1)
+        local aspect = core.hud.aspect()
+        if x == nil or aspect <= 0 then
+            return
+        end
+        local fx, fy, fz = math.floor(x), math.floor(y :: number), math.floor(z :: number)
+        local ox, oz = fx - CELLS * STEP // 2, fz - CELLS * STEP // 2
+        for _ = 1, 2 do
+            for col = 0, CELLS - 1 do
+                local top, r, g, b = core.map_cell(ox + col * STEP, oz + next_row * STEP)
+                grid[next_row * CELLS + col] = if top then { r :: number, g :: number, b :: number, top } else nil :: any
+            end
+            next_row = (next_row + 1) % CELLS
+        end
+        if mini >= 3 then scan_ores(fx, fy, fz) end
+
+        local cell = MINI / CELLS
+        local cx, cy = 1 - (MINI / 2 + 0.02) / aspect, 0.02 + MINI / 2
+        local left, top = cx - MINI / 2 / aspect, cy - MINI / 2
+        -- (a rect's width is in screen heights, as its height; only where it
+        -- stands across is a fraction of the width)
+        core.hud.rect(cx, cy, MINI + 0.012, MINI + 0.012, 40, 32, 24, 220)
+        core.hud.rect(cx, cy, MINI, MINI, 20, 20, 24, 200)
+        for row = 0, CELLS - 1 do
+            for col = 0, CELLS - 1 do
+                local c = grid[row * CELLS + col]
+                if c then
+                    local k = math.clamp(1 + (c[4] - fy) * 0.03, 0.55, 1.35)
+                    core.hud.rect(left + (col + 0.5) * cell / aspect, top + (row + 0.5) * cell,
+                        cell + 0.0006, cell + 0.0006,
+                        math.min(255, c[1] * k), math.min(255, c[2] * k), math.min(255, c[3] * k), 255)
+                end
+            end
+        end
+        local function dot(wx: number, wz: number, r: number, g: number, b: number, size: number)
+            local u, v = (wx - ox) / STEP, (wz - oz) / STEP
+            if u >= 0 and u <= CELLS and v >= 0 and v <= CELLS then
+                core.hud.rect(left + u * cell / aspect, top + v * cell, size, size, r, g, b, 255)
+            end
+        end
+        for _, o in ores do
+            dot(o[1] + 0.5, o[2] + 0.5, 0, 0, 0, cell * 1.3)
+            dot(o[1] + 0.5, o[2] + 0.5, o[3], o[4], o[5], cell * 0.8)
+        end
+        for _, pin in pins do
+            dot(pin[1], pin[2], 20, 10, 30, cell * 2.6)
+            if pin[3] == 2 then dot(pin[1], pin[2], 80, 200, 90, cell * 1.7)
+            elseif pin[3] == 3 then dot(pin[1], pin[2], 235, 195, 60, cell * 1.7)
+            elseif pin[3] == 4 then dot(pin[1], pin[2], 205, 125, 60, cell * 1.7)
+            elseif pin[3] == 5 then dot(pin[1], pin[2], 90, 230, 230, cell * 1.7)    -- a hidden portal
+            else dot(pin[1], pin[2], 170, 80, 230, cell * 1.7) end
+        end
+        dot(home_x, home_z, 200, 30, 30, cell * 2.2)
+        dot(x, z :: number, 20, 20, 20, cell * 2.4)
+        dot(x, z :: number, 255, 255, 255, cell * 1.4)
+        local lx, _, lz = core.player_look(1)
+        local len = math.sqrt((lx or 0) ^ 2 + (lz or 0) ^ 2)
+        if len > 0.01 then
+            for i = 1, 3 do
+                dot(x + (lx :: number) / len * STEP * i, z :: number + (lz :: number) / len * STEP * i,
+                    255, 255, 255, cell * 0.9)
+            end
+        end
+        core.hud.text(cx, top + MINI + 0.022, `{fx}, {fz}`, 0.022, 1, 240, 230, 200, 255)
+    end)
+
     core.hud.pass("maps:map", 90, function()
         local held = core.held_item(1)
         if held ~= "maps:map" and held ~= "maps:compass" then
@@ -558,6 +695,7 @@ if drawing then
             if pin[3] == 2 then mark(pin[1], pin[2], 80, 200, 90, cell * 1.5)
             elseif pin[3] == 3 then mark(pin[1], pin[2], 235, 195, 60, cell * 1.5)    -- a relic
             elseif pin[3] == 4 then mark(pin[1], pin[2], 205, 125, 60, cell * 1.5)    -- a village
+            elseif pin[3] == 5 then mark(pin[1], pin[2], 90, 230, 230, cell * 1.5)    -- a hidden portal
             else mark(pin[1], pin[2], 170, 80, 230, cell * 1.5) end
         end
         mark(home_x, home_z, 200, 30, 30, cell * 2.4)
