@@ -224,6 +224,7 @@ webhook = https://example.org/hooks/server
 | `--max-players N` `--require-identity` `--no-observers` | Seats; players must have a key; no portal windows from other worlds |
 | `--report FILE` `--since 7d` `--json` | No server: what a world file remembers, printed; `--json` as one JSON object |
 | `--names` `--free-name NAME` | No server: who owns each name; let one go |
+| `--map-tiles DIR` | No server: the world file from above, PNG tiles and `index.html` in DIR, then exit. For a running world, use it on a `/backup` copy |
 | `--survival` | One room's (the sandbox's): no plaza, the spawn on dry land the seed picks, the themed worlds behind portals scattered over the land; `creative` starts at `nobody`. The title menu's "Mode: Survival" writes `survival` to the world's `mode` file and passes it; `tools/track.sh --survival` too |
 | `--no-plaza` | One room's: no plaza (`core.plaza()` is nil, so the mods put nothing of theirs on it) and nothing else of `--survival`'s; the workshops' template has it |
 | `--difficulty peaceful\|easy\|normal\|hard` `--peaceful` | One room's (the sandbox's): that difficulty from the start (`--peaceful` is peaceful), and kept so in WORLD.difficulty beside the world file, its name a line (none is normal) -- what the room is at its next start without the flag. `/difficulty` and the title menu's "Monsters" button (new world, or a saved world's Edit) write the same file. The rules (`/rule`) are kept beside it in WORLD.rules, `name = value` a line |

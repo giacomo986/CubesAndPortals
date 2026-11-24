@@ -749,6 +749,19 @@ std::vector<std::unique_ptr<Chunk>> WorldDb::load_column(int cx, int cz, std::st
     return out;
 }
 
+std::vector<std::pair<int, int>> WorldDb::stored_columns() const
+{
+    std::vector<std::pair<int, int>> out;
+    sqlite3_stmt *stmt = nullptr;
+    if (!m_db || sqlite3_prepare_v2(m_db, "SELECT DISTINCT x, z FROM chunks", -1, &stmt, nullptr) !=
+                     SQLITE_OK)
+        return out;
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+        out.emplace_back(sqlite3_column_int(stmt, 0), sqlite3_column_int(stmt, 1));
+    sqlite3_finalize(stmt);
+    return out;
+}
+
 int64_t WorldDb::load_all_chunks(World &world, std::string &err) const
 {
     if (!m_db) {

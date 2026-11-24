@@ -31,6 +31,9 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 - For admins: `/trophies sites`, `/trophies go ID [place] [NAME]`, `/trophies home [NAME]`.
 - For admins: the history of changed blocks (`/inspect`, `/rollback`) is kept only with
   `--block-history`; without it nothing is written down.
+- For admins: `--map-tiles DIR` draws a world file seen from above, as PNG tiles and an
+  `index.html` that shows the block coordinates under the pointer. With the server off, or on a
+  copy made by `/backup`.
 
 ## 0.21.0-alpha.2 — 2026-11-22
 

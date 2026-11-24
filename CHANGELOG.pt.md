@@ -34,6 +34,9 @@ uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
 - Para admins: `/trophies sites`, `/trophies go ID [place] [NOME]`, `/trophies home [NOME]`.
 - Para admins: o histórico dos blocos mudados (`/inspect`, `/rollback`) só é guardado com
   `--block-history`; sem ela, nada é anotado.
+- Para admins: `--map-tiles PASTA` desenha um arquivo de mundo visto de cima, em tiles PNG e um
+  `index.html` que mostra as coordenadas do bloco sob o ponteiro. Com o servidor desligado, ou numa
+  cópia feita com `/backup`.
 
 ## 0.21.0-alpha.2 — 2026-11-22
 

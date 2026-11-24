@@ -114,6 +114,9 @@ public:
     // read is skipped and named in `err`, the way load_all_chunks does it.
     std::vector<std::unique_ptr<Chunk>> load_column(int cx, int cz, std::string &err) const;
 
+    // Every column that has at least one chunk stored, as (cx, cz).
+    std::vector<std::pair<int, int>> stored_columns() const;
+
     // Loads everything into `world`. Returns how many chunks were read.
     int64_t load_all_chunks(World &world, std::string &err) const;
 

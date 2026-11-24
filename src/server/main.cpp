@@ -51,6 +51,7 @@
 #include "script/world_code.h"
 #include "server/admin.h"
 #include "server/far_portals.h"
+#include "server/map_tiles.h"
 #include "server/room_portals.h"
 #include "core/update_check.h"
 
@@ -7169,6 +7170,7 @@ int serve_room(int argc, char **argv)
     // worlds on 127.0.0.1.
     std::string bind;
     bool        list_names = false;   // --names: who owns what, then exit
+    const char *map_tiles  = nullptr; // --map-tiles DIR: the world from above, then exit
     const char *free_name  = nullptr; // --free-name NAME: let it go, then exit
 
     for (int i = 1; i < argc; ++i) {
@@ -7253,6 +7255,8 @@ int serve_room(int argc, char **argv)
             bind = argv[++i];
         else if (std::strcmp(argv[i], "--names") == 0)
             list_names = true;
+        else if (std::strcmp(argv[i], "--map-tiles") == 0 && i + 1 < argc)
+            map_tiles = argv[++i];
         else if (std::strcmp(argv[i], "--free-name") == 0 && i + 1 < argc)
             free_name = argv[++i];
     }
@@ -7287,6 +7291,11 @@ int serve_room(int argc, char **argv)
             if (std::filesystem::exists(world_file, ec)) world_depth = 0, world_top = kWorldHeight;
             std::ofstream(shape) << world_depth << " " << world_top << "\n";
         }
+    }
+
+    if (map_tiles != nullptr && world_file == nullptr) {
+        std::printf("server: --map-tiles wants --world-file\n");
+        return 1;
     }
 
     // The owner's two by hand, under the lock so no running server has the
@@ -8163,6 +8172,7 @@ int serve_room(int argc, char **argv)
             for (const std::string &name : db.placeholders()) std::printf(" %s", name.c_str());
             std::printf("\n");
         }
+        if (map_tiles != nullptr) return write_map_tiles(db, s.registry, map_tiles);
 
         // Stored columns win over generated ones, and that is the whole point
         // of a world file -- what happened in it is not what the generator

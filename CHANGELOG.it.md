@@ -34,6 +34,9 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 - Per gli admin: `/trophies sites`, `/trophies go ID [place] [NOME]`, `/trophies home [NOME]`.
 - Per gli admin: lo storico dei blocchi cambiati (`/inspect`, `/rollback`) si tiene solo con
   `--block-history`; senza, non si annota niente.
+- Per gli admin: `--map-tiles CARTELLA` disegna un file del mondo visto dall'alto, in tile PNG e
+  un `index.html` che mostra le coordinate del blocco sotto il puntatore. A server spento, o su una
+  copia fatta con `/backup`.
 
 ## 0.21.0-alpha.2 — 2026-11-22
 
