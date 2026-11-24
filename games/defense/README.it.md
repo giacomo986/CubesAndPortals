@@ -57,12 +57,27 @@ l'orologio è fermo a mezzogiorno.
   o un clic destro sul cristallo durante una partita li mostra.
 * Nessuno qui per 20 s: la partita è finita e il campo si svuota.
 
+## Cosa disegna la macchina del giocatore
+
+`defense_game` gira su entrambi i lati (`side = both`). Il blocco sotto una torretta è
+trasparente (`core.node_glass`): serve solo a fermare i corpi e a ricevere i clic. La macchina di
+ogni giocatore ci disegna sopra il modello della torretta (`core.render.model`), un po' più grande
+a ogni livello, girato verso l'ultimo bersaglio e che ruota con dolcezza, con un rinculo quando
+spara; le torrette a frecce e fulmine si guardano intorno piano quando non arriva nessuno da un
+po'. Ognuna ha una luce sua: la fiamma del braciere, il bagliore del cristallo di gelo, la sfera
+rossa del fulmine che crepita, il vortice del portale. Quello che sparano si vede arrivare
+(`core.render.fx`): la scia di una freccia e le scintille dove colpisce, un anello di fuoco e
+fiamme su ogni mostro bruciato, il gelo che si allarga a terra, il fulmine che salta da un mostro
+all'altro, un vortice dove un mostro viene preso e un altro alla fenditura da cui riesce. Il server
+comunica ogni torretta (`T`), ognuna tolta (`R`), il campo svuotato (`C`) e ogni colpo (`F`, la
+torretta e i punti colpiti).
+
 ## Come è fatto
 
 Le torrette vengono da Meshy: un'immagine di prova ciascuna (testo in immagine), immagine in 3D
 (meshy-6), poi `tools/meshy_prop.py --height 1.4`. Sopra ogni torretta una cella solida invisibile,
 così nessun mostro ci sale sopra e scavalca una barricata. I mostri sono quelli dell'assalto
-(zombi, demone, cyborg), il Guardiano dell'arena e il Macellaio della cripta, collegati con i loro
+(zombi, demone, cyborg), il Guardiano dell'arena e il Macellaio della cripta, copiati con i loro
 suoni; i suoni delle torrette sono quelli dello sparatutto.
 
 Un mostro mandato in fondo al campo in un colpo solo (`core.mob_goto`) esaurisce la ricerca su un
@@ -72,6 +87,5 @@ sei celle, e ogni mostro va di tappa in tappa.
 
 ## Limiti
 
-* Le torrette sparano senza un colpo da vedere: un suono, e il mostro colpito.
 * Torrette e barricate vanno con la partita: una sconfitta svuota il campo.
 * Il banco da lavoro del sandbox (`mods/craft`) sta sul campo a 39 20 47, incassato nell'erba.

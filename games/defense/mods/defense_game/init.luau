@@ -27,6 +27,174 @@ local GOAL = { CX, G + 1, CRYSTAL_Z + 3 }      -- where a monster is "at the cry
 local GATE = { CX, G + 1, 67 }                  -- where they come out
 local BUILD_Z0, BUILD_Z1 = 11, 64               -- where turrets and barricades may stand
 
+
+-- ------------------------------------------------------------ sides
+--
+-- The game is the server's. On a player's machine (side = both) the turrets
+-- are drawn alive: each turned to its last target and easing back, kicked as
+-- it fires, an idle glow or flame of its own, and what it fires seen on its
+-- way -- an arrow's streak, a burst of fire, frost on the ground, lightning
+-- leaping from one monster to the next, a portal's swirl at both ends. The
+-- block under a turret is invisible (core.node_glass): it is only what stops
+-- bodies and takes the clicks.
+
+local side = core.side()
+local serving = side ~= "client"
+local drawing = side ~= "server"
+local heard: (string) -> () = function(_) end
+local function tell(p: number, text: string)
+    if drawing then heard(text) else core.net.send(p, text) end
+end
+
+if drawing then
+    type Seen = { kind: string, lvl: number, x: number, y: number, z: number, yaw: number, aim: number,
+                  kick: number, last: number }
+    type Shot = { kind: string, pts: { number }, t0: number, T: number }
+    local seen_turrets: { [string]: Seen } = {}
+    local shots: { Shot } = {}
+    local clock = 0.0
+    local models: { [string]: number } = {}
+    -- How far up each one's business end is, and its yaw at rest (the Meshy
+    -- models face their own way).
+    local TOP: { [string]: number } = { arrow = 1.2, brazier = 1.1, frost = 1.3, lightning = 1.35, portal = 0.85 }
+
+    local function nums(text: string): { number }
+        local out = {}
+        for n in string.gmatch(text, "%S+") do table.insert(out, tonumber(n) or 0) end
+        return out
+    end
+
+    heard = function(text: string)
+        local k = string.sub(text, 1, 1)
+        if k == "C" then
+            seen_turrets = {}
+        elseif k == "T" then
+            local key, kind, lvl = string.match(text, "^T (%S+) (%a+) (%d)$")
+            if key then
+                local x, y, z = string.match(key :: string, "^(%-?%d+),(%-?%d+),(%-?%d+)$")
+                local old = seen_turrets[key :: string]
+                seen_turrets[key :: string] = { kind = kind :: string, lvl = tonumber(lvl) :: number,
+                    x = tonumber(x) :: number, y = tonumber(y) :: number, z = tonumber(z) :: number,
+                    yaw = if old then old.yaw else 0, aim = if old then old.aim else 0, kick = 0, last = -99 }
+            end
+        elseif k == "R" then
+            seen_turrets[string.sub(text, 3)] = nil
+        elseif k == "F" then
+            -- F kind x y z, then the points it strikes (x y z each)
+            local kind, rest = string.match(text, "^F (%a+) (.*)$")
+            if kind == nil then return end
+            local v = nums(rest :: string)
+            local t = seen_turrets[`{v[1]},{v[2]},{v[3]}`]
+            if t and #v >= 6 then
+                t.aim = math.atan2(-(v[4] - v[1] - 0.5), -(v[6] - v[3] - 0.5))
+                t.kick, t.last = 1, clock
+            end
+            local T = if kind == "arrow" then 0.22 elseif kind == "portal" then 0.8 else 0.45
+            table.insert(shots, { kind = kind :: string, pts = v, t0 = clock, T = T })
+        end
+    end
+    if not serving then
+        core.event.on("core:net_message", function(ev) heard(ev.text :: string) end)
+    end
+    core.event.on("core:tick", function(ev)
+        clock += ev.dt
+        for _, t in seen_turrets do
+            t.kick = math.max(0, t.kick - ev.dt * 5)
+            -- Turned to the last target, easing; long without one, it looks round.
+            if clock - t.last > 4 and (t.kind == "arrow" or t.kind == "lightning") then
+                t.aim = t.aim + ev.dt * 0.4
+            end
+            local d = (t.aim - t.yaw + math.pi) % (2 * math.pi) - math.pi
+            t.yaw += d * math.min(1, ev.dt * 8)
+        end
+    end)
+
+    local function model(name: string): number
+        local m = models[name]
+        if m == nil or m == 0 then
+            m = core.model_id(`defense_game:turret_{name}`)
+            models[name] = m
+        end
+        return m :: number
+    end
+
+    core.render.pass("defense:turrets", 65, function()
+        for _, t in seen_turrets do
+            local x, y, z = t.x + 0.5, t.y, t.z + 0.5
+            local top = y + (TOP[t.kind] or 1.2)
+            local scale = 1 + 0.08 * (t.lvl - 1)
+            local bob = if t.kind == "frost" or t.kind == "portal" then math.sin(clock * 2 + x) * 0.03 else 0
+            core.render.model(model(t.kind), x, y + bob, z, t.yaw, scale, -0.18 * t.kick)
+            local pulse = 0.5 + 0.5 * math.sin(clock * 3 + z)
+            if t.kind == "brazier" then
+                core.render.fx("flame", x, top, z, 0.35 + 0.1 * t.lvl + 0.3 * t.kick, 255, 140, 40, 230, (clock * 1.3 + x) % 1)
+            elseif t.kind == "frost" then
+                core.render.fx("glow", x, top, z, 0.5 + 0.2 * pulse, 150, 220, 255, 200, 0.5)
+            elseif t.kind == "lightning" then
+                core.render.fx("glow", x, top, z, 0.4 + 0.3 * pulse + 0.4 * t.kick, 255, 80, 90, 220, 0.5)
+                if math.random() < 0.08 then
+                    local a = math.random() * 6.28
+                    core.render.fx("bolt", x, top, z, 0.06, 255, 220, 230, 230, 0.5, x + math.cos(a) * 0.5,
+                                   top + 0.3, z + math.sin(a) * 0.5)
+                end
+            elseif t.kind == "portal" then
+                core.render.fx("vortex", x, y + 0.85, z, 0.35, 90, 150, 255, 220, (clock * 0.7) % 1)
+            end
+        end
+        for i = #shots, 1, -1 do
+            local s = shots[i]
+            local u = (clock - s.t0) / s.T
+            if u > 1.5 then
+                table.remove(shots, i)
+                continue
+            end
+            local p = s.pts
+            if #p < 6 then continue end
+            local x, y, z = p[1] + 0.5, p[2] + (TOP[s.kind] or 1.2), p[3] + 0.5
+            local tx, ty, tz = p[4], p[5] + 1, p[6]
+            if s.kind == "arrow" then
+                if u <= 1 then
+                    local ax, ay, az = x + (tx - x) * u, y + (ty - y) * u + math.sin(u * math.pi) * 0.6, z + (tz - z) * u
+                    local bu = math.max(0, u - 0.35)
+                    core.render.fx("streak", x + (tx - x) * bu, y + (ty - y) * bu, z + (tz - z) * bu, 0.08,
+                                   255, 230, 170, 255, 0.5, ax, ay, az)
+                else
+                    core.render.fx("sparks", tx, ty, tz, 0.4, 255, 220, 150, 230, (u - 1) * 2)
+                end
+            elseif s.kind == "brazier" then
+                if u <= 1 then
+                    for k = 7, #p, 3 do
+                        core.render.fx("flame", p[k], p[k + 1] + 0.3, p[k + 2], 0.6, 255, 120, 30, 230, u)
+                    end
+                    core.render.fx("ring", x, p[2] + 0.05, z, 1 + u * 3.5, 255, 140, 40, 200, u)
+                    core.render.fx("flame", tx, ty, tz, 0.7, 255, 110, 30, 240, u)
+                end
+            elseif s.kind == "frost" then
+                if u <= 1 then
+                    core.render.fx("frost", x, p[2] + 0.05, z, 1 + u * 5, 170, 225, 255, 220, u)
+                    core.render.fx("ring", x, p[2] + 0.1, z, 1 + u * 6, 180, 230, 255, 180, u)
+                end
+            elseif s.kind == "lightning" then
+                if u <= 1 then
+                    local fx, fy, fz = x, y, z
+                    for k = 4, #p - 2, 3 do
+                        core.render.fx("bolt", fx, fy, fz, 0.12, 255, 210, 230, 255, u, p[k], p[k + 1] + 1, p[k + 2])
+                        fx, fy, fz = p[k], p[k + 1] + 1, p[k + 2]
+                    end
+                end
+            elseif s.kind == "portal" then
+                if u <= 1 then
+                    core.render.fx("vortex", tx, ty, tz, 0.6 + 0.6 * (1 - u), 255, 150, 60, 230, u)
+                    if #p >= 9 then core.render.fx("vortex", p[7], p[8] + 1, p[9], 0.4 + 0.8 * u, 90, 150, 255, 230, u) end
+                end
+            end
+        end
+    end)
+end
+
+if not serving then return end
+core.net.open()
+
 local CRYSTAL = core.node_id("defense_core:crystal")
 local BENCH = core.node_id("defense_core:bench")
 local NEVER = "defense_game:never"
@@ -74,7 +242,10 @@ local KINDS: { Kind } = {
 local KIND_OF: { [number]: Kind } = {}   -- by block id
 for _, k in KINDS do
     local b = core.register_node(`defense_game:turret_{k.name}`, 160, 160, 160, true, 0, "", 0, 1.0, "stone")
-    core.node_model(b, core.register_model(`defense_game:turret_{k.name}`, `turret_{k.name}.gltf`))
+    -- The model is drawn by each player's machine, turning and firing (above):
+    -- the block itself is seen through, only a body's stop and a click's aim.
+    core.register_model(`defense_game:turret_{k.name}`, `turret_{k.name}.gltf`)
+    core.node_glass(b, 0)
     core.node_box(b, 0.1, 0.0, 0.1, 0.9, 1.0, 0.9)
     KIND_OF[b] = k
 end
@@ -117,6 +288,10 @@ local placed: { [string]: { number } } = {}   -- every barricade and turret cell
 local hp_scale = 1.0
 
 local function key(x: number, y: number, z: number): string return `{x},{y},{z}` end
+local function f1(v: number): string return string.format("%.1f", v) end
+local function tell_turret(p: number, t: { kind: { name: string }, lvl: number, x: number, y: number, z: number })
+    tell(p, `T {key(t.x, t.y, t.z)} {t.kind.name} {t.lvl}`)
+end
 
 local function everyone(text: string)
     for _, p in core.players() do core.notice(p, text) end
@@ -202,6 +377,7 @@ local function clear_field()
     monsters = {}
     for _, c in placed do core.set_block(c[1], c[2], c[3], 0) end
     placed, turrets = {}, {}
+    tell(0, "C")
     queue, route = {}, {}
 end
 
@@ -318,22 +494,35 @@ local function fire(t: Turret)
     local near = foes_near(x, y, z, r)
     if #near == 0 then return false end
     local name = t.kind.name
+    local head = `F {name} {t.x} {t.y} {t.z}`
+    local function at(id: number): string
+        local mx, my, mz = core.mob_pos(id)
+        return if mx then ` {f1(mx)} {f1(my)} {f1(mz)}` else ""
+    end
     if name == "arrow" then
+        tell(0, head .. at(near[1]))
         core.mob_hurt(near[1], DAMAGE.arrow[t.lvl], x, z)
         sound("arrow", x, y + 1, z)
     elseif name == "brazier" then
+        local msg = head .. at(near[1])
+        for i, id in near do
+            if i <= 6 then msg ..= at(id) end
+        end
+        tell(0, msg)
         for _, id in near do core.mob_hurt(id, DAMAGE.brazier[t.lvl], x, z) end
         sound("fire", x, y + 1, z)
     elseif name == "frost" then
+        tell(0, head .. at(near[1]))
         core.slow_mobs(x, y, z, r, SLOW[t.lvl], 1.5)
         sound("frost", x, y + 1, z)
     elseif name == "lightning" then
         -- The first struck, then the next nearest it within 4, each three
         -- quarters of the one before.
-        local dmg, hit, at = DAMAGE.lightning[t.lvl], { [near[1]] = true }, near[1]
-        core.mob_hurt(at, dmg, x, z)
+        local dmg, hit, cur = DAMAGE.lightning[t.lvl], { [near[1]] = true }, near[1]
+        local msg = head .. at(cur)
+        core.mob_hurt(cur, dmg, x, z)
         for _ = 1, 2 + t.lvl do
-            local ax, ay, az = core.mob_pos(at)
+            local ax, ay, az = core.mob_pos(cur)
             if ax == nil then break end
             local nxt = 0
             for _, id in foes_near(ax, ay, az, 4) do
@@ -342,15 +531,18 @@ local function fire(t: Turret)
             if nxt == 0 then break end
             dmg *= 0.75
             hit[nxt] = true
+            msg ..= at(nxt)
             core.mob_hurt(nxt, dmg, ax, az)
-            at = nxt
+            cur = nxt
         end
+        tell(0, msg)
         sound("zap", x, y + 1, z)
     elseif name == "portal" then
         -- The one nearest the crystal that is no boss goes back to the rift.
         for _, id in near do
             local m = monsters[id]
             if m and not m.foe.boss then
+                tell(0, head .. at(id) .. ` {GATE[1] + 0.5} {GATE[2]} {GATE[3] + 0.5}`)
                 core.mob_place(id, GATE[1] + 0.5, GATE[2], GATE[3] + 0.5)
                 m.hunting, m.stop = 0, 1
                 go(id, m)
@@ -456,6 +648,7 @@ core.event.on("core:ui_click", function(ev)
             if has_all(ev.player, cost) then
                 pay(ev.player, cost)
                 t.lvl += 1
+                tell_turret(0, t)
                 core.notice(ev.player, `{t.kind.title}: level {t.lvl}`)
                 show_turret(ev.player, t)
             else
@@ -497,7 +690,11 @@ core.event.on("core:placed", function(ev)
     placed[key(x, y, z)] = { x, y, z }
     placed[key(x, y + 1, z)] = { x, y + 1, z }
     local k = KIND_OF[ev.id]
-    if k then turrets[key(x, y, z)] = { kind = k, lvl = 1, x = x, y = y, z = z, wait = 0 } end
+    if k then
+        local t = { kind = k, lvl = 1, x = x, y = y, z = z, wait = 0 }
+        turrets[key(x, y, z)] = t
+        tell_turret(0, t)
+    end
     send_all()
 end)
 
@@ -508,6 +705,7 @@ end)
 core.event.on("core:broken", function(ev)
     local x, y, z = ev.x, ev.y, ev.z
     placed[key(x, y, z)] = nil
+    if turrets[key(x, y, z)] then tell(0, `R {key(x, y, z)}`) end
     turrets[key(x, y, z)] = nil
     if KIND_OF[ev.id] and core.get_block(x, y + 1, z) == CAP then
         core.set_block(x, y + 1, z, 0)
@@ -579,6 +777,7 @@ core.event.on("core:tick", function(ev)
         if not seen[p] then
             seen[p] = true
             core.player_spawn(p, CX + 0.5, G + 1, 2.5)
+            for _, t in turrets do tell_turret(p, t) end
             core.notice(p, if phase == "idle" then "Click the crystal to begin." else `Wave {wave} is on.`)
         end
     end

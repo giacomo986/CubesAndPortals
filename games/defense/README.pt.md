@@ -56,12 +56,26 @@ parado ao meio-dia.
   clique direito no cristal durante uma partida os mostra.
 * Ninguém aqui por 20 s: a partida acaba e o campo é esvaziado.
 
+## O que a máquina do jogador desenha
+
+`defense_game` roda dos dois lados (`side = both`). O bloco sob uma torre é transparente
+(`core.node_glass`): só para os corpos e recebe os cliques. A máquina de cada jogador desenha nele
+o modelo da torre (`core.render.model`), um pouco maior a cada nível, virado para o último alvo e
+girando suavemente, com um recuo quando atira; as torres de flechas e de raio olham em volta
+devagar quando ninguém aparece por um tempo. Cada uma tem uma luz sua: a chama do braseiro, o
+brilho do cristal de gelo, a esfera vermelha do raio estalando, o redemoinho do portal. O que
+atiram se vê chegando (`core.render.fx`): o risco de uma flecha e faíscas onde acerta, um anel de
+fogo e chamas em cada monstro queimado, o gelo se espalhando no chão, o raio saltando de monstro em
+monstro, um redemoinho onde um monstro é pego e outro na fenda por onde ele sai. O servidor informa
+cada torre (`T`), cada uma tirada (`R`), o campo esvaziado (`C`) e cada disparo (`F`, a torre e os
+pontos atingidos).
+
 ## Como foi feito
 
 As torres vêm do Meshy: uma imagem de teste cada (texto em imagem), imagem em 3D (meshy-6), depois
 `tools/meshy_prop.py --height 1.4`. Sobre cada torre uma célula sólida invisível, para nenhum
 monstro subir nela e passar por cima de uma barricada. Os monstros são os do assalto (zumbi,
-demônio, ciborgue), o Guardião da arena e o Açougueiro da cripta, ligados com seus sons; os sons
+demônio, ciborgue), o Guardião da arena e o Açougueiro da cripta, copiados com seus sons; os sons
 das torres são os do shooter.
 
 Um monstro mandado ao fim do campo de uma vez (`core.mob_goto`) esgota a busca num campo cheio de
@@ -71,6 +85,5 @@ parada em parada.
 
 ## Limites
 
-* As torres atiram sem um disparo para ver: um som, e o monstro atingido.
 * Torres e barricadas vão com a partida: uma derrota esvazia o campo.
 * A bancada de trabalho do sandbox (`mods/craft`) fica no campo em 39 20 47, afundada na grama.

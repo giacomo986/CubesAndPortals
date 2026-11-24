@@ -11,6 +11,8 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
   degli altri mondi escono da una fenditura e camminano verso un cristallo; cinque torrette
   costruite a un banco con quello che hai minato (frecce, braciere, gelo, fulmine, portale),
   potenziabili fino al livello 3, barricate che i mostri aggirano, e un boss ogni cinque ondate.
+  Le torrette si girano verso i bersagli e i loro colpi si vedono: frecce, fuoco, gelo, fulmini,
+  portali.
   Ogni ondata respinta dà materiali da tenere; `/defense` mostra i record.
 - **Il mondo delle nuvole**: un mondo nuovo dietro un portone sulla piazza: isole senza fine
   sopra un mare di nuvole, ponti, cristalli del cielo, **uomini gufo** nei villaggi (camminano,

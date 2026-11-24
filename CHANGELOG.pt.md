@@ -10,7 +10,8 @@ uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
 - **Tower defense**: um mundo novo atrás de um portão na praça, sozinho ou junto. Monstros dos
   outros mundos saem de uma fenda e andam até um cristal; cinco torres construídas numa bancada com
   o que você minerou (flechas, braseiro, gelo, raio, portal), melhoráveis até o nível 3,
-  barricadas que os monstros contornam, e um chefe a cada quinta onda. Cada onda segurada dá
+  barricadas que os monstros contornam, e um chefe a cada quinta onda.
+  As torres se viram para os alvos e o que atiram se vê: flechas, fogo, gelo, raios, portais. Cada onda segurada dá
   materiais para guardar; `/defense` mostra os recordes.
 - **O mundo das nuvens**: um mundo novo atrás de um portão na praça: ilhas sem fim sobre um mar
   de nuvens, pontes, cristais do céu, **homens-coruja** em aldeias (andam, planam entre ilhas,

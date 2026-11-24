@@ -56,12 +56,26 @@ its pedestal, two benches either side of the doorway. Day, always: the clock sta
   right click on the crystal during a game shows them.
 * Nobody here for 20 s: the game is over and the field cleared.
 
+## What a player's machine draws
+
+`defense_game` runs on both sides (`side = both`). The block under a turret is seen through
+(`core.node_glass`): it is what stops bodies and takes the clicks. Each player's machine draws the
+turret's model on it (`core.render.model`), a little bigger at each level, turned towards its last
+target and easing round, kicked back as it fires; the arrow and lightning turrets look slowly round
+when nothing has come for a while. Each has a light of its own: the brazier's flame, the frost
+crystal's glow, the lightning turret's red sphere crackling, the portal's swirl. What they fire is
+seen on its way (`core.render.fx`): an arrow's streak and sparks where it strikes, a ring of fire
+and flames on every monster burnt, frost spreading on the ground, lightning leaping from monster to
+monster, a swirl where a monster is taken and another at the rift where it comes out. The server
+says each turret (`T`), each one gone (`R`), the field cleared (`C`) and each shot (`F`, the
+turret and the points struck).
+
 ## How it was made
 
 The turrets are from Meshy: a concept picture each (text to image), image to 3D (meshy-6), then
 `tools/meshy_prop.py --height 1.4`. Over every turret an invisible solid cell, so no monster steps
 up on one and over a barricade. The monsters are the assault's (zombie, demon, cyborg), the arena's
-Guardian and the crypt's Butcher, linked in with their sounds (the files stay in their worlds);
+Guardian and the crypt's Butcher, copied in with their sounds (a mod whose code goes to players may hold no link out of itself);
 the turrets' sounds are the arcade
 shooter's.
 
@@ -72,6 +86,5 @@ to stop.
 
 ## Limits
 
-* The turrets shoot with no shot to see: a sound, and the monster struck.
 * Turrets and barricades go with the game: a game over clears the field.
 * The sandbox's crafting table (`mods/craft`) stands on the field at 39 20 47, sunk in the grass.
