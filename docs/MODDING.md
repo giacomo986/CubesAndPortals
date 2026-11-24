@@ -1067,6 +1067,10 @@ On the track (`games/track`) `/pieces` first gives three tools, read by `track_g
   removes it.
 - **offroad**: two clicks are two opposite corners of an area (256 a side at most) where during a
   lap the kart may be on anything; a glowing post at each corner, a click inside removes it.
+- **portal** (`track_core:portal_tool`): a click on a road puts the entry portal across it, as
+  wide as the road and four high, the next click the exit, facing the way the clicker looks: a kart
+  driving into the first comes out of the second at speed. Lines are not crossed by the jump, so a
+  shortcut past a checkpoint does not finish a lap. A click on either takes the pair away.
 
 And the **editor** (`track_core:editor`, from `track_core`): right click on a piece follows its
 track backwards to the start and forwards to the open end, and opens a panel with the pieces that

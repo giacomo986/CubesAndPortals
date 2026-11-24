@@ -1165,6 +1165,12 @@ Sulla pista (`games/track`) `/pieces` dà per primi tre strumenti, letti da
 - **offroad**: due click sono due angoli opposti di un'area (256 per lato al
   massimo) dove durante un giro il kart può stare su qualunque cosa; un paletto
   luminoso a ogni angolo, un click dentro la toglie.
+- **portal** (`track_core:portal_tool`): un click su una strada mette il
+  portale d'entrata di traverso, largo quanto la strada e alto quattro, il click
+  dopo quello d'uscita, rivolto dove guarda chi clicca: un kart che entra nel
+  primo esce dal secondo lanciato. Il salto non attraversa le linee, quindi una
+  scorciatoia che salta un checkpoint non chiude il giro. Un click su uno dei due
+  toglie la coppia.
 
 E l'**editor** (`track_core:editor`, di `track_core`): tasto destro su un pezzo
 segue la sua pista all'indietro fino all'inizio e in avanti fino al capo aperto,

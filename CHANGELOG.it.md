@@ -29,6 +29,8 @@ un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
   minimappa profonda (un diamante e due rubini) mostra diamanti, rubini e oro sottoterra.
 - Per chi scrive mod: `core.map_cell(x, z)` sulla macchina del giocatore, la cima di una colonna e
   il suo colore.
+- **Portali scorciatoia in pista**: `/pieces` dà uno strumento portale; due click su una strada
+  mettono una coppia di portali di traverso, e un kart che entra nel primo esce dal secondo.
 - Per gli admin: `/trophies sites`, `/trophies go ID [place] [NOME]`, `/trophies home [NOME]`.
 - Per gli admin: lo storico dei blocchi cambiati (`/inspect`, `/rollback`) si tiene solo con
   `--block-history`; senza, non si annota niente.

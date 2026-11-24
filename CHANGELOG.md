@@ -26,6 +26,8 @@ alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
   upgrades: the seeking minimap (four lapis) marks hidden portals within 128 nodes, the deep
   minimap (a diamond and two rubies) shows diamond, ruby and gold underground.
 - For mod writers: `core.map_cell(x, z)` on a player's machine, the top of a column and its colour.
+- **Shortcut portals on a track**: `/pieces` gives a portal tool; two clicks on a road put a pair of
+  portals across it, and a kart driving into the first comes out of the second.
 - For admins: `/trophies sites`, `/trophies go ID [place] [NAME]`, `/trophies home [NAME]`.
 - For admins: the history of changed blocks (`/inspect`, `/rollback`) is kept only with
   `--block-history`; without it nothing is written down.

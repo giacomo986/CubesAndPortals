@@ -1436,6 +1436,118 @@ if serving then
         core.chat(ev.player, "Item box down")
     end)
 
+    -- ------------------------------------------------ shortcut portals
+    --
+    -- A pair of portals across the road (the portal tool): the first click
+    -- the mouth a kart drives into, the second the one it comes out of, each
+    -- as wide as the road (gate_from) and four high, its front towards the
+    -- kart coming in, and out along the road. A lap's lines are not crossed
+    -- by the jump (it moves more than 20 at once), so a shortcut past a
+    -- checkpoint leaves the lap to be driven again. Kept in the store,
+    -- "axis at dir from to y" twice a pair; opened again once the world has
+    -- openings (core.portal_open says -1 until then).
+    type Mouth = { g: Gate, id: number }
+    local pairs_: { { Mouth } } = {}       -- each pair: in, out (out missing while half put down)
+    local PORTAL_H = 2                       -- half the height
+    local function open_mouth(m: Mouth, front: number): boolean
+        local g = m.g
+        local x = if g.axis == "x" then g.at + 0.5 else (g.from + g.to + 1) / 2
+        local z = if g.axis == "x" then (g.from + g.to + 1) / 2 else g.at + 0.5
+        m.id = core.portal_open(x, g.y :: number + PORTAL_H, z, if g.axis == "x" then 1 else 0, front, 0,
+                                (g.to - g.from + 1) / 2, PORTAL_H)
+        return m.id >= 0
+    end
+    local function open_pair(pr: { Mouth }): boolean
+        -- Into the first from behind it, out of the second along the road.
+        if pr[1].id < 0 and not open_mouth(pr[1], -pr[1].g.dir) then return false end
+        if pr[2] == nil then
+            core.portal_link(pr[1].id, -1)   -- unlinked it would lead to its id xor 1: somebody else's
+            return true
+        end
+        if pr[2].id < 0 and not open_mouth(pr[2], pr[2].g.dir) then return false end
+        core.portal_link(pr[1].id, pr[2].id)
+        return true
+    end
+    local function shut(m: Mouth?)
+        if m and m.id >= 0 then
+            local g = m.g
+            local x = if g.axis == "x" then g.at + 0.5 else (g.from + g.to + 1) / 2
+            local z = if g.axis == "x" then (g.from + g.to + 1) / 2 else g.at + 0.5
+            core.portal_close(x, g.y :: number + PORTAL_H, z)
+            m.id = -1
+        end
+    end
+    local function save_portals()
+        local out = {}
+        for _, pr in pairs_ do
+            for _, m in pr do
+                local g = m.g
+                table.insert(out, `{g.axis} {g.at} {g.dir} {g.from} {g.to} {g.y}`)
+            end
+        end
+        core.storage_set("portals", table.concat(out, ";"))
+    end
+    local portals_waiting = false
+    core.event.on("core:world_ready", function()
+        local mouths = {}
+        for _, line in string.split(core.storage_get("portals"), ";") do
+            local w = string.split(line, " ")
+            if #w == 6 then
+                table.insert(mouths, { g = { axis = w[1], at = tonumber(w[2]) :: number, dir = tonumber(w[3]) :: number,
+                                             from = tonumber(w[4]) :: number, to = tonumber(w[5]) :: number,
+                                             y = tonumber(w[6]) }, id = -1 })
+            end
+        end
+        for k = 1, #mouths, 2 do
+            table.insert(pairs_, { mouths[k], mouths[k + 1] })
+        end
+        portals_waiting = #pairs_ > 0
+    end)
+    core.event.on("core:tick", function(_)
+        if not portals_waiting then return end
+        portals_waiting = false
+        for _, pr in pairs_ do
+            if not open_pair(pr) then portals_waiting = true end
+        end
+    end)
+    core.event.on("core:used", function(ev)
+        if ev.held ~= "track_core:portal_tool" or ev.id == KART_NODE then
+            return
+        end
+        ev.cancel = true
+        for i, pr in pairs_ do
+            for _, m in pr do
+                local g = m.g
+                local a = if g.axis == "x" then ev.x else ev.z
+                local w = if g.axis == "x" then ev.z else ev.x
+                if math.abs(a - g.at) <= 1 and w >= g.from and w <= g.to and math.abs(ev.y + 1 - (g.y :: number)) <= 4 then
+                    shut(pr[1])
+                    shut(pr[2])
+                    table.remove(pairs_, i)
+                    save_portals()
+                    core.chat(ev.player, "Portals taken away")
+                    return
+                end
+            end
+        end
+        if not road_at(ev.x, ev.y, ev.z) then
+            core.chat(ev.player, "A portal goes across a road: click the road")
+            return
+        end
+        local m: Mouth = { g = gate_from(ev.player, ev.x, ev.y, ev.z), id = -1 }
+        local last = pairs_[#pairs_]
+        if last and last[2] == nil then
+            last[2] = m
+            if not open_pair(last) then portals_waiting = true end
+            core.chat(ev.player, "Exit portal down: a kart driving into the first comes out here")
+        else
+            table.insert(pairs_, { m })
+            if not open_pair(pairs_[#pairs_]) then portals_waiting = true end
+            core.chat(ev.player, "Entry portal down: now click the road where it comes out")
+        end
+        save_portals()
+    end)
+
     -- The boxes not down yet, once the ground under them is there: put down,
     -- or given up on where it is not road.
     local boxes_said = 0

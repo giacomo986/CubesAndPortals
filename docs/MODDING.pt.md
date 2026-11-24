@@ -1076,6 +1076,10 @@ Na pista (`games/track`), `/pieces` dá primeiro três ferramentas, lidas por `t
 - **Fora de estrada**: dois cliques são dois cantos opostos de uma área (256 de lado no máximo) onde,
   durante uma volta, o kart pode estar em cima de qualquer coisa; um poste luminoso em cada canto, um
   clique dentro a remove.
+- **Portal** (`track_core:portal_tool`): um clique numa estrada põe o portal de entrada de través, da
+  largura da estrada e quatro de altura, o clique seguinte o de saída, virado para onde quem clica
+  olha: um kart que entra no primeiro sai do segundo embalado. O salto não cruza as linhas, então um
+  atalho que pula um checkpoint não fecha a volta. Um clique em qualquer um dos dois tira o par.
 
 E o **editor** (`track_core:editor`, de `track_core`): clique direito numa peça segue a sua pista
 para trás até o começo e para a frente até a ponta aberta, e abre um painel com as peças que se

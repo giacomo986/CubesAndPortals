@@ -29,6 +29,8 @@ uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
   blocos, o minimapa profundo (um diamante e dois rubis) mostra diamante, rubi e ouro no subsolo.
 - Para quem escreve mods: `core.map_cell(x, z)` na máquina do jogador, o topo de uma coluna e a
   sua cor.
+- **Portais de atalho na pista**: `/pieces` dá uma ferramenta de portal; dois cliques numa estrada
+  põem um par de portais de través, e um kart que entra no primeiro sai do segundo.
 - Para admins: `/trophies sites`, `/trophies go ID [place] [NOME]`, `/trophies home [NOME]`.
 - Para admins: o histórico dos blocos mudados (`/inspect`, `/rollback`) só é guardado com
   `--block-history`; sem ela, nada é anotado.

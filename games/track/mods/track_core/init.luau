@@ -414,8 +414,12 @@ core.register_item("track_core:box_tool", 1)
 -- And the track editor (below): a right click on a piece opens the pieces that
 -- can follow the track it belongs to, and carried, every piece put down by hand.
 core.register_item("track_core:editor", 1)
+-- And portals for a shortcut (track_game): a right click on a road puts the
+-- mouth a kart drives into, the next one the mouth it comes out of, each
+-- across the road; the same tool on one takes the pair away.
+core.register_item("track_core:portal_tool", 1)
 
-core.command("pieces", "-- a stack of every track piece, the track editor (B with it in hand picks the next piece from afar), and the start line, checkpoint, off-road and item box tools")
+core.command("pieces", "-- a stack of every track piece, the track editor (B with it in hand picks the next piece from afar), and the start line, checkpoint, off-road, item box and portal tools")
 core.event.on("core:command", function(ev)
     if ev.name ~= "pieces" then
         return
@@ -426,6 +430,7 @@ core.event.on("core:command", function(ev)
     core.give_item(ev.player, "track_core:offroad", 1)
     core.give_item(ev.player, "track_core:box_tool", 1)
     core.give_item(ev.player, "track_core:editor", 1)
+    core.give_item(ev.player, "track_core:portal_tool", 1)
     for _, p in PIECES do
         core.give_item(ev.player, `track_core:{p[1]}`, 16)
     end
