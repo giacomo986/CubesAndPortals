@@ -180,6 +180,15 @@ public:
     // a link with nothing to say.
     size_t owed_bytes(PeerId peer) const;
 
+    // Whether a reliable message on `channel` is still on its way to that
+    // peer: queued, or sent and not acknowledged. ENet orders nothing across
+    // channels, so a block change sent while the chunk it is in is still in
+    // flight on Channel::Chunk can arrive first, be dropped (no chunk there
+    // yet), and then be overwritten by the chunk encoded before it. Seen as
+    // the escape tunnel's floor laid again on the server and drawn broken on
+    // the client after a retry (2026-11-25).
+    bool in_flight(PeerId peer, Channel channel) const;
+
     // Frames that arrived sealed and were thrown away: a bad tag, a replay, or
     // a counter too far behind to judge. Never a reason to drop the session on
     // its own -- UDP delivers corrupted packets and anybody can spoof one -- but

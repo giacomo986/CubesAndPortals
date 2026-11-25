@@ -6640,6 +6640,7 @@ public:
     void   flush() { g_router.transport.flush(); }
     void   disconnect(net::PeerId p, bool now = false) { g_router.transport.disconnect(p, now); }
     size_t owed_bytes(net::PeerId p) const { return g_router.transport.owed_bytes(p); }
+    bool   in_flight(net::PeerId p, net::Channel c) const { return g_router.transport.in_flight(p, c); }
     double round_trip(net::PeerId p) const { return g_router.transport.round_trip(p); }
     void   hold_peer(net::PeerId p, double seconds) { g_router.transport.hold_peer(p, seconds); }
     uint64_t rejected_frames() const { return g_router.transport.rejected_frames(); }
@@ -10262,7 +10263,12 @@ int serve_room(int argc, char **argv)
                         owed.clear();
                     }
 
-                    if (still_streaming.count((uint32_t)peer) != 0) {
+                    // And while a chunk sent on an earlier tick is still on its
+                    // way: a change that overtook it would be dropped by the
+                    // client and the chunk would then draw the cell as it was
+                    // (Transport::in_flight).
+                    if (still_streaming.count((uint32_t)peer) != 0 ||
+                        transport.in_flight(peer, net::Channel::Chunk)) {
                         s.mod_changes_held += (long)owed.order.size();
                         continue;
                     }

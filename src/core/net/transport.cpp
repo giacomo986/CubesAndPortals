@@ -493,6 +493,20 @@ size_t Transport::owed_bytes(PeerId peer) const
     return owed;
 }
 
+bool Transport::in_flight(PeerId peer, Channel channel) const
+{
+    if (!m_host) return false;
+    ENetPeer *p = find_peer((ENetHost *)m_host, peer);
+    if (!p || p->state != ENET_PEER_STATE_CONNECTED) return false;
+
+    for (ENetList *list : {&p->outgoingCommands, &p->outgoingSendReliableCommands, &p->sentReliableCommands})
+        for (ENetListIterator it = enet_list_begin(list); it != enet_list_end(list); it = enet_list_next(it)) {
+            const ENetOutgoingCommand *c = (const ENetOutgoingCommand *)it;
+            if (c->packet != nullptr && c->command.header.channelID == (enet_uint8)channel) return true;
+        }
+    return false;
+}
+
 void Transport::flush()
 {
     if (m_host) enet_host_flush((ENetHost *)m_host);
