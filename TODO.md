@@ -137,13 +137,15 @@ From docs/IDEE.it.md (2026-11-24), each checked by script on tools/track.sh:
   bridge (its ball not caught in a shot), fighting it low with weapons,
   gliding in phase 3, an owl man's panel and trades, the storm glider's lift.
   Shot found: player_launch refuses more than 16 m/s an axis (17 did nothing).
-- ctest on :5 (2026-11-24): portal_continuity fails, 85-100% of pixels
-  differ at 6.5, 3 and 1.5 blocks; the same with the day's C++ changes stashed,
-  so not the cloud sea. Bisect 2026-11-25 (worktree, same Xephyr): 0 differing
-  pixels at cae8f3e4 (11-12), 891654cb and bf6615dd, so a regression, not the
-  rig; first bad commit still being found. --verify-shots writes six
-  identical shots (HUD on black): it grabs the window, not the compared buffer. mods_play passes (it caught the
-  thunder.ogg link that kept the cloud world's code from players).
+- ctest on :5 (2026-11-24): portal_continuity failed, 85-100% of pixels
+  differing. Found 2026-11-25: not the renderer but the rig. Xephyr was at
+  1280x720, and since raylib 6.2 (2026-11-22) a window bigger than the display
+  is shrunk to it, so the comparison sized at 1920x1080 read garbage (with 6.0
+  the window ran off the screen and it passed). --verify now refuses a window
+  of the wrong size by name. 19/19 on :5 at 1920x1080. Still wrong:
+  --verify-shots writes the window (HUD on black), not the compared buffer.
+  mods_play passes (it caught the thunder.ogg link that kept the cloud world's
+  code from players).
 - The two new gates on the plaza (25.5 and 69.5 on the south edge): not seen.
 
 Trophies and the hidden portals (mods/trophies, 2026-11-23): type-checked,

@@ -15678,6 +15678,17 @@ int run_dual_bench(Scene &s)
 
 int run_verify(Scene &s)
 {
+    // The comparison below is sized by kWindowWidth x kWindowHeight. Since
+    // raylib 6.2 (2026-11-22) a window bigger than the display is shrunk to
+    // fit it, and on a 1280x720 Xephyr every distance then read 85-100% of
+    // pixels differing -- a wrong rig reported as a broken renderer.
+    if (gfx_screen_width() != kWindowWidth || gfx_screen_height() != kWindowHeight) {
+        std::printf("continuity: FAIL -- the window is %dx%d, not %dx%d: run on a display at "
+                    "least that big (Xephyr -screen %dx%d)\n",
+                    gfx_screen_width(), gfx_screen_height(), kWindowWidth, kWindowHeight,
+                    kWindowWidth, kWindowHeight);
+        return 1;
+    }
     s.act().world_render.sync(s.act().world, s.act().registry, 100000);
 
     // Four distances, not one. The first version of this gate measured 6.5
