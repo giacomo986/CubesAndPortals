@@ -70,6 +70,7 @@ if serving then
     local held: { [number]: Held } = {}       -- player -> what holds them
     local free_at: { [number]: number } = {}  -- player -> when it may be taken again
     local shown: { [number]: boolean } = {}   -- player -> was told of ghosts last time
+    local present: { [number]: boolean } = {} -- players here last tick
     local clock = 0.0
 
     local function is_ghost(id: number): boolean
@@ -238,11 +239,24 @@ if serving then
         for _, p in players do
             here[p] = true
         end
-        for p in held do
+        -- Gone: the ghost is nobody's any more. Back (or new): told it is
+        -- free, since a held player who left kept "own 1" and the walk on the
+        -- client's session of this world, and came back walked by nothing.
+        for p, h in held do
             if not here[p] then
                 held[p] = nil
+                local g = ghosts[h.ghost]
+                if g and g.host == p then
+                    g.host = nil
+                end
             end
         end
+        for _, p in players do
+            if not present[p] and held[p] == nil then
+                tell(p, "own 0")
+            end
+        end
+        present = here
 
         -- The ghosts near anybody, and where.
         local seen: { [number]: boolean } = {}

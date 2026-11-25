@@ -5,6 +5,14 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
+## Prossima alpha (non ancora taggata)
+
+- **Corretto**: i blocchi che un mod rimette (il tunnel della fuga dell'assalto dopo un nuovo
+  tentativo) potevano restare disegnati rotti su un client mentre il server li aveva interi: una
+  modifica di blocco sorpassava il chunk in cui stava.
+- **Corretto**: uscire da un mondo mentre il fantasma maledetto ti teneva ti lasciava, al ritorno,
+  camminato da lui senza poterti liberare.
+
 ## 0.21.0-alpha.3 — 2026-11-24
 
 - **Tower defense**: un mondo nuovo dietro un portone sulla piazza, da soli o insieme. Mostri

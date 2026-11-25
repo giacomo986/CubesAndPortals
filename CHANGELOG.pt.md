@@ -5,6 +5,14 @@
 Uma entrada para cada alfa distribuída, a mais nova no topo. Como elas são numeradas e como se faz
 uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
 
+## Próxima alfa (ainda sem tag)
+
+- **Corrigido**: blocos que um mod coloca de novo (o túnel da fuga do assalto depois de uma nova
+  tentativa) podiam ficar desenhados quebrados num cliente enquanto o servidor os tinha inteiros:
+  uma mudança de bloco ultrapassava o chunk em que estava.
+- **Corrigido**: sair de um mundo enquanto o fantasma amaldiçoado te segurava te deixava, ao
+  voltar, andando por ele sem conseguir se soltar.
+
 ## 0.21.0-alpha.3 — 2026-11-24
 
 - **Tower defense**: um mundo novo atrás de um portão na praça, sozinho ou junto. Monstros dos

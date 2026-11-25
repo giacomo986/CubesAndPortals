@@ -5,6 +5,13 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
+## Next alpha (not yet tagged)
+
+- **Fixed**: blocks a mod lays again (the assault's escape tunnel after a retry) could stay drawn
+  broken on a client while the server had them whole: a block change overtook the chunk it was in.
+- **Fixed**: leaving a world while the cursed ghost held you left you walked by it, unable to
+  break free, when you came back.
+
 ## 0.21.0-alpha.3 — 2026-11-24
 
 - **Tower defense**: a new world behind a gate on the plaza, alone or together. Monsters of the

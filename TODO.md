@@ -139,7 +139,10 @@ From docs/IDEE.it.md (2026-11-24), each checked by script on tools/track.sh:
   Shot found: player_launch refuses more than 16 m/s an axis (17 did nothing).
 - ctest on :5 (2026-11-24): portal_continuity fails, 85-100% of pixels
   differ at 6.5, 3 and 1.5 blocks; the same with the day's C++ changes stashed,
-  so not the cloud sea. Not looked into. mods_play passes (it caught the
+  so not the cloud sea. Bisect 2026-11-25 (worktree, same Xephyr): 0 differing
+  pixels at cae8f3e4 (11-12), 891654cb and bf6615dd, so a regression, not the
+  rig; first bad commit still being found. --verify-shots writes six
+  identical shots (HUD on black): it grabs the window, not the compared buffer. mods_play passes (it caught the
   thunder.ogg link that kept the cloud world's code from players).
 - The two new gates on the plaza (25.5 and 69.5 on the south edge): not seen.
 
@@ -430,6 +433,17 @@ Arcade shooter:
 ## Defects
 
 Seen by players first:
+- Assault with Marco, 2026-11-25: after a death in the escape the tunnel was
+  drawn with holes of lava that the bot drivers drove over (the server had
+  laid it again). Cause: a mod's block change on Channel::Block overtook its
+  chunk still in flight on Channel::Chunk, the client dropped it (no chunk
+  yet) and the chunk then drew the old cells. Fixed: owed changes wait while
+  Transport::in_flight(peer, Chunk). Built; not yet seen in a retry by hand.
+- Same game: leaving a world while the cursed ghost held you, back there you
+  were walked by it with no way to break free (the server had dropped the
+  hold, the client's session of that world kept "own 1" and core.walk).
+  Fixed in mods/ghost: a player arriving free is told "own 0"; a ghost whose
+  host left is let go. Not yet seen by hand.
 - Chamber 13, 2026-11-21: walking into a wall portal (south panel by the way
   in) with the cube in hand, the crossing did not happen and the body was left
   half in the wall at 299.84 20 0.01, refused as "inside a solid block" and
