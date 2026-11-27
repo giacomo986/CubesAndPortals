@@ -1988,7 +1988,7 @@ if serving then
     local GHOST_EVERY = 0.1   -- seconds between two places recorded
     local GHOST_CHUNK = 100   -- places in one value of the store (4096 bytes at most)
     local GHOST_SEND  = 12    -- places in one message to a player's machine: up to 36 bytes each, of 512
-    type Rec = { track: number, last: number, samples: { string } }
+    type Rec = { track: number, last: number, samples: { string }, own: string? }
     type Ghost = { name: string, lap: number, samples: { string } }
     local ghosts: { [number]: Ghost | false } = {}   -- track -> its ghost here, false for none
     local rec: { [string]: Rec } = {}       -- name -> this room's part of the lap they drive
@@ -2054,6 +2054,8 @@ if serving then
     local function keep_own(ti: number, name: string, lap: number, samples: { string })
         write_ghost(`{stored(ti, "ghost")}@{name}`, name, lap, samples)
         own[`{ti} {name}`] = { name = name, lap = lap, samples = samples }
+        core.log(string.format("track_game: %s's own ghost on %s, %.3f s, %d places here", name,
+                               if TRACKS[ti].key == "" then "the loop" else TRACKS[ti].key, lap, #samples))
         local names = {}
         for _, n in string.split(core.storage_get(stored(ti, "ghosts")), " ") do
             if n ~= "" and n ~= name then table.insert(names, n) end
@@ -2106,8 +2108,11 @@ if serving then
             return
         end
         local mine = bests[ti][name]
-        if not spans(ti) and (mine == nil or lap < mine) then
+        if mine == nil or lap < mine then
             keep_own(ti, name, lap, r.samples)
+            if spans(ti) then
+                core.shared_storage_set(`ghost@{TRACKS[ti].key}:{name}`, string.format("%.3f", lap))
+            end
         end
         for _, t in bests[ti] do
             if t <= lap then return end
@@ -2130,6 +2135,18 @@ if serving then
         for ti, tr in TRACKS do
             if #tr.gates == 0 or here(tr.gates[1]) or not spans(ti) then
                 continue
+            end
+            -- A driver's own best said by the start line's room: this
+            -- room's part of it is the one left here (`own` is what the key
+            -- said when it was left, so an older best is not taken for it).
+            for name, r in pending do
+                if r.track == ti then
+                    local v = core.shared_storage_get(`ghost@{tr.key}:{name}`)
+                    if v ~= "" and v ~= r.own then
+                        r.own = v
+                        keep_own(ti, name, tonumber(v) or 0, r.samples)
+                    end
+                end
             end
             local now = core.shared_storage_get(`ghost:{tr.key}`)
             if now ~= said[ti] then
@@ -2285,7 +2302,9 @@ if serving then
             ghost_pick[s.name] = word
             core.storage_set(`ghostpick:{s.name}`, word)
             if word == "mine" and own_ghost(ti, s.name) == nil then
-                core.chat(ev.player, "Ghost: mine, from your next best lap on this track")
+                core.chat(ev.player, if bests[ti][s.name] == nil
+                    then "Ghost: mine, from your first lap on this track"
+                    else "Ghost: mine, from when you beat your best lap on this track")
             else
                 core.chat(ev.player, `Ghost: {word}`)
             end
@@ -2434,6 +2453,14 @@ if serving then
                         racer.lapping = c[4] == "1"
                         racer.started = clock - (tonumber(c[5]) or 0)
                         racer.laps = tonumber(c[7]) or 0
+                        -- Back in the room with the start line on the same lap:
+                        -- the part recorded here before going on, so the lap
+                        -- ends with its start and can be kept as a ghost.
+                        local pr = pending[name]
+                        if racer.lapping and pr ~= nil and pr.track == ti and here(gates[1])
+                            and pr.last <= clock - racer.started then
+                            rec[name], pending[name] = pr, nil
+                        end
                         tell_track(p, ti, name)
                         if racer.lapping then
                             local passed = if racer.next == 1 then #gates - 1 else racer.next - 2
@@ -2549,6 +2576,19 @@ if serving then
                 local g2 = a and TRACKS[a.track].gates[2]
                 if moved < 20 and a and g2 ~= nil and here(g2) and crossed(g2, s.x, s.z, x, z) ~= nil then
                     local ag = TRACKS[a.track].gates
+                    -- What was recorded since that line, timed from it.
+                    local r = rec[s.name]
+                    if r ~= nil then
+                        local off, kept = a.started - s.started, {}
+                        for _, smp in r.samples do
+                            local t0, rest = string.match(smp, "^(%S+)(.*)$")
+                            local t = tonumber(t0) or -1
+                            if t >= off then
+                                table.insert(kept, string.format("%.2f", t - off) .. rest)
+                            end
+                        end
+                        r.track, r.last, r.samples = a.track, r.last - off, kept
+                    end
                     s.track, s.started, s.alt, s.laps = a.track, a.started, nil, 0
                     s.next = if #ag >= 3 then 3 else 1
                     tell_track(p, a.track, s.name)
@@ -2626,7 +2666,11 @@ if serving then
                 elseif s.driving then
                     core.log(`track_game: {s.name} drove into another room, and the kart went too`)
                     -- Its part of this lap, kept in case the lap is a record.
-                    pending[s.name], rec[s.name] = rec[s.name], nil
+                    local r = rec[s.name]
+                    if r ~= nil and TRACKS[r.track] ~= nil then
+                        r.own = core.shared_storage_get(`ghost@{TRACKS[r.track].key}:{s.name}`)
+                    end
+                    pending[s.name], rec[s.name] = r, nil
                 end
                 players[p] = nil
             end

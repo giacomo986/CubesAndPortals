@@ -85,6 +85,12 @@ From docs/IDEE.it.md (2026-11-24), each checked by script on tools/track.sh:
 - Ghosts of your own, /ghost, /laps: a lap kept as ghost@racer (136 places,
   20.241 s); `/ghost mine` sends the player's own ghost and not the record's.
   The two commands were not typed by hand (no chat in a timed run).
+  2026-11-27, Giacomo saw no ghost with `/ghost mine`: on the Inferno track
+  (two rooms) neither his own ghost nor the record was ever kept -- the start
+  room lost the lap's first part when the kart drove out; and a lap begun by
+  taking the line onto another track mid-lap (grand) was dropped. Fixed;
+  scripted Inferno lap: own ghost and record kept in both rooms (86 + 127
+  places). The grand case by typecheck only. To see by hand again.
 - Several tracks of pieces with owners: the old single track moved over as
   nobody's (custom4). Putting lines down by hand, eight a player and "That line
   is X's" not tried.
