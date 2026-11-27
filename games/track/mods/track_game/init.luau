@@ -2108,7 +2108,9 @@ if serving then
             return
         end
         local mine = bests[ti][name]
-        if mine == nil or lap < mine then
+        -- A better lap, or any lap while their best has no ghost (a best
+        -- from before ghosts were kept, or lost with the store).
+        if mine == nil or lap < mine or own_ghost(ti, name) == nil then
             keep_own(ti, name, lap, r.samples)
             if spans(ti) then
                 core.shared_storage_set(`ghost@{TRACKS[ti].key}:{name}`, string.format("%.3f", lap))
@@ -2302,9 +2304,7 @@ if serving then
             ghost_pick[s.name] = word
             core.storage_set(`ghostpick:{s.name}`, word)
             if word == "mine" and own_ghost(ti, s.name) == nil then
-                core.chat(ev.player, if bests[ti][s.name] == nil
-                    then "Ghost: mine, from your first lap on this track"
-                    else "Ghost: mine, from when you beat your best lap on this track")
+                core.chat(ev.player, "Ghost: mine, from your next whole lap on this track")
             else
                 core.chat(ev.player, `Ghost: {word}`)
             end
