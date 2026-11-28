@@ -92,8 +92,10 @@ tag `v*`) GitHub Actions li costruisce per tutti e tre i sistemi e li pubblica c
 Ogni pacchetto apre il **launcher**: Gioca avvia il gioco; Versioni tiene più versioni una
 accanto all'altra (scaricate dalla pagina Releases, ognuna controllata con il manifest firmato
 della release prima di girare); Mondi gioca un mondo salvato, copiandolo prima quando lo apre una
-versione più nuova; Mod mostra, aggiunge (trascinando una cartella o un `.cnpmod` sulla finestra),
-spegne e toglie le mod, ovunque o per mondo. Un server che vuole un'altra versione rimanda il
+versione più nuova; Mod mostra, aggiunge (trascinando una cartella o un `.cnpmod` sulla finestra,
+copiata o collegata), spegne e toglie le mod, ovunque o per mondo; Percorsi apre le tue mod, i tuoi
+mondi e il log del gioco, e tiene altre cartelle di mod caricate in ogni mondo (un checkout di add-on
+su cui si lavora). Un server che vuole un'altra versione rimanda il
 gioco al launcher, che avvia quella. Il gioco da solo è `cnp_client` (`AppRun game`,
 `flatpak run … game`).
 

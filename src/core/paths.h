@@ -57,6 +57,13 @@ std::string user_mods_dir();
 // The mods turned off everywhere: mods.conf beside user_mods_dir.
 std::string user_mods_conf();
 
+// More folders of mods, each loaded in every world as user_mods_dir is -- a
+// checkout of add-ons being worked on, say. The launcher's Paths page keeps
+// them, one absolute path a line, in mod_paths beside user_mods_dir.
+std::string              user_mod_paths_file();
+std::vector<std::string> read_mod_paths();
+bool                     write_mod_paths(const std::vector<std::string> &paths);
+
 // A game started by the launcher (CNP_LAUNCHER in its environment) that meets a
 // server wanting another version writes what it met here -- `server = HOST:PORT`
 // and `version = V`, the server's engine version -- and exits with this code;

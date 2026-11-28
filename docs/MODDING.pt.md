@@ -379,7 +379,15 @@ mods.conf         <- off = um_mod, outro_mod
 A mesma linha `off = ...` em `~/.cubes-and-portals/mods.conf` (ao lado da pasta de mods) desliga um
 mod em todos os mundos. A página **Mods** do launcher escreve os dois: lista os mods do jogo (só
 leitura), os seus em todo lugar e os de um mundo, diz do que cada um precisa e o que pede, desliga
-ou liga, remove, e adiciona um que for solto na janela (uma pasta ou um `.cnpmod`).
+ou liga, remove, e adiciona um que for solto na janela (uma pasta ou um `.cnpmod`), copiado ou,
+para uma pasta em que se trabalha, ligado.
+
+**Mais pastas de mods.** A página **Caminhos** do launcher guarda pastas cujos mods carregam em todo
+mundo como os seus -- um checkout de add-ons, por exemplo -- uma por linha em
+`~/.cubes-and-portals/mod_paths`; o jogo dá cada uma ao mundo que inicia como mais um `--user-mods`.
+Uma pasta dentro de uma dessas que não tem nem `mod.conf` nem `.luau` (um pacote de texturas, um
+`.git`, as `mods/` de uma sala) é pulada sem aviso, pelo launcher e pelo servidor. Caminhos também
+abre a pasta dos seus mods, os seus mundos e o log do jogo.
 
 Um mod desligado é nomeado no log (`mod 'x' left out by this world`) e não é carregado; um servidor
 o recebe como `--no-mod NOME`, e `--user-mods` mais de uma vez. Os blocos dele que já estão no mundo

@@ -125,6 +125,12 @@ struct ModManifest {
     bool every_room = false;
 };
 
+// Whether a folder in a mods folder is meant as a mod: a mod.conf, or code
+// without one (a broken mod, reported). Hidden folders (.git) and folders of
+// anything else (a texture pack, a room's own mods/ inside a repository of
+// add-ons) are not, and are passed by without a word.
+bool looks_like_mod(const std::string &dir);
+
 struct Mod {
     ModManifest manifest;
 

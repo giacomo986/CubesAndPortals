@@ -570,6 +570,20 @@ Cancel = Cancelar
 added = adicionado
 os: reads the clock and the date = os: lê o relógio e a data
 debug: Luau's debug table = debug: a tabela debug do Luau
+Paths = Caminhos
+from a folder of yours = de uma pasta sua
+(folder) = (pasta)
+Link to = Ligar a
+Open = Abrir
+Your mods, in every world = Seus mods, em todo mundo
+Your worlds = Seus mundos
+What the game said last (its log) = O que o jogo disse da última vez (o log)
+More folders of mods, loaded in every world as yours are = Mais pastas de mods, carregadas em todo mundo como os seus
+none yet = nenhuma ainda
+Drop a folder holding mods on this window to add it = Solte nesta janela uma pasta com mods para adicioná-la
+folder added = pasta adicionada
+click again: its mods stop loading, the folder stays where it is = clique de novo: os mods dela deixam de carregar, a pasta fica onde está
+folder taken away = pasta retirada
 
 # --- Sandbox mods (2026-11-03) ---
 RANK {}  {} MANA = GRAU {}  {} MANA

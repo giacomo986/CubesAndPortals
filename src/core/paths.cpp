@@ -143,6 +143,33 @@ std::string user_mods_conf()
     return std::filesystem::path(user_mods_dir()).parent_path().string() + "/mods.conf";
 }
 
+std::string user_mod_paths_file()
+{
+    return std::filesystem::path(user_mods_dir()).parent_path().string() + "/mod_paths";
+}
+
+std::vector<std::string> read_mod_paths()
+{
+    std::vector<std::string> out;
+    std::ifstream            in(user_mod_paths_file());
+    for (std::string line; std::getline(in, line);) {
+        while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();
+        if (line.empty() || line[0] == '#') continue;
+        if (std::find(out.begin(), out.end(), line) == out.end()) out.push_back(line);
+    }
+    return out;
+}
+
+bool write_mod_paths(const std::vector<std::string> &paths)
+{
+    std::error_code ec;
+    std::filesystem::create_directories(std::filesystem::path(user_mod_paths_file()).parent_path(), ec);
+    std::ofstream out(user_mod_paths_file());
+    out << "# More folders of mods, loaded in every world (the launcher's Paths page writes this).\n";
+    for (const std::string &p : paths) out << p << "\n";
+    return (bool)out;
+}
+
 std::vector<std::string> read_mods_off(const std::string &path)
 {
     std::vector<std::string> out;

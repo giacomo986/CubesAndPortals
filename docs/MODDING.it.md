@@ -409,7 +409,14 @@ La stessa riga `off = ...` in `~/.cubes-and-portals/mods.conf` (accanto alla car
 spegne un mod in ogni mondo. La pagina **Mod** del launcher scrive tutti e due: elenca i mod del
 gioco (sola lettura), i tuoi ovunque e quelli di un mondo, dice cosa serve a ciascuno e cosa
 chiede, li spegne o li accende, li toglie, e ne aggiunge uno trascinato sulla sua finestra (una
-cartella o un `.cnpmod`).
+cartella o un `.cnpmod`), copiato o, per una cartella su cui si lavora, collegato.
+
+**Altre cartelle di mod.** La pagina **Percorsi** del launcher tiene delle cartelle i cui mod si
+caricano in ogni mondo come i tuoi -- un checkout di add-on, per esempio -- una per riga in
+`~/.cubes-and-portals/mod_paths`; il gioco dà ognuna al mondo che avvia come un `--user-mods` in più.
+Una cartella dentro una di queste che non ha né un `mod.conf` né un `.luau` (un texture pack, un
+`.git`, le `mods/` di una stanza) viene saltata senza dire niente, dal launcher come dal server.
+Percorsi apre anche la cartella dei tuoi mod, i tuoi mondi e il log del gioco.
 
 Un mod spento è nominato nel log (`mod 'x' left out by this world`) e non viene caricato; un
 server lo prende come `--no-mod NOME`, e `--user-mods` più di una volta. I suoi blocchi già nel

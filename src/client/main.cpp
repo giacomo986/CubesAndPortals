@@ -11239,7 +11239,9 @@ ModelStore &title_robot()
         // from here loads the player's folder, so it numbers them alike.
         namespace fs = std::filesystem;
         std::error_code ec;
-        for (const std::string &root : {fs::path(g_robot_dir).parent_path().string(), user_mods_dir()}) {
+        std::vector<std::string> roots = {fs::path(g_robot_dir).parent_path().string(), user_mods_dir()};
+        for (const std::string &d : read_mod_paths()) roots.push_back(d);   // the launcher's Paths page
+        for (const std::string &root : roots) {
             if (root.empty() || !fs::is_directory(root, ec)) continue;
             for (const fs::directory_entry &mod : fs::directory_iterator(root, ec)) {
                 if (!mod.is_directory(ec)) continue;
@@ -11796,7 +11798,11 @@ std::vector<std::string> world_mod_flags(const std::string &world_dir)
 {
     std::vector<std::string> out;
     std::error_code          ec;
-    for (const std::string &d : {user_mods_dir(), world_dir + "/mods"})
+    // Yours, then the folders the launcher's Paths page added, then the world's.
+    std::vector<std::string> dirs = {user_mods_dir()};
+    for (const std::string &d : read_mod_paths()) dirs.push_back(d);
+    dirs.push_back(world_dir + "/mods");
+    for (const std::string &d : dirs)
         if (std::filesystem::is_directory(d, ec)) {
             out.push_back("--user-mods");
             out.push_back(d);

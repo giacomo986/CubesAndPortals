@@ -92,8 +92,9 @@ Os pacotes prontos estão na página **[Releases](../../releases)**. Para cada v
 Todo pacote abre o **launcher**: Jogar inicia o jogo; Versões mantém várias versões lado a lado
 (baixadas da página Releases, cada uma conferida com o manifesto assinado da versão antes de
 rodar); Mundos joga um mundo salvo, copiando-o antes quando uma versão mais nova o abre; Mods
-mostra, adiciona (solte uma pasta ou um `.cnpmod` na janela), desliga e remove mods, em todo lugar
-ou por mundo. Um servidor que quer outra versão manda o jogo de volta para o launcher, que inicia
+mostra, adiciona (solte uma pasta ou um `.cnpmod` na janela, copiada ou ligada), desliga e remove
+mods, em todo lugar ou por mundo; Caminhos abre seus mods, seus mundos e o log do jogo, e mantém mais
+pastas de mods carregadas em todo mundo (um checkout de add-ons em que se trabalha). Um servidor que quer outra versão manda o jogo de volta para o launcher, que inicia
 essa versão. O jogo sozinho é o `cnp_client` (`AppRun game`, `flatpak run … game`).
 
 Os pacotes não são assinados. Na primeira execução, o SmartScreen do Windows pede confirmação

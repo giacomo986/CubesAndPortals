@@ -28,8 +28,11 @@ void add_dir(std::vector<ModEntry> &out, const std::string &dir, Where where)
 {
     std::error_code         ec;
     std::vector<fs::path> paths;
-    for (const fs::directory_entry &e : fs::directory_iterator(dir, ec))
+    for (const fs::directory_entry &e : fs::directory_iterator(dir, ec)) {
+        // What the game passes by, this does too (script/mod_host.h).
+        if (e.is_directory(ec) && !looks_like_mod(e.path().string())) continue;
         if (e.is_directory(ec) || is_package(e.path())) paths.push_back(e.path());
+    }
     std::sort(paths.begin(), paths.end());
     for (const fs::path &p : paths) {
         ModEntry    m;
@@ -107,6 +110,7 @@ std::vector<ModEntry> list_mods(const std::string &game_dir, const std::string &
     // The player's first, the game's (sixty and more) after them.
     if (!world.empty()) add_dir(out, world_dir(world) + "/mods", Where::World);
     add_dir(out, user_mods_dir(), Where::Everywhere);
+    for (const std::string &d : read_mod_paths()) add_dir(out, d, Where::Path);
     add_dir(out, game_dir, Where::Game);
 
     const std::vector<std::string> everywhere = read_mods_off(user_mods_conf());
@@ -161,7 +165,7 @@ void set_off(const std::string &world, const std::string &name, bool off)
     write_mods_off(path, names);
 }
 
-std::string install_mod(const ModEntry &mod, const std::string &world, const std::vector<ModEntry> &all)
+std::string install_mod(const ModEntry &mod, const std::string &world, const std::vector<ModEntry> &all, bool link)
 {
     if (!mod.error.empty() || mod.manifest.name.empty()) return "not a mod";
     for (const ModEntry &m : all)
@@ -174,8 +178,10 @@ std::string install_mod(const ModEntry &mod, const std::string &world, const std
         // Named by its manifest, not by the folder it came in: the name a mod
         // loads under is the one place that cannot lie.
         const fs::path to = dir / mod.manifest.name;
-        if (fs::exists(to, ec)) return to.string() + " exists";
-        fs::copy(mod.path, to, fs::copy_options::recursive, ec);
+        if (fs::exists(to, ec) || fs::is_symlink(to, ec)) return to.string() + " exists";
+        if (link) fs::create_directory_symlink(fs::absolute(mod.path, ec), to, ec);
+        else fs::copy(mod.path, to, fs::copy_options::recursive, ec);
+        if (ec && link) return "the link failed: " + ec.message();
     } else {
         const fs::path to = dir / fs::path(mod.path).filename();
         if (fs::exists(to, ec)) return to.string() + " exists";
@@ -187,9 +193,33 @@ std::string install_mod(const ModEntry &mod, const std::string &world, const std
 std::string remove_mod(const ModEntry &e)
 {
     if (e.where == Where::Game) return "a mod of the game is not removed";
+    if (e.where == Where::Path) return "a mod in a folder of yours is not removed: take the folder away on Paths";
     std::error_code ec;
-    fs::remove_all(e.path, ec);
+    // A link (install_mod's `link`) goes, and what it led to stays.
+    if (fs::is_symlink(e.path, ec)) fs::remove(e.path, ec);
+    else fs::remove_all(e.path, ec);
     return ec ? ec.message() : "";
+}
+
+std::string add_mod_path(const std::string &dir)
+{
+    std::error_code ec;
+    if (!fs::is_directory(dir, ec)) return "not a folder: " + dir;
+    const std::string abs = fs::weakly_canonical(fs::absolute(dir, ec), ec).string();
+    if (fs::exists(fs::path(abs) / "mod.conf", ec))
+        return "that folder is one mod: drop it on Mods, or add the folder holding it";
+    if (abs == fs::weakly_canonical(user_mods_dir(), ec).string()) return "that is your mods folder already";
+    std::vector<std::string> paths = read_mod_paths();
+    if (std::find(paths.begin(), paths.end(), abs) != paths.end()) return "that folder is here already";
+    paths.push_back(abs);
+    return write_mod_paths(paths) ? "" : "could not write " + user_mod_paths_file();
+}
+
+std::string remove_mod_path(const std::string &dir)
+{
+    std::vector<std::string> paths = read_mod_paths();
+    if (std::erase(paths, dir) == 0) return "no such folder here: " + dir;
+    return write_mod_paths(paths) ? "" : "could not write " + user_mod_paths_file();
 }
 
 } // namespace cnp::launcher

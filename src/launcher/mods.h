@@ -2,8 +2,10 @@
 
 // The mods the launcher shows and manages (TODO.md, "Launcher", step 8).
 //
-// Three kinds: the game's own (in the build, read only), the player's
-// everywhere (core/paths.h user_mods_dir) and a world's own (<world>/mods). A
+// Four kinds: the game's own (in the build, read only), the player's
+// everywhere (core/paths.h user_mods_dir), those in a folder the Paths page
+// added (read_mod_paths: loaded everywhere, never deleted from here) and a
+// world's own (<world>/mods). A
 // mod is turned off by name in a mods.conf -- user_mods_conf for everywhere, the
 // world's for that world -- which the client hands its server as --no-mod.
 
@@ -14,7 +16,7 @@
 
 namespace cnp::launcher {
 
-enum class Where { Game, Everywhere, World };
+enum class Where { Game, Everywhere, Path, World };   // the order they load in
 
 struct ModEntry {
     Where       where = Where::Game;
@@ -51,8 +53,15 @@ std::string capability_meaning(const std::string &cap);
 void set_off(const std::string &world, const std::string &name, bool off);
 
 // Copies a mod (directory or .cnpmod) into the view's folder, refused when a mod
-// of that name is in `all` already. Empty on success.
-std::string install_mod(const ModEntry &mod, const std::string &world, const std::vector<ModEntry> &all);
+// of that name is in `all` already. Empty on success. `link`: a folder is linked
+// there instead of copied, so a change to it is seen at once (working on it).
+std::string install_mod(const ModEntry &mod, const std::string &world, const std::vector<ModEntry> &all,
+                        bool link = false);
+
+// The Paths page: a folder of mods added to those loaded everywhere, or taken
+// away (the folder itself is left as it is). Empty on success.
+std::string add_mod_path(const std::string &dir);
+std::string remove_mod_path(const std::string &dir);
 
 // Deletes a player's mod (never a game one). Empty on success.
 std::string remove_mod(const ModEntry &e);

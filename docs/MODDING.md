@@ -377,7 +377,15 @@ mods.conf         <- off = some_mod, other_mod
 The same `off = ...` line in `~/.cubes-and-portals/mods.conf` (beside the mods folder) turns a mod
 off in every world. The launcher's **Mods** page writes both: it lists the game's mods (read only),
 yours everywhere and a world's own, says what each needs and what it asks for, turns them off or
-on, removes them, and adds one dropped on its window (a folder or a `.cnpmod`).
+on, removes them, and adds one dropped on its window (a folder or a `.cnpmod`), copied or, for a
+folder being worked on, linked.
+
+**More folders of mods.** The launcher's **Paths** page keeps folders whose mods load in every world
+as yours do -- a checkout of add-ons, say -- one a line in `~/.cubes-and-portals/mod_paths`; the
+game gives each to a world it starts as one more `--user-mods`. A folder in such a folder that holds
+neither a `mod.conf` nor any `.luau` (a texture pack, a `.git`, a room's own `mods/`) is passed by
+without a word, by the launcher and the server alike. Paths also opens your mods folder, your worlds
+and the game's log.
 
 A mod turned off is named in the log (`mod 'x' left out by this world`) and not loaded; a
 server takes it as `--no-mod NAME`, and `--user-mods` more than once. Its blocks already in the

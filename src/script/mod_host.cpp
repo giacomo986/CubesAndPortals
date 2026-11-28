@@ -787,6 +787,7 @@ int ModHost::load_dir(const std::vector<std::string> &mods_dirs)
         if (mods_dir.empty() || !fs::is_directory(mods_dir, ec)) continue;
         for (const fs::directory_entry &e : fs::directory_iterator(mods_dir, ec)) {
             if (e.is_directory(ec)) {
+                if (!looks_like_mod(e.path().string())) continue;   // .git, a texture pack, a room's folder
                 dirs.push_back(e.path().string());
             } else if (e.path().extension() == kModPackageExtension) {
                 packages.push_back(e.path().string());
@@ -821,6 +822,19 @@ int ModHost::load_dir(const std::vector<std::string> &mods_dirs)
     }
 
     return load_dirs(dirs);
+}
+
+bool looks_like_mod(const std::string &dir)
+{
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    if (fs::path(dir).filename().string().starts_with(".")) return false;
+    if (fs::exists(fs::path(dir) / "mod.conf", ec)) return true;
+    // No manifest: a mod with it missing (code here) is one, and said so; a
+    // folder of pictures, or of folders, is not one and is passed by.
+    for (const fs::directory_entry &f : fs::directory_iterator(dir, ec))
+        if (f.path().extension() == ".luau" || f.path().extension() == ".lua") return true;
+    return false;
 }
 
 int ModHost::load_dirs(const std::vector<std::string> &dirs)

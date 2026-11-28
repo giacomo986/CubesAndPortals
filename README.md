@@ -91,8 +91,9 @@ tag) GitHub Actions builds them for all three systems and publishes them as a pr
 Every package opens the **launcher**: Play starts the game; Versions keeps several versions side
 by side (downloaded from the Releases page, each checked against the release's signed manifest
 before it runs); Worlds plays a saved world, copying it first when a newer version opens it; Mods
-shows, adds (drop a folder or a `.cnpmod` on the window), turns off and removes mods, everywhere
-or per world. A server that wants another version sends the game back to the launcher, which
+shows, adds (drop a folder or a `.cnpmod` on the window, copied or linked), turns off and removes
+mods, everywhere or per world; Paths opens your mods, your worlds and the game's log, and keeps more
+folders of mods loaded in every world (a checkout of add-ons being worked on). A server that wants another version sends the game back to the launcher, which
 starts that one. The game alone is `cnp_client` (`AppRun game`, `flatpak run … game`).
 
 The packages are not signed. On the first run, Windows SmartScreen asks for confirmation ("More

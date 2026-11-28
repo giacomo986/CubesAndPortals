@@ -103,6 +103,14 @@ what is built, and three or four structural fixes that each close many entries.
   init.luau is served when the world's packs have none (decor's bricks seen in
   Xephyr); track_game:kart_part adds a garage variant (kartflag's flag logged
   as joined; not picked in the garage by hand).
+- Launcher Paths page (2026-11-28): opens the mods folder, the worlds and
+  game.log; keeps more folders of mods (~/.cubes-and-portals/mod_paths) the
+  client gives a world as --user-mods; Mods can link a dropped folder instead
+  of copying it. Seen in Xephyr (page, two-click x, "(folder)" rows); a world
+  started with the add-ons repository as a path loaded them, no "no mod.conf"
+  (folders without mod.conf or .luau are passed by). "Open" buttons not
+  clicked (they call the system's file manager); the flatpak sees only its
+  own folders, so a path outside home may not load there -- not tried.
 
 Shortcuts to each place below (2026-11-27): `/go ROOM`, `/tp`, and one admin
 command a world (`/chamber`, `/labphase`, `/track`, `/arpg`, `/backrooms`,
