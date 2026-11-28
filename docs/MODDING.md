@@ -688,6 +688,12 @@ core.event.emit(name, { fields }) -> cancelled
 part of the engine knows any more what stone's id is. Registering the same name twice returns the
 same id -- it is the hook hot reload rests on.
 
+**A block's or an item's picture** is `<mod>_<name>.png` (the colon an underscore, 32 x 32), with
+`_top`, `_bottom` and `_side` for faces of their own. The server looks for it in the world's texture
+pack, then in the pack it falls back on, and last **beside the mod's own `init.luau`**: a mod from
+outside the game brings its pictures with it (`decor` in CubesAndPortals-addons). A block nobody drew
+is baked from its colour.
+
 `on_step(dt)`, if defined as a global, is called once a frame; `on_save`/`on_load` serve the
 reload. A mod without `on_step` pays nothing a frame but the global's lookup.
 
@@ -1747,6 +1753,11 @@ on foot and get into a parked kart: `games/track`.
   the vehicle's `tint_1..3`. The nitro flames come out of the `flame_*` joints (along the bone) of the
   pieces that have them, otherwise of the vehicle's; the skid marks from the `wheel_R*` bones, on the
   road under them (on a track piece, its surface).
+* **More parts from a mod.** The garage's variants are `games/track`'s, and a mod adds one by
+  emitting `track_game:kart_part` (`part` -- `wheel`, `nose`, `pods`, `pipes` or `wing` -- `variant`,
+  `model`) from `core:world_ready`, the model made on the kart's rig. It joins the end of its part's
+  list, so the variants before it keep their numbers in every garage; a garage that picked one whose
+  mod is gone later shows the kart's own. `kartflag` in CubesAndPortals-addons is one.
 * **Preview in a panel.** `core.ui_model(panel, x, y, w, h, model, tint, pieces)` puts in a box of
   the panel a slowly turning model, framed by its size, with its colours and the pieces (ids separated
   by spaces) on it as above: `games/track`'s garage shows the chosen kart this way. It does not answer

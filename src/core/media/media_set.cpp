@@ -100,8 +100,19 @@ static bool read_file(const std::string &path, std::vector<uint8_t> &out)
     return !out.empty();
 }
 
+// A picture from the folder of the mod that registered `name` (its namespace).
+static bool read_from_mod(const std::map<std::string, std::string> *mod_dirs, const std::string &name,
+                          const std::string &file, std::vector<uint8_t> &bytes)
+{
+    if (mod_dirs == nullptr) return false;
+    const size_t colon = name.find(':');
+    if (colon == std::string::npos) return false;
+    const auto it = mod_dirs->find(name.substr(0, colon));
+    return it != mod_dirs->end() && read_file(it->second + "/" + file, bytes);
+}
+
 MediaBuildStats build_media_set(const NodeRegistry &reg, const std::string &dir, MediaSet &out,
-                                const std::string &fallback)
+                                const std::string &fallback, const std::map<std::string, std::string> *mod_dirs)
 {
     MediaBuildStats stats;
 
@@ -136,7 +147,8 @@ MediaBuildStats build_media_set(const NodeRegistry &reg, const std::string &dir,
         std::vector<uint8_t> bytes;
         for (const std::string &file : all_texture_names(def.name)) {
             if ((dir.empty() || !read_file(dir + "/" + pack_file(pack, file), bytes)) &&
-                (fallback.empty() || !read_file(fallback + "/" + file, bytes)))
+                (fallback.empty() || !read_file(fallback + "/" + file, bytes)) &&
+                !read_from_mod(mod_dirs, def.name, file, bytes))
                 continue;
             if (!out.add(file, std::move(bytes))) {
                 ++stats.skipped;
@@ -210,7 +222,8 @@ MediaBuildStats build_media_set(const NodeRegistry &reg, const std::string &dir,
 }
 
 ItemMediaStats add_items_to_media(const ItemRegistry &items, const std::string &dir,
-                                  MediaSet &out, const std::string &fallback)
+                                  MediaSet &out, const std::string &fallback,
+                                  const std::map<std::string, std::string> *mod_dirs)
 {
     ItemMediaStats stats;
 
@@ -232,7 +245,8 @@ ItemMediaStats add_items_to_media(const ItemRegistry &items, const std::string &
         const std::string    file = texture_file_name(def.name);
         std::vector<uint8_t> bytes;
         if (((dir.empty() || !read_file(dir + "/" + pack_file(pack, file), bytes)) &&
-             (fallback.empty() || !read_file(fallback + "/" + file, bytes))) ||
+             (fallback.empty() || !read_file(fallback + "/" + file, bytes)) &&
+             !read_from_mod(mod_dirs, def.name, file, bytes)) ||
             !out.add(file, std::move(bytes))) {
             ++stats.skipped;
             continue;

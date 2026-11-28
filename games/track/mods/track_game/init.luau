@@ -422,6 +422,27 @@ if serving then
         { key = "pipes", label = "Exhaust",   variants = { "twin", "stack", "jet", "dragon" } },
         { key = "wing",  label = "Wing",      variants = { "spoiler", "twin", "fin", "dragon" } },
     }
+    -- More variants from mods outside the game (an add-on with `rooms = all`):
+    -- core.event.emit("track_game:kart_part", { part = "wing", variant = "flag",
+    -- model = "kartflag:wing" }) once the world is ready. A variant joins the
+    -- end of its part's list, so the ones before keep their numbers in every
+    -- garage; one whose add-on is gone later reads as the kart's own.
+    local EXTRA_MODEL: { [string]: string } = {}   -- "<part>_<variant>" -> model name
+    core.event.define("track_game:kart_part", { fields = { part = "string", variant = "string", model = "string" },
+                                                cancellable = false })
+    core.event.on("track_game:kart_part", function(ev)
+        for _, part in PARTS do
+            if part.key == ev.part and core.model_id(ev.model) ~= 0 then
+                if EXTRA_MODEL[`{ev.part}_{ev.variant}`] == nil then
+                    table.insert(part.variants, ev.variant)
+                end
+                EXTRA_MODEL[`{ev.part}_{ev.variant}`] = ev.model
+                core.log(`track_game: kart part {ev.part} '{ev.variant}' from {ev.model}`)
+                return
+            end
+        end
+        core.log(`track_game: no kart part '{ev.part}', or no model '{ev.model}'`)
+    end)
     local PAINTS = { "Bodywork", "Trim", "Rims" }
     -- The sixteen dyes, in the engine's order (kDyeColours).
     local DYES: { { any } } = {
@@ -442,7 +463,8 @@ if serving then
             g.paint[i] = math.clamp(tonumber(w[i]) or 0, 0, #DYES)
         end
         for i, part in PARTS do
-            g.part[i] = math.clamp(tonumber(w[3 + i]) or 0, 0, #part.variants)
+            local v = tonumber(w[3 + i]) or 0
+            g.part[i] = if v >= 1 and v <= #part.variants then v else 0   -- a part whose add-on is gone: the kart's own
         end
         return g
     end
@@ -473,7 +495,8 @@ if serving then
         local parts = {}
         for i, part in PARTS do
             local v = g.part[i]
-            parts[i] = if v > 0 then core.model_id(`track_core:kart_{part.key}_{part.variants[v]}`) else 0
+            local key = if v > 0 then `{part.key}_{part.variants[v]}` else ""
+            parts[i] = if v > 0 then core.model_id(EXTRA_MODEL[key] or `track_core:kart_{key}`) else 0
         end
         return g.paint[1] + g.paint[2] * 32 + g.paint[3] * 1024, parts
     end

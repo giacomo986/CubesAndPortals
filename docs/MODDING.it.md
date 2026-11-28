@@ -740,6 +740,12 @@ non ha chiesto**, e nessuna parte del motore sa più qual è l'id della pietra.
 Registrare due volte lo stesso nome restituisce lo stesso id — è l'aggancio su
 cui poggia l'hot reload.
 
+**L'immagine di un blocco o di un oggetto** è `<mod>_<nome>.png` (i due punti un trattino basso,
+32 x 32), con `_top`, `_bottom` e `_side` per facce sue. Il server la cerca nel texture pack del
+mondo, poi in quello di riserva, e per ultimo **accanto all'`init.luau` della mod**: una mod da fuori
+del gioco si porta dietro le sue immagini (`decor` in CubesAndPortals-addons). Un blocco che nessuno
+ha disegnato è cotto dal suo colore.
+
 `on_step(dt)`, se definita come globale, viene chiamata una volta per frame;
 `on_save`/`on_load` servono al reload. Un mod senza `on_step` non paga niente
 per frame se non la ricerca della globale.
@@ -1954,6 +1960,12 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   `flame_*` (lungo l'osso) dei pezzi che ne hanno, se no da quelli del
   veicolo; le sgommate dalle ossa `wheel_R*`, sulla strada sotto di loro (su
   un pezzo di pista, la sua superficie).
+* **Altri pezzi da una mod.** Le varianti del garage sono di `games/track`, e una mod ne aggiunge
+  una emettendo `track_game:kart_part` (`part` -- `wheel`, `nose`, `pods`, `pipes` o `wing` --
+  `variant`, `model`) da `core:world_ready`, col modello fatto sullo scheletro del kart. Va in fondo
+  alla lista del suo pezzo, così le varianti prima tengono i loro numeri in ogni garage; un garage che
+  ne aveva scelta una la cui mod poi non c'è più mostra quella del kart. `kartflag` in
+  CubesAndPortals-addons è una di queste.
 * **Anteprima in un pannello.** `core.ui_model(pannello, x, y, w, h, modello,
   tint, pezzi)` mette in un riquadro del pannello un modello che gira piano,
   inquadrato dalla sua misura, con i suoi colori e i pezzi (id separati da

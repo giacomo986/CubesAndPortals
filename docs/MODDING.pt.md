@@ -688,6 +688,12 @@ core.event.emit(name, { fields }) -> cancelled
 do motor sabe mais qual é o id da pedra. Registrar o mesmo nome duas vezes devolve o mesmo id -- é o
 gancho em que a recarga a quente se apoia.
 
+**A imagem de um bloco ou de um item** é `<mod>_<nome>.png` (os dois-pontos um sublinhado, 32 x 32),
+com `_top`, `_bottom` e `_side` para faces próprias. O servidor a procura no pacote de texturas do
+mundo, depois no de reserva, e por último **ao lado do `init.luau` do próprio mod**: um mod de fora
+do jogo traz suas imagens consigo (`decor` em CubesAndPortals-addons). Um bloco que ninguém desenhou
+é gerado a partir da sua cor.
+
 `on_step(dt)`, se definida como global, é chamada uma vez por frame; `on_save`/`on_load` servem à
 recarga. Um mod sem `on_step` não paga nada por frame além da busca da global.
 
@@ -1769,6 +1775,12 @@ a pé e entra num kart estacionado: `games/track`.
   pinta: a sua tinta colore os `tint_1..3` do veículo. As chamas do nitro saem das juntas `flame_*`
   (ao longo do osso) das peças que as têm, senão das do veículo; as marcas de derrapagem dos ossos
   `wheel_R*`, na estrada embaixo deles (numa peça de pista, na sua superfície).
+* **Mais peças a partir de um mod.** As variantes da garagem são de `games/track`, e um mod
+  acrescenta uma emitindo `track_game:kart_part` (`part` -- `wheel`, `nose`, `pods`, `pipes` ou
+  `wing` -- `variant`, `model`) a partir de `core:world_ready`, com o modelo feito no esqueleto do
+  kart. Ela vai para o fim da lista da sua peça, então as variantes anteriores mantêm seus números em
+  toda garagem; uma garagem que escolheu uma cujo mod depois sumiu mostra a do kart.
+  `kartflag` em CubesAndPortals-addons é uma delas.
 * **Prévia num painel.** `core.ui_model(panel, x, y, w, h, model, tint, pieces)` põe num quadro do
   painel um modelo girando devagar, enquadrado pelo seu tamanho, com as suas cores e as peças (ids
   separados por espaços) nele como acima: a garagem de `games/track` mostra assim o kart escolhido.

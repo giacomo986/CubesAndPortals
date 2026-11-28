@@ -9149,12 +9149,15 @@ int serve_room(int argc, char **argv)
             const bool media_unlocked = starting_hot();
             if (media_unlocked) let_go_of_rooms();
             const auto t_media = std::chrono::steady_clock::now();
-            const MediaBuildStats st = build_media_set(s.registry, textures_dir, media, fallback_textures);
+            std::map<std::string, std::string> mod_dirs;   // pictures a mod ships beside itself
+            for (const Mod &m : s.mods.mods()) mod_dirs[m.manifest.name] = m.manifest.dir;
+            const MediaBuildStats st =
+                build_media_set(s.registry, textures_dir, media, fallback_textures, &mod_dirs);
 
             // And the item squares, into the same set. A tool is not a block
             // and has no colour to bake a placeholder from, so this serves what
             // somebody drew and nothing for the rest -- see add_items_to_media.
-            const ItemMediaStats ist = add_items_to_media(s.items, textures_dir, media, fallback_textures);
+            const ItemMediaStats ist = add_items_to_media(s.items, textures_dir, media, fallback_textures, &mod_dirs);
 
             // And the models, into the same set. A model is not a file -- the
             // .gltf names its buffer and its images beside itself -- so this

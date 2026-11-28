@@ -6,6 +6,7 @@
 #include "core/registry/model_registry.h"
 #include "core/registry/node_registry.h"
 
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -83,8 +84,14 @@ struct MediaBuildStats {
 // `dir` may be empty, and then everything is generated. `fallback` is where a
 // file `dir` has not got is looked for next, by its engine name: a game that
 // borrows the sandbox's mods (the Inferno) borrows their pictures with them.
+//
+// `mod_dirs` (a mod's name to its folder) is the last place: a block of a mod
+// that ships its own picture ("decor:brick" -> decor_brick.png beside the
+// mod's init.luau) wears it in any world, unless the world's pack has one --
+// which is how an add-on from outside the game brings its pictures.
 MediaBuildStats build_media_set(const NodeRegistry &reg, const std::string &dir, MediaSet &out,
-                                const std::string &fallback = "");
+                                const std::string &fallback = "",
+                                const std::map<std::string, std::string> *mod_dirs = nullptr);
 
 // How many of a world's ITEM pictures it managed to serve.
 struct ItemMediaStats {
@@ -106,7 +113,8 @@ struct ItemMediaStats {
 // tables are separate: a server may have blocks and no items at all, and every
 // existing caller of that function has exactly that.
 ItemMediaStats add_items_to_media(const ItemRegistry &items, const std::string &dir,
-                                  MediaSet &out, const std::string &fallback = "");
+                                  MediaSet &out, const std::string &fallback = "",
+                                  const std::map<std::string, std::string> *mod_dirs = nullptr);
 
 // How much of a world's models it managed to serve.
 struct ModelMediaStats {

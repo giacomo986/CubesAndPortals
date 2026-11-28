@@ -99,6 +99,10 @@ what is built, and three or four structural fixes that each close many entries.
   another room is drawn in their livery (colours, extras, species style),
   what they wear and hold -- before, only the species' body in default
   colours. Built; not seen with two players.
+- For add-ons (2026-11-28): a block's or item's picture beside its mod's
+  init.luau is served when the world's packs have none (decor's bricks seen in
+  Xephyr); track_game:kart_part adds a garage variant (kartflag's flag logged
+  as joined; not picked in the garage by hand).
 
 Shortcuts to each place below (2026-11-27): `/go ROOM`, `/tp`, and one admin
 command a world (`/chamber`, `/labphase`, `/track`, `/arpg`, `/backrooms`,
