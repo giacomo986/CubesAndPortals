@@ -5,8 +5,28 @@
 One entry for every alpha handed out, the newest at the top. How they are numbered and how an
 alpha is made: [docs/BUILDING.md](docs/BUILDING.md#versions).
 
-## Next alpha (not yet tagged)
+## 0.21.0-alpha.4 — 2026-11-28
 
+- **Backrooms**: the endless suburb, a fourth level over the poolrooms: streets and houses all
+  alike, empty, lit by street lamps; reached by stairs and holes and portals, the deep backrooms
+  too (a new backrooms world: they are now 96 high). In the party, clowns that come at you only
+  while you do not look at them; real balloons. A Smiler puts out the lights of the room it is in.
+- **Backrooms**: a pool's ladder stands in the water, with no hole of air down the pool's side.
+- **Fixed**: cooked fish can be eaten. A brown mushroom, a honeycomb and a sugar cane are a small
+  bite each.
+- **Fixed**: blocks a world changed could stay undrawn until you walked away and back (gel on a
+  floor, a hidden portal's island).
+- **Fixed**: blocks a world lays while you play (a light bridge, a hidden portal's place) could
+  stay missing on your screen while the server had them: you stood on nothing, or stuck in a bridge.
+- **Inferno**: the guardian of the heart has a health bar over the screen, and every few seconds
+  throws a ball of fire that lands near you and sends a wall of fire along the floor: jump over it.
+- **Track**: the ghost kart faces the right way, has a driver and tips as the kart did.
+- **Tower defense**: turrets have icons and are held as small models; `/go defense` lands on the
+  field.
+- **Chambers**: gel drops fall slower.
+- **Staff**: `/go [ROOM]` lists the rooms or takes you to one's spawn, `/tp X Y Z|X Z|NAME`
+  moves you in the room you are in; each world has an admin command of test shortcuts (`/chamber`,
+  `/labphase`, `/track`, `/arpg`...), listed in [docs/COMMANDS.md](docs/COMMANDS.md).
 - **Fixed**: blocks a mod lays again (the assault's escape tunnel after a retry) could stay drawn
   broken on a client while the server had them whole: a block change overtook the chunk it was in.
 - **Fixed**: leaving a world while the cursed ghost held you left you walked by it, unable to

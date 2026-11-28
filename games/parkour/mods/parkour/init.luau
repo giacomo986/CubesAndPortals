@@ -732,6 +732,33 @@ if serving then
             end
         end
     end)
+
+    core.command("parkour", "<1..18|tower 1..7|summit> -- jump to a parkour pad", "admin")
+    core.event.on("core:command", function(ev)
+        if ev.name ~= "parkour" then return end
+        local w = string.split(string.gsub(ev.args, "^%s+", ""), " ")
+        local verb = string.lower(w[1] or "")
+        local slot = level_slot[ev.player]
+        local plan = if slot then PLANS[slot] else nil
+        local pads = if plan then plan.pads else PADS
+        local idx: number? = nil
+        if verb == "summit" then
+            idx = #pads
+        elseif verb == "tower" and not plan then
+            local k = tonumber(w[2])
+            if k and k >= 1 and k <= #TOWER then idx = (#PADS - #TOWER - 1) + math.floor(k) end
+        else
+            local k = tonumber(verb)
+            if k and k >= 1 and k <= #pads then idx = math.floor(k) end
+        end
+        if idx == nil then
+            core.chat(ev.player, `/parkour <1..{#pads}|tower 1..{#TOWER}|summit>`)
+            return
+        end
+        local pad = pads[idx :: number]
+        reached[ev.player] = idx
+        core.player_place(ev.player, pad[1] + 0.5, pad[2] + 1, pad[3] + 0.5, -1, 0, 0)
+    end)
 end
 
 -- ================================================================ the player

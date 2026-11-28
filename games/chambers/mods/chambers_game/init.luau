@@ -2653,6 +2653,36 @@ if serving then
         step_levels(dt)
         D.step(dt)
     end
+
+    core.command("chamber", "<0..18> -- jump straight to a test chamber", "admin")
+    core.event.on("core:command", function(ev)
+        if ev.name ~= "chamber" then return end
+        local n = tonumber(string.match(ev.args, "^%s*(%d+)"))
+        if n == nil or n < 0 or n > #ROOMS - 1 then
+            core.chat(ev.player, `/chamber <0..{#ROOMS - 1}>`)
+            return
+        end
+        local s = players[ev.player]
+        if s then s.zl = nil end
+        local want_lvl = if n >= 4 then 2 elseif n == 3 then 1 else 0
+        if want_lvl == 2 and core.bag_count(ev.player, "chambers_game:gun") == 0 then
+            local blue = core.bag_count(ev.player, "chambers_game:gun_blue")
+            if blue > 0 then core.take_item(ev.player, "chambers_game:gun_blue", blue) end
+            core.give_item(ev.player, "chambers_game:gun", 1)
+            if s then s.level = 2 end
+        elseif want_lvl == 1 and core.bag_count(ev.player, "chambers_game:gun_blue") == 0
+            and core.bag_count(ev.player, "chambers_game:gun") == 0 then
+            core.give_item(ev.player, "chambers_game:gun_blue", 1)
+            if s then s.level = 1 end
+        end
+        if n == 0 then
+            core.player_place(ev.player, 4.5, FL, 4.5, 1, 0, 0)
+        else
+            local r = ROOMS[n + 1]
+            core.player_place(ev.player, r.x0 + 1.5, FL, 6.0, 1, 0, 0)
+            core.player_spawn(ev.player, r.x0 + 1.5, FL, 6.0, true)
+        end
+    end)
 end
 
 -- ================================================================ the player

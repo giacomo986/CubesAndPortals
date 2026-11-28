@@ -2648,6 +2648,18 @@ Answers `true` or `false`; a mod with `api = 1` gets `1` or `0`, as before.
 | `id` | number | — | From core.spawn_mob or core.mob_ids. |
 | `hp` | number | — | 1 to 60000: what it has now, and its whole. |
 
+## `core.mob_life`
+
+```luau
+core.mob_life(id: number) -> (number?, number)
+```
+
+What one living creature has left and its whole: a boss's health bar (the Inferno's guardian). Returns NOTHING for one that is gone or dead, or on a client.
+
+| argument | type | default | notes |
+|---|---|---|---|
+| `id` | number | — | From core.spawn_mob or core.mob_ids. |
+
 ## `core.mob_hurt`
 
 ```luau
@@ -3600,6 +3612,14 @@ core.world_spawn() -> (number?, number, number)
 
 Where a player arrives in this world, and comes back after dying without a bed. On a server it answers while the mods load too in a world without a plaza (--survival), whose spawn is known before they do; elsewhere only once it runs.
 
+## `core.world_height`
+
+```luau
+core.world_height() -> number
+```
+
+How high this world is: the first cell over its top (64 unless --world-top). Kept with the world's file from when it was made, so a mod that builds high up asks rather than assumes (games/backrooms's suburb needs 96). 0 on a client.
+
 ## `core.seed`
 
 ```luau
@@ -3691,6 +3711,20 @@ core.player_look(player: number) -> (number?, number, number)
 Which way that player is looking, as a direction of length 1. On a server it is the look that came with their last ACCEPTED position, so a shot a mod fires along it goes where the server believes and not where a client says. Their eye is core.player_pos plus 1.62.
 
 Returns NOTHING for a player who is not in this world or has not moved yet.
+
+| argument | type | default | notes |
+|---|---|---|---|
+| `player` | number | — | An id from core.players, or from an event. |
+
+## `core.player_tilt`
+
+```luau
+core.player_tilt(player: number) -> (number?, number, number, number, number)
+```
+
+How the kart that player drives sits, as the server's own copy of its chassis has it and every client draws it: its pitch (radians, the nose up) and roll (radians, the right side down), and where the bottom of its model is from core.player_pos (dx, dy, dz). What a ghost kart needs to tip as the real one did (games/track).
+
+Returns NOTHING for a player not driving, or on a client.
 
 | argument | type | default | notes |
 |---|---|---|---|

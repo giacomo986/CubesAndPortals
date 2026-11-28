@@ -4149,6 +4149,48 @@ if serving then
         SV.step_proj(dt)
         SV.step_ground()
     end
+
+    core.command("arpg", "<town|butcher|grave|emberwing|crypt|floor1|floor2|keeper|level N|gold [N]> -- quick jump or stats", "admin")
+    core.event.on("core:command", function(ev)
+        if ev.name ~= "arpg" then return end
+        local w = string.split(string.gsub(ev.args, "^%s+", ""), " ")
+        local verb = string.lower(w[1] or "")
+        local p = ev.player
+        local s = SV.players[p]
+        if verb == "level" then
+            if s == nil or s.cls == 0 then core.chat(p, "Pick a class first.") return end
+            local want = math.clamp(math.floor(tonumber(w[2]) or 11), 1, D.MAX_LEVEL)
+            while s.lvl < want do SV.give_xp(p, s, D.next_xp(s.lvl)) end
+            core.notice(p, `Level {s.lvl} (sp {s.sp}, kp {s.kp}).`)
+            return
+        elseif verb == "gold" then
+            if s == nil then return end
+            local amt = math.max(1, math.floor(tonumber(w[2]) or 1000))
+            s.gold += amt
+            s.dirty = true
+            core.notice(p, `+{amt} gold.`)
+            return
+        end
+        local SPOTS: { [string]: { number } } = {
+            town = { L.OX + 0.5, GROUND, L.OZ + 0.5 },
+            floor1 = { L.CRYPT_DX + 86.5, 16, L.CRYPT_DZ + 59.5 },
+            floor2 = { L.CRYPT_DX + 114.5, 14, L.CRYPT_DZ + 59.5 },
+            keeper = { L.CRYPT_DX + 142.5, 12, L.CRYPT_DZ + 59.5 },
+        }
+        local KEYS: { [string]: string } = { butcher = "b1", grave = "a5", emberwing = "a10", crypt = "crypt" }
+        local sp = SPOTS[verb]
+        if sp then
+            core.player_place(p, sp[1], sp[2], sp[3], 1, 0, 0)
+            return
+        end
+        local akey = KEYS[verb]
+        if akey and L.BY_KEY[akey] then
+            local a = L.AREAS[L.BY_KEY[akey]]
+            core.player_place(p, a.cx + 0.5, GROUND, a.cz + 0.5, 1, 0, 0)
+            return
+        end
+        core.chat(p, "/arpg <town|butcher|grave|emberwing|crypt|floor1|floor2|keeper|level N|gold [N]>")
+    end)
 end
 
 -- ===================================================== the player's machine

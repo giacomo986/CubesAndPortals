@@ -1054,6 +1054,41 @@ if serving then
             end
         end
     end)
+
+    core.command("shmup", "<wave N|power|drops> -- test wave or power-ups", "admin")
+    core.event.on("core:command", function(ev)
+        if ev.name ~= "shmup" then return end
+        local w = string.split(string.gsub(ev.args, "^%s+", ""), " ")
+        local verb = string.lower(w[1] or "")
+        if verb == "wave" then
+            local n = math.clamp(math.floor(tonumber(w[2]) or 1), 1, LAST_WAVE)
+            TEST_WAVE = n - 1
+            local f = fliers[ev.player]
+            if f and not f.out then
+                clear()
+                mode, wave, kills = "play", n - 1, 0
+                f.lives = math.max(f.lives, 30)
+                start_wave()
+                count(ev.player, f)
+            else
+                core.notice(ev.player, `Next take-off starts at wave {n} (30 lives). Board a fighter with F.`)
+            end
+        elseif verb == "power" then
+            local f = fliers[ev.player]
+            if f == nil or f.out then
+                core.chat(ev.player, "Board a fighter first (F).")
+                return
+            end
+            for _, k in { "sp", "fp", "fp", "fp", "hm", "hm", "dg", "dg", "lz", "wm", "wm" } do
+                if not full(f, k) or k == "lz" then take(ev.player, f, k, CX, CZ) end
+            end
+        elseif verb == "drops" then
+            TEST_DROPS = not TEST_DROPS
+            core.notice(ev.player, `Always drop power-up: {if TEST_DROPS then "on" else "off"}`)
+        else
+            core.chat(ev.player, "/shmup <wave N|power|drops>")
+        end
+    end)
 end
 
 -- ================================================================ the player

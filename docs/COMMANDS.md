@@ -57,9 +57,19 @@ everything below it). `/perm` shows and changes which role a permission wants;
 | `/ghost [record\|mine\|NAME\|off]` | track | anybody | Which ghost kart drives your laps: the track's record (the default; the engineer's on the Inferno track), your own best lap, another player's best lap, or none. Kept |
 | `/laps` | track | anybody | Everybody's best lap on the track you last drove: the first ten and your own place, and who has a ghost |
 | `/pieces` | track | anybody | Puts in your bag a stack of every track piece, the track editor (B with it in hand picks the next piece from afar), and the start line, checkpoint, off-road, item box and portal tools |
-| `/defense` | tower defense | anybody | The tower defense's records: the field's best wave and who held it, and the best wave of each player here |
 | `/manta` | cloud world | anybody | How many times you have beaten the Cloud Manta |
 | `/vehicle <jeep\|tank\|heli\|plane\|bomber\|nest\|mortar\|howitzer\|aa>` | front, assault | moderator | Puts that machine six nodes in front of you, for testing |
+| `/arpg <town\|butcher\|grave\|emberwing\|crypt\|floor1\|floor2\|keeper\|level N\|gold [N]>` | arpg | admin | Test shortcuts: to the town, an area's boss, the crypt or one of its floors; your level up to N (a class picked first); N gold (1000) |
+| `/backrooms <pink\|hotel\|party\|pool\|slide\|portal\|exit\|suburb\|shift\|kit>` | backrooms | admin | Test shortcuts: to the pink door, the nearest hotel or party district, the pool floor, a slide, a portal site, the exit, a street of the endless suburb (a world 96 high); `shift` moves the portal links on at once; `kit` gives both compasses, the torch and crafting drops |
+| `/chamber <0..18>` | chambers | admin | To that test chamber, with the gun it needs (blue from 03, both from 04) |
+| `/defense [kit\|turrets\|wave N]` | tower defense | anybody (records), admin (the rest) | With no word, the records: the field's best wave and who held it, and the best wave of each player here. `kit` the building materials, `turrets` two of each turret and barricades, `wave N` clears the field and starts wave N |
+| `/inferno <hall\|brazier 1..4\|light>` | inferno | admin | To the heart's hall or a brazier; `light` lights all four and opens the gate |
+| `/labphase <shield\|siege\|climb\|pit\|fire\|dark\|frost\|race>` | lab | admin | L'Ospite's fight from that phase, the room laid out for it (the climb's route, the lava, the lamps out, the kart for the race) and you in place; `pit` is the climb from the pit's parkour |
+| `/parkour <1..18\|tower 1..7\|summit>` | parkour | admin | To that pad (of the level you are on, in survival), a tower station or the summit, counted as reached |
+| `/plat <room\|1-1\|1-2\|1-3\|bonus\|boss\|big\|fire>` | platform game | admin | Out to the room, into a level, to 1-1's bonus pipe or 1-3's boss hall; `big` and `fire` give that power in a level |
+| `/shmup <wave N\|power\|drops>` | shooter | admin | `wave N` starts that wave now with 30 lives (or at the next take-off); `power` fills your fighter's power-ups; `drops` makes every kill drop one, or not |
+| `/skies <manta\|village\|updraft\|phase2\|phase3\|kit\|reset>` | cloud world | admin | To the Manta's island, the nearest village or updraft; the Manta's low phase or its fall started now; `kit` the gliders, crystals and weapons; `reset` the fight back to the start |
+| `/track <start\|ring\|grand\|inferno\|loops\|power KIND\|kart>` | track | admin | To that track's start line (in its room); `power KIND` (boost, boost3, banana, shell, homing, ink, star, bolt) into your kart; `kart` a kart in your bag |
 
 ## For the staff
 
@@ -81,6 +91,9 @@ everything below it). `/perm` shows and changes which role a permission wants;
 | `/trophies` | anybody | How many trophies you have won; `/page trophies` lists them, with hints and which way the hidden portals are (`mods/trophies`) |
 | `/trophies sites` `/trophies go ID [place] [NAME]` `/trophies home [NAME]` | admin | Where the five hidden portals are and whether each is built; you or NAME in front of one (`well`, `summit`, `lake`, `hill`, `circle`) or, with `place`, into the place it leads to; NAME (or you) into their own room, to see the trophy shelf (`mods/trophies`) |
 | `/village siege\|feast\|caravan\|incoming` | admin | Starts a village event now in the village you stand in: a siege warned of now and coming at nightfall, the harvest feast, a caravan to the nearest other village, or one coming from an unvisited village along the paths (`mods/villagers`) |
+| `/go [ROOM]` | go (admin) | With no word, the rooms of this server and whether each is up or started on demand; with one, you to that room's spawn (a room on demand is started). Then `/tp` for a place in it |
+| `/tp X Y Z` `/tp X Z` `/tp NAME` | tp (admin) | You to that place in the room you are in; with X Z only, onto the ground there (the highest floor with two free nodes above, or your height on a column not loaded); with a name, to that player, or to the spawn of the room they are in |
+| `/cursedghost` | admin | A cursed ghost four nodes in front of you, to test its hold (`mods/ghost`) |
 
 ### Players
 

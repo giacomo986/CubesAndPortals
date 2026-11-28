@@ -844,10 +844,74 @@ if serving then
     end)
 
     core.command("manta", "-- how many times you have beaten the Cloud Manta")
+    core.command("skies", "<manta|village|updraft|phase2|phase3|kit|reset> -- quick test jump", "admin")
     core.event.on("core:command", function(ev)
-        if ev.name ~= "manta" then return end
-        local n = tonumber(core.storage_get("won:" .. string.lower(core.player_name(ev.player)))) or 0
-        core.notice(ev.player, if n == 0 then "You have not beaten the Cloud Manta yet." else `Cloud Manta beaten: {n}`)
+        if ev.name == "manta" then
+            local n = tonumber(core.storage_get("won:" .. string.lower(core.player_name(ev.player)))) or 0
+            core.notice(ev.player, if n == 0 then "You have not beaten the Cloud Manta yet." else `Cloud Manta beaten: {n}`)
+            return
+        end
+        if ev.name ~= "skies" then return end
+        local verb = string.lower(string.match(ev.args, "^%s*(%S*)") or "")
+        if verb == "manta" then
+            core.player_place(ev.player, CENTRE.x + 0.5, CENTRE.y + 1, CENTRE.z - 22, 0, 0, 1)
+        elseif verb == "village" then
+            local px, _, pz = core.player_pos(ev.player)
+            local cx0, cz0 = math.floor((px or 0) / L.CELL), math.floor((pz or 0) / L.CELL)
+            local best: Island? = nil
+            local bd = math.huge
+            for r = 0, 12 do
+                for dz = -r, r do
+                    for dx = -r, r do
+                        for _, isl in L.islands_near((cx0 + dx) * L.CELL, (cz0 + dz) * L.CELL, L.CELL) do
+                            if isl.village then
+                                local d = (isl.x - (px or 0)) ^ 2 + (isl.z - (pz or 0)) ^ 2
+                                if d < bd then best, bd = isl, d end
+                            end
+                        end
+                    end
+                end
+                if best then break end
+            end
+            if best then
+                core.player_place(ev.player, best.x + 0.5, best.y + 1, best.z + 4.5, 0, 0, -1)
+            else
+                core.chat(ev.player, "No village found near here.")
+            end
+        elseif verb == "updraft" then
+            local px, _, pz = core.player_pos(ev.player)
+            local u = L.updrafts_near(px or 0, pz or 0, 200, clock)
+            if #u >= 2 then
+                core.player_place(ev.player, u[1], 36, u[2], 0, 0, 1)
+            else
+                core.chat(ev.player, "No updraft within 200 m.")
+            end
+        elseif verb == "phase2" then
+            reset()
+            spawn_manta()
+            for _, r in RODS do core.set_block(r[1], r[2], r[3], ROD_SPENT) end
+            spent, phase, squall_wait = 4, "low", 4
+            core.player_place(ev.player, CENTRE.x + 0.5, CENTRE.y + 1, CENTRE.z - 6, 0, 0, 1)
+            everyone("The Manta falls onto the centre island: fight it there!")
+        elseif verb == "phase3" then
+            if manta == 0 then spawn_manta() end
+            hp = whole * 0.28
+            core.player_place(ev.player, CENTRE.x + 0.5, CENTRE.y + 1, CENTRE.z - 6, 0, 0, 1)
+            to_fall()
+        elseif verb == "kit" then
+            core.give_item(ev.player, "glider:storm_glider", 1)
+            core.give_item(ev.player, "glider:glider", 1)
+            core.give_item(ev.player, "skies:sky_crystal", 20)
+            core.give_item(ev.player, "archery:bow", 1)
+            core.give_item(ev.player, "archery:arrow", 64)
+            core.give_item(ev.player, "tools:sword", 1)
+            core.notice(ev.player, "Storm glider, sky crystals and weapons given.")
+        elseif verb == "reset" then
+            reset()
+            core.notice(ev.player, "Manta reset.")
+        else
+            core.chat(ev.player, "/skies <manta|village|updraft|phase2|phase3|kit|reset>")
+        end
     end)
 end
 

@@ -407,8 +407,14 @@ WallShift portal_wall_shift(const Portal &p, Vec3 feet, float half_width, float 
     // A body standing at the hole's foot steps onto what lines it; one in the
     // air over it has its bottom raised into the hole, but never by much: a
     // body lifted off the ground it stands on would fall.
+    //
+    // "At the foot" is up to the margin over it, not a hundredth: a body on a
+    // light bridge or a plate a sixteenth thick laid out of the hole was
+    // taken for one in the air, its box raised, and its feet sank through
+    // the sixteenth to 20.01 -- inside it for the server, put back for ever
+    // (chamber 16, 2026-11-28).
     float bottom = 0.0f;
-    if (feet.y > p.center.y - p.half_h + 0.01f) bottom = std::max(0.0f, lo - feet.y);
+    if (feet.y > p.center.y - p.half_h + margin) bottom = std::max(0.0f, lo - feet.y);
     if (bottom > 0.6f) return w;
     const float top = std::max(0.0f, feet.y + height - hi);
     if (height - bottom - top < 0.6f) return w;

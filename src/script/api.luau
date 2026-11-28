@@ -2711,6 +2711,16 @@ local api: { Fn } = {
            .. "one that is gone or dead. On a server.",
     },
     {
+        name = "mob_life",
+        host = "mob_life",
+        rets = { "int", "int" },
+        args = {
+            { name = "id", type = "int", doc = "From core.spawn_mob or core.mob_ids." },
+        },
+        doc = "What one living creature has left and its whole: a boss's health bar (the "
+           .. "Inferno's guardian). Returns NOTHING for one that is gone or dead, or on a client.",
+    },
+    {
         name = "mob_hurt",
         host = "mob_hurt",
         ret  = "int",
@@ -3582,6 +3592,15 @@ local api: { Fn } = {
            .. "(--survival), whose spawn is known before they do; elsewhere only once it runs.",
     },
     {
+        name = "world_height",
+        host = "world_height",
+        ret  = "int",
+        args = {},
+        doc = "How high this world is: the first cell over its top (64 unless --world-top). Kept "
+           .. "with the world's file from when it was made, so a mod that builds high up asks "
+           .. "rather than assumes (games/backrooms's suburb needs 96). 0 on a client.",
+    },
+    {
         name = "seed",
         host = "world_seed",
         ret  = "int",
@@ -3676,6 +3695,19 @@ local api: { Fn } = {
            .. "it goes where the server believes and not where a client says. Their eye is "
            .. "core.player_pos plus 1.62.\n\n"
            .. "Returns NOTHING for a player who is not in this world or has not moved yet.",
+    },
+    {
+        name = "player_tilt",
+        host = "player_tilt",
+        rets = { "float", "float", "float", "float", "float" },
+        args = {
+            { name = "player", type = "int", doc = "An id from core.players, or from an event." },
+        },
+        doc = "How the kart that player drives sits, as the server's own copy of its chassis has it "
+           .. "and every client draws it: its pitch (radians, the nose up) and roll (radians, the "
+           .. "right side down), and where the bottom of its model is from core.player_pos (dx, "
+           .. "dy, dz). What a ghost kart needs to tip as the real one did (games/track).\n\n"
+           .. "Returns NOTHING for a player not driving, or on a client.",
     },
     {
         name = "player_launch",

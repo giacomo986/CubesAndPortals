@@ -1209,6 +1209,76 @@ if serving then
         step_orbs(dt)
         step_minions()
     end
+
+    core.command("labphase", "<shield|siege|climb|pit|fire|dark|frost|race> -- jump to a phase of l'Ospite", "admin")
+    -- The phases' own ids are Italian; the command's words are English.
+    local PHASE_WORDS: { [string]: string } = {
+        shield = "scudo", siege = "assedio", climb = "vetta", pit = "pit",
+        fire = "fuoco", dark = "buio", frost = "gelo", race = "corsa",
+    }
+    core.event.on("core:command", function(ev)
+        if ev.name ~= "labphase" then return end
+        local word = string.lower(string.match(ev.args, "^%s*(%S*)") or "")
+        local verb = PHASE_WORDS[word] or ""
+        if verb == "scudo" or verb == "assedio" or verb == "vetta" or verb == "fuoco"
+            or verb == "buio" or verb == "gelo" or verb == "corsa" or verb == "pit" then
+            if ospite == 0 and verb ~= "corsa" then spawn_ospite() end
+            lamps(verb ~= "buio")
+            if ospite ~= 0 then core.ecs.visible(ospite, verb ~= "buio") end
+            if verb == "scudo" then
+                set_phase("scudo")
+                core.player_place(ev.player, START[1], START[2], START[3], 0, 0, 1)
+            elseif verb == "assedio" then
+                if shield ~= 0 then core.ecs.kill(shield); shield = 0 end
+                set_phase("assedio")
+                core.player_place(ev.player, START[1], START[2], START[3], 0, 0, 1)
+            elseif verb == "vetta" or verb == "pit" then
+                if shield ~= 0 then core.ecs.kill(shield); shield = 0 end
+                hp = math.min(hp, OSPITE_HP * 0.65)
+                fill(FL - 1, FL, 0)
+                for _, b in ROUTE do
+                    for x = b[1], b[4] do
+                        for z = b[3], b[6] do
+                            for y = b[2], b[5] do core.set_block(x, y, z, b[7]) end
+                        end
+                    end
+                end
+                set_phase("vetta")
+                if verb == "pit" then
+                    core.player_place(ev.player, -4.5, 7, -15.5, 1, 0, 0)
+                else
+                    core.player_place(ev.player, GALLERY[1], GALLERY[2], GALLERY[3], 0, 0, 1)
+                end
+            elseif verb == "fuoco" then
+                hp = math.min(hp, OSPITE_HP * 0.6)
+                fill(8, GY - 1, LAVA, 0)
+                set_phase("fuoco")
+                core.player_place(ev.player, GALLERY[1], GALLERY[2], GALLERY[3], 0, 0, 1)
+            elseif verb == "buio" then
+                hp = math.min(hp, OSPITE_HP * 0.4)
+                set_phase("buio")
+                core.player_place(ev.player, GALLERY[1], GALLERY[2], GALLERY[3], 0, 0, 1)
+            elseif verb == "gelo" then
+                hp = math.min(hp, OSPITE_HP * 0.2)
+                set_phase("gelo")
+                core.player_place(ev.player, GALLERY[1], GALLERY[2], GALLERY[3], 0, 0, 1)
+            elseif verb == "corsa" then
+                if ospite ~= 0 then core.ecs.kill(ospite); ospite = 0 end
+                if shield ~= 0 then core.ecs.kill(shield); shield = 0 end
+                tell(0, "hp -1 1")
+                core.set_block(KART_AT[1], KART_AT[2], KART_AT[3], KART)
+                core.set_facing(KART_AT[1], KART_AT[2], KART_AT[3], 2)
+                for x = -7, 6 do
+                    for y = GY + 1, GY + 4 do core.set_block(x, y, 17, 0) end
+                end
+                set_phase("corsa")
+                core.player_place(ev.player, KART_AT[1] + 2.5, KART_AT[2], KART_AT[3] - 1.5, 0, 0, 1)
+            end
+            core.notice(ev.player, `Lab phase: {word}`)
+        else
+            core.chat(ev.player, "/labphase <shield|siege|climb|pit|fire|dark|frost|race>")
+        end
+    end)
 end
 
 -- ===================================================== the player's machine

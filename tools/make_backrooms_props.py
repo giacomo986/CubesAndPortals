@@ -14,6 +14,10 @@
 #   ladder.gltf  one cell of a steel ladder against the +z side of its cell:
 #                two round rails and two rungs, bright steel. Up a slide's tower and
 #                out of every pool.
+#   balloon_red.gltf, balloon_yellow.gltf, balloon_blue.gltf
+#                the party's balloons: a glossy egg over the middle of its cell
+#                (it touches the ceiling when hung under one), its knot, and a
+#                white string hanging a cell and a half below it.
 #
 #   flatpak run org.blender.Blender --background --python "$PWD/tools/make_backrooms_props.py"
 #
@@ -176,6 +180,41 @@ def ladder():
     return obj
 
 
+def balloon(name, rgb):
+    skin = material(f"{name}_skin", rgb, rough=0.25)
+    knot = material(f"{name}_knot", tuple(c * 0.7 for c in rgb), rough=0.4)
+    thread = material("balloon_string", (0.92, 0.92, 0.9), rough=0.8)
+    bm = bmesh.new()
+    cx, cy = 0.5, -0.5
+    # The egg: a UV sphere stretched up, its centre high in the cell.
+    bmesh.ops.create_uvsphere(bm, u_segments=14, v_segments=10, radius=0.3)
+    for v in bm.verts:
+        v.co.z *= 1.18
+        v.co.x += cx
+        v.co.y += cy
+        v.co.z += 0.62
+    egg = len(bm.faces)
+    cylinder(bm, (cx, cy, 0.29), (cx, cy, 0.25), 0.045, seg=8)   # the knot
+    knots = len(bm.faces)
+    cylinder(bm, (cx, cy, 0.26), (cx + 0.03, cy, -0.4), 0.006, seg=5)   # the string, a little slack
+    cylinder(bm, (cx + 0.03, cy, -0.4), (cx - 0.02, cy, -0.95), 0.006, seg=5)
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    for m in (skin, knot, thread):
+        me.materials.append(m)
+    for i, poly in enumerate(me.polygons):
+        poly.material_index = 0 if i < egg else 1 if i < knots else 2
+        poly.use_smooth = i < egg
+    obj = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(obj)
+    return obj
+
+
+BALLOONS = (("balloon_red", (0.82, 0.06, 0.08)), ("balloon_yellow", (0.95, 0.72, 0.05)),
+            ("balloon_blue", (0.06, 0.22, 0.85)))
+
+
 def export(obj, path):
     bpy.ops.object.select_all(action="DESELECT")
     obj.select_set(True)
@@ -197,9 +236,13 @@ def make():
     lad = ladder()
     export(lad, os.path.join(OUT, "ladder.gltf"))
     lad.location.x = 1.5
+    for k, (name, rgb) in enumerate(BALLOONS):
+        b = balloon(name, rgb)
+        export(b, os.path.join(OUT, f"{name}.gltf"))
+        b.location.x = 3.0 + 1.2 * k
     os.makedirs(os.path.dirname(BLEND), exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=BLEND)
-    print("slide and ladder in", os.path.normpath(OUT))
+    print("slide, ladder and balloons in", os.path.normpath(OUT))
 
 
 if __name__ == "__main__":

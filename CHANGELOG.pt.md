@@ -5,8 +5,30 @@
 Uma entrada para cada alfa distribuída, a mais nova no topo. Como elas são numeradas e como se faz
 uma alfa: [docs/BUILDING.pt.md](docs/BUILDING.pt.md#versões).
 
-## Próxima alfa (ainda sem tag)
+## 0.21.0-alpha.4 — 2026-11-28
 
+- **Backrooms**: o subúrbio sem fim, um quarto nível sobre as piscinas: ruas e casas todas iguais,
+  vazias, iluminadas por candeeiros; chega-se por escadas, buracos e portais, também nas backrooms
+  profundas (precisa de um mundo das backrooms novo: agora têm altura 96). Na festa, palhaços que
+  vêm ao seu encontro só quando não olha para eles, e balões a sério. Um Smiler apaga as luzes da
+  sala onde está.
+- **Backrooms**: a escada de uma piscina fica na água, sem um buraco de ar pela borda.
+- **Corrigido**: o peixe cozido pode ser comido. Um cogumelo castanho, um favo e uma cana-de-açúcar
+  são uma pequena dentada cada.
+- **Corrigido**: blocos mudados por um mundo podiam não ser desenhados até se afastar e voltar
+  (o gel num chão, a ilha de um portal escondido).
+- **Corrigido**: os blocos que um mundo coloca enquanto joga (uma ponte de luz, o lugar de um portal
+  escondido) podiam não chegar ao ecrã enquanto o servidor os tinha: ficava de pé no nada, ou preso
+  numa ponte.
+- **Inferno**: o guardião do coração tem uma barra de vida no ecrã, e de vez em quando lança uma bola
+  de fogo que cai perto de si e manda um muro de fogo pelo chão: salte por cima.
+- **Pista**: o kart fantasma está virado para o lado certo, tem piloto e inclina-se como o kart real.
+- **Tower defense**: as torres têm ícones e seguram-se na mão em miniatura; `/go defense` leva ao
+  campo.
+- **Câmaras de teste**: as gotas de gel caem mais devagar.
+- **Staff**: `/go [ROOM]` lista as salas ou leva você ao spawn de uma, `/tp X Y Z|X Z|NAME`
+  move você na sala em que está; cada mundo tem um comando admin de atalhos de teste (`/chamber`,
+  `/labphase`, `/track`, `/arpg`...), listados em [docs/COMMANDS.pt.md](docs/COMMANDS.pt.md).
 - **Corrigido**: blocos que um mod coloca de novo (o túnel da fuga do assalto depois de uma nova
   tentativa) podiam ficar desenhados quebrados num cliente enquanto o servidor os tinha inteiros:
   uma mudança de bloco ultrapassava o chunk em que estava.

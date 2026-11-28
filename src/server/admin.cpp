@@ -364,7 +364,7 @@ const PermRow kPerms[] = {
     {"inspect", Role::Helper},     {"rollback", Role::Moderator},
     {"oldbags", Role::Admin},
     {"bag", Role::Moderator},      {"give", Role::Admin},     {"rules", Role::Admin},
-    {"alts", Role::Moderator},
+    {"alts", Role::Moderator},     {"go", Role::Admin},       {"tp", Role::Admin},
 };
 
 struct Command {
@@ -1340,6 +1340,74 @@ void cmd_backup(const Who &c, const Args &, const Hooks &, std::vector<std::stri
     out.push_back("Backing up the worlds; the log says when it is done.");
 }
 
+bool parse_num(const std::string &s, float &out)
+{
+    if (s.empty()) return false;
+    char       *end = nullptr;
+    const float v   = std::strtof(s.c_str(), &end);
+    if (end == s.c_str() || *end != '\0' || !std::isfinite(v)) return false;
+    out = v;
+    return true;
+}
+
+void cmd_go(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    if (a.words.empty()) {
+        if (h.rooms_list) out = h.rooms_list();
+        if (out.empty()) out.push_back("No rooms.");
+        return;
+    }
+    net::PeerId peer = net::kNoPeer;
+    resolve(c.name, h, &peer);
+    if (peer == net::kNoPeer || !h.go) {
+        out.push_back("Only from inside a world.");
+        return;
+    }
+    const std::string err = h.go(peer, a.words[0]);
+    if (!err.empty()) {
+        out.push_back(err);
+        return;
+    }
+    log(c, "go", a.words[0], "");
+    out.push_back("Going to " + a.words[0] + ".");
+}
+
+void cmd_tp(const Who &c, const Args &a, const Hooks &h, std::vector<std::string> &out)
+{
+    if (a.words.empty()) {
+        out.push_back("/tp <X Y Z|X Z|NAME> -- teleport here, or to a player");
+        return;
+    }
+    net::PeerId peer = net::kNoPeer;
+    resolve(c.name, h, &peer);
+    if (peer == net::kNoPeer || !h.tp) {
+        out.push_back("Only from inside a world.");
+        return;
+    }
+    std::string err;
+    if (a.words.size() == 1) {
+        err = h.tp(peer, a.words[0], false, 0, 0, 0, false);
+        if (err.empty()) log(c, "tp", a.words[0], "");
+    } else if (a.words.size() == 2) {
+        float x = 0, z = 0;
+        if (!parse_num(a.words[0], x) || !parse_num(a.words[1], z)) {
+            out.push_back("/tp <X Y Z|X Z|NAME>");
+            return;
+        }
+        err = h.tp(peer, "", true, x, 0, z, false);
+        if (err.empty()) log(c, "tp", "", a.words[0] + " " + a.words[1]);
+    } else {
+        float x = 0, y = 0, z = 0;
+        if (!parse_num(a.words[0], x) || !parse_num(a.words[1], y) || !parse_num(a.words[2], z)) {
+            out.push_back("/tp <X Y Z|X Z|NAME>");
+            return;
+        }
+        err = h.tp(peer, "", true, x, y, z, true);
+        if (err.empty()) log(c, "tp", "", a.words[0] + " " + a.words[1] + " " + a.words[2]);
+    }
+    out.push_back(err.empty() ? "Teleported." : err);
+}
+
 // Federation, below the sockets.
 void cmd_friend(const Who &, const Args &, const Hooks &, std::vector<std::string> &);
 void cmd_fed(const Who &, const Args &, const Hooks &, std::vector<std::string> &);
@@ -1373,6 +1441,8 @@ const Command kCommands[] = {
     {"bag", "bag", "NAME -- what a player carries", cmd_bag},
     {"give", "give", "NAME ITEM [COUNT] -- into a player's bag", cmd_give},
     {"time", "time", "[day|noon|dusk|night|midnight|dawn|HH:MM] -- this world's hour, or set it", cmd_time},
+    {"go", "go", "[ROOM] -- go to the spawn of a room (or list them)", cmd_go},
+    {"tp", "tp", "<X Y Z|X Z|NAME> -- teleport here, or to a player", cmd_tp},
     {"inspect", "inspect", "X Y Z [ROOM] -- who changed that block", cmd_inspect},
     {"rollback", "rollback", "NAME DURATION [ROOM] -- put back what a player changed", cmd_rollback},
     {"oldbags", "oldbags", "NAME [N] -- bags kept aside between friend servers; N gives one back", cmd_oldbags},

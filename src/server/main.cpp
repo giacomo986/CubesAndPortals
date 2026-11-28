@@ -462,6 +462,7 @@ struct ServerState {
     struct Owed {
         std::vector<uint64_t>        order;
         std::unordered_set<uint64_t> seen;
+        double                       held_since = -1.0;   // held back behind a chunk in flight, since
 
         void add(uint64_t key)
         {
@@ -1243,6 +1244,11 @@ int host_world_seed(void *ud)
     return s->mapgen_ctx ? (int)(s->mapgen_ctx->seed & 0x7fffffffu) : 0;
 }
 
+int host_world_height(void *ud)
+{
+    return static_cast<ServerState *>(ud)->height;
+}
+
 int host_plaza(void *ud, int *lo, int *hi)
 {
     ServerState *s = static_cast<ServerState *>(ud);
@@ -1305,6 +1311,21 @@ int host_player_pos(void *ud, int player, float *x, float *y, float *z)
     *x = at.x;
     *y = at.y;
     *z = at.z;
+    return 1;
+}
+
+int host_player_tilt(void *ud, int player, float *pitch, float *roll, float *dx, float *dy, float *dz)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    if (!s->sessions) return 0;
+    const net::Session *sess = s->sessions->find((net::PeerId)player);
+    if (!sess || !sess->movement.drives() || !sess->drive.body.vehicle) return 0;
+    const Player &b = sess->drive.body;
+    *pitch = b.body_pitch;
+    *roll  = b.body_roll;
+    *dx    = b.body_base.x - b.pos.x;
+    *dy    = b.body_base.y - b.pos.y;
+    *dz    = b.body_base.z - b.pos.z;
     return 1;
 }
 
@@ -5035,6 +5056,12 @@ int host_mob_health(void *ud, int id, int hp)
                        : 0;
 }
 
+int host_mob_life(void *ud, int id, int *hp, int *max)
+{
+    ServerState *s = static_cast<ServerState *>(ud);
+    return s->sessions ? cnp::ecs::mob_life(s->sessions->ecs(), (uint32_t)id, *hp, *max) : 0;
+}
+
 int host_mob_remove(void *ud, int id)
 {
     ServerState *s = static_cast<ServerState *>(ud);
@@ -5793,7 +5820,9 @@ struct Router {
 Router g_router;
 
 // Which room this thread runs.
-thread_local int g_room = 0;
+thread_local int          g_room  = 0;
+thread_local ServerState *g_state = nullptr;
+
 
 // What friend servers' mods said to ours (core.fed_send there, admin's
 // federation thread hearing it), for the first room to give its mods
@@ -6050,6 +6079,74 @@ admin::Hooks admin_hooks()
         if (!room.sessions) return -1.0;
         if (t >= 0.0) room.sessions->set_time(t);
         return room.sessions->time_of_day();
+    };
+    h.rooms_list = []() {
+        std::vector<std::string> out;
+        for (size_t i = 0; i < g_router.rooms.size(); ++i)
+            out.push_back((g_router.rooms[i].name.empty() ? std::string("this world") : g_router.rooms[i].name) +
+                          (g_hot.running[i] ? " (up)" : " (down)"));
+        for (const auto &d : g_hot.defs)
+            if (!HotRooms::is_template(d.first) && g_router.find(d.first) < 0)
+                out.push_back(d.first + " (on demand)");
+        return out;
+    };
+    h.go = [](net::PeerId peer, const std::string &room) -> std::string {
+        if (!g_state || !g_state->sessions) return "Only from inside a world.";
+        if (room == room_name()) return "Already in '" + room + "'.";
+        if (send_room(room).empty()) return "No room called '" + room + "'.";
+        if (!host_room_send(g_state, (int)peer, room.c_str())) return "Could not go to '" + room + "'.";
+        return "";
+    };
+    h.tp = [](net::PeerId peer, const std::string &target, bool has_pos, float x, float y, float z,
+              bool has_y) -> std::string {
+        if (!g_state || !g_state->sessions) return "Only from inside a world.";
+        const net::Session *me = g_state->sessions->find(peer);
+        if (!me || me->scope != net::Scope::Enter) return "Not in this world.";
+        if (has_pos) {
+            if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z)) return "Not a number.";
+            if (!has_y) {
+                const int bx = (int)std::floor(x), bz = (int)std::floor(z);
+                float     best_y = me->authority().valid ? me->authority().y : 32.0f;
+                for (int by = g_state->height - 3; by >= 1; --by) {
+                    if (g_state->registry.get(g_state->world.get_block(bx, by, bz)).solid &&
+                        !g_state->registry.get(g_state->world.get_block(bx, by + 1, bz)).solid &&
+                        !g_state->registry.get(g_state->world.get_block(bx, by + 2, bz)).solid) {
+                        best_y = (float)(by + 1);
+                        break;
+                    }
+                }
+                y = best_y;
+            }
+            g_state->mod_places.push_back(ServerState::ModPlace{peer, Vec3{x, y, z}, Vec3{0.0f, 0.0f, 0.0f}});
+            return "";
+        }
+        const auto same_icase = [](const std::string &a, const std::string &b) {
+            if (a.size() != b.size()) return false;
+            for (size_t i = 0; i < a.size(); ++i)
+                if (std::tolower((unsigned char)a[i]) != std::tolower((unsigned char)b[i])) return false;
+            return true;
+        };
+        for (const net::PeerId p : g_state->sessions->ready_peers()) {
+            const net::Session *o = g_state->sessions->find(p);
+            if (o && o->scope == net::Scope::Enter && same_icase(o->name, target)) {
+                if (!o->authority().valid) return o->name + " has no place yet.";
+                g_state->mod_places.push_back(
+                    ServerState::ModPlace{peer, Vec3{o->authority().x, o->authority().y, o->authority().z},
+                                          Vec3{0.0f, 0.0f, 0.0f}});
+                return "";
+            }
+        }
+        for (const RoomShared &r : g_router.rooms) {
+            if (!r.sessions || r.name == room_name()) continue;
+            for (const net::PeerId p : r.sessions->ready_peers()) {
+                const net::Session *o = r.sessions->find(p);
+                if (o && o->scope == net::Scope::Enter && same_icase(o->name, target)) {
+                    if (host_room_send(g_state, (int)peer, r.name.c_str())) return "Sent to the spawn of " + r.name + ", where " + o->name + " is.";
+                    return o->name + " is in " + r.name + ", could not send you there.";
+                }
+            }
+        }
+        return "Nobody called '" + target + "' is online.";
     };
     h.give = [](net::PeerId peer, const std::string &item, int count) -> std::string {
         const auto r = g_router.room_of.find(peer);
@@ -7340,6 +7437,10 @@ int serve_room(int argc, char **argv)
     std::setvbuf(stdout, nullptr, _IOLBF, 0);
 
     ServerState s;
+    struct StateScope {
+        explicit StateScope(ServerState *p) { g_state = p; }
+        ~StateScope() { g_state = nullptr; }
+    } state_scope(&s);
     if (world_file) s.difficulty_file = std::string(world_file) + ".difficulty";
     if (world_file) {
         s.rules_file = std::string(world_file) + ".rules";
@@ -7558,6 +7659,7 @@ int serve_room(int argc, char **argv)
         host.player_key    = host_player_key;
         host.world_spawn   = host_world_spawn;
         host.world_seed    = host_world_seed;
+        host.world_height  = host_world_height;
         host.plaza         = host_plaza;
         host.player_carry   = host_player_carry;
         host.player_carried = host_player_carried;
@@ -7571,6 +7673,7 @@ int serve_room(int argc, char **argv)
         host.ledges        = host_ledges;
         host.player_pos    = host_player_pos;
         host.player_look   = host_player_look;
+        host.player_tilt   = host_player_tilt;
         host.player_place  = host_player_place;
         host.player_lie    = host_player_lie;
         host.player_clip   = host_player_clip;
@@ -7619,6 +7722,7 @@ int serve_room(int argc, char **argv)
         host.take_tagged   = host_take_tagged;
         host.bag_to_container = host_bag_to_container;
         host.mob_health = host_mob_health;
+        host.mob_life   = host_mob_life;
         host.give_item     = host_give_item;
         host.meta_set      = host_meta_set;
         host.meta_get      = host_meta_get;
@@ -10267,11 +10371,31 @@ int serve_room(int argc, char **argv)
                     // way: a change that overtook it would be dropped by the
                     // client and the chunk would then draw the cell as it was
                     // (Transport::in_flight).
-                    if (still_streaming.count((uint32_t)peer) != 0 ||
-                        transport.in_flight(peer, net::Channel::Chunk)) {
-                        s.mod_changes_held += (long)owed.order.size();
-                        continue;
+                    //
+                    // At most kHoldBehindChunk, though: with chunks streaming
+                    // all the time (a portal's far end, a window) one is always
+                    // in flight, and the changes were held for ever -- a light
+                    // bridge solid on the server and missing on the client, the
+                    // player stuck in it; a hidden portal's place drawn empty
+                    // (2026-11-27, "told 0 ... held 503808"). Past it, the
+                    // chunks those cells are in are sent again instead: on the
+                    // Chunk channel, so after the one in flight, never before.
+                    constexpr double kHoldBehindChunk = 0.5;
+                    const double     t_now = std::chrono::duration<double>(std::chrono::steady_clock::now() -
+                                                                           g_started).count();
+                    bool             resend_all = false;
+                    if (owed.order.empty()) {
+                        owed.held_since = -1.0;
+                    } else if (still_streaming.count((uint32_t)peer) != 0 ||
+                               transport.in_flight(peer, net::Channel::Chunk)) {
+                        if (owed.held_since < 0.0) owed.held_since = t_now;
+                        if (t_now - owed.held_since < kHoldBehindChunk) {
+                            s.mod_changes_held += (long)owed.order.size();
+                            continue;
+                        }
+                        resend_all = true;
                     }
+                    owed.held_since = -1.0;
 
                     // Cell by cell, or the chunk itself.
                     //
@@ -10296,7 +10420,7 @@ int serve_room(int argc, char **argv)
 
                     std::vector<ChunkPos>     resend;
                     std::vector<net::CellPos> one_by_one;
-                    net::split_owed_cells(cells, net::kCellsWorthAChunk, resend, one_by_one);
+                    net::split_owed_cells(cells, resend_all ? 1 : net::kCellsWorthAChunk, resend, one_by_one);
 
                     for (const ChunkPos p : resend)
                         if (sess->interest.forget(p)) ++s.mod_chunks_resent;
@@ -11186,7 +11310,10 @@ int main(int argc, char **argv)
     // no .shape is an old one: a world being made says its shape first.
     if (std::error_code ec; !first_world.empty() && !std::filesystem::exists(first_world, ec) &&
                             !std::filesystem::exists(first_world + ".shape", ec)) {
-        const std::string d = last_of(rooms[0].second, "--world-depth"), t = last_of(rooms[0].second, "--world-top");
+        // A server of one world has its flags in `common`, not in a room's.
+        std::string d = last_of(rooms[0].second, "--world-depth"), t = last_of(rooms[0].second, "--world-top");
+        if (d.empty()) d = last_of(common, "--world-depth");
+        if (t.empty()) t = last_of(common, "--world-top");
         const int depth = d.empty() ? 0 : std::clamp(std::atoi(d.c_str()) - std::atoi(d.c_str()) % kChunkSize, 0, kMaxWorldDepth);
         const int top   = t.empty() ? kWorldHeight : std::clamp(std::atoi(t.c_str()), kWorldHeight, 4096);
         std::ofstream(first_world + ".shape") << depth << " " << top << "\n";

@@ -1484,6 +1484,37 @@ if serving then
             if not here[p] then shown[p] = nil end
         end
     end)
+
+    core.command("plat", "<room|1-1|1-2|1-3|bonus|boss|big|fire> -- jump to a level or power-up", "admin")
+    core.event.on("core:command", function(ev)
+        if ev.name ~= "plat" then return end
+        local verb = string.lower(string.match(ev.args, "^%s*(%S*)") or "")
+        local p = ev.player
+        if verb == "room" then
+            leave(p, "")
+        elseif verb == "1-1" or verb == "1-2" or verb == "1-3" then
+            local n = if verb == "1-1" then 1 elseif verb == "1-2" then 2 else 3
+            start(p, n, runs[p], true)
+        elseif verb == "bonus" then
+            if runs[p] == nil or runs[p].level ~= 1 then start(p, 1, runs[p], true) end
+            core.player_place(p, DOWN_X, DOWN_TOP + 0.1, PLANE, -1, 0, 0)
+        elseif verb == "boss" then
+            if runs[p] == nil or runs[p].level ~= 3 then start(p, 3, runs[p], true) end
+            core.player_place(p, HALL.door + 2, G, PLANE, -1, 0, 0)
+        elseif verb == "big" or verb == "fire" then
+            local r = runs[p]
+            if r == nil then
+                core.chat(p, "Enter a level first (/plat 1-1).")
+                return
+            end
+            r.power = if verb == "fire" then 2 else 1
+            resize(r, 1)
+            count(p, r)
+            core.notice(p, if verb == "fire" then "Fire power!" else "Big!")
+        else
+            core.chat(p, "/plat <room|1-1|1-2|1-3|bonus|boss|big|fire>")
+        end
+    end)
 end
 
 -- ================================================================ the player

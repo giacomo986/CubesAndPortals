@@ -231,8 +231,9 @@ mondo che c'è dietro (`mods/gates`), portano a sette mondi, tutti stanze dello 
   [`games/arpg/README.it.md`](games/arpg/README.it.md).
 - **Le camere di prova** (`games/chambers`): sei camere con i puzzle a portali, una portal gun che
   cresce con chi gioca, cubi, pulsanti e pedane di lancio.
-- **Le backrooms** (`games/backrooms`): tre livelli infiniti con scale, buchi, piscine, scivoli e
-  due creature; casse rare contengono la via del ritorno. Guida in
+- **Le backrooms** (`games/backrooms`): tre livelli infiniti con scale, buchi, piscine, scivoli,
+  un quartiere infinito di case vuote tutte uguali sopra, un hotel e una festa con pagliacci che si
+  muovono solo quando non li guardi; casse rare contengono la via del ritorno. Guida in
   [`games/backrooms/README.md`](games/backrooms/README.it.md).
 - **Il parkour** (`games/parkour`): corsa sui muri, rimbalzi, scivolate, capriole e rope gun.
   Guida in [`games/parkour/README.md`](games/parkour/README.it.md).

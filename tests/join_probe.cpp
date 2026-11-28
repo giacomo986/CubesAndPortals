@@ -246,12 +246,18 @@ int join_mode(const char *host, uint16_t port, const char *name, int extent,
     // --stay N: stand where we came down for N seconds, saying each time the
     // sounds going round (core.sound_loop) change which loops are in it.
     if (g_stay > 0.0f && streamed_ok) {
-        const float  y     = start_y;
+        float        y     = start_y;
         const double until = now_seconds() + g_stay;
         double       sent  = 0.0;
         std::string  heard = "-";
         while (now_seconds() < until) {
             pump(client, 10);
+            // Put somewhere by the server (a /command said above): stood there.
+            Teleport tp;
+            if (client.take_teleport(tp)) {
+                start_x = tp.x, y = start_y = tp.y, start_z = tp.z;
+                std::printf("        put at %.1f %.1f %.1f by the server\n", (double)tp.x, (double)tp.y, (double)tp.z);
+            }
             const double now = now_seconds();
             if (now - sent >= 0.05) {
                 client.send_move(start_x, y, start_z, 1.0f, 0.0f, 0.0f, now);
@@ -416,6 +422,18 @@ int join_mode(const char *host, uint16_t port, const char *name, int extent,
             std::printf("        at %.0f %.0f %.0f: %d of the 9 chunks round it held\n",
                         (double)g_far_at[0], (double)g_far_at[1], (double)g_far_at[2], held);
         }
+    }
+
+    // Where --stay ended: what this client holds under the feet, which a
+    // block the server has and never sent leaves as air.
+    if (g_stay > 0.0f && streamed_ok) {
+        std::string under;
+        for (int dy = 1; dy <= 3; ++dy)
+            under += " " + std::to_string((int)client.world().get_block((int)std::floor(start_x),
+                                                                          (int)std::floor(start_y) - dy,
+                                                                          (int)std::floor(start_z)));
+        std::printf("        ended at %.1f %.1f %.1f, the client's blocks 1..3 under the feet:%s\n",
+                    (double)start_x, (double)start_y, (double)start_z, under.c_str());
     }
 
     pump(client, 0);   // the chat lines of the last moment

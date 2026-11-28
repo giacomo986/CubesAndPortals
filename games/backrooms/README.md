@@ -2,8 +2,8 @@
 
 *[Leggi in italiano](README.it.md) · [Leia em português](README.pt.md)*
 
-An endless maze of rooms nobody built, on three stacked levels, with rare doors leading from one
-level to another. The world is `mods/backrooms/init.luau` (server), plus `backrooms_exit` (the
+An endless maze of rooms nobody built, on three stacked levels and an endless suburb over them,
+with rare doors leading from one level to another. The world is `mods/backrooms/init.luau` (server), plus `backrooms_exit` (the
 way out) and `backrooms_hand` (the torch, server and client).
 
 ## How to get there
@@ -14,22 +14,40 @@ come out in the room at the origin of Level 0, four steps in front of the portal
 portal home is in the same room of the poolrooms, facing +x: only whoever has climbed up there
 finds it.
 
-## The three levels
+## The levels
 
-The world is 64 cells high; the levels are one over the other. F is the first cell of air over the
-floor.
+The world is 96 cells high (`--world-top 96`, which `tools/track.sh` and the title menu pass); the
+levels are one over the other. F is the first cell of air over the floor.
 
 | level | F | air | materials | lights |
 |---|---|---|---|---|
 | Level 1 | 5 | 6 | concrete, slabs, puddles | 2 warm lamps a room, 25% of the rooms dark |
 | Level 0 | 21 | 5 | yellow wallpaper, carpet, suspended ceiling | 4 strip lights a room, 16% of the rooms dark |
 | Poolrooms | 37 | 9 | white tiles, blue pools | 5 lamps a room, never dark |
+| The endless suburb | 66 | open | asphalt, sidewalks, lawns, the same house over and over | orange street lamps, one in five dead; a light on in one house in fifteen |
 
 The atria rise into the void above their level: ceiling at 19 in Level 1, at 33 in Level 0, at 62
 in the poolrooms.
 
-The level's name comes up on the screen as you enter it (`level_at`: from the feet, y ≥ 33
-poolrooms, ≥ 17 Level 0, below that Level 1). Nothing is dug and nothing is built.
+The level's name comes up on the screen as you enter it (`level_at`: from the feet, y ≥ 63 the
+suburb, ≥ 33 poolrooms, ≥ 17 Level 0, below that Level 1). Nothing is dug and nothing is built.
+
+A world made 64 high (before 0.21.0-alpha.4) keeps its three levels and its layout: the mod asks
+`core.world_height()` and adds the suburb, its stairs, holes and portals only at 96 or more. To
+have it, the backrooms' worlds have to be made again (`tools/track.sh --fresh`).
+
+## The endless suburb
+
+Over the poolrooms, the ground at 65 and soil under it. A block of 32 by 32 cells repeats without
+end: streets 4 wide round it with a sidewalk either side, lamp posts along the sidewalks every 10
+cells, and four lots in it, each the same: a lawn, a path to the door, a mailbox, a picket fence
+round the back and sides, one storey of pale siding with dark windows, a doorway with no door and a
+stepped roof. The two west lots face west, the two east ones east. The houses are empty and dark;
+there is no sky over them, only the dark. Nothing lives there.
+
+You come up to it by a stairwell from the poolrooms that comes out of the ground (in a lawn, a
+street or a house), fall from it into a pool of the poolrooms through a hole, or go through a
+portal: the suburb is paired with the poolrooms and with Level 0.
 
 ## The newer levels, by district
 
@@ -41,10 +59,10 @@ and the survival sites, always have the old levels.
 | level | in place of | what it is |
 |---|---|---|
 | The hotel | Level 0 | red carpet, cream damask, one warm lamp a room, long corridors lined with doors that do not open |
-| The party | Level 1 | pink walls, a floor of confetti, pink lights, never dark, balloons under the ceiling, cakes on tables |
+| The party | Level 1 | pink walls, a floor of confetti, pink lights, never dark, balloons under the ceiling (`balloon_*.gltf`, string hanging), cakes on tables, and clowns |
 
-Its name comes up on the screen as you walk into it. Nobody lives in the newer levels yet: the
-creatures come out only on Level 0's carpet and Level 1's slabs.
+Its name comes up on the screen as you walk into it. The hotel has nobody; the party has its
+clowns (below).
 
 ## The deep backrooms
 
@@ -53,7 +71,8 @@ the door is in room (-6, 5) of Level 0, 50 cells from the way in, a doorway dres
 (this world's third opening, `--portal-to @backrooms_deep/0`). Both doorways in the room at the
 origin of the deep backrooms lead back to it.
 
-There two districts in three are a newer level, there are more portals (one column of chunks in
+It has the endless suburb too, when it is made 96 high. There two districts in three are a newer
+level, there are more portals (one column of chunks in
 two) and they do not lead up or down: every ten minutes the sites of each block of 8 x 8 regions
 (256 cells a side) are shuffled and paired, and each site's two doorways lead to the other's two,
 crossed. Walking through a doorway takes you up to 256 cells away, to another level, and the same
@@ -81,7 +100,8 @@ without having seen the mapgen run (a world loaded from its file runs none).
 - **Things in a room.** Level 0: pillars; Level 1: puddles and pillars; poolrooms: pools and slides.
 - **Pools.** Square (2 deep), as big as the room or a lane the room's length (3), channels in the
   corridors (2), and those under the holes. Each has a shell, a steel ladder to climb out on its
-  -x side and, in the poolrooms, a rim of wide tiles and lights in the walls under water.
+  -x side (in the water `backrooms:ladder_wet`, a liquid with the ladder's model, so the surface
+  has no hole round it; the ladders of pools made before are turned into it as they load) and, in the poolrooms, a rim of wide tiles and lights in the walls under water.
 - **Slides.** A blue channel going down a cell a cell, made of straight pieces (`slide.gltf`) and
   quarter-turn bends (`slide_turn_a.gltf` coming in from the +x side, `slide_turn_b.gltf` from the
   -x side; they go out ahead). The mod lays them as a list of directions (`lay`): where the
@@ -106,6 +126,9 @@ without having seen the mapgen run (a world loaded from its file runs none).
   a landing at each end, half-cell steps walked up, the ceiling open and the shaft walled up to
   the floor above, lamps in the shaft's walls every 4 cells. The last flight comes out of a 2×4
   opening in the floor of the room above. You walk under the flights.
+- **Up to the suburb.** The same stairwell from the poolrooms climbs 29 cells; its way out is cut
+  through the suburb's ground and the soil under it, and whatever stands over it (a house's wall)
+  is cleared a body's height. About one room in sixty; one in seventy has a hole the other way.
 - **Holes.** A 2×2 hole in the poolrooms' floor (to Level 0) or Level 0's (to Level 1), a walled
   shaft, and under it a pool 2 deep: the water cancels the fall (`session.cpp`, `fall_reset` in a
   liquid), you arrive with full health.
@@ -137,7 +160,9 @@ floor of 15%. The mod:
 - lights the corridors in the middle, the stairwells' and holes' shafts, the atria from the ceiling
   and the galleries' floors, the pools from under water.
 
-Creatures come out only where the light is 7 or less, so in the dark rooms.
+Creatures come out only where the light is 7 or less, so in the dark rooms. A **Smiler puts out
+the lights** of the room it is in: its level's lamps in that room's ceiling go dark while it is
+there and come back a second after it has gone.
 
 ## Who lives there
 
@@ -148,7 +173,15 @@ Two creatures, `core.register_mob`, come out where the light is 7 or less:
 | Bacteria | Level 0, on the carpet | 30 | 3.4 | 4 | staggers and falls stiff forward |
 | Smiler | Level 1, on the slabs | 20 | 2.6 | 3 | shuts its grin and sinks to the ground turning |
 
-Clips: idle, walk, run, attack, death. In the poolrooms there is nobody. Dying, a Bacteria now and
+Clips: idle, walk, run, attack, death. In the poolrooms there is nobody.
+
+**The clowns** live in the party and come only while nobody looks at them. Workers
+(`fight "worker"`), let out by the mod, never by the dark: every 4 s, to whoever is in a party
+district, at 40% one comes out 3-5 rooms behind them, at most three round a player. Each tick a
+clown that a player sees -- within 45° of the look, nothing in between (`core.raycast`) -- stops
+dead in its `frozen` pose, arms out; seen by nobody, it goes for the nearest player at 5 m/s and
+strikes for 5. It never leaves the party's level: off it, it is gone. Health 40; clips idle, walk,
+run, attack, frozen, death. Dying, a Bacteria now and
 then leaves a filament, a Smiler a tooth: the pieces of the exit's compass (below).
 
 ## Sounds
@@ -180,8 +213,10 @@ name (`<creature>_say`, `_hurt`, `_death`, `_attack`); the mod plays the hum and
   (the absolute path: the flatpak does not start from the project's folder). In an open Blender,
   through the MCP server: run the script without `__main__` and call `bacteria()` and `smiler()`
   after emptying the scene by hand (`read_homefile` in the open window loses the context).
-- **Slide and ladder:** `tools/make_backrooms_props.py`, into `mods/backrooms/{slide,ladder}.gltf`
-  and `assets/blender/backrooms_props.blend`. The ladder is not metallic: with nothing to reflect
+- **Clown:** in the same script (`clown()`), into `mods/backrooms/clown.gltf`.
+- **Slide, ladder and balloons:** `tools/make_backrooms_props.py`, into
+  `mods/backrooms/{slide,ladder,balloon_red,balloon_yellow,balloon_blue}.gltf` and
+  `assets/blender/backrooms_props.blend`. The ladder is not metallic: with nothing to reflect
   the engine drew it black.
 - **Player:** the sandbox's robot, a link to `mods/robot`. The `slide` clip is in
   `assets/blender/robot18.blend` (action `slide`, from the `drive_idle` pose), exported alone and
@@ -209,6 +244,9 @@ name (`<creature>_say`, `_hurt`, `_death`, `_attack`); the mod plays the hum and
   of 4.8): the slide looks slow for the same reason.
 - You go back to the sandbox only from the rooms at the origin of Level 0 and of the poolrooms.
 - The Smiler's call lasts half a second; in the poolrooms there is no sound.
+- The clowns have no sounds of their own; they come in silence.
+- The suburb's blocks are colours, no textures; every house is the same, inside too (empty).
+- The suburb is only in a backrooms world made 96 high.
 
 ## Credits
 

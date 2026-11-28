@@ -213,6 +213,26 @@ core.event.on("core:tick", function(_)
     end
 end)
 
+core.command("inferno", "<hall|brazier 1..4|light> -- jump to the heart or light the braziers", "admin")
+core.event.on("core:command", function(ev)
+    if ev.name ~= "inferno" then return end
+    local w = string.split(string.gsub(ev.args, "^%s+", ""), " ")
+    local verb = string.lower(w[1] or "")
+    if verb == "hall" then
+        core.player_place(ev.player, 88.5, FLOOR, PZ + 0.5, 1, 0, 0)
+    elseif verb == "brazier" then
+        local k = math.clamp(math.floor(tonumber(w[2]) or 1), 1, #BRAZIERS)
+        local b = BRAZIERS[k]
+        core.player_place(ev.player, b[1] + 0.5, FLOOR, b[2] + 1.5, 0, 0, -1)
+    elseif verb == "light" then
+        for _, b in BRAZIERS do core.set_block(b[1], FLOOR, b[2], LIT) end
+        set_gate(true)
+        core.notice(ev.player, "All four braziers burn. The heart's gate opens.")
+    else
+        core.chat(ev.player, "/inferno <hall|brazier 1..4|light>")
+    end
+end)
+
 -- ===================================================================== levels
 --
 -- A survival site's level (mods/keys: keys:level), in its slot's square from

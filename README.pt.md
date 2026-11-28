@@ -234,7 +234,8 @@ mundo atrás dele (`mods/gates`), levam a sete mundos, todos salas do mesmo serv
 - **As câmaras de testes** (`games/chambers`): seis câmaras de quebra-cabeça com portais, uma arma
   de portais que cresce com você, cubos, botões e plataformas de lançamento.
 - **Os backrooms** (`games/backrooms`): três níveis infinitos com escadas, poços, piscinas,
-  escorregadores e duas criaturas; caixas raras guardam o caminho de volta. Guia em
+  escorregadores, um subúrbio sem fim de casas vazias todas iguais por cima, um hotel e uma festa
+  com palhaços que só se mexem quando não olha para eles; caixas raras guardam o caminho de volta. Guia em
   [`games/backrooms/README.md`](games/backrooms/README.pt.md).
 - **O percurso de parkour** (`games/parkour`): corrida na parede, quiques, deslizes, rolamentos e
   uma arma de corda. Guia em [`games/parkour/README.md`](games/parkour/README.pt.md).

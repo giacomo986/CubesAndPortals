@@ -8,7 +8,8 @@
 -- of exhaustion take a point of saturation, or of food when there is none left.
 -- Eating puts both back (bread 5 food and 6 saturation, cooked meat 8 and 12.8,
 -- raw meat 3 and 1.8, a fried egg 4 and 4.8, an egg 2 and 1.2, a fish 2 and
--- 0.4) and is refused on a full bar. With 18 or more food, health comes back
+-- 0.4, a cooked fish 5 and 6; a brown mushroom, a honeycomb or a sugar cane
+-- only a bite) and is refused on a full bar. With 18 or more food, health comes back
 -- on its own; under that it does not (core.player_regen); at 0 it goes, a
 -- point every four seconds, down to one.
 --
@@ -26,6 +27,12 @@ local FOOD: { [string]: { number } } = {
     ["animals:cheese"] = { 4, 3.2 }, ["animals:cake"] = { 10, 8 },
     ["plants:melon_slice"] = { 2, 1.2 }, ["wilds:mushroom_stew"] = { 6, 7.2 },
     ["bees:honey_bottle"] = { 6, 1.2 },
+    -- Cooked fish, sold by the villages' fishers and cooked in a furnace, was
+    -- never in this list and could not be eaten (Giacomo, 2026-11-28).
+    ["pets:cooked_fish"] = { 5, 6 },
+    -- And a bite of what is found lying about: little food, less saturation.
+    ["plants:brown_mushroom"] = { 1, 0.6 }, ["bees:honeycomb"] = { 2, 0.4 },
+    ["cane:sugar_cane"] = { 1, 0.2 },
 }
 -- What is left in the hand once it is eaten: the flask a bottle of honey was in.
 local LEFT: { [string]: string } = { ["bees:honey_bottle"] = "alchemy:flask" }

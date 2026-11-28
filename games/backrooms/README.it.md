@@ -3,7 +3,7 @@
 *[Read in English](README.md) · [Leia em português](README.pt.md)*
 
 Un labirinto senza fine di stanze che nessuno ha costruito, su tre livelli
-impilati, con porte rare che portano da un livello all'altro. Il mondo è
+impilati e un quartiere infinito sopra, con porte rare che portano da un livello all'altro. Il mondo è
 `mods/backrooms/init.luau` (server), più `backrooms_exit` (l'uscita) e
 `backrooms_hand` (la torcia, server e client).
 
@@ -16,9 +16,10 @@ del Level 0, quattro passi davanti al portale di ritorno. Un secondo portale
 di ritorno è nella stessa stanza delle poolrooms, rivolto a +x: lo trova solo
 chi è salito fin lì.
 
-## I tre livelli
+## I livelli
 
-Il mondo è alto 64 celle; i livelli stanno uno sopra l'altro. F è la prima
+Il mondo è alto 96 celle (`--world-top 96`, che `tools/track.sh` e il menu del titolo passano);
+i livelli stanno uno sopra l'altro. F è la prima
 cella d'aria sopra il pavimento.
 
 | livello | F | aria | materiali | luci |
@@ -26,13 +27,31 @@ cella d'aria sopra il pavimento.
 | Level 1 | 5 | 6 | cemento, lastre, pozzanghere | 2 lampade calde a stanza, 25% delle stanze spente |
 | Level 0 | 21 | 5 | carta da parati gialla, moquette, controsoffitto | 4 neon a stanza, 16% delle stanze spente |
 | Poolrooms | 37 | 9 | piastrelle bianche, piscine azzurre | 5 lampade a stanza, mai spente |
+| Il quartiere infinito | 66 | aperto | asfalto, marciapiedi, prati, la stessa casa ripetuta | lampioni arancioni, uno su cinque spento; una luce accesa in una casa su quindici |
 
 Gli atri salgono nel vuoto sopra il loro livello: soffitto a 19 nel Level 1,
 a 33 nel Level 0, a 62 nelle poolrooms.
 
 Il nome del livello compare sullo schermo quando ci si entra
-(`level_at`: dai piedi, y ≥ 33 poolrooms, ≥ 17 Level 0, sotto Level 1).
+(`level_at`: dai piedi, y ≥ 63 il quartiere, ≥ 33 poolrooms, ≥ 17 Level 0, sotto Level 1).
 Niente si scava e niente si costruisce.
+
+Un mondo fatto alto 64 (prima della 0.21.0-alpha.4) tiene i suoi tre livelli e la sua pianta: il
+mod chiede `core.world_height()` e aggiunge il quartiere, le sue scale, i buchi e i portali solo da
+96 in su. Per averlo i mondi delle backrooms vanno rifatti (`tools/track.sh --fresh`).
+
+## Il quartiere infinito
+
+Sopra le poolrooms, il terreno a 65 e la terra sotto. Un isolato di 32 per 32 celle si ripete
+senza fine: strade larghe 4 intorno con un marciapiede per lato, lampioni lungo i marciapiedi ogni
+10 celle, e dentro quattro lotti tutti uguali: un prato, un vialetto fino alla porta, una cassetta
+della posta, uno steccato bianco dietro e ai lati, un piano di perlinato chiaro con le finestre
+buie, una porta senza battente e un tetto a gradoni. I due lotti a ovest guardano a ovest, i due a
+est a est. Le case sono vuote e buie; sopra non c'è cielo, solo il buio. Non ci vive niente.
+
+Ci si sale da una tromba di scale dalle poolrooms che esce dal terreno (in un prato, in strada o in
+una casa), se ne cade in una piscina delle poolrooms da un buco, o ci si passa da un portale: il
+quartiere è accoppiato con le poolrooms e con il Level 0.
 
 ## I livelli nuovi, a distretti
 
@@ -44,10 +63,10 @@ e i siti survival, hanno sempre i livelli vecchi.
 | livello | al posto di | com'è |
 |---|---|---|
 | L'hotel | Level 0 | moquette rossa, damasco crema, una lampada calda per stanza, corridoi lunghi pieni di porte che non si aprono |
-| La festa | Level 1 | muri rosa, pavimento di coriandoli, luci rosa, mai buio, palloncini sotto il soffitto, torte sui tavoli |
+| La festa | Level 1 | muri rosa, pavimento di coriandoli, luci rosa, mai buio, palloncini sotto il soffitto (`balloon_*.gltf`, col filo che pende), torte sui tavoli, e i pagliacci |
 
-Il nome compare sullo schermo quando ci entri. Nei livelli nuovi non vive ancora nessuno: le
-creature escono solo sulla moquette del Level 0 e sulle lastre del Level 1.
+Il nome compare sullo schermo quando ci entri. Nell'hotel non c'è nessuno; nella festa ci sono i
+pagliacci (sotto).
 
 ## Le backrooms profonde
 
@@ -56,7 +75,8 @@ Un mondo a sé (stanza `backrooms_deep`, gli stessi mod senza `keys` e `backroom
 (la terza apertura di questo mondo, `--portal-to @backrooms_deep/0`). Tutti e due i vani della
 stanza all'origine delle backrooms profonde riportano qui.
 
-Lì due distretti su tre sono un livello nuovo, i portali sono di più (una colonna di chunk su due)
+Ha anche il quartiere infinito, quando è fatto alto 96. Lì due distretti su tre sono un livello
+nuovo, i portali sono di più (una colonna di chunk su due)
 e non portano su o giù: ogni dieci minuti i siti di ogni blocco di 8 x 8 regioni (256 celle di
 lato) vengono mescolati e accoppiati, e i due vani di un sito portano ai due dell'altro, incrociati.
 Attraversando un vano si finisce fino a 256 celle più in là, in un altro livello, e lo stesso vano
@@ -88,7 +108,9 @@ mondo caricato dal file non ne fa girare).
   poolrooms: piscine e scivoli.
 - **Piscine.** Quadrate (2 di profondità), grandi quanto la stanza o a corsia
   lunga la stanza (3), canali nei corridoi (2), e quelle sotto i buchi. Tutte
-  hanno un guscio, una scaletta d'acciaio per uscire sul lato -x e, nelle
+  hanno un guscio, una scaletta d'acciaio per uscire sul lato -x (nell'acqua
+  `backrooms:ladder_wet`, un liquido col modello della scaletta, così la superficie non ha un buco
+  intorno; le scalette delle piscine fatte prima diventano così mentre si caricano) e, nelle
   poolrooms, un bordo di piastrelle larghe e luci nelle pareti sott'acqua.
 - **Scivoli.** Un canale blu che scende di una cella per cella, fatto di pezzi
   dritti (`slide.gltf`) e di curve di un quarto di giro (`slide_turn_a.gltf`
@@ -122,6 +144,10 @@ mondo caricato dal file non ne fa girare).
   pavimento di sopra, lampade nei muri del pozzo ogni 4 celle. L'ultima rampa sbuca da
   un'apertura 2×4 nel pavimento della stanza di sopra. Sotto le rampe si
   cammina.
+- **Su al quartiere.** La stessa tromba di scale dalle poolrooms sale 29 celle; l'uscita è tagliata
+  nel terreno del quartiere e nella terra sotto, e quello che ci sta sopra (il muro di una casa) è
+  sgombrato per l'altezza di un corpo. Circa una stanza su sessanta; una su settanta ha un buco
+  nell'altro verso.
 - **Buchi.** Un buco 2×2 nel pavimento delle poolrooms (verso il Level 0) o
   del Level 0 (verso il Level 1), un pozzo murato, e sotto una piscina
   profonda 2: l'acqua azzera la caduta (`session.cpp`, `fall_reset` in un
@@ -158,7 +184,9 @@ la disegna lineare, con un minimo del 15%. Il mod:
 - illumina i corridoi al centro, i pozzi delle scale e dei buchi, gli atri
   dal soffitto e dai pavimenti delle gallerie, le piscine da sott'acqua.
 
-Le creature escono solo dove la luce è 7 o meno, quindi nelle stanze spente.
+Le creature escono solo dove la luce è 7 o meno, quindi nelle stanze spente. **Uno Smiler spegne
+le luci** della stanza in cui si trova: le lampade del suo livello nel soffitto di quella stanza si
+spengono finché c'è, e tornano un secondo dopo che se n'è andato.
 
 ## Chi ci vive
 
@@ -172,6 +200,14 @@ Due creature, `core.register_mob`, escono dove la luce è 7 o meno:
 Clip: idle, walk, run, attack, death. Nelle poolrooms non c'è nessuno. Morendo un
 Bacteria lascia a volte un filamento, uno Smiler un dente: i pezzi della
 bussola dell'uscita (vedi sotto).
+
+**I pagliacci** vivono nella festa e vengono solo mentre nessuno li guarda. Sono worker
+(`fight "worker"`), fatti uscire dal mod e mai dal buio: ogni 4 s, a chi è in un distretto della
+festa, al 40% ne esce uno 3-5 stanze alle sue spalle, al massimo tre intorno a un giocatore. A ogni
+tick un pagliaccio che un giocatore vede -- entro 45° dallo sguardo, niente in mezzo
+(`core.raycast`) -- si blocca nella posa `frozen`, braccia tese; non visto da nessuno, va verso il
+giocatore più vicino a 5 m/s e colpisce per 5. Non lascia mai il livello della festa: fuori
+sparisce. Vita 40; clip idle, walk, run, attack, frozen, death.
 
 ## Suoni
 
@@ -204,8 +240,10 @@ delle creature li suona il motore per nome (`<creatura>_say`, `_hurt`,
   Nel Blender aperto, attraverso il server MCP: eseguire lo script senza
   `__main__` e chiamare `bacteria()` e `smiler()` dopo aver svuotato la scena
   a mano (`read_homefile` nella finestra aperta perde il contesto).
-- **Scivolo e scaletta:** `tools/make_backrooms_props.py`, in
-  `mods/backrooms/{slide,ladder}.gltf` e `assets/blender/backrooms_props.blend`.
+- **Pagliaccio:** nello stesso script (`clown()`), in `mods/backrooms/clown.gltf`.
+- **Scivolo, scaletta e palloncini:** `tools/make_backrooms_props.py`, in
+  `mods/backrooms/{slide,ladder,balloon_red,balloon_yellow,balloon_blue}.gltf` e
+  `assets/blender/backrooms_props.blend`.
   La scaletta non è metallica: senza nulla da riflettere il motore la
   disegnava nera.
 - **Giocatore:** il robot del sandbox, link a `mods/robot`. La clip `slide`
@@ -237,6 +275,9 @@ delle creature li suona il motore per nome (`<creatura>_say`, `_hurt`,
 - Si torna al sandbox solo dalle stanze all'origine del Level 0 e delle
   poolrooms.
 - Il verso dello Smiler dura mezzo secondo; nelle poolrooms non c'è suono.
+- I pagliacci non hanno suoni loro; arrivano in silenzio.
+- I blocchi del quartiere sono colori, senza texture; le case sono tutte uguali, anche dentro (vuote).
+- Il quartiere c'è solo in un mondo delle backrooms fatto alto 96.
 
 ## Crediti
 

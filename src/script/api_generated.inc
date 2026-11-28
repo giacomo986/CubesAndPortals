@@ -2200,6 +2200,20 @@ int l_mob_health(lua_State *L)
     return 1;
 }
 
+// core.mob_life(id: number) -> (number?, number)
+int l_mob_life(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int id = (int)luaL_checkinteger(L, 1);
+    int out1 = (int)0;
+    int out2 = (int)0;
+    const int answered = (vm && vm->host.mob_life) ? vm->host.mob_life(vm->host.ud, id, &out1, &out2) : 0;
+    if (!answered) return 0;
+    lua_pushinteger(L, out1);
+    lua_pushinteger(L, out2);
+    return 2;
+}
+
 // core.mob_hurt(id: number, damage: number, from_x: number, from_z: number) -> number
 int l_mob_hurt(lua_State *L)
 {
@@ -3028,6 +3042,15 @@ int l_world_spawn(lua_State *L)
     return 3;
 }
 
+// core.world_height() -> number
+int l_world_height(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int result = (vm && vm->host.world_height) ? vm->host.world_height(vm->host.ud) : (int)0;
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 // core.seed() -> number
 int l_seed(lua_State *L)
 {
@@ -3126,6 +3149,26 @@ int l_player_look(lua_State *L)
     lua_pushnumber(L, out2);
     lua_pushnumber(L, out3);
     return 3;
+}
+
+// core.player_tilt(player: number) -> (number?, number, number, number, number)
+int l_player_tilt(lua_State *L)
+{
+    VmState *vm = host_of(L);
+    const int player = (int)luaL_checkinteger(L, 1);
+    float out1 = (float)0;
+    float out2 = (float)0;
+    float out3 = (float)0;
+    float out4 = (float)0;
+    float out5 = (float)0;
+    const int answered = (vm && vm->host.player_tilt) ? vm->host.player_tilt(vm->host.ud, player, &out1, &out2, &out3, &out4, &out5) : 0;
+    if (!answered) return 0;
+    lua_pushnumber(L, out1);
+    lua_pushnumber(L, out2);
+    lua_pushnumber(L, out3);
+    lua_pushnumber(L, out4);
+    lua_pushnumber(L, out5);
+    return 5;
 }
 
 // core.player_launch(player: number, vx: number, vy: number, vz: number, seconds: number?, add: boolean?) -> boolean
@@ -4165,6 +4208,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "item_returns");
     lua_pushcfunction(L, l_mob_health, "core.mob_health");
     lua_setfield(L, -2, "mob_health");
+    lua_pushcfunction(L, l_mob_life, "core.mob_life");
+    lua_setfield(L, -2, "mob_life");
     lua_pushcfunction(L, l_mob_hurt, "core.mob_hurt");
     lua_setfield(L, -2, "mob_hurt");
     lua_pushcfunction(L, l_mob_face, "core.mob_face");
@@ -4285,6 +4330,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "player_key");
     lua_pushcfunction(L, l_world_spawn, "core.world_spawn");
     lua_setfield(L, -2, "world_spawn");
+    lua_pushcfunction(L, l_world_height, "core.world_height");
+    lua_setfield(L, -2, "world_height");
     lua_pushcfunction(L, l_seed, "core.seed");
     lua_setfield(L, -2, "seed");
     lua_pushcfunction(L, l_map_cell, "core.map_cell");
@@ -4301,6 +4348,8 @@ void register_generated_api(lua_State *L)
     lua_setfield(L, -2, "body_taken");
     lua_pushcfunction(L, l_player_look, "core.player_look");
     lua_setfield(L, -2, "player_look");
+    lua_pushcfunction(L, l_player_tilt, "core.player_tilt");
+    lua_setfield(L, -2, "player_tilt");
     lua_pushcfunction(L, l_player_launch, "core.player_launch");
     lua_setfield(L, -2, "player_launch");
     lua_pushcfunction(L, l_player_place, "core.player_place");

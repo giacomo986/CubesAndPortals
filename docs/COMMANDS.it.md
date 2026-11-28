@@ -57,9 +57,19 @@ quello sotto). `/perm` mostra e cambia quale ruolo chiede un permesso;
 | `/ghost [record\|mine\|NOME\|off]` | pista | chiunque | Quale kart fantasma guida i tuoi giri: il record della pista (di base; quello dell'ingegnere sulla pista dell'Inferno), il tuo giro migliore, il giro migliore di un altro giocatore, o nessuno. Resta |
 | `/laps` | pista | chiunque | Il giro migliore di tutti sull'ultima pista che hai guidato: i primi dieci e il tuo posto, e chi ha un fantasma |
 | `/pieces` | pista | chiunque | Ti mette nella borsa una pila di ogni pezzo di pista, l'editor della pista (B con lui in mano sceglie da lontano il pezzo dopo), e gli strumenti linea di partenza, checkpoint, fuoripista, scatola degli oggetti e portale |
-| `/defense` | tower defense | chiunque | I record del tower defense: l'ondata migliore del campo e chi l'ha tenuta, e l'ondata migliore di ogni giocatore presente |
 | `/manta` | mondo delle nuvole | chiunque | Quante volte hai sconfitto la Manta delle Nuvole |
 | `/vehicle <jeep\|tank\|heli\|plane\|bomber\|nest\|mortar\|howitzer\|aa>` | fronte, assalto | moderator | Mette quel mezzo sei nodi davanti a te, per le prove |
+| `/arpg <town\|butcher\|grave\|emberwing\|crypt\|floor1\|floor2\|keeper\|level N\|gold [N]>` | arpg | admin | Scorciatoie di prova: alla città, al boss di una zona, alla cripta o a un suo piano; il tuo livello fino a N (scelta prima una classe); N monete (1000) |
+| `/backrooms <pink\|hotel\|party\|pool\|slide\|portal\|exit\|suburb\|shift\|kit>` | backrooms | admin | Scorciatoie di prova: alla porta rosa, al quartiere hotel o festa più vicino, al piano della piscina, a uno scivolo, a un luogo di portali, all'uscita, a una strada del quartiere infinito (mondo alto 96); `shift` sposta subito i collegamenti dei portali; `kit` dà le due bussole, la torcia e i materiali |
+| `/chamber <0..18>` | camere di prova | admin | A quella camera, con la pistola che serve (blu dalla 03, entrambi dalla 04) |
+| `/defense [kit\|turrets\|wave N]` | tower defense | chiunque (record), admin (il resto) | Senza parola, i record: l'ondata migliore del campo e di chi era, e la migliore di ogni giocatore qui. `kit` i materiali da costruzione, `turrets` due di ogni torretta e le barricate, `wave N` svuota il campo e fa partire l'ondata N |
+| `/inferno <hall\|brazier 1..4\|light>` | inferno | admin | Alla sala del cuore o a un braciere; `light` li accende tutti e quattro e apre il cancello |
+| `/labphase <shield\|siege\|climb\|pit\|fire\|dark\|frost\|race>` | laboratorio | admin | Lo scontro con l'Ospite da quella fase, la sala preparata (il percorso della salita, la lava, le lampade spente, il kart per la corsa) e tu al tuo posto; `pit` è la salita dal parkour della fossa |
+| `/parkour <1..18\|tower 1..7\|summit>` | parkour | admin | A quella piattaforma (del livello in cui sei, in sopravvivenza), a una stazione della torre o alla cima, contata come raggiunta |
+| `/plat <room\|1-1\|1-2\|1-3\|bonus\|boss\|big\|fire>` | gioco a piattaforme | admin | Fuori nella sala, dentro un livello, al tubo bonus della 1-1 o alla sala del boss della 1-3; `big` e `fire` danno quel potere in un livello |
+| `/shmup <wave N\|power\|drops>` | sparatutto | admin | `wave N` fa partire subito quell'ondata con 30 vite (o al prossimo decollo); `power` riempie i potenziamenti del caccia; `drops` fa lasciare un potenziamento a ogni nemico abbattuto, o no |
+| `/skies <manta\|village\|updraft\|phase2\|phase3\|kit\|reset>` | mondo delle nuvole | admin | All'isola della Manta, al villaggio o alla corrente più vicini; la fase bassa della Manta o la sua caduta subito; `kit` gli alianti, i cristalli e le armi; `reset` lo scontro da capo |
+| `/track <start\|ring\|grand\|inferno\|loops\|power KIND\|kart>` | pista | admin | Alla linea di partenza di quella pista (nella sua stanza); `power KIND` (boost, boost3, banana, shell, homing, ink, star, bolt) nel tuo kart; `kart` un kart nella borsa |
 
 ## Per lo staff
 
@@ -81,6 +91,9 @@ quello sotto). `/perm` mostra e cambia quale ruolo chiede un permesso;
 | `/trophies` | chiunque | Quanti trofei hai vinto; `/page trophies` li elenca, con gli indizi e la direzione dei portali nascosti (`mods/trophies`) |
 | `/trophies sites` `/trophies go ID [place] [NOME]` `/trophies home [NOME]` | admin | Dove sono i cinque portali nascosti e se sono costruiti; tu o NOME davanti a uno (`well`, `summit`, `lake`, `hill`, `circle`) o, con `place`, nel posto dove porta; NOME (o tu) nella sua stanza personale, per vedere la bacheca dei trofei (`mods/trophies`) |
 | `/village siege\|feast\|caravan\|incoming` | admin | Fa partire subito un evento nel villaggio in cui sei: un assedio annunciato ora e in arrivo al tramonto, la festa del raccolto, una carovana verso il villaggio più vicino, o una in arrivo da un villaggio mai visitato lungo i sentieri (`mods/villagers`) |
+| `/go [ROOM]` | go (admin) | Senza parola, le stanze di questo server e se ognuna è accesa o parte a richiesta; con una, tu allo spawn di quella stanza (una a richiesta viene avviata). Poi `/tp` per un punto lì dentro |
+| `/tp X Y Z` `/tp X Z` `/tp NAME` | tp (admin) | Tu in quel punto della stanza in cui sei; con solo X Z, sul terreno lì (il pavimento più alto con due nodi liberi sopra, o la tua altezza su una colonna non caricata); con un nome, da quel giocatore, o allo spawn della stanza in cui è |
+| `/cursedghost` | admin | Un fantasma maledetto quattro nodi davanti a te, per provarne la presa (`mods/ghost`) |
 
 ### Giocatori
 

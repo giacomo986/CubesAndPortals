@@ -2,7 +2,8 @@
 
 *[Read in English](README.md) · [Leggi in italiano](README.it.md)*
 
-Um labirinto sem fim de salas que ninguém construiu, em três níveis empilhados, com portas raras
+Um labirinto sem fim de salas que ninguém construiu, em três níveis empilhados e um subúrbio sem
+fim por cima, com portas raras
 que levam de um nível a outro. O mundo é `mods/backrooms/init.luau` (servidor), mais
 `backrooms_exit` (a saída) e `backrooms_hand` (a lanterna, servidor e cliente).
 
@@ -14,9 +15,10 @@ uma parede de papel de parede amarelo com uma lâmpada fluorescente em cima, fic
 Um segundo portal de volta fica na mesma sala das Poolrooms, virado para +x: só quem subiu até lá
 o encontra.
 
-## Os três níveis
+## Os níveis
 
-O mundo tem 64 células de altura; os níveis ficam um em cima do outro. F é a primeira célula de ar
+O mundo tem 96 células de altura (`--world-top 96`, que `tools/track.sh` e o menu do título
+passam); os níveis ficam um em cima do outro. F é a primeira célula de ar
 acima do piso.
 
 | nível | F | ar | materiais | luzes |
@@ -24,12 +26,32 @@ acima do piso.
 | Level 1 | 5 | 6 | concreto, lajes, poças | 2 lâmpadas quentes por sala, 25% das salas no escuro |
 | Level 0 | 21 | 5 | papel de parede amarelo, carpete, forro rebaixado | 4 lâmpadas fluorescentes por sala, 16% das salas no escuro |
 | Poolrooms | 37 | 9 | azulejos brancos, piscinas azuis | 5 lâmpadas por sala, nunca no escuro |
+| O subúrbio sem fim | 66 | aberto | asfalto, calçadas, gramados, a mesma casa repetida | candeeiros laranja, um em cinco apagado; uma luz acesa numa casa em quinze |
 
 Os átrios sobem no vazio acima do seu nível: teto a 19 no Level 1, a 33 no Level 0, a 62 nas
 Poolrooms.
 
-O nome do nível aparece na tela quando você entra nele (`level_at`: pelos pés, y ≥ 33 Poolrooms,
-≥ 17 Level 0, abaixo disso Level 1). Nada se cava e nada se constrói.
+O nome do nível aparece na tela quando você entra nele (`level_at`: pelos pés, y ≥ 63 o subúrbio,
+≥ 33 Poolrooms, ≥ 17 Level 0, abaixo disso Level 1). Nada se cava e nada se constrói.
+
+Um mundo feito com 64 de altura (antes da 0.21.0-alpha.4) mantém os seus três níveis e a sua
+planta: o mod pergunta `core.world_height()` e acrescenta o subúrbio, as suas escadas, buracos e
+portais só a partir de 96. Para o ter, os mundos dos backrooms têm de ser refeitos
+(`tools/track.sh --fresh`).
+
+## O subúrbio sem fim
+
+Sobre as Poolrooms, o chão a 65 e terra por baixo. Um quarteirão de 32 por 32 células repete-se
+sem fim: ruas de 4 de largura à volta com uma calçada de cada lado, candeeiros ao longo das
+calçadas a cada 10 células, e dentro quatro lotes todos iguais: um gramado, um caminho até à
+porta, uma caixa de correio, uma cerca branca atrás e dos lados, um piso de revestimento claro com
+janelas escuras, uma porta sem folha e um telhado em degraus. Os dois lotes a oeste olham para
+oeste, os dois a leste para leste. As casas estão vazias e escuras; por cima não há céu, só
+escuridão. Nada vive lá.
+
+Sobe-se por um poço de escadas das Poolrooms que sai do chão (num gramado, na rua ou numa casa),
+cai-se dele numa piscina das Poolrooms por um buraco, ou passa-se por um portal: o subúrbio está
+emparelhado com as Poolrooms e com o Level 0.
 
 ## Os níveis novos, por distrito
 
@@ -41,10 +63,10 @@ e os locais de sobrevivência, têm sempre os níveis antigos.
 | nível | no lugar de | como é |
 |---|---|---|
 | O hotel | Level 0 | carpete vermelho, damasco creme, uma lâmpada quente por sala, corredores longos cheios de portas que não abrem |
-| A festa | Level 1 | paredes rosa, chão de confete, luzes rosa, nunca escuro, balões sob o teto, bolos nas mesas |
+| A festa | Level 1 | paredes rosa, chão de confete, luzes rosa, nunca escuro, balões sob o teto (`balloon_*.gltf`, com o fio pendurado), bolos nas mesas, e os palhaços |
 
-O nome aparece na tela quando você entra. Ninguém vive ainda nos níveis novos: as criaturas saem
-só no carpete do Level 0 e nas lajes do Level 1.
+O nome aparece na tela quando você entra. No hotel não há ninguém; na festa há os palhaços
+(abaixo).
 
 ## As backrooms profundas
 
@@ -53,7 +75,8 @@ fica na sala (-6, 5) do Level 0, a 50 células da entrada, um vão vestido do ro
 terceira abertura deste mundo, `--portal-to @backrooms_deep/0`). Os dois vãos da sala na origem
 das backrooms profundas levam de volta.
 
-Lá dois distritos de cada três são um nível novo, há mais portais (uma coluna de chunks em duas) e
+Tem também o subúrbio sem fim, quando é feito com 96 de altura. Lá dois distritos de cada três são
+um nível novo, há mais portais (uma coluna de chunks em duas) e
 eles não levam para cima ou para baixo: a cada dez minutos os locais de cada bloco de 8 x 8 regiões
 (256 células de lado) são embaralhados e emparelhados, e os dois vãos de um local levam aos dois do
 outro, cruzados. Passando por um vão você vai parar até 256 células adiante, em outro nível, e o
@@ -82,7 +105,9 @@ visto o mapgen rodar (um mundo carregado do arquivo não roda nenhum).
   escorregadores.
 - **Piscinas.** Quadradas (2 de profundidade), do tamanho da sala ou uma raia do comprimento da
   sala (3), canais nos corredores (2), e as que ficam sob os buracos. Cada uma tem um casco, uma
-  escadinha de aço para sair no lado -x e, nas Poolrooms, uma borda de azulejos largos e luzes nas
+  escadinha de aço para sair no lado -x (na água `backrooms:ladder_wet`, um líquido com o modelo da
+  escadinha, para a superfície não ter um buraco à volta; as das piscinas feitas antes viram esta
+  ao carregar) e, nas Poolrooms, uma borda de azulejos largos e luzes nas
   paredes debaixo d'água.
 - **Escorregadores.** Um canal azul que desce célula a célula, feito de peças retas
   (`slide.gltf`) e curvas de um quarto de volta (`slide_turn_a.gltf` entrando pelo lado +x,
@@ -111,6 +136,10 @@ visto o mapgen rodar (um mundo carregado do arquivo não roda nenhum).
   patamar em cada ponta, degraus de meia célula que se sobem andando, o teto aberto e o poço
   murado até o piso de cima, lâmpadas nas paredes do poço a cada 4 células. O último lance sai por
   uma abertura de 2×4 no piso da sala de cima. Dá para andar por baixo dos lances.
+- **Até ao subúrbio.** O mesmo poço de escadas das Poolrooms sobe 29 células; a saída é cortada no
+  chão do subúrbio e na terra por baixo, e o que estiver por cima (a parede de uma casa) é limpo
+  à altura de um corpo. Cerca de uma sala em sessenta; uma em setenta tem um buraco no outro
+  sentido.
 - **Buracos.** Um buraco de 2×2 no piso das Poolrooms (para o Level 0) ou do Level 0 (para o
   Level 1), um poço murado, e embaixo uma piscina de 2 de profundidade: a água anula a queda
   (`session.cpp`, `fall_reset` num líquido), você chega com a vida cheia.
@@ -144,7 +173,9 @@ de 15%. O mod:
 - ilumina os corredores no meio, os poços das escadas e dos buracos, os átrios pelo teto e pelos
   pisos das galerias, as piscinas por debaixo d'água.
 
-As criaturas só saem onde a luz é 7 ou menos, ou seja, nas salas no escuro.
+As criaturas só saem onde a luz é 7 ou menos, ou seja, nas salas no escuro. **Um Smiler apaga as
+luzes** da sala onde está: as lâmpadas do seu nível no teto dessa sala apagam-se enquanto lá está
+e voltam um segundo depois de ele sair.
 
 ## Quem vive lá
 
@@ -157,6 +188,14 @@ Duas criaturas, `core.register_mob`, saem onde a luz é 7 ou menos:
 
 Clipes: idle, walk, run, attack, death. Nas Poolrooms não há ninguém. Ao morrer, uma Bacteria às
 vezes deixa um filamento, um Smiler um dente: as peças da bússola da saída (veja abaixo).
+
+**Os palhaços** vivem na festa e só vêm enquanto ninguém olha para eles. São workers
+(`fight "worker"`), soltos pelo mod e nunca pelo escuro: a cada 4 s, a quem está num distrito da
+festa, a 40% sai um 3-5 salas atrás dele, no máximo três à volta de um jogador. A cada tick um
+palhaço que um jogador vê -- a menos de 45° do olhar, nada no meio (`core.raycast`) -- fica parado
+na pose `frozen`, braços estendidos; sem ninguém a vê-lo, vai ao jogador mais próximo a 5 m/s e
+golpeia por 5. Nunca sai do nível da festa: fora dele, desaparece. Vida 40; clipes idle, walk,
+run, attack, frozen, death.
 
 ## Sons
 
@@ -187,8 +226,10 @@ pelo nome (`<criatura>_say`, `_hurt`, `_death`, `_attack`); o mod toca o zumbido
   (o caminho absoluto: o flatpak não parte da pasta do projeto). Num Blender aberto, pelo servidor
   MCP: rode o script sem `__main__` e chame `bacteria()` e `smiler()` depois de esvaziar a cena à
   mão (`read_homefile` na janela aberta perde o contexto).
-- **Escorregador e escadinha:** `tools/make_backrooms_props.py`, em
-  `mods/backrooms/{slide,ladder}.gltf` e `assets/blender/backrooms_props.blend`. A escadinha não é
+- **Palhaço:** no mesmo script (`clown()`), em `mods/backrooms/clown.gltf`.
+- **Escorregador, escadinha e balões:** `tools/make_backrooms_props.py`, em
+  `mods/backrooms/{slide,ladder,balloon_red,balloon_yellow,balloon_blue}.gltf` e
+  `assets/blender/backrooms_props.blend`. A escadinha não é
   metálica: sem nada para refletir, o motor a desenhava preta.
 - **Jogador:** o robô do sandbox, um link para `mods/robot`. O clipe `slide` está em
   `assets/blender/robot18.blend` (ação `slide`, a partir da pose de `drive_idle`), exportado sozinho
@@ -216,6 +257,10 @@ pelo nome (`<criatura>_say`, `_hurt`, `_death`, `_attack`); o mod toca o zumbido
   4.8): o escorregador parece lento pelo mesmo motivo.
 - Só se volta ao sandbox pelas salas da origem do Level 0 e das Poolrooms.
 - O chamado do Smiler dura meio segundo; nas Poolrooms não há som.
+- Os palhaços não têm sons próprios; chegam em silêncio.
+- Os blocos do subúrbio são cores, sem texturas; as casas são todas iguais, também por dentro
+  (vazias).
+- O subúrbio só existe num mundo dos backrooms feito com 96 de altura.
 
 ## Créditos
 

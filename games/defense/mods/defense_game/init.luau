@@ -257,6 +257,9 @@ for _, k in KINDS do
     -- The model is drawn by each player's machine, turning and firing (above):
     -- the block itself is seen through, only a body's stop and a click's aim.
     core.register_model(`defense_game:turret_{k.name}`, `turret_{k.name}.gltf`)
+    -- In the hand a miniature of it; in the bag its icon (textures/
+    -- defense_game_turret_<name>.png). Both by tools/make_turret_icons.py.
+    core.register_model(`defense_game:turret_{k.name}_held`, `turret_{k.name}_held.gltf`)
     core.node_glass(b, 0)
     if k.name == "arrow" or k.name == "portal" then
         -- Cut in two by tools/make_turret_parts.py: a base that stands still,
@@ -297,6 +300,7 @@ local crystal = 20
 local CRYSTAL_MAX = 20
 local queue: { string } = {}
 local spawn_wait = 0.0
+local settling: { [number]: number } = {}   -- player -> seconds left watching where they came in
 local rest_left = 0.0
 local over_left = 0.0
 local empty_for = 0.0
@@ -849,9 +853,40 @@ core.event.on("core:used", function(ev)
     end
 end)
 
-core.command("defense", "-- the tower defense's records: the field's and those of the players here")
+core.command("defense", "[kit|turrets|wave N] -- records, or (admin) test setup")
 core.event.on("core:command", function(ev)
-    if ev.name == "defense" then show_records(ev.player) end
+    if ev.name ~= "defense" then return end
+    local w = string.split(string.gsub(ev.args, "^%s+", ""), " ")
+    local verb = string.lower(w[1] or "")
+    if verb == "" then
+        show_records(ev.player)
+        return
+    end
+    if not core.has_perm(ev.player, "admin") then
+        core.chat(ev.player, "Only an admin may use /defense " .. verb .. ".")
+        return
+    end
+    if verb == "kit" then
+        for _, item in { { "timber:planks", 32 }, { "rocks:cobblestone", 32 }, { "furnace:iron_ingot", 32 },
+                         { "furnace:gold_ingot", 16 }, { "ore:ruby", 16 }, { "ore:diamond", 8 },
+                         { "rocks:ice", 32 }, { "inferno:cinder_rod", 16 }, { "defense_game:barricade", 24 } } do
+            give(ev.player, item[1], item[2])
+        end
+        core.notice(ev.player, "Defense materials given.")
+    elseif verb == "turrets" then
+        for _, k in KINDS do give(ev.player, `defense_game:turret_{k.name}`, 2) end
+        give(ev.player, "defense_game:barricade", 24)
+        core.notice(ev.player, "All 5 turrets and barricades given.")
+    elseif verb == "wave" then
+        local n = math.max(1, math.floor(tonumber(w[2]) or 1))
+        for id in monsters do core.mob_remove(id) end
+        monsters, queue = {}, {}
+        if phase == "idle" or phase == "over" then crystal = CRYSTAL_MAX end
+        wave = n - 1
+        start_wave()
+    else
+        core.chat(ev.player, "/defense [kit|turrets|wave N]")
+    end
 end)
 
 -- ------------------------------------------------------------ the tick
@@ -874,9 +909,22 @@ core.event.on("core:tick", function(ev)
         if not seen[p] then
             seen[p] = true
             core.player_spawn(p, CX + 0.5, G + 1, 2.5)
+            settling[p] = 3.0
             for _, t in turrets do tell_turret(p, t) end
             core.notice(p, if phase == "idle" then "Click the crystal to begin." else `Wave {wave} is on.`)
         end
+    end
+
+    -- Come in anywhere but over the field (/go lands on the world's spawn,
+    -- out in the void): put where they would come back. Watched for a few
+    -- seconds, since the server's own placement at the spawn comes after
+    -- the first tick they are seen.
+    for p, left in settling do
+        local x, y, z = core.player_pos(p)
+        if x ~= nil and (x < X0 or x > X1 or (z :: number) < Z0 or (z :: number) > Z1 or (y :: number) < G) then
+            core.player_place(p, CX + 0.5, G + 1, 2.5, 0, 0, 1)
+        end
+        settling[p] = if left - dt > 0 then left - dt else nil
     end
 
     if phase == "over" then

@@ -14,7 +14,13 @@
 #             tilts as it comes, lunges with its grin open; dying, the grin
 #             shuts and it sinks to the floor, turning away.
 #
-# Clips: idle, walk, run, attack, death (docs/MODDING.md, Creature). Leaves
+#   clown     the party's: a tall thin clown, white face, a red nose, tufts
+#             of red hair, a two-coloured suit and enormous shoes. It comes
+#             only while nobody looks at it (games/backrooms); looked at, it is
+#             held in "frozen", a statue's pose, arms out at whoever it wants.
+#
+# Clips: idle, walk, run, attack, death (docs/MODDING.md, Creature); the
+# clown's frozen too. Leaves
 # the work in assets/blender/backrooms.blend.
 import importlib.util
 import math
@@ -159,14 +165,112 @@ def smiler():
     return arm, mesh
 
 
+def clown():
+    bones = [("root", None, (0, 0, 0)), ("hips", "root", (0, 0, 1.0)), ("torso", "hips", (0, 0, 1.0)),
+             ("head", "torso", (0, 0, 1.66)),
+             ("arm_l", "torso", (0.24, 0, 1.58)), ("arm_r", "torso", (-0.24, 0, 1.58)),
+             ("leg_l", "hips", (0.12, 0, 1.0)), ("leg_r", "hips", (-0.12, 0, 1.0))]
+    arm = pets.rig("clown_rig", bones)
+    mats = {"face": material("clo_face", (0.93, 0.92, 0.88)),
+            "nose": material("clo_nose", (0.85, 0.02, 0.03), 1.5),
+            "eye": material("clo_eye", (0.01, 0.01, 0.01)),
+            "mouth": material("clo_mouth", (0.6, 0.0, 0.03)),
+            "hair": material("clo_hair", (0.9, 0.18, 0.05)),
+            "suit_a": material("clo_suit_a", (0.95, 0.78, 0.1)),
+            "suit_b": material("clo_suit_b", (0.15, 0.3, 0.8)),
+            "ruff": material("clo_ruff", (0.96, 0.96, 0.96)),
+            "pom": material("clo_pom", (0.85, 0.05, 0.1)),
+            "glove": material("clo_glove", (0.97, 0.97, 0.97)),
+            "shoe": material("clo_shoe", (0.75, 0.04, 0.06))}
+    H = 1.66
+    boxes = [("torso", "suit_a", (-0.17, -0.1, 1.0), (0.0, 0.1, 1.6)),     # the suit, half and half
+             ("torso", "suit_b", (0.0, -0.1, 1.0), (0.17, 0.1, 1.6)),
+             ("torso", "suit_a", (-0.26, -0.08, 1.52), (0.0, 0.08, 1.62)),  # shoulders
+             ("torso", "suit_b", (0.0, -0.08, 1.52), (0.26, 0.08, 1.62)),
+             ("torso", "pom", (-0.03, 0.1, 1.42), (0.03, 0.13, 1.48)),      # three buttons
+             ("torso", "pom", (-0.03, 0.1, 1.3), (0.03, 0.13, 1.36)),
+             ("torso", "pom", (-0.03, 0.1, 1.18), (0.03, 0.13, 1.24)),
+             ("torso", "ruff", (-0.2, -0.13, 1.6), (0.2, 0.13, 1.67)),     # the ruff
+             ("head", "face", (-0.12, -0.11, H), (0.12, 0.12, H + 0.3)),
+             ("head", "nose", (-0.035, 0.12, H + 0.1), (0.035, 0.18, H + 0.16)),
+             ("head", "eye", (-0.08, 0.12, H + 0.18), (-0.03, 0.125, H + 0.23)),
+             ("head", "eye", (0.03, 0.12, H + 0.18), (0.08, 0.125, H + 0.23)),
+             ("head", "hair", (-0.2, -0.08, H + 0.12), (-0.12, 0.06, H + 0.28)),   # the tufts
+             ("head", "hair", (0.12, -0.08, H + 0.12), (0.2, 0.06, H + 0.28)),
+             ("head", "suit_b", (-0.05, -0.05, H + 0.3), (0.05, 0.05, H + 0.36))]  # a little hat
+    # The grin: up at both ends, wider than the face should have.
+    for i in range(-4, 5):
+        x = i * 0.026
+        up = 0.006 * i * i
+        boxes.append(("head", "mouth", (x - 0.014, 0.12, H + 0.04 + up), (x + 0.014, 0.125, H + 0.07 + up)))
+    for side, x, m in (("l", 0.24, "suit_b"), ("r", -0.24, "suit_a")):
+        boxes.append((f"arm_{side}", m, (x - 0.045, -0.045, 0.92), (x + 0.045, 0.045, 1.6)))
+        boxes.append((f"arm_{side}", "glove", (x - 0.06, -0.06, 0.8), (x + 0.06, 0.06, 0.93)))
+    for side, x, m in (("l", 0.12, "suit_b"), ("r", -0.12, "suit_a")):
+        boxes.append((f"leg_{side}", m, (x - 0.07, -0.07, 0.06), (x + 0.07, 0.07, 1.02)))
+        boxes.append((f"leg_{side}", "shoe", (x - 0.08, -0.08, 0.0), (x + 0.08, 0.3, 0.09)))   # big shoes
+    mesh = pets.boxes_mesh("clown_mesh", boxes, mats)
+    pets.skin(mesh, arm)
+
+    def gait(swing, lean, bob):
+        return {
+            "torso": [(0.0, (-lean, 0, 0.1), None), (0.5, (-lean, 0, -0.1), None)],
+            "hips": [(0.0, (0, 0, 0), (0, 0, 0)), (0.25, (0, 0, 0), (0, bob, 0)),
+                     (0.5, (0, 0, 0), (0, 0, 0)), (0.75, (0, 0, 0), (0, bob, 0))],
+            "leg_l": [(0.0, (swing, 0, 0), None), (0.5, (-swing, 0, 0), None)],
+            "leg_r": [(0.0, (-swing, 0, 0), None), (0.5, (swing, 0, 0), None)],
+            "arm_l": [(0.0, (-swing, 0, 0.1), None), (0.5, (swing, 0, 0.1), None)],
+            "arm_r": [(0.0, (swing, 0, -0.1), None), (0.5, (-swing, 0, -0.1), None)],
+            "head": [(0.0, (0, 0.15, 0.2), None), (0.5, (0, -0.15, -0.2), None)],
+        }
+    # Standing, it sways and its head turns slowly, too far.
+    pets.clip(arm, "clown", "idle", 4.0, {
+        "torso": [(0.0, (0, 0, 0.04), None), (0.5, (0, 0, -0.04), None)],
+        "head": [(0.0, (0, 0, 0), None), (0.4, (0.1, 0.9, 0.3), None), (0.6, (0.1, 0.9, 0.3), None),
+                 (0.9, (0, 0, 0), None)],
+    })
+    pets.clip(arm, "clown", "walk", 1.0, gait(0.55, 0.1, 0.04))
+    pets.clip(arm, "clown", "run", 0.5, gait(1.0, 0.35, 0.08))
+    # Both gloves at whoever it reaches.
+    pets.clip(arm, "clown", "attack", 0.7, {
+        "torso": [(0.0, (0, 0, 0), None), (0.35, (0.2, 0, 0), None), (0.55, (-0.4, 0, 0), None),
+                  (0.8, (0, 0, 0), None)],
+        "arm_l": [(0.0, (1.5, 0, 0), None), (0.35, (2.4, 0, 0.3), None), (0.55, (1.3, 0, -0.1), None),
+                  (0.8, (1.5, 0, 0), None)],
+        "arm_r": [(0.0, (1.5, 0, 0), None), (0.35, (2.4, 0, -0.3), None), (0.55, (1.3, 0, 0.1), None),
+                  (0.8, (1.5, 0, 0), None)],
+        "head": [(0.0, (0, 0, 0), None), (0.55, (-0.3, 0, 0.3), None), (0.8, (0, 0, 0), None)],
+    })
+    # Held still while somebody looks: arms out at them, head over on one side,
+    # one foot ahead -- caught in the middle of a step.
+    still = {"torso": [(0.0, (-0.12, 0, 0.05), None), (1.0, (-0.12, 0, 0.05), None)],
+             "head": [(0.0, (0.15, 0.2, 0.55), None), (1.0, (0.15, 0.2, 0.55), None)],
+             "arm_l": [(0.0, (1.45, 0, 0.15), None), (1.0, (1.45, 0, 0.15), None)],
+             "arm_r": [(0.0, (1.6, 0, -0.1), None), (1.0, (1.6, 0, -0.1), None)],
+             "leg_l": [(0.0, (0.45, 0, 0), None), (1.0, (0.45, 0, 0), None)],
+             "leg_r": [(0.0, (-0.3, 0, 0), None), (1.0, (-0.3, 0, 0), None)]}
+    pets.clip(arm, "clown", "frozen", 1.0, still)
+    # It folds: the knees go, then it topples back, arms flopping out.
+    pets.clip(arm, "clown", "death", 1.2, {
+        "root": [(0.0, (0, 0, 0), (0, 0, 0)), (0.3, (0, 0, 0), (0, -0.3, 0)),
+                 (0.8, (1.5, 0, 0), (0, -0.85, 0)), (1.0, (1.57, 0, 0), (0, -0.88, 0))],
+        "leg_l": [(0.0, (0, 0, 0), None), (0.3, (0.9, 0, 0), None), (1.0, (0.3, 0, 0.2), None)],
+        "leg_r": [(0.0, (0, 0, 0), None), (0.3, (0.9, 0, 0), None), (1.0, (0.3, 0, -0.2), None)],
+        "arm_l": [(0.0, (0, 0, 0), None), (0.6, (0, 0, 1.2), None), (1.0, (0, 0, 1.4), None)],
+        "arm_r": [(0.0, (0, 0, 0), None), (0.6, (0, 0, -1.2), None), (1.0, (0, 0, -1.4), None)],
+        "head": [(0.0, (0, 0, 0), None), (1.0, (0, 0.9, 0), None)],
+    }, loop=False)
+    return arm, mesh
+
+
 if __name__ == "__main__":
     bpy.ops.wm.read_homefile(use_empty=True)
     bpy.context.scene.render.fps = pets.FPS
     os.makedirs(OUT, exist_ok=True)
-    for i, (name, make) in enumerate((("bacteria", bacteria), ("smiler", smiler))):
+    for i, (name, make) in enumerate((("bacteria", bacteria), ("smiler", smiler), ("clown", clown))):
         arm, mesh = make()
         pets.export(arm, [mesh], os.path.join(OUT, f"{name}.gltf"))
         arm.location.x = 1.5 * i
     os.makedirs(os.path.dirname(BLEND), exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=BLEND)
-    print("bacteria and smiler in", os.path.normpath(OUT))
+    print("bacteria, smiler and clown in", os.path.normpath(OUT))

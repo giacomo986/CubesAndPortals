@@ -57,9 +57,19 @@ tudo o que está abaixo). `/perm` mostra e muda qual cargo uma permissão pede;
 | `/ghost [record\|mine\|NOME\|off]` | pista | qualquer um | Qual kart fantasma guia as suas voltas: o recorde da pista (o padrão; o do engenheiro na pista do Inferno), a sua melhor volta, a melhor volta de outro jogador, ou nenhum. Fica salvo |
 | `/laps` | pista | qualquer um | A melhor volta de todos na última pista que você guiou: os dez primeiros e o seu lugar, e quem tem fantasma |
 | `/pieces` | pista | qualquer um | Coloca na sua bolsa uma pilha de cada peça de pista, o editor de pista (B com ele na mão escolhe de longe a próxima peça), e as ferramentas de linha de largada, checkpoint, fora da pista, caixa de itens e portal |
-| `/defense` | tower defense | qualquer um | Os recordes do tower defense: a melhor onda do campo e quem a segurou, e a melhor onda de cada jogador presente |
 | `/manta` | mundo das nuvens | qualquer um | Quantas vezes você derrotou a Arraia das Nuvens |
 | `/vehicle <jeep\|tank\|heli\|plane\|bomber\|nest\|mortar\|howitzer\|aa>` | front, assalto | moderator | Coloca essa máquina seis blocos à sua frente, para testes |
+| `/arpg <town\|butcher\|grave\|emberwing\|crypt\|floor1\|floor2\|keeper\|level N\|gold [N]>` | arpg | admin | Atalhos de teste: à cidade, ao chefe de uma área, à cripta ou a um dos seus pisos; o seu nível até N (escolhida antes uma classe); N moedas (1000) |
+| `/backrooms <pink\|hotel\|party\|pool\|slide\|portal\|exit\|suburb\|shift\|kit>` | backrooms | admin | Atalhos de teste: à porta rosa, ao bairro hotel ou festa mais próximo, ao piso da piscina, a um escorrega, a um local de portais, à saída, a uma rua do subúrbio sem fim (mundo de altura 96); `shift` muda já as ligações dos portais; `kit` dá as duas bússolas, a tocha e os materiais |
+| `/chamber <0..18>` | câmaras de teste | admin | Para essa câmara, com a arma de que precisa (azul a partir da 03, as duas a partir da 04) |
+| `/defense [kit\|turrets\|wave N]` | tower defense | qualquer um (recordes), admin (o resto) | Sem palavra, os recordes: a melhor onda do campo e de quem era, e a melhor de cada jogador aqui. `kit` os materiais de construção, `turrets` duas de cada torre e barricadas, `wave N` limpa o campo e começa a onda N |
+| `/inferno <hall\|brazier 1..4\|light>` | inferno | admin | Para a sala do coração ou um braseiro; `light` acende os quatro e abre o portão |
+| `/labphase <shield\|siege\|climb\|pit\|fire\|dark\|frost\|race>` | laboratório | admin | A luta com l'Ospite a partir dessa fase, a sala preparada (o percurso da subida, a lava, as lâmpadas apagadas, o kart para a corrida) e você no lugar; `pit` é a subida a partir do parkour do fosso |
+| `/parkour <1..18\|tower 1..7\|summit>` | parkour | admin | Para essa plataforma (do nível em que está, em sobrevivência), uma estação da torre ou o cume, contada como alcançada |
+| `/plat <room\|1-1\|1-2\|1-3\|bonus\|boss\|big\|fire>` | jogo de plataformas | admin | Para fora na sala, para dentro de um nível, ao cano bónus do 1-1 ou à sala do chefe do 1-3; `big` e `fire` dão esse poder num nível |
+| `/shmup <wave N\|power\|drops>` | jogo de tiro | admin | `wave N` começa já essa onda com 30 vidas (ou na próxima descolagem); `power` enche os potenciadores do caça; `drops` faz cada abate soltar um, ou não |
+| `/skies <manta\|village\|updraft\|phase2\|phase3\|kit\|reset>` | mundo das nuvens | admin | Para a ilha da Manta, a aldeia ou corrente mais próxima; a fase baixa da Manta ou a sua queda já; `kit` os planadores, cristais e armas; `reset` a luta do início |
+| `/track <start\|ring\|grand\|inferno\|loops\|power KIND\|kart>` | pista | admin | Para a linha de partida dessa pista (na sua sala); `power KIND` (boost, boost3, banana, shell, homing, ink, star, bolt) no seu kart; `kart` um kart no saco |
 
 ## Para a equipe
 
@@ -81,6 +91,9 @@ tudo o que está abaixo). `/perm` mostra e muda qual cargo uma permissão pede;
 | `/trophies` | qualquer um | Quantos troféus você ganhou; `/page trophies` lista todos, com dicas e para que lado ficam os portais escondidos (`mods/trophies`) |
 | `/trophies sites` `/trophies go ID [place] [NOME]` `/trophies home [NOME]` | admin | Onde estão os cinco portais escondidos e se cada um está construído; você ou NOME na frente de um (`well`, `summit`, `lake`, `hill`, `circle`) ou, com `place`, no lugar para onde leva; NOME (ou você) no próprio quarto, para ver a estante de troféus (`mods/trophies`) |
 | `/village siege\|feast\|caravan\|incoming` | admin | Começa agora um evento na vila em que você está: um cerco avisado agora e que chega ao anoitecer, a festa da colheita, uma caravana para a outra vila mais próxima, ou uma que chega de uma vila não visitada pelos caminhos (`mods/villagers`) |
+| `/go [ROOM]` | go (admin) | Sem palavra, as salas deste servidor e se cada uma está ligada ou arranca a pedido; com uma, você no spawn dessa sala (uma a pedido é iniciada). Depois `/tp` para um ponto dentro dela |
+| `/tp X Y Z` `/tp X Z` `/tp NAME` | tp (admin) | Você nesse ponto da sala em que está; só com X Z, no chão ali (o piso mais alto com dois blocos livres acima, ou a sua altura numa coluna não carregada); com um nome, até esse jogador, ou ao spawn da sala em que ele está |
+| `/cursedghost` | admin | Um fantasma amaldiçoado quatro blocos à sua frente, para testar a pegada (`mods/ghost`) |
 
 ### Jogadores
 

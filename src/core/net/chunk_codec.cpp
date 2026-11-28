@@ -492,6 +492,11 @@ void install_chunk(World &world, std::unique_ptr<Chunk> chunk)
         dst.set_uniform_light(chunk->uniform_light());
         dst.set_uniform_facing(chunk->uniform_facing());
     }
+    // This chunk itself: Chunk::set does not flag a mesh, and a chunk sent
+    // AGAIN over one this world already had (the server's resend of the
+    // chunks a mod changed, 2026-11-28) kept its old mesh -- the gel and the
+    // hidden portal's island there to aim at and not drawn.
+    world.mark_mesh_dirty(p);
     // And every chunk round it: one meshed while this was missing drew its
     // border against air -- a lake's side as a wall standing in the water,
     // along a chunk's edge, for as long as nothing else touched that chunk.

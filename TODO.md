@@ -21,9 +21,10 @@ what is built, and three or four structural fixes that each close many entries.
 
 ## Suggested order
 
-1. Packages: 0.21.0-alpha.3 is tagged (2026-11-24: the tower defense, the cloud
-   world, map tiles, the backrooms' districts). The next one gets a new
-   version, changelog entry and tag first.
+1. Packages: 0.21.0-alpha.4 is tagged (2026-11-28: the endless suburb, clowns,
+   the inferno guardian's fire, test shortcuts /go /tp, block changes that never
+   reached clients). The next one gets a new version, changelog entry and tag
+   first.
 2. The test rig (section below): done 2026-11-20 for the five left-click cases;
    the thirty "not heard" entries are still to go through one by one.
 3. Models at join (first defect below): done 2026-11-20, looked at by eye.
@@ -81,6 +82,13 @@ what is built, and three or four structural fixes that each close many entries.
 
 ## To play by hand (built, checked by script only)
 
+Shortcuts to each place below (2026-11-27): `/go ROOM`, `/tp`, and one admin
+command a world (`/chamber`, `/labphase`, `/track`, `/arpg`, `/backrooms`,
+`/inferno`, `/parkour`, `/plat`, `/shmup`, `/skies`, `/defense kit|turrets|wave`,
+`/cursedghost`), in docs/COMMANDS.md. Each run headless once without a mod
+error; where they put the player not looked at by eye. `/go` sends to a room's
+spawn only (an X Y Z carried across rooms was dropped: no way to check it).
+
 From docs/IDEE.it.md (2026-11-24), each checked by script on tools/track.sh:
 - Ghosts of your own, /ghost, /laps: a lap kept as ghost@racer (136 places,
   20.241 s); `/ghost mine` sends the player's own ghost and not the record's.
@@ -91,6 +99,10 @@ From docs/IDEE.it.md (2026-11-24), each checked by script on tools/track.sh:
   taking the line onto another track mid-lap (grand) was dropped. Fixed;
   scripted Inferno lap: own ghost and record kept in both rooms (86 + 127
   places). The grand case by typecheck only. To see by hand again.
+  Then seen by hand: drawn backwards and empty. Fixed (half a turn, the robot
+  in it on drive_idle); seen right 2026-11-27, but flat. Now each place keeps
+  the chassis's pitch and roll (core.player_tilt); a ghost kept before stays
+  flat. Not yet seen.
 - Several tracks of pieces with owners: the old single track moved over as
   nobody's (custom4). Putting lines down by hand, eight a player and "That line
   is X's" not tried.
@@ -153,6 +165,63 @@ From docs/IDEE.it.md (2026-11-24), each checked by script on tools/track.sh:
   mods_play passes (it caught the thunder.ogg link that kept the cloud world's
   code from players).
 - The two new gates on the plaza (25.5 and 69.5 on the south edge): not seen.
+
+Played by hand 2026-11-27 (Giacomo): chambers 1-17 (both gels), lab, inferno,
+parkour shortcuts all work; the cursed ghost threw him off a cliff. Found:
+- Chamber 16 (stuck on the bridge, orange to blue) and the summit's place of
+  invisible blocks: one cause, found 2026-11-28 in worlds/track/server.log
+  ("told 0 block change(s) from mods, held 503808 back"). Since 34bce99a a
+  mod's block changes waited while ANY reliable chunk was unacknowledged, and
+  with chunks always streaming (portals' far ends) they waited for ever: the
+  bridge solid on the server and absent on the client (corrected 200 times at
+  387.54 20.01 11.75). Now held at most 0.5 s, then the chunks they are in are
+  sent again on the Chunk channel (after the one in flight). Not yet seen by
+  hand; the probe runs never held for ever, before or after.
+  Seen 08:15: the bridge now drawn, held no longer huge, but still stuck at
+  387.61 20.01 11.76: the server put him back at 20.03 (inside_solid forgives
+  the feet's bottom 0.05), the client's box then overlapped the bridge's
+  sixteenth (top 20.0625), fell through it to 20.01, refused, again. Now a
+  body put back is raised until those 0.05 are clear (check_move). Not yet seen.
+  Seen 08:23: put back at 20.07 now, still claimed 20.01 at both portals'
+  mouths ("passo ma con difficolta'"). The client's portal_wall_shift took a
+  body on the bridge (feet 1/16 over the hole's foot) for one in the air and
+  raised its box, so the feet sank through the bridge. Now "at the foot" is up
+  to the hole's margin (0.07). Seen by Giacomo 2026-11-28: passes smoothly.
+  portallab's wall cases not re-run.
+- 2026-11-28, Giacomo saw: the ghost kart tipping, the guardian's bar, /go
+  defense, the turret icons and held models. The gel's blue patch there to aim
+  at but not drawn, the cave's island only after walking off and back: a chunk
+  sent again over one the client had kept its old mesh (install_chunk flagged
+  only the neighbours). Fixed, not yet seen. The fire wave rebuilt as a ball
+  landing short of the player, then a slow wall (4.5 m/s) to jump; drops at 0.2.
+  Seen: the ball flew, the wall seemed to start at the guardian: landing
+  short put it at its feet when fighting close. Now it lands where the player
+  stood when thrown, the ball drawn twice as big. Not yet seen.
+  Cooked fish was not in mods/hunger's FOOD (never edible): added, 5 and 6;
+  bites of 1-2: brown mushroom, honeycomb, sugar cane. Not eaten by hand yet.
+  The fire ball now seen landing where the player stood (2026-11-28).
+  Backrooms pools: a ladder in the water left a column of air (a hole in the
+  surface). backrooms:ladder_wet is a liquid with the ladder's model (the
+  mesher draws both); old pools put right by an LBM. Seen in Xephyr from above:
+  the surface whole, the rails under it. Not yet climbed out of by hand.
+- Backrooms 2026-11-28: the endless suburb (level 4, ground 65, only in a world
+  --world-top 96: track.sh and the client's rooms pass it; a world made 64
+  high keeps its old layout, core.world_height). Seen in Xephyr from over a
+  street. Stairs up from the poolrooms, holes down, portals to it: not walked.
+  Party clowns (workers): by probe, unseen they reach and kill, seen they stay
+  frozen 23 s; no sounds of their own. Smilers put a room's lamps out (2 of 2,
+  back on when it left). Balloons are models now. Server fix on the way: a
+  server of one world wrote its .shape at 64 before reading --world-top.
+  Seen by Giacomo: clowns up in the pools (they hunted up the stairs) and two
+  stairwells to the suburb that led nowhere (the suburb's soil at 64 over the
+  last flight). Now clowns hunt only on the party's level and are gone off it
+  (probe: 3 in the party, 0 four seconds after going up); the soil cut through,
+  and an LBM opens stairwells made before (probe: 4 blocked steps a stairwell,
+  then 0 on the same world). Not yet climbed by hand.
+- Fixed the same day, not yet seen: gel drops at 0.4 of their speed; the
+  inferno guardian's bar and fire wave (games/inferno/mods/inferno_boss,
+  core.mob_life); turret icons and held models (tools/make_turret_icons.py);
+  /go defense landing in the void.
 
 Trophies and the hidden portals (mods/trophies, 2026-11-23): type-checked,
 and run 2026-11-23 on a server of seed 1 (a sandbox, the pocket halls and the

@@ -134,6 +134,13 @@ struct Hooks {
     // The clock of the room that player is in: set to `t` if t >= 0, and what it says now, -1 for no room.
     std::function<double(net::PeerId, double t)>                                    clock;
 
+    // /go and /tp: rooms on this server, send a player to a room's spawn, and
+    // teleport inside the current room (or to another player).
+    std::function<std::vector<std::string>()>                                                       rooms_list;
+    std::function<std::string(net::PeerId, const std::string &room)>                                     go;
+    std::function<std::string(net::PeerId, const std::string &target, bool has_pos, float x, float y, float z,
+                              bool has_y)>                                                           tp;
+
     // A friend's mod said something to the mod of that name here (core.fed_send
     // there): `from` the friend as /friend named it.
     std::function<void(const std::string &from, const std::string &mod, const std::string &text)> mod_message;

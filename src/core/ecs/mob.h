@@ -204,6 +204,8 @@ int mob_hurt(flecs::world &w, uint32_t id, uint16_t damage, float from_x, float 
 // A living creature's health and its whole, set to hp (core.mob_health): one
 // kind made sturdier where a mod wants it. 1, or 0 for one gone or dead.
 int mob_health(flecs::world &w, uint32_t id, uint16_t hp);
+// What one living creature has left and its whole (core.mob_life). 0 for one gone or dead.
+int mob_life(flecs::world &w, uint32_t id, int &hp, int &max);
 
 // A burst (core.blast): every such body with its middle within r of the
 // centre loses `damage`, half of it at the edge, and a creature is thrown

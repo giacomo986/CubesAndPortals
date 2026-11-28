@@ -124,6 +124,8 @@ owner of that name on this world, or the bare name.
 | `/rule [NAME on\|off]` | admin | The world's rules (`mods/rules`, core.set_rule): keep_bag, day_cycle, weather_cycle, hunger, and whatever else the world's mods declare (the event `rules:declare`, said in `mods/rules/init.luau`); kept in WORLD.rules. The pause menu's World button shows them all on `/page world`, with the weather, the hour and the season, as buttons for an admin |
 | `/trophies sites` `/trophies go ID [place] [NAME]` `/trophies home [NAME]` | admin | Where the five hidden portals are and whether each is built; you or NAME in front of one (`well`, `summit`, `lake`, `hill`, `circle`) or, with `place`, into the place it leads to; NAME (or you) into their own room, to see the trophy shelf (`mods/trophies`) |
 | `/village siege\|feast\|caravan\|incoming` | admin | Starts one of the villages' events now in the village the admin stands in (`mods/villagers`): a siege warned of now and coming at nightfall, the harvest feast in its square, a caravan to the nearest other village (none when one is out already or its chests have nothing to spare), or one coming from a village 100-900 away nobody has visited, along the paths (none when no such village is joined by them) |
+| `/go [ROOM]` | go (admin) | With no word, the rooms of this server and whether each is up or started on demand; with one, you to that room's spawn (a room on demand is started). Then `/tp` for a place in it |
+| `/tp X Y Z` `/tp X Z` `/tp NAME` | tp (admin) | You to that place in the room you are in; with X Z only, onto the ground there (the highest floor with two free nodes above, or your height on a column not loaded); with a name, to that player, or to the spawn of the room they are in |
 
 ### Players
 

@@ -159,6 +159,27 @@ MovementVerdict check_move(const MovementState &last, float x, float y, float z,
                 }
             }
         }
+        // And ON what the feet are let into: inside_solid forgives the bottom
+        // 0.05 of the box, the client's resolver does not -- a box already
+        // overlapping a block is let out of it, so a body put back with its
+        // feet in a light bridge's sixteenth fell through it to the floor,
+        // was put back, fell again, for ever (chamber 16, 2026-11-28). Raised
+        // until those 0.05 are clear: stood on top of it.
+        for (int lift = 0; lift < 8; ++lift) {
+            const AABB band{Vec3{v.x - limits.solid_half, v.y, v.z - limits.solid_half},
+                            Vec3{v.x + limits.solid_half - kBoxSkin, v.y + 0.05f, v.z + limits.solid_half - kBoxSkin}};
+            bool hit = false;
+            const int y0 = (int)std::floor(v.y), y1 = (int)std::floor(v.y + 0.05f);
+            for (int bz = (int)std::floor(band.min.z); bz <= (int)std::floor(band.max.z) && !hit; ++bz)
+                for (int by = y0; by <= y1 && !hit; ++by)
+                    for (int bx = (int)std::floor(band.min.x); bx <= (int)std::floor(band.max.x) && !hit; ++bx)
+                        hit = node_blocks_box(world, registry, bx, by, bz, band) &&
+                              registry.get(world.get_block(bx, by, bz)).door == 0 &&
+                              !node_exempt(bx, by, bz, exempt, exempt_count);
+            if (!hit) break;
+            v.y += 1.0f / 64.0f;
+        }
+
         // Where, in the sentence: a refusal that does not say which position
         // is one nobody can check, and the width is the world's.
         char where[128];

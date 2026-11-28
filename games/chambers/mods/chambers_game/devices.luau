@@ -714,11 +714,14 @@ function M.client()
                 end
             end
         end
-        -- Gel: a drop every 0.04 s of the way, each where it has got to.
+        -- Gel: a drop every 0.04 s of the way, each where it has got to,
+        -- played at DROP_PACE of the fall's own speed (at 1 it read as a
+        -- blur, Giacomo 2026-11-27): the same arc, the drops slower along it.
+        local DROP_PACE = 0.2
         for _, st in streams do
             local blue = st.kind ~= "speed"
             local r, g, b = if blue then 40 else 255, if blue then 120 else 130, if blue then 255 else 20
-            local t = now % 0.04
+            local t = (now * DROP_PACE) % 0.04
             local n = 0
             while t < st.len and n < 120 do
                 local x, y, z = along(st, t)

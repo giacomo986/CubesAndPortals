@@ -651,10 +651,13 @@ core.players() -> { id }                         -- chi ha un corpo in questo mo
 core.player_pos(id) -> (x, y, z) | nil           -- i PIEDI, o niente se non c'e'
 core.player_name(id) -> nome                     -- "" se non c'e'; resta uguale a un rientro, l'id no
 core.player_look(id) -> (dx, dy, dz) | nil       -- dove guarda, lunghezza 1
+core.player_tilt(id) -> (pitch, roll, dx, dy, dz) | nil -- come sta il kart che guida (il fantasma di games/track)
 core.player_place(id, x, y, z, dx?, dy?, dz?) -> bool  -- sposta e gira un corpo, come un portale
 core.ride(id, host, x?, y?, z?) -> bool         -- seduto sul corpo di host; host 0 = scende
 core.monsters_near(x, y, z, r) -> n              -- creature che combattono entro r
 core.mob_health(id, hp) -> bool                 -- la salute di una creatura e il suo massimo
+core.mob_life(id) -> (hp, whole) | nil          -- quanto resta a una creatura: la barra di un boss
+core.world_height() -> n                        -- la prima cella sopra la cima del mondo (64, o --world-top)
 core.raycast(x, y, z, dx, dy, dz, max?) -> (bx, by, bz, distanza) | nil
 
 core.meta_set(x, y, z, chiave, valore) -> bool   -- valore vuoto = cancella
@@ -1422,7 +1425,7 @@ progetto:
 | wraith, cinder (`games/inferno`) | il wraith si inclina, scende e arriccia i tentacoli; al cinder cadono i bastoni e poi la testa | `tools/make_inferno_creatures.py` |
 | ghoul, imp, pinky, gazer (`games/yafps`) | ognuno a modo suo | `tools/make_fps_models.py` |
 | umano, rospo, talpa (`mods/villagers`), robot aiutante (`mods/helpers`) | su un fianco | `tools/make_villager_models.py` |
-| bacteria, smiler (`games/backrooms`) | il bacteria barcolla e cade rigido in avanti; lo smiler chiude il ghigno e scende a terra girandosi | `tools/make_backrooms_creatures.py` |
+| bacteria, smiler, pagliaccio (`games/backrooms`) | il bacteria barcolla e cade rigido in avanti; lo smiler chiude il ghigno e scende a terra girandosi; al pagliaccio cedono le ginocchia e cade all'indietro | `tools/make_backrooms_creatures.py` |
 | formica, coccinella, farfalla (`mods/garden`) | su un fianco; la farfalla prima chiude le ali | `tools/make_garden_insects.py` |
 | fantasma maledetto (`mods/ghost`) | il suo corpo non si vede; la mod disegna il fantasma che sale mentre si dissolve (il dissolve di core.render.model) | `tools/make_ghost_body.py`, l'aspetto da Meshy con `tools/meshy_prop.py` |
 

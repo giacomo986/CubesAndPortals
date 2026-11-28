@@ -7,6 +7,10 @@
 --   The poolrooms (floor 36) white tiles, pools of every size, lit from
 --                            under the water, slides down into them
 --   Level 1      (floor 4)   a concrete warehouse, puddles, few lamps
+--   The suburb   (ground 65) streets and houses all alike, without end,
+--                            empty, under a sky that is not there; only in a
+--                            world 96 high (--world-top 96), over the
+--                            poolrooms' tallest halls
 --
 -- Every level is a grid of rooms eight cells across; a wall between two rooms
 -- is there or not by a hash of where it is, and a wall that is there always
@@ -39,6 +43,10 @@ local REGION = 32    -- one chunk column; at most one portal pair in each
 -- the links shift.
 local DEEP = core.room() == "backrooms_deep"
 local PORTAL_CHANCE = if DEEP then 500 else 330   -- of 1000 regions
+-- The suburb over the poolrooms wants a world 96 high (--world-top 96). A
+-- world made 64 high keeps its three levels and the layout it had: no
+-- fourth level, no stairs up to it, no portals to it.
+local HIGH = core.world_height() >= 96
 
 local function node(name: string, rgb: { number }, light: number?, solid: boolean?): number
     local s = if solid == nil then true else solid
@@ -91,6 +99,15 @@ local LADDER = core.register_node("backrooms:ladder", 190, 196, 200, true, 0, "u
 core.node_box(LADDER, 0.1, 0, 0.8, 0.9, 1, 1)
 core.node_climbable(LADDER)
 core.node_model(LADDER, model("ladder"))
+-- The same ladder standing in a pool's water: a liquid too, so the cell is
+-- water round its rails (the mesher draws a cell's model and its liquid
+-- both) and not a hole of air down the pool's side. Its surface is the
+-- water's own picture (backrooms_ladder_wet.png, a copy of the water's).
+local LADDER_WET = core.register_node("backrooms:ladder_wet", 90, 170, 210, false, 0, "upright", 0, 0, "metal")
+core.node_box(LADDER_WET, 0.1, 0, 0.8, 0.9, 1, 1)
+core.node_climbable(LADDER_WET)
+core.node_model(LADDER_WET, model("ladder"))
+core.node_liquid(LADDER_WET, 90)
 -- A chest, rare, in a room with nothing else in it: mods/chest's model, and
 -- what is in it decided the first time somebody opens it (the compasses').
 local CHEST = core.register_node("backrooms:chest", 150, 110, 60, true, 0, "upright")
@@ -105,6 +122,30 @@ local LAMP      = node("lamp", { 255, 214, 150 }, 14)
 local LAMP_OFF  = node("lamp_off", { 110, 100, 86 })
 local PUDDLE    = node("puddle", { 70, 80, 84 }, 0, false)
 core.node_liquid(PUDDLE, 120, 1)
+-- The suburb: asphalt, a sidewalk, lawns, the same house over and over.
+local ASPHALT   = node("asphalt", { 46, 46, 50 })
+local SIDEWALK  = node("sidewalk", { 150, 148, 140 })
+local LAWN      = node("lawn", { 70, 96, 52 })
+local SOIL      = node("soil", { 92, 70, 50 })
+local SIDING    = node("siding", { 206, 200, 178 })
+local ROOF      = node("roof", { 96, 52, 44 })
+local WINDOW    = node("window", { 22, 26, 34 })
+local WOOD      = node("wood_floor", { 140, 104, 64 })
+local PATH      = node("path", { 170, 162, 150 })
+local STREET_LAMP     = node("street_lamp", { 255, 176, 90 }, 14)
+local STREET_LAMP_OFF = node("street_lamp_off", { 90, 80, 70 })
+local HOUSE_LAMP      = node("house_lamp", { 255, 214, 150 }, 10)
+local function thin(name: string, rgb: { number }, boxes: { { number } }): number
+    local id = core.register_node(`backrooms:{name}`, rgb[1], rgb[2], rgb[3], true, 0, "", 0, 0, "wood")
+    for _, b in boxes do
+        core.node_box(id, b[1], b[2], b[3], b[4], b[5], b[6])
+    end
+    return id
+end
+local FENCE     = thin("fence", { 236, 236, 230 }, { { 0.42, 0, 0, 0.58, 0.9, 1 }, { 0, 0.55, 0.45, 1, 0.7, 0.55 } })
+local LAMP_POST = thin("lamp_post", { 60, 62, 66 }, { { 0.4, 0, 0.4, 0.6, 1, 0.6 } })
+local MAILBOX   = thin("mailbox", { 70, 70, 80 }, { { 0.45, 0, 0.45, 0.55, 0.8, 0.55 }, { 0.3, 0.8, 0.25, 0.7, 1, 0.75 } })
+
 -- A portal's doorway: dark, its lintel lit.
 local FRAME     = node("frame", { 44, 40, 36 })
 local GLOW      = node("glow", { 255, 250, 230 }, 9)
@@ -122,8 +163,13 @@ local PARTY_WALL   = node("party_wall", { 232, 150, 190 })
 local PARTY_FLOOR  = node("party_floor", { 96, 74, 150 })
 local PARTY_CEIL   = node("party_ceiling", { 244, 232, 248 })
 local PARTY_LAMP   = node("party_lamp", { 255, 190, 240 }, 14)
+local PARTY_LAMP_OFF = node("party_lamp_off", { 120, 90, 110 })   -- a Smiler's (below)
 local BALLOONS = { node("balloon_red", { 220, 40, 50 }, 0, false), node("balloon_yellow", { 240, 210, 40 }, 0, false),
                    node("balloon_blue", { 50, 110, 230 }, 0, false) }
+-- Drawn as balloons with their strings hanging (tools/make_backrooms_props.py).
+for i, colour in { "red", "yellow", "blue" } do
+    core.node_model(BALLOONS[i], model(`balloon_{colour}`))
+end
 local CAKE = node("cake", { 245, 225, 230 })
 
 -- A stair: half a cell, and the back half of the cell over it; it climbs
@@ -168,7 +214,7 @@ local LEVELS: { Level } = {
       wall = 420, corr = 300, hall = 90, lamp = LAMP, lamp_off = LAMP_OFF,
       lamps = { { 4, 4 }, { 4, 5 } }, dark = 250, stair = STAIR_CONCRETE },
 }
-local PAIRS = { { 1, 2 }, { 1, 3 }, { 2, 3 } }
+local PAIRS = if HIGH then { { 1, 2 }, { 1, 3 }, { 2, 3 }, { 2, 4 }, { 1, 4 } } else { { 1, 2 }, { 1, 3 }, { 2, 3 } }
 
 -- The newer levels, each in the place of one of the three, district by
 -- district: a district is 128 cells a side and is either. Their floors are
@@ -177,14 +223,24 @@ local HOTEL: Level = { name = "The hotel", F = 21, h = 5, tall = 33, floor = HOT
     ceil = HOTEL_CEIL, wall = 900, corr = 520, hall = 40, lamp = SCONCE, lamp_off = SCONCE_OFF,
     lamps = { { 4, 4 } }, dark = 80, stair = STAIR_HOTEL }
 local PARTY: Level = { name = "The party", F = 5, h = 6, tall = 19, floor = PARTY_FLOOR, wall_block = PARTY_WALL,
-    ceil = PARTY_CEIL, wall = 380, corr = 150, hall = 140, lamp = PARTY_LAMP,
+    ceil = PARTY_CEIL, wall = 380, corr = 150, hall = 140, lamp = PARTY_LAMP, lamp_off = PARTY_LAMP_OFF,
     lamps = { { 2, 2 }, { 6, 6 }, { 2, 6 }, { 6, 2 } }, dark = 0, stair = STAIR_PARTY }
 local ALT: { [number]: Level } = { [1] = HOTEL, [3] = PARTY }
+-- The fourth level, over the poolrooms: not rooms but streets (make_suburb
+-- below). Its rooms' grid is still there for what goes up and down, and for
+-- the portals: a stairwell from the poolrooms comes up through the ground, a
+-- hole drops into a pool under it.
+local SUBURB: Level = { name = "The endless suburb", F = 66, h = 10, tall = 95, floor = LAWN, wall_block = SIDING,
+    ceil = AIR, wall = 0, corr = 0, hall = 0, lamp = STREET_LAMP, lamp_off = nil, lamps = {}, dark = 0,
+    stair = STAIR_CONCRETE }
+if HIGH then
+    table.insert(LEVELS, SUBURB)
+end
 local DISTRICT = 128
 
 -- The level a body's feet are in, by height.
 local function level_at(y: number): number
-    return if y >= 33 then 2 elseif y >= 17 then 1 else 3
+    return if HIGH and y >= 63 then 4 elseif y >= 33 then 2 elseif y >= 17 then 1 else 3
 end
 
 -- mods/ore's hash: exact in a double, a function of its arguments alone.
@@ -238,7 +294,7 @@ local function site(rx: number, rz: number): Site?
     if special(cx, cz) then
         return nil
     end
-    local pair = PAIRS[bit32.rshift(h, 18) % 3 + 1]
+    local pair = PAIRS[bit32.rshift(h, 18) % #PAIRS + 1]
     -- The hole is the room's cell (4, 3), facing +z; the portal's plane four
     -- tenths into it from its front.
     return { cx = cx, cz = cz, a = pair[1], b = pair[2], x = cx * C + 4.5, z = cz * C + 3.6 }
@@ -258,6 +314,8 @@ local VERTICAL: { [string]: Vertical } = {
     stairs_0 = { stairs = true, lo = 1, hi = 2 },    -- Level 0 up to the poolrooms
     hole_0   = { stairs = false, lo = 3, hi = 1 },   -- Level 0 down to Level 1
     hole_p   = { stairs = false, lo = 1, hi = 2 },   -- the poolrooms down to Level 0
+    stairs_p = { stairs = true, lo = 2, hi = 4 },    -- the poolrooms up to the suburb
+    hole_s   = { stairs = false, lo = 2, hi = 4 },   -- the suburb down to the poolrooms
 }
 local function vertical(cx: number, cz: number): string
     if special(cx, cz) or site_room(cx, cz) then
@@ -265,7 +323,8 @@ local function vertical(cx: number, cz: number): string
     end
     local r = hash(cx, cz, 7717) % 1000
     return if r < 22 then "stairs_1" elseif r < 44 then "stairs_0" elseif r < 64 then "hole_0"
-        elseif r < 84 then "hole_p" else ""
+        elseif r < 84 then "hole_p" elseif HIGH and r < 100 then "stairs_p" elseif HIGH and r < 114 then "hole_s"
+        else ""
 end
 
 -- Whether a room is one of a hall's four: blocks of two by two from an even
@@ -422,9 +481,30 @@ local function pool(L: number, x1: number, z1: number, x2: number, z2: number, d
     end
     local zl = (z1 + z2) // 2
     for y = F - depth, F do
-        turned(x1, y, zl, LADDER, 3)
+        turned(x1, y, zl, if y < F then LADDER_WET else LADDER, 3)
     end
 end
+
+-- The pools laid before the wet ladder (2026-11-28) have dry ones in their
+-- water, a hole down the side: one with water beside it is put right as its
+-- chunk loads, turned as it was.
+core.register_lbm("backrooms:wet_ladders", { "backrooms:ladder" }, function(cell)
+    local x, y, z = cell.x, cell.y, cell.z
+    if core.get_block(x + 1, y, z) == WATER or core.get_block(x - 1, y, z) == WATER
+        or core.get_block(x, y, z + 1) == WATER or core.get_block(x, y, z - 1) == WATER then
+        turned(x, y, z, LADDER_WET, core.get_facing(x, y, z))
+    end
+end)
+
+-- And stairwells up to the suburb made before their way out was cut through
+-- the soil (2026-11-28): the soil over a stair taken away as its chunk loads.
+core.register_lbm("backrooms:open_suburb_stairs", { "backrooms:stair_tile" }, function(cell)
+    for dy = 1, 2 do
+        if core.get_block(cell.x, cell.y + dy, cell.z) == SOIL then
+            core.set_block(cell.x, cell.y + dy, cell.z, AIR)
+        end
+    end
+end)
 
 -- A flight of the level's stairs along +x, from the floor a body stands on at
 -- y over (x, z) up `rise` cells: the first step at x + 1.
@@ -672,6 +752,83 @@ local function build_hall(L: number, bx: number, bz: number)
     end
 end
 
+-- The suburb over one column: a block of 32 by 32, streets four wide round
+-- it with a sidewalk either side, and four lots in it, each the same house
+-- facing its street (the two west lots west, the two east ones east): a lawn,
+-- a path to the door, a mailbox, a picket fence round the back and sides,
+-- one storey of pale siding with dark windows and a doorway with no door, a
+-- stepped roof. Lamp posts along the sidewalks, one in five dead; a light on
+-- in one house in fifteen, the rest dark and empty.
+local function make_suburb(ctx: any, here: Site?)
+    local F = SUBURB.F
+    core.replace_nodes(ctx.min_x, F - 2, ctx.min_z, ctx.max_x, F - 2, ctx.max_z, AIR, SOIL)
+    for x = ctx.min_x, ctx.max_x do
+        for z = ctx.min_z, ctx.max_z do
+            local u, v = x % 32, z % 32
+            local road_u, road_v = u >= 1 and u <= 4, v >= 1 and v <= 4
+            local walk_u, walk_v = u == 0 or u == 5, v == 0 or v == 5
+            if road_u or road_v then
+                core.set_block(x, F - 1, z, ASPHALT)
+            elseif walk_u or walk_v then
+                core.set_block(x, F - 1, z, SIDEWALK)
+                if (u == 5 and v % 10 == 8) or (v == 5 and u % 10 == 8) then
+                    core.replace_nodes(x, F, z, x, F + 3, z, AIR, LAMP_POST)
+                    core.set_block(x, F + 4, z,
+                        if hash(x, z, 4441) % 5 == 0 then STREET_LAMP_OFF else STREET_LAMP)
+                end
+            else
+                -- A lot: f from its street (0) back, b across it.
+                local lu, lv2 = if u < 19 then 0 else 1, if v < 19 then 0 else 1
+                local a, b = u - (if lu == 0 then 6 else 19), v - (if lv2 == 0 then 6 else 19)
+                local f = if lu == 0 then a else 12 - a
+                local ground = if b == 6 and f <= 2 then PATH else LAWN
+                core.set_block(x, F - 1, z, ground)
+                if f == 0 and b == 8 then
+                    core.set_block(x, F, z, MAILBOX)
+                elseif f >= 1 and (f == 12 or b == 0 or b == 12) then
+                    turned(x, F, z, FENCE, if f == 12 then 1 else 0)
+                end
+                local in_house = f >= 3 and f <= 9 and b >= 3 and b <= 9
+                if in_house then
+                    core.set_block(x, F - 1, z, WOOD)
+                    if f == 3 or f == 9 or b == 3 or b == 9 then
+                        core.replace_nodes(x, F, z, x, F + 3, z, AIR, SIDING)
+                        local window = ((f == 3 or f == 9) and (b == 4 or b == 5 or b == 7 or b == 8))
+                            or ((b == 3 or b == 9) and (f == 5 or f == 7))
+                        if window then
+                            core.set_block(x, F + 1, z, WINDOW)
+                        end
+                        if f == 3 and b == 6 then
+                            core.set_block(x, F, z, AIR)
+                            core.set_block(x, F + 1, z, AIR)
+                        end
+                    elseif f == 6 and b == 6 then
+                        local lot = hash(x // 32 * 2 + lu, z // 32 * 2 + lv2, 4447)
+                        if lot % 15 == 0 then
+                            core.set_block(x, F + 3, z, HOUSE_LAMP)
+                        end
+                    end
+                end
+                -- The roof, stepped up to a ridge from the street back.
+                if f >= 2 and f <= 10 then
+                    for k = 0, 4 do
+                        if b >= 2 + k and b <= 10 - k and (k > 0 or b >= 2) then
+                            core.set_block(x, F + 4 + k, z, ROOF)
+                        end
+                    end
+                end
+            end
+        end
+    end
+    -- A portal's doorway, in its room as on the other levels.
+    if here and (here.a == 4 or here.b == 4) then
+        local x0, z0 = here.cx * C, here.cz * C
+        if x0 + 4 >= ctx.min_x and x0 + 4 <= ctx.max_x and z0 + 3 >= ctx.min_z and z0 + 3 <= ctx.max_z then
+            doorway(F, x0 + 4, z0 + 3, true, if here.a == 4 then here.b else here.a)
+        end
+    end
+end
+
 -- A stairwell from a room of level `lo` up to the same room of `hi`, sixteen
 -- cells over it: two flights a turn along z, side by side (x 1..2 climbing
 -- +z, x 5..6 climbing -z), a landing across each end, the lower level's
@@ -699,6 +856,18 @@ local function stairwell(x0: number, z0: number, lo: number, hi: number)
         for x = x0 + 1, x0 + 2 do
             core.set_block(x, U.F - 1, z, AIR)
         end
+    end
+    -- Out into the suburb: whatever stands over the way out -- a house's
+    -- wall, its roof -- cleared, a body's height and a step round it.
+    if U == SUBURB then
+        -- The soil under the suburb's ground too: the other levels have one
+        -- layer of floor, this one two, and the last flight climbed into the
+        -- lower one head first -- stairs going up into nothing (2026-11-28).
+        core.replace_nodes(x0 + 1, U.F - 2, z0 + 2, x0 + 2, U.F - 2, z0 + 5, SOIL, AIR)
+        core.replace_nodes(x0 + 1, U.F, z0 + 1, x0 + 2, U.F + 2, z0 + 6, SIDING, AIR)
+        core.replace_nodes(x0 + 1, U.F, z0 + 1, x0 + 2, U.F + 2, z0 + 6, WINDOW, AIR)
+        core.replace_nodes(x0 + 1, U.F, z0 + 1, x0 + 2, U.F + 2, z0 + 6, FENCE, AIR)
+        core.replace_nodes(x0 + 1, U.F, z0 + 1, x0 + 2, U.F + 2, z0 + 6, MAILBOX, AIR)
     end
     local t = 0
     local function step(lane: number, lz: number, facing: number): boolean
@@ -762,6 +931,10 @@ core.world_sky(18, 16, 10)
 core.register_mapgen("backrooms:rooms", function(ctx)
     local here = site(ctx.min_x // REGION, ctx.min_z // REGION)
     for L = 1, #LEVELS do
+        if L == 4 then
+            make_suburb(ctx, here)
+            continue
+        end
         make(L, ctx, here)
         for cz = ctx.min_z // C, ctx.max_z // C, 2 do
             for cx = ctx.min_x // C, ctx.max_x // C, 2 do
@@ -852,6 +1025,191 @@ core.register_model(`{TOOTH}_held`, "smiler_tooth_held.gltf")
 core.mob_drop("backrooms:bacteria", FILAMENT, 1)
 core.mob_drop("backrooms:smiler", TOOTH, 1)
 
+-- The party's clowns (tools/make_backrooms_creatures.py): they come only while
+-- nobody looks. Workers, so where they go is this mod's: out of sight they
+-- go for the nearest player and strike; looked at -- within LOOK of where a
+-- player looks, nothing in between -- they stop dead in their "frozen" pose.
+-- They are let out by this mod, never by the dark (the party is lit): behind
+-- a player in a party district, a few rooms away.
+core.register_mob("backrooms:clown", core.register_model("backrooms:clown", "clown.gltf"),
+                  40, 5.0, "worker", 5, 1.7, 1.0, "", 1, 0, false, 0, false, "")
+local CLOWN_NEAR, CLOWN_MAX, CLOWN_GONE = 48, 3, 90   -- seen from, at once round a player, let go past
+local LOOK = math.cos(math.rad(45))
+type Clown = { frozen: boolean, prey: number }
+local clowns: { [number]: Clown } = {}
+local clown_wait = 0.0
+
+-- Whether player p sees the point (x, y, z): ahead within LOOK, no block between.
+local function sees(p: number, x: number, y: number, z: number): boolean
+    local px, py, pz = core.player_pos(p)
+    local lx, ly, lz = core.player_look(p)
+    if px == nil or lx == nil then
+        return false
+    end
+    local ey = (py :: number) + 1.5
+    local dx, dy, dz = x - px, y - ey, z - (pz :: number)
+    local d = math.sqrt(dx * dx + dy * dy + dz * dz)
+    if d > CLOWN_NEAR then
+        return false
+    end
+    if d < 0.5 or (dx * lx + dy * (ly :: number) + dz * (lz :: number)) / d < LOOK then
+        return d < 0.5
+    end
+    local _, _, _, hit = core.raycast(px, ey, pz :: number, dx, dy, dz, d)
+    return hit == nil or (hit :: number) >= d - 0.6
+end
+
+local function step_clowns(dt: number)
+    local players = core.players()
+    -- Each clown: held while anybody sees it, after the nearest player when not.
+    for id, c in clowns do
+        local x, y, z = core.mob_pos(id)
+        if x == nil then
+            clowns[id] = nil
+            continue
+        end
+        -- A clown never leaves the party's level: one that has (down a hole,
+        -- up a stair after somebody) is gone, and it goes only for whoever is
+        -- on that level (2026-11-28: they followed a player up to the pools).
+        if level_at(y :: number) ~= 3 then
+            core.mob_remove(id)
+            clowns[id] = nil
+            continue
+        end
+        local seen, prey, best = false, 0, math.huge
+        for _, p in players do
+            local px, py, pz = core.player_pos(p)
+            if px ~= nil and level_at(py :: number) == 3 then
+                if sees(p, x, (y :: number) + 1.6, z :: number) or sees(p, x, (y :: number) + 0.6, z :: number) then
+                    seen = true
+                end
+                local d = (px - x) ^ 2 + ((py :: number) - (y :: number)) ^ 2 + ((pz :: number) - (z :: number)) ^ 2
+                if d < best then prey, best = p, d end
+            end
+        end
+        if best > CLOWN_GONE * CLOWN_GONE then
+            core.mob_remove(id)
+            clowns[id] = nil
+        elseif seen then
+            if not c.frozen then
+                c.frozen, c.prey = true, 0
+                core.mob_hunt(id, 0)
+                core.mob_place(id, x, y :: number, z :: number)
+                core.mob_act(id, "frozen")
+            end
+        elseif c.frozen or c.prey ~= prey then
+            c.frozen, c.prey = false, prey
+            core.mob_act(id, "")
+            core.mob_hunt(id, prey)
+        end
+    end
+    -- More of them, now and then, behind whoever is in the party.
+    clown_wait -= dt
+    if clown_wait > 0 then
+        return
+    end
+    clown_wait = 4.0
+    for _, p in players do
+        local x, y, z = core.player_pos(p)
+        local lx, _, lz = core.player_look(p)
+        if x == nil or lx == nil or level_at(y :: number) ~= 3 or theme(3, x, z :: number) ~= PARTY then
+            continue
+        end
+        local near = 0
+        for id in clowns do
+            local cx, _, cz = core.mob_pos(id)
+            if cx ~= nil and (cx - x) ^ 2 + ((cz :: number) - (z :: number)) ^ 2 < CLOWN_NEAR * CLOWN_NEAR then
+                near += 1
+            end
+        end
+        if near >= CLOWN_MAX or math.random(100) > 40 then
+            continue
+        end
+        -- Three to five rooms behind them, in a party room with a clear floor.
+        local fl = math.max(math.sqrt(lx * lx + (lz :: number) ^ 2), 0.01)
+        local back = 3 + math.random(0, 2)
+        local side = math.random(-2, 2)
+        local rx = (x - lx / fl * back * C - (lz :: number) / fl * side * C) // C
+        local rz = ((z :: number) - (lz :: number) / fl * back * C + lx / fl * side * C) // C
+        local F = PARTY.F
+        local sx, sz = rx * C + 4, rz * C + 4
+        if theme(3, sx, sz) == PARTY and core.get_block(sx, F - 1, sz) == PARTY_FLOOR
+            and core.get_block(sx, F, sz) == AIR and core.get_block(sx, F + 1, sz) == AIR
+            and not sees(p, sx + 0.5, F + 1, sz + 0.5) then
+            local id = core.spawn_mob("backrooms:clown", sx + 0.5, F, sz + 0.5)
+            if id ~= 0 then
+                clowns[id] = { frozen = false, prey = 0 }
+            end
+        end
+    end
+end
+
+-- A Smiler puts out the lights of the room it is in: its level's lamps in
+-- that room's ceiling go dark while it is there, and come back a second after
+-- it has gone (or died). Only rooms near a player are looked at.
+type Dark = { lamps: { { number } }, on: number, left: number }
+local darkened: { [string]: Dark } = {}
+local dark_wait = 0.0
+local function step_smilers(dt: number)
+    dark_wait -= dt
+    if dark_wait > 0 then
+        return
+    end
+    dark_wait = 0.5
+    local now: { [string]: boolean } = {}
+    for _, p in core.players() do
+        local x, y, z = core.player_pos(p)
+        if x == nil then
+            continue
+        end
+        for _, id in core.mob_ids(x, y :: number, z :: number, 40) do
+            if core.mob_kind(id) ~= "backrooms:smiler" then
+                continue
+            end
+            local mx, my, mz = core.mob_pos(id)
+            if mx == nil then
+                continue
+            end
+            local L = level_at(my :: number)
+            local lv = theme(L, mx, mz :: number)
+            local cx, cz = mx // C, (mz :: number) // C
+            local key = `{L},{cx},{cz}`
+            now[key] = true
+            local d = darkened[key]
+            if d then
+                d.left = 1.0
+            else
+                local off = lv.lamp_off or LAMP_OFF
+                local lamps = {}
+                local y = lv.F + lv.h
+                for lx2 = cx * C + 1, cx * C + C - 1 do
+                    for lz2 = cz * C + 1, cz * C + C - 1 do
+                        if core.get_block(lx2, y, lz2) == lv.lamp then
+                            core.set_block(lx2, y, lz2, off)
+                            table.insert(lamps, { lx2, y, lz2, off })
+                        end
+                    end
+                end
+                darkened[key] = { lamps = lamps, on = lv.lamp, left = 1.0 }
+            end
+        end
+    end
+    for key, d in darkened do
+        if now[key] then
+            continue
+        end
+        d.left -= 0.5
+        if d.left <= 0 then
+            for _, l in d.lamps do
+                if core.get_block(l[1], l[2], l[3]) == l[4] then
+                    core.set_block(l[1], l[2], l[3], d.on)
+                end
+            end
+            darkened[key] = nil
+        end
+    end
+end
+
 -- Nobody digs or builds their way out.
 core.event.on("core:pre_break", function(ev)
     ev.cancel = true
@@ -873,6 +1231,7 @@ local where: { [number]: string } = {}   -- the name of the level each player wa
 -- BLOCK regions a side are shuffled and paired, and each site's two doorways
 -- lead to the other's two, crossed (its upper to the other's lower).
 local SHIFT = 600
+local shift_offset = 0.0
 local BLOCK = 8
 local function partner(s: Site, epoch: number): Site?
     local rx, rz = (s.cx * C) // REGION, (s.cz * C) // REGION
@@ -937,7 +1296,7 @@ local GOALS: { [string]: Goal } = {
     [COMPASS_IN]  = { what = "L'entrata", x = P0.x + 0.5, z = P0.z + 3.5, L = 1 },
     [COMPASS_OUT] = { what = "L'uscita", x = 12 * C + 4.5, z = -9 * C + 4.5, L = 3 },
 }
-local RANK = { [3] = 1, [1] = 2, [2] = 3 }   -- the levels from the bottom up
+local RANK = { [3] = 1, [1] = 2, [2] = 3, [4] = 4 }   -- the levels from the bottom up
 local SEARCH = 16                             -- rooms each way a stair or a hole is looked for
 
 -- Which way (x, z) is from a player, by where they look, and how far.
@@ -998,7 +1357,8 @@ local function read_compass(p: number, g: Goal)
     end
     local steps = RANK[g.L] - RANK[L]
     local up = steps > 0
-    local levels = if math.abs(steps) == 1 then "un livello" else "due livelli"
+    local levels = if math.abs(steps) == 1 then "un livello" elseif math.abs(steps) == 2 then "due livelli"
+        else "tre livelli"
     local wx, wz, by = way(L, up, x, z)
     local head = `{g.what} e' {levels} {if up then "sopra" else "sotto"}`
     if wx == nil then
@@ -1108,6 +1468,8 @@ local function flicker(dt: number)
 end
 
 core.event.on("core:tick", function(ev)
+    step_clowns(ev.dt)
+    step_smilers(ev.dt)
     clock += ev.dt
     if clock >= hum_at then
         hum_at = clock + HUM
@@ -1162,7 +1524,7 @@ core.event.on("core:tick", function(ev)
     -- other, or in the deep backrooms to its partner's two.
     local want: { [string]: { x: number, y: number, z: number, to: string } } = {}
     local n = 0
-    local epoch = clock // SHIFT
+    local epoch = (clock + shift_offset) // SHIFT
     local function put(a: Site, la: number, b: Site, lb: number)
         local ya, yb = LEVELS[la].F + 1, LEVELS[lb].F + 1
         local ka, kb = `{a.x},{ya},{a.z}`, `{b.x},{yb},{b.z}`
@@ -1203,5 +1565,111 @@ core.event.on("core:tick", function(ev)
             core.portal_link(e.id, o.id)
             e.to, o.to = w.to, key
         end
+    end
+end)
+
+core.command("backrooms", "<pink|hotel|party|pool|slide|portal|exit|suburb|shift|kit> -- jump to a backrooms place", "admin")
+core.event.on("core:command", function(ev)
+    if ev.name ~= "backrooms" then return end
+    local verb = string.lower(string.match(ev.args, "^%s*(%S*)") or "")
+    local function open_cell(cx: number, cz: number, L: number): (number, number, number)
+        local lv = theme(L, cx * C, cz * C)
+        return cx * C + 4.5, lv.F, cz * C + 4.5
+    end
+    if verb == "pink" then
+        if DEEP then
+            core.chat(ev.player, "You are in the deep backrooms already.")
+        else
+            core.player_place(ev.player, DEEP_DOOR.cx * C + 4.5, LEVELS[1].F, DEEP_DOOR.cz * C + 1.5, 0, 0, 1)
+        end
+    elseif verb == "hotel" or verb == "party" then
+        local L = if verb == "hotel" then 1 else 3
+        local want_lv = if verb == "hotel" then HOTEL else PARTY
+        for r = 1, 16 do
+            for dz = -r, r do
+                for dx = -r, r do
+                    local x, z = dx * DISTRICT + 64, dz * DISTRICT + 64
+                    if theme(L, x, z) == want_lv then
+                        local bx, bz = x // C, z // C
+                        for cz = bz - 4, bz + 4 do
+                            for cx = bx - 4, bx + 4 do
+                                local f = feature(L, cx, cz)
+                                if not special(cx, cz) and vertical(cx, cz) == ""
+                                    and (verb == "hotel" or f == "balloons" or f == "cake") then
+                                    local px, py, pz = open_cell(cx, cz, L)
+                                    core.player_place(ev.player, px, py, pz, 0, 0, 1)
+                                    return
+                                end
+                            end
+                        end
+                        local px, py, pz = open_cell(bx, bz, L)
+                        core.player_place(ev.player, px, py, pz, 0, 0, 1)
+                        return
+                    end
+                end
+            end
+        end
+        core.chat(ev.player, `No {verb} district found.`)
+    elseif verb == "pool" then
+        local px, _, pz = core.player_pos(ev.player)
+        local cx, cz = (px or 0) // C, (pz or 0) // C
+        core.player_place(ev.player, cx * C + 4.5, LEVELS[2].F, cz * C + 4.5, 0, 0, 1)
+    elseif verb == "slide" then
+        local px, _, pz = core.player_pos(ev.player)
+        local bx, bz = (px or 0) // C, (pz or 0) // C
+        for r = 0, 16 do
+            for cz = bz - r, bz + r do
+                for cx = bx - r, bx + r do
+                    if not special(cx, cz) and not site_room(cx, cz) and vertical(cx, cz) == ""
+                        and kind(2, cx, cz) == "" and not hall(2, cx, cz) and feature(2, cx, cz) == "slide" then
+                        core.player_place(ev.player, cx * C + 4.5, LEVELS[2].F, cz * C + 4.5, 0, 0, -1)
+                        return
+                    end
+                end
+            end
+        end
+        core.chat(ev.player, "No slide found near here.")
+    elseif verb == "portal" then
+        local px, _, pz = core.player_pos(ev.player)
+        local rx0, rz0 = (px or 0) // REGION, (pz or 0) // REGION
+        for r = 0, 12 do
+            for drz = -r, r do
+                for drx = -r, r do
+                    local s = site(rx0 + drx, rz0 + drz)
+                    if s then
+                        core.player_place(ev.player, s.x, LEVELS[s.a].F, s.z + 2.5, 0, 0, -1)
+                        return
+                    end
+                end
+            end
+        end
+        core.chat(ev.player, "No portal site found near here.")
+    elseif verb == "exit" then
+        if DEEP then
+            core.chat(ev.player, "No exit in the deep backrooms.")
+        else
+            core.player_place(ev.player, 12 * C + 4.5, LEVELS[3].F, -9 * C + 6.5, 0, 0, -1)
+        end
+    elseif verb == "suburb" then
+        if not HIGH then
+            core.chat(ev.player, "No suburb in a world 64 high: it wants --world-top 96.")
+        else
+            local px, _, pz = core.player_pos(ev.player)
+            local bx, bz = ((px or 0) // 32) * 32, ((pz or 0) // 32) * 32
+            core.player_place(ev.player, bx + 3, SUBURB.F, bz + 12.5, 0, 0, 1)
+        end
+    elseif verb == "shift" then
+        shift_offset += SHIFT
+        wait = 0
+        core.notice(ev.player, `Portal links shifted (epoch {math.floor((clock + shift_offset) // SHIFT)}).`)
+    elseif verb == "kit" then
+        core.give_item(ev.player, COMPASS_IN, 1)
+        core.give_item(ev.player, COMPASS_OUT, 1)
+        core.give_item(ev.player, TORCH, 1)
+        core.give_item(ev.player, FILAMENT, 8)
+        core.give_item(ev.player, TOOTH, 8)
+        core.notice(ev.player, "Compasses, torch and crafting drops given.")
+    else
+        core.chat(ev.player, "/backrooms <pink|hotel|party|pool|slide|portal|exit|suburb|shift|kit>")
     end
 end)

@@ -202,10 +202,10 @@ echo "== avvio il server (sandbox, pista, inferno, arena, arpg, camere di prova,
         --world-file "$HERE/arpg.world" --portal-to @sandbox/3 --portal-to @sandbox/11 \
     --room chambers --mods "$ROOT/games/chambers/mods" --textures "$ROOT/games/chambers/textures" \
         --world-file "$HERE/chambers.world" --portal-to @sandbox/4 --portal-to @sandbox/12 \
-    --room backrooms --mods "$ROOT/games/backrooms/mods" --textures "$ROOT/games/backrooms/textures" \
+    --room backrooms --mods "$ROOT/games/backrooms/mods" --textures "$ROOT/games/backrooms/textures" --world-top 96 \
         --world-file "$HERE/backrooms.world" --portal-to @sandbox/5 --portal-to @sandbox/13 \
         --portal-to @backrooms_deep/0 \
-    --room backrooms_deep --mods "$ROOT/games/backrooms/mods" --textures "$ROOT/games/backrooms/textures" \
+    --room backrooms_deep --mods "$ROOT/games/backrooms/mods" --textures "$ROOT/games/backrooms/textures" --world-top 96 \
         --no-mod keys --no-mod backrooms_exit \
         --world-file "$HERE/backrooms_deep.world" --portal-to @backrooms/2 --portal-to @backrooms/2 \
     --room parkour --mods "$ROOT/games/parkour/mods" --textures "$ROOT/games/parkour/textures" \

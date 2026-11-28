@@ -5,8 +5,30 @@
 Una voce per ogni alpha consegnata, la più recente in cima. Come si numerano e come si fa
 un'alpha: [docs/BUILDING.it.md](docs/BUILDING.it.md#versioni).
 
-## Prossima alpha (non ancora taggata)
+## 0.21.0-alpha.4 — 2026-11-28
 
+- **Backrooms**: il quartiere infinito, un quarto livello sopra le piscine: strade e case tutte
+  uguali, vuote, illuminate dai lampioni; ci si arriva da scale, buchi e portali, anche nelle
+  backrooms profonde (serve un mondo delle backrooms nuovo: ora sono alte 96). Nella festa,
+  pagliacci che ti vengono incontro solo quando non li guardi, e palloncini veri. Uno smiler spegne
+  le luci della stanza in cui si trova.
+- **Backrooms**: la scaletta di una piscina sta nell'acqua, senza un buco d'aria lungo il bordo.
+- **Corretto**: il pesce cotto si può mangiare. Un fungo marrone, un favo e una canna da zucchero
+  sono un piccolo boccone ciascuno.
+- **Corretto**: i blocchi cambiati da un mondo potevano non essere disegnati finché non ti
+  allontanavi e tornavi (il gel su un pavimento, l'isola di un portale nascosto).
+- **Corretto**: i blocchi che un mondo mette mentre giochi (un ponte di luce, il posto di un portale
+  nascosto) potevano non arrivare sullo schermo mentre il server li aveva: stavi in piedi sul nulla,
+  o restavi incastrato in un ponte.
+- **Inferno**: il guardiano del cuore ha una barra della vita in alto, e ogni tanto lancia una palla
+  di fuoco che cade vicino a te e manda un muro di fuoco lungo il pavimento: saltalo.
+- **Pista**: il kart fantasma è girato giusto, ha un pilota e si inclina come il kart vero.
+- **Tower defense**: le torrette hanno icone e si tengono in mano in piccolo; `/go defense` porta sul
+  campo.
+- **Camere di prova**: le gocce di gel cadono più lente.
+- **Staff**: `/go [ROOM]` elenca le stanze o ti porta allo spawn di una, `/tp X Y Z|X Z|NAME`
+  ti sposta nella stanza in cui sei; ogni mondo ha un comando admin di scorciatoie di prova
+  (`/chamber`, `/labphase`, `/track`, `/arpg`...), elencate in [docs/COMMANDS.it.md](docs/COMMANDS.it.md).
 - **Corretto**: i blocchi che un mod rimette (il tunnel della fuga dell'assalto dopo un nuovo
   tentativo) potevano restare disegnati rotti su un client mentre il server li aveva interi: una
   modifica di blocco sorpassava il chunk in cui stava.

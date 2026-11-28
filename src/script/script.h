@@ -455,6 +455,7 @@ typedef struct script_host {
     int (*take_tagged)(void *ud, int player, int tag);
     int (*bag_to_container)(void *ud, int player, int x, int y, int z);
     int (*mob_health)(void *ud, int id, int hp);
+    int (*mob_life)(void *ud, int id, int *hp, int *max);
     int (*give_item)(void *ud, int player, const char *item, int count, int id);
     const char *(*held_item)(void *ud, int player);
     // What is worn in one worn square ("head" .. "back"), by name.
@@ -493,6 +494,7 @@ typedef struct script_host {
     int (*world_spawn)(void *ud, float *x, float *y, float *z);
     // core.seed and core.plaza: the generator's, 0 when there is none.
     int (*world_seed)(void *ud);
+    int (*world_height)(void *ud);
     int (*plaza)(void *ud, int *lo, int *hi);
     // core.map_cell: the top of a column a map shows, and its colour (client).
     int (*map_cell)(void *ud, int x, int z, int *y, int *r, int *g, int *b);
@@ -506,6 +508,9 @@ typedef struct script_host {
     // accepted; and the first block along a ray. Together they are a shot the
     // server decides without trusting a client's aim.
     int (*player_look)(void *ud, int player, float *x, float *y, float *z);
+    // The chassis of the kart that player drives (core.player_tilt): pitch, roll, and
+    // the bottom of its model from the feet. 0 for one not driving.
+    int (*player_tilt)(void *ud, int player, float *pitch, float *roll, float *dx, float *dy, float *dz);
     // And moving one (core.player_place): feet there, looking along l, or
     // keeping the look when l is zero. 1, or 0 when there is no such body.
     int (*player_place)(void *ud, int player, double x, double y, double z, double lx,

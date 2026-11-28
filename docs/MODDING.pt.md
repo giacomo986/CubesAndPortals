@@ -600,10 +600,13 @@ core.players() -> { id }                         -- quem tem um corpo neste mund
 core.player_pos(id) -> (x, y, z) | nil           -- os PÉS, ou nada se não está
 core.player_name(id) -> name                     -- "" se não está; continua igual ao voltar, o id não
 core.player_look(id) -> (dx, dy, dz) | nil       -- para onde olha, comprimento 1
+core.player_tilt(id) -> (pitch, roll, dx, dy, dz) | nil -- como está o kart que conduz (o fantasma de games/track)
 core.player_place(id, x, y, z, dx?, dy?, dz?) -> bool  -- move e gira um corpo, como um portal
 core.ride(id, host, x?, y?, z?) -> bool         -- sentado no corpo de host; host 0 = desce
 core.monsters_near(x, y, z, r) -> n              -- criaturas de combate dentro de r
 core.mob_health(id, hp) -> bool                 -- a vida de uma criatura e o seu máximo
+core.mob_life(id) -> (hp, whole) | nil          -- quanto resta a uma criatura: a barra de um chefe
+core.world_height() -> n                        -- a primeira célula acima do topo do mundo (64, ou --world-top)
 core.raycast(x, y, z, dx, dy, dz, max?) -> (bx, by, bz, distance) | nil
 
 core.meta_set(x, y, z, key, value) -> bool      -- valor vazio = apaga
@@ -1304,7 +1307,7 @@ projeto:
 | espectro, brasa (`games/inferno`) | o espectro se inclina, afunda e enrola os tentáculos; a brasa deixa cair os bastões e depois a cabeça | `tools/make_inferno_creatures.py` |
 | ghoul, imp, pinky, gazer (`games/yafps`) | cada um do seu jeito | `tools/make_fps_models.py` |
 | humano, sapo, toupeira (`mods/villagers`), robô ajudante (`mods/helpers`) | de lado | `tools/make_villager_models.py` |
-| bacteria, smiler (`games/backrooms`) | a bacteria cambaleia e cai dura para a frente; o smiler fecha o sorriso e desce ao chão girando | `tools/make_backrooms_creatures.py` |
+| bacteria, smiler, palhaço (`games/backrooms`) | a bacteria cambaleia e cai dura para a frente; o smiler fecha o sorriso e desce ao chão girando; ao palhaço cedem os joelhos e cai para trás | `tools/make_backrooms_creatures.py` |
 | formiga, joaninha, borboleta (`mods/garden`) | de lado; a borboleta fecha as asas antes | `tools/make_garden_insects.py` |
 | fantasma amaldiçoado (`mods/ghost`) | o seu corpo não se vê; o mod desenha o fantasma subindo enquanto se desfaz (o dissolve de core.render.model) | `tools/make_ghost_body.py`, o aspecto do Meshy com `tools/meshy_prop.py` |
 

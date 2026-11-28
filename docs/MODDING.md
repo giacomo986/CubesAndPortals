@@ -600,10 +600,13 @@ core.players() -> { id }                         -- who has a body in this world
 core.player_pos(id) -> (x, y, z) | nil           -- the FEET, or nothing if not there
 core.player_name(id) -> name                     -- "" if not there; stays the same on coming back, the id does not
 core.player_look(id) -> (dx, dy, dz) | nil       -- where they look, length 1
+core.player_tilt(id) -> (pitch, roll, dx, dy, dz) | nil -- how the kart they drive sits (games/track's ghost)
 core.player_place(id, x, y, z, dx?, dy?, dz?) -> bool  -- moves and turns a body, like a portal
 core.ride(id, host, x?, y?, z?) -> bool         -- seated on host's body; host 0 = gets off
 core.monsters_near(x, y, z, r) -> n              -- fighting creatures within r
 core.mob_health(id, hp) -> bool                 -- a creature's health and its whole
+core.mob_life(id) -> (hp, whole) | nil          -- what a creature has left: a boss's bar
+core.world_height() -> n                        -- the first cell over this world's top (64, or --world-top)
 core.raycast(x, y, z, dx, dy, dz, max?) -> (bx, by, bz, distance) | nil
 
 core.meta_set(x, y, z, key, value) -> bool      -- empty value = delete
@@ -1290,7 +1293,7 @@ about a second. The server checks it when the creature is registered and writes
 | wraith, cinder (`games/inferno`) | the wraith leans, sinks and curls its tentacles; the cinder drops its sticks and then its head | `tools/make_inferno_creatures.py` |
 | ghoul, imp, pinky, gazer (`games/yafps`) | each its own way | `tools/make_fps_models.py` |
 | human, toad, mole (`mods/villagers`), helper robot (`mods/helpers`) | onto one side | `tools/make_villager_models.py` |
-| bacteria, smiler (`games/backrooms`) | the bacteria staggers and falls stiff forward; the smiler shuts its grin and sinks to the ground turning | `tools/make_backrooms_creatures.py` |
+| bacteria, smiler, clown (`games/backrooms`) | the bacteria staggers and falls stiff forward; the smiler shuts its grin and sinks to the ground turning; the clown's knees go and it topples back | `tools/make_backrooms_creatures.py` |
 | ant, ladybird, butterfly (`mods/garden`) | onto one side; the butterfly shuts its wings first | `tools/make_garden_insects.py` |
 | cursed ghost (`mods/ghost`) | its body is nothing to see; the mod draws the ghost rising as it comes apart (core.render.model's dissolve) | `tools/make_ghost_body.py`, the look from Meshy by `tools/meshy_prop.py` |
 

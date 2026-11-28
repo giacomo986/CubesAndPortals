@@ -230,8 +230,9 @@ or any world started from the title menu):
   [`games/arpg/README.md`](games/arpg/README.md).
 - **The test chambers** (`games/chambers`): six portal puzzle chambers, a portal gun that grows
   with you, cubes, buttons and launch pads.
-- **The backrooms** (`games/backrooms`): three endless levels with stairs, pits, pools, slides
-  and two creatures; rare crates hold the way back. Guide in
+- **The backrooms** (`games/backrooms`): three endless levels with stairs, pits, pools, slides,
+  an endless suburb of identical empty houses over them, a hotel and a party with clowns that move
+  only while you are not looking; rare crates hold the way back. Guide in
   [`games/backrooms/README.md`](games/backrooms/README.md).
 - **The parkour course** (`games/parkour`): wall runs, bounces, slides, rolls and a rope gun.
   Guide in [`games/parkour/README.md`](games/parkour/README.md).

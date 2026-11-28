@@ -123,6 +123,8 @@ dono desse nome neste mundo, ou só o nome.
 | `/rule [NOME on\|off]` | admin | As regras do mundo (`mods/rules`, core.set_rule): keep_bag, day_cycle, weather_cycle, hunger, e as que os outros mods do mundo declararem (o evento `rules:declare`, explicado em `mods/rules/init.luau`); guardadas em WORLD.rules. O botão Mundo do menu de pausa mostra todas em `/page world`, com o tempo, a hora e a estação, como botões para um admin |
 | `/trophies sites` `/trophies go ID [place] [NOME]` `/trophies home [NOME]` | admin | Onde estão os cinco portais escondidos e se cada um está construído; você ou NOME na frente de um (`well`, `summit`, `lake`, `hill`, `circle`) ou, com `place`, no lugar para onde leva; NOME (ou você) no próprio quarto, para ver a estante de troféus (`mods/trophies`) |
 | `/village siege\|feast\|caravan\|incoming` | admin | Começa agora um dos eventos das vilas na vila onde o admin está (`mods/villagers`): um cerco anunciado agora que chega ao anoitecer, a festa da colheita na praça dela, uma caravana para a outra vila mais próxima (nenhuma se já há uma na estrada ou se os baús não têm nada sobrando), ou uma que vem de uma vila a 100-900 que ninguém visitou, pelos caminhos (nenhuma se nenhuma vila assim está ligada a eles) |
+| `/go [ROOM]` | go (admin) | Sem palavra, as salas deste servidor e se cada uma está ligada ou arranca a pedido; com uma, você no spawn dessa sala (uma a pedido é iniciada). Depois `/tp` para um ponto dentro dela |
+| `/tp X Y Z` `/tp X Z` `/tp NAME` | tp (admin) | Você nesse ponto da sala em que está; só com X Z, no chão ali (o piso mais alto com dois blocos livres acima, ou a sua altura numa coluna não carregada); com um nome, até esse jogador, ou ao spawn da sala em que ele está |
 
 ### Jogadores
 

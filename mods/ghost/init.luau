@@ -365,6 +365,22 @@ if serving then
             end
         end
     end)
+
+    core.command("cursedghost", "-- spawn a cursed ghost in front of you (test)", "admin")
+    core.event.on("core:command", function(ev)
+        if ev.name ~= "cursedghost" then return end
+        local x, y, z = core.player_pos(ev.player)
+        local lx, _, lz = core.player_look(ev.player)
+        if x == nil or y == nil or z == nil then return end
+        local fx, fz = lx or 0, lz or 1
+        local n = math.max(0.01, math.sqrt(fx * fx + fz * fz))
+        local id = core.spawn_mob(KIND, x + fx / n * 4, y + 1, z + fz / n * 4)
+        if id == 0 then
+            core.chat(ev.player, "Could not spawn a cursed ghost here.")
+        else
+            core.notice(ev.player, "A cursed ghost appears ahead.")
+        end
+    end)
 end
 
 -- ===================================================================== client

@@ -1986,8 +1986,8 @@ if serving then
     -- part of each driver's last lap (`pending`) until it reads that, and
     -- then keeps it too.
     local GHOST_EVERY = 0.1   -- seconds between two places recorded
-    local GHOST_CHUNK = 100   -- places in one value of the store (4096 bytes at most)
-    local GHOST_SEND  = 12    -- places in one message to a player's machine: up to 36 bytes each, of 512
+    local GHOST_CHUNK = 80    -- places in one value of the store (4096 bytes at most, 48 a place)
+    local GHOST_SEND  = 10    -- places in one message to a player's machine: up to 48 bytes each, of 512
     type Rec = { track: number, last: number, samples: { string }, own: string? }
     type Ghost = { name: string, lap: number, samples: { string } }
     local ghosts: { [number]: Ghost | false } = {}   -- track -> its ghost here, false for none
@@ -2095,7 +2095,14 @@ if serving then
             rec[s.name] = r
         end
         r.last = t
-        table.insert(r.samples, string.format("%.2f %.1f %.2f %.1f %.2f", t, x, y, z, math.atan2(lx, lz)))
+        -- And how the chassis sat (pitch, roll), the place being its model's
+        -- bottom as the client draws a kart: a ghost tips as the kart did.
+        local pitch, roll, bx, by, bz = core.player_tilt(p)
+        if pitch ~= nil then
+            x, y, z = x + (bx :: number), y + (by :: number), z + (bz :: number)
+        end
+        table.insert(r.samples, string.format("%.2f %.1f %.2f %.1f %.2f %.2f %.2f", t, x, y, z,
+            math.atan2(lx, lz), pitch or 0, roll or 0))
     end
 
     -- A lap finished, before the board hears of it: a record is the ghost
@@ -2278,12 +2285,62 @@ if serving then
     core.command("garage", "-- the colours and the parts of your kart")
     core.command("ghost", "[record|mine|NAME|off] -- which ghost kart drives your laps")
     core.command("laps", "-- everybody's best lap on the track you last drove")
+    core.command("track", "<start|ring|grand|inferno|loops|power KIND|kart> -- quick jump or power-up", "admin")
     core.event.on("core:command", function(ev)
         local s = players[ev.player]
         if s == nil then
             return
         end
-        if ev.name == "garage" then
+        if ev.name == "track" then
+            local w = string.split(string.gsub(ev.args, "^%s+", ""), " ")
+            local verb = string.lower(w[1] or "")
+            if verb == "kart" then
+                if INFERNO then
+                    core.chat(ev.player, "No karts in the Inferno.")
+                else
+                    core.give_item(ev.player, "track_core:kart", 1)
+                    core.notice(ev.player, "Kart given.")
+                end
+                return
+            elseif verb == "power" then
+                local kind = string.lower(w[2] or "")
+                local valid = false
+                for _, r in ROLL do if r[1] == kind then valid = true end end
+                if not ITEMS_HERE then
+                    core.chat(ev.player, "No power-ups in this room.")
+                elseif not s.driving then
+                    core.chat(ev.player, "Get in a kart first.")
+                elseif not valid then
+                    core.chat(ev.player, "/track power boost|boost3|banana|shell|homing|ink|star|bolt")
+                else
+                    table.insert(s.items, 1, { what = kind, uses = USES[kind] or 1, ready = clock })
+                    while #s.items > HOLD do table.remove(s.items) end
+                    tell_items(ev.player, s)
+                    core.notice(ev.player, `Power-up: {kind}`)
+                end
+                return
+            end
+            local want = if verb == "start" then "" else verb
+            for _, tr in TRACKS do
+                if tr.key == want then
+                    for _, g in tr.gates do
+                        if here(g) then
+                            local mid = (g.from + g.to + 1) / 2
+                            local line = g.at + 0.5 - g.dir * 3
+                            local px, pz, lx, lz = mid, line, 0, g.dir
+                            if g.axis == "x" then px, pz, lx, lz = line, mid, g.dir, 0 end
+                            core.player_place(ev.player, px, g.y or GROUND, pz, lx, 0, lz)
+                            s.skip, s.off = 3, 0
+                            return
+                        end
+                    end
+                    core.chat(ev.player, `Track '{verb}' is in the other room.`)
+                    return
+                end
+            end
+            core.chat(ev.player, "/track <start|ring|grand|inferno|loops|power KIND|kart>")
+            return
+        elseif ev.name == "garage" then
             show_garage(ev.player, s)
         elseif ev.name == "ghost" then
             local word = string.match(ev.args, "^%s*(%S*)") or ""
@@ -2750,7 +2807,7 @@ if drawing then
     -- its places, { t, x, y, z, yaw } by the time into its lap, how much
     -- faster than they were driven it plays them, its colours, and how far
     -- into its lap it is -- started with this kart's lap.
-    type Mark = { t: number, x: number, y: number, z: number, yaw: number }
+    type Mark = { t: number, x: number, y: number, z: number, yaw: number, pitch: number, roll: number }
     local ghost: { Mark } = {}
     local ghost_name, ghost_pace, ghost_tint, ghost_t = "", 1, 0, 0
     local GHOST_ALPHA = 0.35
@@ -2893,7 +2950,9 @@ if drawing then
                 if #f >= 5 then
                     table.insert(ghost, { t = tonumber(f[1]) or 0, x = tonumber(f[2]) or 0,
                                           y = tonumber(f[3]) or 0, z = tonumber(f[4]) or 0,
-                                          yaw = tonumber(f[5]) or 0 })
+                                          yaw = tonumber(f[5]) or 0,
+                                          -- a ghost kept before 2026-11-28 has no tilt: flat
+                                          pitch = tonumber(f[6]) or 0, roll = tonumber(f[7]) or 0 })
                 end
             end
         elseif w[1] == "lap" then
@@ -3136,9 +3195,11 @@ if drawing then
         end
         local a, b = ghost[lo], ghost[hi]
         local f = if b.t > a.t then (t - a.t) / (b.t - a.t) else 0
-        local turn = (b.yaw - a.yaw + math.pi) % (2 * math.pi) - math.pi
+        local function between(u: number, v: number): number
+            return u + ((v - u + math.pi) % (2 * math.pi) - math.pi) * f
+        end
         return { t = t, x = a.x + (b.x - a.x) * f, y = a.y + (b.y - a.y) * f, z = a.z + (b.z - a.z) * f,
-                 yaw = a.yaw + turn * f }
+                 yaw = between(a.yaw, b.yaw), pitch = between(a.pitch, b.pitch), roll = between(a.roll, b.roll) }
     end
     core.render.pass("track_game:ghost", 100, function()
         if not running or not driving or ghost_name == "" then
@@ -3147,7 +3208,19 @@ if drawing then
         local m = ghost_at(ghost_t)
         local kart = core.model_id("track_core:kart")
         if m ~= nil and kart ~= 0 then
-            core.render.model(kart, m.x, m.y, m.z, m.yaw, 1, 0, 0, 0, GHOST_ALPHA, ghost_tint)
+            -- The recorded yaw is atan2 of the look (0 facing +z); the kart's
+            -- nose is -z, so half a turn more. The driver sits in it as on a
+            -- real kart: the robot's drive_idle is authored about the kart's
+            -- origin (the client's rider).
+            local yaw = m.yaw + math.pi
+            -- Tipped as the client tips a chassis (body_place): the nose up
+            -- by pitch, the right side down by roll.
+            core.render.model(kart, m.x, m.y, m.z, yaw, 1, m.pitch, -m.roll, 0, GHOST_ALPHA, ghost_tint)
+            local robot = core.model_id("track_core:robot")
+            if robot ~= 0 then
+                core.render.model(robot, m.x, m.y, m.z, yaw, 1, m.pitch, -m.roll, 0, GHOST_ALPHA, 0, "drive_idle",
+                    ghost_t)
+            end
         end
     end)
 

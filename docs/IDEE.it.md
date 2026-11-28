@@ -24,15 +24,16 @@ mondo sottomarino.
 
 Deciso: livelli nuovi a distretti (al posto di uno dei tre, stessa altezza) e un
 mondo a parte, le backrooms profonde, con portali che si ricollegano a caso.
-Fatti: hotel (al posto del Level 0), festa (al posto del Level 1). Restano, uno
-alla volta:
+Fatti: hotel (al posto del Level 0), festa (al posto del Level 1), quartiere
+infinito (2026-11-28: un quarto livello sopra le piscine, mondo alto 96; anche
+nelle profonde), i pagliacci della festa e gli smiler che spengono le luci.
+Restano, uno alla volta:
 
-- quartiere infinito
 - supermercato gigantesco
 - uffici e laboratori abbandonati
 - città vuota
 - cortile pieno di finestre
-- le creature nascoste della festa (e chi vive nell'hotel)
+- chi vive nell'hotel
 
 ## Personaggi add-on
 

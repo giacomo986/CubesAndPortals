@@ -439,6 +439,8 @@ declare core: {
     item_returns: (item: string, back: string) -> boolean,
     -- Sets one living creature's health and its whole to hp: one of a kind made sturdier than core.register_mob made it, as a harder level's guardian. Returns 1, or 0 for one that is gone or dead. On a server.
     mob_health: (id: number, hp: number) -> boolean,
+    -- What one living creature has left and its whole: a boss's health bar (the Inferno's guardian). Returns NOTHING for one that is gone or dead, or on a client.
+    mob_life: (id: number) -> (number?, number),
     -- One creature, by id, loses `damage` as core.shoot would take it off and is knocked back: a mod's own bullet that picked its target itself, such as a team's that passes its friends. Returns 2 when that killed it, 1 when struck, 0 for one that is gone or already dead. On a server.
     mob_hurt: (id: number, damage: number, from_x: number, from_z: number) -> number,
     -- Turns a worker to look at x, z: the water it fishes, the furnace it cooks at.
@@ -571,6 +573,8 @@ declare core: {
     player_key: (player: number) -> string,
     -- Where a player arrives in this world, and comes back after dying without a bed. On a server it answers while the mods load too in a world without a plaza (--survival), whose spawn is known before they do; elsewhere only once it runs.
     world_spawn: () -> (number?, number, number),
+    -- How high this world is: the first cell over its top (64 unless --world-top). Kept with the world's file from when it was made, so a mod that builds high up asks rather than assumes (games/backrooms's suburb needs 96). 0 on a client.
+    world_height: () -> number,
     -- This world's seed, its low 31 bits, anywhere and at any time -- a mapgen stage's ctx.seed is the whole of it. For a mod that places things as a function of the seed outside a stage, and wants the same answer every start. 0 where there is no generator.
     seed: () -> number,
     -- What a map shows of one column, on a player's machine: the height of its highest block (water counts, a grass tuft or a torch does not) and the mean colour of that block's top, red, green and blue 0-255. Nothing for a column this machine has not got, and on a server.
@@ -589,6 +593,10 @@ declare core: {
     --
     -- Returns NOTHING for a player who is not in this world or has not moved yet.
     player_look: (player: number) -> (number?, number, number),
+    -- How the kart that player drives sits, as the server's own copy of its chassis has it and every client draws it: its pitch (radians, the nose up) and roll (radians, the right side down), and where the bottom of its model is from core.player_pos (dx, dy, dz). What a ghost kart needs to tip as the real one did (games/track).
+    --
+    -- Returns NOTHING for a player not driving, or on a client.
+    player_tilt: (player: number) -> (number?, number, number, number, number),
     -- Throws a player: their body's speed becomes that, whatever it was (protocol 84), and for `seconds` the server lets them move as fast and as high as a crossing's grace does -- an launch plate. A body in a kart too: its chassis is put down afresh where it is at that speed, along the ground (a kart's bump into another, games/track). Returns 1, or 0 for a player with no body here or a speed out of range.
     player_launch: (player: number, vx: number, vy: number, vz: number, seconds: number?, add: boolean?) -> boolean,
     -- Moves a player's body and turns it, the way a portal does: the server puts them there and gives them a second in which their movement is not checked, for the frames before their client knows. Getting into a parked kart is this call -- the body goes where the kart stood, facing the way it faced. Returns 1, or 0 for a player who is not in this world or somebody only watching.
