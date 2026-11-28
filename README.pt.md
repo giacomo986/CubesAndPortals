@@ -42,7 +42,7 @@ texturas, traduções, relatórios de bugs e testes de jogo são todos bem-vindo
 [Como contribuir](#como-contribuir)).
 
 Os idiomas oficiais são o inglês, o italiano e o português brasileiro. A documentação (`docs/`, os
-guias dos mundos, `contrib/`, o changelog) está nos três, e uma mudança num deles é feita nos três.
+guias dos mundos, o changelog) está nos três, e uma mudança num deles é feita nos três.
 O [`docs/API.md`](docs/API.md) é gerado a partir de `src/script/api.luau` e está em inglês. Código,
 comentários, `TODO.md` e mensagens de commit estão em inglês. Issues e pull requests são bem-vindos
 em qualquer um dos três. O jogo em si também está nos três idiomas (`assets/lang/`: `en`, `it`,
@@ -161,7 +161,7 @@ O projeto é aberto a todos, e há muitas formas de ajudar:
   [`docs/API.md`](docs/API.md) e [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.pt.md); os arquivos
   Blender dos modelos estão em [`assets/blender/`](assets/blender/README.md); um mod que adiciona
   algo ao jogo de fora dele -- uma espécie para o jogador, por exemplo -- pode ser testado primeiro
-  como add-on, do jeito que [`contrib/`](contrib/README.pt.md) guarda o homem-lagarto;
+  como add-on, do jeito que [CubesAndPortals-addons](https://github.com/giacomo986/CubesAndPortals-addons/blob/main/README.pt.md) guarda o homem-lagarto;
 - **trabalhar no motor**: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.pt.md) explica como o código
   está organizado e onde entra um recurso novo; [`TODO.md`](TODO.md) lista o que falta.
 
@@ -572,7 +572,7 @@ horda). Cartas (`mods/cards`) com o baralho napolitano de quarenta cartas: brisc
 scopa e tresette, de dois a cinco jogadores, com a mesa jogando nos lugares vazios.
 
 **Personagens e equipamento.** Escolha robô, humano, homem-toupeira ou homem-sapo (ou um de um
-add-on, como o homem-lagarto em `contrib/lizard`), um estilo, três cores e dois acessórios, todos
+add-on, como o homem-lagarto em [`lizard`](https://github.com/giacomo986/CubesAndPortals-addons/tree/main/lizard)), um estilo, três cores e dois acessórios, todos
 vistos por todo mundo. Nas costas: um jetpack para voar, uma mochila de couro com 27 espaços
 próprios, ou uma mochila de metal com dois braços articulados que seguram uma ferramenta cada. O
 catálogo criativo (C) tem uma caixa de busca e abas por tipo (todos, blocos, ferramentas, armas,
@@ -864,7 +864,7 @@ links abaixo levam ao em português.
   [o jogo de plataforma](games/platformer/README.pt.md),
   [o shooter de fliperama](games/shmup/README.pt.md),
   [o tower defense](games/defense/README.pt.md), [o mundo das nuvens](games/skies/README.pt.md).
-- [`contrib/README.md`](contrib/README.pt.md): os add-ons guardados fora do jogo, como o
+- [CubesAndPortals-addons](https://github.com/giacomo986/CubesAndPortals-addons/blob/main/README.pt.md): os add-ons guardados fora do jogo, como o
   homem-lagarto.
 - [`TODO.md`](TODO.md) (inglês): o que falta e o que está quebrado.
 - [`docs/archive/`](docs/archive/README.md): a história, marco por marco, com as medições (em

@@ -514,7 +514,7 @@ scrolls with slack and smoothly):
 - core.side_view keeps the body on its plane by walking it back: something
   that throws it far off (a blast) is not undone at once.
 - `assets/meshy/platformer` (three .glb, 9.8 MB, with each one's prompt) is
-  not in the repository yet: in, or out as contrib/lizard's is, is Giacomo's.
+  not in the repository yet: in, or out as CubesAndPortals-addons/lizard's is, is Giacomo's.
 
 Arcade shooter:
 - No power-ups, no bombs, one gun. The numbers (speeds, 0.14 s a shot, the
@@ -642,13 +642,13 @@ Mods:
 - Chambers: the funnel (a beam that carries) and the angled panel are written
   (chambers_game/devices.luau) but no chamber uses them yet, so not tried.
 - Assault: tanks in the escape are behind the jeep when ripe.
-- Lizard man (Meshy, 2026-11-11, an add-on in `contrib/lizard`, not in the game):
+- Lizard man (Meshy, 2026-11-11, an add-on in `CubesAndPortals-addons/lizard`, not in the game):
   seen in a client, on the look pages (title and tools/track.sh's world, its
   three styles) and in the sandbox and the track room of track.sh: walking on
   the borrowed clips, the tail wagging slowly and trailing out of a turn; cap,
   top hat, scarf and frill on. The bow tie and medal in Blender only, and the
   tail's lift at a run is not looked at from the side. Its source
-  `contrib/lizard/meshy/lizard.glb` (16.6 MB) is not in the repository.
+  `CubesAndPortals-addons/lizard/meshy/lizard.glb` (16.6 MB) is not in the repository.
   Since 2026-11-12 it says `rooms = all`, and every room of a server started
   from the title screen has it, not only the sandbox and the pocket halls;
   each server is told its own number for it (4 on one with only it, 5 with
@@ -673,7 +673,7 @@ Mods:
   elbow to wrist, which showed at rest (Giacomo, on the look page); now the whole arm is turned
   about its length, its top drawn in at the shoulder. Seen in Blender at rest and on eight
   clips; not yet in a client.
-- Fox man (Meshy image-to-3D, 2026-11-14, an add-on in `contrib/fox`, not in the game):
+- Fox man (Meshy image-to-3D, 2026-11-14, an add-on in `CubesAndPortals-addons/fox`, not in the game):
   seen in Blender at rest and on eight of the robot's clips, with its styles and the six
   accessories, and in a client in tools/track.sh's sandbox, in first person and from behind in
   third. Its head is not Meshy's (a torn shell) but the closed solid round its points, and no ray

@@ -41,7 +41,7 @@ This is a **collaborative project, open to contributions**: code, worlds, mods, 
 translations, bug reports and playtesting are all welcome (see [Contributing](#contributing)).
 
 The official languages are English, Italian and Brazilian Portuguese. The documentation (`docs/`,
-the worlds' guides, `contrib/`, the changelog) is in all three, and a change to one is made in all
+the worlds' guides, the changelog) is in all three, and a change to one is made in all
 three. [`docs/API.md`](docs/API.md) is generated from `src/script/api.luau` and is in English.
 Code, comments, `TODO.md` and commit messages are in English. Issues and pull requests are welcome
 in any of the three. The game itself is in the three languages too (`assets/lang/`: `en`, `it`,
@@ -158,7 +158,7 @@ The project is open to everyone, and there are many ways to help:
   [`docs/API.md`](docs/API.md) and [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.md); the Blender
   sources of the models are in [`assets/blender/`](assets/blender/README.md); a mod that adds to
   the game from outside it -- a species for the player, say -- can be tried as an add-on first, the
-  way [`contrib/`](contrib/README.md) keeps the lizard man;
+  way [CubesAndPortals-addons](https://github.com/giacomo986/CubesAndPortals-addons/blob/main/README.md) keeps the lizard man;
 - **work on the engine**: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) explains how the code is
   laid out and where a new feature goes; [`TODO.md`](TODO.md) lists what is missing.
 
@@ -541,7 +541,7 @@ friend server, given to them the next time they are in.
 two to five players, with the table playing the empty seats.
 
 **Characters and gear.** Choose robot, human, mole man or frog man (or an add-on's, like the lizard man in
-`contrib/lizard`), a style, three colours and
+[`lizard`](https://github.com/giacomo986/CubesAndPortals-addons/tree/main/lizard)), a style, three colours and
 two accessories, all seen by everyone. On your back: a jetpack to fly, a leather backpack with
 27 slots of its own, or a metal backpack with two jointed arms that each hold a tool. The
 creative catalogue (C) has a search box and tabs by kind (all, blocks, tools, weapons,
@@ -821,7 +821,7 @@ links below go to the English one.
   [the Inferno](games/inferno/README.md), [the parkour course](games/parkour/README.md),
   [the platform game](games/platformer/README.md), [the arcade shooter](games/shmup/README.md),
   [the tower defense](games/defense/README.md), [the cloud world](games/skies/README.md).
-- [`contrib/README.md`](contrib/README.md): add-ons kept outside the game, like the lizard man.
+- [CubesAndPortals-addons](https://github.com/giacomo986/CubesAndPortals-addons/blob/main/README.md): add-ons kept outside the game, like the lizard man.
 - [`TODO.md`](TODO.md) (English): what is missing and what is broken.
 - [`docs/archive/`](docs/archive/README.md): the history, milestone by milestone, with the
   measurements (in Italian, as it was written).

@@ -2012,7 +2012,7 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   giocatore è un robot del gioco sotto il nome di un'altra mod (`track_core:robot`) trova una specie
   anche come `robot:robot_<nome>`, così un add-on registra i suoi modelli una volta sola e non gli
   serve nessun'altra mod; con `rooms = all` nel suo `mod.conf` ce l'ha ogni stanza del server
-  (`contrib/lizard` lo dice). Corpo e braccia di una
+  ([`lizard`](https://github.com/giacomo986/CubesAndPortals-addons/tree/main/lizard) lo dice). Corpo e braccia di una
   specie non devono portarsi le clip: una che non ne ha suona quelle del modello del giocatore (e di
   `<modello del giocatore>_arms`), con le ossa trovate per nome, così il file è la sua mesh e non un
   megabyte di clip del robot. **Un mondo le cui braccia portano
@@ -2046,7 +2046,7 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   verticale, ogni anello dietro al precedente secondo il suo numero, così una catena è una coda che
   scodinzola: resta indietro in curva, e di corsa scodinzola più svelta e più stretta e si alza. La schermata del titolo trova
   gli stessi file nelle cartelle delle mod, compresa quella del giocatore `~/.cubes-and-portals/mods`.
-  `contrib/lizard` è una di queste.
+  [`lizard`](https://github.com/giacomo986/CubesAndPortals-addons/tree/main/lizard) è una di queste.
   `tools/make_species.py` li fa tutti: ogni pezzo del corpo (testa, busto,
   braccio, gamba) è un'unica superficie, primitive fuse con un remesh a voxel,
   levigate e sfoltite, con pesi sfumati alle giunture; occhi e piccoli dettagli
@@ -2099,7 +2099,7 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   è fatto come il robot: ogni pezzo segue un solo osso intero e prende un
   colore piatto letto dalla texture, rosso tint_1 e oro tint_2 che il
   giocatore tinge; la texture non viene tenuta. Non ha stili.
-  `contrib/lizard/make_lizard.py` fa l'uomo lucertola, un add-on, in un terzo modo, per un modello che Meshy ha
+  [`lizard/make_lizard.py`](https://github.com/giacomo986/CubesAndPortals-addons/blob/main/lizard/make_lizard.py) fa l'uomo lucertola, un add-on, in un terzo modo, per un modello che Meshy ha
   disegnato come fatto di cubi ma la cui mesh non ha una faccia piana (alto dettaglio, una mesh sola
   di 336792 triangoli, le scaglie solo nella texture): le sue parti vengono separate e portate sulle
   giunture del robot -- le braccia girate in giù dalla posa ad A, braccia e gambe allungate su quelle
@@ -2110,7 +2110,7 @@ mondo in cui si arriva a piedi e si sale su un kart parcheggiato: `games/track`.
   tagliate, e alle normali della superficie non si può chiedere. La coda è il suo pezzo indossato,
   su quattro anelli `wag_*`; gli stili (cresta, collare, spine) sono cubi posati su quelli del corpo,
   e gli accessori sono misurati sui suoi cubi.
-  `contrib/fox/make_fox.py` fa l'uomo volpe, un altro add-on, in un quarto modo, per un modello che
+  [`fox/make_fox.py`](https://github.com/giacomo986/CubesAndPortals-addons/blob/main/fox/make_fox.py) fa l'uomo volpe, un altro add-on, in un quarto modo, per un modello che
   Meshy ha fatto con pochi triangoli (da un'immagine, smart topology: 12486 triangoli in sedici pezzi
   non uniti): le sue facce restano, ogni pezzo portato sulle giunture del robot come quelli della
   lucertola e sfoltito a 7000 triangoli, ogni faccia di un solo materiale piatto letto dalla texture

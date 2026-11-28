@@ -1818,7 +1818,7 @@ a pé e entra num kart estacionado: `games/track`.
   modelo do jogador é um robô do jogo com o nome de outro mod (`track_core:robot`) acha uma espécie
   também como `robot:robot_<nome>`, então um add-on registra os seus modelos uma vez só e não precisa
   de nenhum outro mod; com `rooms = all` no seu `mod.conf`, todas as salas de um servidor o têm
-  (`contrib/lizard` diz isso). O corpo e os braços de uma espécie não precisam levar animações: uma
+  ([`lizard`](https://github.com/giacomo986/CubesAndPortals-addons/tree/main/lizard) diz isso). O corpo e os braços de uma espécie não precisam levar animações: uma
   que não tem nenhuma toca as do modelo do jogador (e as de `<modelo do jogador>_arms`), com os ossos
   achados pelo nome, então o arquivo é a sua malha e não um megabyte de animações do robô. **Um mundo
   cujos braços levam o que seguram** (os `robot_arms` do front e do assalto,
@@ -1850,7 +1850,7 @@ a pé e entra num kart estacionado: `games/track`.
   `wag_<n>` balança de um lado para o outro em torno da vertical, cada elo atrás do anterior conforme
   o seu número, então uma corrente deles é uma cauda que abana: ela fica para trás numa curva, e
   correndo abana mais rápido e mais curto e se levanta. A tela de título acha os mesmos arquivos nas
-  pastas de mods, incluindo a do jogador, `~/.cubes-and-portals/mods`. `contrib/lizard` é um deles.
+  pastas de mods, incluindo a do jogador, `~/.cubes-and-portals/mods`. [`lizard`](https://github.com/giacomo986/CubesAndPortals-addons/tree/main/lizard) é um deles.
   `tools/make_species.py` faz todos: cada parte do corpo (cabeça, tronco, braço, perna) é uma única
   superfície, primitivas fundidas com um remesh de voxels, suavizadas e decimadas, com pesos
   misturados nas juntas; olhos e pequenos detalhes continuam nítidos. Os acessórios de uma espécie
@@ -1893,7 +1893,7 @@ a pé e entra num kart estacionado: `games/track`.
   chave só para que ele fique abaixo de 1 MB. O cavaleiro é gerado na smart topology do Meshy, uma
   centena de peças separadas, e é montado como o robô: cada peça segue um osso inteiro e pega uma cor
   chapada lida da textura, vermelho tint_1 e dourado tint_2 para o jogador tingir; a textura em si não
-  é mantida. Ele não tem estilos. `contrib/lizard/make_lizard.py` faz o homem-lagarto, um add-on, de um
+  é mantida. Ele não tem estilos. [`lizard/make_lizard.py`](https://github.com/giacomo986/CubesAndPortals-addons/blob/main/lizard/make_lizard.py) faz o homem-lagarto, um add-on, de um
   terceiro jeito, para um modelo que o Meshy desenhou como se fosse de cubos mas cuja malha não tem
   nenhuma face plana (alto detalhe, uma malha só de 336792 triângulos, as escamas só na textura): as
   suas partes são separadas e levadas às juntas do robô -- os braços baixados da pose em A, braços e
@@ -1903,7 +1903,7 @@ a pé e entra num kart estacionado: `games/track`.
   maioria de cinco raios saindo dele cruza a superfície um número ímpar de vezes: as partes estão
   abertas onde foram cortadas, e não dá para perguntar às normais da própria superfície. A cauda é a
   sua peça vestida, em quatro elos `wag_*`; os estilos (crista, gola, espinhos) são cubos postos sobre
-  os do corpo, e os acessórios são medidos pelos seus cubos. `contrib/fox/make_fox.py` faz o
+  os do corpo, e os acessórios são medidos pelos seus cubos. [`fox/make_fox.py`](https://github.com/giacomo986/CubesAndPortals-addons/blob/main/fox/make_fox.py) faz o
   homem-raposa, outro add-on, de um quarto jeito, para um modelo que o Meshy fez com poucos triângulos
   (image-to-3D a partir de uma imagem, smart topology: 12486 triângulos em dezesseis peças que não se
   juntam): as suas próprias faces são mantidas, cada peça levada às juntas do robô como as do lagarto

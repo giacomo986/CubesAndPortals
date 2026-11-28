@@ -1794,7 +1794,7 @@ on foot and get into a parked kart: `games/track`.
   own (`<that>_cap`). A world whose player model is a game's robot under another mod's name
   (`track_core:robot`) finds a species as `robot:robot_<name>` too, so an add-on registers its models
   once and needs no other mod; with `rooms = all` in its `mod.conf` every room of a server has it
-  (`contrib/lizard` says so). A species' body and arms need not carry clips: one that has none plays the
+  ([`lizard`](https://github.com/giacomo986/CubesAndPortals-addons/tree/main/lizard) says so). A species' body and arms need not carry clips: one that has none plays the
   player model's (and `<player model>_arms`'s), its bones found by name, so the file is its mesh and
   not a megabyte of the robot's clips. **A world whose arms carry
   what they hold** (the front's and the assault's `robot_arms`, `tools/make_front_models.py`, and yafps's and the
@@ -1823,7 +1823,7 @@ on foot and get into a parked kart: `games/track`.
   such arms must carry everything their world puts in a hand. A species needs nothing for this: the
   same `_arms` file on the sandbox's rig. A worn piece is drawn as bright and as faded as the body it is on. In a worn piece a `wag_<n>` bone swings side to side about the
   upright, each link behind the one before by its number, so a chain of them is a tail that wags: it trails out of a turn, and at a run it wags quicker and narrower and lifts. The title screen finds the same files in the mod folders, the player's
-  `~/.cubes-and-portals/mods` included. `contrib/lizard` is one. `tools/make_species.py` makes them all: every body part (head, torso, arm,
+  `~/.cubes-and-portals/mods` included. [`lizard`](https://github.com/giacomo986/CubesAndPortals-addons/tree/main/lizard) is one. `tools/make_species.py` makes them all: every body part (head, torso, arm,
   leg) is a single surface, primitives fused with a voxel remesh, smoothed and decimated, with weights
   blended at the joints; eyes and small details stay sharp. A species' accessories are built to its
   own measures (`WEARS` there, `extras()` in `tools/make_robot_extras.py`), not scaled from the robot's.
@@ -1861,7 +1861,7 @@ on foot and get into a parked kart: `games/track`.
   into the file, a constant channel kept as one key so it stays under 1 MB. The knight is generated in Meshy's smart topology, a hundred separate pieces, and is
   built like the robot: each piece follows one bone whole and takes a flat colour read off the
   texture, red tint_1 and gold tint_2 for the player to dye; the texture itself is not kept. It has
-  no styles. `contrib/lizard/make_lizard.py` makes the lizard man, an add-on, a third way, for a model Meshy drew as
+  no styles. [`lizard/make_lizard.py`](https://github.com/giacomo986/CubesAndPortals-addons/blob/main/lizard/make_lizard.py) makes the lizard man, an add-on, a third way, for a model Meshy drew as
   if of cubes but whose mesh has no flat face (high detail, one mesh of 336792 triangles, its
   scales only in the texture): its parts are cut apart and brought onto the robot's joints -- the
   arms turned down from the A-pose, arms and legs stretched to the robot's -- and then, at rest,
@@ -1871,7 +1871,7 @@ on foot and get into a parked kart: `games/track`.
   times: the parts are open where they were cut, and the surface's own normals cannot be asked.
   The tail is its worn piece, on four `wag_*` links; the styles (crest, frill, spikes) are cubes laid
   on the body's, and the accessories are measured off its cubes.
-  `contrib/fox/make_fox.py` makes the fox man, another add-on, a fourth way, for a model Meshy made
+  [`fox/make_fox.py`](https://github.com/giacomo986/CubesAndPortals-addons/blob/main/fox/make_fox.py) makes the fox man, another add-on, a fourth way, for a model Meshy made
   low (image-to-3D from a picture, smart topology: 12486 triangles in sixteen pieces that are not
   joined): its own faces are kept, each piece brought onto the robot's joints as the lizard's are
   and thinned to 7000 triangles, every face one flat material read off the texture and held to what

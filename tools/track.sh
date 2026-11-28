@@ -13,7 +13,7 @@
 #
 # Le mod in ~/.cubes-and-portals/mods vanno al sandbox e alle sale tascabili,
 # come per un mondo avviato dal menù; quelle con `rooms = all` nel mod.conf (le
-# specie degli add-on, contrib/lizard) il server le porta in tutte le stanze.
+# specie degli add-on, CubesAndPortals-addons/lizard) il server le porta in tutte le stanze.
 #
 # Le aperture del sandbox: 0 (40.5 ... 44.5, guarda +Z) la pista, 1 (60.5 ...
 # 60.5, guarda +X) l'inferno, 2 l'arena, 3 le rovine, 4 le camere di prova, 5 le backrooms, 6 il
@@ -146,7 +146,7 @@ done
 
 # Le mod del giocatore (~/.cubes-and-portals/mods), al sandbox e alle sale
 # tascabili come le dà il menù del titolo: una con `rooms = all` (una specie,
-# contrib/lizard) il server la porta da sé in tutte le altre stanze.
+# CubesAndPortals-addons/lizard) il server la porta da sé in tutte le altre stanze.
 USER_MODS=()
 if [ -d "$HOME/.cubes-and-portals/mods" ]; then
     USER_MODS=(--user-mods "$HOME/.cubes-and-portals/mods")

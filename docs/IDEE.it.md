@@ -37,7 +37,7 @@ Restano, uno alla volta:
 
 ## Personaggi add-on
 
-Esterni al gioco, come la lucertola in `contrib/` (in corso: l'uomo volpe, Meshy + Blender).
+Esterni al gioco, come la lucertola in [CubesAndPortals-addons](https://github.com/giacomo986/CubesAndPortals-addons) (in corso: l'uomo volpe, Meshy + Blender).
 Uno alla volta, mostrando prima i render:
 
 - astronauta o palombaro

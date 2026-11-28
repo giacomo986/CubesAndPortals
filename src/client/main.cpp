@@ -7587,7 +7587,7 @@ constexpr bool kLiveryStyleHat[3][3] = {
 // (tools/make_knight_meshy.py) is switched off. Never taken for an add-on's.
 const char *const kLiveryOff[] = {"knight"};
 
-// Species 4 to 7 are an add-on's (a mod outside the game, contrib/): a body
+// Species 4 to 7 are an add-on's (a mod outside the game, CubesAndPortals-addons): a body
 // "<player model>_<name>" with its first-person arms "<player model>_<name>_arms",
 // both registered by the add-on, the name of a-z and 0-9 and none of the game's.
 // The world's, sorted by name, so every client of a world numbers them alike;
@@ -7752,7 +7752,7 @@ int livery_style(uint32_t livery) { return (int)(livery >> net::kLiveryStyleShif
 // one's, its joints found by name -- a joint the body has not got is dropped
 // from a clip, one the clips do not move stays at rest. So a species' file
 // need not carry the player model's 75 clips, which are most of its megabyte
-// (contrib/lizard's is 50 KB). A bone's turn at rest is given the sign the
+// (CubesAndPortals-addons/lizard's is 50 KB). A bone's turn at rest is given the sign the
 // clips' keys have, as tools/make_species.py does for a file that carries
 // them: q and -q are one turn, but a blend from one to the other goes the
 // long way round.

@@ -42,7 +42,7 @@ traduzioni, segnalazioni di bug e partite di prova sono tutti benvenuti (vedi
 [Contribuire](#contribuire)).
 
 Le lingue ufficiali sono l'inglese, l'italiano e il portoghese brasiliano. La documentazione
-(`docs/`, le guide dei mondi, `contrib/`, il changelog) è in tutte e tre, e una modifica a una si fa
+(`docs/`, le guide dei mondi, il changelog) è in tutte e tre, e una modifica a una si fa
 in tutte e tre. [`docs/API.md`](docs/API.md) è generato da `src/script/api.luau` ed è in inglese.
 Codice, commenti, `TODO.md` e messaggi di commit sono in inglese. Issue e pull request sono
 benvenute in una qualunque delle tre. Anche il gioco è nelle tre lingue (`assets/lang/`: `en`,
@@ -159,7 +159,7 @@ Il progetto è aperto a tutti, e si può aiutare in molti modi:
   [`docs/API.md`](docs/API.md) e [`docs/TEXTURE_PACKS.md`](docs/TEXTURE_PACKS.it.md); i sorgenti
   Blender dei modelli sono in [`assets/blender/`](assets/blender/README.md); una mod che aggiunge
   qualcosa al gioco da fuori -- una specie per il giocatore, per esempio -- si può provare prima come
-  add-on, come [`contrib/`](contrib/README.it.md) tiene l'uomo lucertola;
+  add-on, come [CubesAndPortals-addons](https://github.com/giacomo986/CubesAndPortals-addons/blob/main/README.it.md) tiene l'uomo lucertola;
 - **lavorare sull'engine**: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.it.md) spiega come è fatto il
   codice e dove va una feature nuova; [`TODO.md`](TODO.md) elenca quello che manca.
 
@@ -557,7 +557,7 @@ orda). Carte (`mods/cards`) col mazzo napoletano da quaranta: briscola, cinquigl
 tresette, da due a cinque giocatori, con il tavolo che gioca i posti vuoti.
 
 **Personaggi ed equipaggiamento.** Si sceglie robot, umano, uomo talpa o uomo rana (o quella di un add-on, come l'uomo lucertola
-in `contrib/lizard`), uno stile,
+in [`lizard`](https://github.com/giacomo986/CubesAndPortals-addons/tree/main/lizard)), uno stile,
 tre colori e due accessori, visti da tutti. Sulla schiena: un jetpack per volare, uno zaino di
 cuoio con 27 slot suoi, o uno zaino di metallo con due braccia snodate che tengono uno strumento
 ciascuna. Il catalogo creativo (C) ha una casella di ricerca e le schede per tipo (tutti, blocchi, attrezzi,
@@ -845,7 +845,7 @@ i link qui sotto portano a quello in italiano.
   [l'Inferno](games/inferno/README.it.md), [il parkour](games/parkour/README.it.md),
   [il platform](games/platformer/README.it.md), [lo sparatutto da sala giochi](games/shmup/README.it.md),
   [il tower defense](games/defense/README.it.md), [il mondo delle nuvole](games/skies/README.it.md).
-- [`contrib/README.md`](contrib/README.it.md): gli add-on tenuti fuori dal gioco, come l'uomo
+- [CubesAndPortals-addons](https://github.com/giacomo986/CubesAndPortals-addons/blob/main/README.it.md): gli add-on tenuti fuori dal gioco, come l'uomo
   lucertola.
 - [`TODO.md`](TODO.md) (in inglese): cosa manca e cosa non va.
 - [`docs/archive/`](docs/archive/README.md): lo storico, milestone per milestone, con le misure (in
