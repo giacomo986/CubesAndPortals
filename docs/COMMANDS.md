@@ -69,7 +69,7 @@ everything below it). `/perm` shows and changes which role a permission wants;
 | `/plat <room\|1-1\|1-2\|1-3\|bonus\|boss\|big\|fire>` | platform game | admin | Out to the room, into a level, to 1-1's bonus pipe or 1-3's boss hall; `big` and `fire` give that power in a level |
 | `/shmup <wave N\|power\|drops>` | shooter | admin | `wave N` starts that wave now with 30 lives (or at the next take-off); `power` fills your fighter's power-ups; `drops` makes every kill drop one, or not |
 | `/skies <manta\|village\|updraft\|phase2\|phase3\|kit\|reset>` | cloud world | admin | To the Manta's island, the nearest village or updraft; the Manta's low phase or its fall started now; `kit` the gliders, crystals and weapons; `reset` the fight back to the start |
-| `/track <start\|ring\|grand\|inferno\|loops\|power KIND\|kart>` | track | admin | To that track's start line (in its room); `power KIND` (boost, boost3, banana, shell, homing, ink, star, bolt) into your kart; `kart` a kart in your bag |
+| `/track <start\|ring\|grand\|inferno\|loops\|portal\|power KIND\|kart>` | track | admin | To that track's start line (in its room); `power KIND` (boost, boost3, banana, shell, homing, ink, star, bolt) into your kart; `kart` a kart in your bag |
 
 ## For the staff
 

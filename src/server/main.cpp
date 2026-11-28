@@ -5607,6 +5607,9 @@ struct HotRooms {
     std::string                                                   file;
     std::vector<std::pair<std::string, std::vector<std::string>>> defs;   // name, its flags
     std::vector<std::string>                                      base;   // the program and every room's flags
+    // A player's mod that says `rooms = all` (its directory), given to a room the
+    // server started with: a room started later gets it too, as those did.
+    std::vector<std::string>                                      every_room;
     std::atomic<bool>   running[kRoomSlots] = {};
     std::atomic<bool>   stop[kRoomSlots]    = {};
     bool                hot[kRoomSlots]     = {};
@@ -11079,6 +11082,15 @@ std::string start_room(const std::string &name)
     g_router.restores[i].clear();
     std::vector<std::string> args = g_hot.base;
     args.insert(args.end(), def->begin(), def->end());
+    for (const std::string &d : g_hot.every_room) {
+        const std::string root = std::filesystem::path(d).parent_path().string();
+        bool has = false;   // the whole folder given to this room already
+        for (size_t k = 0; k + 1 < def->size(); ++k)
+            has = has || ((*def)[k] == "--user-mods" && (*def)[k + 1] == root) || ((*def)[k] == "--add-mod" && (*def)[k + 1] == d);
+        if (has) continue;
+        args.push_back("--add-mod");
+        args.push_back(d);
+    }
     std::printf("server: starting room '%s'\n", name.c_str());
 
     std::lock_guard<std::mutex> hold(g_hot.threads_m);
@@ -11294,6 +11306,7 @@ int main(int argc, char **argv)
                 rooms[r].second.push_back(everywhere[k].second);
             }
             std::printf("server: mod '%s' in every room (rooms = all)\n", everywhere[k].first.c_str());
+            g_hot.every_room.push_back(everywhere[k].second);
         }
     }
 

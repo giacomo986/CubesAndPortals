@@ -212,8 +212,8 @@ behind it (`mods/gates`), lead to seven worlds, all rooms of the same server (`t
 or any world started from the title menu):
 
 - **The track** (`games/track`): rigid-body karts (Jolt) with suspension and nitro, driven by the
-  server from the player's keys. Five timed tracks with leaderboards, one through the real
-  Inferno and one with five loops. Track pieces like the stunt racers' (low, high and wide loops,
+  server from the player's keys. Six timed tracks with leaderboards, one through the real
+  Inferno, one with five loops and one with a portal for a shortcut. Track pieces like the stunt racers' (low, high and wide loops,
   wide-to-narrow adapters), and an editor to build new tracks: it offers the pieces that fit the
   open end, undoes, and closes the circuit by itself. Item boxes along the road (boost, bananas,
   green and red shells, star, lightning, ink), drifting with tyre marks, flames from the

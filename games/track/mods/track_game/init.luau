@@ -77,6 +77,15 @@ local TRACKS: { Track } = {
         { axis = "x", at = -76, dir = 1, from = 88,   to = 103 },  -- over the tall loop to the left
         { axis = "z", at = 76, dir = 1,  from = -104, to = -89 },  -- over the tall loop to the right
     } },
+    -- South west of the paddock (track_core), two lanes round a rectangle
+    -- with a finger out of its south side; a portal over the finger's left
+    -- lane (PORTAL_TRACK, below) skips it. No line is in the finger.
+    { key = "portal", gates = {
+        { axis = "x", at = 8,   dir = -1, from = -72,  to = -57 },  -- the north straight, -x
+        { axis = "z", at = -100, dir = -1, from = -64, to = -49 },  -- west, -z
+        { axis = "x", at = -32, dir = 1,  from = -136, to = -121 }, -- south, before the finger
+        { axis = "z", at = -92, dir = 1,  from = 56,   to = 71 },   -- east, +z
+    } },
 }
 -- And the players' own, appended once the world file is read (below): the
 -- start line and checkpoints put down with track_core's tools, wherever the
@@ -1448,6 +1457,13 @@ if serving then
     -- openings (core.portal_open says -1 until then).
     type Mouth = { g: Gate, id: number }
     local pairs_: { { Mouth } } = {}       -- each pair: in, out (out missing while half put down)
+    -- The portal track's own pair (track_core), opened as the tool's are and
+    -- neither kept in the store nor taken away by the tool: in across the
+    -- finger's left lane going south, out across the way back's going north.
+    local PORTAL_TRACK: { Mouth } = {
+        { g = { axis = "z", at = -150, dir = -1, from = -16, to = -9, y = GROUND }, id = -1 },
+        { g = { axis = "z", at = -142, dir = 1,  from = 24,  to = 31, y = GROUND }, id = -1 },
+    }
     local PORTAL_H = 2                       -- half the height
     local function open_mouth(m: Mouth, front: number): boolean
         local g = m.g
@@ -1501,7 +1517,7 @@ if serving then
         for k = 1, #mouths, 2 do
             table.insert(pairs_, { mouths[k], mouths[k + 1] })
         end
-        portals_waiting = #pairs_ > 0
+        portals_waiting = true   -- the portal track's pair at least
     end)
     core.event.on("core:tick", function(_)
         if not portals_waiting then return end
@@ -1509,6 +1525,7 @@ if serving then
         for _, pr in pairs_ do
             if not open_pair(pr) then portals_waiting = true end
         end
+        if not INFERNO and not open_pair(PORTAL_TRACK) then portals_waiting = true end
     end)
     core.event.on("core:used", function(ev)
         if ev.held ~= "track_core:portal_tool" or ev.id == KART_NODE then
@@ -2285,7 +2302,7 @@ if serving then
     core.command("garage", "-- the colours and the parts of your kart")
     core.command("ghost", "[record|mine|NAME|off] -- which ghost kart drives your laps")
     core.command("laps", "-- everybody's best lap on the track you last drove")
-    core.command("track", "<start|ring|grand|inferno|loops|power KIND|kart> -- quick jump or power-up", "admin")
+    core.command("track", "<start|ring|grand|inferno|loops|portal|power KIND|kart> -- quick jump or power-up", "admin")
     core.event.on("core:command", function(ev)
         local s = players[ev.player]
         if s == nil then
@@ -2338,7 +2355,7 @@ if serving then
                     return
                 end
             end
-            core.chat(ev.player, "/track <start|ring|grand|inferno|loops|power KIND|kart>")
+            core.chat(ev.player, "/track <start|ring|grand|inferno|loops|portal|power KIND|kart>")
             return
         elseif ev.name == "garage" then
             show_garage(ev.player, s)

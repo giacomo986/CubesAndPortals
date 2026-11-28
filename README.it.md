@@ -212,8 +212,8 @@ mondo che c'è dietro (`mods/gates`), portano a sette mondi, tutti stanze dello 
 (`tools/track.sh`, o qualunque mondo avviato dal menù del titolo):
 
 - **La pista** (`games/track`): kart a corpo rigido (Jolt) con sospensioni e nitro, guidati dal
-  server con i tasti del giocatore. Cinque piste a tempo con classifica, una che passa per
-  l'Inferno vero e una con cinque giri della morte. Pezzi di pista come nei giochi di corse
+  server con i tasti del giocatore. Sei piste a tempo con classifica, una che passa per
+  l'Inferno vero, una con cinque giri della morte e una con un portale per scorciatoia. Pezzi di pista come nei giochi di corse
   acrobatiche (giri della morte bassi, alti e larghi, adattatori da larga a stretta) e un editor
   per costruire piste nuove: propone i pezzi che si attaccano al capo aperto, annulla e chiude il
   circuito da solo. Scatole di power-up lungo la strada (turbo, banane, gusci verdi e rossi,

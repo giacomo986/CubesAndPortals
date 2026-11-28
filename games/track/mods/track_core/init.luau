@@ -820,6 +820,48 @@ core.event.on("core:world_ready", function()
     end
 end)
 
+-- ---------------------------------------------------------- the portal track
+--
+-- South west of the paddock (x -64..71, z -240..-57), on two lanes: a
+-- rectangle driven clockwise whose south side runs out south into a long
+-- finger -- a hill down, a hairpin, a jump back up. Across the left lane at
+-- the foot of the finger stands a portal (track_game, PORTAL_TRACK) whose
+-- other mouth is across the left lane of the way back: a kart that keeps left
+-- skips the whole finger, one on the right lane drives it. The lines are all
+-- outside the finger, so either way is a lap.
+-- Reached from the paddock's west end: west along z -44..-37, south along
+-- x 32..39 and up a ramp onto the side of the north straight, east of its
+-- start line. Checked by a turtle in Python before it was written down: it
+-- closes, and no square of it is the ring's.
+local PORTAL_LAP = {
+    { "wide_straight3" }, { "wide_straight3" }, { "wide_straight3" }, { "wide_straight2" },
+    { "wide_turn3", "r" }, { "wide_straight3" }, { "wide_straight" }, { "wide_turn3", "r" },
+    { "wide_straight2" }, { "wide_turn3_left", "l" },
+    -- the finger: the entry portal over the first piece, down a hill
+    { "wide_straight2" }, { "wide_rise", "up" }, { "wide_straight2" }, { "wide_rise", "down" },
+    { "wide_straight" }, { "wide_turn3", "r" }, { "wide_turn3", "r" },
+    -- back: a jump, then the exit portal over the last piece
+    { "wide_straight" }, { "wide_kicker", "up" }, { "wide_landing", "down" }, { "wide_straight3" },
+    { "wide_straight2" }, { "wide_straight2" }, { "wide_turn3_left", "l" },
+    { "wide_straight" }, { "wide_turn3", "r" }, { "wide_straight3" }, { "wide_turn3", "r" },
+}
+local PORTAL_X, PORTAL_Z = 5, -9   -- the first piece's right lane, in squares; heading -x
+
+core.event.on("core:world_ready", function()
+    if core.storage_get("portal_track") == "1" then
+        return
+    end
+    core.storage_set("portal_track", "1")
+    lay(PORTAL_LAP, PORTAL_X, PORTAL_Z, 3, "portal track")
+    pave(32, PAD_X0 - 1, -44, -37, true)
+    pave(32, 39, -56, -45, true)
+    for i, z in { -53, -54, -55, -56 } do
+        for x = 32, 39 do
+            core.set_block(x, GROUND, z, RAMP[i])
+        end
+    end
+end)
+
 -- ---------------------------------------------------------- the inferno track
 --
 -- A track half in the world and half in the Inferno -- games/inferno's room, a

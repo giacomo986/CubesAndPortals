@@ -82,6 +82,24 @@ what is built, and three or four structural fixes that each close many entries.
 
 ## To play by hand (built, checked by script only)
 
+2026-11-28, asked by Giacomo:
+- The portal track (track_core PORTAL_LAP, track_game key "portal",
+  `/track portal`): two lanes south west of the paddock (x -64..71, z
+  -240..-57), reached west then south from the paddock's west end. A finger
+  out of its south side (a hill down, a hairpin, a jump back); a fixed portal
+  pair across its LEFT lane skips it. Scripted on a server of the track room
+  alone: a lap through the portal 39.9 s, the long way 59.0 s. Where the
+  scripted driver already steered for the far side 2.5 m before the mouth it
+  came out turned west, went back in and was put back on the road: a person
+  driving straight in was not tried. Not driven by hand, not looked at.
+- Skins in every room: rooms the rooms file starts later (custom tracks,
+  home-*, platformer, shmup...) now get the `rooms = all` add-on mods
+  (lizard, fox) as the rooms the server started with do; before, a player
+  who picked one was the robot there. And a person seen through a mouth onto
+  another room is drawn in their livery (colours, extras, species style),
+  what they wear and hold -- before, only the species' body in default
+  colours. Built; not seen with two players.
+
 Shortcuts to each place below (2026-11-27): `/go ROOM`, `/tp`, and one admin
 command a world (`/chamber`, `/labphase`, `/track`, `/arpg`, `/backrooms`,
 `/inferno`, `/parkour`, `/plat`, `/shmup`, `/skies`, `/defense kit|turrets|wave`,

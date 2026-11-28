@@ -69,7 +69,7 @@ quello sotto). `/perm` mostra e cambia quale ruolo chiede un permesso;
 | `/plat <room\|1-1\|1-2\|1-3\|bonus\|boss\|big\|fire>` | gioco a piattaforme | admin | Fuori nella sala, dentro un livello, al tubo bonus della 1-1 o alla sala del boss della 1-3; `big` e `fire` danno quel potere in un livello |
 | `/shmup <wave N\|power\|drops>` | sparatutto | admin | `wave N` fa partire subito quell'ondata con 30 vite (o al prossimo decollo); `power` riempie i potenziamenti del caccia; `drops` fa lasciare un potenziamento a ogni nemico abbattuto, o no |
 | `/skies <manta\|village\|updraft\|phase2\|phase3\|kit\|reset>` | mondo delle nuvole | admin | All'isola della Manta, al villaggio o alla corrente più vicini; la fase bassa della Manta o la sua caduta subito; `kit` gli alianti, i cristalli e le armi; `reset` lo scontro da capo |
-| `/track <start\|ring\|grand\|inferno\|loops\|power KIND\|kart>` | pista | admin | Alla linea di partenza di quella pista (nella sua stanza); `power KIND` (boost, boost3, banana, shell, homing, ink, star, bolt) nel tuo kart; `kart` un kart nella borsa |
+| `/track <start\|ring\|grand\|inferno\|loops\|portal\|power KIND\|kart>` | pista | admin | Alla linea di partenza di quella pista (nella sua stanza); `power KIND` (boost, boost3, banana, shell, homing, ink, star, bolt) nel tuo kart; `kart` un kart nella borsa |
 
 ## Per lo staff
 

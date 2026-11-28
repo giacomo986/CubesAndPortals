@@ -11524,6 +11524,25 @@ void window_bodies(Session &sh, const net::ClientSession &w)
         b.colour[0] = 0.6f, b.colour[1] = 0.6f, b.colour[2] = 0.6f;
         b.model     = p.kind == net::EntityKind::Player ? species_model(sh.models, p.model, p.livery) : p.model;
         b.yaw       = p.yaw;
+        // A person as they look in their own world: colours, extras, what they
+        // wear and hold, as draw_body_model dresses one this side of the mouth.
+        if (p.kind == net::EntityKind::Player) {
+            b.livery = p.livery;
+            const ItemDef &held = w.items().get((ItemId)p.item);
+            b.hand_known = true;
+            b.hand       = p.item != 0 ? held.name : std::string();
+            b.hand_block = p.item != 0 ? held.places : kAir;
+            b.hand_tag   = (uint32_t)p.item_tint << kTagIdBits;
+            for (int k = 0; k < 5; ++k) {
+                b.worn[k]      = p.worn[k] != 0 ? w.items().get(p.worn[k]).name : std::string();
+                b.worn_tint[k] = p.worn_tint[k];
+            }
+            for (int k = 0; k < 2; ++k) b.arm[k] = p.arm[k] != 0 ? w.items().get(p.arm[k]).name : std::string();
+        }
+        if (p.kind == net::EntityKind::Player || p.kind == net::EntityKind::Mob) {
+            std::copy(std::begin(p.dress), std::end(p.dress), std::begin(b.dress));
+            std::copy(std::begin(p.dress_tint), std::end(p.dress_tint), std::begin(b.dress_tint));
+        }
         if (p.model != 0)
             animate_body(sh, p.id, b, Vec3{p.x, p.y, p.z},
                          species_model(sh.models, w.welcome().player_model, p.livery), nullptr,

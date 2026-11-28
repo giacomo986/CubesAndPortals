@@ -69,7 +69,7 @@ tudo o que está abaixo). `/perm` mostra e muda qual cargo uma permissão pede;
 | `/plat <room\|1-1\|1-2\|1-3\|bonus\|boss\|big\|fire>` | jogo de plataformas | admin | Para fora na sala, para dentro de um nível, ao cano bónus do 1-1 ou à sala do chefe do 1-3; `big` e `fire` dão esse poder num nível |
 | `/shmup <wave N\|power\|drops>` | jogo de tiro | admin | `wave N` começa já essa onda com 30 vidas (ou na próxima descolagem); `power` enche os potenciadores do caça; `drops` faz cada abate soltar um, ou não |
 | `/skies <manta\|village\|updraft\|phase2\|phase3\|kit\|reset>` | mundo das nuvens | admin | Para a ilha da Manta, a aldeia ou corrente mais próxima; a fase baixa da Manta ou a sua queda já; `kit` os planadores, cristais e armas; `reset` a luta do início |
-| `/track <start\|ring\|grand\|inferno\|loops\|power KIND\|kart>` | pista | admin | Para a linha de partida dessa pista (na sua sala); `power KIND` (boost, boost3, banana, shell, homing, ink, star, bolt) no seu kart; `kart` um kart no saco |
+| `/track <start\|ring\|grand\|inferno\|loops\|portal\|power KIND\|kart>` | pista | admin | Para a linha de partida dessa pista (na sua sala); `power KIND` (boost, boost3, banana, shell, homing, ink, star, bolt) no seu kart; `kart` um kart no saco |
 
 ## Para a equipe
 
