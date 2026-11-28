@@ -584,6 +584,12 @@ Drop a folder holding mods on this window to add it = Solte nesta janela uma pas
 folder added = pasta adicionada
 click again: its mods stop loading, the folder stays where it is = clique de novo: os mods dela deixam de carregar, a pasta fica onde está
 folder taken away = pasta retirada
+Also here, left out: = Também aqui, deixada de fora:
+(loads; a copy is left out) = (carrega; uma cópia fica de fora)
+(a copy, left out) = (uma cópia, deixada de fora)
+Here already: = Já está aqui:
+Replace it with = Substituir por
+replaced = substituída
 
 # --- Sandbox mods (2026-11-03) ---
 RANK {}  {} MANA = GRAU {}  {} MANA

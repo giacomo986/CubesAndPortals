@@ -3,6 +3,7 @@
 #include "modpack/mod_package.h"
 
 #include <algorithm>
+#include <map>
 #include <cctype>
 #include <chrono>
 #include <cstdio>
@@ -783,19 +784,26 @@ int ModHost::load_dir(const std::vector<std::string> &mods_dirs)
     // bug worth finding on the developer's machine rather than on a user's.
     std::vector<std::string> dirs;
     std::vector<std::string> packages;
-    for (const std::string &mods_dir : mods_dirs) {
+    std::map<std::string, int> rank;   // a mod's folder (or package) -> which mods folder it came from
+    for (size_t r = 0; r < mods_dirs.size(); ++r) {
+        const std::string &mods_dir = mods_dirs[r];
         if (mods_dir.empty() || !fs::is_directory(mods_dir, ec)) continue;
         for (const fs::directory_entry &e : fs::directory_iterator(mods_dir, ec)) {
             if (e.is_directory(ec)) {
                 if (!looks_like_mod(e.path().string())) continue;   // .git, a texture pack, a room's folder
                 dirs.push_back(e.path().string());
+                rank.emplace(dirs.back(), (int)r);
             } else if (e.path().extension() == kModPackageExtension) {
                 packages.push_back(e.path().string());
+                rank.emplace(packages.back(), (int)r);
             }
         }
     }
     for (const std::string &d : m_added)   // one mod each, a room's own copy is its own business
-        if (fs::is_directory(d, ec) && std::find(dirs.begin(), dirs.end(), d) == dirs.end()) dirs.push_back(d);
+        if (fs::is_directory(d, ec) && std::find(dirs.begin(), dirs.end(), d) == dirs.end()) {
+            dirs.push_back(d);
+            rank.emplace(d, (int)mods_dirs.size());
+        }
     if (dirs.empty() && packages.empty()) return 0;
     std::sort(dirs.begin(), dirs.end());
     std::sort(packages.begin(), packages.end());
@@ -808,6 +816,7 @@ int ModHost::load_dir(const std::vector<std::string> &mods_dirs)
         std::string dir, err;
         if (unpack_package(p, dir, err)) {
             dirs.push_back(dir);
+            rank.emplace(dir, rank[p]);
             continue;
         }
 
@@ -821,7 +830,62 @@ int ModHost::load_dir(const std::vector<std::string> &mods_dirs)
         m_mods.push_back(std::move(failed));
     }
 
+    // Copies of one mod: one loads (mod_copy_wins), and the log says which and
+    // where the others are, instead of the second refusing to start.
+    {
+        struct Copy {
+            std::string dir;
+            ModManifest m;
+            int         rank = 0;
+        };
+        std::map<std::string, std::vector<Copy>> by_name;
+        std::vector<std::string>                kept;
+        std::vector<std::string>                seen;   // folders on disk, through links
+        // The folder given first keeps a folder reached twice (mod_copy_wins).
+        std::stable_sort(dirs.begin(), dirs.end(), [&](const std::string &x, const std::string &y) {
+            const int rx = rank.count(x) ? rank[x] : (int)mods_dirs.size();
+            const int ry = rank.count(y) ? rank[y] : (int)mods_dirs.size();
+            return rx < ry;
+        });
+        for (const std::string &d : dirs) {
+            const std::string real = fs::weakly_canonical(d, ec).string();
+            if (std::find(seen.begin(), seen.end(), real) != seen.end()) {
+                std::printf("mods: %s is a folder already given (%s), loaded once\n", d.c_str(), real.c_str());
+                continue;
+            }
+            seen.push_back(real);
+            Copy        c{d, {}, rank.count(d) ? rank[d] : (int)mods_dirs.size()};
+            std::string err;
+            if (!read_manifest(d, c.m, err) || c.m.name.empty()) {
+                kept.push_back(d);   // load_dirs says what is wrong with it
+                continue;
+            }
+            by_name[c.m.name].push_back(std::move(c));
+        }
+        for (auto &[name, copies] : by_name) {
+            size_t win = 0;
+            for (size_t i = 1; i < copies.size(); ++i)
+                if (mod_copy_wins(copies[i].m, copies[i].rank, copies[win].m, copies[win].rank)) win = i;
+            kept.push_back(copies[win].dir);
+            for (size_t i = 0; i < copies.size(); ++i)
+                if (i != win)
+                    std::printf("mods: '%s' is here twice: %s %s loads, %s %s is left out\n", name.c_str(),
+                                copies[win].m.version.str().c_str(), copies[win].dir.c_str(),
+                                copies[i].m.version.str().c_str(), copies[i].dir.c_str());
+        }
+        std::sort(kept.begin(), kept.end());
+        dirs = std::move(kept);
+    }
+
     return load_dirs(dirs);
+}
+
+bool mod_copy_wins(const ModManifest &a, int a_rank, const ModManifest &b, int b_rank)
+{
+    if ((a_rank == 0) != (b_rank == 0)) return a_rank == 0;
+    if (a.version != b.version) return a.version > b.version;
+    if (a_rank != b_rank) return a_rank < b_rank;
+    return a.dir < b.dir;
 }
 
 bool looks_like_mod(const std::string &dir)

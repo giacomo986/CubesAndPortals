@@ -131,6 +131,15 @@ struct ModManifest {
 // add-ons) are not, and are passed by without a word.
 bool looks_like_mod(const std::string &dir);
 
+// Two copies of one mod -- the same name in two folders, the same mod added
+// twice -- and only one may load. The rule, which the launcher shows as the
+// server applies it: the game's own (rank 0: the first mods folder) always;
+// else the newer version; else the folder given first (the lower rank: the
+// player's, then the launcher's Paths, then the world's own); else the path
+// that sorts first. Two entries that are one folder on disk (a link beside
+// what it leads to) are one copy, and load once.
+bool mod_copy_wins(const ModManifest &a, int a_rank, const ModManifest &b, int b_rank);
+
 struct Mod {
     ModManifest manifest;
 

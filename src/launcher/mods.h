@@ -46,17 +46,35 @@ bool read_mod(const std::string &path, ModEntry &out, std::string &err);
 std::vector<std::string> problems(const ModEntry &e, const std::vector<ModEntry> &all,
                                   unsigned api_oldest, unsigned api_newest);
 
+// The other copies of `e`'s mod among `all` (the same name elsewhere), and
+// whether `e` is the one that loads (mod_copy_wins, as the server decides). A
+// copy that is the same folder on disk as another (a link) is `same_folder`.
+struct Copies {
+    std::vector<const ModEntry *> others;
+    bool                          loads       = true;
+    const ModEntry               *winner      = nullptr;   // the one that loads, when not `e`
+    bool                          same_folder = false;
+};
+Copies copies_of(const ModEntry &e, const std::vector<ModEntry> &all);
+
 // One line a capability: what it lets the mod do.
 std::string capability_meaning(const std::string &cap);
 
 // Turns `name` off or on in a view's list.
 void set_off(const std::string &world, const std::string &name, bool off);
 
-// Copies a mod (directory or .cnpmod) into the view's folder, refused when a mod
-// of that name is in `all` already. Empty on success. `link`: a folder is linked
+// Copies a mod (directory or .cnpmod) into the view's folder, refused when that
+// very folder (or file) is in `all` already, or one of its name is in the view's
+// own folder (take it away first: replaceable_copy). A copy elsewhere is
+// allowed: the newer loads (copies_of). Empty on success. `link`: a folder is linked
 // there instead of copied, so a change to it is seen at once (working on it).
 std::string install_mod(const ModEntry &mod, const std::string &world, const std::vector<ModEntry> &all,
                         bool link = false);
+
+// The copy of `mod` already in the view's own folder (everywhere's, or the
+// world's) that adding it would stand beside: what "Replace" takes away first.
+// Null when there is none.
+const ModEntry *replaceable_copy(const ModEntry &mod, const std::string &world, const std::vector<ModEntry> &all);
 
 // The Paths page: a folder of mods added to those loaded everywhere, or taken
 // away (the folder itself is left as it is). Empty on success.

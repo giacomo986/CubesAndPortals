@@ -418,6 +418,18 @@ Una cartella dentro una di queste che non ha né un `mod.conf` né un `.luau` (u
 `.git`, le `mods/` di una stanza) viene saltata senza dire niente, dal launcher come dal server.
 Percorsi apre anche la cartella dei tuoi mod, i tuoi mondi e il log del gioco.
 
+**Due copie dello stesso mod.** Lo stesso mod raggiunto due volte -- un link nella tua cartella dei
+mod a una cartella che sta anche in un percorso, una copia vecchia accanto a una nuova -- si carica
+una volta, scelto allo stesso modo dal server e dal launcher (`mod_copy_wins`): quello del gioco
+sempre; altrimenti la versione più nuova; altrimenti la cartella data per prima (la tua, poi
+Percorsi, poi quella del mondo). Il log del server dice
+`mods: 'decor' is here twice: 0.2.0 <percorso> loads, 0.1.0 <percorso> is left out`, o per un link
+`... is a folder already given (...), loaded once`; la pagina Mod del launcher segna la copia lasciata
+fuori con `!` e quella che si carica con `(si carica; una copia resta fuori)`, e la sua pagina nomina
+l'altra. Un mod trascinato su Mod il cui nome è già nella cartella di quella vista non viene aggiunto
+accanto: **Sostituisci** toglie prima la copia vecchia (`cnp_launcher --add-mod PERCORSO --replace`
+senza finestra).
+
 Un mod spento è nominato nel log (`mod 'x' left out by this world`) e non viene caricato; un
 server lo prende come `--no-mod NOME`, e `--user-mods` più di una volta. I suoi blocchi già nel
 mondo diventano segnaposto magenta finché non viene riacceso, e poi tornano quelli di prima.

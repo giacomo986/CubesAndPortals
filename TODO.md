@@ -111,6 +111,10 @@ what is built, and three or four structural fixes that each close many entries.
   (folders without mod.conf or .luau are passed by). "Open" buttons not
   clicked (they call the system's file manager); the flatpak sees only its
   own folders, so a path outside home may not load there -- not tried.
+- Two copies of one mod (2026-11-28): one loads, by one rule in server and
+  launcher (mod_copy_wins: game's, newer, first given); a link to a folder
+  also given loads once. Seen: the log lines, the launcher's marks and detail
+  line, Replace by --add-mod --replace. Replace in the window not clicked.
 
 Shortcuts to each place below (2026-11-27): `/go ROOM`, `/tp`, and one admin
 command a world (`/chamber`, `/labphase`, `/track`, `/arpg`, `/backrooms`,

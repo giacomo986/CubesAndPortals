@@ -140,13 +140,44 @@ std::vector<std::string> problems(const ModEntry &e, const std::vector<ModEntry>
         else if (!d.satisfied_by(it->manifest.version))
             out.push_back("needs " + d.str() + ", and " + it->manifest.version.str() + " is here");
     }
-    for (size_t i = 0; i < all.size(); ++i)
-        if (&all[i] != &e && all[i].error.empty() && all[i].manifest.name == e.manifest.name &&
-            all[i].where < e.where) {
-            out.push_back("a mod called " + e.manifest.name + " is here already: this one does not load");
-            break;
-        }
+    const Copies c = copies_of(e, all);
+    if (!c.loads && c.winner != nullptr)
+        out.push_back(c.same_folder ? "the same folder as " + c.winner->path + ": loaded once, from there"
+                                    : "also " + c.winner->manifest.version.str() + " in " + c.winner->path +
+                                          ", which loads instead");
     return out;
+}
+
+Copies copies_of(const ModEntry &e, const std::vector<ModEntry> &all)
+{
+    Copies          out;
+    std::error_code ec;
+    if (!e.error.empty() || e.manifest.name.empty()) return out;
+    const std::string mine = fs::weakly_canonical(e.path, ec).string();
+    for (const ModEntry &o : all) {
+        if (&o == &e || !o.error.empty() || o.manifest.name != e.manifest.name || o.off) continue;
+        out.others.push_back(&o);
+        const bool same = fs::weakly_canonical(o.path, ec).string() == mine;
+        // A link and what it leads to: the server keeps the first it lists, the
+        // lower rank; here, the same.
+        const bool beats = same ? (o.where < e.where || (o.where == e.where && o.path < e.path))
+                                : mod_copy_wins(o.manifest, (int)o.where, e.manifest, (int)e.where);
+        if (beats && (out.winner == nullptr ||
+                      mod_copy_wins(o.manifest, (int)o.where, out.winner->manifest, (int)out.winner->where))) {
+            out.loads       = false;
+            out.winner      = &o;
+            out.same_folder = same;
+        }
+    }
+    return out;
+}
+
+const ModEntry *replaceable_copy(const ModEntry &mod, const std::string &world, const std::vector<ModEntry> &all)
+{
+    const Where here = world.empty() ? Where::Everywhere : Where::World;
+    for (const ModEntry &o : all)
+        if (o.where == here && o.error.empty() && o.manifest.name == mod.manifest.name) return &o;
+    return nullptr;
 }
 
 std::string capability_meaning(const std::string &cap)
@@ -168,9 +199,14 @@ void set_off(const std::string &world, const std::string &name, bool off)
 std::string install_mod(const ModEntry &mod, const std::string &world, const std::vector<ModEntry> &all, bool link)
 {
     if (!mod.error.empty() || mod.manifest.name.empty()) return "not a mod";
+    std::error_code ec0;
+    const std::string real = fs::weakly_canonical(mod.path, ec0).string();
     for (const ModEntry &m : all)
-        if (m.error.empty() && m.manifest.name == mod.manifest.name)
-            return "a mod called " + mod.manifest.name + " is here already";
+        if (m.error.empty() && m.manifest.name == mod.manifest.name &&
+            fs::weakly_canonical(m.path, ec0).string() == real)
+            return mod.manifest.name + " is this very folder, here already";
+    if (const ModEntry *old = replaceable_copy(mod, world, all))
+        return "a copy of " + mod.manifest.name + " (" + old->manifest.version.str() + ") is in this folder: Replace it";
     const fs::path  dir = world.empty() ? fs::path(user_mods_dir()) : fs::path(world_dir(world)) / "mods";
     std::error_code ec;
     fs::create_directories(dir, ec);

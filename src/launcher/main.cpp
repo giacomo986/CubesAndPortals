@@ -154,6 +154,14 @@ float mod_lines(ui::Panel &p, const ModsView &v, const launcher::ModEntry &m, fl
         y += kLine;
     }
     if (trouble.empty()) y += kLine;
+    // The other copies this one wins over: where they are, left out.
+    if (const launcher::Copies c = launcher::copies_of(m, v.mods); c.loads)
+        for (const launcher::ModEntry *o : c.others) {
+            panel_label(p, std::string(lang::tr("Also here, left out:")) + " " + o->manifest.version.str() + "  " +
+                               o->path.substr(o->path.size() > 60 ? o->path.size() - 60 : 0),
+                        0.5f, y);
+            y += kLine;
+        }
     if (m.manifest.capabilities.empty()) {
         panel_label(p, "Asks for nothing beyond the world", 0.5f, y);
         y += kLine;
@@ -182,6 +190,8 @@ float mods_panel(ui::Panel &p, Page page, const ModsView &v, float y)
             if (m.where == launcher::Where::Game) text += std::string("   ") + lang::tr("(game)");
             if (m.where == launcher::Where::Path) text += std::string("   ") + lang::tr("(folder)");
             if (m.off) text += std::string("   ") + lang::tr(m.off_all ? "(off everywhere)" : "(off)");
+            if (const launcher::Copies c = launcher::copies_of(m, v.mods); !c.others.empty())
+                text += std::string("   ") + lang::tr(c.loads ? "(loads; a copy is left out)" : "(a copy, left out)");
             if (!launcher::problems(m, v.mods, v.api_oldest, v.api_newest).empty()) text = "! " + text;
             panel_add(p, ui::ElemKind::Button, "mod:" + std::to_string(i), text, 0.5f, y, kWide - 1.0f);
             y += kRow;
@@ -210,6 +220,18 @@ float mods_panel(ui::Panel &p, Page page, const ModsView &v, float y)
     // ModInstall: what was dropped, before it is copied anywhere. A folder may
     // be linked instead, for a mod being worked on: every save is seen.
     y = mod_lines(p, v, v.pending, y);
+    // One of its name in this view's own folder: added beside it, it would be
+    // a second copy there; Replace takes the old one away first.
+    if (const launcher::ModEntry *old = launcher::replaceable_copy(v.pending, v.world(), v.mods)) {
+        panel_label(p, std::string(lang::tr("Here already:")) + " " + old->manifest.name + " " +
+                           old->manifest.version.str(),
+                    0.5f, y);
+        y += kLine + 0.1f;
+        panel_button(p, "mod_replace", std::string(lang::tr("Replace it with")) + " " + v.pending.manifest.version.str(),
+                     0.5f, y, 7.4f);
+        panel_button(p, "mods", "Cancel", 8.1f, y, 7.4f);
+        return y + kRow;
+    }
     std::error_code ec;
     const bool      folder = std::filesystem::is_directory(v.pending.path, ec);
     panel_button(p, "mod_install", std::string(lang::tr("Add to")) + " " + view, 0.5f, y, folder ? 5.0f : 7.4f);
@@ -381,7 +403,7 @@ int main(int argc, char **argv)
     // screens make.
     bool        headless = false;
     std::string install_v, remove_v, add_mod, mods_world, add_path, remove_path;
-    bool        list_mods = false, list_paths = false;
+    bool        list_mods = false, list_paths = false, replace = false;
     for (int i = 1; i < argc; ++i) {
         const std::string a = argv[i];
         if (a == "--releases-from" && i + 1 < argc) launcher::g_download_base = argv[++i];
@@ -393,12 +415,13 @@ int main(int argc, char **argv)
         else if (a == "--mods") headless = list_mods = true;
         else if (a == "--world" && i + 1 < argc) mods_world = argv[++i];
         else if (a == "--paths") headless = list_paths = true;
+        else if (a == "--replace") replace = true;
         else if (a == "--add-path" && i + 1 < argc) add_path = argv[++i], headless = list_paths = true;
         else if (a == "--remove-path" && i + 1 < argc) remove_path = argv[++i], headless = list_paths = true;
         else {
             std::fprintf(stderr, "usage: cnp_launcher [--releases-from URL] [--releases-api URL]\n"
                                  "                    [--list | --install VERSION | --remove VERSION]\n"
-                                 "                    [--mods | --add-mod PATH] [--world NAME]\n"
+                                 "                    [--mods | --add-mod PATH [--replace]] [--world NAME]\n"
                                  "                    [--paths | --add-path DIR | --remove-path DIR]\n");
             return 2;
         }
@@ -426,7 +449,14 @@ int main(int argc, char **argv)
         if (!add_mod.empty()) {
             launcher::ModEntry m;
             std::string        err;
-            if (launcher::read_mod(add_mod, m, err)) err = launcher::install_mod(m, mods_world, mods);
+            if (launcher::read_mod(add_mod, m, err)) {
+                // --replace: the copy of it in that folder goes first.
+                if (const launcher::ModEntry *old = launcher::replaceable_copy(m, mods_world, mods); old && replace) {
+                    err = launcher::remove_mod(*old);
+                    mods = launcher::list_mods(game, mods_world);
+                }
+                if (err.empty()) err = launcher::install_mod(m, mods_world, mods);
+            }
             if (!err.empty()) {
                 std::fprintf(stderr, "cnp_launcher: %s\n", err.c_str());
                 return 1;
@@ -680,6 +710,17 @@ int main(int argc, char **argv)
                     reload_mods();
                     page = Page::Mods;
                 }
+            }
+            if (id == "mod_replace") {
+                const launcher::ModEntry *old = launcher::replaceable_copy(mods.pending, mods.world(), mods.mods);
+                std::string err = old == nullptr ? "" : launcher::remove_mod(*old);
+                if (err.empty()) {
+                    reload_mods();
+                    err = launcher::install_mod(mods.pending, mods.world(), mods.mods);
+                }
+                error = err.empty() ? mods.pending.manifest.name + " " + lang::tr("replaced") : err;
+                reload_mods();
+                page = Page::Mods;
             }
             if (id == "mod_install" || id == "mod_link") {
                 const std::string err = launcher::install_mod(mods.pending, mods.world(), mods.mods, id == "mod_link");

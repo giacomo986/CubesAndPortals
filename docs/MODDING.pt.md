@@ -389,6 +389,16 @@ Uma pasta dentro de uma dessas que não tem nem `mod.conf` nem `.luau` (um pacot
 `.git`, as `mods/` de uma sala) é pulada sem aviso, pelo launcher e pelo servidor. Caminhos também
 abre a pasta dos seus mods, os seus mundos e o log do jogo.
 
+**Duas cópias do mesmo mod.** O mesmo mod alcançado duas vezes -- um link na sua pasta de mods para
+uma pasta que um caminho também tem, uma cópia velha ao lado de uma nova -- carrega uma vez, escolhido
+do mesmo jeito pelo servidor e pelo launcher (`mod_copy_wins`): o do jogo sempre; senão a versão mais
+nova; senão a pasta dada primeiro (a sua, depois Caminhos, depois a do mundo). O log do servidor diz
+`mods: 'decor' is here twice: 0.2.0 <caminho> loads, 0.1.0 <caminho> is left out`, ou para um link
+`... is a folder already given (...), loaded once`; a página Mods do launcher marca a cópia deixada de
+fora com `!` e a que carrega com `(carrega; uma cópia fica de fora)`, e a página dela nomeia a outra.
+Um mod solto em Mods cujo nome já está na pasta dessa vista não é adicionado ao lado: **Substituir**
+tira antes a cópia velha (`cnp_launcher --add-mod CAMINHO --replace` sem janela).
+
 Um mod desligado é nomeado no log (`mod 'x' left out by this world`) e não é carregado; um servidor
 o recebe como `--no-mod NOME`, e `--user-mods` mais de uma vez. Os blocos dele que já estão no mundo
 viram marcadores magenta até ele ser ligado de novo, e aí voltam a ser eles mesmos.

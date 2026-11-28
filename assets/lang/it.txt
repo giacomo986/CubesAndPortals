@@ -583,6 +583,12 @@ Drop a folder holding mods on this window to add it = Trascina qui una cartella 
 folder added = cartella aggiunta
 click again: its mods stop loading, the folder stays where it is = clicca di nuovo: le sue mod non si caricano più, la cartella resta dov'è
 folder taken away = cartella tolta
+Also here, left out: = Anche qui, lasciata fuori:
+(loads; a copy is left out) = (si carica; una copia resta fuori)
+(a copy, left out) = (una copia, lasciata fuori)
+Here already: = Già qui:
+Replace it with = Sostituiscila con
+replaced = sostituita
 
 # --- Sandbox mods (2026-11-03) ---
 RANK {}  {} MANA = RANGO {}  {} MANA

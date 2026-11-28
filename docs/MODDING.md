@@ -387,6 +387,16 @@ neither a `mod.conf` nor any `.luau` (a texture pack, a `.git`, a room's own `mo
 without a word, by the launcher and the server alike. Paths also opens your mods folder, your worlds
 and the game's log.
 
+**Two copies of one mod.** The same mod reached twice -- a link in your mods folder to a folder a
+path also holds, an old copy beside a newer one -- loads once, chosen the same way by the server and
+the launcher (`mod_copy_wins`): the game's own always; else the newer version; else the folder given
+first (yours, then Paths, then the world's own). The server's log says
+`mods: 'decor' is here twice: 0.2.0 <path> loads, 0.1.0 <path> is left out`, or for a link
+`... is a folder already given (...), loaded once`; the launcher's Mods page marks the copy left out
+with `!` and the one that loads with `(loads; a copy is left out)`, and its page names the other. A mod
+dropped on Mods whose name is in that view's folder already is not added beside it: **Replace** takes
+the old copy away first (`cnp_launcher --add-mod PATH --replace` without a window).
+
 A mod turned off is named in the log (`mod 'x' left out by this world`) and not loaded; a
 server takes it as `--no-mod NAME`, and `--user-mods` more than once. Its blocks already in the
 world become magenta placeholders until it is turned back on, and are themselves again then.
